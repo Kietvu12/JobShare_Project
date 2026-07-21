@@ -1,0 +1,43 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+build/
+.next/
+out/
+
+# environment
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+logs/
+
+# cache
+.cache/
+.tmp/
+temp/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# package managers
+.pnpm-store/
+.npm/
+
+# test
+coverage/
+
+# uploads
+uploads/
+
+# PM2
+.pm2/

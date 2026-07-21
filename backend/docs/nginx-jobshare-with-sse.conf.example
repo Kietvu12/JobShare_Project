@@ -1,0 +1,338 @@
+# JobShare nginx — mẫu đầy đủ (SSE realtime chat + Socket.IO)
+# Sao chép / merge vào /etc/nginx/sites-available/jobshare
+#   sudo nginx -t && sudo systemctl reload nginx
+#
+# TLS admin:
+#   sudo certbot --nginx -d ws-jobshare.com -d www.ws-jobshare.com -d admin.ws-jobshare.com
+
+# --- HTTP → HTTPS (trang chính) ---
+server {
+    listen 80;
+    server_name ws-jobshare.com www.ws-jobshare.com;
+    return 301 https://$host$request_uri;
+}
+
+# --- HTTP → HTTPS (admin subdomain) ---
+server {
+    listen 80;
+    server_name admin.ws-jobshare.com;
+    return 301 https://$host$request_uri;
+}
+
+# =============================================================================
+# Macro logic — lặp lại trong CẢ HAI block HTTPS bên dưới (main + admin)
+# Thứ tự location QUAN TRỌNG: SSE trước, socket.io, rồi /api_jobshare/ chung
+# =============================================================================
+
+# --- HTTPS: trang chính + CTV + ứng viên ---
+server {
+    listen 443 ssl;
+    server_name ws-jobshare.com www.ws-jobshare.com;
+
+    client_max_body_size 60m;
+    ssl_certificate /etc/letsencrypt/live/ws-jobshare.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ws-jobshare.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    # [1] SSE — location = cố định (strip /api_jobshare, giữ ?token= / ?sessionToken=)
+    # Tránh regex proxy_pass sai → 404 Route not found trên Node
+    location = /api_jobshare/api/admin/public-ctv-chat/inbox-stream {
+        proxy_pass http://127.0.0.1:3000/api/admin/public-ctv-chat/inbox-stream;
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        chunked_transfer_encoding off;
+    }
+    location = /api_jobshare/api/admin/public-candidate-chat/inbox-stream {
+        proxy_pass http://127.0.0.1:3000/api/admin/public-candidate-chat/inbox-stream;
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        chunked_transfer_encoding off;
+    }
+    location = /api_jobshare/api/public/ctv-chat/stream {
+        proxy_pass http://127.0.0.1:3000/api/public/ctv-chat/stream;
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        chunked_transfer_encoding off;
+    }
+    location = /api_jobshare/api/public/candidate-chat/stream {
+        proxy_pass http://127.0.0.1:3000/api/public/candidate-chat/stream;
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        chunked_transfer_encoding off;
+    }
+    location = /api_jobshare/api/ctv/notifications/stream {
+        proxy_pass http://127.0.0.1:3000/api/ctv/notifications/stream;
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        chunked_transfer_encoding off;
+    }
+    location = /api_jobshare/api/admin/notifications/stream {
+        proxy_pass http://127.0.0.1:3000/api/admin/notifications/stream;
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        chunked_transfer_encoding off;
+    }
+
+    # [2] Socket.IO (WebSocket) — KHÔNG dùng cho SSE
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:3000/socket.io/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    # [3] API Node — KHÔNG set Connection upgrade (gây ERR_INCOMPLETE_CHUNKED_ENCODING cho SSE nếu lẫn)
+    location /api_jobshare/ {
+        client_max_body_size 60m;
+        proxy_pass http://127.0.0.1:3000/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+    }
+
+    location /api_ai/ {
+        client_max_body_size 60m;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+    }
+
+    root /home/ubuntu/JobShare_Web_True/frontend;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+
+# --- HTTPS: admin subdomain ---
+server {
+    listen 443 ssl;
+    server_name admin.ws-jobshare.com;
+
+    ssl_certificate /etc/letsencrypt/live/admin.ws-jobshare.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/admin.ws-jobshare.com/privkey.pem;
+    client_max_body_size 60m;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    # [1] SSE — location = cố định (copy y hệt block trên)
+    location = /api_jobshare/api/admin/public-ctv-chat/inbox-stream {
+        proxy_pass http://127.0.0.1:3000/api/admin/public-ctv-chat/inbox-stream;
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        chunked_transfer_encoding off;
+    }
+    location = /api_jobshare/api/admin/public-candidate-chat/inbox-stream {
+        proxy_pass http://127.0.0.1:3000/api/admin/public-candidate-chat/inbox-stream;
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        chunked_transfer_encoding off;
+    }
+    location = /api_jobshare/api/public/ctv-chat/stream {
+        proxy_pass http://127.0.0.1:3000/api/public/ctv-chat/stream;
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        chunked_transfer_encoding off;
+    }
+    location = /api_jobshare/api/public/candidate-chat/stream {
+        proxy_pass http://127.0.0.1:3000/api/public/candidate-chat/stream;
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        chunked_transfer_encoding off;
+    }
+    location = /api_jobshare/api/ctv/notifications/stream {
+        proxy_pass http://127.0.0.1:3000/api/ctv/notifications/stream;
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        chunked_transfer_encoding off;
+    }
+    location = /api_jobshare/api/admin/notifications/stream {
+        proxy_pass http://127.0.0.1:3000/api/admin/notifications/stream;
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        chunked_transfer_encoding off;
+    }
+
+    # [2] Socket.IO
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:3000/socket.io/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    # [3] API Node
+    location /api_jobshare/ {
+        client_max_body_size 60m;
+        proxy_pass http://127.0.0.1:3000/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+    }
+
+    location /api_ai/ {
+        client_max_body_size 60m;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+    }
+
+    root /home/ubuntu/JobShare_Web_True/frontend;
+    index index.html;
+
+    # OG preview blog — thêm `map $http_user_agent $is_social_bot` vào block http {}
+    # (xem backend/docs/nginx-blog-og-snippet.conf)
+
+    location ~ ^/(vi|en|ja)(/candidate)?/blog/([^/]+)/?$ {
+        error_page 418 = @blog_og_proxy;
+        if ($is_social_bot) { return 418; }
+        try_files $uri $uri/ /index.html;
+    }
+
+    location @blog_og_proxy {
+        proxy_pass http://127.0.0.1:3000/public/og$request_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location = / {
+        return 302 /admin;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

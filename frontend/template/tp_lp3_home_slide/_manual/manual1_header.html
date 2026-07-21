@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>lp3マニュアル</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="ここにサイト説明を入れます">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+#container {
+	min-height: auto;
+}
+</style>
+</head>
+
+<body class="home" id="manual">
+
+<div id="container">
+
+
+<!--▼▼▼▼▼ここから「ヘッダー」-->
+<header style="background: #ccc;">
+
+<h1 id="logo"><a href="index.html"><img src="../images/logo-home.png" alt="あなたのサイト名"></a></h1>
+
+<!--開閉メニュー-->
+<div id="menubar">
+
+<nav>
+<ul>
+<li><a href="#kodawari">私たちのこだわり</a></li>
+<li><a href="#service">サービス紹介</a></li>
+<li><a href="#flow">ご利用の流れ</a></li>
+<li><a href="#voice">お客様の声</a></li>
+<li><a href="#faq">よく頂く質問</a></li>
+<li><a href="#footer">アクセス</a></li>
+</ul>
+</nav>
+
+</div>
+<!--/#menubar（開閉メニュー）-->
+
+<div id="header-box">
+<ul class="btn">
+<li><a href="#"><i class="fa-solid fa-envelope"></i>オンライン予約</a></li>
+<li><a href="#"><i class="fa-solid fa-phone-volume"></i>お電話でのご予約</a></li>
+</ul>
+</div>
+
+</header>
+<!--▲▲▲▲▲ここまで「ヘッダー」-->
+
+
+<!--▲▲▲▲▲ここまで「ヘッダー」-->
+
+<p style="margin-top: 150px;">※ロゴが白で見えないので、ヘッダー背景をグレーにしています。</p>
+
+
+</div>
+<!--/#container-->
+
+
+
+<!--開閉ボタン（ハンバーガーアイコン）-->
+<div id="menubar_hdr">
+<span></span><span></span><span></span>
+</div>
+
+
+
+<div class="manual">
+
+<h2>ヘッダーブロック</h2>
+
+<pre class="look">
+&lt;header&gt;
+
+&lt;h1 id=&quot;logo&quot;&gt;&lt;a href=&quot;index.html&quot;&gt;&lt;img src=&quot;images/logo-home.png&quot; alt=&quot;あなたのサイト名&quot;&gt;&lt;/a&gt;&lt;/h1&gt;
+
+&lt;!--開閉メニュー--&gt;
+&lt;div id=&quot;menubar&quot;&gt;
+
+&lt;nav&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;#kodawari&quot;&gt;私たちのこだわり&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#service&quot;&gt;サービス紹介&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#flow&quot;&gt;ご利用の流れ&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#voice&quot;&gt;お客様の声&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#faq&quot;&gt;よく頂く質問&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#footer&quot;&gt;アクセス&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/nav&gt;
+
+&lt;/div&gt;
+&lt;!--/#menubar（開閉メニュー）--&gt;
+
+&lt;div id=&quot;header-box&quot;&gt;
+&lt;ul class=&quot;btn&quot;&gt;
+&lt;li&gt;&lt;a href=&quot;#&quot;&gt;&lt;i class=&quot;fa-solid fa-envelope&quot;&gt;&lt;/i&gt;オンライン予約&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#&quot;&gt;&lt;i class=&quot;fa-solid fa-phone-volume&quot;&gt;&lt;/i&gt;お電話でのご予約&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+
+&lt;/header&gt;
+</pre>
+
+<h3>主なスタイルは</h3>
+<p>cssフォルダのstyle.cssから「header」「#menubar」「#header-box」でテキスト検索してみて下さい。詳しい解説もあります。</p>
+
+<h3>ロゴ画像</h3>
+<p>サイズ変更はstyle.cssの「#logo img」のwidthの数字で変更できます。<br>
+ロゴ画像のalt=&quot;あなたのサイト名&quot;の部分はあなたのサイト名に入れ替えて下さい。</p>
+
+<h2>ハンバーガーアイコンは、html下部にあります</h2>
+
+<pre class="look">
+&lt;!--開閉ボタン（ハンバーガーアイコン）--&gt;
+&lt;div id=&quot;menubar_hdr&quot;&gt;
+&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;
+&lt;/div&gt;
+</pre>
+
+<h3>主なスタイルは</h3>
+<p>cssフォルダのstyle.cssから「menubar_hdr」でテキスト検索してみて下さい。詳しい解説もあります。</p>
+
+<h2>ドロップダウンメニューも使えます</h2>
+<p>当テンプレートには使っていませんが、ドロップダウンメニューも使えます。<br>
+ドロップダウンを使う為の特別な設定は不要ですが、必ず親となるli要素の「中」に入れるようにして下さい。</p> 
+<p>OKな例<br>
+<pre class="look">
+<span class="color-check">&lt;li&gt;&lt;a href=&quot;&quot;&gt;親となるメニュー&lt;/a&gt;</span>
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;&quot;&gt;ドロップダウンのメニュー&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;&quot;&gt;ドロップダウンのメニュー&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+<span class="color-check">&lt;/li&gt;</span>
+</pre>
+</p>
+<p>NGな例<br>
+<pre class="look">
+<span class="color-check">&lt;li&gt;&lt;a href=&quot;&quot;&gt;親となるメニュー&lt;/a&gt;&lt;/li&gt;</span>
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;&quot;&gt;ドロップダウンのメニュー&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;&quot;&gt;ドロップダウンのメニュー&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</pre>
+</p>
+
+<h2>開閉メニューを使わない場合は</h2>
+<p><pre class="look">&lt;!--開閉ボタン（ハンバーガーアイコン）--&gt;</pre><br>
+のブロックと、<br>
+<pre class="look">&lt;!--開閉メニュー--&gt;</pre><br>
+のブロックを削除して下さい。</p>
+<p>ハンバーガーアイコンがなくなると、残ったボタン（オンライン予約とお電話でのご予約）の右側が空いてしまうので、<br>
+気になる場合はstyle.cssの、<br>
+<pre class="look">	/*画面幅900px以上の追加指定*/
+	@media screen and (min-width:900px) {
+
+	#header-box {
+		margin-right: 30px;	/*ハンバーガーアイコンと重ならないように適当な余白*/
+	}
+
+	}/*追加指定ここまで*/
+</pre><br>
+を丸ごと削除して下さい。<br>
+「ハンバーガーアイコンと重ならないように」でテキスト検索かけると場所がわかります。</p>
+
+</div>
+
+
+
+<!--jQueryの読み込み-->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<!--パララックス（inview）-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/protonet-jquery.inview/1.1.2/jquery.inview.min.js"></script>
+<script src="../js/jquery.inview_set.js"></script>
+
+<!--このテンプレート専用のスクリプト-->
+<script src="../js/main.js"></script>
+
+</body>
+</html>

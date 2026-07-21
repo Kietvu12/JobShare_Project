@@ -1,0 +1,130 @@
+{
+    "creation_date": null,
+    "full_name": "BUI CONG TOAN",
+    "name_furigana": "ブイコントアン",
+    "birth_date": "1991年08月21日",
+    "age": 34,
+    "gender": "男",
+    "phone": "080-9817-3465",
+    "email": "toan_bc@icloud.com",
+    "postal_code": "248-0036",
+    "address": "神奈川県鎌倉市手広5-3",
+    "address_furigana": null,
+    "nearest_station": null,
+    "emergency_contact_address": null,
+    "residence_status": null,
+    "current_visa_type": "other",
+    "residence_expiry": null,
+    "education_history": [
+      {
+        "school_name": "ダナン工科大学",
+        "major": "電子通信学科",
+        "start_date": "2009年09月",
+        "end_date": "2014年06月"
+      },
+      {
+        "school_name": "ヨシダ本語学院",
+        "major": null,
+        "start_date": "2015年04月",
+        "end_date": "2017年03月"
+      }
+    ],
+    "summary": "電子機器のハードウェア開発に約8年従事し、車載LED制御回路、産業向けネットワーク機器、IoT機器などの回路設計・評価・不具合解析まで幅広い経験を有しています。",
+    "work_history": [
+      {
+        "company_name": "株式会社イートファクトリー",
+        "department_role": "国際営業部",
+        "start_date": "2017年04月",
+        "end_date": "2018年05月"
+      },
+      {
+        "company_name": "株式会社アイジュール",
+        "department_role": "開発部",
+        "start_date": "2018年06月",
+        "end_date": "2018年09月"
+      },
+      {
+        "company_name": "株式会社ヒラテ技研",
+        "department_role": "電子技術部",
+        "start_date": "2018年11月",
+        "end_date": "2022年08月"
+      },
+      {
+        "company_name": "株式会社オーエー研究所",
+        "department_role": "開発部",
+        "start_date": "2022年10月",
+        "end_date": null
+      }
+    ],
+    "job_history": [
+      {
+        "project_name": "オーディオアンプ回路",
+        "company_name": null,
+        "period_start": null,
+        "period_end": null,
+        "business_objective": null,
+        "team_size_role": "チーム開発",
+        "responsibilities": "回路設計、基板レイアウト",
+        "tools": []
+      },
+      {
+        "project_name": "RF回路",
+        "company_name": null,
+        "period_start": null,
+        "period_end": null,
+        "business_objective": null,
+        "team_size_role": "個人開発",
+        "responsibilities": "回路設計、基板レイアウト",
+        "tools": []
+      },
+      {
+        "project_name": "温度制御システム",
+        "company_name": null,
+        "period_start": null,
+        "period_end": null,
+        "business_objective": null,
+        "team_size_role": "個人開発",
+        "responsibilities": "回路設計、基板レイアウト、マイコン制御のコーディング",
+        "tools": []
+      }
+    ],
+    "skills": [
+      "アナログ回路設計",
+      "デジタル回路設計",
+      "電源回路設計",
+      "PoE関連回路",
+      "FPGA周辺回路",
+      "Gigabit Ethernet",
+      "Layer2 Switch",
+      "Switch SoC / PHY",
+      "C言語",
+      "アセンブリ言語"
+    ],
+    "qualifications": [
+      {
+        "name": "MOS（Excel,Word,PowerPoint）",
+        "acquired_date": "2020年11月"
+      },
+      {
+        "name": "ディジタル技術検定 2級情報",
+        "acquired_date": "2020年12月"
+      },
+      {
+        "name": "ディジタル技術検定 2級制御",
+        "acquired_date": "2018年12月"
+      },
+      {
+        "name": "日本語能力検定 N2",
+        "acquired_date": "2020年09月"
+      }
+    ],
+    "self_pr": "これまで電子回路設計および評価業務に携わり、製品開発における品質向上に貢献してまいりました。",
+    "career_self_pr": "製品開発において、回路設計から部品選定、PCBレビュー、基板評価、不具合解析まで一連の工程を担当してきました。",
+    "hobbies_skills": null,
+    "motivation": "貴社の電子回路設計分野における技術力と製品開発に魅力を感じ、これまでの回路設計・評価・PCB設計連携の経験を活かし、貴社の製品開発に貢献したいと考え、志望いたしました。",
+    "current_salary": null,
+    "expected_salary": null,
+    "desired_role": null,
+    "desired_location": null,
+    "available_start_date": null
+  }

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>lp3マニュアル</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="ここにサイト説明を入れます">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+#container {
+	animation: none;
+	min-height: 200px;
+}
+</style>
+</head>
+
+<body class="home" id="manual">
+
+<div id="container">
+
+<div id="contents">
+
+</div>
+<!--/#contents-->
+
+
+
+<!--▼▼▼▼▼ここから「ウェーブアニメーション」-->
+<svg style="display:none">
+<defs>
+<path id="wavePath" d="M0 30 V15 Q30 3 60 15 T120 15 V30z" />
+</defs>
+</svg>
+
+<div class="wave-section">
+<div class="wave wave-top">
+<svg viewBox="0 0 120 28" preserveAspectRatio="none">
+<g class="wave-wrap">
+<use href="#wavePath" x="0"   y="0" />
+<use href="#wavePath" x="120" y="0" />
+</g>
+</svg>
+</div>
+</div>
+<!--▲▲▲▲▲ここまで「ウェーブアニメーション」-->
+
+
+
+</div>
+<!--/#container-->
+
+
+
+<div class="manual">
+
+<h2>ウェーブアニメーション</h2>
+
+<pre class="look">
+&lt;!--▼▼▼▼▼ここから「ウェーブアニメーション」--&gt;
+&lt;svg style=&quot;display:none&quot;&gt;
+&lt;defs&gt;
+&lt;path id=&quot;wavePath&quot; d=&quot;M0 30 V15 Q30 3 60 15 T120 15 V30z&quot; /&gt;
+&lt;/defs&gt;
+&lt;/svg&gt;
+
+&lt;div class=&quot;wave-section&quot;&gt;
+&lt;div class=&quot;wave wave-top&quot;&gt;
+&lt;svg viewBox=&quot;0 0 120 28&quot; preserveAspectRatio=&quot;none&quot;&gt;
+&lt;g class=&quot;wave-wrap&quot;&gt;
+&lt;use href=&quot;#wavePath&quot; x=&quot;0&quot;   y=&quot;0&quot; /&gt;
+&lt;use href=&quot;#wavePath&quot; x=&quot;120&quot; y=&quot;0&quot; /&gt;
+&lt;/g&gt;
+&lt;/svg&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;!--▲▲▲▲▲ここまで「ウェーブアニメーション」--&gt;
+</pre>
+
+<h3>設定は</h3>
+<p>cssフォルダのstyle.cssから「wave」でテキスト検索してみて下さい。詳しい解説もあります。<br>
+波の色、高さ、速度もcssで調整できます。</p>
+
+</div>
+
+
+
+<!--jQueryの読み込み-->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<!--パララックス（inview）-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/protonet-jquery.inview/1.1.2/jquery.inview.min.js"></script>
+<script src="../js/jquery.inview_set.js"></script>
+
+<!--このテンプレート専用のスクリプト-->
+<script src="../js/main.js"></script>
+
+</body>
+</html>

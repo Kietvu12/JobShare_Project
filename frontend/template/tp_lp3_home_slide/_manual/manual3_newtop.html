@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>lp3マニュアル</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="ここにサイト説明を入れます">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body class="home" id="manual">
+
+<div id="container" style="background: #ccc;">
+
+
+<!--▼▼▼▼▼ここから「１行お知らせ」-->
+<div class="new-top">
+<h2>お知らせ</h2>
+<p class="text">１行専用のお知らせブロック。文章が長いと「...」でカットされるので短めに。残りはnew.htmlに書いて下さい。</p>
+<p class="new-list"><a href="../new.html">一覧</a></p>
+</div>
+<!--▲▲▲▲▲ここまで「１行お知らせ」-->
+
+
+
+</div>
+<!--/#container-->
+
+
+
+<div class="manual">
+
+<h2>１行のお知らせ</h2>
+
+<pre class="look">
+&lt;!--▼▼▼▼▼ここから「１行お知らせ」--&gt;
+&lt;div class=&quot;new-top&quot;&gt;
+&lt;h2&gt;お知らせ&lt;/h2&gt;
+&lt;p class=&quot;text&quot;&gt;１行専用のお知らせブロック。文章が長いと「...」でカットされるので短めに。残りはnew.htmlに書いて下さい。&lt;/p&gt;
+&lt;p class=&quot;new-list&quot;&gt;&lt;a href=&quot;new.html&quot;&gt;一覧&lt;/a&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;!--▲▲▲▲▲ここまで「１行お知らせ」--&gt;
+</pre>
+
+<h3>設定は</h3>
+<p>cssフォルダのstyle.cssから「.new-top」でテキスト検索してみて下さい。詳しい解説もあります。<br>
+「文章を全部出したい」というご要望もありそうなんですが、画面の上からの配置指定なので、文字数が不規則だと画面下に飛び出る不具合がでます。なので１行で使って下さい。<br>
+もし、「お知らせ文章は全て表示させておかないとダメ」という環境なら、new.htmlのお知らせ本体のパーツをトップページにもってきて、独立したお知らせセクションで使うようにして下さい。</p>
+
+</div>
+
+
+
+<!--jQueryの読み込み-->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<!--パララックス（inview）-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/protonet-jquery.inview/1.1.2/jquery.inview.min.js"></script>
+<script src="../js/jquery.inview_set.js"></script>
+
+<!--このテンプレート専用のスクリプト-->
+<script src="../js/main.js"></script>
+
+</body>
+</html>
