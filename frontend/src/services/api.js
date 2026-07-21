@@ -369,6 +369,55 @@ const handleResponse = async (response) => {
   return data;
 };
 
+function isNumericJobId(value) {
+  const s = String(value ?? '').trim();
+  return s !== '' && /^\d+$/.test(s);
+}
+
+/**
+ * Load job detail by numeric id or slug.
+ * Fallback: nếu backend cũ chưa hỗ trợ slug trên `/jobs/:id`, tra list API rồi load theo id.
+ */
+async function fetchJobDetailByIdOrSlug(scopePath, jobIdOrSlug, fetchOptions = {}) {
+  const key = decodeURIComponent(String(jobIdOrSlug || '').trim());
+  if (!key) {
+    const error = new Error('Không tìm thấy việc làm');
+    error.status = 404;
+    throw error;
+  }
+
+  const base = `${API_BASE_URL}/${scopePath}/jobs`;
+  const fetchOne = async (lookupKey) => {
+    const response = await fetch(`${base}/${encodeURIComponent(lookupKey)}`, {
+      method: 'GET',
+      ...fetchOptions,
+    });
+    return handleResponse(response);
+  };
+
+  let directError = null;
+  try {
+    return await fetchOne(key);
+  } catch (err) {
+    directError = err;
+    if (err.status !== 404 || isNumericJobId(key)) throw err;
+  }
+
+  const listResponse = await fetch(
+    `${base}?search=${encodeURIComponent(key)}&limit=20&status=1`,
+    { method: 'GET', ...fetchOptions }
+  );
+  const listData = await handleResponse(listResponse);
+  const matched = (listData?.data?.jobs || []).find(
+    (job) => String(job.slug || '').trim() === key
+  );
+  if (!matched?.id) {
+    throw directError || Object.assign(new Error('Không tìm thấy việc làm'), { status: 404 });
+  }
+
+  return fetchOne(String(matched.id));
+}
+
 /**
  * API Service - Centralized API calls
  */
@@ -1930,12 +1979,8 @@ const apiService = {
     return handleResponse(response);
   },
 
-  getApplicantJobById: async (jobId) => {
-    const response = await fetch(`${API_BASE_URL}/applicant/jobs/${jobId}`, {
-      method: 'GET'
-    });
-    return handleResponse(response);
-  },
+  getApplicantJobById: async (jobId) =>
+    fetchJobDetailByIdOrSlug('applicant', jobId),
 
   getApplicantJobFileUrl: async (jobId, fileType = 'jdFile', purpose = 'view') => {
     const response = await fetch(
@@ -2082,21 +2127,11 @@ const apiService = {
   /**
    * Get job by ID (CTV)
    */
-  getJobById: async (jobId) => {
-    const response = await fetch(`${API_BASE_URL}/ctv/jobs/${jobId}`, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-    return handleResponse(response);
-  },
+  getJobById: async (jobId) =>
+    fetchJobDetailByIdOrSlug('ctv', jobId, { headers: getAuthHeaders() }),
 
-  getJobBySlug: async (slug) => {
-    const response = await fetch(`${API_BASE_URL}/ctv/jobs/slug/${encodeURIComponent(slug)}`, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-    return handleResponse(response);
-  },
+  getJobBySlug: async (slug) =>
+    fetchJobDetailByIdOrSlug('ctv', slug, { headers: getAuthHeaders() }),
 
   getCtvJobFileUrl: async (jobId, fileType = 'jdFile', purpose = 'view') => {
     const response = await fetch(

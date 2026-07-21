@@ -11,6 +11,16 @@ const router = express.Router();
 router.get('/', jobController.getJobs);
 
 /**
+ * @route   GET /api/applicant/jobs/slug/:slug
+ * @desc    Get job detail by slug (public share URL)
+ * @access  Public
+ */
+router.get('/slug/:slug', (req, res, next) => {
+  req.params.id = req.params.slug;
+  return jobController.getJobById(req, res, next);
+});
+
+/**
  * @route   GET /api/applicant/jobs/:id
  * @desc    Get job detail for applicant
  * @access  Public

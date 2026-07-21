@@ -26,6 +26,16 @@ router.get('/by-campaign/:campaignId', jobController.getJobsByCampaign);
 router.get('/by-job-pickup/:jobPickupId', jobController.getJobsByJobPickup);
 
 /**
+ * @route   GET /api/ctv/jobs/slug/:slug
+ * @desc    Get job by slug (share URL)
+ * @access  Public
+ */
+router.get('/slug/:slug', (req, res, next) => {
+  req.params.id = req.params.slug;
+  return jobController.getJobById(req, res, next);
+});
+
+/**
  * @route   GET /api/ctv/jobs/:id/view-url
  * @desc    Lấy URL xem/tải file JD hoặc required CV form
  * @access  Private (CTV)
