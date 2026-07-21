@@ -35,6 +35,7 @@ import {
 } from '../../utils/jobFileDownload.js';
 import { getRequestPublicBaseUrl } from '../../utils/requestPublicBaseUrl.js';
 import { executeJobListQuery, executeJobListInIdsQuery, MAX_JOB_LIST_LIMIT, localizeJobPlainForLanguage } from '../../services/jobListQueryService.js';
+import { findJobByIdOrSlug } from '../../utils/resolveJobByIdOrSlug.js';
 
 /**
  * Job Management Controller (CTV)
@@ -150,7 +151,7 @@ export const jobController = {
       const { id } = req.params;
       const { fileType = 'jdFile', purpose = 'view' } = req.query;
 
-      const job = await Job.findByPk(id, {
+      const job = await findJobByIdOrSlug(id, {
         attributes: JOB_FILE_ATTRS,
       });
       if (!job) {
@@ -178,7 +179,7 @@ export const jobController = {
         return res.json({
           success: true,
           data: {
-            url: buildJobDownloadApiUrl(req, id, fileType),
+            url: buildJobDownloadApiUrl(req, job.id, fileType),
             filename,
           },
         });
@@ -213,7 +214,7 @@ export const jobController = {
       const { id } = req.params;
       const { fileType = 'jdFile' } = req.query;
 
-      const job = await Job.findByPk(id, { attributes: JOB_FILE_ATTRS });
+      const job = await findJobByIdOrSlug(id, { attributes: JOB_FILE_ATTRS });
       if (!job) {
         return res.status(404).json({ success: false, message: 'Không tìm thấy việc làm' });
       }
@@ -241,7 +242,7 @@ export const jobController = {
     try {
       const { id } = req.params;
 
-      const job = await Job.findByPk(id, {
+      const job = await findJobByIdOrSlug(id, {
         include: [
           {
             model: JobCategory,
