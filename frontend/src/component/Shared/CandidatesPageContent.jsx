@@ -20,6 +20,7 @@ import {
   getScoutStatusStyle,
   isScoutListed,
 } from '../../utils/scoutStatus.js';
+import { formatPhoneForDisplay } from '../../utils/cvPhoneUtils.js';
 import { useLanguage } from '../../context/LanguageContext';
 import { translations } from '../../translations/translations';
 import {
@@ -939,7 +940,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                           {renderDuplicateRefLink(dupRef, { className: 'mt-1', textSize: 'text-xs' })}
                           <div className="mt-1 flex flex-wrap gap-3" style={{ color: '#6b7280' }}>
                             {candidate.email && <span>{candidate.email}</span>}
-                            {candidate.phone && <span>{candidate.phone}</span>}
+                            {candidate.phone && <span>{formatPhoneForDisplay(candidate.phone)}</span>}
                             <span>{t.createdDate}: {formatDate(candidate.createdAt || candidate.created_at)}</span>
                           </div>
                         </div>
@@ -1520,7 +1521,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                           {candidate.phone && (
                             <div className="flex items-center gap-1.5 text-gray-700">
                               <Phone className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
-                              <span className="break-all">{candidate.phone}</span>
+                              <span className="break-all">{formatPhoneForDisplay(candidate.phone)}</span>
                             </div>
                           )}
                           <div className="flex flex-wrap gap-1.5">
@@ -1812,7 +1813,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                             {candidate.phone ? (
                               <div className="flex items-center gap-0.5">
                                 <Phone className="w-2 h-2 flex-shrink-0" style={{ color: '#9ca3af' }} />
-                                <span className="truncate">{candidate.phone}</span>
+                                <span className="truncate">{formatPhoneForDisplay(candidate.phone)}</span>
                               </div>
                             ) : '—'}
                           </td>

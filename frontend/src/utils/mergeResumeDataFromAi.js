@@ -3,6 +3,8 @@
  * Shared by AddCandidateForm and QuickCreateCandidateDrawer.
  */
 
+import { normalizeCvPhone } from './cvPhoneUtils.js';
+
 function calculateAge(birthDate) {
   if (!birthDate) return '';
   const today = new Date();
@@ -971,7 +973,7 @@ export function mergeResumeDataFromAi(parsedData, prev = {}) {
     gender: rr.gender || prev.gender,
     postalCode: rr.postal_code || prev.postalCode,
     address: rr.address || prev.address,
-    phone: rr.phone || prev.phone,
+    phone: normalizeCvPhone(rr.phone) || prev.phone,
     email: rr.email || prev.email,
     addressOrigin: rr.emergency_contact_address || prev.addressOrigin,
     nearestStationName: rr.nearest_station || prev.nearestStationName,
@@ -1047,7 +1049,7 @@ export function mapMergedToQuickCreateVisibleForm(merged, prevVisible = {}) {
     nameKanji: merged.nameKanji || prevVisible.nameKanji || '',
     birthDate: merged.birthDate || prevVisible.birthDate || '',
     email: merged.email || prevVisible.email || '',
-    phone: merged.phone || prevVisible.phone || '',
+    phone: normalizeCvPhone(merged.phone) || prevVisible.phone || '',
     jlptLevel: merged.jlptLevel != null && String(merged.jlptLevel).trim() !== ''
       ? String(merged.jlptLevel)
       : (prevVisible.jlptLevel || ''),
@@ -1067,6 +1069,56 @@ export function mapMergedToQuickCreateVisibleForm(merged, prevVisible = {}) {
       ? String(merged.jpResidenceStatus)
       : (prevVisible.jpResidenceStatus || ''),
   };
+}
+
+const CURRENT_LOCATION_COUNTRY_VALUES = new Set(['日本', 'ベトナム', 'その他']);
+
+const CURRENT_LOCATION_COUNTRY_TO_RESIDENCE = {
+  日本: '1',
+  ベトナム: '2',
+  その他: '3',
+};
+
+const CURRENT_RESIDENCE_TO_LOCATION_COUNTRY = {
+  1: '日本',
+  2: 'ベトナム',
+  3: 'その他',
+  '1': '日本',
+  '2': 'ベトナム',
+  '3': 'その他',
+};
+
+/** Map DB currentResidence (1/2/3) → 現在地 country label (日本/ベトナム/その他). */
+export function currentLocationCountryFromResidence(residence) {
+  if (residence == null || residence === '') return '';
+  return CURRENT_RESIDENCE_TO_LOCATION_COUNTRY[residence] || '';
+}
+
+/** Map 現在地 country label → DB currentResidence (1/2/3). */
+export function currentResidenceFromLocationCountry(country) {
+  return CURRENT_LOCATION_COUNTRY_TO_RESIDENCE[country] || '';
+}
+
+/**
+ * Tách 現在地 và 希望勤務地 khi load CV — xử lý dữ liệu cũ lưu nhầm country vào desiredWorkLocation.
+ */
+export function resolveCurrentLocationAndDesiredFromCv(cv = {}) {
+  const desiredRaw = cv.desiredWorkLocation || cv.desiredLocation || '';
+  const desiredTrim = String(desiredRaw).trim();
+  const fromResidence = currentLocationCountryFromResidence(cv.currentResidence);
+
+  if (fromResidence) {
+    return {
+      currentLocationCountry: fromResidence,
+      desiredLocation: desiredTrim === fromResidence ? '' : desiredRaw,
+    };
+  }
+
+  if (CURRENT_LOCATION_COUNTRY_VALUES.has(desiredTrim)) {
+    return { currentLocationCountry: desiredTrim, desiredLocation: '' };
+  }
+
+  return { currentLocationCountry: '', desiredLocation: desiredRaw };
 }
 
 /** Gắn toàn bộ field CV (giống AddCandidateForm) vào FormData — dùng cho quick create lưu ngầm. */
@@ -1091,7 +1143,7 @@ export function appendFullCvFieldsToFormData(fd, data = {}) {
   append('gender', genderValue);
   append('postalCode', data.postalCode || '');
   append('address', data.address || '');
-  append('phone', data.phone || '');
+  append('phone', normalizeCvPhone(data.phone) || '');
   append('email', data.email || '');
   append('addressOrigin', data.addressOrigin || '');
   if (data.nearestStationLine) append('nearestStationLine', data.nearestStationLine);
@@ -1131,6 +1183,8 @@ export function appendFullCvFieldsToFormData(fd, data = {}) {
   append('jobCategoryId', data.jobCategoryId || '');
   append('desiredLocation', data.desiredLocation || '');
   append('desiredStartDate', data.desiredStartDate || '');
+  const currentResidenceValue = currentResidenceFromLocationCountry(data.currentLocationCountry);
+  if (currentResidenceValue) append('currentResidence', currentResidenceValue);
   if (data.cvTableLayout && typeof data.cvTableLayout === 'object') {
     append('cvTableLayout', JSON.stringify(data.cvTableLayout));
   }
