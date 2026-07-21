@@ -290,6 +290,15 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
     });
   };
 
+  const handleSavePreferredInfo = async () => {
+    const saved = await flow.handleSaveCVEdit();
+    if (saved === false) {
+      notify.error('Không thể lưu thông tin hồ sơ');
+      return;
+    }
+    notify.success('Đã lưu thông tin');
+  };
+
   const cvFolderOptions = useMemo(() => {
     const options = [];
     if (flow.selectedCV?.cvOriginalPath) {
@@ -531,9 +540,17 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
               </div>
 
               {flow.editingCV ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 min-h-0 overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <p className="font-semibold text-gray-500 mb-1">Lương mong muốn</p>
+                    <p className="font-semibold text-gray-500 mb-1">Thu nhập năm hiện tại</p>
+                    <input
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[10px] bg-white"
+                      value={flow.cvEditData.currentIncome || ''}
+                      onChange={(e) => flow.setCvEditData((prev) => ({ ...prev, currentIncome: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-500 mb-1">Thu nhập năm mong muốn</p>
                     <input
                       className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[10px] bg-white"
                       value={flow.cvEditData.desiredIncome || ''}
@@ -541,7 +558,7 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
                     />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-500 mb-1">Địa điểm mong muốn</p>
+                    <p className="font-semibold text-gray-500 mb-1">Địa điểm làm việc mong muốn</p>
                     <input
                       className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[10px] bg-white"
                       value={flow.cvEditData.desiredWorkLocation || ''}
@@ -549,43 +566,31 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
                     />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-500 mb-1">Thời gian nhập công ty</p>
+                    <p className="font-semibold text-gray-500 mb-1">Thời gian gia nhập công ty</p>
                     <input
                       className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[10px] bg-white"
                       value={flow.cvEditData.nyushaTime || ''}
                       onChange={(e) => flow.setCvEditData((prev) => ({ ...prev, nyushaTime: e.target.value }))}
                     />
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-500 mb-1">Giới tính</p>
-                    <select
-                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[10px] bg-white"
-                      value={flow.cvEditData.gender || ''}
-                      onChange={(e) => flow.setCvEditData((prev) => ({ ...prev, gender: e.target.value }))}
-                    >
-                      <option value="">—</option>
-                      <option value="1">Nam</option>
-                      <option value="2">Nữ</option>
-                    </select>
-                  </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <p className="font-semibold text-gray-500 mb-1">Lương mong muốn</p>
-                    <p className="text-gray-900">{flow.cvEditData.desiredIncome || flow.selectedCV.desiredIncome || '—'}</p>
+                    <p className="font-semibold text-gray-500 mb-1">Thu nhập năm hiện tại</p>
+                    <p className="text-gray-900">{flow.cvEditData.currentIncome || flow.selectedCV.currentIncome || flow.selectedCV.currentSalary || '—'}</p>
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-500 mb-1">Địa điểm mong muốn</p>
-                    <p className="text-gray-900">{flow.cvEditData.desiredWorkLocation || flow.selectedCV.desiredWorkLocation || '—'}</p>
+                    <p className="font-semibold text-gray-500 mb-1">Thu nhập năm mong muốn</p>
+                    <p className="text-gray-900">{flow.cvEditData.desiredIncome || flow.selectedCV.desiredIncome || flow.selectedCV.desiredSalary || '—'}</p>
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-500 mb-1">Thời gian nhập công ty</p>
+                    <p className="font-semibold text-gray-500 mb-1">Địa điểm làm việc mong muốn</p>
+                    <p className="text-gray-900">{flow.cvEditData.desiredWorkLocation || flow.selectedCV.desiredWorkLocation || flow.selectedCV.desiredLocation || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-500 mb-1">Thời gian gia nhập công ty</p>
                     <p className="text-gray-900">{flow.cvEditData.nyushaTime || flow.selectedCV.nyushaTime || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-500 mb-1">Giới tính</p>
-                    <p className="text-gray-900">{flow.formatGender(flow.cvEditData.gender || flow.selectedCV.gender)}</p>
                   </div>
                 </div>
               )}
@@ -608,8 +613,8 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
 
             {!flow.isApplicantCandidate && flow.editingCV && (
               <div className="flex gap-2 justify-end pt-2">
-                <button onClick={() => flow.setEditingCV(false)} className="px-3 py-1.5 rounded-lg text-[10px] font-semibold bg-gray-100 text-gray-700 flex items-center gap-1"><X className="w-3.5 h-3.5" />Hủy</button>
-                <button onClick={flow.handleSaveCVEdit} className="px-3 py-1.5 rounded-lg text-[10px] font-semibold bg-green-500 text-white flex items-center gap-1"><Save className="w-3.5 h-3.5" />Lưu</button>
+                <button type="button" onClick={() => flow.setEditingCV(false)} className="px-3 py-1.5 rounded-lg text-[10px] font-semibold bg-gray-100 text-gray-700 flex items-center gap-1"><X className="w-3.5 h-3.5" />Hủy</button>
+                <button type="button" onClick={handleSavePreferredInfo} disabled={flow.savingCV} className="px-3 py-1.5 rounded-lg text-[10px] font-semibold bg-green-500 text-white flex items-center gap-1 disabled:opacity-50"><Save className="w-3.5 h-3.5" />{flow.savingCV ? 'Đang lưu...' : 'Lưu'}</button>
               </div>
             )}
           </div>
@@ -740,19 +745,19 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
                 })}
                 {renderModalEditableField({
                   id: 'desiredWorkLocation',
-                  label: 'Vị trí mong muốn',
+                  label: 'Địa điểm làm việc mong muốn',
                   value: flow.cvEditData.desiredWorkLocation || flow.selectedCV?.desiredWorkLocation || flow.selectedCV?.desiredLocation || flow.selectedCV?.desiredPosition || '',
                   missing: !requiredFields.desiredPosition,
                 })}
                 {renderModalEditableField({
                   id: 'currentIncome',
-                  label: 'Lương hiện tại',
+                  label: 'Thu nhập năm hiện tại',
                   value: flow.cvEditData.currentIncome || flow.selectedCV?.currentIncome || flow.selectedCV?.currentSalary || '',
                   missing: !requiredFields.currentSalary,
                 })}
                 {renderModalEditableField({
                   id: 'desiredIncome',
-                  label: 'Lương mong muốn',
+                  label: 'Thu nhập năm mong muốn',
                   value: flow.cvEditData.desiredIncome || flow.selectedCV?.desiredIncome || flow.selectedCV?.desiredSalary || '',
                   missing: !requiredFields.desiredSalary,
                 })}

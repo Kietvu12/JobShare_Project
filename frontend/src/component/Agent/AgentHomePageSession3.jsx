@@ -4,6 +4,7 @@ import { Target, FileText, Star, ExternalLink, X, ChevronLeft, ChevronRight } fr
 import { useLanguage } from '../../context/LanguageContext';
 import { translations } from '../../translations/translations';
 import apiService, { normalizePostImageUrl } from '../../services/api';
+import { pickPublicPostCategoryLabel } from '../../utils/publicPostDisplay';
 import AgentJobsPageSession2 from './AgentJobsPageSession2';
 import QuickCreateCandidateDrawer from '../Shared/QuickCreateCandidateDrawer';
 import createCvIcon from '../../assets/icon for dashboard/Tạo hồ sơ mới.png';
@@ -271,6 +272,7 @@ const AgentHomePageSession3 = () => {
           const title = post.title || '';
           const titleEn = post.titleEn || post.title_en || '';
           const titleJp = post.titleJp || post.title_jp || '';
+          const category = post.category || {};
           newData.push({
             id: `post-${post.id}`,
             type: 'news',
@@ -283,6 +285,10 @@ const AgentHomePageSession3 = () => {
             nameEn: titleEn,
             titleJp,
             nameJp: titleJp,
+            categoryId: post.categoryId || category.id || null,
+            categoryName: category.name || '',
+            categoryColor: category.color || '#2563eb',
+            categorySlug: category.slug || '',
             tagColor: 'bg-blue-100 text-blue-700',
             tagIcon: 'FileText',
             date: formatDate(post.publishedAt || post.createdAt),
@@ -403,10 +409,35 @@ const AgentHomePageSession3 = () => {
       item?.descriptionJp || item?.contentJp || item?.summaryJp || ''
     );
 
+  const hexToRgba = (hex, alpha = 0.16) => {
+    const h = String(hex || '').replace('#', '');
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) return `rgba(37, 99, 235, ${alpha})`;
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
+  const getCategoryTagStyle = (hexColor) => {
+    const color = /^#[0-9a-fA-F]{6}$/.test(String(hexColor || '')) ? hexColor : '#2563eb';
+    return {
+      backgroundColor: hexToRgba(color, 0.18),
+      color,
+      border: `1px solid ${hexToRgba(color, 0.45)}`,
+    };
+  };
+
+  const getNewsCategoryLabel = (item) =>
+    pickPublicPostCategoryLabel(
+      { category: { name: item?.categoryName, slug: item?.categorySlug } },
+      language,
+      t.news || 'Tin tức'
+    );
+
   const getItemTag = (item) => {
+    if (item?.type === 'news') return getNewsCategoryLabel(item);
     if (item?.type === 'job-pickup') return t.agentHomeJobPickup;
     if (item?.type === 'campaign') return t.agentHomeCampaign;
-    if (item?.type === 'news') return t.agentHomeNews;
     return t.news || 'News';
   };
 
@@ -724,12 +755,18 @@ const AgentHomePageSession3 = () => {
                   } ${hoveredCardIndex === item.id ? 'border-blue-200 shadow-sm' : 'border-slate-100'}`}
                 >
                   <div className="flex flex-shrink-0 items-start gap-1">
-                    <div className="p-0.5 rounded flex-shrink-0" style={getTagInlineStyle(item.tagColor)}>
+                    <div
+                      className="p-0.5 rounded flex-shrink-0 border"
+                      style={item.type === 'news' ? getCategoryTagStyle(item.categoryColor) : getTagInlineStyle(item.tagColor)}
+                    >
                       <Icon className="w-2.5 h-2.5" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="mb-0.5 flex items-center gap-1">
-                        <span className="inline-flex items-center rounded-full bg-slate-100 px-1 py-0.5 text-[7px] font-semibold text-slate-600">
+                        <span
+                          className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[7px] sm:text-[8px] font-bold"
+                          style={item.type === 'news' ? getCategoryTagStyle(item.categoryColor) : undefined}
+                        >
                           {getItemTag(item)}
                         </span>
                         <span className="text-[7px] sm:text-[8px] text-slate-400">{item.date}</span>
@@ -822,8 +859,8 @@ const AgentHomePageSession3 = () => {
       {jobPickups.length > 0 && (
         <div className="rounded-2xl border border-red-100/70 bg-white px-2.5 py-2">
           <div className="mb-1.5 flex items-center justify-between">
-            <h3 className="text-[12px] sm:text-[13px] font-bold text-slate-900">
-              {t.agentHomeJobPickup}
+            <h3 className="text-[12px] sm:text-[13px] font-bold text-slate-900 uppercase tracking-wide">
+              {t.agentHomeFeaturedJobsTitle || 'TỔNG HỢP JOB NỔI BẬT DÀNH CHO BẠN'}
             </h3>
             <button type="button" className="text-[9px] font-semibold text-red-600 hover:text-red-700">{t.seeAll || 'Xem tất cả'} ›</button>
           </div>
@@ -866,12 +903,7 @@ const AgentHomePageSession3 = () => {
                     )}
                   </div>
                   <div className="p-1.5 bg-white">
-                    <div className="mb-0.5 flex items-center gap-1">
-                      <span className="inline-flex items-center rounded-full bg-slate-100 px-1 py-0.5 text-[7px] font-semibold text-slate-600">
-                        {getItemTag(item)}
-                      </span>
-                      <span className="text-[7px] sm:text-[8px] text-slate-400">{item.date}</span>
-                    </div>
+                    <p className="mb-0.5 text-[7px] sm:text-[8px] text-slate-400">{item.date}</p>
                     <h4 className={`text-[10px] sm:text-[11px] font-bold text-slate-900 leading-tight break-words whitespace-normal line-clamp-2 ${item.isNew ? 'text-amber-700' : ''}`}>
                       {getLocalizedItemTitle(item)}
                     </h4>
@@ -989,7 +1021,7 @@ const AgentHomePageSession3 = () => {
                   const iconMap = { 'Star': Star, 'Target': Target, 'FileText': FileText };
                   const IconComponent = iconMap[selectedItem.tagIcon] || FileText;
                   return (
-                    <div className="p-1.5 rounded-lg flex-shrink-0 border border-slate-100" style={getTagInlineStyle(selectedItem.tagColor)}>
+                    <div className="p-1.5 rounded-lg flex-shrink-0 border" style={selectedItem.type === 'news' ? getCategoryTagStyle(selectedItem.categoryColor) : getTagInlineStyle(selectedItem.tagColor)}>
                       <IconComponent className="w-4 h-4" />
                     </div>
                   );

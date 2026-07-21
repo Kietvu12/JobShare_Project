@@ -219,6 +219,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
   const [statusChangeInterviewDate, setStatusChangeInterviewDate] = useState('');
   const [statusChangeInterviewTime, setStatusChangeInterviewTime] = useState('');
   const [statusChangeUpdating, setStatusChangeUpdating] = useState(false);
+  const [updatingStatusId, setUpdatingStatusId] = useState(null);
 
   const STATUS_PAID = 15;
 
@@ -262,7 +263,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
 
   useEffect(() => {
     loadNominations();
-  }, [currentPage, itemsPerPage, statusFilter, filterCvDuplicateNominations, dateFrom, dateTo, sortBy, sortOrder, viewMode, adminProfile?.id, debouncedSearchQuery, isApplicant]);
+  }, [currentPage, itemsPerPage, statusFilter, filterCvDuplicateNominations, dateFrom, dateTo, sortBy, sortOrder, viewMode, adminProfile?.id, debouncedSearchQuery, isApplicant, onlyUnreadMessages]);
 
   useEffect(() => {
     try {
@@ -348,13 +349,19 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
       return null;
     };
 
-    const isMobileViewport = typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches;
-    const scrollContainer = isMobileViewport ? getNearestScrollableParent(pageRootRef.current) : null;
+    const scrollContainer =
+      getNearestScrollableParent(pageRootRef.current) ||
+      (typeof document !== 'undefined' ? document.querySelector('main') : null);
     const savedScrollTop = scrollContainer ? scrollContainer.scrollTop : null;
+    const savedWindowScrollY = typeof window !== 'undefined' ? window.scrollY : null;
     const restoreScrollPosition = () => {
-      if (!scrollContainer || typeof savedScrollTop !== 'number') return;
       requestAnimationFrame(() => {
-        scrollContainer.scrollTop = savedScrollTop;
+        if (scrollContainer && typeof savedScrollTop === 'number') {
+          scrollContainer.scrollTop = savedScrollTop;
+        }
+        if (typeof savedWindowScrollY === 'number' && typeof window !== 'undefined') {
+          window.scrollTo({ top: savedWindowScrollY, behavior: 'auto' });
+        }
       });
     };
 
@@ -575,6 +582,8 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
   }, [isAdmin, rawJobApplications, sortBy, sortOrder, language]);
 
   const displayList = isAdmin ? nominations : agentMappedNominations;
+  const showInitialLoading = loading && displayList.length === 0;
+  const isListRefreshing = loading && displayList.length > 0;
 
   useEffect(() => {
     if (isApplicant) {
@@ -1145,13 +1154,30 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
     }
   };
 
+  const applyNominationUpdate = (id, patch) => {
+    setNominations((prev) => {
+      const nextStatus = patch?.status;
+      if (statusFilter && nextStatus != null && String(nextStatus) !== String(statusFilter)) {
+        return prev.filter((item) => item.id !== id);
+      }
+      return prev.map((item) => (item.id === id ? { ...item, ...patch } : item));
+    });
+  };
+
   const doUpdateStatus = async (id, statusNum, rejectNote, paymentAmount) => {
     try {
+      setUpdatingStatusId(id);
       setStatusChangeUpdating(true);
       const response = await apiService.updateJobApplicationStatus(id, statusNum, rejectNote, paymentAmount);
       if (response.success) {
         resetStatusChangeModal();
-        loadNominations();
+        const updated = response.data?.jobApplication;
+        applyNominationUpdate(id, updated || {
+          status: statusNum,
+          ...(rejectNote != null ? { rejectNote } : {}),
+          ...(paymentAmount != null ? { paymentAmount } : {}),
+          updatedAt: new Date().toISOString(),
+        });
       } else {
         alert(response.message || 'Cập nhật trạng thái thất bại');
       }
@@ -1159,6 +1185,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
       console.error('Error updating status:', error);
       alert(error?.data?.message || error?.message || 'Có lỗi xảy ra khi cập nhật trạng thái');
     } finally {
+      setUpdatingStatusId(null);
       setStatusChangeUpdating(false);
     }
   };
@@ -1196,6 +1223,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
 
   const doUpdateInterviewStatus = async (id, dateValue, timeValue) => {
     try {
+      setUpdatingStatusId(id);
       setStatusChangeUpdating(true);
       const dateTime = new Date(`${dateValue}T${timeValue}`);
       const selectedNomination = nominations.find((n) => n.id === id);
@@ -1226,12 +1254,17 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
         type: 'system'
       });
       resetStatusChangeModal();
-      loadNominations();
+      applyNominationUpdate(id, updateResponse.data?.jobApplication || {
+        status: STATUS_INTERVIEW_SCHEDULE,
+        interviewDate: dateTime.toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
       alert(t.chatSuccessInterviewScheduled || t.updateSuccess);
     } catch (error) {
       console.error('Error updating interview schedule status:', error);
       alert(error?.data?.message || error?.message || t.chatErrorStatusChangeFailed || 'Có lỗi xảy ra khi cập nhật trạng thái');
     } finally {
+      setUpdatingStatusId(null);
       setStatusChangeUpdating(false);
     }
   };
@@ -1364,6 +1397,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
             </button>
           )}
           <button
+            type="button"
             onClick={handleReset}
             onMouseEnter={() => setHoveredResetButton(true)}
             onMouseLeave={() => setHoveredResetButton(false)}
@@ -1464,6 +1498,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
                         onChange={(e) => {
                           setStatusFilter(e.target.value);
                           setCurrentPage(1);
+                          setIsStatusFilterOpen(false);
                         }}
                         className="w-3.5 h-3.5"
                       />
@@ -1479,6 +1514,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
                           onChange={(e) => {
                             setStatusFilter(e.target.value);
                             setCurrentPage(1);
+                            setIsStatusFilterOpen(false);
                           }}
                           className="w-3.5 h-3.5"
                         />
@@ -1560,6 +1596,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
             )}
 
             <button
+              type="button"
               onClick={handleReset}
               onMouseEnter={() => setHoveredResetButton(true)}
               onMouseLeave={() => setHoveredResetButton(false)}
@@ -1575,6 +1612,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
             {isAdmin && (
               <>
                 <button
+                  type="button"
                   onClick={() => {
                     setViewMode(viewMode === 'myAssigned' ? 'all' : 'myAssigned');
                     setCurrentPage(1);
@@ -1624,6 +1662,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
       <div className="mb-3 flex min-w-0 flex-shrink-0 flex-col gap-2 text-xs sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-wrap items-center gap-1.5 overflow-x-auto pb-0.5 sm:pb-0">
           <button
+            type="button"
             onClick={() => setCurrentPage(1)}
             disabled={currentPage === 1}
             onMouseEnter={() => currentPage !== 1 && setHoveredPaginationNavButton('first')}
@@ -1640,6 +1679,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
             <ChevronsLeft className="w-3 h-3" />
           </button>
           <button
+            type="button"
             onClick={() => setCurrentPage(currentPage - 1)}
             disabled={currentPage === 1}
             onMouseEnter={() => currentPage !== 1 && setHoveredPaginationNavButton('prev')}
@@ -1669,6 +1709,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
             return (
               <button
                 key={pageNum}
+                type="button"
                 onClick={() => setCurrentPage(pageNum)}
                 onMouseEnter={() => currentPage !== pageNum && setHoveredPaginationButtonIndex(pageNum)}
                 onMouseLeave={() => setHoveredPaginationButtonIndex(null)}
@@ -1686,6 +1727,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
             );
           })}
           <button
+            type="button"
             onClick={() => setCurrentPage(currentPage + 1)}
             disabled={currentPage === totalPages}
             onMouseEnter={() => currentPage < totalPages && setHoveredPaginationNavButton('next')}
@@ -1702,6 +1744,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
             <ChevronRight className="w-3 h-3" />
           </button>
           <button
+            type="button"
             onClick={() => setCurrentPage(totalPages)}
             disabled={currentPage === totalPages}
             onMouseEnter={() => currentPage < totalPages && setHoveredPaginationNavButton('last')}
@@ -1750,8 +1793,15 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
 
       {/* Mobile: cao theo nội dung, cuộn trên <main> | Desktop: flex-1 + cuộn trong vùng bảng */}
       <div className="relative min-w-0 max-lg:flex-none max-lg:overflow-visible lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-        <div className="space-y-3 px-0.5 pb-4 lg:hidden">
-          {loading ? (
+        {isListRefreshing && (
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center pt-2">
+            <span className="rounded-full bg-white/95 px-3 py-1 text-[10px] font-semibold shadow-sm ring-1 ring-gray-200" style={{ color: '#4b5563' }}>
+              {t.loadingData}
+            </span>
+          </div>
+        )}
+        <div className={`space-y-3 px-0.5 pb-4 lg:hidden ${isListRefreshing ? 'opacity-60' : ''}`}>
+          {showInitialLoading ? (
             <div className="rounded-xl border border-gray-200 bg-white py-10 text-center text-sm" style={{ color: '#6b7280' }}>
               {t.loadingData}
             </div>
@@ -1901,7 +1951,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
                           <select
                             value={nomination.status}
                             onChange={(e) => handleStatusSelectChange(nomination, parseInt(e.target.value, 10))}
-                            disabled={!isSuperAdmin && !m.isOwner}
+                            disabled={(!isSuperAdmin && !m.isOwner) || updatingStatusId === nomination.id}
                             className="w-full max-w-full cursor-pointer rounded-lg border px-2 py-2 text-xs font-semibold"
                             style={{
                               backgroundColor: m.statusStyle.backgroundColor,
@@ -1996,7 +2046,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
           )}
         </div>
 
-        <div className="hidden h-full min-w-0 overflow-x-auto lg:block">
+        <div className={`hidden h-full min-w-0 overflow-x-auto lg:block ${isListRefreshing ? 'opacity-60' : ''}`}>
           <table className="w-full table-auto border-separate [border-spacing:0_2px] xl:[border-spacing:0_4px]">
             <thead className="sticky top-0 z-10" style={{ backgroundColor: 'white' }}>
               <tr>
@@ -2027,7 +2077,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
               </tr>
             </thead>
             <tbody>
-              {loading ? (
+              {showInitialLoading ? (
                 <tr style={{ backgroundColor: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <td colSpan={isAdmin ? 9 : 8} className="rounded-lg px-2 py-5 text-center text-[8px] xl:px-3 xl:py-7 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#6b7280' }}>
                     {t.loadingData}
@@ -2197,7 +2247,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
                             <select
                               value={nomination.status}
                               onChange={(e) => handleStatusSelectChange(nomination, parseInt(e.target.value, 10))}
-                              disabled={!isSuperAdmin && !m.isOwner}
+                              disabled={(!isSuperAdmin && !m.isOwner) || updatingStatusId === nomination.id}
                               className="w-full max-w-[148px] cursor-pointer rounded border px-px py-px text-[8px] font-semibold xl:max-w-[160px] xl:px-0.5 xl:py-0.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
                               style={{
                                 backgroundColor: m.statusStyle.backgroundColor,

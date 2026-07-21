@@ -857,6 +857,8 @@ const mockJobs = [
       fullAmount: 'Toàn bộ',
       sameDayPayment: 'Có thể thanh toán trong ngày',
       viewMore: 'Xem thêm JobShare Workstation khác',
+      copyJobUrl: 'Sao chép URL (gửi cho ứng viên)',
+      copiedJobUrl: 'Đã sao chép!',
     },
     en: {
       headerTitle: 'JobShare Workstation',
@@ -870,6 +872,8 @@ const mockJobs = [
       fullAmount: 'Full amount',
       sameDayPayment: 'Same-day deposit OK',
       viewMore: 'View other JobShare Workstation',
+      copyJobUrl: 'Copy URL (for candidate)',
+      copiedJobUrl: 'Copied!',
     },
     ja: {
       headerTitle: 'JobShare Workstation',
@@ -883,6 +887,8 @@ const mockJobs = [
       fullAmount: '全額',
       sameDayPayment: '即日入金OK',
       viewMore: '他のJobShare Workstationを見る',
+      copyJobUrl: 'URLをコピー（候補者向け）',
+      copiedJobUrl: 'コピー済み!',
     },
   };
 
@@ -2526,9 +2532,7 @@ const mockJobs = [
                       >
                         {copiedJobId === job.id ? <Check className="w-3 h-3 flex-shrink-0" /> : <Copy className="w-3 h-3 flex-shrink-0" />}
                         <span className="hidden sm:inline">
-                          {copiedJobId === job.id
-                            ? (language === 'vi' ? 'Đã sao chép!' : language === 'en' ? 'Copied!' : 'コピー済み!')
-                            : (language === 'vi' ? 'Sao chép URL' : language === 'en' ? 'Copy URL' : 'URLをコピー')}
+                          {copiedJobId === job.id ? t.copiedJobUrl : t.copyJobUrl}
                         </span>
                       </button>
                       <div className="relative">
@@ -2684,9 +2688,7 @@ const mockJobs = [
                   >
                     {copiedJobId === job.id ? <Check className="w-3 h-3 flex-shrink-0" /> : <Copy className="w-3 h-3 flex-shrink-0" />}
                     <span className="hidden sm:inline">
-                      {copiedJobId === job.id
-                        ? (language === 'vi' ? 'Đã sao chép!' : language === 'en' ? 'Copied!' : 'コピー済み!')
-                        : (language === 'vi' ? 'Sao chép URL' : language === 'en' ? 'Copy URL' : 'URLをコピー')}
+                      {copiedJobId === job.id ? t.copiedJobUrl : t.copyJobUrl}
                     </span>
                   </button>
                   <div className="relative">
