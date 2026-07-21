@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>lp3マニュアル</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="ここにサイト説明を入れます">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body class="home" id="manual">
+
+<div id="container">
+
+
+<!--▼▼▼▼▼ここから「動画」-->
+<div id="mainimg">
+<video muted playsinline></video>
+</div>
+<!--▲▲▲▲▲ここまで「動画」-->
+
+
+
+</div>
+<!--/#container-->
+
+
+
+<div class="manual">
+
+<h2>動画スライドショー</h2>
+
+<pre class="look">
+&lt;!--▼▼▼▼▼ここから「動画」--&gt;
+&lt;div id=&quot;mainimg&quot;&gt;
+&lt;video muted playsinline&gt;&lt;/video&gt;
+&lt;/div&gt;
+&lt;!--▲▲▲▲▲ここまで「動画」--&gt;
+</pre>
+
+<h3>tp_lp3のメイン画像の種類について</h3>
+<p>フォルダ名の末尾が「_movie3」となっているタイプは３枚の動画で構成された動画スライドショーです。枚数変更可能。<br>
+フォルダ名の末尾が「_movie1」となっているタイプは１枚の動画のみが表示されるタイプ。<br>
+ファイル名の末尾が「_slide」となっているタイプは３枚の写真で構成されたスライドショーです。枚数変更可能。</p>
+
+<h3>別のテーマに搭載されているメイン画像を使いたい場合は</h3>
+<p>例えば、１枚の動画のみのテンプレはtp_lp3_biz_movie1のみですが、このメイン画像を他のタイプに使いたい場合などの説明です。</p>
+<p>使いたいメイン画像のフォルダに入っているcss/mainimg.cssと、js/main.jsを上書きし、該当箇所のhtmlコードをコピペすれば使えます。<br>
+素材そのものも必要なので、「とりあえず動作確認だけ」という場合は素材もテンプレから移動して下さい。</p>
+
+<h3>設定は</h3>
+<p>cssフォルダの「mainimg.css」と、jsフォルダのmain.js内の「動画スライドショー」にあります。</p>
+
+<h3>動画はできるだけ圧縮し、mp4形式にして下さい</h3>
+<p>スマホ撮影した状態だと容量が大きかったり拡張子がmp4ではなかったりする場合があるので、その際は<a href="https://template-party.com/file/douga.html" target="_blank">マニュアル</a>を読んで動画を編集して下さい。<br>
+動画の容量が大きすぎるとスライドショーの動作に問題が出る可能性があります。</p>
+
+<h3>動画の表示時間は</h3>
+<p>main.jsの「動画スライドショー」内にある、<br>
+<span class="look">}, 10000);	//10秒ごとにスライド</span><br>
+の10000の数字で変更できます。<br>
+お手元の動画の再生時間以内に設定して下さい。</p>
+
+<h3>画面いっぱいの範囲でトリミングされます</h3>
+<p>切り抜かれてもおかしくない動画を使って下さい。</p>
+
+<h3>画面が横長の場合と縦長の場合で変更できます</h3>
+<p>main.jsの「動画スライドショー」内にある、<br>
+<span class="look">&#039;1-tate.mp4&#039;</span><br>
+の行は縦画面用。<br>
+<span class="look">&#039;1-yoko.mp4&#039;</span><br>
+の行は横画面用です。<br>
+どちらも同じ動画でいい場合はファイル名を両方揃えておけばOKです。</p>
+
+<h3>フリー動画も配布中です</h3>
+<p>以下からお好きな動画をDLして入れ替えて頂いてもOKです。<br>
+このテンプレートの配布時点ではまだ数は少ないのですが、今後どんどん追加予定です。<br>
+&gt;&gt; <a href="https://photo-chips.com/?act=list&kind=2&html=tp_list__movie.html" target="_blank">無料の動画素材</a></p>
+
+</div>
+
+
+
+<!--jQueryの読み込み-->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<!--パララックス（inview）-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/protonet-jquery.inview/1.1.2/jquery.inview.min.js"></script>
+<script src="../js/jquery.inview_set.js"></script>
+
+<!--このテンプレート専用のスクリプト-->
+<script src="../js/main.js"></script>
+
+</body>
+</html>

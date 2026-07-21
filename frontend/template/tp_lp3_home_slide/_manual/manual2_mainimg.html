@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>lp3マニュアル</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="ここにサイト説明を入れます">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body class="home" id="manual">
+
+<div id="container">
+
+
+<!--▼▼▼▼▼ここから「スライドショー」-->
+<aside id="mainimg">
+<div class="slide slide1"></div>
+<div class="slide slide2"></div>
+<div class="slide slide3"></div>
+</aside>
+<!--▲▲▲▲▲ここまで「スライドショー」-->
+
+
+</div>
+<!--/#container-->
+
+
+
+<div class="manual">
+
+<h2>スライドショー</h2>
+
+<pre class="look">
+&lt;!--▼▼▼▼▼ここから「スライドショー」--&gt;
+&lt;aside id=&quot;mainimg&quot;&gt;
+&lt;div class=&quot;slide slide1&quot;&gt;&lt;/div&gt;
+&lt;div class=&quot;slide slide2&quot;&gt;&lt;/div&gt;
+&lt;div class=&quot;slide slide3&quot;&gt;&lt;/div&gt;
+&lt;/aside&gt;
+&lt;!--▲▲▲▲▲ここまで「スライドショー」--&gt;
+</pre>
+
+<h3>tp_lp3のメイン画像の種類について</h3>
+<p>フォルダ名の末尾が「_movie3」となっているタイプは３枚の動画で構成された動画スライドショーです。枚数変更可能。<br>
+フォルダ名の末尾が「_movie1」となっているタイプは１枚の動画のみが表示されるタイプ。<br>
+ファイル名の末尾が「_slide」となっているタイプは３枚の写真で構成されたスライドショーです。枚数変更可能。</p>
+
+<h3>別のテーマに搭載されているメイン画像を使いたい場合は</h3>
+<p>例えば、１枚の動画のみのテンプレはtp_lp3_biz_movie1のみですが、このメイン画像を他のタイプに使いたい場合などの説明です。</p>
+<p>使いたいメイン画像のフォルダに入っているcss/mainimg.cssと、js/main.jsを上書きし、該当箇所のhtmlコードをコピペすれば使えます。<br>
+素材そのものも必要なので、「とりあえず動作確認だけ」という場合は素材もテンプレから移動して下さい。</p>
+
+<h3>設定は</h3>
+<p>cssフォルダの「mainimg.css」と、jsフォルダのmain.js内の「スライドショー」にあります。</p>
+
+<h3>１枚あたりのスライドの表示時間は</h3>
+<p>main.jsの「スライドショー」内にある、<br>
+<span class="look">}, 4000); // 4秒ごとにスライドを切り替える</span><br>
+の4000の数字で変更できます。</p>
+
+<h3>画面いっぱいの範囲でトリミングされます</h3>
+<p>切り抜かれてもおかしくない画像を使って下さい。</p>
+
+<h3>画面が横長の場合と縦長の場合で変更できます</h3>
+<p>css/mainimg.cssでそれぞれ指定しています。詳しい説明もコメントで入っているので読んで下さい。<br>
+もし縦も横も同じ画像でいい場合は、mainimg.cssに書いてあるファイル名を揃えておけばOKです。</p>
+
+<h3>フリー写真も配布中です</h3>
+<p>以下からお好きな画像をDLして入れ替えて頂いてもOKです。<br>
+このテンプレートの配布時点ではまだ数は少ないのですが、今後どんどん追加予定です。<br>
+&gt;&gt; <a href="https://photo-chips.com/?act=list&kind=1&html=tp_index.html" target="_blank">無料の写真素材</a></p>
+
+</div>
+
+
+
+<!--jQueryの読み込み-->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<!--パララックス（inview）-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/protonet-jquery.inview/1.1.2/jquery.inview.min.js"></script>
+<script src="../js/jquery.inview_set.js"></script>
+
+<!--このテンプレート専用のスクリプト-->
+<script src="../js/main.js"></script>
+
+</body>
+</html>
