@@ -317,6 +317,28 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
     return options;
   }, [flow.selectedCV, flow.cvFileList]);
 
+  const residenceStatusTags = useMemo(
+    () => resolveJobResidenceStatusList(flow.job)
+      .map((item) => (typeof item === 'object' && item ? (item.value || item.vi || item.en || item.ja || item.jp) : item))
+      .map((item) => String(item).replace(/["'\[\]]/g, '').trim())
+      .filter(Boolean)
+      .map((raw) => {
+        const value = normalizeResidenceStatusValue(raw);
+        return { value, label: getResidenceStatusLabel(value, flow.language || 'vi') };
+      })
+      .filter((tag) => tag.label),
+    [flow.job?.residenceStatuses, flow.job?.residence_statuses, flow.job?.residenceStatus, flow.job?.residence_status, flow.language]
+  );
+  const displayResidenceStatusTags = useMemo(() => {
+    if (jobRequiresVisa) {
+      return residenceStatusTags.filter((tag) => !isNoVisaRequirement(tag.value));
+    }
+    if (residenceStatusTags.some((tag) => isNoVisaRequirement(tag.value))) {
+      return [{ value: 'no_requirement', label: getResidenceStatusLabel('no_requirement', flow.language || 'vi') }];
+    }
+    return residenceStatusTags;
+  }, [jobRequiresVisa, residenceStatusTags, flow.language]);
+
   if (cvSelectFailed || (!flow.selectedCV && location.state?.selectedCvId)) {
     return <div className="p-6 text-sm text-gray-500">Đang quay lại chọn ứng viên...</div>;
   }
@@ -381,27 +403,6 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
   const jobSalaryDetail = salaryFieldToText(flow.job?.salaryDetail || flow.job?.salaryContent || flow.job?.salaryContentVi || flow.job?.salaryContentEn || flow.job?.salaryContentJp);
   const jobSalary = salaryFieldToText(flow.job?.estimatedSalary || flow.job?.salary || flow.job?.salaryRange || flow.job?.salaryInfo || flow.job?.salaryData);
   const job = flow.job;
-  const residenceStatusTags = useMemo(
-    () => resolveJobResidenceStatusList(flow.job)
-      .map((item) => (typeof item === 'object' && item ? (item.value || item.vi || item.en || item.ja || item.jp) : item))
-      .map((item) => String(item).replace(/["'\[\]]/g, '').trim())
-      .filter(Boolean)
-      .map((raw) => {
-        const value = normalizeResidenceStatusValue(raw);
-        return { value, label: getResidenceStatusLabel(value, flow.language || 'vi') };
-      })
-      .filter((tag) => tag.label),
-    [flow.job?.residenceStatuses, flow.job?.residence_statuses, flow.job?.residenceStatus, flow.job?.residence_status, flow.language]
-  );
-  const displayResidenceStatusTags = useMemo(() => {
-    if (jobRequiresVisa) {
-      return residenceStatusTags.filter((tag) => !isNoVisaRequirement(tag.value));
-    }
-    if (residenceStatusTags.some((tag) => isNoVisaRequirement(tag.value))) {
-      return [{ value: 'no_requirement', label: getResidenceStatusLabel('no_requirement', flow.language || 'vi') }];
-    }
-    return residenceStatusTags;
-  }, [jobRequiresVisa, residenceStatusTags, flow.language]);
 
   const confirmFieldClass = (hasValue) => `rounded-xl border p-3 text-[10px] ${hasValue ? 'border-gray-200 bg-white' : 'border-red-300 bg-red-50'}`;
   const confirmFieldLabelClass = (hasValue) => `font-semibold mb-1 ${hasValue ? 'text-gray-500' : 'text-red-700'}`;
