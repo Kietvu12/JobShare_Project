@@ -1,0 +1,38 @@
+.cl-motion {
+  opacity: 0;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.cl-motion-visible {
+  opacity: 1;
+  transform: none !important;
+}
+
+.cl-motion.fade-in {
+  opacity: 0;
+}
+
+.cl-motion.fade-in.cl-motion-visible {
+  opacity: 1;
+}
+
+.cl-motion.slide-up {
+  transform: translateY(28px);
+}
+
+.cl-motion.slide-left {
+  transform: translateX(-28px);
+}
+
+.cl-motion.zoom-in {
+  transform: scale(0.94);
+}
+
+.cl-site img,
+.cl-site video {
+  max-width: 100%;
+}
+
+.cl-hero-video {
+  pointer-events: none;
+}
