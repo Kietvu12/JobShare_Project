@@ -13,8 +13,8 @@ import {
 import { Op, col } from 'sequelize';
 import sequelize from '../../config/database.js';
 import { uploadBufferToS3, buildMessageAttachmentKey, getSignedUrlForFile, makeDownloadDisposition } from '../../services/s3Service.js';
+import { dispatchNominationMessageNotifications } from '../../services/nominationMessageNotificationService.js';
 import { collaboratorNotificationService } from '../../services/collaboratorNotificationService.js';
-import { nominationEmailService } from '../../services/nominationEmailService.js';
 
 // Helper function to map model field names to database column names
 const mapOrderField = (fieldName) => {
@@ -351,7 +351,7 @@ export const messageController = {
       // Validate job application exists (Job + CV để thông báo/email đúng mã đơn & tên ứng viên)
       const jobApplication = await JobApplication.findByPk(jobApplicationId, {
         include: [
-          { model: Job, as: 'job', required: false, attributes: ['id', 'jobCode', 'title', 'titleEn', 'titleJp'] },
+          { model: Job, as: 'job', required: false, attributes: ['id', 'jobCode', 'title', 'titleEn', 'titleJp', 'businessId'] },
           { model: CVStorage, as: 'cv', required: false, attributes: ['name'] }
         ]
       });
@@ -472,11 +472,10 @@ export const messageController = {
         !isApplicantThread && (message.collaboratorId || jobApplication.collaboratorId);
       if (recipientCollaboratorId && message.senderType !== 2) {
         try {
-          await collaboratorNotificationService.notifyIncomingMessage({
-            collaboratorId: recipientCollaboratorId,
-            jobCode: jobApplication.job?.jobCode || String(jobApplication.id),
-            jobId: jobApplication.jobId || null,
-            jobApplicationId: jobApplication.id
+          await dispatchNominationMessageNotifications({
+            message,
+            jobApplication,
+            messagePreview: trimmedContent,
           });
         } catch (notificationError) {
           console.error('[Admin createMessage] Error creating notification:', notificationError);
@@ -494,31 +493,6 @@ export const messageController = {
             });
           } catch (notificationError) {
             console.error('[Admin createMessage] Business notification error:', notificationError);
-          }
-        }
-
-        if (senderTypeNum === 1) {
-          try {
-            const collab = await Collaborator.findByPk(recipientCollaboratorId, {
-              attributes: ['email']
-            });
-            const to = collab?.email?.trim();
-            if (to) {
-              await nominationEmailService.sendCollaboratorAdminNewMessageEmail({
-                to,
-                jobApplicationId: jobApplication.id,
-                jobCode: jobApplication.job?.jobCode || String(jobApplication.id),
-                candidateName:
-                  jobApplication.cv?.name?.trim() ||
-                  (jobApplication.title && String(jobApplication.title).trim()) ||
-                  'N/A',
-                jobTitleVi: jobApplication.job?.title,
-                jobTitleEn: jobApplication.job?.titleEn,
-                jobTitleJp: jobApplication.job?.titleJp
-              });
-            }
-          } catch (emailErr) {
-            console.error('[Admin createMessage] CTV new-message email:', emailErr);
           }
         }
       }

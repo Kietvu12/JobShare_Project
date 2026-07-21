@@ -12,6 +12,10 @@ import { Op, col, QueryTypes } from 'sequelize';
 import sequelize from '../../config/database.js';
 import { uploadBufferToS3, buildMessageAttachmentKey, getSignedUrlForFile, makeDownloadDisposition } from '../../services/s3Service.js';
 import { collaboratorNotificationService } from '../../services/collaboratorNotificationService.js';
+import {
+  dispatchNominationMessageNotifications,
+  loadJobApplicationForNotify,
+} from '../../services/nominationMessageNotificationService.js';
 
 /**
  * Message Controller (CTV)
@@ -291,23 +295,38 @@ export const messageController = {
         messageData.attachmentUrl = null;
       }
 
-      try {
-        const jobApplication = message.jobApplication
-          || await JobApplication.findByPk(jobApplicationId, {
-            include: [{ model: Job, as: 'job', required: false, attributes: ['id', 'businessId', 'jobCode', 'title'] }],
-          });
-        const businessId = jobApplication?.job?.businessId;
-        if (businessId && senderTypeNum === 2) {
-          await collaboratorNotificationService.notifyBusinessIncomingMessage({
-            businessId,
-            jobCode: jobApplication.job?.jobCode || String(jobApplicationId),
-            jobId: jobApplication.jobId || null,
-            jobApplicationId: jobApplication.id,
-            senderLabel: req.collaborator?.name || 'CTV',
-          });
+      if (senderTypeNum === 2) {
+        try {
+          const jobAppForNotify = await loadJobApplicationForNotify(jobApplicationId);
+          if (jobAppForNotify) {
+            await dispatchNominationMessageNotifications({
+              message,
+              jobApplication: jobAppForNotify,
+              messagePreview: trimmedContent,
+            });
+          }
+        } catch (notificationError) {
+          console.error('[CTV createMessage] notification error:', notificationError);
         }
-      } catch (notificationError) {
-        console.error('[CTV createMessage] Business notification error:', notificationError);
+
+        try {
+          const jobApplication = message.jobApplication
+            || await JobApplication.findByPk(jobApplicationId, {
+              include: [{ model: Job, as: 'job', required: false, attributes: ['id', 'businessId', 'jobCode', 'title'] }],
+            });
+          const businessId = jobApplication?.job?.businessId;
+          if (businessId) {
+            await collaboratorNotificationService.notifyBusinessIncomingMessage({
+              businessId,
+              jobCode: jobApplication.job?.jobCode || String(jobApplicationId),
+              jobId: jobApplication.jobId || null,
+              jobApplicationId: jobApplication.id,
+              senderLabel: req.collaborator?.name || 'CTV',
+            });
+          }
+        } catch (notificationError) {
+          console.error('[CTV createMessage] Business notification error:', notificationError);
+        }
       }
 
       res.status(201).json({

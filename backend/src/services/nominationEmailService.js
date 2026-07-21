@@ -324,6 +324,149 @@ WS JobShare`;
   return { subject, text, html };
 }
 
+/** Mail admin khi có tin nhắn mới trên đơn tiến cử (từ CTV / DN / ứng viên) — trilingue. */
+function resolveMessageSenderLabels(senderType, senderLabel) {
+  const map = {
+    2: { ja: 'CTV', en: 'Collaborator', vi: 'CTV' },
+    4: { ja: '応募者', en: 'Applicant', vi: 'Ứng viên' },
+    5: { ja: '企業', en: 'Business', vi: 'Doanh nghiệp' },
+  };
+  if (map[senderType]) return map[senderType];
+  const fallback = String(senderLabel || '').trim() || '—';
+  return { ja: fallback, en: fallback, vi: fallback };
+}
+
+function buildAdminNewNominationMessageEmail({
+  jobApplicationId,
+  jobCode,
+  candidateName,
+  jobTitleVi,
+  jobTitleEn,
+  jobTitleJp,
+  senderType,
+  senderLabel = 'Người gửi',
+}) {
+  const appId = jobApplicationId != null ? String(jobApplicationId) : '—';
+  const codeLine = jobCode || appId;
+  const idForUrl =
+    jobApplicationId != null && /^\d+$/.test(String(jobApplicationId).trim())
+      ? String(jobApplicationId).trim()
+      : null;
+  const adminNominationUrl = idForUrl ? `${FRONTEND_URL_ADMIN}/admin/nominations/${idForUrl}` : null;
+
+  const candidate = String(candidateName || 'N/A').trim() || 'N/A';
+  const jpPosition = jobTitleJp || jobTitleVi || jobTitleEn || 'N/A';
+  const enPosition = jobTitleEn || jobTitleVi || jobTitleJp || 'N/A';
+  const viPosition = jobTitleVi || jobTitleEn || jobTitleJp || 'N/A';
+  const senderLabels = resolveMessageSenderLabels(senderType, senderLabel);
+
+  const safeCode = escapeHtml(codeLine);
+  const safeCandidate = escapeHtml(candidate);
+  const safePositionJp = escapeHtml(jpPosition);
+  const safePositionEn = escapeHtml(enPosition);
+  const safePositionVi = escapeHtml(viPosition);
+  const safeSenderJa = escapeHtml(senderLabels.ja);
+  const safeSenderEn = escapeHtml(senderLabels.en);
+  const safeSenderVi = escapeHtml(senderLabels.vi);
+  const safeUrl = adminNominationUrl ? escapeHtml(adminNominationUrl) : '';
+
+  const subject = '[WS JobShare] 新着メッセージのお知らせ / New Message / Tin nhắn mới';
+  const text = `いつもご利用いただき、ありがとうございます。
+以下の推薦案件について新しいメッセージがあります。
+
+・推薦番号： ${codeLine}
+・候補者名： ${candidate}
+・ポジション： ${jpPosition}
+・送信者： ${senderLabels.ja}
+
+詳細はこちらよりご確認ください。
+${adminNominationUrl || '—'}
+
+==================================================
+Thank you for your continued support.
+There is a new message on the following nomination application:
+
+Application No: ${codeLine}
+Candidate: ${candidate}
+Position: ${enPosition}
+Sender: ${senderLabels.en}
+
+Please log in to the system to review and respond.
+${adminNominationUrl || '—'}
+
+==================================================
+Cảm ơn Quý admin đã sử dụng hệ thống.
+Có tin nhắn mới trên đơn tiến cử với thông tin như sau:
+
+Mã đơn tiến cử: ${codeLine}
+Tên ứng viên: ${candidate}
+Tên job: ${viPosition}
+Người gửi: ${senderLabels.vi}
+
+Quý anh/chị vui lòng đăng nhập hệ thống để xem và phản hồi.
+${adminNominationUrl || '—'}
+
+ご不明な点がございましたら、お気軽にお問い合わせください。
+Workstation JobShare
+Email: jobshare@work-station.vn
+Hotline: (+81) 8094411975（日本）/ (+84) 906130296（ベトナム）`;
+
+  const codeLineHtml = adminNominationUrl
+    ? `・推薦番号： <a href="${safeUrl}" style="color: #2563eb; text-decoration: underline;">${safeCode}</a>`
+    : `・推薦番号： ${safeCode}`;
+  const codeLineHtmlEn = adminNominationUrl
+    ? `Application No: <a href="${safeUrl}" style="color: #2563eb; text-decoration: underline;">${safeCode}</a>`
+    : `Application No: ${safeCode}`;
+  const codeLineHtmlVi = adminNominationUrl
+    ? `Mã đơn tiến cử: <a href="${safeUrl}" style="color: #2563eb; text-decoration: underline;">${safeCode}</a>`
+    : `Mã đơn tiến cử: ${safeCode}`;
+
+  const html = `
+    <div style="font-family: Arial, Helvetica, sans-serif; color: #111827; line-height: 1.55;">
+      <p style="margin: 0 0 8px;">
+        いつもご利用いただき、ありがとうございます。<br/>
+        以下の推薦案件について新しいメッセージがあります。<br/><br/>
+        ${codeLineHtml}<br/>
+        ・候補者名： ${safeCandidate}<br/>
+        ・ポジション： ${safePositionJp}<br/>
+        ・送信者： ${safeSenderJa}<br/><br/>
+        詳細は<a href="${safeUrl || '#'}" style="color: #2563eb; text-decoration: underline;">こちら</a>よりご確認ください。
+      </p>
+
+      <p style="margin: 12px 0;">==================================================</p>
+
+      <p style="margin: 0 0 8px;">
+        Thank you for your continued support.<br/>
+        There is a new message on the following nomination application:<br/><br/>
+        ${codeLineHtmlEn}<br/>
+        Candidate: ${safeCandidate}<br/>
+        Position: ${safePositionEn}<br/>
+        Sender: ${safeSenderEn}<br/><br/>
+        Please log in to the system to review and respond via this <a href="${safeUrl || '#'}" style="color: #2563eb; text-decoration: underline;">link</a>.
+      </p>
+
+      <p style="margin: 12px 0;">==================================================</p>
+
+      <p style="margin: 0 0 8px;">
+        Cảm ơn Quý admin đã sử dụng hệ thống.<br/>
+        Có tin nhắn mới trên đơn tiến cử với thông tin như sau:<br/><br/>
+        ${codeLineHtmlVi}<br/>
+        Tên ứng viên: ${safeCandidate}<br/>
+        Tên job: ${safePositionVi}<br/>
+        Người gửi: ${safeSenderVi}<br/><br/>
+        Quý anh/chị vui lòng đăng nhập hệ thống để xem và phản hồi qua <a href="${safeUrl || '#'}" style="color: #2563eb; text-decoration: underline;">liên kết này</a>.
+      </p>
+
+      <p style="margin: 14px 0 0;">ご不明な点がございましたら、お気軽にお問い合わせください。</p>
+      <p style="margin: 10px 0 0; font-weight: 700;">Workstation JobShare</p>
+      <p style="margin: 4px 0 0;">Email: <a href="mailto:jobshare@work-station.vn" style="color: #111827;">jobshare@work-station.vn</a></p>
+      <p style="margin: 2px 0 0;">Hotline: (+81) 8094411975（日本）/ (+84) 906130296（ベトナム）</p>
+    </div>
+  `;
+
+  return { subject, text, html };
+}
+
 export const nominationEmailService = {
   /**
    * @param {Object} params
@@ -368,6 +511,41 @@ export const nominationEmailService = {
       subject: content.subject,
       text: content.text,
       html: content.html
+    });
+  },
+
+  /** Tin nhắn mới trên đơn tiến cử → mail cho danh sách admin (NOMINATION_NEW_ADMIN_EMAILS). */
+  async sendAdminNewNominationMessageEmail({
+    jobApplicationId,
+    jobCode,
+    candidateName,
+    jobTitleVi,
+    jobTitleEn,
+    jobTitleJp,
+    senderType,
+    senderLabel,
+  }) {
+    const list = Array.isArray(config.nominationNewAdminEmails)
+      ? config.nominationNewAdminEmails
+      : [];
+    if (!list.length) {
+      return { skipped: true, reason: 'no_admin_recipients' };
+    }
+    const content = buildAdminNewNominationMessageEmail({
+      jobApplicationId,
+      jobCode,
+      candidateName,
+      jobTitleVi,
+      jobTitleEn,
+      jobTitleJp,
+      senderType,
+      senderLabel,
+    });
+    return emailService.sendEmail({
+      to: list,
+      subject: content.subject,
+      text: content.text,
+      html: content.html,
     });
   },
 
