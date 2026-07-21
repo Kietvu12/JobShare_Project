@@ -21,8 +21,59 @@ const RESIDENCE_STATUS_OPTIONS = [
   { value: 'ict', vi: 'Chuyển công tác nội bộ', en: 'Intra-company Transferee', ja: '企業内転勤' },
   { value: 'entertainer', vi: 'Biểu diễn / giải trí', en: 'Entertainer / Entertainment', ja: '興行' },
   { value: 'prspouse', vi: 'Vợ/chồng thường trú nhân', en: 'Spouse of Permanent Resident', ja: '永住者の配偶者等' },
-  { value: 'no_requirement', vi: 'Không yêu cầu', en: 'No requirement', jp: '不要' },
+  { value: 'no_requirement', vi: 'Không yêu cầu', en: 'No requirement', ja: '不要' },
 ];
+
+const resolveResidenceStatusValue = (value, options = RESIDENCE_STATUS_OPTIONS) => {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+  const rawLower = raw.toLowerCase();
+  const map = {
+    engineer: 'engineer', ssw: 'ssw', student: 'student', pr: 'pr', spouse: 'spouse', ltr: 'ltr', other: 'other', hsp: 'hsp', labor_skill: 'labor_skill', titp: 'titp', dependent: 'dependent', short: 'short', ict: 'ict', entertainer: 'entertainer', prspouse: 'prspouse', no_requirement: 'no_requirement', none: 'no_requirement',
+    'no requirement': 'no_requirement', 'không yêu cầu': 'no_requirement', 'khong yeu cau': 'no_requirement', '不要': 'no_requirement',
+    '1': 'engineer', '2': 'ssw', '3': 'student', '4': 'pr', '5': 'spouse', '6': 'ltr', '7': 'other', '8': 'hsp', '9': 'labor_skill', '10': 'dependent', '11': 'short', '12': 'ict', '13': 'entertainer', '14': 'titp', '15': 'prspouse',
+  };
+  if (map[rawLower]) return map[rawLower];
+  const labelMatch = options.find((opt) => [opt.vi, opt.en, opt.ja, opt.jp].some((label) => label && String(label).trim().toLowerCase() === rawLower));
+  return labelMatch?.value || rawLower;
+};
+
+const normalizeStatusList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        return trimmed.split(',');
+      }
+    }
+    return trimmed.split(',');
+  }
+  if (typeof value === 'object' && value) {
+    if (Array.isArray(value.value)) return value.value;
+    return [value.value || value.vi || value.en || value.ja || value.label || value.name || value.title || ''];
+  }
+  return value ? [value] : [];
+};
+
+const resolveJobResidenceStatusList = (job) => {
+  if (!job) return [];
+  const sources = [
+    job.residenceStatuses,
+    job.residence_statuses,
+    job.residenceStatus,
+    job.residence_status,
+  ];
+  for (const source of sources) {
+    const list = normalizeStatusList(source);
+    if (list.length > 0) return list;
+  }
+  return [];
+};
 
 const NominationConfirmPage = ({ variant = 'agent' }) => {
   const navigate = useNavigate();
@@ -76,50 +127,24 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
   }, [flow.selectedCV, selectedFolderPath]);
 
   const getFieldValue = (...values) => values.find((value) => value != null && String(value).trim() !== '') || '';
-  const normalizeResidenceStatusValue = (value) => {
-    const raw = String(value ?? '').trim().toLowerCase();
-    if (!raw) return '';
-    const map = {
-      engineer: 'engineer', ssw: 'ssw', student: 'student', pr: 'pr', spouse: 'spouse', ltr: 'ltr', other: 'other', hsp: 'hsp', labor_skill: 'labor_skill', titp: 'titp', dependent: 'dependent', short: 'short', ict: 'ict', entertainer: 'entertainer', prspouse: 'prspouse', no_requirement: 'no_requirement',
-      '1': 'engineer', '2': 'ssw', '3': 'student', '4': 'pr', '5': 'spouse', '6': 'ltr', '7': 'other', '8': 'hsp', '9': 'labor_skill', '10': 'dependent', '11': 'short', '12': 'ict', '13': 'entertainer', '14': 'titp', '15': 'prspouse',
-    };
-    return map[raw] || raw;
-  };
+  const normalizeResidenceStatusValue = (value) => resolveResidenceStatusValue(value);
   const isNoVisaRequirement = (value) => {
     const normalized = normalizeResidenceStatusValue(value);
-    return normalized === 'no_requirement' || normalized === 'none';
+    return normalized === 'no_requirement';
   };
   const getResidenceStatusLabel = (value, lang = flow.language || 'vi') => {
-    const rawValue = typeof value === 'object' && value ? (value.value || value.vi || value.en || value.ja) : value;
+    const rawValue = typeof value === 'object' && value ? (value.value || value.vi || value.en || value.ja || value.jp) : value;
     const normalized = normalizeResidenceStatusValue(rawValue);
     const opt = RESIDENCE_STATUS_OPTIONS.find((item) => item.value === normalized);
     if (!opt) return rawValue || '';
     if (lang === 'en') return opt.en;
-    if (lang === 'ja') return opt.ja;
+    if (lang === 'ja') return opt.ja || opt.jp || opt.vi;
     return opt.vi;
   };
-  const normalizeStatusList = (value) => {
-    if (Array.isArray(value)) return value;
-    if (typeof value === 'string') {
-      const trimmed = value.trim();
-      if (!trimmed) return [];
-      if (trimmed.startsWith('[')) {
-        try {
-          const parsed = JSON.parse(trimmed);
-          if (Array.isArray(parsed)) return parsed;
-        } catch {
-          return trimmed.split(',');
-        }
-      }
-      return trimmed.split(',');
-    }
-    if (typeof value === 'object' && value) {
-      if (Array.isArray(value.value)) return value.value;
-      return [value.value || value.vi || value.en || value.ja || value.label || value.name || value.title || ''];
-    }
-    return value ? [value] : [];
-  };
-  const jobResidenceRequiredValues = useMemo(() => normalizeStatusList(flow.job?.residenceStatuses || flow.job?.residence_statuses || flow.job?.residenceStatus || flow.job?.residence_status).map(normalizeResidenceStatusValue).filter(Boolean), [flow.job?.residenceStatuses, flow.job?.residence_statuses, flow.job?.residenceStatus, flow.job?.residence_status]);
+  const jobResidenceRequiredValues = useMemo(
+    () => resolveJobResidenceStatusList(flow.job).map(normalizeResidenceStatusValue).filter(Boolean),
+    [flow.job?.residenceStatuses, flow.job?.residence_statuses, flow.job?.residenceStatus, flow.job?.residence_status]
+  );
   const effectiveJobResidenceRequirements = useMemo(
     () => jobResidenceRequiredValues.filter((value) => !isNoVisaRequirement(value)),
     [jobResidenceRequiredValues]
@@ -127,7 +152,20 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
   const jobRequiresVisa = effectiveJobResidenceRequirements.length > 0;
   const currentResidenceStatusValue = normalizeResidenceStatusValue(getFieldValue(flow.cvEditData.jpResidenceStatus, flow.selectedCV?.jpResidenceStatus, flow.selectedCV?.jp_residence_status, flow.selectedCV?.residenceStatus, flow.selectedCV?.residence_status, flow.selectedCV?.visaStatus));
   const missingResidenceStatus = jobRequiresVisa && !currentResidenceStatusValue;
-  const residenceStatusMismatch = jobRequiresVisa && currentResidenceStatusValue && !effectiveJobResidenceRequirements.includes(currentResidenceStatusValue);
+  const residenceStatusMismatch = jobRequiresVisa && Boolean(currentResidenceStatusValue) && !effectiveJobResidenceRequirements.includes(currentResidenceStatusValue);
+  const candidateVisaSelectOptions = useMemo(
+    () => RESIDENCE_STATUS_OPTIONS
+      .filter((opt) => opt.value !== 'no_requirement')
+      .map((opt) => ({
+        value: opt.value,
+        label: getResidenceStatusLabel(opt.value, flow.language || 'vi'),
+      })),
+    [flow.language]
+  );
+  const requiredVisaLabels = useMemo(
+    () => effectiveJobResidenceRequirements.map((value) => getResidenceStatusLabel(value, flow.language || 'vi')).join(', '),
+    [effectiveJobResidenceRequirements, flow.language]
+  );
   const confirmEditValue = (key, value) => {
     if (key === 'jpResidenceStatus') {
       const normalized = value && /^\d+$/.test(String(value))
@@ -170,9 +208,9 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
     if (!requiredFields.desiredSalary) missing.push('desiredSalary');
     if (!requiredFields.japaneseLevel) missing.push('japaneseLevel');
     if (!requiredFields.experienceYears) missing.push('experienceYears');
-    if (jobRequiresVisa && missingResidenceStatus) missing.push('residenceStatus');
+    if (missingResidenceStatus) missing.push('residenceStatus');
     return missing;
-  }, [requiredFields, jobRequiresVisa, missingResidenceStatus]);
+  }, [requiredFields, missingResidenceStatus]);
 
   const buildConfirmMessage = () => {
     const candidateName = requiredFields.candidateName || 'ứng viên';
@@ -197,6 +235,7 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
       compare(flow.cvEditData.desiredWorkLocation, flow.selectedCV?.desiredWorkLocation || flow.selectedCV?.desiredLocation || flow.selectedCV?.desiredPosition),
       compare(flow.cvEditData.nyushaTime, flow.selectedCV?.nyushaTime),
       compare(flow.cvEditData.jpLevel, flow.selectedCV?.jpLevel || flow.selectedCV?.japaneseLevel || flow.selectedCV?.n5Level || flow.selectedCV?.languageLevelJp || flow.selectedCV?.jlptLevel),
+      compare(flow.cvEditData.experienceYears, flow.selectedCV?.experienceYears || flow.selectedCV?.yearsOfExperience || flow.selectedCV?.experienceYear || flow.selectedCV?.workExperienceYears),
       compare(flow.cvEditData.jpResidenceStatus, flow.selectedCV?.jpResidenceStatus || flow.selectedCV?.jp_residence_status || flow.selectedCV?.residenceStatus || flow.selectedCV?.residence_status || flow.selectedCV?.visaStatus),
       compare(flow.cvEditData.jobCategoryId, flow.selectedCV?.jobCategoryId || flow.selectedCV?.job_category_id || flow.selectedCV?.jobCategory?.id),
       compare(flow.cvEditData.jobCategoryName, flow.selectedCV?.jobCategoryName || flow.selectedCV?.jobCategory?.name || flow.selectedCV?.job_category_name || flow.selectedCV?.categoryName),
@@ -206,7 +245,7 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
   }, [flow.cvEditData, flow.selectedCV]);
 
   const submit = async () => {
-    if (missingRequiredFields.length || residenceStatusMismatch) return;
+    if (missingRequiredFields.length) return;
     setConfirmingSubmit(true);
     try {
       let currentCV = flow.selectedCV;
@@ -278,6 +317,28 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
     return options;
   }, [flow.selectedCV, flow.cvFileList]);
 
+  const residenceStatusTags = useMemo(
+    () => resolveJobResidenceStatusList(flow.job)
+      .map((item) => (typeof item === 'object' && item ? (item.value || item.vi || item.en || item.ja || item.jp) : item))
+      .map((item) => String(item).replace(/["'\[\]]/g, '').trim())
+      .filter(Boolean)
+      .map((raw) => {
+        const value = normalizeResidenceStatusValue(raw);
+        return { value, label: getResidenceStatusLabel(value, flow.language || 'vi') };
+      })
+      .filter((tag) => tag.label),
+    [flow.job?.residenceStatuses, flow.job?.residence_statuses, flow.job?.residenceStatus, flow.job?.residence_status, flow.language]
+  );
+  const displayResidenceStatusTags = useMemo(() => {
+    if (jobRequiresVisa) {
+      return residenceStatusTags.filter((tag) => !isNoVisaRequirement(tag.value));
+    }
+    if (residenceStatusTags.some((tag) => isNoVisaRequirement(tag.value))) {
+      return [{ value: 'no_requirement', label: getResidenceStatusLabel('no_requirement', flow.language || 'vi') }];
+    }
+    return residenceStatusTags;
+  }, [jobRequiresVisa, residenceStatusTags, flow.language]);
+
   if (cvSelectFailed || (!flow.selectedCV && location.state?.selectedCvId)) {
     return <div className="p-6 text-sm text-gray-500">Đang quay lại chọn ứng viên...</div>;
   }
@@ -342,43 +403,15 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
   const jobSalaryDetail = salaryFieldToText(flow.job?.salaryDetail || flow.job?.salaryContent || flow.job?.salaryContentVi || flow.job?.salaryContentEn || flow.job?.salaryContentJp);
   const jobSalary = salaryFieldToText(flow.job?.estimatedSalary || flow.job?.salary || flow.job?.salaryRange || flow.job?.salaryInfo || flow.job?.salaryData);
   const job = flow.job;
-  const rawResidenceStatuses = flow.job?.residenceStatuses || flow.job?.residence_statuses || flow.job?.residenceStatus || flow.job?.residence_status;
-  const residenceStatusTags = (() => {
-    const normalizeValues = (input) => {
-      if (Array.isArray(input)) return input;
-      if (typeof input === 'string') {
-        const trimmed = input.trim();
-        if (!trimmed) return [];
-        if (trimmed.startsWith('[')) {
-          try {
-            const parsed = JSON.parse(trimmed);
-            if (Array.isArray(parsed)) return parsed;
-          } catch {
-            return trimmed.split(',');
-          }
-        }
-        return trimmed.split(',');
-      }
-      return input ? [input] : [];
-    };
-    return normalizeValues(rawResidenceStatuses)
-      .map((item) => (typeof item === 'object' && item ? (item.value || item.vi || item.en || item.ja) : item))
-      .map((item) => String(item).replace(/["'\[\]]/g, '').trim())
-      .filter(Boolean)
-      .map((raw) => {
-        const value = normalizeResidenceStatusValue(raw);
-        return { value, label: getResidenceStatusLabel(value, flow.language || 'vi') };
-      });
-  })();
 
   const confirmFieldClass = (hasValue) => `rounded-xl border p-3 text-[10px] ${hasValue ? 'border-gray-200 bg-white' : 'border-red-300 bg-red-50'}`;
   const confirmFieldLabelClass = (hasValue) => `font-semibold mb-1 ${hasValue ? 'text-gray-500' : 'text-red-700'}`;
-  const renderModalEditableField = ({ id, label, value, missing = false, warning = false, warningText = '', type = 'text', options = [], onOpenPicker = null }) => {
+  const renderModalEditableField = ({ id, label, value, missing = false, missingText = 'Thiếu dữ liệu, vui lòng bổ sung.', warning = false, warningText = '', type = 'text', options = [], onOpenPicker = null }) => {
     const showValue = value ?? '';
     const inputClass = 'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[10px] outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100';
     return (
-      <div key={id} className={confirmFieldClass(!missing)}>
-        <p className={confirmFieldLabelClass(!missing)}>{label}</p>
+      <div key={id} className={confirmFieldClass(!missing && !warning)}>
+        <p className={confirmFieldLabelClass(!missing && !warning)}>{label}</p>
         {type === 'select' ? (
           <select
             className={inputClass}
@@ -406,7 +439,7 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
             onChange={(e) => confirmEditValue(id, e.target.value)}
           />
         )}
-        {missing && <p className="mt-1 text-red-600 font-semibold">Thiếu dữ liệu, vui lòng bổ sung.</p>}
+        {missing && <p className="mt-1 text-red-600 font-semibold">{missingText}</p>}
         {!missing && warning && <p className="mt-1 text-amber-600 font-semibold">{warningText}</p>}
       </div>
     );
@@ -588,9 +621,9 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
             <h2 className="text-base font-bold text-gray-900">Thông tin công việc</h2>
           </div>
 
-          {residenceStatusTags.length > 0 && (
+          {displayResidenceStatusTags.length > 0 && (
             <div className="mb-4 flex flex-wrap gap-1.5">
-              {residenceStatusTags.map((tag) => (
+              {displayResidenceStatusTags.map((tag) => (
                 <span key={tag.value} className="px-2 py-1 rounded-full text-[10px] font-semibold border" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', borderColor: '#bfdbfe' }}>
                   {tag.label}
                 </span>
@@ -683,8 +716,11 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
                 <p className="text-sm text-gray-900 leading-6">{buildConfirmMessage()}</p>
                 {jobRequiresVisa && (
                   <p className="mt-2 text-xs text-gray-600">
-                    Yêu cầu visa: {effectiveJobResidenceRequirements.map((v) => getResidenceStatusLabel(v, flow.language || 'vi')).join(', ')}
+                    Yêu cầu visa: {requiredVisaLabels}
                   </p>
+                )}
+                {!jobRequiresVisa && (
+                  <p className="mt-2 text-xs text-gray-600">Job không yêu cầu visa cụ thể.</p>
                 )}
               </div>
 
@@ -734,15 +770,16 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
                   value: getFieldValue(flow.cvEditData.experienceYears, flow.selectedCV?.experienceYears, flow.selectedCV?.yearsOfExperience, flow.selectedCV?.experienceYear, flow.selectedCV?.workExperienceYears),
                   missing: !requiredFields.experienceYears,
                 })}
-                {renderModalEditableField({
+                {jobRequiresVisa && renderModalEditableField({
                   id: 'jpResidenceStatus',
                   label: 'Tư cách lưu trú',
                   value: currentResidenceStatusValue,
                   missing: missingResidenceStatus,
+                  missingText: 'Thiếu tư cách lưu trú, vui lòng bổ sung.',
                   warning: residenceStatusMismatch,
-                  warningText: `Visa hiện tại không khớp với yêu cầu công việc (${effectiveJobResidenceRequirements.map((v) => getResidenceStatusLabel(v, flow.language || 'vi')).join(', ')})`,
+                  warningText: `Visa hiện tại không khớp yêu cầu job (${requiredVisaLabels}). Bạn vẫn có thể tiến cử.`,
                   type: 'select',
-                  options: RESIDENCE_STATUS_OPTIONS.map((opt) => ({ value: opt.value, label: getResidenceStatusLabel(opt, flow.language || 'vi') })),
+                  options: candidateVisaSelectOptions,
                 })}
               </div>
 
@@ -753,7 +790,7 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
                 type="button"
                 onClick={submit}
                 className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white disabled:opacity-50"
-                disabled={confirmingSubmit || flow.submitting || missingRequiredFields.length > 0 || residenceStatusMismatch}
+                disabled={confirmingSubmit || flow.submitting || missingRequiredFields.length > 0}
               >
                 {confirmingSubmit || flow.submitting ? 'Đang tạo đơn...' : 'Xác nhận tiến cử'}
               </button>
