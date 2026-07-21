@@ -62,7 +62,10 @@ import {
 import {
   mergeResumeDataFromAi,
   CV_AI_PARSE_URL,
+  currentResidenceFromLocationCountry,
+  resolveCurrentLocationAndDesiredFromCv,
 } from '../../utils/mergeResumeDataFromAi.js';
+import { isValidCvPhone, normalizeCvPhone } from '../../utils/cvPhoneUtils.js';
 
 const mapPassportToBool = (v) => (v === '有' ? 1 : v === '無' ? 0 : undefined);
 
@@ -268,6 +271,8 @@ const AddCandidateForm = ({
     /** FK job_categories — một mục chi tiết (leaf) */
     jobCategoryId: '',
     jobCategoryLabel: '',
+    /** 現在地 — 日本 / ベトナム / その他 (tách khỏi 希望勤務地) */
+    currentLocationCountry: '',
     desiredLocation: '',
     desiredStartDate: '',
     // Ngày hiển thị trên CV (履歴書 / 職務経歴書) – có thể sửa, mặc định theo ngày hiện tại
@@ -572,7 +577,7 @@ const AddCandidateForm = ({
             jobCategoryLabel: formatJobCategoryLabel(cv.jobCategory) || prev.jobCategoryLabel || '',
             nameKanji: cv.name || cv.nameKanji || prev.nameKanji,
             email: cv.email || prev.email,
-            phone: cv.phone || prev.phone,
+            phone: normalizeCvPhone(cv.phone) || prev.phone,
             birthDate: (() => {
               let bd = cv.birthDate || prev.birthDate || '';
               if (bd && !bd.match(/^\d{4}-\d{2}-\d{2}$/)) {
@@ -588,7 +593,7 @@ const AddCandidateForm = ({
             currentSalary: cv.currentIncome ? `${cv.currentIncome}万円` : (cv.currentSalary || prev.currentSalary),
             desiredSalary: cv.desiredIncome ? `${cv.desiredIncome}万円` : (cv.desiredSalary || prev.desiredSalary),
             desiredPosition: cv.desiredPosition || prev.desiredPosition,
-            desiredLocation: cv.desiredWorkLocation || cv.desiredLocation || prev.desiredLocation,
+            ...resolveCurrentLocationAndDesiredFromCv(cv),
             desiredStartDate: cv.nyushaTime || cv.desiredStartDate || prev.desiredStartDate,
             jpResidenceStatus: cv.jpResidenceStatus != null && cv.jpResidenceStatus !== '' ? String(cv.jpResidenceStatus) : prev.jpResidenceStatus,
             technicalSkills: cv.technicalSkills || prev.technicalSkills,
@@ -640,7 +645,7 @@ const AddCandidateForm = ({
           gender: cv.gender === 1 ? '男' : cv.gender === 2 ? '女' : '',
           postalCode: cv.postalCode || '',
           address: cv.addressCurrent || cv.address || '',
-          phone: cv.phone || '',
+          phone: normalizeCvPhone(cv.phone || ''),
           email: cv.email || '',
           // Residence & Visa Information
           addressOrigin: cv.addressOrigin || '',
@@ -682,7 +687,7 @@ const AddCandidateForm = ({
           desiredPosition: cv.desiredPosition || '',
           jobCategoryId: cv.jobCategoryId != null ? String(cv.jobCategoryId) : '',
           jobCategoryLabel: formatJobCategoryLabel(cv.jobCategory),
-          desiredLocation: cv.desiredWorkLocation || cv.desiredLocation || '', // Map from desiredWorkLocation
+          ...resolveCurrentLocationAndDesiredFromCv(cv),
           desiredStartDate: cv.nyushaTime || cv.desiredStartDate || '', // Map from nyushaTime
           cvTableLayout: (() => {
             const v = cv.cvTableLayout;
@@ -1429,7 +1434,12 @@ const AddCandidateForm = ({
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    const nextValue = name === 'jlptLevel' ? String(value || '').replace(/\D/g, '').slice(0, 1) : value;
+    let nextValue = value;
+    if (name === 'jlptLevel') {
+      nextValue = String(value || '').replace(/\D/g, '').slice(0, 1);
+    } else if (name === 'phone') {
+      nextValue = normalizeCvPhone(value);
+    }
 
     setFormData(prev => {
       const newData = {
@@ -1953,7 +1963,7 @@ const AddCandidateForm = ({
       postal_code: fd.postalCode || undefined,
       address: fd.address || undefined,
       address_furigana: undefined,
-      phone: fd.phone || undefined,
+      phone: normalizeCvPhone(fd.phone) || undefined,
       email: fd.email || undefined,
       emergency_contact_address: fd.addressOrigin || undefined,
       education_history: education_history.length ? education_history : undefined,
@@ -2754,12 +2764,8 @@ const AddCandidateForm = ({
       newErrors.email = t.addCandidateEmailInvalid || 'Email không hợp lệ';
     }
     const phoneRaw = String(formData.phone || '').trim();
-    if (phoneRaw) {
-      const phoneRegex = /^\+?[0-9()\-\s.]{8,20}$/;
-      const digits = phoneRaw.replace(/\D/g, '');
-      if (!phoneRegex.test(phoneRaw) || digits.length < 8 || digits.length > 15) {
-        newErrors.phone = t.addCandidatePhoneInvalid || 'Số điện thoại không hợp lệ';
-      }
+    if (phoneRaw && !isValidCvPhone(phoneRaw)) {
+      newErrors.phone = t.addCandidatePhoneInvalid || 'Số điện thoại không hợp lệ';
     }
     const applicantUsesTemplate = isApplicantProfile && cvTemplate !== 'upload';
     if (!candidateId && cvFiles.length === 0 && !applicantUsesTemplate) {
@@ -2800,7 +2806,7 @@ const AddCandidateForm = ({
     submitFormData.append('gender', genderValue);
     submitFormData.append('postalCode', fd.postalCode || '');
     submitFormData.append('address', fd.address || '');
-    submitFormData.append('phone', fd.phone || '');
+    submitFormData.append('phone', normalizeCvPhone(fd.phone) || '');
     submitFormData.append('email', fd.email || '');
     submitFormData.append('addressOrigin', fd.addressOrigin || '');
     if (fd.nearestStationLine) submitFormData.append('nearestStationLine', fd.nearestStationLine);
@@ -2864,6 +2870,8 @@ const AddCandidateForm = ({
     submitFormData.append('desiredPosition', fd.desiredPosition || '');
     submitFormData.append('jobCategoryId', fd.jobCategoryId || '');
     submitFormData.append('desiredLocation', fd.desiredLocation || '');
+    const currentResidenceValue = currentResidenceFromLocationCountry(fd.currentLocationCountry);
+    if (currentResidenceValue) submitFormData.append('currentResidence', currentResidenceValue);
     submitFormData.append('desiredStartDate', fd.desiredStartDate || '');
     const collaboratorIdStr = fd.collaboratorId != null ? String(fd.collaboratorId).trim() : '';
     if (isAdmin && collaboratorIdStr) {
@@ -3311,9 +3319,9 @@ const AddCandidateForm = ({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
-  const handleUploadDesiredLocationChange = (value) => {
+  const handleUploadCurrentLocationChange = (value) => {
     setFormData((prev) => {
-      const next = { ...prev, desiredLocation: value };
+      const next = { ...prev, currentLocationCountry: value };
       if (value === 'ベトナム' || value === 'その他') {
         next.jpResidenceStatus = '7';
       } else if (value === '日本' && prev.jpResidenceStatus === '7') {
@@ -3428,8 +3436,8 @@ const AddCandidateForm = ({
           <label className="block text-xs font-semibold mb-1" style={{ color: '#111827' }}>{uploadProfileCurrentLocationLabel}</label>
           <select
             form="add-candidate-main-form"
-            value={formData.desiredLocation}
-            onChange={(e) => handleUploadDesiredLocationChange(e.target.value)}
+            value={formData.currentLocationCountry}
+            onChange={(e) => handleUploadCurrentLocationChange(e.target.value)}
             className="w-full px-3 py-2 border rounded-lg text-xs"
             style={{ borderColor: '#d1d5db', outline: 'none', backgroundColor: 'white' }}
           >
@@ -3448,11 +3456,11 @@ const AddCandidateForm = ({
             form="add-candidate-main-form"
             value={formData.jpResidenceStatus}
             onChange={handleInputChange}
-            disabled={formData.desiredLocation === 'ベトナム' || formData.desiredLocation === 'その他'}
+            disabled={formData.currentLocationCountry === 'ベトナム' || formData.currentLocationCountry === 'その他'}
             className="w-full px-3 py-2 border rounded-lg text-xs disabled:bg-gray-100"
             style={{ borderColor: '#d1d5db', outline: 'none', backgroundColor: 'white' }}
           >
-            {formData.desiredLocation === '日本' ? (
+            {formData.currentLocationCountry === '日本' ? (
               <>
                 <option value="">{t.addCandidateSelect || 'Chọn'}</option>
                 {RESIDENCE_STATUS_OPTIONS.map((opt, index) => (

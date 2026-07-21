@@ -13,7 +13,9 @@ import {
   mapMergedToQuickCreateVisibleForm,
   appendFullCvFieldsToFormData,
   CV_AI_PARSE_URL,
+  resolveCurrentLocationAndDesiredFromCv,
 } from '../../utils/mergeResumeDataFromAi.js';
+import { isValidCvPhone, normalizeCvPhone } from '../../utils/cvPhoneUtils.js';
 
 const jlptOptions = [
   { value: '', labelKey: 'addCandidateSelectJlpt', fallback: 'Chọn JLPT' },
@@ -26,14 +28,6 @@ const jlptOptions = [
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
-}
-
-function isValidPhone(value) {
-  const raw = String(value || '').trim();
-  if (!raw) return true; // phone optional
-  if (!/^\+?[0-9()\-\s.]{8,20}$/.test(raw)) return false;
-  const digits = raw.replace(/\D/g, '');
-  return digits.length >= 8 && digits.length <= 15;
 }
 
 function toDateInputValue(value) {
@@ -188,6 +182,7 @@ export default function QuickCreateCandidateDrawer({
     currentSalary: '',
     desiredSalary: '',
     desiredPosition: '',
+    currentLocationCountry: '',
     desiredLocation: '',
     desiredStartDate: '',
     jpResidenceStatus: '',
@@ -417,7 +412,7 @@ export default function QuickCreateCandidateDrawer({
       nameKanji: initialCandidate.nameKanji || prev.nameKanji,
       birthDate: initialCandidate.birthDate || prev.birthDate,
       email: initialCandidate.email || prev.email,
-      phone: initialCandidate.phone || prev.phone,
+      phone: normalizeCvPhone(initialCandidate.phone) || prev.phone,
       jlptLevel: initialCandidate.jlptLevel || prev.jlptLevel,
       experienceYears: initialCandidate.experienceYears ?? prev.experienceYears,
       jobCategoryId: initialCandidate.jobCategoryId || prev.jobCategoryId,
@@ -425,7 +420,7 @@ export default function QuickCreateCandidateDrawer({
       currentSalary: initialCandidate.currentSalary ?? prev.currentSalary,
       desiredSalary: initialCandidate.desiredSalary ?? prev.desiredSalary,
       desiredPosition: initialCandidate.desiredPosition ?? prev.desiredPosition,
-      desiredLocation: initialCandidate.desiredLocation ?? prev.desiredLocation,
+      ...resolveCurrentLocationAndDesiredFromCv(initialCandidate),
       desiredStartDate: initialCandidate.desiredStartDate ?? prev.desiredStartDate,
       jpResidenceStatus: initialCandidate.jpResidenceStatus ?? prev.jpResidenceStatus,
     }));
@@ -465,6 +460,7 @@ export default function QuickCreateCandidateDrawer({
       currentSalary: '',
       desiredSalary: '',
       desiredPosition: '',
+      currentLocationCountry: '',
       desiredLocation: '',
       desiredStartDate: '',
       jpResidenceStatus: '',
@@ -558,7 +554,7 @@ export default function QuickCreateCandidateDrawer({
       }
     }
 
-    if (form.phone && !isValidPhone(form.phone)) next.phone = t.invalidPhone || 'Số điện thoại không hợp lệ';
+    if (form.phone && !isValidCvPhone(form.phone)) next.phone = t.invalidPhone || 'Số điện thoại không hợp lệ';
     if (isEditMode && form.experienceYears !== '' && !/^(0|[1-9]\d*)$/.test(String(form.experienceYears).trim())) {
       next.experienceYears = t.invalidExperienceYears || 'Số năm kinh nghiệm không hợp lệ';
     }
@@ -582,7 +578,7 @@ export default function QuickCreateCandidateDrawer({
     if (errs.email) labels.push(t.addCandidateEmail || 'Email');
     if (errs.phone) labels.push(t.addCandidatePhone || 'Số điện thoại');
     if (errs.jobCategoryId) labels.push(t.jobCategoryLabel || 'Ngành nghề');
-    if (errs.desiredLocation) labels.push(currentLocationLabel || 'Địa điểm hiện tại');
+    if (errs.currentLocationCountry) labels.push(currentLocationLabel || 'Địa điểm hiện tại');
     if (errs.jpResidenceStatus) labels.push(t.jpResidenceStatus || 'Tư cách lưu trú');
     if (errs.jlptLevel) labels.push(t.addCandidateSelectJlpt || 'JLPT');
     if (errs.experienceYears) labels.push(t.experienceYears || 'Số năm kinh nghiệm');
@@ -618,6 +614,7 @@ export default function QuickCreateCandidateDrawer({
       currentSalary: form.currentSalary || '',
       desiredSalary: form.desiredSalary || '',
       desiredPosition: form.desiredPosition || '',
+      currentLocationCountry: form.currentLocationCountry || '',
       desiredLocation: form.desiredLocation || '',
       desiredStartDate: form.desiredStartDate || '',
       jpResidenceStatus: form.jpResidenceStatus || '',
@@ -681,7 +678,7 @@ export default function QuickCreateCandidateDrawer({
 
   const handleLocationChange = (value) => {
     setForm((prev) => {
-      const next = { ...prev, desiredLocation: value };
+      const next = { ...prev, currentLocationCountry: value };
       if (value === '日本') {
         if (!next.jpResidenceStatus || next.jpResidenceStatus === '7') next.jpResidenceStatus = '';
       } else if (value === 'ベトナム' || value === 'その他') {
@@ -716,6 +713,7 @@ export default function QuickCreateCandidateDrawer({
       currentSalary: visible.currentSalary || prev.currentSalary,
       desiredSalary: visible.desiredSalary || prev.desiredSalary,
       desiredPosition: visible.desiredPosition || prev.desiredPosition,
+      currentLocationCountry: visible.currentLocationCountry || prev.currentLocationCountry,
       desiredLocation: visible.desiredLocation || prev.desiredLocation,
       desiredStartDate: visible.desiredStartDate || prev.desiredStartDate,
       jobCategoryLabel: visible.jobCategoryLabel || prev.jobCategoryLabel,
@@ -1282,15 +1280,15 @@ export default function QuickCreateCandidateDrawer({
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div><label className="block text-xs font-semibold mb-1 text-gray-700">Email<span className="text-red-500"> *</span></label><input type="email" value={form.email} onChange={(e) => { setForm((prev) => ({ ...prev, email: e.target.value })); clearFieldError('email'); }} className="w-full rounded-lg border px-3 py-2 text-sm" />{errors.email ? <p className="mt-1 text-xs text-red-600">{errors.email}</p> : null}</div>
-                  <div><label className="block text-xs font-semibold mb-1 text-gray-700">{t.addCandidatePhone || 'Số điện thoại'} <span className="font-normal text-gray-500">({t.optional || 'tuỳ chọn'})</span></label><input value={form.phone} onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))} className="w-full rounded-lg border px-3 py-2 text-sm" />{errors.phone ? <p className="mt-1 text-xs text-red-600">{errors.phone}</p> : null}</div>
+                  <div><label className="block text-xs font-semibold mb-1 text-gray-700">{t.addCandidatePhone || 'Số điện thoại'} <span className="font-normal text-gray-500">({t.optional || 'tuỳ chọn'})</span></label><input value={form.phone} onChange={(e) => { setForm((prev) => ({ ...prev, phone: normalizeCvPhone(e.target.value) })); clearFieldError('phone'); }} className="w-full rounded-lg border px-3 py-2 text-sm" />{errors.phone ? <p className="mt-1 text-xs text-red-600">{errors.phone}</p> : null}</div>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold mb-1 text-gray-700">{t.addCandidateIndustry || 'Ngành nghề'}</label>
                   <button type="button" onClick={() => setJobCategoryModalOpen(true)} className="w-full flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm text-left hover:bg-gray-50"><span className="flex items-center gap-2 min-w-0"><ListTree className="w-4 h-4 shrink-0 text-blue-600" /><span className="truncate text-gray-800">{form.jobCategoryLabel || (t.addCandidateIndustryPlaceholder || 'Chọn ngành nghề')}</span></span><ChevronDown className="w-4 h-4 text-gray-400 shrink-0" /></button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div><label className="block text-xs font-semibold mb-1 text-gray-700">{currentLocationLabel}</label><select value={form.desiredLocation} onChange={(e) => handleLocationChange(e.target.value)} className="w-full rounded-lg border px-3 py-2 text-sm"><option value="">{t.addCandidateSelect || 'Chọn'}</option>{countryOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select></div>
-                  <div><label className="block text-xs font-semibold mb-1 text-gray-700">{t.addCandidateResidenceStatus || 'Tư cách lưu trú'}</label><select value={form.jpResidenceStatus} onChange={(e) => setForm((prev) => ({ ...prev, jpResidenceStatus: e.target.value }))} className="w-full rounded-lg border px-3 py-2 text-sm" disabled={form.desiredLocation === 'ベトナム' || form.desiredLocation === 'その他'}>{form.desiredLocation === '日本' ? <><option value="">{t.addCandidateSelect || 'Chọn'}</option>{residenceStatusOptions.map((opt) => <option key={opt.value} value={opt.value}>{getResidenceStatusLabel(opt)}</option>)}</> : <option value={defaultResidenceStatusLabel}>{defaultResidenceStatusLabel}</option>}</select></div>
+                  <div><label className="block text-xs font-semibold mb-1 text-gray-700">{currentLocationLabel}</label><select value={form.currentLocationCountry} onChange={(e) => handleLocationChange(e.target.value)} className="w-full rounded-lg border px-3 py-2 text-sm"><option value="">{t.addCandidateSelect || 'Chọn'}</option>{countryOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select></div>
+                  <div><label className="block text-xs font-semibold mb-1 text-gray-700">{t.addCandidateResidenceStatus || 'Tư cách lưu trú'}</label><select value={form.jpResidenceStatus} onChange={(e) => setForm((prev) => ({ ...prev, jpResidenceStatus: e.target.value }))} className="w-full rounded-lg border px-3 py-2 text-sm" disabled={form.currentLocationCountry === 'ベトナム' || form.currentLocationCountry === 'その他'}>{form.currentLocationCountry === '日本' ? <><option value="">{t.addCandidateSelect || 'Chọn'}</option>{residenceStatusOptions.map((opt) => <option key={opt.value} value={opt.value}>{getResidenceStatusLabel(opt)}</option>)}</> : <option value={defaultResidenceStatusLabel}>{defaultResidenceStatusLabel}</option>}</select></div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div><label className="block text-xs font-semibold mb-1 text-gray-700">JLPT</label><select value={form.jlptLevel} onChange={(e) => setForm((prev) => ({ ...prev, jlptLevel: e.target.value }))} className="w-full rounded-lg border px-3 py-2 text-sm">{jlptOptions.map((opt) => <option key={opt.value} value={opt.value}>{jlptOptionLabels[opt.value] || opt.fallback}</option>)}</select></div>

@@ -105,6 +105,7 @@ import {
   formatProjectPeriodJa,
   formatWorkExperiencePeriodJa,
 } from '../../utils/cvJapanesePeriod.js';
+import { formatPhoneForDisplay, normalizeCvPhone } from '../../utils/cvPhoneUtils.js';
 
 const getResidenceStatusLabel = (value, lang) => {
   const opt = RESIDENCE_STATUS_OPTIONS.find((item) => item.value === value);
@@ -1299,7 +1300,7 @@ const CandidateDetailPage = ({
     nameKanji: candidate.name || candidate.fullName || '',
     birthDate: candidate.birthDate || '',
     email: candidate.email || '',
-    phone: candidate.phone || '',
+    phone: normalizeCvPhone(candidate.phone || ''),
     jlptLevel: candidate.jpLevel || candidate.japaneseLevel || candidate.n5Level || candidate.languageLevelJp || candidate.jlptLevel || '',
     experienceYears: candidate.experienceYears || candidate.yearsOfExperience || candidate.experienceYear || candidate.workExperienceYears || '',
     jobCategoryId: candidate.jobCategoryId || candidate.job_category_id || candidate.jobCategory?.id || '',
@@ -1568,7 +1569,7 @@ const CandidateDetailPage = ({
               </button>
             </div>
           )}
-          <a href={`tel:${candidate.phone || ''}`} className="mt-1 block break-all px-1 text-xs sm:text-sm" style={{ color: '#2563eb' }}>{candidate.phone || '—'}</a>
+          <a href={`tel:${formatPhoneForDisplay(candidate.phone)}`} className="mt-1 block break-all px-1 text-xs sm:text-sm" style={{ color: '#2563eb' }}>{formatPhoneForDisplay(candidate.phone) || '—'}</a>
           <p className="mt-0.5 break-all px-1 text-xs sm:text-sm" style={{ color: '#6b7280' }}>{candidate.email || '—'}</p>
         </div>
         <div className="rounded-xl p-4 sm:p-5" style={cardStyle}>
@@ -1579,7 +1580,7 @@ const CandidateDetailPage = ({
           <div className="space-y-2 text-xs sm:text-sm">
             <div><span className="font-medium" style={{ color: '#6b7280' }}>{t.birthDate || lbl('birthDate')}: </span><span style={{ color: '#111827' }}>{formatDate(candidate.birthDate)}</span></div>
             <div className="break-words"><span className="font-medium" style={{ color: '#6b7280' }}>{t.email || lbl('email')}: </span><span style={{ color: '#111827' }}>{candidate.email || '—'}</span></div>
-            <div><span className="font-medium" style={{ color: '#6b7280' }}>{t.phone || lbl('phone')}: </span><span style={{ color: '#111827' }}>{candidate.phone || '—'}</span></div>
+            <div><span className="font-medium" style={{ color: '#6b7280' }}>{t.phone || lbl('phone')}: </span><span style={{ color: '#111827' }}>{formatPhoneForDisplay(candidate.phone) || '—'}</span></div>
             <div className="break-words"><span className="font-medium" style={{ color: '#6b7280' }}>{t.address || lbl('address')}: </span><span style={{ color: '#111827' }}>{candidate.addressCurrent || candidate.address || '—'}</span></div>
             <div><span className="font-medium" style={{ color: '#6b7280' }}>{uiText('Tư cách lưu trú', 'Residence status', '在留資格')}: </span><span style={{ color: '#111827' }}>{getResidenceStatusLabel(normalizeResidenceStatusValue(candidate.jpResidenceStatus || candidate.residence_status || candidate.residenceStatus || candidate.visaStatus || ''), language) || '—'}</span></div>
             <div><span className="font-medium" style={{ color: '#6b7280' }}>{uiText('Ngành nghề', 'Job category', '職種')}: </span><span style={{ color: '#111827' }}>{jobCategoryDisplay}</span></div>
