@@ -13,8 +13,7 @@ import {
 import { Op, col } from 'sequelize';
 import sequelize from '../../config/database.js';
 import { uploadBufferToS3, buildMessageAttachmentKey, getSignedUrlForFile, makeDownloadDisposition } from '../../services/s3Service.js';
-import { collaboratorNotificationService } from '../../services/collaboratorNotificationService.js';
-import { nominationEmailService } from '../../services/nominationEmailService.js';
+import { dispatchNominationMessageNotifications } from '../../services/nominationMessageNotificationService.js';
 
 // Helper function to map model field names to database column names
 const mapOrderField = (fieldName) => {
@@ -472,39 +471,13 @@ export const messageController = {
         !isApplicantThread && (message.collaboratorId || jobApplication.collaboratorId);
       if (recipientCollaboratorId && message.senderType !== 2) {
         try {
-          await collaboratorNotificationService.notifyIncomingMessage({
-            collaboratorId: recipientCollaboratorId,
-            jobCode: jobApplication.job?.jobCode || String(jobApplication.id),
-            jobId: jobApplication.jobId || null,
-            jobApplicationId: jobApplication.id
+          await dispatchNominationMessageNotifications({
+            message,
+            jobApplication,
+            messagePreview: trimmedContent,
           });
         } catch (notificationError) {
           console.error('[Admin createMessage] Error creating notification:', notificationError);
-        }
-
-        if (senderTypeNum === 1) {
-          try {
-            const collab = await Collaborator.findByPk(recipientCollaboratorId, {
-              attributes: ['email']
-            });
-            const to = collab?.email?.trim();
-            if (to) {
-              await nominationEmailService.sendCollaboratorAdminNewMessageEmail({
-                to,
-                jobApplicationId: jobApplication.id,
-                jobCode: jobApplication.job?.jobCode || String(jobApplication.id),
-                candidateName:
-                  jobApplication.cv?.name?.trim() ||
-                  (jobApplication.title && String(jobApplication.title).trim()) ||
-                  'N/A',
-                jobTitleVi: jobApplication.job?.title,
-                jobTitleEn: jobApplication.job?.titleEn,
-                jobTitleJp: jobApplication.job?.titleJp
-              });
-            }
-          } catch (emailErr) {
-            console.error('[Admin createMessage] CTV new-message email:', emailErr);
-          }
         }
       }
 

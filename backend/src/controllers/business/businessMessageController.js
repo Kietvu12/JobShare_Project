@@ -14,6 +14,10 @@ import {
   getSignedUrlForFile,
   makeDownloadDisposition,
 } from '../../services/s3Service.js';
+import {
+  dispatchNominationMessageNotifications,
+  loadJobApplicationForNotify,
+} from '../../services/nominationMessageNotificationService.js';
 
 const SENDER_TYPE_BUSINESS = 5;
 
@@ -140,6 +144,19 @@ export const businessMessageController = {
         isReadByApplicant: false,
         isReadByBusiness: true,
       });
+
+      try {
+        const jobAppForNotify = await loadJobApplicationForNotify(jobApplicationId);
+        if (jobAppForNotify) {
+          await dispatchNominationMessageNotifications({
+            message,
+            jobApplication: jobAppForNotify,
+            messagePreview: trimmedContent,
+          });
+        }
+      } catch (notificationError) {
+        console.error('[Business createMessage] notification error:', notificationError);
+      }
 
       res.status(201).json({ success: true, data: { message } });
     } catch (error) {

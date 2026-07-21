@@ -11,6 +11,10 @@ import {
 import { Op, col, QueryTypes } from 'sequelize';
 import sequelize from '../../config/database.js';
 import { uploadBufferToS3, buildMessageAttachmentKey, getSignedUrlForFile, makeDownloadDisposition } from '../../services/s3Service.js';
+import {
+  dispatchNominationMessageNotifications,
+  loadJobApplicationForNotify,
+} from '../../services/nominationMessageNotificationService.js';
 
 /**
  * Message Controller (CTV)
@@ -288,6 +292,21 @@ export const messageController = {
         messageData.attachmentUrl = await getSignedUrlForFile(messageData.attachmentKey, 'download', disposition);
       } else {
         messageData.attachmentUrl = null;
+      }
+
+      if (senderTypeNum === 2) {
+        try {
+          const jobAppForNotify = await loadJobApplicationForNotify(jobApplicationId);
+          if (jobAppForNotify) {
+            await dispatchNominationMessageNotifications({
+              message,
+              jobApplication: jobAppForNotify,
+              messagePreview: trimmedContent,
+            });
+          }
+        } catch (notificationError) {
+          console.error('[CTV createMessage] notification error:', notificationError);
+        }
       }
 
       res.status(201).json({

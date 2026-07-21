@@ -64,6 +64,7 @@ const AdminHeader = () => {
   const [adminNotifList, setAdminNotifList] = useState([]);
   const [adminNotifLoading, setAdminNotifLoading] = useState(false);
   const adminNotifPanelRef = useRef(null);
+  const adminNotifStreamAbortRef = useRef(null);
 
   const refreshAdminNotifCount = async () => {
     try {
@@ -105,6 +106,80 @@ const AdminHeader = () => {
       clearInterval(timer);
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('admin-support-chat-read', onSupportChatRead);
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const controller = new AbortController();
+    adminNotifStreamAbortRef.current = controller;
+
+    const patchLocalOnIncoming = (payload) => {
+      if (!payload || !mounted) return;
+      setAdminNotifList((prev) => {
+        const current = Array.isArray(prev) ? prev : [];
+        const exists = current.some((n) => String(n?.id) === String(payload?.id));
+        if (exists) {
+          return current.map((n) => (String(n?.id) === String(payload?.id) ? { ...n, ...payload } : n));
+        }
+        return [payload, ...current].slice(0, 20);
+      });
+      setAdminNotifUnread((c) => (typeof c === 'number' ? c + 1 : 1));
+    };
+
+    const start = async () => {
+      let response = null;
+      try {
+        response = await apiService.streamAdminNotifications();
+      } catch {
+        return;
+      }
+      if (!mounted || !response || !response.ok || !response.body) return;
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+
+      const processEventBlock = (block) => {
+        const lines = block.split('\n').map((l) => l.trimEnd());
+        let eventName = null;
+        let dataStr = null;
+        for (const line of lines) {
+          if (line.startsWith('event:')) eventName = line.slice('event:'.length).trim();
+          if (line.startsWith('data:')) dataStr = line.slice('data:'.length).trim();
+        }
+        if (eventName === 'notification' && dataStr) {
+          try {
+            patchLocalOnIncoming(JSON.parse(dataStr));
+          } catch {
+            // ignore malformed payload
+          }
+        }
+      };
+
+      try {
+        while (mounted) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split('\n\n');
+          buffer = parts.pop() || '';
+          for (const part of parts) {
+            const trimmed = part.trim();
+            if (trimmed) processEventBlock(trimmed);
+          }
+        }
+      } catch {
+        // stream closed
+      }
+    };
+
+    start();
+
+    return () => {
+      mounted = false;
+      controller.abort();
+      adminNotifStreamAbortRef.current = null;
     };
   }, []);
 

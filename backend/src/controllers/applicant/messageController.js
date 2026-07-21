@@ -6,6 +6,10 @@ import {
 } from '../../models/index.js';
 import { col } from 'sequelize';
 import { uploadBufferToS3, buildMessageAttachmentKey, getSignedUrlForFile, makeDownloadDisposition } from '../../services/s3Service.js';
+import {
+  dispatchNominationMessageNotifications,
+  loadJobApplicationForNotify,
+} from '../../services/nominationMessageNotificationService.js';
 
 /**
  * Tin nhắn đơn tiến cử — ứng viên chat với Admin (đơn có applicant_id, không qua CTV)
@@ -148,6 +152,19 @@ export const applicantMessageController = {
         messageData.attachmentUrl = await getSignedUrlForFile(messageData.attachmentKey, 'download', disposition);
       } else {
         messageData.attachmentUrl = null;
+      }
+
+      try {
+        const jobAppForNotify = await loadJobApplicationForNotify(jobApplicationId);
+        if (jobAppForNotify) {
+          await dispatchNominationMessageNotifications({
+            message,
+            jobApplication: jobAppForNotify,
+            messagePreview: trimmedContent,
+          });
+        }
+      } catch (notificationError) {
+        console.error('[Applicant createMessage] notification error:', notificationError);
       }
 
       res.status(201).json({

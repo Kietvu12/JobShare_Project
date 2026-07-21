@@ -242,6 +242,39 @@ export const collaboratorNotificationService = {
     });
   },
 
+  /** Thông báo Super Admin & Admin Backoffice: tin nhắn mới trên đơn tiến cử (từ CTV / DN / ứng viên). */
+  async notifyAdminsIncomingMessage({
+    jobApplicationId,
+    jobCode,
+    jobId = null,
+    candidateName,
+    senderLabel = 'Người gửi',
+    preview = '',
+  }) {
+    const admins = await Admin.findAll({
+      where: { isActive: true, status: 1, role: { [Op.in]: [1, 2] } },
+      attributes: ['id'],
+    });
+    const safeJobCode = jobCode || String(jobApplicationId || 'N/A');
+    const safeCandidate = candidateName || 'Ứng viên';
+    const safePreview = String(preview || '').trim().slice(0, 200);
+    const content = safePreview
+      ? `${senderLabel} — ${safeCandidate} (đơn ${safeJobCode}): ${safePreview}`
+      : `${senderLabel} gửi tin nhắn mới về đơn tiến cử ${safeJobCode} — ${safeCandidate}.`;
+    const url = jobApplicationId ? `/admin/nominations/${jobApplicationId}` : '/admin/nominations';
+
+    for (const a of admins) {
+      await this.createAndEmit({
+        collaboratorId: null,
+        adminId: a.id,
+        title: 'Tin nhắn mới — đơn tiến cử',
+        content,
+        jobId,
+        url,
+      });
+    }
+  },
+
   async notifyAdminsPaymentRequestCreated({
     candidateName,
     jobCode,
