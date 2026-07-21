@@ -363,7 +363,9 @@ export const useNominationFlow = ({ variant }) => {
   }, [selectedCvId, isAdmin]);
 
   const handleSaveCVEdit = async () => {
-    if (!selectedCvId || isApplicantCandidate) return;
+    const cvId = selectedCvId || selectedCV?.id;
+    if (!cvId || isApplicantCandidate) return false;
+    if (!selectedCvId && selectedCV?.id) setSelectedCvId(selectedCV.id);
     setSavingCV(true);
     try {
       const formData = new FormData();
@@ -387,14 +389,17 @@ export const useNominationFlow = ({ variant }) => {
       formData.append('strengths', cvEditData.strengths || '');
       formData.append('motivation', cvEditData.motivation || '');
       formData.append('skipPdfGeneration', '1');
-      const response = isAdmin ? await apiService.updateAdminCV(selectedCvId, formData) : await apiService.updateCVStorage(selectedCvId, formData);
+      const response = isAdmin ? await apiService.updateAdminCV(cvId, formData) : await apiService.updateCVStorage(cvId, formData);
       if (!response.success) return false;
       const refreshed = await refreshSelectedCV();
       if (refreshed) {
         const path = refreshed.cvOriginalPath || refreshed.curriculumVitae || '';
         if (path) setSelectedCvFolderPath(String(path).replace(/\/+$/, ''));
       }
+      setEditingCV(false);
       return true;
+    } catch {
+      return false;
     } finally { setSavingCV(false); }
   };
 

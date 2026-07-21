@@ -203,23 +203,30 @@ export default function JobCategoryPickerModal({
     if (!category) return null;
     const categoryId = String(category.id);
     const hasChildren = category.children && category.children.length > 0;
+    const selected = draftCategoryId === categoryId;
+    const selectCategory = () => {
+      setDraftCategoryId((prev) => (prev === categoryId ? null : categoryId));
+    };
     return (
       <div className="space-y-0.5 sm:space-y-1">
-        <label
-          className="flex items-center gap-3 min-h-[48px] sm:min-h-[44px] px-2 py-2.5 sm:p-2 rounded-lg hover:bg-gray-50 cursor-pointer active:bg-gray-100"
+        <button
+          type="button"
+          role="radio"
+          aria-checked={selected}
+          onClick={selectCategory}
+          className={`w-full flex items-center gap-3 min-h-[48px] sm:min-h-[44px] px-2 py-2.5 sm:p-2 rounded-lg text-left transition-colors touch-manipulation ${
+            selected ? 'bg-blue-50 ring-1 ring-blue-200' : 'hover:bg-gray-50 active:bg-gray-100'
+          }`}
           style={{ paddingLeft: `${12 + level * 14}px` }}
-          onClick={() => {
-            setDraftCategoryId((prev) => (prev === categoryId ? null : categoryId));
-          }}
         >
-          <input
-            type="radio"
-            name="job-category-pick-modal"
-            checked={draftCategoryId === categoryId}
-            readOnly
-            className="w-[18px] h-[18px] sm:w-4 sm:h-4 text-blue-600 border-gray-300 focus:ring-blue-500 flex-shrink-0"
-            aria-label={getCategoryDisplayName(category)}
-          />
+          <span
+            className={`w-[18px] h-[18px] sm:w-4 sm:h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+              selected ? 'border-blue-600' : 'border-gray-300'
+            }`}
+            aria-hidden="true"
+          >
+            {selected ? <span className="w-2 h-2 sm:w-1.5 sm:h-1.5 rounded-full bg-blue-600" /> : null}
+          </span>
           <span className="text-sm sm:text-xs text-gray-900 flex-1 leading-snug">
             {level > 0 ? (
               <span className="text-gray-400 mr-1" aria-hidden="true">
@@ -228,7 +235,7 @@ export default function JobCategoryPickerModal({
             ) : null}
             {getCategoryDisplayName(category)}
           </span>
-        </label>
+        </button>
         {hasChildren ? (
           <div>
             {category.children.map((child) => (

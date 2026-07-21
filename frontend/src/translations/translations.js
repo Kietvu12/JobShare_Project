@@ -878,8 +878,9 @@ export const translations = {
     agentHomeRejectLabel: 'Từ chối:',
     // Agent Home Session3
     agentHomeJobPickup: 'Nhóm job pick-up',
+    agentHomeFeaturedJobsTitle: 'TỔNG HỢP JOB NỔI BẬT DÀNH CHO BẠN',
     agentHomeCampaign: 'Chiến dịch',
-    agentHomeNews: 'Thông báo nội bộ',
+    agentHomeNews: 'Tin tức',
     agentHomeErrorOccurred: 'Có lỗi xảy ra',
     agentHomeRetry: 'Thử lại',
     agentHomeLoadMore: 'Tải thêm',
@@ -2877,8 +2878,9 @@ export const translations = {
     agentHomeRejectLabel: 'Reject:',
     // Agent Home Session3
     agentHomeJobPickup: 'Job pick-up',
+    agentHomeFeaturedJobsTitle: 'FEATURED JOBS FOR YOU',
     agentHomeCampaign: 'Campaign',
-    agentHomeNews: 'Internal news',
+    agentHomeNews: 'News',
     agentHomeErrorOccurred: 'An error occurred',
     agentHomeRetry: 'Retry',
     agentHomeLoadMore: 'Load more',
@@ -4879,8 +4881,9 @@ export const translations = {
     agentHomeRejectLabel: 'Reject:',
     // Agent Home Session3
     agentHomeJobPickup: 'ジョブピックアップ',
+    agentHomeFeaturedJobsTitle: 'あなたにおすすめの注目求人',
     agentHomeCampaign: 'キャンペーン',
-    agentHomeNews: '社内お知らせ',
+    agentHomeNews: 'ニュース',
     agentHomeErrorOccurred: 'エラーが発生しました',
     agentHomeRetry: '再試行',
     agentHomeLoadMore: 'もっと見る',

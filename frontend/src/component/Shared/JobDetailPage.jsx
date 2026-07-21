@@ -157,7 +157,7 @@ const LABELS = {
   noExpAny: { vi: 'Không có (hoàn toàn thiếu kinh nghiệm OK)', en: 'None (no experience OK)', ja: 'なし（未経験OK）' },
   btnEdit: { vi: 'Chỉnh sửa', en: 'Edit', ja: '編集' },
   btnSuggestCandidate: { vi: 'Đề xuất ứng viên', en: 'Suggest candidate', ja: '候補者を推薦' },
-  btnCopyUrl: { vi: 'Sao chép URL', en: 'Copy URL', ja: 'URLをコピー' },
+  btnCopyUrl: { vi: 'Sao chép URL (gửi cho ứng viên)', en: 'Copy URL (for candidate)', ja: 'URLをコピー（候補者向け）' },
   btnCopied: { vi: 'Đã sao chép!', en: 'Copied!', ja: 'コピー済み!' },
   btnDownloadJd: { vi: 'Tải JD', en: 'Download JD', ja: 'JDをダウンロード' },
   jdVietnamese: { vi: 'JD tiếng Việt', en: 'JD Vietnamese', ja: 'JDベトナム語' },

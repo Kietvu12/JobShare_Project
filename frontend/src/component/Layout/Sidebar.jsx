@@ -32,10 +32,10 @@ const Sidebar = () => {
     { id: 'thong-tin-chung', label: t.generalInfo, icon: LayoutGrid, path: '/agent' },
     { id: 'danh-sach-viec-lam', label: t.jobList, icon: Flag, path: '/agent/jobs' },
     // { id: 'san-ctv', label: 'Sàn CTV (DN)', icon: Flag, path: '/agent/candidate-sharing' },
-    { id: 'su-kien', label: t.agentEventsMenu, icon: CalendarDays, path: '/agent/events' },
     { id: 'ho-so-ung-vien', label: t.candidateProfile, icon: FileCheck, path: '/agent/candidates' },
     { id: 'quan-ly-tien-cu', label: t.nominationManagement, icon: FileText, path: '/agent/nominations' },
     // { id: 'scout-performance', label: 'Scout Performance', icon: Users, path: '/agent/scout-performance' },
+    { id: 'su-kien', label: t.agentEventsMenu, icon: CalendarDays, path: '/agent/events' },
     { id: 'lich-su-thanh-toan', label: t.paymentHistory, icon: History, path: '/agent/payment-history' },
   ];
 

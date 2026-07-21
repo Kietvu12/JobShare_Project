@@ -9,6 +9,7 @@ import { localizeNotification } from '../../utils/notificationI18n';
 const BREADCRUMB_COLOR = '#67748E';
 const TITLE_COLOR = '#441C2C';
 const ICON_TINT = '#b07a8a';
+const USER_GUIDE_URL = 'https://dust-camel-0dd.notion.site/2c6563f4199880ae9cf0cbe005546446?v=2c6563f41998818a8e4d000cd327e761';
 
 const Header = () => {
   const location = useLocation();
@@ -278,19 +279,20 @@ const Header = () => {
             boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           }}
         >
-          {/* Hướng dẫn - link Notion
+          {/* HDSD — Hướng dẫn sử dụng (Notion) */}
           <a
-            href="https://dust-camel-0dd.notion.site/2c6563f4199880ae9cf0cbe005546446?v=2c6563f41998818a8e4d000cd327e761"
+            href={USER_GUIDE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1 rounded-lg hover:bg-gray-100 transition-colors hidden sm:inline-flex items-center gap-1"
-            title={language === 'vi' ? 'Hướng dẫn sử dụng' : language === 'en' ? 'User Guide' : 'ユーザーガイド'}
+            className="p-1 rounded-lg hover:bg-gray-100 transition-colors inline-flex items-center gap-1"
+            title={t.userGuide || 'Hướng dẫn sử dụng'}
+            aria-label={t.userGuide || 'Hướng dẫn sử dụng'}
           >
-            <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: ICON_TINT }} />
-            <span className="hidden md:inline text-[10px] font-medium" style={{ color: '#374151' }}>
-              {language === 'vi' ? 'Hướng dẫn' : language === 'en' ? 'Guide' : 'ガイド'}
+            <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: ICON_TINT }} />
+            <span className="hidden sm:inline text-[10px] font-medium whitespace-nowrap" style={{ color: '#374151' }}>
+              {t.userGuide || 'Hướng dẫn sử dụng'}
             </span>
-          </a> */}
+          </a>
 
           <div className="hidden sm:block w-px h-5 bg-gray-200" aria-hidden />
 
