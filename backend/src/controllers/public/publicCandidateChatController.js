@@ -9,17 +9,14 @@ import { collaboratorNotificationService } from '../../services/collaboratorNoti
 import { publicCandidateChatSseService } from '../../services/publicCandidateChatSseService.js';
 import { emitRealtime } from '../../services/realtimeHub.js';
 import { applySseHeaders } from '../../utils/sseHeaders.js';
+import { markVisitorPublicChatSessionRead } from '../../services/publicChatReadService.js';
+import {
+  createPublicChatMessageRecord,
+  serializePublicChatMessageForApi,
+  serializePublicChatMessagesForApi,
+} from '../../services/publicChatMessageApiService.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const serializeMessage = (m) => ({
-  id: m.id,
-  sessionId: m.sessionId,
-  senderType: m.senderType,
-  adminId: m.adminId,
-  body: m.body,
-  createdAt: m.createdAt || m.created_at
-});
 
 export const publicCandidateChatController = {
   ensureSession: async (req, res, next) => {
@@ -115,9 +112,11 @@ export const publicCandidateChatController = {
         order: sequelize.literal('`PublicCandidateChatMessage`.`created_at` ASC'),
         include: [{ model: Admin, as: 'admin', attributes: ['id', 'name'], required: false }]
       });
+      await markVisitorPublicChatSessionRead(session, PublicCandidateChatMessage);
+      await session.reload();
       res.json({
         success: true,
-        data: { messages: messages.map(serializeMessage) }
+        data: { messages: await serializePublicChatMessagesForApi(messages, session) }
       });
     } catch (error) {
       next(error);
@@ -131,9 +130,6 @@ export const publicCandidateChatController = {
       if (!UUID_RE.test(sessionToken)) {
         return res.status(400).json({ success: false, message: 'sessionToken không hợp lệ' });
       }
-      if (!body) {
-        return res.status(400).json({ success: false, message: 'Nội dung tin nhắn không được để trống' });
-      }
 
       const session = await PublicCandidateChatSession.findOne({ where: { sessionToken } });
       if (!session) {
@@ -144,19 +140,29 @@ export const publicCandidateChatController = {
         where: { sessionId: session.id, senderType: 'visitor' }
       });
 
-      const msg = await PublicCandidateChatMessage.create({
-        sessionId: session.id,
-        senderType: 'visitor',
-        adminId: null,
-        body: body.slice(0, 8000)
-      });
+      let msg;
+      try {
+        msg = await createPublicChatMessageRecord({
+          kind: 'candidate',
+          MessageModel: PublicCandidateChatMessage,
+          session,
+          senderType: 'visitor',
+          body,
+          file: req.file || null,
+        });
+      } catch (err) {
+        if (err.statusCode === 400) {
+          return res.status(400).json({ success: false, message: err.message });
+        }
+        throw err;
+      }
 
       const now = new Date();
       session.lastMessageAt = now;
       session.lastVisitorMessageAt = now;
       await session.save();
 
-      const messagePayload = serializeMessage(msg);
+      const messagePayload = await serializePublicChatMessageForApi(msg, session);
       const payload = { type: 'message', message: messagePayload };
       const inboxPayload = {
         type: 'message',
@@ -173,7 +179,7 @@ export const publicCandidateChatController = {
       if (priorVisitorCount === 0) {
         await collaboratorNotificationService.notifyAdminsPublicCandidateLandingChat({
           visitorLabel: session.visitorLabel,
-          preview: body,
+          preview: messagePayload.body || body,
           sessionId: session.id
         });
       }

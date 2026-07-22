@@ -4865,12 +4865,43 @@ const apiService = {
     return handleResponse(response);
   },
 
-  sendPublicCtvChatMessage: async ({ sessionToken, body }) => {
-    const response = await fetch(`${API_BASE_URL}/public/ctv-chat/messages`, {
+  getPublicCtvChatUnreadSummary: async (sessionToken) => {
+    const qs = new URLSearchParams({ sessionToken }).toString();
+    const response = await fetch(`${API_BASE_URL}/public/ctv-chat/unread-summary?${qs}`, {
+      headers: { ...getOptionalCtvAuthHeaders() },
+    });
+    return handleResponse(response);
+  },
+
+  markPublicCtvChatRead: async (sessionToken) => {
+    const response = await fetch(`${API_BASE_URL}/public/ctv-chat/mark-read`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getOptionalCtvAuthHeaders() },
-      body: JSON.stringify({ sessionToken, body }),
+      body: JSON.stringify({ sessionToken }),
     });
+    return handleResponse(response);
+  },
+
+  sendPublicCtvChatMessage: async ({ sessionToken, body, attachment = null }) => {
+    const url = `${API_BASE_URL}/public/ctv-chat/messages`;
+    let response;
+    if (attachment) {
+      const formData = new FormData();
+      formData.append('sessionToken', sessionToken);
+      formData.append('body', body || '');
+      formData.append('attachment', attachment);
+      response = await fetch(url, {
+        method: 'POST',
+        headers: getOptionalCtvAuthHeaders(),
+        body: formData,
+      });
+    } else {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getOptionalCtvAuthHeaders() },
+        body: JSON.stringify({ sessionToken, body }),
+      });
+    }
     return handleResponse(response);
   },
 
@@ -4918,11 +4949,32 @@ const apiService = {
     return handleResponse(response);
   },
 
-  sendAdminPublicCtvChatMessage: async (sessionId, text) => {
-    const response = await fetch(`${API_BASE_URL}/admin/public-ctv-chat/sessions/${sessionId}/messages`, {
+  sendAdminPublicCtvChatMessage: async (sessionId, text, attachment = null) => {
+    const url = `${API_BASE_URL}/admin/public-ctv-chat/sessions/${sessionId}/messages`;
+    let response;
+    if (attachment) {
+      const formData = new FormData();
+      formData.append('body', text || '');
+      formData.append('attachment', attachment);
+      response = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeadersForMultipart(),
+        body: formData,
+      });
+    } else {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: text }),
+      });
+    }
+    return handleResponse(response);
+  },
+
+  markAdminPublicCtvChatSessionRead: async (sessionId) => {
+    const response = await fetch(`${API_BASE_URL}/admin/public-ctv-chat/sessions/${sessionId}/mark-read`, {
       method: 'POST',
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ body: text }),
+      headers: getAuthHeaders(),
     });
     return handleResponse(response);
   },
@@ -4949,12 +5001,22 @@ const apiService = {
     return handleResponse(response);
   },
 
-  sendPublicCandidateChatMessage: async ({ sessionToken, body }) => {
-    const response = await fetch(`${API_BASE_URL}/public/candidate-chat/messages`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionToken, body }),
-    });
+  sendPublicCandidateChatMessage: async ({ sessionToken, body, attachment = null }) => {
+    const url = `${API_BASE_URL}/public/candidate-chat/messages`;
+    let response;
+    if (attachment) {
+      const formData = new FormData();
+      formData.append('sessionToken', sessionToken);
+      formData.append('body', body || '');
+      formData.append('attachment', attachment);
+      response = await fetch(url, { method: 'POST', body: formData });
+    } else {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionToken, body }),
+      });
+    }
     return handleResponse(response);
   },
 
@@ -4985,11 +5047,32 @@ const apiService = {
     return handleResponse(response);
   },
 
-  sendAdminPublicCandidateChatMessage: async (sessionId, text) => {
-    const response = await fetch(`${API_BASE_URL}/admin/public-candidate-chat/sessions/${sessionId}/messages`, {
+  sendAdminPublicCandidateChatMessage: async (sessionId, text, attachment = null) => {
+    const url = `${API_BASE_URL}/admin/public-candidate-chat/sessions/${sessionId}/messages`;
+    let response;
+    if (attachment) {
+      const formData = new FormData();
+      formData.append('body', text || '');
+      formData.append('attachment', attachment);
+      response = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeadersForMultipart(),
+        body: formData,
+      });
+    } else {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: text }),
+      });
+    }
+    return handleResponse(response);
+  },
+
+  markAdminPublicCandidateChatSessionRead: async (sessionId) => {
+    const response = await fetch(`${API_BASE_URL}/admin/public-candidate-chat/sessions/${sessionId}/mark-read`, {
       method: 'POST',
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ body: text }),
+      headers: getAuthHeaders(),
     });
     return handleResponse(response);
   },

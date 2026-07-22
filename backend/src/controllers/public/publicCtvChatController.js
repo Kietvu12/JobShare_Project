@@ -9,17 +9,14 @@ import { collaboratorNotificationService } from '../../services/collaboratorNoti
 import { publicCtvChatSseService } from '../../services/publicCtvChatSseService.js';
 import { emitRealtime } from '../../services/realtimeHub.js';
 import { applySseHeaders } from '../../utils/sseHeaders.js';
+import { markVisitorPublicChatSessionRead, countUnreadAdminMessagesForVisitor, getLatestUnreadAdminPreviewForVisitor } from '../../services/publicChatReadService.js';
+import {
+  createPublicChatMessageRecord,
+  serializePublicChatMessageForApi,
+  serializePublicChatMessagesForApi,
+} from '../../services/publicChatMessageApiService.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const serializeMessage = (m) => ({
-  id: m.id,
-  sessionId: m.sessionId,
-  senderType: m.senderType,
-  adminId: m.adminId,
-  body: m.body,
-  createdAt: m.createdAt || m.created_at
-});
 
 const labelFromCollaborator = (c) => {
   if (!c) return null;
@@ -167,9 +164,17 @@ export const publicCtvChatController = {
         order: sequelize.literal('`PublicCtvChatMessage`.`created_at` ASC'),
         include: [{ model: Admin, as: 'admin', attributes: ['id', 'name'], required: false }]
       });
+      const unreadAdminCount = await countUnreadAdminMessagesForVisitor(session, PublicCtvChatMessage);
       res.json({
         success: true,
-        data: { messages: messages.map(serializeMessage) }
+        data: {
+          session: {
+            sessionToken: session.sessionToken,
+            visitorLastSeenAt: session.visitorLastSeenAt,
+            unreadAdminCount,
+          },
+          messages: await serializePublicChatMessagesForApi(messages, session),
+        },
       });
     } catch (error) {
       next(error);
@@ -184,9 +189,6 @@ export const publicCtvChatController = {
       if (!UUID_RE.test(sessionToken)) {
         return res.status(400).json({ success: false, message: 'sessionToken không hợp lệ' });
       }
-      if (!body) {
-        return res.status(400).json({ success: false, message: 'Nội dung tin nhắn không được để trống' });
-      }
 
       const session = await PublicCtvChatSession.findOne({ where: { sessionToken } });
       if (!session) {
@@ -197,19 +199,29 @@ export const publicCtvChatController = {
         where: { sessionId: session.id, senderType: 'visitor' }
       });
 
-      const msg = await PublicCtvChatMessage.create({
-        sessionId: session.id,
-        senderType: 'visitor',
-        adminId: null,
-        body: body.slice(0, 8000)
-      });
+      let msg;
+      try {
+        msg = await createPublicChatMessageRecord({
+          kind: 'ctv',
+          MessageModel: PublicCtvChatMessage,
+          session,
+          senderType: 'visitor',
+          body,
+          file: req.file || null,
+        });
+      } catch (err) {
+        if (err.statusCode === 400) {
+          return res.status(400).json({ success: false, message: err.message });
+        }
+        throw err;
+      }
 
       const now = new Date();
       session.lastMessageAt = now;
       session.lastVisitorMessageAt = now;
       await session.save();
 
-      const messagePayload = serializeMessage(msg);
+      const messagePayload = await serializePublicChatMessageForApi(msg, session);
       const payload = { type: 'message', message: messagePayload };
       publicCtvChatSseService.emitToSession(session.id, payload);
       const inboxPayload = {
@@ -228,12 +240,65 @@ export const publicCtvChatController = {
       if (priorVisitorCount === 0) {
         await collaboratorNotificationService.notifyAdminsPublicCtvLandingChat({
           visitorLabel: session.visitorLabel,
-          preview: body,
+          preview: messagePayload.body || body,
           sessionId: session.id
         });
       }
 
       res.json({ success: true, data: { message: messagePayload } });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /** GET /api/public/ctv-chat/unread-summary?sessionToken= — chỉ đếm, không đánh dấu đã đọc */
+  unreadSummary: async (req, res, next) => {
+    try {
+      const sessionToken = String(req.query.sessionToken || '').trim();
+      if (!UUID_RE.test(sessionToken)) {
+        return res.status(400).json({ success: false, message: 'sessionToken không hợp lệ' });
+      }
+      const session = await PublicCtvChatSession.findOne({ where: { sessionToken } });
+      if (!session) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy phiên chat' });
+      }
+      const unreadCount = await countUnreadAdminMessagesForVisitor(session, PublicCtvChatMessage);
+      const preview = unreadCount > 0
+        ? await getLatestUnreadAdminPreviewForVisitor(session, PublicCtvChatMessage)
+        : null;
+      res.json({
+        success: true,
+        data: {
+          unreadCount,
+          preview,
+          visitorLastSeenAt: session.visitorLastSeenAt,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /** POST /api/public/ctv-chat/mark-read — CTV mở tab chat, đánh dấu đã đọc tin admin */
+  markRead: async (req, res, next) => {
+    try {
+      const sessionToken = String(req.body?.sessionToken || req.query?.sessionToken || '').trim();
+      if (!UUID_RE.test(sessionToken)) {
+        return res.status(400).json({ success: false, message: 'sessionToken không hợp lệ' });
+      }
+      const session = await PublicCtvChatSession.findOne({ where: { sessionToken } });
+      if (!session) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy phiên chat' });
+      }
+      const readAt = await markVisitorPublicChatSessionRead(session, PublicCtvChatMessage);
+      await session.reload();
+      res.json({
+        success: true,
+        data: {
+          visitorLastSeenAt: session.visitorLastSeenAt || readAt,
+          unreadCount: 0,
+        },
+      });
     } catch (error) {
       next(error);
     }

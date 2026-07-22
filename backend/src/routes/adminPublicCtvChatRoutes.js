@@ -1,6 +1,7 @@
 import express from 'express';
 import { adminPublicCtvChatController } from '../controllers/admin/adminPublicCtvChatController.js';
 import { authenticate, authenticateOrQueryToken, isSuperAdminOrBackoffice } from '../middleware/auth.js';
+import { uploadMessageAttachment } from '../middleware/messageAttachmentUploadMiddleware.js';
 
 const router = express.Router();
 
@@ -29,9 +30,16 @@ router.get(
   adminPublicCtvChatController.getMessages
 );
 router.post(
+  '/sessions/:sessionId/mark-read',
+  authenticate,
+  isSuperAdminOrBackoffice,
+  adminPublicCtvChatController.markRead
+);
+router.post(
   '/sessions/:sessionId/messages',
   authenticate,
   isSuperAdminOrBackoffice,
+  uploadMessageAttachment,
   adminPublicCtvChatController.postMessage
 );
 router.get(

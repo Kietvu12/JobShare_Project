@@ -6,6 +6,10 @@ import { getRealtimeClient } from '../../services/realtimeClient';
 import { useLanguage } from '../../context/LanguageContext';
 import { translations } from '../../translations/translations';
 import { createReconnectingEventSource, parsePublicChatSseEvent } from '../../utils/publicChatSse';
+import { fetchAdminSupportUnread } from '../../utils/publicCtvChatUnread';
+import { appendUniqueChatMessage, buildMessagePreview } from '../../utils/publicSupportChatUi';
+import PublicSupportChatComposer from '../../component/Shared/PublicSupportChatComposer';
+import PublicSupportChatMessageBody from '../../component/Shared/PublicSupportChatMessageBody';
 
 function normalizeSearch(s) {
   return String(s || '')
@@ -44,14 +48,6 @@ function hasUnread(session) {
   return !!session?.hasUnread;
 }
 
-function getInboxUnreadStorageKey(tab) {
-  return `public-chat-inbox-unread:${tab}`;
-}
-
-function getInboxSeenStorageKey(tab) {
-  return `public-chat-inbox-seen:${tab}`;
-}
-
 function getSessionLastMessageAt(session) {
   const value =
     session?.lastMessageAt ||
@@ -71,6 +67,27 @@ function getChatPreviewUnreadCount(session, localCount = 0) {
   if (local > 0) return local;
   if (hasUnread(session)) return Math.max(serverCount, 1);
   return serverCount;
+}
+
+function formatMessageTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatUnreadSenderSummary(senders = [], max = 5) {
+  const items = (senders || []).filter((s) => Number(s.unreadCount || 0) > 0);
+  if (!items.length) return '';
+  const shown = items.slice(0, max).map((s) => `${s.label} (${s.unreadCount})`);
+  const rest = items.length - shown.length;
+  if (rest > 0) shown.push(`+${rest} người khác`);
+  return shown.join(', ');
 }
 
 function isSameSessionId(a, b) {
@@ -94,6 +111,7 @@ const PublicCtvChatInboxPage = () => {
   const [sessionMeta, setSessionMeta] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [attachment, setAttachment] = useState(null);
   const [sending, setSending] = useState(false);
   const [sessionSearch, setSessionSearch] = useState('');
   const listRef = useRef(null);
@@ -103,8 +121,8 @@ const PublicCtvChatInboxPage = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const searchTimerRef = useRef(null);
   const dropdownRef = useRef(null);
-  const [seenLastMessageAtBySession, setSeenLastMessageAtBySession] = useState({});
   const [localUnreadBySession, setLocalUnreadBySession] = useState({});
+  const [unreadSummary, setUnreadSummary] = useState(null);
   const socketRef = useRef(null);
   const inboxStreamRef = useRef(null);
 
@@ -161,17 +179,38 @@ const PublicCtvChatInboxPage = () => {
     }
   }, [loadCandidateSessions, loadCtvSessions]);
 
+  const refreshUnreadSummary = useCallback(async () => {
+    try {
+      const summary = await fetchAdminSupportUnread(apiService);
+      setUnreadSummary(summary);
+    } catch {
+      setUnreadSummary(null);
+    }
+  }, []);
+
   useEffect(() => {
     loadCtvSessions();
     loadCandidateSessions();
-  }, [loadCtvSessions, loadCandidateSessions]);
+    refreshUnreadSummary();
+  }, [loadCtvSessions, loadCandidateSessions, refreshUnreadSummary]);
+
+  useEffect(() => {
+    const onRead = () => {
+      refreshUnreadSummary();
+    };
+    window.addEventListener('admin-support-chat-read', onRead);
+    return () => window.removeEventListener('admin-support-chat-read', onRead);
+  }, [refreshUnreadSummary]);
 
   const markSessionSeen = useCallback((session) => {
     if (!session?.id) return;
     const key = String(session.id);
-    setSeenLastMessageAtBySession((prev) => ({ ...prev, [key]: Date.now() }));
     setLocalUnreadBySession((prev) => ({ ...prev, [key]: 0 }));
-    const patch = { hasUnread: false, unreadCount: 0, adminLastSeenAt: session.adminLastSeenAt };
+    const patch = {
+      hasUnread: false,
+      unreadCount: 0,
+      adminLastSeenAt: session.adminLastSeenAt || new Date().toISOString(),
+    };
     setCtvSessions((prev) =>
       prev.map((s) => (Number(s.id) === Number(session.id) ? { ...s, ...patch } : s))
     );
@@ -179,7 +218,8 @@ const PublicCtvChatInboxPage = () => {
       prev.map((s) => (Number(s.id) === Number(session.id) ? { ...s, ...patch } : s))
     );
     window.dispatchEvent(new CustomEvent('admin-support-chat-read'));
-  }, []);
+    refreshUnreadSummary();
+  }, [refreshUnreadSummary]);
 
   const resolveActiveThread = useCallback((sessionKind, sessionId) => {
     if (sessionKind !== tabRef.current) return false;
@@ -265,6 +305,21 @@ const PublicCtvChatInboxPage = () => {
     [ctvSessions, candidateSessions, localUnreadBySession]
   );
 
+  const tabUnreadSenders = useMemo(() => {
+    const sessions = tab === 'ctv' ? ctvSessions : candidateSessions;
+    return sessions
+      .map((s) => ({
+        sessionId: s.id,
+        label: tab === 'ctv' ? (s.collaboratorName || s.visitorLabel || `Khách #${s.id}`) : (s.applicantName || s.visitorLabel || `Khách #${s.id}`),
+        unreadCount: getChatPreviewUnreadCount(s, localUnreadBySession[String(s.id)]),
+      }))
+      .filter((item) => item.unreadCount > 0)
+      .sort((a, b) => b.unreadCount - a.unreadCount);
+  }, [tab, ctvSessions, candidateSessions, localUnreadBySession]);
+
+  const otherTabUnreadTotal = tab === 'ctv' ? tabUnreadTotals.candidate : tabUnreadTotals.ctv;
+  const otherTabLabel = tab === 'ctv' ? t.adminMessagesTabCandidate : t.adminMessagesTabCtv;
+
   const searchQ = useMemo(() => normalizeSearch(sessionSearch), [sessionSearch]);
 
   const filteredSessions = useMemo(() => {
@@ -297,15 +352,18 @@ const PublicCtvChatInboxPage = () => {
       const sid = Number(data.sessionId);
       if (!Number.isFinite(sid)) return;
       const isActiveThread = resolveActiveThread(sessionKind, sid);
+      const preview = buildMessagePreview(data.message);
 
       if (isActiveThread) {
         markSessionSeen({ id: sid, lastMessageAt: data.message?.createdAt || Date.now() });
-        setMessages((prev) => {
-          const mid = data.message?.id;
-          if (mid == null) return prev;
-          if (prev.some((m) => Number(m.id) === Number(mid))) return prev;
-          return [...prev, data.message];
-        });
+        setMessages((prev) => appendUniqueChatMessage(prev, data.message));
+        if (data.message?.senderType === 'visitor') {
+          const markRead =
+            sessionKind === 'ctv'
+              ? apiService.markAdminPublicCtvChatSessionRead
+              : apiService.markAdminPublicCandidateChatSessionRead;
+          markRead(sid).catch(() => {});
+        }
       } else {
         bumpUnreadForSession(sid);
       }
@@ -325,6 +383,9 @@ const PublicCtvChatInboxPage = () => {
               unreadCount: !isActiveThread ? 1 : 0,
               lastMessageAt: data.message?.createdAt || Date.now(),
               updatedAt: data.message?.createdAt || Date.now(),
+              lastMessagePreview: preview,
+              lastMessageSenderType: data.message?.senderType || null,
+              unreadPreview: !isActiveThread && data.message?.senderType === 'visitor' ? preview : null,
             },
             ...prev,
           ];
@@ -337,6 +398,14 @@ const PublicCtvChatInboxPage = () => {
                 unreadCount: !isActiveThread ? Number(s.unreadCount || 0) + 1 : 0,
                 lastMessageAt: data.message?.createdAt || s.lastMessageAt || Date.now(),
                 updatedAt: data.message?.createdAt || s.updatedAt,
+                lastMessagePreview: preview || s.lastMessagePreview,
+                lastMessageSenderType: data.message?.senderType || s.lastMessageSenderType,
+                unreadPreview:
+                  !isActiveThread && data.message?.senderType === 'visitor'
+                    ? preview
+                    : isActiveThread
+                      ? null
+                      : s.unreadPreview,
               }
             : s
         );
@@ -392,7 +461,7 @@ const PublicCtvChatInboxPage = () => {
       }
       inboxStreamRef.current = null;
     };
-  }, [bumpUnreadForSession, markSessionSeen, refreshListForTab, resolveActiveThread, searchParams]);
+  }, [bumpUnreadForSession, markSessionSeen, refreshListForTab, resolveActiveThread, tab, selectedId]);
 
   const loadThread = useCallback(async () => {
     if (!selectedId) {
@@ -407,6 +476,7 @@ const PublicCtvChatInboxPage = () => {
           setSessionMeta(res.data.session);
           setMessages(res.data.messages || []);
           markSessionSeen(res.data.session);
+          await loadCtvSessions();
         }
       } else {
         const res = await apiService.getAdminPublicCandidateChatMessages(selectedId);
@@ -414,12 +484,13 @@ const PublicCtvChatInboxPage = () => {
           setSessionMeta(res.data.session);
           setMessages(res.data.messages || []);
           markSessionSeen(res.data.session);
+          await loadCandidateSessions();
         }
       }
     } catch (e) {
       console.error(e);
     }
-  }, [markSessionSeen, selectedId, tab]);
+  }, [loadCandidateSessions, loadCtvSessions, markSessionSeen, selectedId, tab]);
 
   useEffect(() => {
     loadThread();
@@ -440,16 +511,12 @@ const PublicCtvChatInboxPage = () => {
     setSessionMeta(null);
     setMessages([]);
     setInput('');
+    setAttachment(null);
   };
 
   const selectSession = (id) => {
     setShowDropdown(false);
     const key = String(id);
-    setSeenLastMessageAtBySession((prev) => {
-      const session = [...ctvSessions, ...candidateSessions].find((s) => Number(s.id) === Number(id));
-      const lastAt = getSessionLastMessageAt(session);
-      return lastAt ? { ...prev, [key]: lastAt } : prev;
-    });
     setLocalUnreadBySession((prev) => ({ ...prev, [key]: 0 }));
     setSearchParams((prev) => {
       const p = new URLSearchParams(prev);
@@ -457,7 +524,6 @@ const PublicCtvChatInboxPage = () => {
       p.set('sessionId', String(id));
       return p;
     });
-    markSessionSeen({ id });
   };
 
   const backToSessionList = () => {
@@ -492,21 +558,33 @@ const PublicCtvChatInboxPage = () => {
 
   const send = async () => {
     const text = input.trim();
-    if (!text || !selectedId || sending) return;
+    if ((!text && !attachment) || !selectedId || sending) return;
     setSending(true);
     try {
       const res =
         tab === 'ctv'
-          ? await apiService.sendAdminPublicCtvChatMessage(selectedId, text)
-          : await apiService.sendAdminPublicCandidateChatMessage(selectedId, text);
+          ? await apiService.sendAdminPublicCtvChatMessage(selectedId, text, attachment)
+          : await apiService.sendAdminPublicCandidateChatMessage(selectedId, text, attachment);
       if (res.success && res.data?.message) {
         const msg = res.data.message;
-        setMessages((prev) => {
-          if (msg?.id != null && prev.some((m) => Number(m.id) === Number(msg.id))) return prev;
-          return [...prev, msg];
-        });
-        markSessionSeen({ id: selectedId, lastMessageAt: msg?.createdAt || Date.now() });
+        setMessages((prev) => appendUniqueChatMessage(prev, msg));
         setInput('');
+        setAttachment(null);
+        const preview = buildMessagePreview(msg);
+        const patchSession = (prev) =>
+          prev.map((s) =>
+            Number(s.id) === Number(selectedId)
+              ? {
+                  ...s,
+                  lastMessageAt: msg.createdAt || s.lastMessageAt,
+                  updatedAt: msg.createdAt || s.updatedAt,
+                  lastMessagePreview: preview,
+                  lastMessageSenderType: 'admin',
+                }
+              : s
+          );
+        if (tab === 'ctv') setCtvSessions(patchSession);
+        else setCandidateSessions(patchSession);
       }
     } catch (e) {
       console.error(e);
@@ -660,6 +738,27 @@ const PublicCtvChatInboxPage = () => {
               )}
             </div>
           </div>
+          {(tabUnreadSenders.length > 0 || otherTabUnreadTotal > 0) && (
+            <div className="border-b border-amber-100 bg-amber-50 px-3 py-2.5 text-xs text-amber-950">
+              {tabUnreadSenders.length > 0 && (
+                <p>
+                  <span className="font-bold">{tabUnreadTotals[tab]} tin chưa đọc</span>
+                  {' '}từ {tabUnreadSenders.length} phiên:
+                  {' '}
+                  <span className="font-semibold">{formatUnreadSenderSummary(tabUnreadSenders)}</span>
+                </p>
+              )}
+              {otherTabUnreadTotal > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setTab(tab === 'ctv' ? 'candidate' : 'ctv')}
+                  className="mt-1 font-semibold text-red-700 underline underline-offset-2"
+                >
+                  Tab {otherTabLabel} còn {otherTabUnreadTotal} tin chưa đọc — bấm để xem
+                </button>
+              )}
+            </div>
+          )}
           <div className="min-h-0 flex-1 overflow-y-auto">
             {loadingList ? (
               <p className="p-3 text-sm text-slate-500">{t.chatLoading || 'Đang tải…'}</p>
@@ -668,28 +767,37 @@ const PublicCtvChatInboxPage = () => {
             ) : filteredSessions.length === 0 ? (
               <p className="p-3 text-sm text-slate-500">{t.adminMessagesNoMatch}</p>
             ) : (
-              filteredSessions.map((s) => (
+              filteredSessions.map((s) => {
+                const unreadCount = previewUnreadCountBySessionId[s.id] || 0;
+                const isUnread = unreadCount > 0;
+                const previewText = s.lastMessagePreview || s.unreadPreview || '';
+                return (
                 <button
                   key={s.id}
                   type="button"
                   onClick={() => selectSession(s.id)}
                   className={`w-full border-b border-slate-50 px-3 py-2.5 text-left text-sm transition-colors hover:bg-slate-50 ${
                     selectedId === s.id ? 'bg-red-50 text-red-900' : 'text-slate-800'
-                  } ${previewUnreadCountBySessionId[s.id] > 0 ? 'bg-red-50/40' : ''}`}
+                  } ${isUnread ? 'border-l-4 border-l-red-600 bg-red-50/70' : 'border-l-4 border-l-transparent'}`}
                 >
                   {tab === 'ctv' ? (
                     <>
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className={`font-medium ${previewUnreadCountBySessionId[s.id] > 0 ? 'text-red-900' : ''}`}>
+                        <span className={`${isUnread ? 'font-bold text-red-900' : 'font-medium'}`}>
                           {displayCtvTitle(s)}
                         </span>
-                        {previewUnreadCountBySessionId[s.id] > 0 && (
-                          <span
-                            className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white"
-                            title={`${previewUnreadCountBySessionId[s.id]} tin chưa đọc`}
-                          >
-                            {previewUnreadCountBySessionId[s.id] > 99 ? '99+' : previewUnreadCountBySessionId[s.id]}
-                          </span>
+                        {isUnread && (
+                          <>
+                            <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                              Chưa đọc
+                            </span>
+                            <span
+                              className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white"
+                              title={`${unreadCount} tin chưa đọc`}
+                            >
+                              {unreadCount > 99 ? '99+' : unreadCount}
+                            </span>
+                          </>
                         )}
                         {s.isRegistered && (
                           <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
@@ -698,25 +806,37 @@ const PublicCtvChatInboxPage = () => {
                         )}
                       </div>
                       {displayCtvSubtitle(s) && (
-                        <div className="truncate text-xs text-slate-500">{displayCtvSubtitle(s)}</div>
+                        <div className={`truncate text-xs ${isUnread ? 'font-medium text-slate-700' : 'text-slate-500'}`}>
+                          {displayCtvSubtitle(s)}
+                        </div>
                       )}
-                      <div className="truncate text-xs text-slate-400">
+                      {previewText && (
+                        <div className={`mt-1 truncate text-xs ${isUnread ? 'font-semibold text-red-800' : 'text-slate-500'}`}>
+                          {previewText}
+                        </div>
+                      )}
+                      <div className="truncate text-[11px] text-slate-400">
                         {getSessionLastMessageAt(s) ? new Date(getSessionLastMessageAt(s)).toLocaleString('vi-VN') : '—'}
                       </div>
                     </>
                   ) : (
                     <>
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className={`font-medium ${previewUnreadCountBySessionId[s.id] > 0 ? 'text-red-900' : ''}`}>
+                        <span className={`${isUnread ? 'font-bold text-red-900' : 'font-medium'}`}>
                           {displayCandidateTitle(s)}
                         </span>
-                        {previewUnreadCountBySessionId[s.id] > 0 && (
-                          <span
-                            className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white"
-                            title={`${previewUnreadCountBySessionId[s.id]} tin chưa đọc`}
-                          >
-                            {previewUnreadCountBySessionId[s.id] > 99 ? '99+' : previewUnreadCountBySessionId[s.id]}
-                          </span>
+                        {isUnread && (
+                          <>
+                            <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                              Chưa đọc
+                            </span>
+                            <span
+                              className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white"
+                              title={`${unreadCount} tin chưa đọc`}
+                            >
+                              {unreadCount > 99 ? '99+' : unreadCount}
+                            </span>
+                          </>
                         )}
                         {s.isRegistered && (
                           <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
@@ -725,15 +845,23 @@ const PublicCtvChatInboxPage = () => {
                         )}
                       </div>
                       {displayCandidateSubtitle(s) && (
-                        <div className="truncate text-xs text-slate-500">{displayCandidateSubtitle(s)}</div>
+                        <div className={`truncate text-xs ${isUnread ? 'font-medium text-slate-700' : 'text-slate-500'}`}>
+                          {displayCandidateSubtitle(s)}
+                        </div>
                       )}
-                      <div className="truncate text-xs text-slate-400">
+                      {previewText && (
+                        <div className={`mt-1 truncate text-xs ${isUnread ? 'font-semibold text-red-800' : 'text-slate-500'}`}>
+                          {previewText}
+                        </div>
+                      )}
+                      <div className="truncate text-[11px] text-slate-400">
                         {getSessionLastMessageAt(s) ? new Date(getSessionLastMessageAt(s)).toLocaleString('vi-VN') : '—'}
                       </div>
                     </>
                   )}
                 </button>
-              ))
+              );
+              })
             )}
           </div>
         </div>
@@ -781,37 +909,63 @@ const PublicCtvChatInboxPage = () => {
                 )}
               </div>
               <div ref={listRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-slate-50/80 p-4">
-                {messages.map((m) => (
-                  <div key={m.id} className={`flex ${m.senderType === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                    <div
-                      className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
-                        m.senderType === 'admin' ? 'bg-red-600 text-white' : 'border border-slate-200 bg-white text-slate-800'
-                      }`}
-                    >
-                      {m.body}
+                {messages.map((m) => {
+                  const isAdmin = m.senderType === 'admin';
+                  const sentAtLabel = formatMessageTime(m.createdAt);
+                  const visitorLabel = tab === 'ctv' ? 'CTV/Khách' : 'Ứng viên/Khách';
+                  let statusLabel = '';
+                  if (isAdmin) {
+                    statusLabel = m.isReadByVisitor ? `${visitorLabel} đã xem` : `${visitorLabel} chưa xem`;
+                  } else if (m.isReadByAdmin) {
+                    statusLabel = 'Admin đã nhận';
+                  } else {
+                    statusLabel = 'Chưa đọc';
+                  }
+                  return (
+                    <div key={m.id} className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] ${isAdmin ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+                        {!isAdmin && (
+                          <span className="px-1 text-[10px] font-semibold text-slate-500">{visitorLabel}</span>
+                        )}
+                        <div
+                          className={`rounded-2xl px-3 py-2 text-sm ${
+                            isAdmin ? 'bg-red-600 text-white' : 'border border-slate-200 bg-white text-slate-800'
+                          }`}
+                        >
+                          {m.body || m.attachmentUrl ? (
+                            <PublicSupportChatMessageBody message={m} />
+                          ) : null}
+                        </div>
+                        <div className={`flex flex-wrap gap-x-2 text-[10px] ${isAdmin ? 'justify-end text-slate-500' : 'text-slate-500'}`}>
+                          {sentAtLabel && <span>{sentAtLabel}</span>}
+                          {statusLabel && (
+                            <>
+                              <span>·</span>
+                              <span className={!isAdmin && !m.isReadByAdmin ? 'font-bold text-red-600' : ''}>{statusLabel}</span>
+                            </>
+                          )}
+                          {isAdmin && m.admin?.name && (
+                            <>
+                              <span>·</span>
+                              <span>{m.admin.name}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="border-t border-slate-100 p-3">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
-                    placeholder="Nhập tin nhắn…"
-                    className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-red-400"
-                  />
-                  <button
-                    type="button"
-                    disabled={sending || !input.trim()}
-                    onClick={send}
-                    className="shrink-0 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-                  >
-                    Gửi
-                  </button>
-                </div>
+                <PublicSupportChatComposer
+                  value={input}
+                  onChange={setInput}
+                  attachment={attachment}
+                  onAttachmentChange={setAttachment}
+                  onSend={send}
+                  sending={sending}
+                  disabled={!selectedId}
+                />
               </div>
             </>
           )}

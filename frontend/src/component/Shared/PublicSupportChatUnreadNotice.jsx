@@ -25,36 +25,69 @@ export default function PublicSupportChatUnreadNotice({ role }) {
     dismissSupportChatToast();
   }, []);
 
-  useEffect(() => {
-    if (isSupportChatToastDismissed()) return undefined;
+  const refreshUnread = useCallback(async () => {
+    if (isSupportChatToastDismissed()) return;
+    if (role === 'admin' && location.pathname.startsWith('/admin/public-ctv-chat')) return;
 
+    try {
+      const result =
+        role === 'admin'
+          ? await fetchAdminSupportUnread(apiService)
+          : await fetchCtvSupportUnread(apiService);
+
+      if (!result?.count || result.count <= 0) {
+        setOpen(false);
+        setPayload(null);
+        return;
+      }
+      if (isSupportChatToastDismissed()) return;
+
+      setPayload(result);
+      setOpen(true);
+    } catch {
+      /* ignore */
+    }
+  }, [location.pathname, role]);
+
+  useEffect(() => {
     if (role === 'admin' && location.pathname.startsWith('/admin/public-ctv-chat')) {
+      setOpen(false);
+      setPayload(null);
       return undefined;
     }
+    if (isSupportChatToastDismissed()) return undefined;
 
     let cancelled = false;
-    const timer = window.setTimeout(async () => {
-      try {
-        const result =
-          role === 'admin'
-            ? await fetchAdminSupportUnread(apiService)
-            : await fetchCtvSupportUnread(apiService);
-
-        if (cancelled || !result?.count || result.count <= 0) return;
-        if (isSupportChatToastDismissed()) return;
-
-        setPayload(result);
-        setOpen(true);
-      } catch {
-        /* ignore */
-      }
+    const timer = window.setTimeout(() => {
+      if (!cancelled) refreshUnread();
     }, 800);
 
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [location.pathname, role]);
+  }, [location.pathname, role, refreshUnread]);
+
+  useEffect(() => {
+    if (role !== 'admin') return undefined;
+    const onRead = () => {
+      setOpen(false);
+      setPayload(null);
+    };
+    window.addEventListener('admin-support-chat-read', onRead);
+    return () => window.removeEventListener('admin-support-chat-read', onRead);
+  }, [role]);
+
+  useEffect(() => {
+    if (role !== 'ctv') return undefined;
+
+    const onMarkedRead = () => {
+      setOpen(false);
+      setPayload(null);
+    };
+    window.addEventListener('jobshare:ctv-chat-read', onMarkedRead);
+    return () => window.removeEventListener('jobshare:ctv-chat-read', onMarkedRead);
+  }, [role]);
 
   const handleAction = () => {
     close();
@@ -82,6 +115,16 @@ export default function PublicSupportChatUnreadNotice({ role }) {
       : `Admin đã gửi ${payload?.count || 0} tin nhắn mới`;
 
   const messageParts = [];
+  if (role === 'admin' && payload?.senders?.length) {
+    const summary = payload.senders
+      .filter((s) => Number(s.unreadCount || 0) > 0)
+      .slice(0, 5)
+      .map((s) => `${s.label} (${s.unreadCount})`)
+      .join(', ');
+    if (summary) {
+      messageParts.push(`Chưa đọc: ${summary}`);
+    }
+  }
   if (role === 'admin' && payload?.preview) {
     messageParts.push(payload.preview);
   } else if (role === 'admin' && payload?.count) {
