@@ -6,6 +6,8 @@ import { useCandidateAuth } from '../../context/CandidateAuthContext';
 import apiService from '../../services/api';
 import LegalPoliciesSlidePanel from '../Shared/LegalPoliciesSlidePanel';
 import { createReconnectingEventSource, parsePublicChatSseEvent } from '../../utils/publicChatSse';
+import { appendUniqueChatMessage, canSendSupportChatMessage } from '../../utils/publicSupportChatUi';
+import PublicSupportChatMessageBody from '../Shared/PublicSupportChatMessageBody';
 
 const LS_TOKEN = 'candidate_landing_public_chat_token';
 const LS_NAME = 'candidate_landing_visitor_name';
@@ -171,6 +173,7 @@ function CandidateLandingChatbot() {
   const [sessionToken, setSessionToken] = useState(() => localStorage.getItem(LS_TOKEN) || '');
   const [liveMessages, setLiveMessages] = useState([]);
   const [liveInput, setLiveInput] = useState('');
+  const [liveAttachment, setLiveAttachment] = useState(null);
   const [firstLiveInput, setFirstLiveInput] = useState('');
   const [sending, setSending] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -280,10 +283,7 @@ function CandidateLandingChatbot() {
       onEvent: (ev) => {
         const data = parsePublicChatSseEvent(ev);
         if (!data) return;
-        setLiveMessages((prev) => {
-          if (prev.some((m) => Number(m.id) === Number(data.message.id))) return prev;
-          return [...prev, data.message];
-        });
+        setLiveMessages((prev) => appendUniqueChatMessage(prev, data.message));
         setStep('live');
       },
     });
@@ -442,16 +442,18 @@ function CandidateLandingChatbot() {
 
   const sendLive = async () => {
     const text = liveInput.trim();
-    if (!text || sending || !sessionToken) return;
+    if (!canSendSupportChatMessage(text, liveAttachment) || sending || !sessionToken) return;
     setSending(true);
     try {
-      const res = await apiService.sendPublicCandidateChatMessage({ sessionToken, body: text });
+      const res = await apiService.sendPublicCandidateChatMessage({
+        sessionToken,
+        body: text,
+        attachment: liveAttachment,
+      });
       if (res.success && res.data?.message) {
-        setLiveMessages((prev) => {
-          if (prev.some((m) => Number(m.id) === Number(res.data.message.id))) return prev;
-          return [...prev, res.data.message];
-        });
+        setLiveMessages((prev) => appendUniqueChatMessage(prev, res.data.message));
         setLiveInput('');
+        setLiveAttachment(null);
       }
     } catch (e) {
       console.error(e);
@@ -551,7 +553,12 @@ function CandidateLandingChatbot() {
                           : 'border border-[#ececec] bg-white text-[#1f2937] shadow-sm'
                       }`}
                     >
-                      {m.body}
+                      {m.body || m.attachmentUrl ? (
+                        <PublicSupportChatMessageBody
+                          message={m}
+                          className="whitespace-pre-wrap break-words text-[10px]"
+                        />
+                      ) : null}
                     </div>
                   </div>
                   <p className="mt-0.5 text-[9px] text-[#9ca3af]">
@@ -657,21 +664,47 @@ function CandidateLandingChatbot() {
   /** Vùng dưới: chip script / nhập chat admin */
   const renderBottomPanel = () => {
     if (tab === 'messages' && hasLiveThread) {
+      const fileInputId = 'candidate-live-chat-file';
       return (
         <div className="shrink-0 border-t border-[#ececf0] bg-white px-2 py-2">
-          <div className="flex gap-1.5">
+          {liveAttachment && (
+            <div className="mb-1 truncate text-[9px] text-[#6b7280]">📎 {liveAttachment.name}</div>
+          )}
+          <div className="flex items-end gap-1.5">
+            <label
+              htmlFor={fileInputId}
+              className="shrink-0 cursor-pointer rounded-full border border-[#e5e7eb] px-2 py-1.5 text-[9px] text-[#6b7280]"
+              title="Đính kèm"
+            >
+              +
+            </label>
             <input
-              type="text"
+              id={fileInputId}
+              type="file"
+              accept="image/*,.pdf,.doc,.docx,.txt,.zip"
+              className="hidden"
+              onChange={(e) => {
+                setLiveAttachment(e.target.files?.[0] || null);
+                e.target.value = '';
+              }}
+            />
+            <textarea
               value={liveInput}
               onChange={(e) => setLiveInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && sendLive()}
-              placeholder={t.chatPlaceholder}
-              className="min-w-0 flex-1 rounded-full border border-[#e5e7eb] bg-[#fafafa] px-2.5 py-1.5 text-[10px] text-[#111827] caret-[#111827] outline-none placeholder:text-[#9ca3af] focus:border-[#d1d5db] focus:bg-white"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                  e.preventDefault();
+                  sendLive();
+                }
+              }}
+              rows={2}
+              placeholder={`${t.chatPlaceholder} (Ctrl+Enter gửi)`}
+              className="min-h-[36px] min-w-0 flex-1 resize-y rounded-xl border border-[#e5e7eb] bg-[#fafafa] px-2 py-1.5 text-[10px] leading-snug text-[#111827] outline-none focus:border-[#d1d5db] focus:bg-white"
             />
             <button
               type="button"
               onClick={sendLive}
-              disabled={sending || !liveInput.trim() || !sessionToken}
+              disabled={sending || !canSendSupportChatMessage(liveInput, liveAttachment) || !sessionToken}
               className="shrink-0 rounded-full bg-[#ED212F] px-2.5 py-1.5 text-[10px] font-semibold text-white shadow-sm disabled:opacity-50"
             >
               {t.send}

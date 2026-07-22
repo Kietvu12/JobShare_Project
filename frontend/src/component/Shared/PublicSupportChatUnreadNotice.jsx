@@ -50,11 +50,12 @@ export default function PublicSupportChatUnreadNotice({ role }) {
   }, [location.pathname, role]);
 
   useEffect(() => {
-    if (isSupportChatToastDismissed()) return undefined;
-
     if (role === 'admin' && location.pathname.startsWith('/admin/public-ctv-chat')) {
+      setOpen(false);
+      setPayload(null);
       return undefined;
     }
+    if (isSupportChatToastDismissed()) return undefined;
 
     let cancelled = false;
     const timer = window.setTimeout(() => {
@@ -66,6 +67,16 @@ export default function PublicSupportChatUnreadNotice({ role }) {
       window.clearTimeout(timer);
     };
   }, [location.pathname, role, refreshUnread]);
+
+  useEffect(() => {
+    if (role !== 'admin') return undefined;
+    const onRead = () => {
+      setOpen(false);
+      setPayload(null);
+    };
+    window.addEventListener('admin-support-chat-read', onRead);
+    return () => window.removeEventListener('admin-support-chat-read', onRead);
+  }, [role]);
 
   useEffect(() => {
     if (role !== 'ctv') return undefined;

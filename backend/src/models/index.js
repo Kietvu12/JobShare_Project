@@ -5343,6 +5343,26 @@ export const PublicCtvChatMessage = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: false
     },
+    attachmentName: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: 'attachment_name'
+    },
+    attachmentKey: {
+      type: DataTypes.STRING(512),
+      allowNull: true,
+      field: 'attachment_key'
+    },
+    attachmentMimeType: {
+      type: DataTypes.STRING(128),
+      allowNull: true,
+      field: 'attachment_mime_type'
+    },
+    attachmentSize: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: true,
+      field: 'attachment_size'
+    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -5447,6 +5467,26 @@ export const PublicCandidateChatMessage = sequelize.define(
     body: {
       type: DataTypes.TEXT,
       allowNull: false
+    },
+    attachmentName: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: 'attachment_name'
+    },
+    attachmentKey: {
+      type: DataTypes.STRING(512),
+      allowNull: true,
+      field: 'attachment_key'
+    },
+    attachmentMimeType: {
+      type: DataTypes.STRING(128),
+      allowNull: true,
+      field: 'attachment_mime_type'
+    },
+    attachmentSize: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: true,
+      field: 'attachment_size'
     },
     createdAt: {
       type: DataTypes.DATE,

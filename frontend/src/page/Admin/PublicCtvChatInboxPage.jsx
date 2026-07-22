@@ -7,6 +7,9 @@ import { useLanguage } from '../../context/LanguageContext';
 import { translations } from '../../translations/translations';
 import { createReconnectingEventSource, parsePublicChatSseEvent } from '../../utils/publicChatSse';
 import { fetchAdminSupportUnread } from '../../utils/publicCtvChatUnread';
+import { appendUniqueChatMessage, buildMessagePreview } from '../../utils/publicSupportChatUi';
+import PublicSupportChatComposer from '../../component/Shared/PublicSupportChatComposer';
+import PublicSupportChatMessageBody from '../../component/Shared/PublicSupportChatMessageBody';
 
 function normalizeSearch(s) {
   return String(s || '')
@@ -108,6 +111,7 @@ const PublicCtvChatInboxPage = () => {
   const [sessionMeta, setSessionMeta] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [attachment, setAttachment] = useState(null);
   const [sending, setSending] = useState(false);
   const [sessionSearch, setSessionSearch] = useState('');
   const listRef = useRef(null);
@@ -348,15 +352,18 @@ const PublicCtvChatInboxPage = () => {
       const sid = Number(data.sessionId);
       if (!Number.isFinite(sid)) return;
       const isActiveThread = resolveActiveThread(sessionKind, sid);
+      const preview = buildMessagePreview(data.message);
 
       if (isActiveThread) {
         markSessionSeen({ id: sid, lastMessageAt: data.message?.createdAt || Date.now() });
-        setMessages((prev) => {
-          const mid = data.message?.id;
-          if (mid == null) return prev;
-          if (prev.some((m) => Number(m.id) === Number(mid))) return prev;
-          return [...prev, data.message];
-        });
+        setMessages((prev) => appendUniqueChatMessage(prev, data.message));
+        if (data.message?.senderType === 'visitor') {
+          const markRead =
+            sessionKind === 'ctv'
+              ? apiService.markAdminPublicCtvChatSessionRead
+              : apiService.markAdminPublicCandidateChatSessionRead;
+          markRead(sid).catch(() => {});
+        }
       } else {
         bumpUnreadForSession(sid);
       }
@@ -376,6 +383,9 @@ const PublicCtvChatInboxPage = () => {
               unreadCount: !isActiveThread ? 1 : 0,
               lastMessageAt: data.message?.createdAt || Date.now(),
               updatedAt: data.message?.createdAt || Date.now(),
+              lastMessagePreview: preview,
+              lastMessageSenderType: data.message?.senderType || null,
+              unreadPreview: !isActiveThread && data.message?.senderType === 'visitor' ? preview : null,
             },
             ...prev,
           ];
@@ -388,6 +398,14 @@ const PublicCtvChatInboxPage = () => {
                 unreadCount: !isActiveThread ? Number(s.unreadCount || 0) + 1 : 0,
                 lastMessageAt: data.message?.createdAt || s.lastMessageAt || Date.now(),
                 updatedAt: data.message?.createdAt || s.updatedAt,
+                lastMessagePreview: preview || s.lastMessagePreview,
+                lastMessageSenderType: data.message?.senderType || s.lastMessageSenderType,
+                unreadPreview:
+                  !isActiveThread && data.message?.senderType === 'visitor'
+                    ? preview
+                    : isActiveThread
+                      ? null
+                      : s.unreadPreview,
               }
             : s
         );
@@ -443,7 +461,7 @@ const PublicCtvChatInboxPage = () => {
       }
       inboxStreamRef.current = null;
     };
-  }, [bumpUnreadForSession, markSessionSeen, refreshListForTab, resolveActiveThread, searchParams]);
+  }, [bumpUnreadForSession, markSessionSeen, refreshListForTab, resolveActiveThread, tab, selectedId]);
 
   const loadThread = useCallback(async () => {
     if (!selectedId) {
@@ -493,6 +511,7 @@ const PublicCtvChatInboxPage = () => {
     setSessionMeta(null);
     setMessages([]);
     setInput('');
+    setAttachment(null);
   };
 
   const selectSession = (id) => {
@@ -539,22 +558,33 @@ const PublicCtvChatInboxPage = () => {
 
   const send = async () => {
     const text = input.trim();
-    if (!text || !selectedId || sending) return;
+    if ((!text && !attachment) || !selectedId || sending) return;
     setSending(true);
     try {
       const res =
         tab === 'ctv'
-          ? await apiService.sendAdminPublicCtvChatMessage(selectedId, text)
-          : await apiService.sendAdminPublicCandidateChatMessage(selectedId, text);
+          ? await apiService.sendAdminPublicCtvChatMessage(selectedId, text, attachment)
+          : await apiService.sendAdminPublicCandidateChatMessage(selectedId, text, attachment);
       if (res.success && res.data?.message) {
         const msg = res.data.message;
-        setMessages((prev) => {
-          if (msg?.id != null && prev.some((m) => Number(m.id) === Number(msg.id))) return prev;
-          return [...prev, msg];
-        });
+        setMessages((prev) => appendUniqueChatMessage(prev, msg));
         setInput('');
-        if (tab === 'ctv') await loadCtvSessions();
-        else await loadCandidateSessions();
+        setAttachment(null);
+        const preview = buildMessagePreview(msg);
+        const patchSession = (prev) =>
+          prev.map((s) =>
+            Number(s.id) === Number(selectedId)
+              ? {
+                  ...s,
+                  lastMessageAt: msg.createdAt || s.lastMessageAt,
+                  updatedAt: msg.createdAt || s.updatedAt,
+                  lastMessagePreview: preview,
+                  lastMessageSenderType: 'admin',
+                }
+              : s
+          );
+        if (tab === 'ctv') setCtvSessions(patchSession);
+        else setCandidateSessions(patchSession);
       }
     } catch (e) {
       console.error(e);
@@ -740,9 +770,7 @@ const PublicCtvChatInboxPage = () => {
               filteredSessions.map((s) => {
                 const unreadCount = previewUnreadCountBySessionId[s.id] || 0;
                 const isUnread = unreadCount > 0;
-                const previewText = isUnread
-                  ? (s.unreadPreview || s.lastMessagePreview || '')
-                  : (s.lastMessagePreview || '');
+                const previewText = s.lastMessagePreview || s.unreadPreview || '';
                 return (
                 <button
                   key={s.id}
@@ -904,7 +932,9 @@ const PublicCtvChatInboxPage = () => {
                             isAdmin ? 'bg-red-600 text-white' : 'border border-slate-200 bg-white text-slate-800'
                           }`}
                         >
-                          {m.body}
+                          {m.body || m.attachmentUrl ? (
+                            <PublicSupportChatMessageBody message={m} />
+                          ) : null}
                         </div>
                         <div className={`flex flex-wrap gap-x-2 text-[10px] ${isAdmin ? 'justify-end text-slate-500' : 'text-slate-500'}`}>
                           {sentAtLabel && <span>{sentAtLabel}</span>}
@@ -927,24 +957,15 @@ const PublicCtvChatInboxPage = () => {
                 })}
               </div>
               <div className="border-t border-slate-100 p-3">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
-                    placeholder="Nhập tin nhắn…"
-                    className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-red-400"
-                  />
-                  <button
-                    type="button"
-                    disabled={sending || !input.trim()}
-                    onClick={send}
-                    className="shrink-0 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-                  >
-                    Gửi
-                  </button>
-                </div>
+                <PublicSupportChatComposer
+                  value={input}
+                  onChange={setInput}
+                  attachment={attachment}
+                  onAttachmentChange={setAttachment}
+                  onSend={send}
+                  sending={sending}
+                  disabled={!selectedId}
+                />
               </div>
             </>
           )}

@@ -13,11 +13,13 @@ import {
 } from '../../services/publicChatUnreadService.js';
 import {
   computeSessionHasUnread,
-  enrichPublicChatMessage,
   markAdminPublicChatSessionRead,
 } from '../../services/publicChatReadService.js';
-
-const serializeMessage = (m, session) => enrichPublicChatMessage(m, session);
+import {
+  createPublicChatMessageRecord,
+  serializePublicChatMessageForApi,
+  serializePublicChatMessagesForApi,
+} from '../../services/publicChatMessageApiService.js';
 
 const hasUnread = (session) => !!(session?.lastVisitorMessageAt && (!session?.adminLastSeenAt || new Date(session.lastVisitorMessageAt).getTime() > new Date(session.adminLastSeenAt).getTime()));
 const serializeSession = (s, c = null) => ({
@@ -165,8 +167,32 @@ export const adminPublicCtvChatController = {
             hasUnread: computeSessionHasUnread(session),
             unreadCount: 0,
           },
-          messages: messages.map((m) => serializeMessage(m, session))
+          messages: await serializePublicChatMessagesForApi(messages, session)
         }
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /** POST /api/admin/public-ctv-chat/sessions/:sessionId/mark-read */
+  markRead: async (req, res, next) => {
+    try {
+      const sessionId = parseInt(req.params.sessionId, 10);
+      if (Number.isNaN(sessionId)) {
+        return res.status(400).json({ success: false, message: 'sessionId không hợp lệ' });
+      }
+      const session = await PublicCtvChatSession.findByPk(sessionId);
+      if (!session) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy phiên chat' });
+      }
+      const readAt = await markAdminPublicChatSessionRead(session, PublicCtvChatMessage);
+      if (readAt) {
+        emitRealtime('admin-public-ctv-chat-read', { sessionId, adminLastSeenAt: readAt }, 'admin-inbox');
+      }
+      res.json({
+        success: true,
+        data: { sessionId, adminLastSeenAt: session.adminLastSeenAt || readAt },
       });
     } catch (error) {
       next(error);
@@ -181,9 +207,6 @@ export const adminPublicCtvChatController = {
       if (Number.isNaN(sessionId)) {
         return res.status(400).json({ success: false, message: 'sessionId không hợp lệ' });
       }
-      if (!body) {
-        return res.status(400).json({ success: false, message: 'Nội dung tin nhắn không được để trống' });
-      }
 
       const session = await PublicCtvChatSession.findByPk(sessionId);
       if (!session) {
@@ -191,12 +214,23 @@ export const adminPublicCtvChatController = {
       }
 
       const adminId = req.admin.id;
-      const msg = await PublicCtvChatMessage.create({
-        sessionId: session.id,
-        senderType: 'admin',
-        adminId,
-        body: body.slice(0, 8000)
-      });
+      let msg;
+      try {
+        msg = await createPublicChatMessageRecord({
+          kind: 'ctv',
+          MessageModel: PublicCtvChatMessage,
+          session,
+          senderType: 'admin',
+          adminId,
+          body,
+          file: req.file || null,
+        });
+      } catch (err) {
+        if (err.statusCode === 400) {
+          return res.status(400).json({ success: false, message: err.message });
+        }
+        throw err;
+      }
 
       const now = new Date();
       session.lastMessageAt = now;
@@ -206,7 +240,7 @@ export const adminPublicCtvChatController = {
       await msg.reload({
         include: [{ model: Admin, as: 'admin', attributes: ['id', 'name'], required: false }],
       });
-      const messagePayload = serializeMessage(msg, session);
+      const messagePayload = await serializePublicChatMessageForApi(msg, session);
       const payload = { type: 'message', message: messagePayload };
       publicCtvChatSseService.emitToSession(session.id, payload);
       const inboxPayload = {

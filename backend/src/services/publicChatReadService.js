@@ -78,6 +78,9 @@ export function enrichPublicChatMessage(message, session) {
     senderType,
     adminId: message.adminId,
     body: message.body,
+    attachmentName: message.attachmentName ?? message.attachment_name ?? null,
+    attachmentMimeType: message.attachmentMimeType ?? message.attachment_mime_type ?? null,
+    attachmentSize: message.attachmentSize ?? message.attachment_size ?? null,
     createdAt: createdRaw,
     admin: message.admin ? { id: message.admin.id, name: message.admin.name } : null,
     isReadByAdmin:

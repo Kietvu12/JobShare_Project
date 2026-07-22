@@ -582,6 +582,28 @@ export function buildMessageAttachmentKey(jobApplicationId, originalFilename = '
 }
 
 /**
+ * Build S3 key cho file đính kèm chat hỗ trợ công khai (CTV / ứng viên landing).
+ * Format: public-chat/{kind}/{sessionId}/{uuid}_{safeName}.{ext}
+ */
+export function buildPublicChatAttachmentKey(kind, sessionId, originalFilename = '') {
+  const sid = String(sessionId || '').trim();
+  if (!sid || sid === 'undefined' || sid === 'null') {
+    throw new Error('buildPublicChatAttachmentKey: sessionId không hợp lệ');
+  }
+  const folder = kind === 'candidate' ? 'public-candidate-chat' : 'public-ctv-chat';
+  const base = path.basename(originalFilename || 'attachment');
+  const ext = path.extname(base).toLowerCase().replace(/[^a-z0-9.]/g, '') || '';
+  const nameWithoutExt = path.basename(base, ext || undefined);
+  const safeName = (nameWithoutExt || 'attachment')
+    .replace(/[^a-zA-Z0-9\-_.\s]/g, '-')
+    .replace(/-+/g, '-')
+    .trim()
+    .slice(0, 80) || 'attachment';
+  const keyPart = `public-chat/${folder}/${sid}/${uuidv4()}_${safeName}${ext || ''}`;
+  return withPrefix(keyPart);
+}
+
+/**
  * Build S3 key cho thumbnail tạm (chưa có post id): posts/temp/thumb_{uuid}.{ext}
  */
 export function buildPostTempThumbnailKey(originalFilename = '') {
@@ -1128,6 +1150,7 @@ export default {
   buildJdTemplatePdfKey,
   buildJdFileKey,
   buildMessageAttachmentKey,
+  buildPublicChatAttachmentKey,
   isS3Key,
   makeDownloadDisposition,
   getSignedUrlForFile,
