@@ -6,8 +6,13 @@ import apiService from '../../services/api';
 import LegalPoliciesSlidePanel from '../Shared/LegalPoliciesSlidePanel';
 import { ensurePublicCtvSessionResilient } from '../../utils/publicCtvChatSession';
 import { createReconnectingEventSource, parsePublicChatSseEvent } from '../../utils/publicChatSse';
-import { appendUniqueChatMessage, canSendSupportChatMessage } from '../../utils/publicSupportChatUi';
-import PublicSupportChatMessageBody from '../Shared/PublicSupportChatMessageBody';
+import {
+  appendUniqueChatMessage,
+  applyAdminReplyReadReceipt,
+  canSendSupportChatMessage,
+} from '../../utils/publicSupportChatUi';
+import PublicSupportChatVisitorMessageRow from '../Shared/PublicSupportChatVisitorMessageRow';
+import PublicSupportChatComposer from '../Shared/PublicSupportChatComposer';
 
 const LS_TOKEN = 'ctv_landing_public_chat_token';
 const LS_NAME = 'ctv_landing_visitor_name';
@@ -383,7 +388,10 @@ function CollaboratorLandingChatbot() {
       onEvent: (ev) => {
         const data = parsePublicChatSseEvent(ev);
         if (!data) return;
-        setLiveMessages((prev) => appendUniqueChatMessage(prev, data.message));
+        setLiveMessages((prev) => {
+          const withReceipt = applyAdminReplyReadReceipt(prev, data.message);
+          return appendUniqueChatMessage(withReceipt, data.message);
+        });
         setStep('live');
       },
     });
@@ -478,6 +486,16 @@ function CollaboratorLandingChatbot() {
     if (open && tab === 'messages') {
       localStorage.setItem(LS_LAST_READ_ADMIN, new Date().toISOString());
       setUnreadAdminCount(0);
+      const tok = sessionToken || localStorage.getItem(LS_TOKEN);
+      if (tok) {
+        apiService.markPublicCtvChatRead(tok).then((res) => {
+          if (res?.success) {
+            apiService.getPublicCtvChatMessages(tok).then((msgsRes) => {
+              if (msgsRes?.success) setLiveMessages(msgsRes.data?.messages || []);
+            });
+          }
+        });
+      }
       return;
     }
     const lr = localStorage.getItem(LS_LAST_READ_ADMIN);
@@ -488,7 +506,7 @@ function CollaboratorLandingChatbot() {
       return ts > t0;
     }).length;
     setUnreadAdminCount(n);
-  }, [liveMessages, open, tab]);
+  }, [liveMessages, open, tab, sessionToken]);
 
   const displayName = visitorName.trim() || t.guest;
 
@@ -707,31 +725,13 @@ function CollaboratorLandingChatbot() {
           <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-2 pt-3 pb-2 scroll-smooth scroll-pt-2 [scrollbar-gutter:stable]">
             <div className="space-y-2">
               {liveMessages.map((m) => (
-                <div key={m.id}>
-                  <div
-                    className={`flex ${m.senderType === 'visitor' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[92%] rounded-xl px-2 py-1.5 text-[10px] leading-snug ${
-                        m.senderType === 'visitor'
-                          ? 'bg-[#ED212F] text-white'
-                          : 'border border-[#ececec] bg-white text-[#1f2937] shadow-sm'
-                      }`}
-                    >
-                      {m.attachmentUrl ? (
-                        <PublicSupportChatMessageBody message={m} className="whitespace-pre-wrap break-words text-[10px]" />
-                      ) : (
-                        renderChatMessageBody(m.body, { isVisitorBubble: m.senderType === 'visitor' })
-                      )}
-                    </div>
-                  </div>
-                  <p className="mt-0.5 text-[9px] text-[#9ca3af]">
-                    {m.senderType === 'visitor' ? displayName : t.agentMeta} •{' '}
-                    {m.createdAt
-                      ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                      : ''}
-                  </p>
-                </div>
+                <PublicSupportChatVisitorMessageRow
+                  key={m.id}
+                  message={m}
+                  displayName={displayName}
+                  agentMetaLabel={t.agentMeta}
+                  renderTextBody={renderChatMessageBody}
+                />
               ))}
               <div ref={messagesEndRef} className="h-px w-full shrink-0" />
             </div>
@@ -845,52 +845,21 @@ function CollaboratorLandingChatbot() {
   /** Vùng dưới: chip script / nhập chat admin */
   const renderBottomPanel = () => {
     if (tab === 'messages' && hasLiveThread) {
-      const fileInputId = 'collab-live-chat-file';
       return (
         <div className="shrink-0 border-t border-[#ececf0] bg-white px-2 py-2">
-          {liveAttachment && (
-            <div className="mb-1 truncate text-[9px] text-[#6b7280]">📎 {liveAttachment.name}</div>
-          )}
-          <div className="flex items-end gap-1.5">
-            <label
-              htmlFor={fileInputId}
-              className="shrink-0 cursor-pointer rounded-full border border-[#e5e7eb] px-2 py-1.5 text-[9px] text-[#6b7280]"
-              title="Đính kèm"
-            >
-              +
-            </label>
-            <input
-              id={fileInputId}
-              type="file"
-              accept="image/*,.pdf,.doc,.docx,.txt,.zip"
-              className="hidden"
-              onChange={(e) => {
-                setLiveAttachment(e.target.files?.[0] || null);
-                e.target.value = '';
-              }}
-            />
-            <textarea
-              value={liveInput}
-              onChange={(e) => setLiveInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                  e.preventDefault();
-                  sendLive();
-                }
-              }}
-              rows={2}
-              placeholder={`${t.chatPlaceholder} (Ctrl+Enter gửi)`}
-              className="min-h-[36px] min-w-0 flex-1 resize-y rounded-xl border border-[#e5e7eb] bg-[#fafafa] px-2 py-1.5 text-[10px] leading-snug text-[#111827] outline-none focus:border-[#d1d5db] focus:bg-white"
-            />
-            <button
-              type="button"
-              onClick={sendLive}
-              disabled={sending || !canSendSupportChatMessage(liveInput, liveAttachment) || !sessionToken}
-              className="shrink-0 rounded-full bg-[#ED212F] px-2.5 py-1.5 text-[10px] font-semibold text-white shadow-sm disabled:opacity-50"
-            >
-              {t.send}
-            </button>
-          </div>
+          <PublicSupportChatComposer
+            variant="compact"
+            value={liveInput}
+            onChange={setLiveInput}
+            attachment={liveAttachment}
+            onAttachmentChange={setLiveAttachment}
+            onSend={sendLive}
+            sending={sending}
+            disabled={!sessionToken}
+            placeholder={t.chatPlaceholder}
+            sendLabel={t.send}
+            accept="image/*,.pdf,.doc,.docx,.txt,.zip"
+          />
         </div>
       );
     }

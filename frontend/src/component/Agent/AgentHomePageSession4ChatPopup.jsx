@@ -7,6 +7,13 @@ import { translations } from '../../translations/translations';
 import LegalPoliciesSlidePanel from '../Shared/LegalPoliciesSlidePanel';
 import { ensurePublicCtvSessionResilient } from '../../utils/publicCtvChatSession';
 import { createReconnectingEventSource, parsePublicChatSseEvent } from '../../utils/publicChatSse';
+import {
+  appendUniqueChatMessage,
+  applyAdminReplyReadReceipt,
+  canSendSupportChatMessage,
+} from '../../utils/publicSupportChatUi';
+import PublicSupportChatVisitorMessageRow from '../Shared/PublicSupportChatVisitorMessageRow';
+import PublicSupportChatComposer from '../Shared/PublicSupportChatComposer';
 
 const LS_TOKEN = 'ctv_landing_public_chat_token';
 const LS_NAME = 'ctv_landing_visitor_name';
@@ -102,6 +109,7 @@ function CollaboratorChatPopup() {
   const [sessionToken, setSessionToken] = useState(() => (isAgentArea ? localStorage.getItem(LS_TOKEN) || '' : ''));
   const [liveMessages, setLiveMessages] = useState([]);
   const [liveInput, setLiveInput] = useState('');
+  const [liveAttachment, setLiveAttachment] = useState(null);
   const [firstLiveInput, setFirstLiveInput] = useState('');
   const [sending, setSending] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -129,8 +137,8 @@ function CollaboratorChatPopup() {
         const data = parsePublicChatSseEvent(ev);
         if (!data) return;
         setLiveMessages((prev) => {
-          if (prev.some((m) => Number(m.id) === Number(data.message.id))) return prev;
-          return [...prev, data.message];
+          const withReceipt = applyAdminReplyReadReceipt(prev, data.message);
+          return appendUniqueChatMessage(withReceipt, data.message);
         });
         setStep('live');
       },
@@ -263,6 +271,16 @@ function CollaboratorChatPopup() {
     if (open && tab === 'messages') {
       localStorage.setItem(LS_LAST_READ_ADMIN, new Date().toISOString());
       setUnreadAdminCount(0);
+      const tok = sessionToken || localStorage.getItem(LS_TOKEN);
+      if (tok) {
+        apiService.markPublicCtvChatRead(tok).then((res) => {
+          if (res?.success) {
+            apiService.getPublicCtvChatMessages(tok).then((msgsRes) => {
+              if (msgsRes?.success) setLiveMessages(msgsRes.data?.messages || []);
+            });
+          }
+        });
+      }
       return;
     }
     const lr = localStorage.getItem(LS_LAST_READ_ADMIN);
@@ -273,7 +291,7 @@ function CollaboratorChatPopup() {
       return ts > t0;
     }).length;
     setUnreadAdminCount(n);
-  }, [liveMessages, open, tab]);
+  }, [liveMessages, open, tab, sessionToken]);
 
   const displayName = visitorName.trim() || t.guest;
   const scrollBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -318,14 +336,23 @@ function CollaboratorChatPopup() {
   };
 
   const sendLive = async () => {
-    const text = liveInput.trim(); if (!text || sending || !sessionToken) return;
+    const text = liveInput.trim();
+    if (!canSendSupportChatMessage(text, liveAttachment) || sending || !sessionToken) return;
     setSending(true);
     try {
-      const res = await apiService.sendPublicCtvChatMessage({ sessionToken, body: text });
+      const res = await apiService.sendPublicCtvChatMessage({
+        sessionToken,
+        body: text,
+        attachment: liveAttachment,
+      });
       if (res.success && res.data?.message) {
-        setLiveMessages((prev) => [...prev, res.data.message]); setLiveInput('');
+        setLiveMessages((prev) => appendUniqueChatMessage(prev, res.data.message));
+        setLiveInput('');
+        setLiveAttachment(null);
       }
-    } finally { setSending(false); }
+    } finally {
+      setSending(false);
+    }
   };
 
   const ensureSession = async (tokenHint) => {
@@ -363,13 +390,13 @@ function CollaboratorChatPopup() {
           <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-2 pt-3 pb-2">
             <div className="space-y-2">
               {liveMessages.map((m) => (
-                <div key={m.id}>
-                  <div className={`flex ${m.senderType === 'visitor' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[92%] rounded-xl px-2 py-1.5 text-[10px] leading-snug ${m.senderType === 'visitor' ? 'bg-[#ED212F] text-white' : 'border border-[#ececec] bg-white text-[#1f2937] shadow-sm'}`}>
-                      {renderChatMessageBody(m.body)}
-                    </div>
-                  </div>
-                </div>
+                <PublicSupportChatVisitorMessageRow
+                  key={m.id}
+                  message={m}
+                  displayName={displayName}
+                  agentMetaLabel={t.agentMeta}
+                  renderTextBody={renderChatMessageBody}
+                />
               ))}
               <div ref={messagesEndRef} className="h-px w-full shrink-0" />
             </div>
@@ -384,7 +411,23 @@ function CollaboratorChatPopup() {
 
   const renderBottomPanel = () => {
     if (tab === 'messages' && step === 'live') {
-      return <div className="shrink-0 border-t border-[#ececf0] bg-white px-2 py-2"><div className="flex gap-1.5"><input value={liveInput} onChange={(e) => setLiveInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendLive()} placeholder={t.chatPlaceholder} className="min-w-0 flex-1 rounded-full border border-[#e5e7eb] bg-[#fafafa] px-2.5 py-1.5 text-[10px]" /><button type="button" onClick={sendLive} className="rounded-full bg-[#ED212F] px-2.5 py-1.5 text-[10px] font-semibold text-white">{t.send}</button></div></div>;
+      return (
+        <div className="shrink-0 border-t border-[#ececf0] bg-white px-2 py-2">
+          <PublicSupportChatComposer
+            variant="compact"
+            value={liveInput}
+            onChange={setLiveInput}
+            attachment={liveAttachment}
+            onAttachmentChange={setLiveAttachment}
+            onSend={sendLive}
+            sending={sending}
+            disabled={!sessionToken}
+            placeholder={t.chatPlaceholder}
+            sendLabel={t.send}
+            accept="image/*,.pdf,.doc,.docx,.txt,.zip"
+          />
+        </div>
+      );
     }
     if (tab === 'messages') return <div className="shrink-0 border-t border-[#ececf0] bg-white px-2 py-2"><button type="button" onClick={submitFirstMessage} className="flex w-full items-center justify-center gap-1 rounded-full bg-[#FACC15] py-2 text-[10px] font-bold text-black">{connecting ? t.connecting : t.startChat}</button></div>;
     return <div className="max-h-[min(46%,260px)] min-h-[88px] shrink-0 bg-[#f2f3f5] px-2 py-1.5"><div className="flex flex-wrap justify-end gap-1 overflow-y-auto"><SuggestionChip onClick={() => appendScriptTurn('opt1')}>{t.opt1}</SuggestionChip><SuggestionChip onClick={() => appendScriptTurn('opt2')}>{t.opt2}</SuggestionChip><SuggestionChip onClick={() => appendScriptTurn('opt3')}>{t.opt3}</SuggestionChip><SuggestionChip onClick={() => appendScriptTurn('opt4')}>{t.opt4}</SuggestionChip></div></div>;

@@ -7,6 +7,7 @@ import apiService from '../../services/api';
 import LegalPoliciesSlidePanel from '../Shared/LegalPoliciesSlidePanel';
 import { createReconnectingEventSource, parsePublicChatSseEvent } from '../../utils/publicChatSse';
 import { appendUniqueChatMessage, canSendSupportChatMessage } from '../../utils/publicSupportChatUi';
+import PublicSupportChatComposer from '../Shared/PublicSupportChatComposer';
 import PublicSupportChatMessageBody from '../Shared/PublicSupportChatMessageBody';
 
 const LS_TOKEN = 'candidate_landing_public_chat_token';
@@ -664,52 +665,21 @@ function CandidateLandingChatbot() {
   /** Vùng dưới: chip script / nhập chat admin */
   const renderBottomPanel = () => {
     if (tab === 'messages' && hasLiveThread) {
-      const fileInputId = 'candidate-live-chat-file';
       return (
         <div className="shrink-0 border-t border-[#ececf0] bg-white px-2 py-2">
-          {liveAttachment && (
-            <div className="mb-1 truncate text-[9px] text-[#6b7280]">📎 {liveAttachment.name}</div>
-          )}
-          <div className="flex items-end gap-1.5">
-            <label
-              htmlFor={fileInputId}
-              className="shrink-0 cursor-pointer rounded-full border border-[#e5e7eb] px-2 py-1.5 text-[9px] text-[#6b7280]"
-              title="Đính kèm"
-            >
-              +
-            </label>
-            <input
-              id={fileInputId}
-              type="file"
-              accept="image/*,.pdf,.doc,.docx,.txt,.zip"
-              className="hidden"
-              onChange={(e) => {
-                setLiveAttachment(e.target.files?.[0] || null);
-                e.target.value = '';
-              }}
-            />
-            <textarea
-              value={liveInput}
-              onChange={(e) => setLiveInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                  e.preventDefault();
-                  sendLive();
-                }
-              }}
-              rows={2}
-              placeholder={`${t.chatPlaceholder} (Ctrl+Enter gửi)`}
-              className="min-h-[36px] min-w-0 flex-1 resize-y rounded-xl border border-[#e5e7eb] bg-[#fafafa] px-2 py-1.5 text-[10px] leading-snug text-[#111827] outline-none focus:border-[#d1d5db] focus:bg-white"
-            />
-            <button
-              type="button"
-              onClick={sendLive}
-              disabled={sending || !canSendSupportChatMessage(liveInput, liveAttachment) || !sessionToken}
-              className="shrink-0 rounded-full bg-[#ED212F] px-2.5 py-1.5 text-[10px] font-semibold text-white shadow-sm disabled:opacity-50"
-            >
-              {t.send}
-            </button>
-          </div>
+          <PublicSupportChatComposer
+            variant="compact"
+            value={liveInput}
+            onChange={setLiveInput}
+            attachment={liveAttachment}
+            onAttachmentChange={setLiveAttachment}
+            onSend={sendLive}
+            sending={sending}
+            disabled={!sessionToken}
+            placeholder={t.chatPlaceholder}
+            sendLabel={t.send}
+            accept="image/*,.pdf,.doc,.docx,.txt,.zip"
+          />
         </div>
       );
     }
