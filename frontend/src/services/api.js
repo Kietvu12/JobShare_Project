@@ -157,7 +157,7 @@ const getCurrentUserType = () => {
 };
 
 /** Base URL for AI matching (vector compare / reranking). Mặc định gọi thẳng server AI, không qua localhost. */
-const AI_API_BASE_DEFAULT = 'https://ws-jobshare.com/api_ai';
+const AI_API_BASE_DEFAULT = 'https://test.ws-jobshare.com/api_ai';
 
 /** Số kết quả match tối đa (query `top_k`). */
 const DEFAULT_AI_MATCH_TOP_K = 20;
@@ -264,7 +264,7 @@ function toUploadsPath(imagePath) {
  * Giống backend `isS3Key`: DB lưu object key trên S3 (không phải file trong thư mục uploads/).
  * Ảnh hiển thị qua GET /api/media/s3-view → redirect presigned URL (bucket có thể private).
  */
-function looksLikeStoredS3Key(imagePath) {
+export function isStoredMediaKey(imagePath) {
   const normalized = String(imagePath || '').replace(/^\/+/, '').trim();
   if (!normalized || normalized.startsWith('uploads/')) return false;
   const px = (typeof import.meta.env.VITE_AWS_S3_KEY_PREFIX === 'string'
@@ -272,6 +272,8 @@ function looksLikeStoredS3Key(imagePath) {
     : '').trim().replace(/^\/+|\/+$/g, '');
   return (
     /^posts\//.test(normalized) ||
+    /^landing-pages\//.test(normalized) ||
+    /(?:^|\/)landing-pages\//.test(normalized) ||
     /^campaign\//.test(normalized) ||
     /^job-pickups\//.test(normalized) ||
     /^apply\//.test(normalized) ||
@@ -282,6 +284,11 @@ function looksLikeStoredS3Key(imagePath) {
     /^Collabborator\//.test(normalized) ||
     (px !== '' && normalized.startsWith(`${px}/`))
   );
+}
+
+/** @deprecated alias — dùng isStoredMediaKey */
+function looksLikeStoredS3Key(imagePath) {
+  return isStoredMediaKey(imagePath);
 }
 
 /** Normalize post image path to full URL (S3 via /api/media/s3-view hoặc backend /uploads). */
@@ -707,6 +714,151 @@ const apiService = {
     return handleResponse(response);
   },
 
+  getBusinessBillingDashboard: async () => {
+    const response = await fetch(`${API_BASE_URL}/business/billing/dashboard`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getBusinessBillingTransactions: async (params = {}) => {
+    const filtered = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
+    );
+    const queryString = new URLSearchParams(filtered).toString();
+    const response = await fetch(
+      `${API_BASE_URL}/business/billing/transactions${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET', headers: getAuthHeaders() }
+    );
+    return handleResponse(response);
+  },
+
+  getBusinessBillingRequests: async (params = {}) => {
+    const filtered = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
+    );
+    const queryString = new URLSearchParams(filtered).toString();
+    const response = await fetch(
+      `${API_BASE_URL}/business/billing/requests${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET', headers: getAuthHeaders() }
+    );
+    return handleResponse(response);
+  },
+
+  getBusinessBillingInvoices: async (params = {}) => {
+    const filtered = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
+    );
+    const queryString = new URLSearchParams(filtered).toString();
+    const response = await fetch(
+      `${API_BASE_URL}/business/billing/invoices${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET', headers: getAuthHeaders() }
+    );
+    return handleResponse(response);
+  },
+
+  getBusinessCreditRequests: async (params = {}) => {
+    const filtered = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
+    );
+    const queryString = new URLSearchParams(filtered).toString();
+    const response = await fetch(
+      `${API_BASE_URL}/business/billing/credit-requests${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET', headers: getAuthHeaders() }
+    );
+    return handleResponse(response);
+  },
+
+  createBusinessCreditRequest: async (data) => {
+    const response = await fetch(`${API_BASE_URL}/business/billing/credit-requests`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  getBusinessCreditRequestById: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/business/billing/credit-requests/${id}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  updateBusinessCreditRequest: async (id, data) => {
+    const response = await fetch(`${API_BASE_URL}/business/billing/credit-requests/${id}`, {
+      method: 'PUT',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  deleteBusinessCreditRequest: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/business/billing/credit-requests/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getAdminCreditRequests: async (params = {}) => {
+    const filtered = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
+    );
+    const queryString = new URLSearchParams(filtered).toString();
+    const response = await fetch(
+      `${API_BASE_URL}/admin/business-credit-requests${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET', headers: getAuthHeaders() }
+    );
+    return handleResponse(response);
+  },
+
+  getAdminCreditRequestById: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/admin/business-credit-requests/${id}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  approveAdminCreditRequest: async (id, body = {}) => {
+    const response = await fetch(`${API_BASE_URL}/admin/business-credit-requests/${id}/approve`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
+  rejectAdminCreditRequest: async (id, body = {}) => {
+    const response = await fetch(`${API_BASE_URL}/admin/business-credit-requests/${id}/reject`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
+  updateAdminCreditRequest: async (id, data) => {
+    const response = await fetch(`${API_BASE_URL}/admin/business-credit-requests/${id}`, {
+      method: 'PUT',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  deleteAdminCreditRequest: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/admin/business-credit-requests/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   getBusinessJobs: async (params = {}) => {
     const filtered = Object.fromEntries(
       Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
@@ -740,10 +892,13 @@ const apiService = {
   },
 
   updateBusinessJob: async (id, data) => {
+    const isFormData = data instanceof FormData;
     const response = await fetch(`${API_BASE_URL}/business/jobs/${id}`, {
       method: 'PUT',
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      headers: isFormData
+        ? { ...(localStorage.getItem('token') && { Authorization: `Bearer ${localStorage.getItem('token')}` }) }
+        : { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: isFormData ? data : JSON.stringify(data),
     });
     return handleResponse(response);
   },
@@ -967,6 +1122,17 @@ const apiService = {
     return handleResponse(response);
   },
 
+  uploadBusinessLandingPageMedia: async (pageId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${API_BASE_URL}/business/landing-pages/${pageId}/upload-media`, {
+      method: 'POST',
+      headers: getMultipartAuthHeaders(),
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+
   getPublicLandingPageBySlug: async (slug, trackView = true) => {
     const response = await fetch(
       `${API_BASE_URL}/public/landing-pages/${encodeURIComponent(slug)}?trackView=${trackView ? 'true' : 'false'}`
@@ -1041,6 +1207,88 @@ const apiService = {
       `${API_BASE_URL}/business/candidate-sharing/settlements${queryString ? `?${queryString}` : ''}`,
       { method: 'GET', headers: getAuthHeaders() }
     );
+    return handleResponse(response);
+  },
+
+  getBusinessApplications: async (params = {}) => {
+    const filtered = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
+    );
+    const queryString = new URLSearchParams(filtered).toString();
+    const response = await fetch(
+      `${API_BASE_URL}/business/applications${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET', headers: getAuthHeaders() }
+    );
+    return handleResponse(response);
+  },
+
+  getBusinessApplicationStats: async () => {
+    const response = await fetch(`${API_BASE_URL}/business/applications/stats`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getBusinessApplicationById: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/business/applications/${id}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getBusinessApplicationCv: async (applicationId) => {
+    const response = await fetch(`${API_BASE_URL}/business/applications/${applicationId}/cv`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getBusinessApplicationCvFileList: async (applicationId) => {
+    const response = await fetch(`${API_BASE_URL}/business/applications/${applicationId}/cv-file-list`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    const data = await handleResponse(response);
+    return data?.data || { originals: [], templates: [] };
+  },
+
+  updateBusinessApplicationStatus: async (applicationId, { status, rejectNote = null, paymentAmount = null, interviewDate = null, forceClearRejectNote = false } = {}) => {
+    const statusNum = typeof status === 'number' ? status : parseInt(status, 10);
+    const body = { status: statusNum };
+    if (forceClearRejectNote) {
+      body.rejectNote = '';
+    } else if (rejectNote !== undefined && rejectNote !== null && String(rejectNote).trim() !== '') {
+      body.rejectNote = String(rejectNote).trim();
+    }
+    if (paymentAmount !== undefined && paymentAmount !== null && paymentAmount !== '') {
+      const amount = typeof paymentAmount === 'number' ? paymentAmount : parseFloat(paymentAmount);
+      if (!Number.isNaN(amount)) body.paymentAmount = amount;
+    }
+    if (interviewDate) body.interviewDate = interviewDate;
+    const response = await fetch(`${API_BASE_URL}/business/applications/${applicationId}/status`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
+  getBusinessCommissionTypes: async () => {
+    const response = await fetch(`${API_BASE_URL}/business/candidate-sharing/commission-types/all`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getBusinessValuesByType: async (typeId) => {
+    const response = await fetch(`${API_BASE_URL}/business/candidate-sharing/commission-values/by-type/${typeId}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
     return handleResponse(response);
   },
 
@@ -4009,6 +4257,49 @@ const apiService = {
     });
   },
 
+  /** Business notifications (cùng bảng collaborator_notifications, lọc business_id) */
+  getBusinessNotifications: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const suffix = queryString ? `?${queryString}` : '';
+    const response = await fetch(`${API_BASE_URL}/business/notifications${suffix}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getBusinessNotificationUnreadCount: async () => {
+    const response = await fetchDedupedJson(`${API_BASE_URL}/business/notifications/unread-count`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    }, `${API_BASE_URL}/business/notifications/unread-count`);
+    const res = await handleResponse(response);
+    return res?.data?.count ?? 0;
+  },
+
+  markBusinessNotificationRead: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/business/notifications/${id}/read`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  markAllBusinessNotificationsRead: async () => {
+    const response = await fetch(`${API_BASE_URL}/business/notifications/read-all`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  streamBusinessNotifications: async () => {
+    return fetch(`${API_BASE_URL}/business/notifications/stream`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+  },
+
   /**
    * CTV Payment Request APIs
    */
@@ -4428,20 +4719,35 @@ const apiService = {
   },
 
   /**
-   * POST …/v2/matching/match
-   * body: { job_id, top_k, cv_ids }
-   * Trả về điểm matching + lý do matching cho từng cặp job/CV được truyền vào.
+   * POST …/v2/vector/jd/{jobId} — nhúng JD vào vector DB (gọi ngầm sau khi tạo/cập nhật job).
    */
-  getAiMatchScoreForJobCv: async ({ job_id, top_k = 5, cv_ids = [] }) => {
+  syncJobVector: async (jobId) => {
     const base = getAiApiBaseUrl();
+    const response = await fetch(`${base}/v2/vector/jd/${encodeURIComponent(jobId)}`, {
+      method: 'POST',
+    });
+    return handleAiJsonResponse(response);
+  },
+
+  /**
+   * POST …/v2/matching/ctv/match
+   * body: { job_id, cv_ids, top_k? }
+   * Trả về điểm matching + lý do matching cho từng cặp job/CV được truyền vào.
+   * Không truyền top_k → lấy toàn bộ kết quả match trong cv_ids.
+   */
+  getAiMatchScoreForJobCv: async ({ job_id, top_k, cv_ids = [] }) => {
+    const base = getAiApiBaseUrl();
+    const body = {
+      job_id: String(job_id),
+      cv_ids: (Array.isArray(cv_ids) ? cv_ids : []).map((id) => String(id)).filter(Boolean),
+    };
+    if (top_k != null) {
+      body.top_k = Math.max(1, Number(top_k) || 5);
+    }
     const response = await fetch(`${base}/v2/matching/ctv/match`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        job_id: String(job_id),
-        top_k: Math.max(1, Number(top_k) || 5),
-        cv_ids: (Array.isArray(cv_ids) ? cv_ids : []).map((id) => String(id)).filter(Boolean),
-      }),
+      body: JSON.stringify(body),
     });
     return handleAiJsonResponse(response);
   },

@@ -534,15 +534,24 @@ export function buildJobPickupCoverKey(pickupId, originalFilename = '') {
   return withPrefix(keyPart);
 }
 
-/**
- * Build S3 key cho ảnh tạm (khi tạo bài viết mới chưa có id): posts/temp/{uuid}.{ext}
- */
 export function buildPostTempImageKey(originalFilename = '') {
   const ext = (originalFilename && originalFilename.includes('.'))
     ? '.' + originalFilename.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '')
     : '.jpg';
   const safeExt = ext === '.' ? '.jpg' : ext;
   const keyPart = `posts/temp/${uuidv4()}${safeExt}`;
+  return withPrefix(keyPart);
+}
+
+/** S3/local key: landing-pages/{businessId}/{pageId}/{uuid}.ext */
+export function buildLandingPageMediaKey(pageId, businessId, originalFilename = '') {
+  const pid = String(pageId).trim();
+  const bid = String(businessId).trim();
+  const ext = (originalFilename && originalFilename.includes('.'))
+    ? '.' + originalFilename.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '')
+    : '.jpg';
+  const safeExt = ext === '.' ? '.jpg' : ext;
+  const keyPart = `landing-pages/${bid}/${pid}/${uuidv4()}${safeExt}`;
   return withPrefix(keyPart);
 }
 
@@ -748,6 +757,8 @@ export function isS3Key(storedPath) {
   return /^apply\//.test(normalized) || /cvs\//.test(normalized) || /jobs\//.test(normalized) ||
     /job_descriptions\//.test(normalized) ||
     /^posts\//.test(normalized) ||
+    /^landing-pages\//.test(normalized) ||
+    /(?:^|\/)landing-pages\//.test(normalized) ||
     /^campaign\//.test(normalized) ||
     /^job-pickups\//.test(normalized) ||
     /^Collabborator\//.test(normalized) ||

@@ -993,6 +993,132 @@ export const BusinessScoutPerformanceRequest = sequelize.define(
   }
 );
 
+export const BusinessInvoice = sequelize.define(
+  'BusinessInvoice',
+  {
+    id: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    businessId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: false,
+      field: 'business_id',
+    },
+    invoiceCode: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      field: 'invoice_code',
+    },
+    amount: {
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: false,
+      defaultValue: 0,
+    },
+    currency: {
+      type: DataTypes.STRING(10),
+      allowNull: false,
+      defaultValue: 'VND',
+    },
+    status: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: 'unpaid',
+    },
+    dueDate: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+      field: 'due_date',
+    },
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    paidAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'paid_at',
+    },
+  },
+  {
+    tableName: 'business_invoices',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+  }
+);
+
+export const BusinessCreditRequest = sequelize.define(
+  'BusinessCreditRequest',
+  {
+    id: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    businessId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: false,
+      field: 'business_id',
+    },
+    requestCode: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      field: 'request_code',
+    },
+    amount: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    note: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    paymentMethod: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      field: 'payment_method',
+    },
+    status: {
+      type: DataTypes.STRING(30),
+      allowNull: false,
+      defaultValue: 'pending',
+    },
+    adminId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: true,
+      field: 'admin_id',
+    },
+    adminNote: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'admin_note',
+    },
+    creditHistoryId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: true,
+      field: 'credit_history_id',
+    },
+    requestedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'requested_at',
+    },
+    handledAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'handled_at',
+    },
+  },
+  {
+    tableName: 'business_credit_requests',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+  }
+);
+
 export const BusinessLandingPage = sequelize.define(
   'BusinessLandingPage',
   {
@@ -2376,6 +2502,11 @@ export const CollaboratorNotification = sequelize.define(
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: true,
       field: 'admin_id'
+    },
+    businessId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: true,
+      field: 'business_id'
     },
     title: {
       type: DataTypes.STRING(255),
@@ -4305,6 +4436,14 @@ BusinessScoutPerformanceRequest.belongsTo(BusinessScoutUnlock, { as: 'scoutUnloc
 Business.hasMany(BusinessScoutPerformanceRequest, { as: 'scoutPerformanceRequests', foreignKey: 'businessId' });
 CVStorage.hasMany(BusinessScoutPerformanceRequest, { as: 'scoutPerformanceRequests', foreignKey: 'cvId' });
 
+BusinessInvoice.belongsTo(Business, { as: 'business', foreignKey: 'businessId' });
+Business.hasMany(BusinessInvoice, { as: 'invoices', foreignKey: 'businessId' });
+
+BusinessCreditRequest.belongsTo(Business, { as: 'business', foreignKey: 'businessId' });
+BusinessCreditRequest.belongsTo(Admin, { as: 'handledByAdmin', foreignKey: 'adminId' });
+BusinessCreditRequest.belongsTo(BusinessCreditHistory, { as: 'creditHistory', foreignKey: 'creditHistoryId' });
+Business.hasMany(BusinessCreditRequest, { as: 'creditRequests', foreignKey: 'businessId' });
+
 BusinessLandingPage.belongsTo(Business, { as: 'business', foreignKey: 'businessId' });
 BusinessLandingPage.belongsTo(Job, { as: 'job', foreignKey: 'jobId' });
 Business.hasMany(BusinessLandingPage, { as: 'landingPages', foreignKey: 'businessId' });
@@ -4394,6 +4533,9 @@ Collaborator.hasMany(CollaboratorNotification, { as: 'notifications', foreignKey
 
 CollaboratorNotification.belongsTo(Admin, { as: 'admin', foreignKey: 'adminId' });
 Admin.hasMany(CollaboratorNotification, { as: 'collaboratorNotifications', foreignKey: 'adminId' });
+
+CollaboratorNotification.belongsTo(Business, { as: 'business', foreignKey: 'businessId' });
+Business.hasMany(CollaboratorNotification, { as: 'notifications', foreignKey: 'businessId' });
 
 CollaboratorNotification.belongsTo(Job, { as: 'job', foreignKey: 'jobId' });
 Job.hasMany(CollaboratorNotification, { as: 'notifications', foreignKey: 'jobId' });
@@ -4775,6 +4917,8 @@ export default {
   BusinessScoutUnlock,
   BusinessSavedCandidate,
   BusinessScoutPerformanceRequest,
+  BusinessInvoice,
+  BusinessCreditRequest,
   BusinessLandingPage,
   BusinessLandingPageSubmission,
   BusinessLandingPageActivity,
@@ -5301,11 +5445,6 @@ export const PublicCtvChatSession = sequelize.define(
       type: DataTypes.DATE,
       allowNull: true,
       field: 'admin_last_seen_at'
-    },
-    visitorLastSeenAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      field: 'visitor_last_seen_at'
     }
   },
   {
@@ -5426,11 +5565,6 @@ export const PublicCandidateChatSession = sequelize.define(
       type: DataTypes.DATE,
       allowNull: true,
       field: 'admin_last_seen_at'
-    },
-    visitorLastSeenAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      field: 'visitor_last_seen_at'
     }
   },
   {

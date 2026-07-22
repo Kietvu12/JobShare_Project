@@ -15,13 +15,15 @@ import {
   Campaign,
   JobRecruitingCompany,
   JobRecruitingCompanyService,
-  JobRecruitingCompanyBusinessSector
+  JobRecruitingCompanyBusinessSector,
+  BusinessCtvMarketplaceListing,
 } from '../models/index.js';
 import sequelize from '../config/database.js';
 import { parseDateOnlyQuery } from '../utils/parseDateOnlyQuery.js';
 import { decodeJobCursor, encodeJobCursor, primaryValueFromRow } from '../utils/jobCursorPagination.js';
 import { getJobListCached, setJobListCached } from './jobListCache.js';
 import { buildJapaneseLevelWhereClause } from '../utils/japaneseLevelFilter.js';
+import { MARKETPLACE_LISTING_STATUS } from '../constants/candidateSharing.js';
 
 export const MAX_JOB_LIST_LIMIT = 50;
 
@@ -60,6 +62,7 @@ const LIST_JOB_ATTRIBUTES = [
   'isHot',
   'viewsCount',
   'companyId',
+  'businessId',
   'jobCommissionType',
   'jdFile',
   'jdFileEn',
@@ -72,6 +75,16 @@ const LIST_JOB_ATTRIBUTES = [
   'interviewLocation',
   'salaryCurrency'
 ];
+
+/** Job doanh nghiệp chỉ hiện trên sàn CTV khi listing PUBLISHED */
+const CTV_MARKETPLACE_PUBLISHED_EXISTS = `(
+  EXISTS (
+    SELECT 1 FROM business_ctv_marketplace_listings m
+    WHERE m.job_id = \`Job\`.\`id\`
+      AND m.status = ${MARKETPLACE_LISTING_STATUS.PUBLISHED}
+      AND m.deleted_at IS NULL
+  )
+)`;
 
 function clampLimit(raw) {
   const n = parseInt(raw, 10);
@@ -202,6 +215,16 @@ export async function buildJobListFilterState(query, opts) {
     } else {
       where.status = opts.defaultStatus ?? 1;
     }
+    // Admin/WS jobs (không có businessId) luôn hiện; job DN chỉ hiện sau khi sàn CTV được duyệt & publish
+    where[Op.and] = [
+      ...(Array.isArray(where[Op.and]) ? where[Op.and] : []),
+      {
+        [Op.or]: [
+          { businessId: null },
+          sequelize.literal(CTV_MARKETPLACE_PUBLISHED_EXISTS),
+        ],
+      },
+    ];
   } else if (status !== undefined && status !== '') {
     where.status = parseInt(status, 10);
   }
@@ -698,11 +721,43 @@ export async function executeJobListQuery({
   }
 
   const plainRows = jobsToPlainWithTruncate(slice, { isAdmin: mode === 'admin' });
+  if (mode === 'ctv') {
+    await attachMarketplaceDirectRecruitmentFlags(plainRows);
+  }
   if (!skipCache) {
     await setJobListCached(cachePayload, { rows: plainRows, nextCursor, hasMore });
   }
 
   return { plainRows, nextCursor, hasMore };
+}
+
+/** Gắn cờ Tuyển dụng trực tiếp cho job DN đã publish trên sàn CTV */
+async function attachMarketplaceDirectRecruitmentFlags(plainRows) {
+  if (!Array.isArray(plainRows) || !plainRows.length) return;
+  const businessJobIds = plainRows
+    .filter((j) => j?.businessId != null || j?.business_id != null)
+    .map((j) => Number(j.id))
+    .filter((id) => Number.isFinite(id));
+  if (!businessJobIds.length) {
+    plainRows.forEach((j) => {
+      j.isDirectRecruitment = false;
+      j.isMarketplace = false;
+    });
+    return;
+  }
+  const listings = await BusinessCtvMarketplaceListing.findAll({
+    where: {
+      jobId: { [Op.in]: businessJobIds },
+      status: MARKETPLACE_LISTING_STATUS.PUBLISHED,
+    },
+    attributes: ['jobId'],
+  });
+  const publishedSet = new Set(listings.map((l) => Number(l.jobId)));
+  plainRows.forEach((j) => {
+    const isMarketplace = publishedSet.has(Number(j.id));
+    j.isMarketplace = isMarketplace;
+    j.isDirectRecruitment = isMarketplace;
+  });
 }
 
 export function jobsToPlainWithTruncate(rows, { isAdmin } = {}) {
@@ -887,6 +942,7 @@ export async function executeJobListInIdsQuery({
   }
 
   const plainRows = jobsToPlainWithTruncate(slice, { isAdmin: false });
+  await attachMarketplaceDirectRecruitmentFlags(plainRows);
   if (!skipCache && jobIds.length <= 500) {
     await setJobListCached(cachePayload, { rows: plainRows, nextCursor, hasMore });
   }

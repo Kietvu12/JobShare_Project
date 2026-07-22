@@ -80,8 +80,8 @@ const countryProvincesData = {
   'Other': [] // Cho phép nhập tùy chỉnh
 };
 
-const PARSE_JD_API_URL = 'https://ws-jobshare.com/api_ai/v2/parser/jd';
-const JD_TRANSLATE_API_URL = 'https://ws-jobshare.com/api_ai/v2/parser/jd/translate';
+const PARSE_JD_API_URL = 'https://test.ws-jobshare.com/api_ai/v2/parser/jd';
+const JD_TRANSLATE_API_URL = 'https://test.ws-jobshare.com/api_ai/v2/parser/jd/translate';
 const TAB_LANG_META = {
   vi: { suffix: '', code: 'vi' },
   en: { suffix: 'En', code: 'en' },
@@ -1181,7 +1181,9 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
   const loadJobData = async () => {
     try {
       setLoading(true);
-      const response = await apiService.getAdminJobEditData(jobId);
+      const response = isBusinessPortal
+        ? await apiService.getBusinessJobById(jobId)
+        : await apiService.getAdminJobEditData(jobId);
       if (response.success && response.data?.job) {
         const job = response.data.job;
         const origPath = job.jdOriginalFile || job.jd_original_file;
@@ -2773,7 +2775,9 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
       }
 
       const response = jobId
-        ? await apiService.updateAdminJob(jobId, payloadForApi)
+        ? (isBusinessPortal
+            ? await apiService.updateBusinessJob(jobId, payloadForApi)
+            : await apiService.updateAdminJob(jobId, payloadForApi))
         : isBusinessPortal
           ? await apiService.createBusinessJob(payloadForApi)
           : await apiService.createAdminJob(payloadForApi);
@@ -2781,7 +2785,7 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
         const savedJobId = jobId || response.data?.job?.id;
         // Gọi API sync vector ngầm (không chờ, không block UI)
         if (savedJobId) {
-          fetch(`https://ws-jobshare.com/api_ai/v2/vector/jd/${savedJobId}`, { method: 'POST' })
+          apiService.syncJobVector(savedJobId)
             .then(() => console.log(`[VectorSync] Job ${savedJobId} synced successfully`))
             .catch((err) => console.warn(`[VectorSync] Job ${savedJobId} sync failed:`, err));
         }

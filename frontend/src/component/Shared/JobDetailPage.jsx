@@ -43,12 +43,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import apiService from '../../services/api';
 import { getJobApplicationStatus, getJobApplicationStatusLabelByLanguage } from '../../utils/jobApplicationStatus';
 import { yearSalaryRangeStringForCommission, findYearSalaryRangeRow } from '../../utils/salaryRangeForCommission';
-import {
-  formatJobSalaryDisplay,
-  resolveJobSalaryCurrency,
-  formatCommissionAmountWithCurrency,
-  formatCommissionRangeWithCurrency,
-} from '../../utils/jobSalaryCurrency';
+import { formatSalaryValueWithJlptIfRange } from '../../utils/salaryDisplay';
 import {
   normalizeJobCommissionType,
   resolveCampaignPercentFromJob,
@@ -58,6 +53,12 @@ import {
   resolveCtvCommissionDisplayMultiplier,
   resolveCommissionBannerLabel,
 } from '../../utils/jobCommissionUi';
+import {
+  formatJobSalaryDisplay,
+  resolveJobSalaryCurrency,
+  formatCommissionAmountWithCurrency,
+  formatCommissionRangeWithCurrency,
+} from '../../utils/jobSalaryCurrency';
 import { hasJobAttachment, hasAnyDownloadableAttachment } from '../../utils/jobAttachmentAvailability';
 import { getRecruitmentLocationLabel } from '../../utils/recruitmentLocationLabels.js';
 import { isCvUnavailableForNomination } from '../../utils/cvStatus.js';
@@ -395,6 +396,7 @@ const isJdUnfilledDetailPlaceholder = (plainText) => {
  * @param {boolean} [shareViewOnly] - Trang xem JD chia sẻ: chỉ nút tải JD, không ứng tuyển / copy / lưu / quay lại
  * @param {import('react').ReactNode} [sidebarBelowActionsSlot] - Nội dung trong cột phải, ngay dưới nhóm nút hành động (vd. việc làm liên quan trên landing)
  * @param {(job: object | null) => void} [onJobLoaded] - Gọi khi load job xong (job) hoặc lỗi/không tìm thấy (null)
+ * @param {boolean} [embeddedGeneralOnly] - Chỉ render tab Tổng quan (collapsible cards), không header/sidebar
  */
 const JobDetailPage = ({
   getJobApi,
@@ -409,6 +411,7 @@ const JobDetailPage = ({
   shareViewOnly = false,
   sidebarBelowActionsSlot = null,
   onJobLoaded = null,
+  embeddedGeneralOnly = false,
 }) => {
   const { jobId } = useParams();
   const navigate = useNavigate();
@@ -525,6 +528,7 @@ const JobDetailPage = ({
 
   const [ctvProfile, setCtvProfile] = useState(null);
   useEffect(() => {
+    if (embeddedGeneralOnly) return;
     if (!useAdminAPI && !publicLanding && !isApplicantMode) {
       const loadCTVProfile = async () => {
         try {
@@ -538,7 +542,7 @@ const JobDetailPage = ({
       };
       loadCTVProfile();
     }
-  }, [useAdminAPI, publicLanding, isApplicantMode]);
+  }, [useAdminAPI, publicLanding, isApplicantMode, embeddedGeneralOnly]);
   const ctvRankPercent = ctvProfile?.rankLevel?.percent ? parseFloat(ctvProfile.rankLevel.percent) : 0;
   const MOCK_QA = [
     { q: 'Công ty có hỗ trợ visa cho ứng viên nước ngoài không?', a: 'Có, công ty hỗ trợ tư vấn và thủ tục visa cho ứng viên đủ điều kiện.' },
@@ -551,7 +555,7 @@ const JobDetailPage = ({
   }, [jobId, getJobApi]);
 
   useEffect(() => {
-    if (isApplicantMode || publicLanding) return;
+    if (embeddedGeneralOnly || isApplicantMode || publicLanding) return;
     if (!jobId || !job) return;
     let cancelled = false;
     setLoadingApplications(true);
@@ -563,10 +567,10 @@ const JobDetailPage = ({
       .catch(() => { if (!cancelled) setJobApplications([]); })
       .finally(() => { if (!cancelled) setLoadingApplications(false); });
     return () => { cancelled = true; };
-  }, [jobId, job, useAdminAPI, isApplicantMode, publicLanding]);
+  }, [jobId, job, useAdminAPI, isApplicantMode, publicLanding, embeddedGeneralOnly]);
 
   useEffect(() => {
-    if (isApplicantMode || publicLanding) return;
+    if (embeddedGeneralOnly || isApplicantMode || publicLanding) return;
     if (!jobId || !job?.id) return;
     let cancelled = false;
     const run = async () => {
@@ -679,10 +683,10 @@ const JobDetailPage = ({
     };
     run();
     return () => { cancelled = true; };
-  }, [jobId, job?.id, useAdminAPI, isApplicantMode, publicLanding]);
+  }, [jobId, job?.id, useAdminAPI, isApplicantMode, publicLanding, embeddedGeneralOnly]);
 
   useEffect(() => {
-    if (isApplicantMode || publicLanding) return;
+    if (embeddedGeneralOnly || isApplicantMode || publicLanding) return;
     if (!aiMatches.length) return;
     let cancelled = false;
     const ids = aiMatches.slice(0, 30).map((m) => Number(m.id)).filter((n) => !Number.isNaN(n));
@@ -717,7 +721,7 @@ const JobDetailPage = ({
     };
     loadNames();
     return () => { cancelled = true; };
-  }, [aiMatches, useAdminAPI, isApplicantMode, publicLanding]);
+  }, [aiMatches, useAdminAPI, isApplicantMode, publicLanding, embeddedGeneralOnly]);
 
   const parseAiCoreSkillsRaw = (raw) => {
     if (raw == null || raw === '') return [];
@@ -1093,6 +1097,14 @@ const JobDetailPage = ({
   };
 
   if (loading) {
+    if (embeddedGeneralOnly) {
+      return (
+        <div className="flex items-center justify-center py-8 text-slate-500 text-xs gap-2">
+          <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent" />
+          Đang tải...
+        </div>
+      );
+    }
     return (
       <div className="flex items-center justify-center h-full" style={{ backgroundColor: 'white' }}>
         <div className="text-center">
@@ -1131,6 +1143,7 @@ const JobDetailPage = ({
 
   // Format data - dùng trường *_en, *_jp theo ngôn ngữ (fallback vi)
   const pick = (vi, en, jp) => pickByLanguage(vi, en, jp, language);
+  const jobCurrency = resolveJobSalaryCurrency(job);
   const translateIfMissing = async (vi, en, jp) => {
     const fromText = language === 'en' ? en || vi || jp : language === 'ja' ? jp || en || vi : vi || en || jp;
     const from = language === 'en' ? (en ? 'en' : vi ? 'vi' : 'ja') : language === 'ja' ? (jp ? 'ja' : en ? 'en' : 'vi') : (vi ? 'vi' : en ? 'en' : 'ja');
@@ -1188,15 +1201,13 @@ const JobDetailPage = ({
     return pick(vi, en, jp) || vi || en || jp || '';
   };
 
-  const jobCurrency = resolveJobSalaryCurrency(job);
-
   const salaryRows = (job.salaryRanges || [])
     .map(sr => {
       const text = getSalaryRangeTextWithFallback(sr);
       if (!text) return null;
       return {
         label: getSalaryTypeLabel(sr.type),
-        value: formatJobSalaryDisplay(text, jobCurrency),
+        value: formatJobSalaryDisplay(formatSalaryValueWithJlptIfRange(text), jobCurrency),
       };
     })
     .filter(Boolean);
@@ -1372,10 +1383,8 @@ const JobDetailPage = ({
   })();
 
   const getCommissionText = () => {
-    const jobCurrency = resolveJobSalaryCurrency(job);
-    const values = filterJobValuesForCommission(job.jobValues || job.profits || []);
-    const firstJobValue = pickPrimaryCommissionJobValue(values) ?? values[0];
-    if (firstJobValue) {
+    if (job.jobValues && job.jobValues.length > 0) {
+      const firstJobValue = job.jobValues[0];
       const value = firstJobValue.value;
       const vid = Number(firstJobValue.valueId ?? firstJobValue.valueRef?.id ?? 0);
       if (vid === 34) return value || 'Liên hệ';
@@ -1383,9 +1392,7 @@ const JobDetailPage = ({
         if (job.jobCommissionType === 'percent') {
           return `${parseFloat(value).toLocaleString('vi-VN')}%`;
         }
-        const mul = resolveCtvCommissionDisplayMultiplier(firstJobValue, job, 1, useAdminAPI);
-        const amt = (parseFloat(value) || 0) * mul;
-        return formatCommissionAmountWithCurrency(amt, jobCurrency);
+        return formatCommissionAmountWithCurrency(parseFloat(value), jobCurrency);
       }
     }
     return 'Liên hệ';
@@ -1613,7 +1620,9 @@ const JobDetailPage = ({
         detailCommissionText = formatRangeWithCurrency(platformCommissionMin * rankMultiplier, platformCommissionMax * rankMultiplier, formatCommissionForDisplay);
       } else if (commissionType === 'fixed' && value !== null && value !== undefined) {
         const amount = parseFloat(value) || 0;
-        if (amount > 0) detailCommissionText = formatAmountWithCurrency(amount * commissionMultiplierFor(firstJv));
+        if (amount > 0) {
+          detailCommissionText = formatAmountWithCurrency(amount * commissionMultiplierFor(firstJv));
+        }
       } else if (commissionType === 'percent') {
         detailCommissionText = formatFromCollaboratorView(firstJvCollaboratorView) || `${effectivePercent}%`;
       }
@@ -1669,8 +1678,7 @@ const JobDetailPage = ({
             }
           } else {
             const amt = parseFloat(rawValue) || 0;
-            const tierMul = commissionMultiplierFor(jv);
-            amountText = amt > 0 ? formatAmountWithCurrency(amt * tierMul) : '';
+            amountText = amt > 0 ? formatAmountWithCurrency(amt * commissionMultiplierFor(jv)) : '';
           }
         }
         const valueRef = jv.valueRef || {};
@@ -1767,340 +1775,7 @@ const JobDetailPage = ({
     ? (aiCvDetails[aiSupplementPopupCvId] || null)
     : null;
 
-  return (
-    <>
-      <QuickCreateCandidateDrawer
-        open={quickEditOpen}
-        onClose={closeAiSupplementDrawer}
-        jobId={jobId ? Number(jobId) : null}
-        candidateId={quickEditCandidateId}
-        initialCandidate={quickEditInitialCandidate}
-        initialCvFile={quickEditInitialCvFile}
-        mode="edit"
-        variant={useAdminAPI ? 'admin' : 'collaborator'}
-        defaultFlowStep="manual"
-        onUpdated={async () => {
-          const cvId = quickEditCandidateId;
-          closeAiSupplementDrawer();
-          if (cvId != null) await reloadAiCvDetail(cvId);
-        }}
-      />
-      {aiSupplementPopupCvId != null && aiSupplementPopupCvDetail && (
-        <div
-          className="fixed inset-0 z-[105] flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setAiSupplementPopupCvId(null)}
-        >
-          {renderAiSupplementPopupPanel(aiSupplementPopupCvId, aiSupplementPopupCvDetail)}
-        </div>
-      )}
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #cbd5e0;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #a0aec0;
-        }
-      `}</style>
-      <div
-        className={`max-w-full min-w-0 w-full h-full overflow-x-hidden lg:overflow-hidden ${showMobileSidebar ? 'overflow-hidden overscroll-none touch-none' : 'overflow-y-auto'}`}
-      >
-        <div style={zoomStyle} className="h-auto min-w-0 max-w-full lg:h-full w-full origin-top-left">
-      <div className="mx-auto w-full xl:max-w-[1600px] flex min-w-0 max-w-full flex-col gap-3 p-2 sm:p-4 lg:h-full lg:flex-row lg:gap-5 lg:p-6 pb-20 sm:pb-16 lg:pb-4" style={{ backgroundColor: '#f9fafb' }}>
-      {/* Main Content - Left Column */}
-      <div className="flex-1 min-w-0 min-h-0 lg:overflow-y-auto custom-scrollbar">
-        <div className="min-w-0 max-w-full overflow-x-hidden rounded-lg border p-3 sm:p-4 lg:p-5 transition-shadow" style={{ backgroundColor: 'white', borderColor: '#e5e7eb', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
-        <div className="min-w-0 max-w-full space-y-3 sm:space-y-4 lg:space-y-5">
-          {/* Header Section: trái = tiêu đề + meta, phải = thẻ phí */}
-          <div className="rounded-lg p-2 sm:p-4 lg:p-5" style={{ backgroundColor: 'transparent' }}>
-            <div className="flex flex-col lg:flex-row gap-3 lg:gap-6 items-stretch lg:items-start">
-              {/* Cột trái: Quay lại, ID, tags, tiêu đề, category, company, features */}
-              <div className="flex-1 min-w-0">
-                {/* Top bar with Back button and Mobile Actions toggle */}
-                {!shareViewOnly && (
-                <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-5">
-                  <button
-                    onClick={() => navigate(effectiveListBackPath)}
-                    onMouseEnter={() => setHoveredBackButton(true)}
-                    onMouseLeave={() => setHoveredBackButton(false)}
-                    className="flex items-center gap-1.5 sm:gap-2 transition-colors text-xs sm:text-sm lg:text-base group"
-                    style={{
-                      color: hoveredBackButton ? '#111827' : '#4b5563'
-                    }}
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5 transition-transform" style={{ transform: hoveredBackButton ? 'translateX(-4px)' : 'translateX(0)' }} />
-                    <span>{t('btnBack')}</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => setShowMobileSidebar(true)}
-                    className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors"
-                    style={{ 
-                      borderColor: '#93c5fd', 
-                      backgroundColor: showMobileSidebar ? '#eff6ff' : 'white',
-                      color: '#2563eb'
-                    }}
-                  >
-                    <Menu className="w-4 h-4" />
-                    <span className="text-[10px] sm:text-xs font-medium">
-                      {language === 'vi' ? 'Thao tác' : language === 'en' ? 'Actions' : 'アクション'}
-                    </span>
-                  </button>
-                </div>
-                )}
-
-                <div className="text-[10px] sm:text-xs lg:text-sm mb-2 sm:mb-3" style={{ color: '#6b7280' }}>
-                  {t('labelJobId')} <span className="font-semibold" style={{ color: '#374151' }}>{job.jobCode || job.id}</span>
-                </div>
-
-                {(createdAt || updatedAt) && (
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] sm:text-xs mb-2 sm:mb-3" style={{ color: '#6b7280' }}>
-                    {createdAt && (
-                      <span className="inline-flex items-center gap-1">
-                        <Calendar className="w-3 h-3 flex-shrink-0" />
-                        {t('labelCreatedAt')}{' '}
-                        <span className="font-medium" style={{ color: '#374151' }}>{createdAt}</span>
-                      </span>
-                    )}
-                    {updatedAt && (
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="w-3 h-3 flex-shrink-0" />
-                        {t('labelUpdatedAt')}{' '}
-                        <span className="font-medium" style={{ color: '#374151' }}>{updatedAt}</span>
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {displayJobTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2 sm:mb-3 lg:mb-4">
-                    {displayJobTags.map((tag, index) => (
-                      <span
-                        key={index}
-                        className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-semibold border"
-                        style={getTagColorStyle(tag.color)}
-                      >
-                        {tag.label}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {!shareViewOnly && (
-                <h1 className="max-w-full break-words text-sm sm:text-base lg:text-lg xl:text-xl font-bold mb-2 sm:mb-3 lg:mb-4 leading-tight [overflow-wrap:anywhere]" style={{ color: '#2563eb' }}>
-                  {displayTitle}
-                </h1>
-                )}
-
-                {displayCategoryName && (
-                  <div className="text-[10px] sm:text-xs lg:text-sm mb-2 sm:mb-3" style={{ color: '#374151' }}>
-                    <span className="font-semibold" style={{ color: '#4b5563' }}>{t('labelJobCategory')}</span>
-                    <span className="ml-1 sm:ml-2">{displayCategoryName || job.category?.name || ''}</span>
-                  </div>
-                )}
-
-                <div className="flex items-start gap-1.5 sm:gap-2 mb-2 sm:mb-3 lg:mb-4">
-                  <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0" style={{ color: '#6b7280' }} />
-                  <div className="text-[10px] sm:text-xs lg:text-sm" style={{ color: '#374151' }}>
-                    <span className="font-semibold" style={{ color: '#4b5563' }}>{t('labelRecruitingCompanies')}</span>
-                    <span className="ml-1 sm:ml-2">{displayCompanyName || 'N/A'}</span>
-                  </div>
-                </div>
-
-                {jobFeatureTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                    {jobFeatureTags.map((feature, index) => (
-                      <span
-                        key={index}
-                        className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-xs lg:text-sm font-medium border"
-                        style={{ backgroundColor: '#eff6ff', color: '#1e40af', borderColor: '#bfdbfe' }}
-                      >
-                        {feature}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Cột phải: Thẻ điều kiện phí (ẩn landing public) + khung thông tin nhanh */}
-              {((!publicLanding && (detailCommissionTiers.length > 0 || detailCommissionText !== contactLabel)) || (displaySalaryRanges?.length > 0 || displayCategoryName || displayGender || (displayWorkingLocations?.length > 0) || displayRecruitmentLocation)) && (
-                <div className="w-full lg:w-64 xl:w-72 2xl:w-80 flex-shrink-0 flex flex-col gap-1.5 sm:gap-2">
-                  {/* Block điều kiện phí */}
-                  {!publicLanding && (detailCommissionTiers.length > 0 || detailCommissionText !== contactLabel) && (
-                    <div className="flex flex-col gap-1 sm:gap-1.5">
-                      {isInCampaign && (
-                        <span
-                          className="self-start px-1 sm:px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase rounded-br-md text-white"
-                          style={{ backgroundColor: '#dc2626' }}
-                        >
-                          Campaign
-                        </span>
-                      )}
-                      <div
-                        className="flex rounded-md overflow-hidden shadow-sm border"
-                        style={{ borderColor: '#7c3aed' }}
-                      >
-                        <div
-                          className="flex-[0_0_32%] sm:flex-[0_0_35%] min-w-0 px-1.5 sm:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-medium flex items-center justify-center text-center leading-snug whitespace-normal"
-                          style={{
-                            backgroundColor: useAdminAPI ? '#5F5F5F' : '#4b4f5a',
-                            color: '#ffffff',
-                          }}
-                        >
-                          <span className="line-clamp-3">
-                            {resolveCommissionBannerLabel(job, { useAdminAPI, language })}
-                          </span>
-                        </div>
-                        {hideCommissionConditionLabel && detailCommissionTiers.length > 0 ? (
-                          <div
-                            className="flex-1 min-w-0 px-2 py-1.5 text-[10px] sm:text-[12px] font-bold flex items-center justify-center text-center leading-snug"
-                            style={{
-                              backgroundColor: '#DF2020',
-                              color: '#ffffff',
-                            }}
-                            title={detailCommissionTiers[0]?.amount || detailCommissionText}
-                          >
-                            {detailCommissionTiers[0]?.amount || detailCommissionText}
-                          </div>
-                        ) : detailCommissionTiers.length > 0 ? (
-                          <div className="flex-1 min-w-0 flex flex-col">
-                            {detailCommissionTiers.map((tier, index) => (
-                              <div
-                                key={index}
-                                className="flex min-h-[36px]"
-                                style={{
-                                  borderTop: index === 0 ? 'none' : '1px solid #9ca3af',
-                                }}
-                              >
-                                <div
-                                  className="w-24 sm:w-28 flex-shrink-0 px-2 py-1.5 text-[10px] sm:text-[11px] font-semibold flex items-center justify-center text-center leading-snug"
-                                  style={{
-                                    backgroundColor: '#EB9696',
-                                    color: '#ffffff',
-                                  }}
-                                >
-                                  <span className="break-words line-clamp-2">{tier.label}</span>
-                                </div>
-                                <div
-                                  className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 text-[10px] sm:text-[12px] font-bold flex items-center justify-center text-center leading-snug"
-                                  style={{
-                                    backgroundColor: '#DF2020',
-                                    color: '#ffffff',
-                                  }}
-                                >
-                                  <span className="break-words" title={tier.amount}>{tier.amount}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div
-                            className="flex-1 min-w-0 px-2 py-1.5 text-[10px] sm:text-[11px] font-bold flex items-center justify-center text-center break-words"
-                            style={{
-                              backgroundColor: '#DF2020',
-                              color: '#ffffff',
-                            }}
-                            title={detailCommissionText}
-                          >
-                            {detailCommissionText}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Khung nhỏ dưới điều kiện phí: thu nhập năm, danh mục, giới tính, nơi làm việc (chỉ hiển thị khi có dữ liệu) */}
-                  {(displaySalaryRanges?.length > 0 || displayCategoryName || displayRecruitmentType || displayGender || (displayWorkingLocations?.length > 0) || displayRecruitmentLocation) && (
-                    <div className="rounded-lg border p-2 sm:p-3 text-[10px] sm:text-xs" style={{ borderColor: '#e5e7eb', backgroundColor: '#f9fafb' }}>
-                      <div className="font-semibold mb-1.5 sm:mb-2" style={{ color: '#374151' }}>
-                        {t('quickInfoTitle')}
-                      </div>
-                      <div className="space-y-1 sm:space-y-1.5">
-                        {displaySalaryRanges?.length > 0 && (
-                          <div className="space-y-1">
-                            {displaySalaryRanges.map((salary, index) => (
-                              <div key={`quick-salary-${index}`}>
-                                <span className="text-gray-500 font-medium">{salary.label}</span>
-                                <span className="ml-1" style={{ color: '#111827' }}>{salary.value}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {displayCategoryName && (
-                          <div>
-                            <span className="text-gray-500 font-medium">{t('labelCategory')}</span>
-                            <span className="ml-1" style={{ color: '#111827' }}>{displayCategoryName}</span>
-                          </div>
-                        )}
-                        {displayRecruitmentType && (
-                          <div>
-                            <span className="text-gray-500 font-medium">{t('labelRecruitmentType')}</span>
-                            <span className="ml-1" style={{ color: '#111827' }}>{displayRecruitmentType}</span>
-                          </div>
-                        )}
-                        {displayGender && (
-                          <div>
-                            <span className="text-gray-500 font-medium">{t('labelGender')}</span>
-                            <span className="ml-1" style={{ color: '#111827' }}>{displayGender}</span>
-                          </div>
-                        )}
-                        {displayWorkingLocations?.length > 0 && (
-                          <div>
-                            <span className="text-gray-500 font-medium">{t('labelLocation')}</span>
-                            <span className="ml-1 block mt-0.5" style={{ color: '#111827' }}>{displayWorkingLocations.slice(0, 3).join(', ')}{displayWorkingLocations.length > 3 ? ` (+${displayWorkingLocations.length - 3})` : ''}</span>
-                          </div>
-                        )}
-                        {displayRecruitmentLocation && (
-                          <div>
-                            <span className="text-gray-500 font-medium">{t('labelRecruitmentLocation')}</span>
-                            <span className="ml-1 block mt-0.5" style={{ color: '#111827' }}>{displayRecruitmentLocation}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Date Information */}
-
-
-          {/* Tab: landing public chỉ General + Q&A */}
-          <div className="flex min-w-0 max-w-full border-b gap-0.5 sm:gap-1 overflow-x-auto overscroll-x-contain" style={{ borderColor: '#e5e7eb' }}>
-            {(isApplicantMode || publicLanding
-              ? [
-                  { key: 'general', label: t('tabGeneral') },
-                ]
-              : [
-              { key: 'general', label: t('tabGeneral') },
-              { key: 'nominations', label: t('tabNominationsJob') },
-              { key: 'adminAdvise', label: t('tabAdminAdvise') },
-            ]).map(({ key, label }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setActiveTab(key)}
-                className="px-2 sm:px-3 lg:px-4 py-2 sm:py-2.5 lg:py-3 text-[10px] sm:text-xs lg:text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap flex-shrink-0"
-                style={{
-                  color: activeTab === key ? '#2563eb' : '#6b7280',
-                  borderBottomColor: activeTab === key ? '#2563eb' : 'transparent',
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {activeTab === 'general' && (
+  const renderGeneralTabContent = () => (
           <>
           <CollapsibleCard
             title={t('sectionMain')}
@@ -2456,7 +2131,352 @@ const JobDetailPage = ({
             </CollapsibleCard>
           )}
           </>
-          )}
+  );
+
+  if (embeddedGeneralOnly) {
+    return (
+      <div className="min-w-0 max-w-full overflow-x-hidden">
+        <div className="min-w-0 max-w-full space-y-3 sm:space-y-4 lg:space-y-5">
+          {renderGeneralTabContent()}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <QuickCreateCandidateDrawer
+        open={quickEditOpen}
+        onClose={closeAiSupplementDrawer}
+        jobId={jobId ? Number(jobId) : null}
+        candidateId={quickEditCandidateId}
+        initialCandidate={quickEditInitialCandidate}
+        initialCvFile={quickEditInitialCvFile}
+        mode="edit"
+        variant={useAdminAPI ? 'admin' : 'collaborator'}
+        defaultFlowStep="manual"
+        onUpdated={async () => {
+          const cvId = quickEditCandidateId;
+          closeAiSupplementDrawer();
+          if (cvId != null) await reloadAiCvDetail(cvId);
+        }}
+      />
+      {aiSupplementPopupCvId != null && aiSupplementPopupCvDetail && (
+        <div
+          className="fixed inset-0 z-[105] flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setAiSupplementPopupCvId(null)}
+        >
+          {renderAiSupplementPopupPanel(aiSupplementPopupCvId, aiSupplementPopupCvDetail)}
+        </div>
+      )}
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #cbd5e0;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #a0aec0;
+        }
+      `}</style>
+      <div
+        className={`max-w-full min-w-0 w-full h-full overflow-x-hidden lg:overflow-hidden ${showMobileSidebar ? 'overflow-hidden overscroll-none touch-none' : 'overflow-y-auto'}`}
+      >
+        <div style={zoomStyle} className="h-auto min-w-0 max-w-full lg:h-full w-full origin-top-left">
+      <div className="mx-auto w-full xl:max-w-[1600px] flex min-w-0 max-w-full flex-col gap-3 p-2 sm:p-4 lg:h-full lg:flex-row lg:gap-5 lg:p-6 pb-20 sm:pb-16 lg:pb-4" style={{ backgroundColor: '#f9fafb' }}>
+      {/* Main Content - Left Column */}
+      <div className="flex-1 min-w-0 min-h-0 lg:overflow-y-auto custom-scrollbar">
+        <div className="min-w-0 max-w-full overflow-x-hidden rounded-lg border p-3 sm:p-4 lg:p-5 transition-shadow" style={{ backgroundColor: 'white', borderColor: '#e5e7eb', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
+        <div className="min-w-0 max-w-full space-y-3 sm:space-y-4 lg:space-y-5">
+          {/* Header Section: trái = tiêu đề + meta, phải = thẻ phí */}
+          <div className="rounded-lg p-2 sm:p-4 lg:p-5" style={{ backgroundColor: 'transparent' }}>
+            <div className="flex flex-col lg:flex-row gap-3 lg:gap-6 items-stretch lg:items-start">
+              {/* Cột trái: Quay lại, ID, tags, tiêu đề, category, company, features */}
+              <div className="flex-1 min-w-0">
+                {/* Top bar with Back button and Mobile Actions toggle */}
+                {!shareViewOnly && (
+                <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-5">
+                  <button
+                    onClick={() => navigate(effectiveListBackPath)}
+                    onMouseEnter={() => setHoveredBackButton(true)}
+                    onMouseLeave={() => setHoveredBackButton(false)}
+                    className="flex items-center gap-1.5 sm:gap-2 transition-colors text-xs sm:text-sm lg:text-base group"
+                    style={{
+                      color: hoveredBackButton ? '#111827' : '#4b5563'
+                    }}
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5 transition-transform" style={{ transform: hoveredBackButton ? 'translateX(-4px)' : 'translateX(0)' }} />
+                    <span>{t('btnBack')}</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => setShowMobileSidebar(true)}
+                    className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors"
+                    style={{ 
+                      borderColor: '#93c5fd', 
+                      backgroundColor: showMobileSidebar ? '#eff6ff' : 'white',
+                      color: '#2563eb'
+                    }}
+                  >
+                    <Menu className="w-4 h-4" />
+                    <span className="text-[10px] sm:text-xs font-medium">
+                      {language === 'vi' ? 'Thao tác' : language === 'en' ? 'Actions' : 'アクション'}
+                    </span>
+                  </button>
+                </div>
+                )}
+
+                <div className="text-[10px] sm:text-xs lg:text-sm mb-2 sm:mb-3" style={{ color: '#6b7280' }}>
+                  {t('labelJobId')} <span className="font-semibold" style={{ color: '#374151' }}>{job.jobCode || job.id}</span>
+                </div>
+
+                {(createdAt || updatedAt) && (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] sm:text-xs mb-2 sm:mb-3" style={{ color: '#6b7280' }}>
+                    {createdAt && (
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar className="w-3 h-3 flex-shrink-0" />
+                        {t('labelCreatedAt')}{' '}
+                        <span className="font-medium" style={{ color: '#374151' }}>{createdAt}</span>
+                      </span>
+                    )}
+                    {updatedAt && (
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="w-3 h-3 flex-shrink-0" />
+                        {t('labelUpdatedAt')}{' '}
+                        <span className="font-medium" style={{ color: '#374151' }}>{updatedAt}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {displayJobTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2 sm:mb-3 lg:mb-4">
+                    {displayJobTags.map((tag, index) => (
+                      <span
+                        key={index}
+                        className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-semibold border"
+                        style={getTagColorStyle(tag.color)}
+                      >
+                        {tag.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {!shareViewOnly && (
+                <h1 className="max-w-full break-words text-sm sm:text-base lg:text-lg xl:text-xl font-bold mb-2 sm:mb-3 lg:mb-4 leading-tight [overflow-wrap:anywhere]" style={{ color: '#2563eb' }}>
+                  {displayTitle}
+                </h1>
+                )}
+
+                {displayCategoryName && (
+                  <div className="text-[10px] sm:text-xs lg:text-sm mb-2 sm:mb-3" style={{ color: '#374151' }}>
+                    <span className="font-semibold" style={{ color: '#4b5563' }}>{t('labelJobCategory')}</span>
+                    <span className="ml-1 sm:ml-2">{displayCategoryName || job.category?.name || ''}</span>
+                  </div>
+                )}
+
+                <div className="flex items-start gap-1.5 sm:gap-2 mb-2 sm:mb-3 lg:mb-4">
+                  <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0" style={{ color: '#6b7280' }} />
+                  <div className="text-[10px] sm:text-xs lg:text-sm" style={{ color: '#374151' }}>
+                    <span className="font-semibold" style={{ color: '#4b5563' }}>{t('labelRecruitingCompanies')}</span>
+                    <span className="ml-1 sm:ml-2">{displayCompanyName || 'N/A'}</span>
+                  </div>
+                </div>
+
+                {jobFeatureTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                    {jobFeatureTags.map((feature, index) => (
+                      <span
+                        key={index}
+                        className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-xs lg:text-sm font-medium border"
+                        style={{ backgroundColor: '#eff6ff', color: '#1e40af', borderColor: '#bfdbfe' }}
+                      >
+                        {feature}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Cột phải: Thẻ điều kiện phí (ẩn landing public) + khung thông tin nhanh */}
+              {((!publicLanding && (detailCommissionTiers.length > 0 || detailCommissionText !== contactLabel)) || (displaySalaryRanges?.length > 0 || displayCategoryName || displayGender || (displayWorkingLocations?.length > 0) || displayRecruitmentLocation)) && (
+                <div className="w-full lg:w-64 xl:w-72 2xl:w-80 flex-shrink-0 flex flex-col gap-1.5 sm:gap-2">
+                  {/* Block điều kiện phí */}
+                  {!publicLanding && (detailCommissionTiers.length > 0 || detailCommissionText !== contactLabel) && (
+                    <div className="flex flex-col gap-1 sm:gap-1.5">
+                      {isInCampaign && (
+                        <span
+                          className="self-start px-1 sm:px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase rounded-br-md text-white"
+                          style={{ backgroundColor: '#dc2626' }}
+                        >
+                          Campaign
+                        </span>
+                      )}
+                      <div
+                        className="flex rounded-md overflow-hidden shadow-sm border"
+                        style={{ borderColor: '#7c3aed' }}
+                      >
+                        <div
+                          className="flex-[0_0_32%] sm:flex-[0_0_35%] min-w-0 px-1.5 sm:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-medium flex items-center justify-center text-center leading-snug whitespace-normal"
+                          style={{
+                            backgroundColor: useAdminAPI ? '#5F5F5F' : '#4b4f5a',
+                            color: '#ffffff',
+                          }}
+                        >
+                          <span className="line-clamp-3">
+                            {resolveCommissionBannerLabel(job, { useAdminAPI, language })}
+                          </span>
+                        </div>
+                        {hideCommissionConditionLabel && detailCommissionTiers.length > 0 ? (
+                          <div
+                            className="flex-1 min-w-0 px-2 py-1.5 text-[10px] sm:text-[12px] font-bold flex items-center justify-center text-center leading-snug"
+                            style={{
+                              backgroundColor: '#DF2020',
+                              color: '#ffffff',
+                            }}
+                            title={detailCommissionTiers[0]?.amount || detailCommissionText}
+                          >
+                            {detailCommissionTiers[0]?.amount || detailCommissionText}
+                          </div>
+                        ) : detailCommissionTiers.length > 0 ? (
+                          <div className="flex-1 min-w-0 flex flex-col">
+                            {detailCommissionTiers.map((tier, index) => (
+                              <div
+                                key={index}
+                                className="flex min-h-[36px]"
+                                style={{
+                                  borderTop: index === 0 ? 'none' : '1px solid #9ca3af',
+                                }}
+                              >
+                                <div
+                                  className="w-24 sm:w-28 flex-shrink-0 px-2 py-1.5 text-[10px] sm:text-[11px] font-semibold flex items-center justify-center text-center leading-snug"
+                                  style={{
+                                    backgroundColor: '#EB9696',
+                                    color: '#ffffff',
+                                  }}
+                                >
+                                  <span className="break-words line-clamp-2">{tier.label}</span>
+                                </div>
+                                <div
+                                  className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 text-[10px] sm:text-[12px] font-bold flex items-center justify-center text-center leading-snug"
+                                  style={{
+                                    backgroundColor: '#DF2020',
+                                    color: '#ffffff',
+                                  }}
+                                >
+                                  <span className="break-words" title={tier.amount}>{tier.amount}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div
+                            className="flex-1 min-w-0 px-2 py-1.5 text-[10px] sm:text-[11px] font-bold flex items-center justify-center text-center break-words"
+                            style={{
+                              backgroundColor: '#DF2020',
+                              color: '#ffffff',
+                            }}
+                            title={detailCommissionText}
+                          >
+                            {detailCommissionText}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Khung nhỏ dưới điều kiện phí: thu nhập năm, danh mục, giới tính, nơi làm việc (chỉ hiển thị khi có dữ liệu) */}
+                  {(displaySalaryRanges?.length > 0 || displayCategoryName || displayRecruitmentType || displayGender || (displayWorkingLocations?.length > 0) || displayRecruitmentLocation) && (
+                    <div className="rounded-lg border p-2 sm:p-3 text-[10px] sm:text-xs" style={{ borderColor: '#e5e7eb', backgroundColor: '#f9fafb' }}>
+                      <div className="font-semibold mb-1.5 sm:mb-2" style={{ color: '#374151' }}>
+                        {t('quickInfoTitle')}
+                      </div>
+                      <div className="space-y-1 sm:space-y-1.5">
+                        {displaySalaryRanges?.length > 0 && (
+                          <div className="space-y-1">
+                            {displaySalaryRanges.map((salary, index) => (
+                              <div key={`quick-salary-${index}`}>
+                                <span className="text-gray-500 font-medium">{salary.label}</span>
+                                <span className="ml-1" style={{ color: '#111827' }}>{salary.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {displayCategoryName && (
+                          <div>
+                            <span className="text-gray-500 font-medium">{t('labelCategory')}</span>
+                            <span className="ml-1" style={{ color: '#111827' }}>{displayCategoryName}</span>
+                          </div>
+                        )}
+                        {displayRecruitmentType && (
+                          <div>
+                            <span className="text-gray-500 font-medium">{t('labelRecruitmentType')}</span>
+                            <span className="ml-1" style={{ color: '#111827' }}>{displayRecruitmentType}</span>
+                          </div>
+                        )}
+                        {displayGender && (
+                          <div>
+                            <span className="text-gray-500 font-medium">{t('labelGender')}</span>
+                            <span className="ml-1" style={{ color: '#111827' }}>{displayGender}</span>
+                          </div>
+                        )}
+                        {displayWorkingLocations?.length > 0 && (
+                          <div>
+                            <span className="text-gray-500 font-medium">{t('labelLocation')}</span>
+                            <span className="ml-1 block mt-0.5" style={{ color: '#111827' }}>{displayWorkingLocations.slice(0, 3).join(', ')}{displayWorkingLocations.length > 3 ? ` (+${displayWorkingLocations.length - 3})` : ''}</span>
+                          </div>
+                        )}
+                        {displayRecruitmentLocation && (
+                          <div>
+                            <span className="text-gray-500 font-medium">{t('labelRecruitmentLocation')}</span>
+                            <span className="ml-1 block mt-0.5" style={{ color: '#111827' }}>{displayRecruitmentLocation}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Date Information */}
+
+
+          {/* Tab: landing public chỉ General + Q&A */}
+          <div className="flex min-w-0 max-w-full border-b gap-0.5 sm:gap-1 overflow-x-auto overscroll-x-contain" style={{ borderColor: '#e5e7eb' }}>
+            {(isApplicantMode || publicLanding
+              ? [
+                  { key: 'general', label: t('tabGeneral') },
+                ]
+              : [
+              { key: 'general', label: t('tabGeneral') },
+              { key: 'nominations', label: t('tabNominationsJob') },
+              { key: 'adminAdvise', label: t('tabAdminAdvise') },
+            ]).map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setActiveTab(key)}
+                className="px-2 sm:px-3 lg:px-4 py-2 sm:py-2.5 lg:py-3 text-[10px] sm:text-xs lg:text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap flex-shrink-0"
+                style={{
+                  color: activeTab === key ? '#2563eb' : '#6b7280',
+                  borderBottomColor: activeTab === key ? '#2563eb' : 'transparent',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === 'general' && renderGeneralTabContent()}
 
           {activeTab === 'nominations' && (
             <div className="rounded-xl shadow-sm p-5 sm:p-6" style={{ backgroundColor: 'white', border: '1px solid #e5e7eb' }}>

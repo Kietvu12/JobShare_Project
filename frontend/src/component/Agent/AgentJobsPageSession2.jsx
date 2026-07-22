@@ -1189,6 +1189,7 @@ const mockJobs = [
       green: { backgroundColor: '#dcfce7', color: '#166534', borderColor: '#86efac' },
       orange: { backgroundColor: '#fed7aa', color: '#9a3412', borderColor: '#fdba74' },
       blue: { backgroundColor: '#dbeafe', color: '#1e40af', borderColor: '#93c5fd' },
+      violet: { backgroundColor: '#ede9fe', color: '#5b21b6', borderColor: '#c4b5fd' },
     };
     return colorMap[color] || colorMap.green;
   };
@@ -1266,6 +1267,17 @@ const mockJobs = [
   // Format job data from API
   const formatJob = (job) => {
     const tags = [];
+    if (job.isDirectRecruitment || job.isMarketplace) {
+      tags.push({
+        label:
+          language === 'vi'
+            ? 'Tuyển dụng trực tiếp'
+            : language === 'en'
+              ? 'Direct recruitment'
+              : '直接採用',
+        color: 'violet',
+      });
+    }
     if (job.isHot) {
       tags.push({
         label:
@@ -1804,6 +1816,8 @@ const mockJobs = [
       jobCode: job.jobCode || job.id,
       status: statusNum,
       isPinned: !!(job.isPinned ?? job.is_pinned),
+      isDirectRecruitment: !!(job.isDirectRecruitment || job.isMarketplace),
+      isMarketplace: !!(job.isMarketplace || job.isDirectRecruitment),
       tags,
       title: title || '',
       company: companyName || '',

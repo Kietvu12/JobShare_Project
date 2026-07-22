@@ -44,3 +44,41 @@ export function isImageAttachment(message) {
 export function canSendSupportChatMessage(text, attachment) {
   return Boolean(String(text || '').trim() || attachment);
 }
+
+export function formatSupportChatMessageTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/** Trạng thái tin nhắn nhìn từ phía CTV/khách. */
+export function resolveVisitorSideChatStatus(message) {
+  if (!message) return '';
+  if (message.senderType === 'visitor') {
+    return message.isReadByAdmin ? 'Admin đã xem' : 'Đã gửi';
+  }
+  if (message.senderType === 'admin' && message.isReadByVisitor) {
+    return 'Đã xem';
+  }
+  return '';
+}
+
+export function messageHasAttachment(message) {
+  return Boolean(message?.attachmentUrl || message?.attachmentName);
+}
+
+/** Admin trả lời → coi như đã đọc tin visitor trước đó. */
+export function applyAdminReplyReadReceipt(prev, incoming) {
+  const list = Array.isArray(prev) ? prev : [];
+  if (incoming?.senderType !== 'admin') return list;
+  return list.map((m) =>
+    m.senderType === 'visitor' && !m.isReadByAdmin ? { ...m, isReadByAdmin: true } : m
+  );
+}

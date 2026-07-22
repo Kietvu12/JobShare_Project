@@ -6,11 +6,18 @@ import apiService from '../../services/api';
 import LegalPoliciesSlidePanel from '../Shared/LegalPoliciesSlidePanel';
 import { ensurePublicCtvSessionResilient } from '../../utils/publicCtvChatSession';
 import { createReconnectingEventSource, parsePublicChatSseEvent } from '../../utils/publicChatSse';
-import { appendUniqueChatMessage, canSendSupportChatMessage } from '../../utils/publicSupportChatUi';
-import PublicSupportChatMessageBody from '../Shared/PublicSupportChatMessageBody';
+import {
+  appendUniqueChatMessage,
+  applyAdminReplyReadReceipt,
+  canSendSupportChatMessage,
+} from '../../utils/publicSupportChatUi';
+import PublicSupportChatVisitorMessageRow from '../Shared/PublicSupportChatVisitorMessageRow';
+import PublicSupportChatComposer from '../Shared/PublicSupportChatComposer';
 
 const LS_TOKEN = 'ctv_landing_public_chat_token';
 const LS_NAME = 'ctv_landing_visitor_name';
+/** Thời điểm CTV xem tab «Chat với admin» — dùng để đếm tin từ admin chưa đọc */
+const LS_LAST_READ_ADMIN = 'ctv_landing_chat_last_read_admin_at';
 
 const FACEBOOK_JOBSHERE_URL = 'https://www.facebook.com/';
 
@@ -216,6 +223,18 @@ function renderChatMessageBody(body, { isVisitorBubble = false } = {}) {
   return out.length ? <span className="inline break-words">{out}</span> : body;
 }
 
+/** Lần đầu vào: coi đã đọc tới tin admin mới nhất trong batch tải được — tránh badge 99+ nhưng vẫn bắt được tin sau đó (SSE). */
+function bootstrapLastReadAdminFromFetchedMessages(msgs) {
+  if (typeof window === 'undefined') return;
+  if (localStorage.getItem(LS_LAST_READ_ADMIN)) return;
+  if (!msgs?.length) return;
+  const adminTimes = msgs
+    .filter((m) => m.senderType === 'admin')
+    .map((m) => new Date(m.createdAt || m.created_at).getTime());
+  const t = adminTimes.length ? Math.max(...adminTimes) : Date.now();
+  localStorage.setItem(LS_LAST_READ_ADMIN, new Date(t).toISOString());
+}
+
 function CollaboratorLandingChatbot() {
   const { language } = useLanguage();
   const { pathname } = useLocation();
@@ -275,16 +294,6 @@ function CollaboratorLandingChatbot() {
   const scriptThreadEndRef = useRef(null);
   const esRef = useRef(null);
   const buttonRef = useRef(null);
-  const openRef = useRef(open);
-  const tabRef = useRef(tab);
-
-  useEffect(() => {
-    openRef.current = open;
-  }, [open]);
-
-  useEffect(() => {
-    tabRef.current = tab;
-  }, [tab]);
 
   const hasLiveThread = step === 'live' || liveMessages.length > 0;
 
@@ -379,15 +388,11 @@ function CollaboratorLandingChatbot() {
       onEvent: (ev) => {
         const data = parsePublicChatSseEvent(ev);
         if (!data) return;
-        setLiveMessages((prev) => appendUniqueChatMessage(prev, data.message));
+        setLiveMessages((prev) => {
+          const withReceipt = applyAdminReplyReadReceipt(prev, data.message);
+          return appendUniqueChatMessage(withReceipt, data.message);
+        });
         setStep('live');
-        if (
-          data.message?.senderType === 'admin' &&
-          openRef.current &&
-          tabRef.current === 'messages'
-        ) {
-          apiService.markPublicCtvChatRead(token).catch(() => {});
-        }
       },
     });
   }, []);
@@ -443,8 +448,8 @@ function CollaboratorLandingChatbot() {
           const msgsRes = await apiService.getPublicCtvChatMessages(effectiveTok);
           if (cancelled || !msgsRes.success) return;
           const msgs = msgsRes.data?.messages || [];
+          bootstrapLastReadAdminFromFetchedMessages(msgs);
           setLiveMessages(msgs);
-          setUnreadAdminCount(Number(msgsRes.data?.session?.unreadAdminCount || 0));
           /** Phiên đã có nhưng chưa có tin: vẫn vào luồng chat (ô gửi dưới), không kẹt màn «tin đầu tiên». */
           setStep('live');
           /** Luôn mở SSE khi đã có phiên — kể cả chưa có tin; nếu không, tin admin gửi sau không vào state → không có badge. */
@@ -456,8 +461,8 @@ function CollaboratorLandingChatbot() {
         const res = await apiService.getPublicCtvChatMessages(lsTok);
         if (cancelled || !res.success) return;
         const msgs = res.data?.messages || [];
+        bootstrapLastReadAdminFromFetchedMessages(msgs);
         setLiveMessages(msgs);
-        setUnreadAdminCount(Number(res.data?.session?.unreadAdminCount || 0));
         setSessionToken(lsTok);
         setStep('live');
         startStream(lsTok);
@@ -478,30 +483,29 @@ function CollaboratorLandingChatbot() {
   }, [visitorName, isAgentArea, sessionToken]);
 
   useEffect(() => {
-    if (!open || tab !== 'messages' || !sessionToken) return undefined;
-
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await apiService.markPublicCtvChatRead(sessionToken);
-        if (cancelled || !res?.success) return;
-        setUnreadAdminCount(0);
-        window.dispatchEvent(new CustomEvent('jobshare:ctv-chat-read'));
-      } catch {
-        /* ignore */
+    if (open && tab === 'messages') {
+      localStorage.setItem(LS_LAST_READ_ADMIN, new Date().toISOString());
+      setUnreadAdminCount(0);
+      if (sessionToken) {
+        apiService.markPublicCtvChatRead(sessionToken).then((res) => {
+          if (res?.success) {
+            apiService.getPublicCtvChatMessages(sessionToken).then((msgsRes) => {
+              if (msgsRes?.success) setLiveMessages(msgsRes.data?.messages || []);
+            });
+          }
+        });
       }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, tab, sessionToken]);
-
-  useEffect(() => {
-    if (open && tab === 'messages') return;
-    const n = liveMessages.filter((m) => m.senderType === 'admin' && m.isReadByVisitor !== true).length;
+      return;
+    }
+    const lr = localStorage.getItem(LS_LAST_READ_ADMIN);
+    const t0 = lr ? new Date(lr).getTime() : 0;
+    const n = liveMessages.filter((m) => {
+      if (m.senderType !== 'admin') return false;
+      const ts = new Date(m.createdAt || m.created_at).getTime();
+      return ts > t0;
+    }).length;
     setUnreadAdminCount(n);
-  }, [liveMessages, open, tab]);
+  }, [liveMessages, open, tab, sessionToken]);
 
   const displayName = visitorName.trim() || t.guest;
 
@@ -599,7 +603,6 @@ function CollaboratorLandingChatbot() {
     const res = await apiService.getPublicCtvChatMessages(tok);
     if (res.success && res.data?.messages) {
       setLiveMessages(res.data.messages);
-      setUnreadAdminCount(Number(res.data?.session?.unreadAdminCount || 0));
     }
   };
 
@@ -721,31 +724,13 @@ function CollaboratorLandingChatbot() {
           <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-2 pt-3 pb-2 scroll-smooth scroll-pt-2 [scrollbar-gutter:stable]">
             <div className="space-y-2">
               {liveMessages.map((m) => (
-                <div key={m.id}>
-                  <div
-                    className={`flex ${m.senderType === 'visitor' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[92%] rounded-xl px-2 py-1.5 text-[10px] leading-snug ${
-                        m.senderType === 'visitor'
-                          ? 'bg-[#ED212F] text-white'
-                          : 'border border-[#ececec] bg-white text-[#1f2937] shadow-sm'
-                      }`}
-                    >
-                      {m.attachmentUrl ? (
-                        <PublicSupportChatMessageBody message={m} className="whitespace-pre-wrap break-words text-[10px]" />
-                      ) : (
-                        renderChatMessageBody(m.body, { isVisitorBubble: m.senderType === 'visitor' })
-                      )}
-                    </div>
-                  </div>
-                  <p className="mt-0.5 text-[9px] text-[#9ca3af]">
-                    {m.senderType === 'visitor' ? displayName : t.agentMeta} •{' '}
-                    {m.createdAt
-                      ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                      : ''}
-                  </p>
-                </div>
+                <PublicSupportChatVisitorMessageRow
+                  key={m.id}
+                  message={m}
+                  displayName={displayName}
+                  agentMetaLabel={t.agentMeta}
+                  renderTextBody={renderChatMessageBody}
+                />
               ))}
               <div ref={messagesEndRef} className="h-px w-full shrink-0" />
             </div>
@@ -859,52 +844,21 @@ function CollaboratorLandingChatbot() {
   /** Vùng dưới: chip script / nhập chat admin */
   const renderBottomPanel = () => {
     if (tab === 'messages' && hasLiveThread) {
-      const fileInputId = 'collab-live-chat-file';
       return (
         <div className="shrink-0 border-t border-[#ececf0] bg-white px-2 py-2">
-          {liveAttachment && (
-            <div className="mb-1 truncate text-[9px] text-[#6b7280]">📎 {liveAttachment.name}</div>
-          )}
-          <div className="flex items-end gap-1.5">
-            <label
-              htmlFor={fileInputId}
-              className="shrink-0 cursor-pointer rounded-full border border-[#e5e7eb] px-2 py-1.5 text-[9px] text-[#6b7280]"
-              title="Đính kèm"
-            >
-              +
-            </label>
-            <input
-              id={fileInputId}
-              type="file"
-              accept="image/*,.pdf,.doc,.docx,.txt,.zip"
-              className="hidden"
-              onChange={(e) => {
-                setLiveAttachment(e.target.files?.[0] || null);
-                e.target.value = '';
-              }}
-            />
-            <textarea
-              value={liveInput}
-              onChange={(e) => setLiveInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                  e.preventDefault();
-                  sendLive();
-                }
-              }}
-              rows={2}
-              placeholder={`${t.chatPlaceholder} (Ctrl+Enter gửi)`}
-              className="min-h-[36px] min-w-0 flex-1 resize-y rounded-xl border border-[#e5e7eb] bg-[#fafafa] px-2 py-1.5 text-[10px] leading-snug text-[#111827] outline-none focus:border-[#d1d5db] focus:bg-white"
-            />
-            <button
-              type="button"
-              onClick={sendLive}
-              disabled={sending || !canSendSupportChatMessage(liveInput, liveAttachment) || !sessionToken}
-              className="shrink-0 rounded-full bg-[#ED212F] px-2.5 py-1.5 text-[10px] font-semibold text-white shadow-sm disabled:opacity-50"
-            >
-              {t.send}
-            </button>
-          </div>
+          <PublicSupportChatComposer
+            variant="compact"
+            value={liveInput}
+            onChange={setLiveInput}
+            attachment={liveAttachment}
+            onAttachmentChange={setLiveAttachment}
+            onSend={sendLive}
+            sending={sending}
+            disabled={!sessionToken}
+            placeholder={t.chatPlaceholder}
+            sendLabel={t.send}
+            accept="image/*,.pdf,.doc,.docx,.txt,.zip"
+          />
         </div>
       );
     }
