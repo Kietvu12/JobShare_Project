@@ -1496,6 +1496,7 @@ export const translations = {
     jobSectionSmokingPolicy: 'Chính sách hút thuốc',
 
     jobSalaryLabel: 'Mức lương',
+    jobSalaryCurrencyLabel: 'Đơn vị tiền tệ',
     jobSalaryAdd: 'Thêm mức lương',
     jobSalaryPlaceholder: 'Mức lương (VD: 500-700万円)',
     jobSalaryTypePlaceholder: 'Loại (VD: yearly, monthly)',
@@ -3489,6 +3490,7 @@ export const translations = {
     jobSectionSmokingPolicy: 'Smoking policy',
 
     jobSalaryLabel: 'Salary range',
+    jobSalaryCurrencyLabel: 'Salary currency',
     jobSalaryAdd: 'Add salary range',
     jobSalaryPlaceholder: 'Salary range (e.g. 500-700万円)',
     jobSalaryTypePlaceholder: 'Type (e.g. yearly, monthly)',
@@ -5492,6 +5494,7 @@ export const translations = {
     jobSectionSmokingPolicy: '喫煙ポリシー',
 
     jobSalaryLabel: '給与レンジ',
+    jobSalaryCurrencyLabel: '給与通貨',
     jobSalaryAdd: '給与レンジを追加',
     jobSalaryPlaceholder: '給与レンジ（例：500-700万円）',
     jobSalaryTypePlaceholder: '種類（例：yearly, monthly）',

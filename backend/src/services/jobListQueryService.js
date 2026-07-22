@@ -72,7 +72,8 @@ const LIST_JOB_ATTRIBUTES = [
   'createdAt',
   'updatedAt',
   'recruitmentType',
-  'interviewLocation'
+  'interviewLocation',
+  'salaryCurrency'
 ];
 
 /** Job doanh nghiệp chỉ hiện trên sàn CTV khi listing PUBLISHED */

@@ -128,7 +128,7 @@ export const dashboardController = {
       }
 
       // Lấy dữ liệu đơn ứng tuyển theo thời gian
-      const [results] = await sequelize.query(
+      const results = await sequelize.query(
         `SELECT 
           DATE_FORMAT(created_at, :dateFormat) as period,
           COUNT(*) as count
@@ -184,7 +184,7 @@ export const dashboardController = {
         replacements.endDate = `${endDate} 23:59:59`;
       }
 
-      const [results] = await sequelize.query(
+      const results = await sequelize.query(
         `SELECT 
           jc.id,
           jc.name,
@@ -255,7 +255,7 @@ export const dashboardController = {
       }
 
       // Offer: status 8 (Đang chờ phỏng vấn), 14 (Đã vào công ty) – theo context “được offer”
-      const [offerResults] = await sequelize.query(
+      const offerResults = await sequelize.query(
         `SELECT 
           DATE_FORMAT(created_at, :dateFormat) as period,
           COUNT(*) as count
@@ -273,7 +273,7 @@ export const dashboardController = {
       );
 
       // Rejection: status 4, 6, 10, 13, 16 (trượt/từ chối/hủy)
-      const [rejectionResults] = await sequelize.query(
+      const rejectionResults = await sequelize.query(
         `SELECT 
           DATE_FORMAT(created_at, :dateFormat) as period,
           COUNT(*) as count

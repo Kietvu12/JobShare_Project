@@ -10,6 +10,13 @@ import { buildAddJobPatchFromJdBuilder, consumeJdBuilderPrefill } from '../../ut
 import { applyJdFormStatePatch, applyParsedJdToFormState } from '../../utils/applyParsedJdToFormState.js';
 import { BUSINESS_SECTOR_OPTIONS } from '../../utils/businessSectorOptions';
 import { downloadBlobAsFile } from '../../utils/safeFileDownload.js';
+import {
+  JOB_SALARY_CURRENCY_OPTIONS,
+  jobSalaryCurrencyToJdCode,
+  normalizeJobSalaryCurrency,
+  getJobCurrencyShortLabel,
+  formatFixedAmountWithCurrency,
+} from '../../utils/jobSalaryCurrency.js';
 import JdTemplate from '../../component/Admin/AddJob/JdTemplate';
 import { JOB_HIGHLIGHT_OPTIONS } from '../../utils/jobHighlightOptions';
 import { JAPANESE_LEVEL_OPTIONS, EXPERIENCE_YEARS_OPTIONS, DRIVER_LICENSE_OPTIONS } from '../../utils/requirementPresetOptions';
@@ -438,6 +445,7 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
     bonus: '',
     bonusEn: '',
     bonusJp: '',
+    salaryCurrency: 'JPY',
     salaryReview: '',
     salaryReviewEn: '',
     salaryReviewJp: '',
@@ -696,7 +704,7 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
       requirements_must: sourceRequirementsMust,
       requirements_preferred: sourceRequirementsPreferred,
       salary: {
-        currency: 3,
+        currency: jobSalaryCurrencyToJdCode(formDataRef.current.salaryCurrency),
         monthly: salaryMonthly,
         yearly: salaryYearly,
         salary_details: firstNonEmpty(
@@ -1251,6 +1259,7 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
           bonus: job.bonus || '',
           bonusEn: job.bonusEn || job.bonus_en || '',
           bonusJp: job.bonusJp || job.bonus_jp || '',
+          salaryCurrency: normalizeJobSalaryCurrency(job.salaryCurrency ?? job.salary_currency),
           salaryReview: job.salaryReview || '',
           salaryReviewEn: job.salaryReviewEn || job.salary_review_en || '',
           salaryReviewJp: job.salaryReviewJp || job.salary_review_jp || '',
@@ -2216,6 +2225,7 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
       bonus: formData.bonus || null,
       bonusEn: formData.bonusEn || null,
       bonusJp: formData.bonusJp || null,
+      salaryCurrency: normalizeJobSalaryCurrency(formData.salaryCurrency),
       salaryReview: formData.salaryReview || null,
       salaryReviewEn: formData.salaryReviewEn || null,
       salaryReviewJp: formData.salaryReviewJp || null,
@@ -2494,6 +2504,7 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
         bonus: formData.bonus || null,
         bonusEn: formData.bonusEn || null,
         bonusJp: formData.bonusJp || null,
+        salaryCurrency: normalizeJobSalaryCurrency(formData.salaryCurrency),
         salaryReview: formData.salaryReview || null,
         salaryReviewEn: formData.salaryReviewEn || null,
         salaryReviewJp: formData.salaryReviewJp || null,
@@ -3927,6 +3938,20 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
               {t.jobSectionSalaryCommission || 'Lương'}
             </h3>
             <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-900 mb-1">
+                  {t.jobSalaryCurrencyLabel || 'Đơn vị tiền tệ'}
+                </label>
+                <select
+                  value={formData.salaryCurrency || 'JPY'}
+                  onChange={(e) => setFormData({ ...formData, salaryCurrency: e.target.value })}
+                  className="w-full max-w-xs px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-600"
+                >
+                  {JOB_SALARY_CURRENCY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
               {/* Salary Ranges */}
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -5977,6 +6002,24 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
               {t.jobCommissionDetailSectionTitle || 'Cài đặt phí'}
             </h2>
             <div className="space-y-3">
+              <div className="mb-4 pb-3 border-b border-gray-200">
+                <label className="block text-xs font-semibold text-gray-900 mb-2">
+                  {t.jobSalaryCurrencyLabel || 'Đơn vị tiền tệ'}
+                </label>
+                <select
+                  name="salaryCurrency"
+                  value={formData.salaryCurrency || 'JPY'}
+                  onChange={handleInputChange}
+                  className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-600"
+                >
+                  {JOB_SALARY_CURRENCY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-gray-500 mt-1">
+                  Áp dụng cho mức lương và phí cố định (Job Values).
+                </p>
+              </div>
               {/* Commission Type */}
               <div className="mb-4 pb-3 border-b border-gray-200">
                 <label className="block text-xs font-semibold text-gray-900 mb-2">
@@ -5993,7 +6036,7 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                 </select>
                 <p className="text-[10px] text-gray-500 mt-1">
                   {formData.jobCommissionType === 'fixed'
-                    ? 'Giá trị trong Job Values sẽ được hiểu là số tiền cố định (Y). Ví dụ: 50000000 = 50 triệu Y'
+                    ? `Giá trị trong Job Values sẽ được hiểu là số tiền cố định (${getJobCurrencyShortLabel(formData.salaryCurrency)}). Ví dụ: 50000000 = 50 triệu ${getJobCurrencyShortLabel(formData.salaryCurrency)}`
                     : 'Giá trị trong Job Values sẽ được hiểu là phần trăm (%). Ví dụ: 30 = 30%'}
                 </p>
               </div>
@@ -6161,7 +6204,9 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                   <div>
                     <label className="block text-xs font-semibold text-gray-900 mb-1">
                       Giá trị cụ thể (value)
-                      {!(Number(jv.typeId) === 7 && Number(jv.valueId) === 34) && formData.jobCommissionType === 'fixed' && <span className="text-gray-500 text-[10px] ml-1">(Y)</span>}
+                      {!(Number(jv.typeId) === 7 && Number(jv.valueId) === 34) && formData.jobCommissionType === 'fixed' && (
+                        <span className="text-gray-500 text-[10px] ml-1">({getJobCurrencyShortLabel(formData.salaryCurrency)})</span>
+                      )}
                       {!(Number(jv.typeId) === 7 && Number(jv.valueId) === 34) && formData.jobCommissionType === 'percent' && <span className="text-gray-500 text-[10px] ml-1">(%)</span>}
                     </label>
                     {Number(jv.typeId) === 7 && Number(jv.valueId) === 34 ? (
@@ -6198,21 +6243,29 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                               newJobValues[index] = { ...newJobValues[index], value: inputValue, typeId: newJobValues[index].typeId, valueId: newJobValues[index].valueId, isRequired: newJobValues[index].isRequired ?? false };
                               setJobValues(newJobValues);
                             }}
-                            placeholder={formData.jobCommissionType === 'fixed' ? 'VD: 50000000 (Y)' : 'VD: 30 (%)'}
+                            placeholder={
+                              formData.jobCommissionType === 'fixed'
+                                ? `VD: 50000000 (${getJobCurrencyShortLabel(formData.salaryCurrency)})`
+                                : 'VD: 30 (%)'
+                            }
                             className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-600"
                           />
                           {formData.jobCommissionType === 'percent' && jv.value && (
                             <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[10px] text-gray-500">%</span>
                           )}
                           {formData.jobCommissionType === 'fixed' && jv.value && (
-                            <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[10px] text-gray-500">Y</span>
+                            <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[10px] text-gray-500">
+                              {getJobCurrencyShortLabel(formData.salaryCurrency)}
+                            </span>
                           )}
                         </div>
                         {formData.jobCommissionType === 'percent' && jv.value && parseFloat(jv.value) > 100 && (
                           <p className="text-[10px] text-red-500 mt-1">Phần trăm không được vượt quá 100%</p>
                         )}
                         {jv.value && formData.jobCommissionType === 'fixed' && (
-                          <p className="text-[10px] text-gray-500 mt-1">{parseFloat(jv.value).toLocaleString('vi-VN')} Y</p>
+                          <p className="text-[10px] text-gray-500 mt-1">
+                            {formatFixedAmountWithCurrency(jv.value, formData.salaryCurrency)}
+                          </p>
                         )}
                         {jv.value && formData.jobCommissionType === 'percent' && (
                           <p className="text-[10px] text-gray-500 mt-1">{parseFloat(jv.value)}%</p>
@@ -6236,7 +6289,10 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                   {Number(jv.typeId) === 7 && Number(jv.valueId) === 34 && (
                     <div>
                       <label className="block text-xs font-semibold text-gray-900 mb-1">
-                        Giá trị hiển thị cho CTV <span className="text-gray-500 text-[10px] ml-1">(Y)</span>
+                        Giá trị hiển thị cho CTV{' '}
+                        <span className="text-gray-500 text-[10px] ml-1">
+                          ({getJobCurrencyShortLabel(formData.salaryCurrency)})
+                        </span>
                       </label>
                       <input
                         type="text"

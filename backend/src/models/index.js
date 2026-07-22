@@ -1573,6 +1573,13 @@ export const Job = sequelize.define(
       allowNull: true,
       field: 'salary_review_jp'
     },
+    salaryCurrency: {
+      type: DataTypes.STRING(10),
+      allowNull: false,
+      defaultValue: 'JPY',
+      field: 'salary_currency',
+      comment: 'Đơn vị tiền lương: JPY, VND, USD'
+    },
     holidays: {
       type: DataTypes.TEXT
     },

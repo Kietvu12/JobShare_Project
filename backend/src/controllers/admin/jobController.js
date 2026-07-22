@@ -77,6 +77,14 @@ function parseAdminJobBody(req) {
   return b;
 }
 
+const VALID_SALARY_CURRENCIES = new Set(['JPY', 'VND', 'USD']);
+
+function normalizeSalaryCurrency(raw) {
+  if (raw == null || raw === '') return 'JPY';
+  const upper = String(raw).trim().toUpperCase();
+  return VALID_SALARY_CURRENCIES.has(upper) ? upper : 'JPY';
+}
+
 /** Mảng phúc lợi bổ sung (bảng `benefits`): content bắt buộc ở DB; bỏ dòng trống hoàn toàn. */
 function normalizeBenefitCreateRows(benefitsInput) {
   if (!Array.isArray(benefitsInput)) return [];
@@ -790,6 +798,8 @@ export const jobController = {
         salaryReview,
         salaryReviewEn,
         salaryReviewJp,
+        salaryCurrency,
+        salary_currency,
         holidays,
         holidaysEn,
         holidaysJp,
@@ -962,6 +972,7 @@ export const jobController = {
           salaryReview,
           salaryReviewEn: salaryReviewEn || null,
           salaryReviewJp: salaryReviewJp || null,
+          salaryCurrency: normalizeSalaryCurrency(salaryCurrency ?? salary_currency),
           holidays,
           holidaysEn: holidaysEn || null,
           holidaysJp: holidaysJp || null,
@@ -1587,6 +1598,13 @@ export const jobController = {
       if (jobFields.recruitment_reason_jp !== undefined) {
         jobFields.recruitmentReasonJp = jobFields.recruitment_reason_jp;
         delete jobFields.recruitment_reason_jp;
+      }
+      if (jobFields.salary_currency !== undefined) {
+        jobFields.salaryCurrency = normalizeSalaryCurrency(jobFields.salary_currency);
+        delete jobFields.salary_currency;
+      }
+      if (jobFields.salaryCurrency !== undefined) {
+        jobFields.salaryCurrency = normalizeSalaryCurrency(jobFields.salaryCurrency);
       }
 
       // Use transaction

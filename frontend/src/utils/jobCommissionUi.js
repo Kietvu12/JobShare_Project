@@ -87,6 +87,53 @@ export function shouldHideCommissionConditionLabel(jobValuesForCommission) {
 }
 
 /**
+ * valueId 6/7 (Trực tiếp cho CTV): phí cố định hiển thị đúng số đã nhập, không nhân % level CTV.
+ */
+export function isDirectFixedCtvCommissionJobValue(jv, job) {
+  if (normalizeJobCommissionType(job) !== 'fixed') return false;
+  const vid = vidOf(jv);
+  if (vid === 6 || vid === 7) return true;
+  const name = String(
+    jv?.valueRef?.valuename ?? jv?.valueRef?.valuenameEn ?? jv?.valueRef?.name ?? ''
+  ).toLowerCase();
+  return name.includes('trực tiếp') || name.includes('direct');
+}
+
+/** Hệ số nhân khi hiển thị phí cho CTV (admin luôn = 1). */
+export function resolveCtvCommissionDisplayMultiplier(jv, job, rankMultiplier, useAdminAPI) {
+  if (useAdminAPI) return 1;
+  if (isDirectFixedCtvCommissionJobValue(jv, job)) return 1;
+  return rankMultiplier;
+}
+
+export function isDirectFixedCtvCommissionJob(job) {
+  const rows = filterJobValuesForCommission(job?.jobValues || job?.profits || []);
+  const primary = pickPrimaryCommissionJobValue(rows);
+  return Boolean(primary && isDirectFixedCtvCommissionJobValue(primary, job));
+}
+
+/** Nhãn banner phí trên card/chi tiết job (admin vs CTV, theo loại job value). */
+export function resolveCommissionBannerLabel(job, { useAdminAPI, language = 'vi' } = {}) {
+  const lang = language === 'ja' ? 'ja' : language === 'en' ? 'en' : 'vi';
+  const directCtv = isDirectFixedCtvCommissionJob(job);
+
+  if (useAdminAPI) {
+    if (directCtv) {
+      if (lang === 'en') return 'Direct referral fee for CTV';
+      if (lang === 'ja') return 'CTVへの直接紹介料';
+      return 'Phí giới thiệu trực tiếp cho CTV';
+    }
+    if (lang === 'en') return 'Referral fee (JS receives)';
+    if (lang === 'ja') return '紹介料（JS受取）';
+    return 'Phí giới thiệu JobShare nhận từ khách hàng';
+  }
+
+  if (lang === 'en') return 'Estimated referral fee for you';
+  if (lang === 'ja') return '想定紹介料（あなた）';
+  return 'Phí giới thiệu dự kiến của bạn';
+}
+
+/**
  * Dòng job_values dùng để suy % phí / campaign — không dùng phần tử [0] vì filter có cả JLPT (type 1)
  * thường đứng trước dòng phí (type 2) → nhầm value 30 (JLPT) thay vì % campaign 40.
  */

@@ -1,5 +1,6 @@
 import { BUSINESS_SECTOR_OPTIONS } from './businessSectorOptions';
 import { JOB_HIGHLIGHT_OPTIONS } from './jobHighlightOptions';
+import { normalizeJobSalaryCurrency } from './jobSalaryCurrency.js';
 import { normalizeNumberOfHiresStored } from './numberOfHiresOptions';
 
 function jdDescriptionToText(desc, lang) {
@@ -216,6 +217,7 @@ export function createEmptyJdFormState() {
       bonus: '',
       bonusEn: '',
       bonusJp: '',
+      salaryCurrency: 'JPY',
       salaryReview: '',
       salaryReviewEn: '',
       salaryReviewJp: '',
@@ -361,7 +363,7 @@ export function applyParsedJdToFormState(j, options = {}) {
   const raiseText = typeof raiseDetailsRaw === 'object' && raiseDetailsRaw !== null && !Array.isArray(raiseDetailsRaw)
     ? [raiseDetailsRaw.vi, raiseDetailsRaw.en, raiseDetailsRaw.ja].filter(Boolean).join('\n')
     : [raiseDetailsRaw].flat().filter(Boolean).join('\n');
-  const currency = salary.currency || 'JPY';
+  const currency = normalizeJobSalaryCurrency(salary.currency);
   const yearlySal = salary.yearly_salary ?? salary.yearly ?? salary.yearlySalary;
   const monthlySal = salary.monthly_salary ?? salary.monthly ?? salary.monthlySalary;
   const salaryMin = salary.min_salary ?? salary.min;
@@ -497,6 +499,7 @@ export function applyParsedJdToFormState(j, options = {}) {
     bonus: isViTab ? bonusText || prevFormData.bonus : prevFormData.bonus,
     bonusEn: isEnTab ? bonusText || prevFormData.bonusEn : prevFormData.bonusEn,
     bonusJp: isJpTab ? bonusText || prevFormData.bonusJp : prevFormData.bonusJp,
+    salaryCurrency: currency || prevFormData.salaryCurrency || 'JPY',
     salaryReview: isViTab ? raiseText || prevFormData.salaryReview : prevFormData.salaryReview,
     salaryReviewEn: isEnTab ? raiseText || prevFormData.salaryReviewEn : prevFormData.salaryReviewEn,
     salaryReviewJp: isJpTab ? raiseText || prevFormData.salaryReviewJp : prevFormData.salaryReviewJp,
