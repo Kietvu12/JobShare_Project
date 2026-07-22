@@ -43,13 +43,20 @@ import { useLanguage } from '../../context/LanguageContext';
 import apiService from '../../services/api';
 import { getJobApplicationStatus, getJobApplicationStatusLabelByLanguage } from '../../utils/jobApplicationStatus';
 import { yearSalaryRangeStringForCommission, findYearSalaryRangeRow } from '../../utils/salaryRangeForCommission';
-import { formatSalaryValueWithJlptIfRange } from '../../utils/salaryDisplay';
+import {
+  formatJobSalaryDisplay,
+  resolveJobSalaryCurrency,
+  formatCommissionAmountWithCurrency,
+  formatCommissionRangeWithCurrency,
+} from '../../utils/jobSalaryCurrency';
 import {
   normalizeJobCommissionType,
   resolveCampaignPercentFromJob,
   pickPrimaryCommissionJobValue,
   filterJobValuesForCommission,
   shouldHideCommissionConditionLabel,
+  resolveCtvCommissionDisplayMultiplier,
+  resolveCommissionBannerLabel,
 } from '../../utils/jobCommissionUi';
 import { hasJobAttachment, hasAnyDownloadableAttachment } from '../../utils/jobAttachmentAvailability';
 import { getRecruitmentLocationLabel } from '../../utils/recruitmentLocationLabels.js';
@@ -1174,25 +1181,6 @@ const JobDetailPage = ({
     return t('labelSalary');
   };
 
-  const appendJpyIfNeeded = (value) => {
-    const text = String(value || '').trim();
-    if (!text) return '';
-    const normalized = text.replace(/\s+/g, ' ');
-    const hasLetters = /[A-Za-z\p{L}]/u.test(normalized);
-    const alreadyHasJpy = /\bJPY\b/i.test(normalized);
-    const hasNumber = /\d/.test(normalized);
-    const rangeMatch = normalized.match(/^(.+?)\s*[-–—〜～]\s*(.+?)$/);
-    if (alreadyHasJpy || !hasNumber || hasLetters) {
-      return normalized;
-    }
-    if (rangeMatch) {
-      const left = rangeMatch[1].trim();
-      const right = rangeMatch[2].trim();
-      return `${left} - ${right} JPY`;
-    }
-    return `${normalized} JPY`;
-  };
-
   const getSalaryRangeTextWithFallback = (sr) => {
     const vi = stripHtml(String(sr?.salaryRange ?? sr?.salary_range ?? '').trim());
     const en = stripHtml(String(sr?.salaryRangeEn ?? sr?.salary_range_en ?? '').trim());
@@ -1200,13 +1188,15 @@ const JobDetailPage = ({
     return pick(vi, en, jp) || vi || en || jp || '';
   };
 
+  const jobCurrency = resolveJobSalaryCurrency(job);
+
   const salaryRows = (job.salaryRanges || [])
     .map(sr => {
       const text = getSalaryRangeTextWithFallback(sr);
       if (!text) return null;
       return {
         label: getSalaryTypeLabel(sr.type),
-        value: appendJpyIfNeeded(formatSalaryValueWithJlptIfRange(text)),
+        value: formatJobSalaryDisplay(text, jobCurrency),
       };
     })
     .filter(Boolean);
@@ -1382,17 +1372,20 @@ const JobDetailPage = ({
   })();
 
   const getCommissionText = () => {
-    if (job.jobValues && job.jobValues.length > 0) {
-      const firstJobValue = job.jobValues[0];
+    const jobCurrency = resolveJobSalaryCurrency(job);
+    const values = filterJobValuesForCommission(job.jobValues || job.profits || []);
+    const firstJobValue = pickPrimaryCommissionJobValue(values) ?? values[0];
+    if (firstJobValue) {
       const value = firstJobValue.value;
       const vid = Number(firstJobValue.valueId ?? firstJobValue.valueRef?.id ?? 0);
       if (vid === 34) return value || 'Liên hệ';
       if (value !== null && value !== undefined) {
         if (job.jobCommissionType === 'percent') {
           return `${parseFloat(value).toLocaleString('vi-VN')}%`;
-        } else {
-          return `${parseFloat(value).toLocaleString('vi-VN')} JPY`;
         }
+        const mul = resolveCtvCommissionDisplayMultiplier(firstJobValue, job, 1, useAdminAPI);
+        const amt = (parseFloat(value) || 0) * mul;
+        return formatCommissionAmountWithCurrency(amt, jobCurrency);
       }
     }
     return 'Liên hệ';
@@ -1424,29 +1417,23 @@ const JobDetailPage = ({
   let detailCommissionTiers = [];
   let isCommissionFromCampaign = false;
   const rankMultiplier = useAdminAPI ? 1 : (ctvRankPercent > 0 ? ctvRankPercent / 100 : 1);
+  const commissionMultiplierFor = (jv) =>
+    resolveCtvCommissionDisplayMultiplier(jv, job, rankMultiplier, useAdminAPI);
   const jobCampaigns = job.jobCampaigns || [];
   const campaignPercent = resolveCampaignPercentFromJob(job);
   const hasCampaignPercent = campaignPercent != null;
   const campaignPctUi =
     campaignPercent != null && Number(campaignPercent) > 0 ? Number(campaignPercent) : null;
 
-  const formatAmountWithCurrency = (amount) => {
-    const nRaw = typeof amount === 'number' ? amount : parseFloat(amount) || 0;
-    const n = Math.round(nRaw);
-    const formatted = n.toLocaleString('vi-VN');
-    return `${formatted} JPY`;
-  };
+  const formatAmountWithCurrency = (amount) => formatCommissionAmountWithCurrency(amount, jobCurrency);
   const formatCommissionForDisplay = (amount) => {
     if (amount >= 1000) return Math.round(amount).toLocaleString('vi-VN');
     if (amount < 1) return amount.toFixed(2).replace(/\.?0+$/, '');
     if (amount < 10) return amount.toFixed(1).replace(/\.?0+$/, '');
     return Math.round(amount).toString();
   };
-  const formatRangeWithCurrency = (min, max, formatFn) => {
-    const fm = formatFn ? formatFn(min) : Math.round(min).toLocaleString('vi-VN');
-    const fx = formatFn ? formatFn(max) : Math.round(max).toLocaleString('vi-VN');
-    return `${fm} - ${fx} JPY`;
-  };
+  const formatRangeWithCurrency = (min, max, formatFn) =>
+    formatCommissionRangeWithCurrency(min, max, jobCurrency, formatFn);
   const formatFromCollaboratorView = (raw) => {
     if (!raw) return null;
     const text = String(raw).trim();
@@ -1598,7 +1585,7 @@ const JobDetailPage = ({
       if (commissionType === 'fixed') {
         const fixedAmount = parseFloat(value) || 0;
         if (fixedAmount > 0) {
-          detailCommissionText = formatAmountWithCurrency(fixedAmount * rankMultiplier);
+          detailCommissionText = formatAmountWithCurrency(fixedAmount * commissionMultiplierFor(firstJv));
         }
       } else if (commissionType === 'percent' && salaryRangeData) {
         const platformCommissionMin = salaryRangeData.min * (effectivePercent / 100);
@@ -1626,7 +1613,7 @@ const JobDetailPage = ({
         detailCommissionText = formatRangeWithCurrency(platformCommissionMin * rankMultiplier, platformCommissionMax * rankMultiplier, formatCommissionForDisplay);
       } else if (commissionType === 'fixed' && value !== null && value !== undefined) {
         const amount = parseFloat(value) || 0;
-        if (amount > 0) detailCommissionText = formatAmountWithCurrency(amount * rankMultiplier);
+        if (amount > 0) detailCommissionText = formatAmountWithCurrency(amount * commissionMultiplierFor(firstJv));
       } else if (commissionType === 'percent') {
         detailCommissionText = formatFromCollaboratorView(firstJvCollaboratorView) || `${effectivePercent}%`;
       }
@@ -1682,7 +1669,8 @@ const JobDetailPage = ({
             }
           } else {
             const amt = parseFloat(rawValue) || 0;
-            amountText = amt > 0 ? formatAmountWithCurrency(amt * rankMultiplier) : '';
+            const tierMul = commissionMultiplierFor(jv);
+            amountText = amt > 0 ? formatAmountWithCurrency(amt * tierMul) : '';
           }
         }
         const valueRef = jv.valueRef || {};
@@ -1967,9 +1955,7 @@ const JobDetailPage = ({
                           }}
                         >
                           <span className="line-clamp-3">
-                            {useAdminAPI
-                              ? (language === 'vi' ? 'Phí giới thiệu JobShare nhận từ khách hàng' : 'Referral fee (JS receives)')
-                              : (language === 'vi' ? 'Phí giới thiệu dự kiến của bạn' : language === 'en' ? 'Estimated referral fee for you' : '想定紹介料（あなた）')}
+                            {resolveCommissionBannerLabel(job, { useAdminAPI, language })}
                           </span>
                         </div>
                         {hideCommissionConditionLabel && detailCommissionTiers.length > 0 ? (

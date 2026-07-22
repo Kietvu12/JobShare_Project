@@ -33,10 +33,18 @@ import {
   pickPrimaryCommissionJobValue,
   filterJobValuesForCommission,
   shouldHideCommissionConditionLabel,
+  resolveCtvCommissionDisplayMultiplier,
+  resolveCommissionBannerLabel,
 } from '../../utils/jobCommissionUi';
 import { localizedJobValueLabel } from '../../utils/jobValueLocalizedLabel';
 import { hasJobAttachment } from '../../utils/jobAttachmentAvailability';
 import { formatSalaryValueWithJlptIfRange } from '../../utils/salaryDisplay';
+import {
+  formatJobSalaryDisplay,
+  resolveJobSalaryCurrency,
+  formatCommissionAmountWithCurrency,
+  formatCommissionRangeWithCurrency,
+} from '../../utils/jobSalaryCurrency';
 import { getRecruitmentLocationLabel } from '../../utils/recruitmentLocationLabels.js';
 import { hasActiveAgentJobSearchCriteria, hasAdminJobsToolbarListContext } from '../../utils/agentJobSearchCriteria';
 import { formatDisplayDate, jobCreatedUpdatedLabels } from '../../utils/formatDisplayDate';
@@ -1376,24 +1384,19 @@ const mockJobs = [
     // Admin: bỏ qua nhân rank. CTV: nhân với % rank_level
     const ctvRankPercent = ctvProfile?.rankLevel?.percent ? parseFloat(ctvProfile.rankLevel.percent) : 0;
     const rankMultiplier = useAdminAPI ? 1 : (ctvRankPercent > 0 ? ctvRankPercent / 100 : 1);
+    const commissionMultiplierFor = (jv) =>
+      resolveCtvCommissionDisplayMultiplier(jv, job, rankMultiplier, useAdminAPI);
     
-    const formatAmountWithCurrency = (amount) => {
-      const nRaw = typeof amount === 'number' ? amount : parseFloat(amount) || 0;
-      const n = Math.round(nRaw);
-      const formatted = n.toLocaleString('vi-VN');
-      return `${formatted} JPY`;
-    };
+    const jobCurrency = resolveJobSalaryCurrency(job);
+    const formatAmountWithCurrency = (amount) => formatCommissionAmountWithCurrency(amount, jobCurrency);
     const formatCommissionForDisplay = (amount) => {
       if (amount >= 1000) return Math.round(amount).toLocaleString('vi-VN');
       if (amount < 1) return amount.toFixed(2).replace(/\.?0+$/, '');
       if (amount < 10) return amount.toFixed(1).replace(/\.?0+$/, '');
       return Math.round(amount).toString();
     };
-    const formatRangeWithCurrency = (min, max, formatFn) => {
-      const fm = formatFn ? formatFn(min) : Math.round(min).toLocaleString('vi-VN');
-      const fx = formatFn ? formatFn(max) : Math.round(max).toLocaleString('vi-VN');
-      return `${fm} - ${fx} JPY`;
-    };
+    const formatRangeWithCurrency = (min, max, formatFn) =>
+      formatCommissionRangeWithCurrency(min, max, jobCurrency, formatFn);
 
     // Chỉ dùng salary_ranges có type = năm; không fallback month/HTML (tránh sai quy mô).
     const salaryRanges = job.salaryRanges || [];
@@ -1503,7 +1506,7 @@ const mockJobs = [
           if (commissionType === 'fixed') {
             const fixedAmount = parseFloat(value) || 0;
             if (fixedAmount > 0) {
-              const displayAmount = fixedAmount * rankMultiplier;
+              const displayAmount = fixedAmount * commissionMultiplierFor(firstJobValue);
               commissionText = formatAmountWithCurrency(displayAmount);
             }
           } else if (commissionType === 'percent') {
@@ -1548,7 +1551,7 @@ const mockJobs = [
         } else if (commissionType === 'fixed' && value !== null && value !== undefined) {
           const amount = parseFloat(value) || 0;
           if (amount > 0) {
-            const displayAmount = amount * rankMultiplier;
+            const displayAmount = amount * commissionMultiplierFor(firstJobValue);
             commissionText = formatAmountWithCurrency(displayAmount);
           }
         } else if (
@@ -1615,7 +1618,8 @@ const mockJobs = [
             }
           } else {
             const amt = parseFloat(rawValue) || 0;
-            const displayAmt = amt > 0 ? amt * rankMultiplier : 0;
+            const tierMul = commissionMultiplierFor(jv);
+            const displayAmt = amt > 0 ? amt * tierMul : 0;
             amountText = displayAmt > 0 ? formatAmountWithCurrency(displayAmt) : '';
           }
         }
@@ -1737,7 +1741,7 @@ const mockJobs = [
       .map((sr) => {
         const value = getSalaryRangeTextWithFallback(sr);
         if (!value) return null;
-        const displayValue = formatSalaryValueWithJlptIfRange(value);
+        const displayValue = formatJobSalaryDisplay(formatSalaryValueWithJlptIfRange(value), jobCurrency);
         return `${getSalaryTypeLabel(sr.type)}: ${displayValue}`;
       })
       .filter(Boolean);
@@ -1811,6 +1815,7 @@ const mockJobs = [
       salary: salaryText,
       commission: commissionText,
       commissionTiers,
+      commissionBannerLabel: resolveCommissionBannerLabel(job, { useAdminAPI, language }),
       hideCommissionConditionLabel: !!hideCommissionConditionLabel,
       isCommissionFromCampaign,
       isInCampaign,
@@ -2317,13 +2322,7 @@ const mockJobs = [
                               }}
                             >
                               <span className="line-clamp-3">
-                                {useAdminAPI
-                                  ? (language === 'vi' ? 'Phí giới thiệu JobShare nhận từ khách hàng' : language === 'en' ? 'Referral fee (JS receives)' : '紹介料（JS受取）')
-                                  : (language === 'vi'
-                                    ? 'Phí giới thiệu dự kiến của bạn'
-                                    : language === 'en'
-                                    ? 'Estimated referral fee for you'
-                                    : '想定紹介料（あなた）')}
+                                {job.commissionBannerLabel ?? resolveCommissionBannerLabel(job, { useAdminAPI, language })}
                               </span>
                             </div>
                             {/* Right: condition + amount */}
@@ -2393,13 +2392,7 @@ const mockJobs = [
                               }}
                             >
                               <span className="line-clamp-2">
-                                {useAdminAPI
-                                  ? (language === 'vi' ? 'Phí giới thiệu JobShare nhận từ khách hàng' : language === 'en' ? 'Referral fee (JS receives)' : '紹介料（JS受取）')
-                                  : (language === 'vi'
-                                    ? 'Phí giới thiệu dự kiến của bạn'
-                                    : language === 'en'
-                                    ? 'Estimated referral fee for you'
-                                    : '想定紹介料（あなた）')}
+                                {job.commissionBannerLabel ?? resolveCommissionBannerLabel(job, { useAdminAPI, language })}
                               </span>
                             </div>
                             <div

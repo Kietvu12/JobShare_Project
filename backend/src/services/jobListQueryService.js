@@ -69,7 +69,8 @@ const LIST_JOB_ATTRIBUTES = [
   'createdAt',
   'updatedAt',
   'recruitmentType',
-  'interviewLocation'
+  'interviewLocation',
+  'salaryCurrency'
 ];
 
 function clampLimit(raw) {
