@@ -175,3 +175,28 @@ export const isCvUnavailableForNomination = (cv) => {
   if (cv.isDuplicate || cv.is_duplicate) return true;
   return !getCVStatus(cv.status).canNominate;
 };
+
+/** Parse id dương từ string/number (query, form). */
+export function parsePositiveIntId(value) {
+  if (value == null || value === '') return null;
+  const n = parseInt(String(value), 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** Hồ sơ thuộc CTV (cv_storages.collaborator_id). */
+export function cvBelongsToCollaborator(cv, collaboratorId) {
+  const cid = parsePositiveIntId(collaboratorId);
+  if (cid == null) return true;
+  const cvCid = parsePositiveIntId(cv?.collaboratorId ?? cv?.collaborator?.id);
+  return cvCid === cid;
+}
+
+/**
+ * Lọc hồ sơ có thể chọn khi tiến cử: chỉ hồ sơ hợp lệ (status=1), không trùng / quá hạn.
+ */
+export function filterManagedCvsForCollaborator(cvs, { collaboratorId } = {}) {
+  return (Array.isArray(cvs) ? cvs : []).filter((cv) => {
+    if (!cvBelongsToCollaborator(cv, collaboratorId)) return false;
+    return !isCvUnavailableForNomination(cv);
+  });
+}

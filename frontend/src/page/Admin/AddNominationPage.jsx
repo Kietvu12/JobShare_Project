@@ -9,6 +9,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import apiService from '../../services/api';
 import CvFilePreview from '../../component/Admin/CvFilePreview';
 import { getJobApplicationStatus, getJobApplicationStatusOptions, getJobApplicationStatusLabelByLanguage } from '../../utils/jobApplicationStatus';
+import { filterManagedCvsForCollaborator, parsePositiveIntId } from '../../utils/cvStatus';
 import { useLanguage } from '../../context/LanguageContext';
 import {
   ArrowLeft,
@@ -566,14 +567,17 @@ const AdminAddNominationPage = () => {
   const loadCandidates = async (collaboratorId = null, search = '') => {
     try {
       setCandidatesLoading(true);
+      const cid = parsePositiveIntId(collaboratorId);
       const params = {
-        limit: 50,
+        limit: 100,
         sortBy: 'updatedAt',
         sortOrder: 'desc',
+        // Chỉ hồ sơ hợp lệ (status=1)
+        status: '1',
       };
 
-      if (collaboratorId) {
-        params.collaboratorId = parseInt(collaboratorId, 10);
+      if (cid != null) {
+        params.collaboratorId = cid;
       }
 
       const searchTrim = (search ?? '').trim();
@@ -583,7 +587,10 @@ const AdminAddNominationPage = () => {
 
       const response = await apiService.getAdminCVs(params);
       if (response.success && response.data) {
-        setCandidates(response.data.cvs || []);
+        const list = filterManagedCvsForCollaborator(response.data.cvs || [], {
+          collaboratorId: cid,
+        });
+        setCandidates(list);
       } else {
         setCandidates([]);
       }
@@ -1020,9 +1027,11 @@ const AdminAddNominationPage = () => {
   };
 
   const handleCollaboratorSelect = (collaborator) => {
+    const selectedId = parsePositiveIntId(collaborator?.id);
+    setCandidates([]);
     setFormData(prev => ({
       ...prev,
-      collaboratorId: collaborator.id,
+      collaboratorId: selectedId != null ? String(selectedId) : '',
       collaboratorName: collaborator.name,
       candidateId: '',
       candidateName: '',
@@ -1039,6 +1048,7 @@ const AdminAddNominationPage = () => {
   };
 
   const handleCollaboratorClear = () => {
+    setCandidates([]);
     setFormData(prev => ({
       ...prev,
       collaboratorId: '',
