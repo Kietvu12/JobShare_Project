@@ -556,6 +556,20 @@ export function generateCvTemplateHtml(cv, options = {}) {
 
   // Helper data cho layout IT/Technical (Rirekisho IT) – số dòng 職歴 theo workExperiences, mặc định 1 dòng
   const itWorkCount = Math.max(1, (d.workExperiences || []).length);
+  const formatRirekiPeriodStackHtml = (w = {}) => {
+    const startRaw = w.start_date || [w.startYear, w.startMonth].filter(Boolean).join('/');
+    const endRaw = w.endCurrent ? '現在' : (w.end_date || [w.endYear, w.endMonth].filter(Boolean).join('/'));
+    const startParsed = parseApiDateToYearMonth(startRaw);
+    const endParsed = parseApiDateToYearMonth(endRaw);
+    const endCurrent = w.endCurrent || String(endRaw).includes('現在');
+    const startDisplay = formatCvYearMonthJa(w.startYear, w.startMonth)
+      || formatCvYearMonthJa(startParsed.year, startParsed.month) || '　';
+    const endDisplay = endCurrent
+      ? '現在'
+      : (formatCvYearMonthJa(w.endYear, w.endMonth)
+        || formatCvYearMonthJa(endParsed.year, endParsed.month) || '　');
+    return `<div style="text-align:center;line-height:1.35;white-space:nowrap"><div>${esc(startDisplay)}</div><div>～</div><div>${esc(endDisplay)}</div></div>`;
+  };
   const itWorkRows = Array.from({ length: itWorkCount }, (_, i) => {
     const w = (d.workExperiences || [])[i] || {};
     const startRaw = w.start_date || [w.startYear, w.startMonth].filter(Boolean).join('/');
@@ -564,7 +578,7 @@ export function generateCvTemplateHtml(cv, options = {}) {
     const companyName = (w.company_name || '').replace(/\s*入社\s*$|\s*退社\s*$/g, '').trim() || '';
     const employmentPlace = w.employmentPlace || w.employment_place || w.work_location || w.location || '';
     const companyRole = w.companyRole || w.company_role || w.position_role || w.position_name || w.position || '';
-    return { period, company_name: companyName, description: companyRole, employmentPlace };
+    return { period, periodHtml: formatRirekiPeriodStackHtml(w), company_name: companyName, description: companyRole, employmentPlace };
   });
   const toolsNotes = d.toolsSoftwareNotes || {};
   const toolsNotesLearned = toolsNotes.learned || {};
@@ -615,7 +629,7 @@ export function generateCvTemplateHtml(cv, options = {}) {
   };
   const certItVisibleRowCount = ['jlpt', 'toeic', 'ielts', 'driving'].filter(hasFixedCertData).length;
   const certItTitleRowSpan = certItVisibleRowCount + 1;
-  const certItColPercents = [12, 8, 8, 8, 8, 8, 48];
+  const certItColPercents = [12, 14, 8, 8, 8, 8, 42];
   const labelColWidth = '14%'; // left section label column width (IT tables)
   /** 日本滞在目的 — đồng bộ 在留資格 từ form (không còn checkbox cố định). */
   const stayPurposeDisplay = d.jpResidenceStatus || d.stayPurpose || '';
@@ -966,57 +980,70 @@ ${(() => {
     </tbody>
   </table>
 
-  <div style="border:1px solid #1f2937;padding:2px 0 0 0;margin-bottom:8px">
-    <div style="border:1px solid #1f2937;border-left:none;border-right:none;padding:6px 8px;text-align:center;font-weight:bold;background:#e2efd9">職務経歴</div>
-    ${(() => {
+  <div style="border:1px solid #1f2937;margin-bottom:8px">
+    <div style="padding:6px 8px;text-align:center;font-weight:bold;background:#e2efd9;border-bottom:1px solid #1f2937">職務経歴</div>
+    ${openFixedTable(layoutMap, L('shokumu', 'workGrid_v1'), [18, 34, 34, 14], 'font-size:10px;width:100%')}
+      <tbody>
+${(() => {
       const list = d.workExperiences || [];
       const blockCount = Math.max(1, d.workHistoryCount ?? list.length);
       const labels = ['【職歴１】', '【職歴２】', '【職歴３】'];
-      const defaultPeriods = ['2016 年 6 月～2018 年 6 月 (例)', '2018 年 6 月～2022 年 6 月 (例)', '2022 年 6 月～現在 (例)'];
-      const formatWorkPeriodDisplay = (row = {}) => {
-        const startLabel = row.start_date || [row.startYear, row.startMonth].filter(Boolean).join('/');
-        const endLabel = row.endCurrent ? '現在' : (row.end_date || [row.endYear, row.endMonth].filter(Boolean).join('/'));
-        return formatShokumuPeriodRangeJa(startLabel, endLabel) || formatShokumuPeriodCell(`${startLabel}～${endLabel}`) || (startLabel && endLabel ? `${startLabel}～${endLabel}` : '') || '';
+      const defaultStartYms = ['2016 年 6 月', '2018 年 6 月', '2022 年 6 月'];
+      const defaultEndYms = ['2018 年 6 月', '2022 年 6 月', '現在'];
+      const formatWorkPeriodStackHtml = (row = {}, blockIndex = 0) => {
+        const startRaw = row.start_date || [row.startYear, row.startMonth].filter(Boolean).join('/');
+        const endRaw = row.endCurrent ? '現在' : (row.end_date || [row.endYear, row.endMonth].filter(Boolean).join('/'));
+        const startParsed = parseApiDateToYearMonth(startRaw);
+        const endParsed = parseApiDateToYearMonth(endRaw);
+        const endCurrent = row.endCurrent || String(endRaw).includes('現在');
+        const startDisplay = formatCvYearMonthJa(row.startYear, row.startMonth)
+          || formatCvYearMonthJa(startParsed.year, startParsed.month)
+          || defaultStartYms[blockIndex]
+          || '　';
+        const endDisplay = endCurrent
+          ? '現在'
+          : (formatCvYearMonthJa(row.endYear, row.endMonth)
+            || formatCvYearMonthJa(endParsed.year, endParsed.month)
+            || defaultEndYms[blockIndex]
+            || '　');
+        return `<div style="text-align:center;line-height:1.35;white-space:nowrap"><div>${esc(startDisplay)}</div><div>～</div><div>${esc(endDisplay)}</div></div>`;
       };
+      const cellBorder = (last) => `border-top:none;border-left:none;border-bottom:1px solid #1f2937;border-right:${last ? 'none' : '1px solid #1f2937'}`;
       return Array.from({ length: blockCount }, (_, blockIndex) => {
         const emp = list[blockIndex] || {};
         const label = labels[blockIndex] || `【職歴${blockIndex + 1}】`;
         const pd = defaultPeriods[blockIndex] || '';
         const companyFallback = emp.company_name || emp.companyName || emp.company || emp.companyKanji || emp.companyJa || '';
         const positionFallback = emp.companyRole || emp.company_role || emp.position_role || emp.position_name || emp.positionName || emp.position || emp.role || emp.jobTitle || '';
-        const locationFallback = emp.location || emp.workLocation || emp.work_location || '';
-        const periodFallback = formatWorkPeriodDisplay(emp) || pd;
+        const locationFallback = emp.location || emp.workLocation || emp.work_location || emp.employmentPlace || emp.employment_place || '';
+        const periodHtml = formatWorkPeriodStackHtml(emp, blockIndex);
+        const descParts = [
+          emp.business_purpose ? `【事業内容】${emp.business_purpose}` : '',
+          emp.description ? `【担当業務】${emp.description}` : '',
+          emp.scale_role ? `【規模・役割】${emp.scale_role}` : '',
+          emp.reason_for_leaving ? `【退職理由】${emp.reason_for_leaving}` : '',
+        ].filter(Boolean).join('\\n');
         return `
-          <div style="padding:0;margin:0 0 8px 0">
-            <table style="width:100%;border-collapse:collapse;font-size:10px;table-layout:fixed">
-              <colgroup>
-                <col style="width:11%" />
-                <col style="width:40%" />
-                <col style="width:37%" />
-                <col style="width:12%" />
-              </colgroup>
-              <tbody>
-                <tr>
-                  <td style="border:1px solid #1f2937;padding:4px 6px;text-align:center;background:#e5e7eb">${esc(label)}</td>
-                  <td style="border:1px solid #1f2937;padding:4px 6px;text-align:center;background:#e5e7eb">${orBlank(companyFallback)}</td>
-                  <td style="border:1px solid #1f2937;padding:4px 6px;text-align:center;background:#e5e7eb">${orBlank(positionFallback)}</td>
-                  <td style="border:1px solid #1f2937;padding:4px 6px;text-align:center;background:#e5e7eb">${orBlank(locationFallback)}</td>
-                </tr>
-                <tr>
-                  <td style="border:1px solid #1f2937;padding:4px 6px;text-align:center;background:#fff">期間</td>
-                  <td colspan="2" style="border:1px solid #1f2937;padding:4px 6px;text-align:center;background:#fff">業務内容</td>
-                  <td style="border:1px solid #1f2937;padding:4px 6px;text-align:center;background:#fff">使用ツール</td>
-                </tr>
-                <tr>
-                  <td style="border:1px solid #1f2937;padding:6px;text-align:center;vertical-align:middle;background:#fff;white-space:pre-wrap">${orBlank(periodFallback)}</td>
-                  <td colspan="2" style="border:1px solid #1f2937;padding:6px;vertical-align:top;background:#fff;white-space:pre-wrap">${orBlank(emp.description)}</td>
-                  <td style="border:1px solid #1f2937;padding:6px;vertical-align:top;background:#fff;white-space:pre-wrap">${orBlank(emp.tools_tech)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>`;
+        <tr>
+          <td style="${cellBorder(false)};padding:4px 6px;text-align:center;background:#e5e7eb">${esc(label)}</td>
+          <td style="${cellBorder(false)};padding:4px 6px;text-align:center;background:#e5e7eb">${orBlank(companyFallback)}</td>
+          <td style="${cellBorder(false)};padding:4px 6px;text-align:center;background:#e5e7eb">${orBlank(positionFallback)}</td>
+          <td style="${cellBorder(true)};padding:4px 6px;text-align:center;background:#e5e7eb">${orBlank(locationFallback)}</td>
+        </tr>
+        <tr>
+          <td style="${cellBorder(false)};padding:4px 6px;text-align:center;background:#fff">期間</td>
+          <td colspan="2" style="${cellBorder(false)};padding:4px 6px;text-align:center;background:#fff">業務内容</td>
+          <td style="${cellBorder(true)};padding:4px 6px;text-align:center;background:#fff">使用ツール</td>
+        </tr>
+        <tr>
+          <td style="${cellBorder(false)};padding:6px;text-align:center;vertical-align:middle;background:#fff">${periodHtml}</td>
+          <td colspan="2" style="${cellBorder(false)};padding:6px;vertical-align:top;background:#fff;white-space:pre-wrap">${orBlank(descParts || emp.description)}</td>
+          <td style="${cellBorder(true)};padding:6px;vertical-align:top;background:#fff;white-space:pre-wrap">${orBlank(emp.tools_tech)}</td>
+        </tr>`;
       }).join('');
     })()}
+      </tbody>
+    </table>
   </div>
 
   <table style="width:100%;border-collapse:collapse;margin-top:8px;margin-bottom:16px;font-size:10px">
@@ -1050,7 +1077,7 @@ ${(() => {
   const rirekishoPartIt = `
 <!-- RIREKISHO (IT/Technical layout) — không viền ngoài; chỉ viền theo từng bảng như template chung -->
 <div style="max-width:100%;font-size:11px;color:#1f2937;overflow:visible;font-family:${FONT_MINCHO}">
-  ${openFixedTable(layoutMap, L('rirekisho', 'personalGrid'), [7, 18, 7, 11, 6, 9, 42], 'font-size:10px;border:1px solid #1f2937;width:100%')}
+  ${openFixedTable(layoutMap, L('rirekisho', 'personalGrid_v3'), [10, 25, 8, 15, 10, 14, 18], 'font-size:10px;border:1px solid #1f2937;width:100%')}
     <tr>
       <td colspan="7" style="border:1px solid #1f2937;padding:6px;text-align:center;font-weight:bold;background:#e2efd9;font-size:14px">履歴書</td>
     </tr>
@@ -1059,10 +1086,10 @@ ${(() => {
       <td style="border:1px solid #1f2937;padding:4px;width:26%">${orBlank(d.nameKana)}</td>
       <td style="border:1px solid #1f2937;padding:4px;width:9%;background:#e2efd9;text-align:center">生年月日</td>
       <td style="border:1px solid #1f2937;padding:4px;width:18%">${d.birthDate ? esc(formatCvBirthDateJa(d.birthDate) || d.birthDate) : '　'}</td>
-      <td style="border:1px solid #1f2937;padding:4px;width:8%;background:#e2efd9;text-align:center">年齢</td>
+      <td style="border:1px solid #1f2937;padding:4px;background:#e2efd9;text-align:center;white-space:nowrap">年齢</td>
       <td style="border:1px solid #1f2937;padding:4px;width:10%">${orBlank(d.age)}</td>
-      <td rowspan="5" style="border:1px solid #1f2937;padding:4px;width:20%;text-align:center;vertical-align:middle">
-        <div style="width:3cm;height:4cm;margin:0 auto;overflow:hidden;display:block;border:1px solid #d1d5db">
+      <td rowspan="5" style="border:1px solid #1f2937;padding:4px;width:18%;text-align:center;vertical-align:middle">
+        <div style="width:2.75cm;height:3.65cm;margin:0 auto;overflow:hidden;display:block;border:1px solid #d1d5db">
         <img id="cv-avatar-photo" src="${avatarDataUrl || avatarPlaceholderDataUrl}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;image-rendering:auto" />
         </div>
       </td>
@@ -1072,7 +1099,7 @@ ${(() => {
       <td style="border:1px solid #1f2937;padding:4px">${orBlank(d.nameKanji)}</td>
       <td style="border:1px solid #1f2937;padding:4px;background:#e2efd9;text-align:center">性別</td>
       <td style="border:1px solid #1f2937;padding:4px">${orBlank(d.gender)}</td>
-      <td style="border:1px solid #1f2937;padding:4px;background:#e2efd9;text-align:center">パスポート</td>
+      <td style="border:1px solid #1f2937;padding:4px;background:#e2efd9;text-align:center;white-space:nowrap">パスポート</td>
       <td style="border:1px solid #1f2937;padding:4px">${orBlank(d.passport)}</td>
     </tr>
     <tr>
@@ -1080,7 +1107,7 @@ ${(() => {
       <td style="border:1px solid #1f2937;padding:4px">${orBlank(d.email)}</td>
       <td style="border:1px solid #1f2937;padding:4px;background:#e2efd9;text-align:center">電話</td>
       <td style="border:1px solid #1f2937;padding:4px">${orBlank(d.phone)}</td>
-      <td style="border:1px solid #1f2937;padding:4px;background:#e2efd9;text-align:center">Skype ID</td>
+      <td style="border:1px solid #1f2937;padding:4px;background:#e2efd9;text-align:center;white-space:nowrap">Skype ID</td>
       <td style="border:1px solid #1f2937;padding:4px">${orBlank(d.skypeId)}</td>
     </tr>
     <tr>
@@ -1088,7 +1115,7 @@ ${(() => {
       <td style="border:1px solid #1f2937;padding:4px">${(d.postalCode ? '〒' + esc(d.postalCode) + ' ' : '') + orBlank(d.address)}</td>
       <td style="border:1px solid #1f2937;padding:4px;background:#e2efd9;text-align:center">出身地</td>
       <td style="border:1px solid #1f2937;padding:4px">${orBlank(d.addressOrigin)}</td>
-      <td style="border:1px solid #1f2937;padding:4px;background:#e2efd9;text-align:center">配偶者</td>
+      <td style="border:1px solid #1f2937;padding:4px;background:#e2efd9;text-align:center;white-space:nowrap">配偶者</td>
       <td style="border:1px solid #1f2937;padding:4px">${orBlank(d.hasSpouse)}</td>
     </tr>
     <tr>
@@ -1096,7 +1123,7 @@ ${(() => {
       <td colspan="3" style="border:1px solid #1f2937;padding:4px">
         ${orBlank(stayPurposeDisplay)}
       </td>
-      <td style="border:1px solid #1f2937;padding:4px;background:#e2efd9;text-align:center">ビザの期限</td>
+      <td style="border:1px solid #1f2937;padding:4px;background:#e2efd9;text-align:center;white-space:nowrap">ビザの期限</td>
       <td style="border:1px solid #1f2937;padding:4px">${visaFormatted}</td>
     </tr>
   </table>
@@ -1130,45 +1157,45 @@ ${(() => {
   </table>
 
   <!-- 外国語の会話レベル -->
-  ${openFixedTable(layoutMap, L('rirekisho', 'languages'), [12, 14, 14, 14, 24, 22], 'font-size:10px;border:1px solid #1f2937;margin-top:8px;width:100%')}
+  ${openFixedTable(layoutMap, L('rirekisho', 'languages_v2'), [12, 18, 18, 18, 18, 16], 'font-size:10px;border:1px solid #1f2937;margin-top:8px;width:100%')}
     <tr>
       <td rowspan="4" style="border:1px solid #1f2937;padding:6px;text-align:center;width:${labelColWidth};background:#e2efd9">外国語の会話レベル</td>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">日本語</td>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">英語</td>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">その他 ( )</td>
-      <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9;width:22%">言語スキル補足説明</td>
-      <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9;width:22%">備考</td>
+      <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9;width:18%">言語スキル補足説明</td>
+      <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9;width:16%">備考</td>
     </tr>
     <tr>
-      <td style="border-top:1px solid #1f2937;border-left:1px solid #1f2937;border-right:1px solid #1f2937;padding:4px">${convLabel(d.jpConversationLevel, 'native', 'ネイティブ')}</td>
-      <td style="border-top:1px solid #1f2937;border-left:1px solid #1f2937;border-right:1px solid #1f2937;padding:4px">${convLabel(d.enConversationLevel, 'native', 'ネイティブ')}</td>
-      <td style="border-top:1px solid #1f2937;border-left:1px solid #1f2937;border-right:1px solid #1f2937;padding:4px">${convLabel(d.otherConversationLevel, 'native', 'ネイティブ')}</td>
+      <td style="border-top:1px solid #1f2937;border-left:1px solid #1f2937;border-right:1px solid #1f2937;padding:4px;white-space:nowrap">${convLabel(d.jpConversationLevel, 'native', 'ネイティブ')}</td>
+      <td style="border-top:1px solid #1f2937;border-left:1px solid #1f2937;border-right:1px solid #1f2937;padding:4px;white-space:nowrap">${convLabel(d.enConversationLevel, 'native', 'ネイティブ')}</td>
+      <td style="border-top:1px solid #1f2937;border-left:1px solid #1f2937;border-right:1px solid #1f2937;padding:4px;white-space:nowrap">${convLabel(d.otherConversationLevel, 'native', 'ネイティブ')}</td>
       <td rowspan="3" style="border:1px solid #1f2937;padding:4px;vertical-align:top">${d.jlptLevel ? (String(d.jlptLevel).startsWith('N') ? orBlank(d.jlptLevel) : orBlank('N' + d.jlptLevel)) : '　'}</td>
       <td rowspan="3" style="border:1px solid #1f2937;padding:4px;vertical-align:top">${orBlank(d.notes)}</td>
     </tr>
     <tr>
-      <td style="border-left:1px solid #1f2937;border-right:1px solid #1f2937;padding:4px">${convLabel(d.jpConversationLevel, 'business', 'ビジネス')}</td>
-      <td style="border-left:1px solid #1f2937;border-right:1px solid #1f2937;padding:4px">${convLabel(d.enConversationLevel, 'business', 'ビジネス')}</td>
-      <td style="border-left:1px solid #1f2937;border-right:1px solid #1f2937;padding:4px">${convLabel(d.otherConversationLevel, 'business', 'ビジネス')}</td>
+      <td style="border-left:1px solid #1f2937;border-right:1px solid #1f2937;padding:4px;white-space:nowrap">${convLabel(d.jpConversationLevel, 'business', 'ビジネス')}</td>
+      <td style="border-left:1px solid #1f2937;border-right:1px solid #1f2937;padding:4px;white-space:nowrap">${convLabel(d.enConversationLevel, 'business', 'ビジネス')}</td>
+      <td style="border-left:1px solid #1f2937;border-right:1px solid #1f2937;padding:4px;white-space:nowrap">${convLabel(d.otherConversationLevel, 'business', 'ビジネス')}</td>
     </tr>
     <tr>
-      <td style="border-left:1px solid #1f2937;border-right:1px solid #1f2937;border-bottom:1px solid #1f2937;padding:4px">${convLabel(d.jpConversationLevel, 'daily', '日常会話')}</td>
-      <td style="border-left:1px solid #1f2937;border-right:1px solid #1f2937;border-bottom:1px solid #1f2937;padding:4px">${convLabel(d.enConversationLevel, 'daily', '日常会話')}</td>
-      <td style="border-left:1px solid #1f2937;border-right:1px solid #1f2937;border-bottom:1px solid #1f2937;padding:4px">${convLabel(d.otherConversationLevel, 'daily', '日常会話')}</td>
+      <td style="border-left:1px solid #1f2937;border-right:1px solid #1f2937;border-bottom:1px solid #1f2937;padding:4px;white-space:nowrap">${convLabel(d.jpConversationLevel, 'daily', '日常会話')}</td>
+      <td style="border-left:1px solid #1f2937;border-right:1px solid #1f2937;border-bottom:1px solid #1f2937;padding:4px;white-space:nowrap">${convLabel(d.enConversationLevel, 'daily', '日常会話')}</td>
+      <td style="border-left:1px solid #1f2937;border-right:1px solid #1f2937;border-bottom:1px solid #1f2937;padding:4px;white-space:nowrap">${convLabel(d.otherConversationLevel, 'daily', '日常会話')}</td>
     </tr>
   </table>
 
   ${certItVisibleRowCount > 0 ? `
   <!-- 保有資格・免許等 -->
-  ${openFixedTable(layoutMap, L('rirekisho', 'certificates'), certItColPercents, 'font-size:10px;border:1px solid #1f2937;margin-top:8px;width:100%')}
+  ${openFixedTable(layoutMap, L('rirekisho', 'certificates_v2'), certItColPercents, 'font-size:10px;border:1px solid #1f2937;margin-top:8px;width:100%')}
     <tr>
       <td rowspan="${certItTitleRowSpan}" style="border:1px solid #1f2937;padding:6px;text-align:center;width:${labelColWidth};background:#e2efd9">保有資格・免許等</td>
-      <td style="border:1px solid #1f2937;padding:4px;width:12%;background:#e2efd9"></td>
+      <td style="border:1px solid #1f2937;padding:4px;background:#e2efd9"></td>
       <td colspan="4" style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">名称</td>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">取得年月</td>
     </tr>
     ${hasFixedCertData('jlpt') ? `<tr>
-      <td style="border:1px solid #1f2937;padding:4px;text-align:center">日本語検定</td>
+      <td style="border:1px solid #1f2937;padding:4px;text-align:center;white-space:nowrap">日本語検定</td>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center;width:6%">${jlptDisplay === 'N1' ? '■ N1' : '□ N1'}</td>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center;width:6%">${jlptDisplay === 'N2' ? '■ N2' : '□ N2'}</td>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center;width:6%">${jlptDisplay === 'N3' ? '■ N3' : '□ N3'}</td>
@@ -1176,21 +1203,21 @@ ${(() => {
       <td style="border:1px solid #1f2937;padding:4px;text-align:center">${orBlank(fixedCertYm('jlpt'))}</td>
     </tr>` : ''}
     ${hasFixedCertData('toeic') ? `<tr>
-      <td style="border:1px solid #1f2937;padding:4px;text-align:center">英語</td>
+      <td style="border:1px solid #1f2937;padding:4px;text-align:center;white-space:nowrap">英語</td>
       <td colspan="4" style="border:1px solid #1f2937;padding:4px;text-align:center">
         TOEIC ${d.toeicScore ? esc(d.toeicScore + '点') : '（　　　点）'}
       </td>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center">${orBlank(fixedCertYm('toeic'))}</td>
     </tr>` : ''}
     ${hasFixedCertData('ielts') ? `<tr>
-      <td style="border:1px solid #1f2937;padding:4px;text-align:center">英語</td>
+      <td style="border:1px solid #1f2937;padding:4px;text-align:center;white-space:nowrap">英語</td>
       <td colspan="4" style="border:1px solid #1f2937;padding:4px;text-align:center">
         IELTS ${d.ieltsScore ? esc(d.ieltsScore + '点') : '（　　　点）'}
       </td>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center">${orBlank(fixedCertYm('ielts'))}</td>
     </tr>` : ''}
     ${hasFixedCertData('driving') ? `<tr>
-      <td style="border:1px solid #1f2937;padding:4px;text-align:center">自動車免許</td>
+      <td style="border:1px solid #1f2937;padding:4px;text-align:center;white-space:nowrap">自動車免許</td>
       <td colspan="2" style="border:1px solid #1f2937;padding:4px;text-align:center">
         ${d.hasDrivingLicense === '1' || d.hasDrivingLicense === 'true' || d.hasDrivingLicense === '有る' ? '■ 有る' : '□ 有る'}
       </td>
@@ -1203,19 +1230,19 @@ ${(() => {
 ` : ''}${toolsTableHtml}
 
   <!-- 期間 / 勤務地 / 企業名 / ポジション・役割 -->
-  ${openFixedTable(layoutMap, L('rirekisho', 'employment'), [22, 20, 38, 20], 'font-size:10px;border:1px solid #1f2937;margin-top:8px;width:100%')}
+  ${openFixedTable(layoutMap, L('rirekisho', 'employment_v3'), [20, 22, 33, 25], 'font-size:10px;border:1px solid #1f2937;margin-top:8px;width:100%')}
     <tr>
-      <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9;width:10rem;max-width:10rem">期間</td>
-      <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9;min-width:9rem">勤務地</td>
-      <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9;min-width:14rem">企業名</td>
-      <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9;width:8rem;max-width:8rem">ポジション・役割</td>
+      <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">期間</td>
+      <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">勤務地</td>
+      <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">企業名</td>
+      <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">ポジション・役割</td>
     </tr>
     ${itWorkRows.map(row => `
     <tr>
-      <td style="border:1px solid #1f2937;padding:6px;text-align:center;vertical-align:middle;white-space:pre-wrap">${orBlank(row.period)}</td>
-      <td style="border:1px solid #1f2937;padding:6px;text-align:center;vertical-align:middle;white-space:pre-wrap">${orBlank(row.employmentPlace)}</td>
-      <td style="border:1px solid #1f2937;padding:6px;vertical-align:middle;white-space:pre-wrap">${orBlank(row.company_name)}</td>
-      <td style="border:1px solid #1f2937;padding:6px;vertical-align:middle;white-space:pre-wrap">${orBlank(row.description)}</td>
+      <td style="border:1px solid #1f2937;padding:6px;text-align:center;vertical-align:middle">${row.periodHtml}</td>
+      <td style="border:1px solid #1f2937;padding:6px;text-align:center;vertical-align:middle;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere">${orBlank(row.employmentPlace)}</td>
+      <td style="border:1px solid #1f2937;padding:6px;vertical-align:middle;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere">${orBlank(row.company_name)}</td>
+      <td style="border:1px solid #1f2937;padding:6px;vertical-align:middle;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere">${orBlank(row.description)}</td>
     </tr>
     `).join('')}
   </table>
@@ -1237,7 +1264,7 @@ ${(() => {
       <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9;line-height:1.2">備考</td>
     </tr>
     <tr>
-      <td style="border:1px solid #1f2937;padding:5px 8px;white-space:normal;font-size:10px;line-height:1.15">
+      <td style="border:1px solid #1f2937;padding:5px 8px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;font-size:10px;line-height:1.15">
         <div style="margin:0;line-height:1.15">・現年収: ${orBlank(d.currentSalary)}</div>
         <div style="margin:0;line-height:1.15">・希望年収: ${orBlank(d.desiredSalary)}</div>
         <div style="margin:0;line-height:1.15">・希望職種: ${orBlank(d.desiredPosition)}</div>

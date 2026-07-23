@@ -385,6 +385,12 @@ function sliceTotalPageHeightMm(sliceHeightMm) {
   return CV_PDF_MARGIN_MM.top + body + CV_PDF_MARGIN_MM.bottom;
 }
 
+/** Kích thước trang PDF — luôn portrait (cao >= rộng). Trang ngắn (vd. 本人希望記入欄) nếu không ép min height sẽ bị jsPDF/viewer đảo thành dải dọc hẹp. */
+function pdfPageFormatMm(sliceHeightMm) {
+  const pageHeight = sliceTotalPageHeightMm(sliceHeightMm);
+  return [A4_WIDTH_MM, Math.max(pageHeight, A4_HEIGHT_MM)];
+}
+
 function buildPdfSlices(sourceCanvas, paginationPlan, scale = 2) {
   const plan = paginationPlan || {};
   const captureScale = plan.scale || scale;
@@ -452,12 +458,12 @@ export function createPdfFromCanvas(sourceCanvas, paginationPlan, scale = 2) {
   const pdf = new jsPDF({
     unit: 'mm',
     compress: true,
-    format: [A4_WIDTH_MM, sliceTotalPageHeightMm(slices[0].sliceHeightMm)],
+    format: pdfPageFormatMm(slices[0].sliceHeightMm),
   });
   renderSliceOnPdf(pdf, slices[0]);
 
   for (let i = 1; i < slices.length; i += 1) {
-    pdf.addPage([A4_WIDTH_MM, sliceTotalPageHeightMm(slices[i].sliceHeightMm)], 'p');
+    pdf.addPage(pdfPageFormatMm(slices[i].sliceHeightMm), 'p');
     renderSliceOnPdf(pdf, slices[i]);
   }
 
@@ -471,7 +477,7 @@ export function addPagedCanvasToPdf(pdf, sourceCanvas, paginationPlan, scale = 2
   const slices = buildPdfSlices(sourceCanvas, paginationPlan, scale);
   slices.forEach((slice, i) => {
     if (i > 0 || addPageFirst) {
-      pdf.addPage([A4_WIDTH_MM, sliceTotalPageHeightMm(slice.sliceHeightMm)], 'p');
+      pdf.addPage(pdfPageFormatMm(slice.sliceHeightMm), 'p');
     }
     renderSliceOnPdf(pdf, slice);
   });

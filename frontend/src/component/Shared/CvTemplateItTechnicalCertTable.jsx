@@ -15,7 +15,7 @@ import {
   hasFixedCertData,
 } from '../../utils/cvFixedCertDisplay.js';
 
-const DEFAULT_CERT_COL_PERCENTS = [12, 8, 8, 8, 8, 8, 48];
+const DEFAULT_CERT_COL_PERCENTS = [12, 14, 8, 8, 8, 8, 42];
 const JLPT_LEVELS = ['N1', 'N2', 'N3', 'N4'];
 const CELL_BORDER = { borderColor: '#1f2937' };
 const HEADER_BG = { ...CELL_BORDER, backgroundColor: '#e2efd9' };
@@ -98,8 +98,8 @@ export default function CvTemplateItTechnicalCertTable({
     <ResizableCvTable
       className="w-full border-collapse mt-3 font-bold"
       style={{ fontSize: '11px', color: '#1f2937', borderColor: '#1f2937' }}
-      colPercents={colSaved('rirekisho', 'certificates', DEFAULT_CERT_COL_PERCENTS)}
-      layoutKey={cvLayoutKey(cvTpl, 'rirekisho', 'certificates')}
+      colPercents={colSaved('rirekisho', 'certificates_v2', DEFAULT_CERT_COL_PERCENTS)}
+      layoutKey={cvLayoutKey(cvTpl, 'rirekisho', 'certificates_v2')}
       onLayoutCommit={onCvTableLayoutCommit}
     >
       <tbody>
@@ -116,7 +116,7 @@ export default function CvTemplateItTechnicalCertTable({
               linkedFieldKeys={['addCandidate-certificates', 'jlptLevel', 'toeicScore', 'ieltsScore', 'hasDrivingLicense']}
             />
           </td>
-          <td className="border p-1.5 text-center font-medium" style={{ ...HEADER_BG, width: '6rem', minWidth: '6rem' }} />
+          <td className="border p-1.5 text-center font-medium" style={HEADER_BG} />
           <td colSpan={4} className="border p-1.5 text-center font-medium" style={HEADER_BG}>
             <SupplementTplText fieldKey={`tpl-${tplPrefix}-cert-h-name`} text="名称" supplementMarking={supplementMarking} className="select-text inline" />
           </td>
@@ -127,7 +127,7 @@ export default function CvTemplateItTechnicalCertTable({
 
         {showJlpt ? (
           <tr {...rowMeta('jlpt')}>
-            <td className="border p-1.5 text-center align-middle bg-white" style={{ ...CELL_BORDER, width: '6rem', minWidth: '6rem' }}>
+            <td className="border p-1.5 text-center align-middle bg-white whitespace-nowrap" style={CELL_BORDER}>
               <SupplementTplText fieldKey={`tpl-${tplPrefix}-cert-row-jlpt`} text="日本語検定" supplementMarking={supplementMarking} linkedFieldKeys={['jlptLevel']} className="select-text inline" />
             </td>
             {pdfExportMode ? (
@@ -166,8 +166,8 @@ export default function CvTemplateItTechnicalCertTable({
           <tr {...rowMeta('toeic')}>
             <td
               rowSpan={englishRowSpan}
-              className="border p-1.5 text-center align-middle bg-white"
-              style={{ ...CELL_BORDER, width: '6rem', minWidth: '6rem' }}
+              className="border p-1.5 text-center align-middle bg-white whitespace-nowrap"
+              style={CELL_BORDER}
             >
               <SupplementTplText fieldKey={`tpl-${tplPrefix}-cert-row-en`} text="英語" supplementMarking={supplementMarking} linkedFieldKeys={['toeicScore', 'ieltsScore']} className="select-text inline" />
             </td>
@@ -196,12 +196,12 @@ export default function CvTemplateItTechnicalCertTable({
         {showIelts ? (
           <tr {...rowMeta('ielts')}>
             {!pdfExportMode && !showToeic ? (
-              <td className="border p-1.5 text-center align-middle bg-white" style={{ ...CELL_BORDER, width: '6rem', minWidth: '6rem' }}>
+              <td className="border p-1.5 text-center align-middle bg-white whitespace-nowrap" style={CELL_BORDER}>
                 <SupplementTplText fieldKey={`tpl-${tplPrefix}-cert-row-en`} text="英語" supplementMarking={supplementMarking} linkedFieldKeys={['toeicScore', 'ieltsScore']} className="select-text inline" />
               </td>
             ) : null}
             {pdfExportMode ? (
-              <td className="border p-1.5 text-center align-middle bg-white" style={{ ...CELL_BORDER, width: '6rem', minWidth: '6rem' }}>
+              <td className="border p-1.5 text-center align-middle bg-white whitespace-nowrap" style={CELL_BORDER}>
                 <SupplementTplText fieldKey={`tpl-${tplPrefix}-cert-row-en`} text="英語" supplementMarking={supplementMarking} linkedFieldKeys={['toeicScore', 'ieltsScore']} className="select-text inline" />
               </td>
             ) : null}
@@ -229,7 +229,7 @@ export default function CvTemplateItTechnicalCertTable({
 
         {showDriving ? (
           <tr {...rowMeta('driving')}>
-            <td className="border p-1.5 text-center align-middle bg-white" style={{ ...CELL_BORDER, width: '6rem', minWidth: '6rem' }}>
+            <td className="border p-1.5 text-center align-middle bg-white whitespace-nowrap" style={CELL_BORDER}>
               <SupplementTplText
                 fieldKey={`tpl-${tplPrefix}-cert-row-drive`}
                 text="自動車免許"
