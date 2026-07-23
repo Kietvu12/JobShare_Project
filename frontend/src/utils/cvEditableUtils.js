@@ -55,13 +55,14 @@ export function restoreCvPreviewScrollPanel() {
 
   const panel = document.getElementById('add-candidate-panel-preview');
   if (panel) {
-    panel.querySelectorAll('.overflow-y-auto, .overflow-auto, .overflow-hidden').forEach((node) => {
+    panel.querySelectorAll('.overflow-y-auto, .overflow-auto, .overflow-hidden, .cv-preview-scroll').forEach((node) => {
       if (!(node instanceof HTMLElement)) return;
       node.style.overflow = '';
       node.style.overflowX = '';
       node.style.overflowY = '';
       node.style.height = '';
       node.style.maxHeight = '';
+      node.scrollLeft = 0;
     });
   }
 

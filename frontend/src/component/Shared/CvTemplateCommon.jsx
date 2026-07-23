@@ -264,8 +264,9 @@ const CvTemplateCommon = ({
   };
 
   const captureParts = pdfCaptureParts || ['rirekisho', 'shokumu'];
-  const showRirekisho = pdfExportMode ? captureParts.includes('rirekisho') : cvFormatTab === 'rirekisho';
-  const showShokumu = pdfExportMode ? captureParts.includes('shokumu') : cvFormatTab === 'shokumu';
+  const useCapturePartsVisibility = pdfExportMode || pdfCaptureParts != null;
+  const showRirekisho = useCapturePartsVisibility ? captureParts.includes('rirekisho') : cvFormatTab === 'rirekisho';
+  const showShokumu = useCapturePartsVisibility ? captureParts.includes('shokumu') : cvFormatTab === 'shokumu';
 
   return (
     <>
@@ -301,7 +302,7 @@ const CvTemplateCommon = ({
 
       {/* ===== 履歴書 ===== */}
       {showRirekisho && (
-        <div className="w-full" ref={pdfSectionRefs?.rirekisho} data-cv-pdf-section="rirekisho">
+        <div className="w-full min-w-0 max-w-full" ref={pdfSectionRefs?.rirekisho} data-cv-pdf-section="rirekisho">
           {!pdfExportMode && (
           <div className="flex items-center justify-end mb-2 cv-pdf-hide">
             <button
@@ -317,7 +318,7 @@ const CvTemplateCommon = ({
           </div>
           )}
           <div
-            className="mx-auto w-full cv-template-body"
+            className="mx-auto w-full min-w-0 max-w-full cv-template-body"
             style={{ fontSize: '11px', color: '#1f2937', fontFamily: "'MS Mincho', 'MS 明朝', 'Yu Mincho', 'Hiragino Mincho ProN', serif" }}
           >
             {/* Header */}
@@ -1143,11 +1144,11 @@ const CvTemplateCommon = ({
                       <SupplementTplText fieldKey="tpl-common-honin-kibo" text="本人希望記入欄" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-block6-prefs']} />
                     </div>
                     <ul className="mt-1 text-xs list-none space-y-0.5 pl-0">
-                      <li className="flex"><span className="mr-1">-</span><span className="text-gray-600"><SupplementTplText fieldKey="tpl-common-gen-nenshu-lbl" text="現在年収:" supplementMarking={supplementMarking} linkedFieldKeys={['label-currentSalary']} /></span><span className="ml-1" {...cvEditable('currentSalary', '', {}, sm('tpl-common-currentSalary', 'currentSalary'))} /></li>
-                      <li className="flex"><span className="mr-1">-</span><span className="text-gray-600"><SupplementTplText fieldKey="tpl-common-kibo-nenshu-lbl" text="希望年収:" supplementMarking={supplementMarking} linkedFieldKeys={['label-desiredSalary']} /></span><span className="ml-1" {...cvEditable('desiredSalary', '', {}, sm('tpl-common-desiredSalary', 'desiredSalary'))} /></li>
-                      <li className="flex"><span className="mr-1">-</span><span className="text-gray-600"><SupplementTplText fieldKey="tpl-common-kibo-shokushu-lbl" text="希望職種:" supplementMarking={supplementMarking} linkedFieldKeys={['label-desiredPosition']} /></span><span className="ml-1" {...cvEditable('desiredPosition', '', {}, sm('tpl-common-desiredPosition', 'desiredPosition'))} /></li>
-                      <li className="flex"><span className="mr-1">-</span><span className="text-gray-600"><SupplementTplText fieldKey="tpl-common-kibo-kinmuchu-lbl" text="希望勤務地:" supplementMarking={supplementMarking} linkedFieldKeys={['label-desiredLocation']} /></span><span className="ml-1" {...cvEditable('desiredLocation', '', {}, sm('tpl-common-desiredLocation', 'desiredLocation'))} /></li>
-                      <li className="flex"><span className="mr-1">-</span><span className="text-gray-600"><SupplementTplText fieldKey="tpl-common-kibo-nyusha-lbl" text="希望入社日:" supplementMarking={supplementMarking} linkedFieldKeys={['label-desiredStartDate']} /></span><span className="ml-1" {...cvEditable('desiredStartDate', '', {}, sm('tpl-common-desiredStartDate', 'desiredStartDate'))} /></li>
+                      <li className="flex flex-wrap items-start gap-x-1 min-w-0"><span className="mr-1 shrink-0">-</span><span className="text-gray-600 shrink-0"><SupplementTplText fieldKey="tpl-common-gen-nenshu-lbl" text="現在年収:" supplementMarking={supplementMarking} linkedFieldKeys={['label-currentSalary']} /></span><span className="ml-1 min-w-0 break-words" {...cvEditable('currentSalary', '', {}, sm('tpl-common-currentSalary', 'currentSalary'))} /></li>
+                      <li className="flex flex-wrap items-start gap-x-1 min-w-0"><span className="mr-1 shrink-0">-</span><span className="text-gray-600 shrink-0"><SupplementTplText fieldKey="tpl-common-kibo-nenshu-lbl" text="希望年収:" supplementMarking={supplementMarking} linkedFieldKeys={['label-desiredSalary']} /></span><span className="ml-1 min-w-0 break-words" {...cvEditable('desiredSalary', '', {}, sm('tpl-common-desiredSalary', 'desiredSalary'))} /></li>
+                      <li className="flex flex-wrap items-start gap-x-1 min-w-0"><span className="mr-1 shrink-0">-</span><span className="text-gray-600 shrink-0"><SupplementTplText fieldKey="tpl-common-kibo-shokushu-lbl" text="希望職種:" supplementMarking={supplementMarking} linkedFieldKeys={['label-desiredPosition']} /></span><span className="ml-1 min-w-0 break-words" {...cvEditable('desiredPosition', '', {}, sm('tpl-common-desiredPosition', 'desiredPosition'))} /></li>
+                      <li className="flex flex-wrap items-start gap-x-1 min-w-0"><span className="mr-1 shrink-0">-</span><span className="text-gray-600 shrink-0"><SupplementTplText fieldKey="tpl-common-kibo-kinmuchu-lbl" text="希望勤務地:" supplementMarking={supplementMarking} linkedFieldKeys={['label-desiredLocation']} /></span><span className="ml-1 min-w-0 break-words" {...cvEditable('desiredLocation', '', {}, sm('tpl-common-desiredLocation', 'desiredLocation'))} /></li>
+                      <li className="flex flex-wrap items-start gap-x-1 min-w-0"><span className="mr-1 shrink-0">-</span><span className="text-gray-600 shrink-0"><SupplementTplText fieldKey="tpl-common-kibo-nyusha-lbl" text="希望入社日:" supplementMarking={supplementMarking} linkedFieldKeys={['label-desiredStartDate']} /></span><span className="ml-1 min-w-0 break-words" {...cvEditable('desiredStartDate', '', {}, sm('tpl-common-desiredStartDate', 'desiredStartDate'))} /></li>
                     </ul>
                   </td>
                 </tr>

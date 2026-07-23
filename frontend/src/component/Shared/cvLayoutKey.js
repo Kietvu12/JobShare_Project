@@ -23,11 +23,11 @@ export const CV_LAYOUT_COMMON_SHOKUMU = {
 
 /** cv_it | cv_technical — rirekisho */
 export const CV_LAYOUT_IT_RIREKISHO = {
-  personalGrid: 'personalGrid',
+  personalGrid: 'personalGrid_v3',
   education: 'education',
-  languages: 'languages',
-  certificates: 'certificates',
-  employment: 'employment',
+  languages: 'languages_v2',
+  certificates: 'certificates_v2',
+  employment: 'employment_v3',
   itFooter: 'itFooter',
 };
 /** cv_technical only */

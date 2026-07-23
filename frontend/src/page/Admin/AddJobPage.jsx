@@ -80,8 +80,8 @@ const countryProvincesData = {
   'Other': [] // Cho phép nhập tùy chỉnh
 };
 
-const PARSE_JD_API_URL = 'https://test.ws-jobshare.com/api_ai/v2/parser/jd';
-const JD_TRANSLATE_API_URL = 'https://test.ws-jobshare.com/api_ai/v2/parser/jd/translate';
+const PARSE_JD_API_URL = 'https://ws-jobshare.com/api_ai/v2/parser/jd';
+const JD_TRANSLATE_API_URL = 'https://ws-jobshare.com/api_ai/v2/parser/jd/translate';
 const TAB_LANG_META = {
   vi: { suffix: '', code: 'vi' },
   en: { suffix: 'En', code: 'en' },

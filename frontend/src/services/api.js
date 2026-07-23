@@ -157,7 +157,7 @@ const getCurrentUserType = () => {
 };
 
 /** Base URL for AI matching (vector compare / reranking). Mặc định gọi thẳng server AI, không qua localhost. */
-const AI_API_BASE_DEFAULT = 'https://test.ws-jobshare.com/api_ai';
+const AI_API_BASE_DEFAULT = 'https://ws-jobshare.com/api_ai';
 
 /** Số kết quả match tối đa (query `top_k`). */
 const DEFAULT_AI_MATCH_TOP_K = 20;
@@ -3215,7 +3215,13 @@ const apiService = {
    * Admin CV (Candidate) APIs
    */
   getAdminCVs: async (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      if (typeof value === 'number' && Number.isNaN(value)) return;
+      qs.append(key, String(value));
+    });
+    const queryString = qs.toString();
     const response = await fetch(`${API_BASE_URL}/admin/cvs?${queryString}`, {
       method: 'GET',
       headers: getAuthHeaders()

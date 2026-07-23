@@ -81,20 +81,24 @@ function isCvPdfActionButton(btn) {
   return false;
 }
 
-/** Hàng chỉ chứa nút thêm/chèn — ẩn cả hàng. */
+/** Hàng chỉ chứa nút thêm/chèn — ẩn cả hàng. Không ẩn hàng có input/contenteditable (vd. 資格・免許). */
 function isCvPdfActionRow(tr) {
   if (!(tr instanceof HTMLTableRowElement)) return false;
   if (tr.closest('.cv-pdf-hide')) return false;
+
+  if (tr.querySelector('input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), [contenteditable=""], [contenteditable="true"], [contenteditable="plaintext-only"]')) {
+    return false;
+  }
 
   const buttons = Array.from(tr.querySelectorAll('button'));
   if (!buttons.length) return false;
 
   const rowText = (tr.textContent || '').replace(/\s+/g, ' ').trim();
   if (/^挿入$/.test(rowText) && buttons.length === 1) return true;
-  if (/行を追加/.test(rowText) && buttons.every(isCvPdfActionButton)) return true;
+  if (/^行を追加$/.test(rowText) && buttons.length === 1 && buttons.every(isCvPdfActionButton)) return true;
 
   return buttons.length > 0 && buttons.every(isCvPdfActionButton)
-    && /行を追加|挿入|プロジェクト|削除|追加/.test(rowText);
+    && /^(行を追加|挿入|プロジェクトを追加|削除|追加)$/.test(rowText);
 }
 
 /** Thay checkbox bằng ■/□ — modern-screenshot thường không vẽ trạng thái checked. */
@@ -153,6 +157,72 @@ function enhanceCheckboxForPdfCapture(input) {
   };
 }
 
+/** modern-screenshot thường không vẽ value của input text — thay bằng span trước khi chụp. */
+function enhanceTextInputForPdfCapture(input) {
+  if (!(input instanceof HTMLInputElement)) return null;
+  const type = (input.type || 'text').toLowerCase();
+  if (type === 'file' || type === 'checkbox' || type === 'radio' || type === 'hidden') return null;
+  if (input.closest('.cv-pdf-hide')) return null;
+
+  const value = String(input.value || '').trim();
+  const marker = document.createElement('span');
+  marker.dataset.cvPdfInputMarker = '1';
+  marker.setAttribute('aria-hidden', 'true');
+  marker.textContent = value || input.placeholder || '';
+  Object.assign(marker.style, {
+    display: 'inline-block',
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    background: 'transparent',
+    font: 'inherit',
+    fontSize: 'inherit',
+    lineHeight: 'inherit',
+    color: value ? '#1f2937' : '#9ca3af',
+    verticalAlign: 'baseline',
+    minWidth: '0',
+    textAlign: input.className.includes('text-center') ? 'center' : 'left',
+  });
+  if (input.className.includes('w-14')) marker.style.width = '3.5em';
+  else if (input.className.includes('w-12')) marker.style.width = '3em';
+  else if (input.className.includes('flex-1') || input.className.includes('min-w-[10rem]')) {
+    marker.style.flex = '1 1 auto';
+    marker.style.minWidth = '8rem';
+  }
+
+  const prev = {
+    visibility: input.style.visibility,
+    width: input.style.width,
+    height: input.style.height,
+    margin: input.style.margin,
+    padding: input.style.padding,
+    opacity: input.style.opacity,
+    position: input.style.position,
+  };
+
+  input.dataset.cvPdfInputEnhanced = '1';
+  input.style.visibility = 'hidden';
+  input.style.width = '0';
+  input.style.height = '0';
+  input.style.margin = '0';
+  input.style.padding = '0';
+  input.style.opacity = '0';
+  input.style.position = 'absolute';
+
+  input.parentNode?.insertBefore(marker, input);
+
+  return () => {
+    marker.remove();
+    delete input.dataset.cvPdfInputEnhanced;
+    input.style.visibility = prev.visibility;
+    input.style.width = prev.width;
+    input.style.height = prev.height;
+    input.style.margin = prev.margin;
+    input.style.padding = prev.padding;
+    input.style.opacity = prev.opacity;
+    input.style.position = prev.position;
+  };
+}
+
 function hideNodeForPdfCapture(node, restoreFns) {
   if (!(node instanceof HTMLElement) || node.dataset.cvPdfHiddenUi === '1') return;
   const prevDisplay = node.style.display;
@@ -172,7 +242,31 @@ function isScrollContainer(el) {
   return SCROLL_OVERFLOW_RE.test(`${cs.overflow} ${cs.overflowX} ${cs.overflowY}`);
 }
 
-/** Gỡ overflow scroll + ẩn scrollbar trước khi chụp DOM → tránh thanh scroll trong PDF. */
+function resetElementScrollPositions(root) {
+  if (!(root instanceof HTMLElement)) return [];
+  const restoreFns = [];
+  let node = root;
+  while (node && node !== document.documentElement) {
+    if (!(node instanceof HTMLElement)) {
+      node = node.parentElement;
+      continue;
+    }
+    const prevLeft = node.scrollLeft;
+    const prevTop = node.scrollTop;
+    if (prevLeft || prevTop) {
+      node.scrollLeft = 0;
+      node.scrollTop = 0;
+      restoreFns.push(() => {
+        node.scrollLeft = prevLeft;
+        node.scrollTop = prevTop;
+      });
+    }
+    node = node.parentElement;
+  }
+  return restoreFns;
+}
+
+/** Gỡ overflow scroll/hidden + ẩn scrollbar trước khi chụp DOM → tránh thanh scroll / cắt ngang trong PDF. */
 function suppressScrollbarsForCapture(root, restoreFns) {
   if (!(root instanceof HTMLElement)) return;
 
@@ -190,6 +284,38 @@ function suppressScrollbarsForCapture(root, restoreFns) {
       width: 0 !important;
       height: 0 !important;
     }
+    [data-cv-pdf-capture-root] .cv-resizable-table-wrap,
+    [data-cv-pdf-capture-root] .cv-template-body {
+      overflow: visible !important;
+      overflow-x: visible !important;
+      overflow-y: visible !important;
+      max-width: none !important;
+    }
+    [data-cv-pdf-capture-root] table {
+      border-collapse: collapse !important;
+    }
+    [data-cv-pdf-capture-root] tr {
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+    }
+    [data-cv-pdf-capture-root] td,
+    [data-cv-pdf-capture-root] th {
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow: visible !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      vertical-align: top !important;
+    }
+    [data-cv-pdf-capture-root] .cv-resizable-table-wrap [role="separator"] {
+      display: none !important;
+    }
+    [data-cv-pdf-capture-root] select {
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
   `;
   document.head.appendChild(styleEl);
   restoreFns.push(() => {
@@ -197,15 +323,19 @@ function suppressScrollbarsForCapture(root, restoreFns) {
     styleEl.remove();
   });
 
+  resetElementScrollPositions(root).reverse().forEach((fn) => restoreFns.push(fn));
+
   const patchNode = (node) => {
     if (!(node instanceof HTMLElement) || node.dataset.cvPdfScrollPatched === '1') return;
     node.dataset.cvPdfScrollPatched = '1';
 
+    const cs = getComputedStyle(node);
     const prev = {
       overflow: node.style.overflow,
       overflowX: node.style.overflowX,
       overflowY: node.style.overflowY,
       maxHeight: node.style.maxHeight,
+      maxWidth: node.style.maxWidth,
       height: node.style.height,
     };
     restoreFns.push(() => {
@@ -213,9 +343,13 @@ function suppressScrollbarsForCapture(root, restoreFns) {
       node.style.overflowX = prev.overflowX;
       node.style.overflowY = prev.overflowY;
       node.style.maxHeight = prev.maxHeight;
+      node.style.maxWidth = prev.maxWidth;
       node.style.height = prev.height;
       delete node.dataset.cvPdfScrollPatched;
     });
+
+    const scrollClass = /overflow-(x-auto|y-auto|auto|scroll|hidden|x-hidden)/.test(node.className);
+    const hidesOverflow = cs.overflowX === 'hidden' || cs.overflow === 'hidden';
 
     if (node === root) {
       node.style.overflow = 'visible';
@@ -225,12 +359,12 @@ function suppressScrollbarsForCapture(root, restoreFns) {
       return;
     }
 
-    const scrollClass = /overflow-(x-auto|y-auto|auto|scroll|hidden)/.test(node.className);
-    if (isScrollContainer(node) || scrollClass) {
+    if (isScrollContainer(node) || scrollClass || hidesOverflow || node.classList.contains('cv-resizable-table-wrap')) {
       node.style.overflow = 'visible';
       node.style.overflowX = 'visible';
       node.style.overflowY = 'visible';
       node.style.maxHeight = 'none';
+      node.style.maxWidth = 'none';
       if (/overflow-y-auto|overflow-auto|min-h-0/.test(node.className)) {
         node.style.height = 'auto';
       }
@@ -285,7 +419,51 @@ function suppressScrollableAncestors(element, restoreFns) {
   }
 }
 
+/** Gỡ chiều cao hàng cố định (kéo resize) — tránh nội dung tràn đè bảng bên dưới khi chụp. */
+function forceAutoTableLayoutForCapture(root, restoreFns) {
+  if (!(root instanceof HTMLElement)) return;
+  root.querySelectorAll('tr').forEach((tr) => {
+    const prev = {
+      height: tr.style.height,
+      minHeight: tr.style.minHeight,
+      maxHeight: tr.style.maxHeight,
+    };
+    tr.style.setProperty('height', 'auto', 'important');
+    tr.style.setProperty('min-height', '0', 'important');
+    tr.style.setProperty('max-height', 'none', 'important');
+    if (restoreFns) {
+      restoreFns.push(() => {
+        tr.style.height = prev.height;
+        tr.style.minHeight = prev.minHeight;
+        tr.style.maxHeight = prev.maxHeight;
+      });
+    }
+  });
+  root.querySelectorAll('td, th').forEach((cell) => {
+    const prev = {
+      height: cell.style.height,
+      minHeight: cell.style.minHeight,
+      maxHeight: cell.style.maxHeight,
+      overflow: cell.style.overflow,
+    };
+    cell.style.setProperty('height', 'auto', 'important');
+    cell.style.setProperty('min-height', '0', 'important');
+    cell.style.setProperty('max-height', 'none', 'important');
+    cell.style.setProperty('overflow', 'visible', 'important');
+    if (restoreFns) {
+      restoreFns.push(() => {
+        cell.style.height = prev.height;
+        cell.style.minHeight = prev.minHeight;
+        cell.style.maxHeight = prev.maxHeight;
+        cell.style.overflow = prev.overflow;
+      });
+    }
+  });
+}
+
 function applyFixedCertTablePdfLayout(root, restoreFns) {
+  // Client PDF: giữ layout giống preview — không ẩn dòng cert theo backend HTML.
+  if (root?.hasAttribute?.('data-cv-pdf-section') || root?.closest?.('.cv-pdf-capture-layer')) return;
   const wrap = root.querySelector('[data-cv-fixed-cert-table]');
   if (!wrap) return;
 
@@ -350,6 +528,13 @@ function preparePdfCaptureUi(root) {
     const restore = enhanceCheckboxForPdfCapture(input);
     if (restore) restoreFns.push(restore);
   });
+
+  root.querySelectorAll('input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"])').forEach((input) => {
+    const restore = enhanceTextInputForPdfCapture(input);
+    if (restore) restoreFns.push(restore);
+  });
+
+  forceAutoTableLayoutForCapture(root, restoreFns);
 
   return () => {
     restoreFns.reverse().forEach((fn) => fn());
@@ -534,6 +719,7 @@ function shouldIncludeNodeForCvCapture(node) {
   if (tag === 'BUTTON' && isCvPdfActionButton(el)) return false;
   if (el.closest?.('[data-cv-pdf-hidden-row="1"], [data-cv-pdf-hidden-btn="1"]')) return false;
   if (tag === 'INPUT' && el.type === 'checkbox' && el.dataset.cvPdfCheckboxEnhanced === '1') return false;
+  if (tag === 'INPUT' && el.dataset.cvPdfInputEnhanced === '1') return false;
   return true;
 }
 
@@ -596,6 +782,8 @@ async function captureElementToCanvas(element, scale = 2) {
         await new Promise((resolve) => setTimeout(resolve, 400));
         layoutReady = await waitForElementLayout([element], 2000);
       }
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      forceAutoTableLayoutForCapture(element);
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
       const { width, height } = measureCaptureDimensions(element, { prepare: false });

@@ -442,9 +442,12 @@ export const cvController = {
         }
       }
 
-      // Filter by collaborator
-      if (collaboratorId) {
-        where.collaboratorId = parseInt(collaboratorId);
+      // Filter by collaborator (cv_storages.collaborator_id)
+      if (collaboratorId !== undefined && collaboratorId !== null && collaboratorId !== '') {
+        const cid = parseInt(String(collaboratorId), 10);
+        if (Number.isFinite(cid) && cid > 0) {
+          where.collaboratorId = cid;
+        }
       }
 
       // cv_storages.admin_id — ai quản lý hồ sơ
