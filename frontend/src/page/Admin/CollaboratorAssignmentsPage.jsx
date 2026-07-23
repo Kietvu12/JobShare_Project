@@ -28,6 +28,8 @@ const CollaboratorAssignmentsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchParams] = useSearchParams();
   const headerSearch = searchParams.get('search') || '';
+  const collaboratorIdFilter = searchParams.get('collaboratorId') || '';
+  const [collaboratorFilterInfo, setCollaboratorFilterInfo] = useState(null);
   const [adminFilter, setAdminFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -97,7 +99,7 @@ const CollaboratorAssignmentsPage = () => {
     loadAssignments();
     loadAdmins();
     loadUnassignedCvStorages();
-  }, [currentPage, itemsPerPage, adminFilter, statusFilter, searchQuery]);
+  }, [currentPage, itemsPerPage, adminFilter, statusFilter, searchQuery, collaboratorIdFilter]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -237,6 +239,10 @@ const CollaboratorAssignmentsPage = () => {
         params.status = statusFilter;
       }
 
+      if (collaboratorIdFilter) {
+        params.collaboratorId = collaboratorIdFilter;
+      }
+
       const response = await apiService.getCollaboratorAssignments(params);
       if (response.success && response.data) {
         setAssignments(response.data.assignments || []);
@@ -272,7 +278,9 @@ const CollaboratorAssignmentsPage = () => {
       let page = 1;
       let hasMore = true;
       while (hasMore) {
-        const response = await apiService.getUnassignedCvStorages({ page, limit: 100 });
+        const params = { page, limit: 100 };
+        if (collaboratorIdFilter) params.collaboratorId = collaboratorIdFilter;
+        const response = await apiService.getUnassignedCvStorages(params);
         if (response.success && response.data) {
           const list = response.data.cvStorages || [];
           all = [...all, ...list];
@@ -405,6 +413,41 @@ const CollaboratorAssignmentsPage = () => {
       setBulkCvListLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!collaboratorIdFilter) {
+      setCollaboratorFilterInfo(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiService.getCollaboratorById(collaboratorIdFilter);
+        if (cancelled || !res.success || !res.data?.collaborator) return;
+        const collaborator = res.data.collaborator;
+        setCollaboratorFilterInfo(collaborator);
+        setShowBulkAssign(true);
+        setSelectedBulkCollaborator(collaborator);
+        setBulkCollaboratorSearch(collaborator.name || collaborator.email || collaborator.code || `CTV #${collaborator.id}`);
+        setBulkCvListLoading(true);
+        const cvRes = await apiService.getUnassignedCvStorages({
+          collaboratorId: collaborator.id,
+          limit: 1000,
+        });
+        if (cancelled) return;
+        const cvs = cvRes.success && cvRes.data ? (cvRes.data.cvStorages || []) : [];
+        setBulkCvList(cvs);
+        setSelectedCvStorageIds(new Set(cvs.map((cv) => cv.id).filter(Boolean)));
+      } catch (error) {
+        console.error('Error loading collaborator filter:', error);
+      } finally {
+        if (!cancelled) setBulkCvListLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [collaboratorIdFilter]);
 
   // Bulk helper: khi chọn 1 Admin (đang phụ trách CV), tự động lấy tất cả CV của Admin đó
   const handleSelectBulkOwnerAdmin = async (ownerAdmin) => {
@@ -571,6 +614,24 @@ const CollaboratorAssignmentsPage = () => {
             </div>
           </div>
         </div>
+
+        {collaboratorFilterInfo && (
+          <div className="rounded-lg border px-3 py-2 flex flex-wrap items-center justify-between gap-2" style={{ borderColor: '#bfdbfe', backgroundColor: '#eff6ff' }}>
+            <div className="text-xs" style={{ color: '#1e40af' }}>
+              {t.assignFilterByCtv || 'Đang lọc theo CTV'}:{' '}
+              <span className="font-semibold">{collaboratorFilterInfo.name || collaboratorFilterInfo.email}</span>
+              {collaboratorFilterInfo.code ? ` • ${collaboratorFilterInfo.code}` : ''}
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/admin/collaborator-assignments')}
+              className="text-[11px] font-semibold"
+              style={{ color: '#2563eb' }}
+            >
+              {t.assignClearCtvFilter || 'Bỏ lọc CTV'}
+            </button>
+          </div>
+        )}
 
         {/* Quick Assign Form */}
         <div className="rounded-lg p-3 border" style={{ backgroundColor: 'white', borderColor: '#e5e7eb' }}>
@@ -1313,6 +1374,7 @@ const CollaboratorAssignmentsPage = () => {
                           <thead>
                             <tr className="border-b" style={{ borderColor: '#e5e7eb' }}>
                               <th className="px-2.5 py-1.5 text-left font-semibold" style={{ color: '#374151' }}>{t.assignColCandidate || 'Hồ sơ ứng viên'}</th>
+                              <th className="px-2.5 py-1.5 text-left font-semibold" style={{ color: '#374151' }}>{t.assignColCollaborator || 'CTV'}</th>
                               <th className="px-2.5 py-1.5 text-left font-semibold" style={{ color: '#374151' }}>{t.assignColAssignedBy || 'Người phân công'}</th>
                               <th className="px-2.5 py-1.5 text-left font-semibold" style={{ color: '#374151' }}>{t.assignColAssignedDate || 'Ngày phân công'}</th>
                               <th className="px-2.5 py-1.5 text-left font-semibold" style={{ color: '#374151' }}>{t.assignColNotes || 'Ghi chú'}</th>
@@ -1343,6 +1405,14 @@ const CollaboratorAssignmentsPage = () => {
                                             {assignment.cvStorage?.email || '—'} {assignment.cvStorage?.code && `• ${assignment.cvStorage.code}`}
                                           </div>
                                         </div>
+                                      </div>
+                                    </td>
+                                    <td className="px-2.5 py-1.5">
+                                      <div className="text-[10px] sm:text-xs font-medium" style={{ color: '#111827' }}>
+                                        {assignment.cvStorage?.collaborator?.name || '—'}
+                                      </div>
+                                      <div className="text-[10px]" style={{ color: '#6b7280' }}>
+                                        {assignment.cvStorage?.collaborator?.code || assignment.cvStorage?.collaborator?.email || '—'}
                                       </div>
                                     </td>
                                     <td className="px-2.5 py-1.5">

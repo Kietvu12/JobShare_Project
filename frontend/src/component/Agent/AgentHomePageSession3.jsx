@@ -202,8 +202,8 @@ const AgentHomePageSession3 = () => {
           const nameEn = pickup.nameEn || pickup.name_en || pickup.titleEn || pickup.title_en || '';
           const nameJp = pickup.nameJp || pickup.name_jp || pickup.titleJp || pickup.title_jp || '';
           const description = pickup.description || pickup.content || pickup.summary || '';
-          const descriptionEn = pickup.descriptionEn || pickup.contentEn || pickup.summaryEn || '';
-          const descriptionJp = pickup.descriptionJp || pickup.contentJp || pickup.summaryJp || '';
+          const descriptionEn = pickup.descriptionEn || pickup.description_en || pickup.contentEn || pickup.summaryEn || '';
+          const descriptionJp = pickup.descriptionJp || pickup.description_jp || pickup.contentJp || pickup.summaryJp || '';
           const coverUrl = pickup.coverUrl || pickup.cover_url || pickup.thumbnail || pickup.thumbnailUrl || pickup.image || pickup.imageUrl || pickup.bannerUrl || pickup.banner_url || '';
           newData.push({
             id: `pickup-${pickup.id}`,
@@ -405,8 +405,8 @@ const AgentHomePageSession3 = () => {
   const getLocalizedItemDescription = (item) =>
     pickByLanguage(
       item?.description || item?.content || item?.summary || '',
-      item?.descriptionEn || item?.contentEn || item?.summaryEn || '',
-      item?.descriptionJp || item?.contentJp || item?.summaryJp || ''
+      item?.descriptionEn || item?.description_en || item?.contentEn || item?.summaryEn || '',
+      item?.descriptionJp || item?.description_jp || item?.contentJp || item?.summaryJp || ''
     );
 
   const hexToRgba = (hex, alpha = 0.16) => {
@@ -721,6 +721,8 @@ const AgentHomePageSession3 = () => {
   const hasInitialData = tableData.length > 0;
   const showInitialLoading = !error && !hasInitialData;
   const showInitialError = error && !hasInitialData;
+  const selectedPickupDescription =
+    selectedItem?.type === 'job-pickup' ? getLocalizedItemDescription(selectedItem) : '';
 
   // Màu gradient cho card (xoay vòng 3 kiểu: tím, xanh indigo, hồng)
   const productCardThemes = [
@@ -857,61 +859,69 @@ const AgentHomePageSession3 = () => {
       </div>
       <AgentHomePageSession1/>
       {jobPickups.length > 0 && (
-        <div className="rounded-2xl border border-red-100/70 bg-white px-2.5 py-2">
-          <div className="mb-1.5 flex items-center justify-between">
-            <h3 className="text-[12px] sm:text-[13px] font-bold text-slate-900 uppercase tracking-wide">
+        <div className="rounded-2xl border border-red-100/70 bg-white px-3 py-3 sm:px-4 sm:py-3.5">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 className="text-[13px] sm:text-sm font-bold text-slate-900 uppercase tracking-wide">
               {t.agentHomeFeaturedJobsTitle || 'TỔNG HỢP JOB NỔI BẬT DÀNH CHO BẠN'}
             </h3>
-            <button type="button" className="text-[9px] font-semibold text-red-600 hover:text-red-700">{t.seeAll || 'Xem tất cả'} ›</button>
+            <button type="button" className="shrink-0 text-[10px] sm:text-[11px] font-semibold text-red-600 hover:text-red-700">
+              {t.seeAll || 'Xem tất cả'} ›
+            </button>
           </div>
-          <div className="flex gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
+          <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 hide-scrollbar sm:gap-4">
             {jobPickups.map((item, index) => {
               const theme = productCardThemes[index % productCardThemes.length];
               const coverSrc = item.coverUrl || item.cover_url;
+              const pickupDescription = getLocalizedItemDescription(item);
               return (
                 <div
                   key={item.id}
                   onClick={() => handleRowClick(item)}
                   onMouseEnter={() => setHoveredCardIndex(item.id)}
                   onMouseLeave={() => setHoveredCardIndex(null)}
-                  className={`flex-shrink-0 w-[132px] sm:w-[154px] rounded-xl border overflow-hidden transition-all cursor-pointer bg-white shadow-sm hover:shadow-md ${
-                    hoveredCardIndex === item.id ? 'border-blue-300 shadow-md ring-1 ring-blue-200' : 'border-slate-100'
+                  className={`group flex w-[min(68vw,220px)] shrink-0 snap-start flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:shadow-lg sm:w-[240px] md:w-[260px] ${
+                    hoveredCardIndex === item.id ? 'border-red-200 shadow-lg ring-1 ring-red-100' : 'border-slate-100'
                   }`}
                 >
                   <div
-                    className="h-16 sm:h-20 relative overflow-hidden bg-slate-100"
+                    className="relative aspect-video w-full overflow-hidden bg-slate-100"
                     style={!coverSrc ? { background: theme.gradient } : undefined}
                   >
                     {coverSrc ? (
                       <img
                         src={normalizePostImageUrl(coverSrc)}
                         alt=""
-                        className="absolute inset-0 h-full w-full object-cover"
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                       />
                     ) : (
                       <>
-                        <div className="absolute inset-0 flex items-start justify-start p-2 gap-1">
-                          <span className="w-2 h-2 rounded-full opacity-80" style={{ backgroundColor: theme.accent }} />
-                          <span className="w-2 h-2 rounded-full opacity-80" style={{ backgroundColor: theme.accent }} />
-                          <span className="w-2 h-2 rounded-full opacity-80" style={{ backgroundColor: theme.accent }} />
+                        <div className="absolute inset-0 flex items-start justify-start gap-1.5 p-3">
+                          <span className="h-2.5 w-2.5 rounded-full opacity-80" style={{ backgroundColor: theme.accent }} />
+                          <span className="h-2.5 w-2.5 rounded-full opacity-80" style={{ backgroundColor: theme.accent }} />
+                          <span className="h-2.5 w-2.5 rounded-full opacity-80" style={{ backgroundColor: theme.accent }} />
                         </div>
-                        <div className="absolute bottom-2 left-2 right-2 flex gap-1">
-                          <div className="h-1.5 flex-1 rounded opacity-60" style={{ backgroundColor: theme.accent }} />
-                          <div className="h-3 w-8 rounded opacity-50" style={{ backgroundColor: theme.accent }} />
+                        <div className="absolute bottom-3 left-3 right-3 flex gap-1.5">
+                          <div className="h-2 flex-1 rounded opacity-60" style={{ backgroundColor: theme.accent }} />
+                          <div className="h-4 w-10 rounded opacity-50" style={{ backgroundColor: theme.accent }} />
                         </div>
                       </>
                     )}
-                  </div>
-                  <div className="p-1.5 bg-white">
-                    <p className="mb-0.5 text-[7px] sm:text-[8px] text-slate-400">{item.date}</p>
-                    <h4 className={`text-[10px] sm:text-[11px] font-bold text-slate-900 leading-tight break-words whitespace-normal line-clamp-2 ${item.isNew ? 'text-amber-700' : ''}`}>
-                      {getLocalizedItemTitle(item)}
-                    </h4>
                     {item.isNew && (
-                      <span className="inline-block mt-0.5 px-1 py-0.5 text-white text-[7px] font-semibold rounded bg-red-500">
+                      <span className="absolute left-2.5 top-2.5 rounded-md bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
                         {t.new || 'Mới'}
                       </span>
                     )}
+                  </div>
+                  <div className={`flex flex-col bg-white p-2.5 sm:p-3 ${pickupDescription ? 'min-h-[5rem] sm:min-h-[5.25rem]' : 'min-h-[4rem] sm:min-h-[4.25rem]'}`}>
+                    <p className="mb-0.5 text-[10px] text-slate-400 sm:text-[11px]">{item.date}</p>
+                    <h4 className={`line-clamp-2 text-[12px] font-bold leading-snug text-slate-900 break-words sm:text-[13px] ${item.isNew ? 'text-amber-800' : ''}`}>
+                      {getLocalizedItemTitle(item)}
+                    </h4>
+                    {pickupDescription ? (
+                      <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-slate-500 break-words sm:text-[11px]">
+                        {pickupDescription}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               );
@@ -1028,6 +1038,11 @@ const AgentHomePageSession3 = () => {
                 })()}
                 <div className="min-w-0">
                   <h3 className="text-sm font-bold truncate text-gray-900">{getLocalizedItemTitle(selectedItem)}</h3>
+                  {selectedPickupDescription ? (
+                    <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-gray-500">
+                      {selectedPickupDescription}
+                    </p>
+                  ) : null}
                   {modalJobs.length > 0 && (
                     <p className="text-[10px] text-gray-500">
                       {t.agentHomeTotalJobs.replace(
@@ -1050,7 +1065,7 @@ const AgentHomePageSession3 = () => {
             </div>
 
             {(selectedItem.coverUrl || selectedItem.cover_url) && (
-              <div className="flex-shrink-0 w-full h-36 sm:h-40 border-b border-slate-100 bg-slate-100">
+              <div className="flex-shrink-0 w-full aspect-video max-h-56 border-b border-slate-100 bg-slate-100 sm:max-h-64">
                 <img
                   src={normalizePostImageUrl(selectedItem.coverUrl || selectedItem.cover_url)}
                   alt=""
@@ -1076,10 +1091,7 @@ const AgentHomePageSession3 = () => {
                       jobs={modalJobs}
                       showAllJobs
                       hideViewMoreButton
-                      onJobClick={(job) => {
-                        const jobSlug = job.slug || job.jobSlug || job.jobCode || job.id;
-                        window.open(`/agent/jobs/${jobSlug}`, '_blank', 'noopener,noreferrer');
-                      }}
+                      jobsBasePath="/agent/jobs"
                     />
                   </div>
                   {(modalPage > 1 || modalPagination.hasNext) && (

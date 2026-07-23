@@ -48,12 +48,10 @@ function hasUnread(session) {
   return !!session?.hasUnread;
 }
 
-function getSessionLastMessageAt(session) {
+function getSessionSortTime(session) {
   const value =
     session?.lastMessageAt ||
     session?.last_message_at ||
-    session?.updatedAt ||
-    session?.updated_at ||
     session?.createdAt ||
     session?.created_at ||
     null;
@@ -329,7 +327,7 @@ const PublicCtvChatInboxPage = () => {
       const unreadDiff = Number(bUnread > 0) - Number(aUnread > 0);
       if (unreadDiff !== 0) return unreadDiff;
       if (bUnread !== aUnread) return bUnread - aUnread;
-      return getSessionLastMessageAt(b) - getSessionLastMessageAt(a);
+      return getSessionSortTime(b) - getSessionSortTime(a);
     });
     if (!searchQ) return sorted;
     return sorted.filter((s) =>
@@ -476,7 +474,6 @@ const PublicCtvChatInboxPage = () => {
           setSessionMeta(res.data.session);
           setMessages(res.data.messages || []);
           markSessionSeen(res.data.session);
-          await loadCtvSessions();
         }
       } else {
         const res = await apiService.getAdminPublicCandidateChatMessages(selectedId);
@@ -484,13 +481,12 @@ const PublicCtvChatInboxPage = () => {
           setSessionMeta(res.data.session);
           setMessages(res.data.messages || []);
           markSessionSeen(res.data.session);
-          await loadCandidateSessions();
         }
       }
     } catch (e) {
       console.error(e);
     }
-  }, [loadCandidateSessions, loadCtvSessions, markSessionSeen, selectedId, tab]);
+  }, [markSessionSeen, selectedId, tab]);
 
   useEffect(() => {
     loadThread();
@@ -816,7 +812,7 @@ const PublicCtvChatInboxPage = () => {
                         </div>
                       )}
                       <div className="truncate text-[11px] text-slate-400">
-                        {getSessionLastMessageAt(s) ? new Date(getSessionLastMessageAt(s)).toLocaleString('vi-VN') : '—'}
+                        {getSessionSortTime(s) ? new Date(getSessionSortTime(s)).toLocaleString('vi-VN') : '—'}
                       </div>
                     </>
                   ) : (
@@ -855,7 +851,7 @@ const PublicCtvChatInboxPage = () => {
                         </div>
                       )}
                       <div className="truncate text-[11px] text-slate-400">
-                        {getSessionLastMessageAt(s) ? new Date(getSessionLastMessageAt(s)).toLocaleString('vi-VN') : '—'}
+                        {getSessionSortTime(s) ? new Date(getSessionSortTime(s)).toLocaleString('vi-VN') : '—'}
                       </div>
                     </>
                   )}

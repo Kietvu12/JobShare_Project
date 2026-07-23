@@ -106,29 +106,40 @@ export const collaboratorNotificationService = {
 
   async createAndEmit({ collaboratorId = null, adminId = null, title, content, jobId = null, url = null }) {
     if ((!collaboratorId && !adminId) || !title || !content) return null;
-    const notification = await CollaboratorNotification.create({
-      collaboratorId,
-      adminId,
-      title,
-      content,
-      jobId,
-      url,
-      isRead: false
-    });
+    try {
+      const notification = await CollaboratorNotification.create({
+        collaboratorId,
+        adminId,
+        title,
+        content,
+        jobId,
+        url,
+        isRead: false
+      });
 
-    const payload = {
-      id: notification.id,
-      title: notification.title,
-      content: notification.content,
-      jobId: notification.jobId,
-      url: notification.url,
-      isRead: notification.isRead,
-      createdAt: notification.createdAt || notification.created_at || new Date().toISOString()
-    };
-    if (collaboratorId) publishToCollaborator(collaboratorId, payload);
-    if (adminId) publishToAdmin(adminId, payload);
+      const payload = {
+        id: notification.id,
+        title: notification.title,
+        content: notification.content,
+        jobId: notification.jobId,
+        url: notification.url,
+        isRead: notification.isRead,
+        createdAt: notification.createdAt || notification.created_at || new Date().toISOString()
+      };
+      if (collaboratorId) publishToCollaborator(collaboratorId, payload);
+      if (adminId) publishToAdmin(adminId, payload);
 
-    return notification;
+      return notification;
+    } catch (error) {
+      console.error('[CollaboratorNotification:createAndEmit] failed', {
+        collaboratorId,
+        adminId,
+        title,
+        message: error?.message,
+        sqlMessage: error?.parent?.sqlMessage || error?.original?.sqlMessage,
+      });
+      return null;
+    }
   },
 
   subscribeAdmin(adminId, res) {

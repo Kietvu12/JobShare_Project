@@ -12,6 +12,10 @@ import {
   deleteFileFromS3,
   isS3Key
 } from '../../services/s3Service.js';
+import {
+  getJobPickupQueryAttributes,
+  hasJobPickupDescriptionColumns,
+} from '../../utils/jobPickupSchema.js';
 
 const mapOrderField = (fieldName) => {
   const fieldMap = {
@@ -61,11 +65,19 @@ export const jobPickupController = {
 
       if (search && String(search).trim()) {
         const q = `%${String(search).trim()}%`;
-        where[Op.or] = [
+        const searchFields = [
           { name: { [Op.like]: q } },
           { nameEn: { [Op.like]: q } },
           { nameJp: { [Op.like]: q } }
         ];
+        if (await hasJobPickupDescriptionColumns()) {
+          searchFields.push(
+            { description: { [Op.like]: q } },
+            { descriptionEn: { [Op.like]: q } },
+            { descriptionJp: { [Op.like]: q } }
+          );
+        }
+        where[Op.or] = searchFields;
       }
 
       const allowedSortFields = [
@@ -88,8 +100,10 @@ export const jobPickupController = {
         orderClause.push(['id', 'DESC']);
       }
 
+      const attributes = await getJobPickupQueryAttributes();
       const { count, rows } = await JobPickup.findAndCountAll({
         where,
+        ...(attributes ? { attributes } : {}),
         limit: parseInt(String(limit), 10),
         offset,
         order: orderClause
@@ -122,7 +136,8 @@ export const jobPickupController = {
   getJobPickupById: async (req, res, next) => {
     try {
       const { id } = req.params;
-      const pickup = await JobPickup.findByPk(id);
+      const attributes = await getJobPickupQueryAttributes();
+      const pickup = await JobPickup.findByPk(id, attributes ? { attributes } : undefined);
       if (!pickup) {
         return res.status(404).json({ success: false, message: 'Không tìm thấy job pick-up' });
       }
@@ -137,15 +152,26 @@ export const jobPickupController = {
 
   createJobPickup: async (req, res, next) => {
     try {
-      const { name, nameEn, nameJp } = req.body;
+      const { name, nameEn, nameJp, description, descriptionEn, descriptionJp } = req.body;
       if (!name || !String(name).trim()) {
         return res.status(400).json({ success: false, message: 'Tên (name) là bắt buộc' });
       }
-      const row = await JobPickup.create({
-        name: String(name).trim(),
-        nameEn: nameEn != null && String(nameEn).trim() ? String(nameEn).trim() : null,
-        nameJp: nameJp != null && String(nameJp).trim() ? String(nameJp).trim() : null
-      });
+      const row = await JobPickup.create(
+        await hasJobPickupDescriptionColumns()
+          ? {
+              name: String(name).trim(),
+              nameEn: nameEn != null && String(nameEn).trim() ? String(nameEn).trim() : null,
+              nameJp: nameJp != null && String(nameJp).trim() ? String(nameJp).trim() : null,
+              description: description != null && String(description).trim() ? String(description).trim() : null,
+              descriptionEn: descriptionEn != null && String(descriptionEn).trim() ? String(descriptionEn).trim() : null,
+              descriptionJp: descriptionJp != null && String(descriptionJp).trim() ? String(descriptionJp).trim() : null
+            }
+          : {
+              name: String(name).trim(),
+              nameEn: nameEn != null && String(nameEn).trim() ? String(nameEn).trim() : null,
+              nameJp: nameJp != null && String(nameJp).trim() ? String(nameJp).trim() : null
+            }
+      );
       res.status(201).json({ success: true, message: 'Tạo job pick-up thành công', data: { pickup: row } });
     } catch (error) {
       next(error);
@@ -155,7 +181,7 @@ export const jobPickupController = {
   updateJobPickup: async (req, res, next) => {
     try {
       const { id } = req.params;
-      const { name, nameEn, nameJp } = req.body;
+      const { name, nameEn, nameJp, description, descriptionEn, descriptionJp } = req.body;
       const pickup = await JobPickup.findByPk(id);
       if (!pickup) {
         return res.status(404).json({ success: false, message: 'Không tìm thấy job pick-up' });
@@ -171,6 +197,17 @@ export const jobPickupController = {
       }
       if (nameJp !== undefined) {
         pickup.nameJp = nameJp != null && String(nameJp).trim() ? String(nameJp).trim() : null;
+      }
+      if (await hasJobPickupDescriptionColumns()) {
+        if (description !== undefined) {
+          pickup.description = description != null && String(description).trim() ? String(description).trim() : null;
+        }
+        if (descriptionEn !== undefined) {
+          pickup.descriptionEn = descriptionEn != null && String(descriptionEn).trim() ? String(descriptionEn).trim() : null;
+        }
+        if (descriptionJp !== undefined) {
+          pickup.descriptionJp = descriptionJp != null && String(descriptionJp).trim() ? String(descriptionJp).trim() : null;
+        }
       }
       await pickup.save();
       res.json({ success: true, message: 'Cập nhật job pick-up thành công', data: { pickup: pickup } });
@@ -230,7 +267,15 @@ export const jobPickupController = {
       res.json({
         success: true,
         data: {
-          pickup: { id: pickup.id, name: pickup.name, nameEn: pickup.nameEn, nameJp: pickup.nameJp },
+          pickup: {
+            id: pickup.id,
+            name: pickup.name,
+            nameEn: pickup.nameEn,
+            nameJp: pickup.nameJp,
+            description: pickup.description,
+            descriptionEn: pickup.descriptionEn,
+            descriptionJp: pickup.descriptionJp
+          },
           mappings,
           pagination: {
             total: count,

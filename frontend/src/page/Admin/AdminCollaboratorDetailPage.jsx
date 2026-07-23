@@ -20,6 +20,7 @@ import {
   CreditCard,
   FileText,
   ClipboardList,
+  UserCheck,
 } from 'lucide-react';
 import apiService from '../../services/api';
 import { getCVStatusLabel, getCVStatusStyle } from '../../utils/cvStatus';
@@ -237,6 +238,16 @@ const AdminCollaboratorDetailPage = () => {
   const surveyValue = collaborator.registrationSurveyData || collaborator.surveyResponses || collaborator.description;
   const businessLicenseUrl = collaborator?.businessLicenseUrl || '';
   const businessTagLabel = language === 'en' ? 'Business' : language === 'ja' ? 'ビジネス' : 'Doanh nghiệp';
+  const referredAdmin = collaborator?.referredByAdmin || null;
+  const assignedAdmins = collaborator?.assignedAdmins || [];
+  const cvAssignmentByCvId = collaborator?.cvAssignmentByCvId || {};
+
+  const getCvAssignedAdminLabel = (cv) => {
+    const assignment = cvAssignmentByCvId[String(cv?.id)];
+    if (assignment?.admin?.name) return assignment.admin.name;
+    if (cv?.admin?.name) return cv.admin.name;
+    return '—';
+  };
 
   return (
     <div className="space-y-3">
@@ -340,6 +351,69 @@ const AdminCollaboratorDetailPage = () => {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Admin giới thiệu / phụ trách */}
+      <div className="rounded-lg border p-4" style={{ backgroundColor: 'white', borderColor: '#e5e7eb' }}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <UserCheck className="w-4 h-4" style={{ color: '#2563eb' }} />
+            <h2 className="text-sm font-bold" style={{ color: '#111827' }}>
+              {language === 'en' ? 'Referring / responsible admin' : language === 'ja' ? '紹介・担当管理者' : 'Admin phụ trách / giới thiệu'}
+            </h2>
+          </div>
+          <Link
+            to={`/admin/collaborator-assignments?collaboratorId=${encodeURIComponent(collaboratorId)}`}
+            className="text-xs font-semibold whitespace-nowrap"
+            style={{ color: '#2563eb' }}
+          >
+            {language === 'en' ? 'Assign candidate profiles →' : language === 'ja' ? '候補者プロフィールを割り当て →' : 'Phân công hồ sơ ứng viên →'}
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-lg border p-3" style={{ borderColor: '#e5e7eb', backgroundColor: '#f9fafb' }}>
+            <label className="block text-xs font-semibold mb-1" style={{ color: '#6b7280' }}>
+              {language === 'en' ? 'Referring admin' : language === 'ja' ? '紹介管理者' : 'Admin giới thiệu CTV'}
+            </label>
+            {referredAdmin ? (
+              <div>
+                <p className="text-sm font-semibold" style={{ color: '#111827' }}>{referredAdmin.name || '—'}</p>
+                <p className="text-xs mt-0.5" style={{ color: '#6b7280' }}>{referredAdmin.email || '—'}</p>
+              </div>
+            ) : (
+              <p className="text-sm" style={{ color: '#9ca3af' }}>
+                {language === 'en' ? 'Not set' : language === 'ja' ? '未設定' : 'Chưa gán admin giới thiệu'}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => navigate(`/admin/collaborators/${collaboratorId}/edit`)}
+              className="mt-2 text-[11px] font-semibold"
+              style={{ color: '#2563eb' }}
+            >
+              {language === 'en' ? 'Edit referring admin' : language === 'ja' ? '紹介管理者を編集' : 'Chỉnh sửa admin giới thiệu'}
+            </button>
+          </div>
+          <div className="rounded-lg border p-3" style={{ borderColor: '#e5e7eb', backgroundColor: '#f9fafb' }}>
+            <label className="block text-xs font-semibold mb-1" style={{ color: '#6b7280' }}>
+              {language === 'en' ? 'AdminBackOffice assigned to CVs' : language === 'ja' ? 'プロフィール担当 AdminBackOffice' : 'AdminBackOffice phụ trách hồ sơ'}
+            </label>
+            {assignedAdmins.length > 0 ? (
+              <ul className="space-y-2">
+                {assignedAdmins.map((admin) => (
+                  <li key={admin.id}>
+                    <p className="text-sm font-semibold" style={{ color: '#111827' }}>{admin.name || '—'}</p>
+                    <p className="text-xs" style={{ color: '#6b7280' }}>{admin.email || '—'}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm" style={{ color: '#9ca3af' }}>
+                {language === 'en' ? 'No CV assignments yet' : language === 'ja' ? 'まだ割り当てがありません' : 'Chưa có hồ sơ được phân công'}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -665,6 +739,9 @@ const AdminCollaboratorDetailPage = () => {
                   <th className="text-left py-2 pr-3 font-semibold" style={{ color: '#6b7280' }}>Họ tên</th>
                   <th className="text-left py-2 pr-3 font-semibold" style={{ color: '#6b7280' }}>Email</th>
                   <th className="text-left py-2 pr-3 font-semibold" style={{ color: '#6b7280' }}>Trạng thái</th>
+                  <th className="text-left py-2 pr-3 font-semibold" style={{ color: '#6b7280' }}>
+                    {language === 'en' ? 'Assigned admin' : language === 'ja' ? '担当管理者' : 'Admin phụ trách'}
+                  </th>
                   <th className="text-left py-2 pr-3 font-semibold" style={{ color: '#6b7280' }}>Cập nhật</th>
                   <th className="text-right py-2 font-semibold" style={{ color: '#6b7280' }}>Thao tác</th>
                 </tr>
@@ -696,6 +773,9 @@ const AdminCollaboratorDetailPage = () => {
                         <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium" style={badgeStyle}>
                           {getCVStatusLabel(cv.status, language)}
                         </span>
+                      </td>
+                      <td className="py-2.5 pr-3" style={{ color: '#374151' }}>
+                        {getCvAssignedAdminLabel(cv)}
                       </td>
                       <td className="py-2.5 pr-3 whitespace-nowrap" style={{ color: '#6b7280' }}>
                         {formatDateTime(cv.updatedAt || cv.updated_at)}

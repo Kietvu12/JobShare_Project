@@ -38,10 +38,12 @@ const AddCollaboratorPage = () => {
     bankAccountName: '',
     status: 'active',
     description: '',
+    referredByAdminId: '',
   });
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [admins, setAdmins] = useState([]);
   const [businessLicenseFile, setBusinessLicenseFile] = useState(null);
   const [existingBusinessLicense, setExistingBusinessLicense] = useState('');
   const [businessLicensePreviewUrl, setBusinessLicensePreviewUrl] = useState('');
@@ -151,6 +153,7 @@ const AddCollaboratorPage = () => {
           bankAccountName: formData.bankAccountName,
           status: formData.status === 'active' ? '1' : '0',
           description: formData.description,
+          referredByAdminId: formData.referredByAdminId || null,
           businessLicense: existingBusinessLicense || '',
         };
         const response = await apiService.updateCollaborator(collaboratorId, submitData);
@@ -173,6 +176,7 @@ const AddCollaboratorPage = () => {
           bankAccountName: formData.bankAccountName,
           status: formData.status === 'active' ? 1 : 0,
           description: formData.description,
+          referredByAdminId: formData.referredByAdminId || null,
         };
 
         const response = await apiService.createCollaborator(submitData);
@@ -196,6 +200,19 @@ const AddCollaboratorPage = () => {
       navigate('/admin/collaborators');
     }
   };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiService.getAdmins({ status: 1, limit: 200 });
+        if (res.success && res.data?.admins) {
+          setAdmins(res.data.admins);
+        }
+      } catch (error) {
+        console.error('Error loading admins:', error);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     if (!isEditMode || !collaboratorId) return undefined;
@@ -229,6 +246,7 @@ const AddCollaboratorPage = () => {
           bankAccountName: collaborator.bankAccountName || '',
           status: collaborator.status === 1 ? 'active' : 'inactive',
           description: collaborator.description || '',
+          referredByAdminId: collaborator.referredByAdminId || collaborator.referred_by_admin_id || '',
         });
         setExistingBusinessLicense(collaborator.businessLicense || '');
         setBusinessLicensePreviewUrl(collaborator.businessLicenseUrl || '');
@@ -631,6 +649,25 @@ const AddCollaboratorPage = () => {
         <div className="rounded-lg border p-4" style={{ backgroundColor: 'white', borderColor: '#e5e7eb' }}>
           <h2 className="text-sm font-bold mb-4 pb-3 border-b" style={{ color: '#111827', borderColor: '#e5e7eb' }}>{t.addCtvStatusNote}</h2>
           <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold mb-2" style={{ color: '#374151' }}>
+                {t.collaboratorReferredAdminLabel || 'Admin giới thiệu CTV'}
+              </label>
+              <select
+                name="referredByAdminId"
+                value={formData.referredByAdminId}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border rounded-lg text-xs"
+                style={{ borderColor: '#d1d5db', outline: 'none' }}
+              >
+                <option value="">{t.collaboratorReferredAdminNone || '— Chưa chọn —'}</option>
+                {admins.map((admin) => (
+                  <option key={admin.id} value={admin.id}>
+                    {admin.name} ({admin.email})
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="block text-xs font-semibold mb-2" style={{ color: '#374151' }}>
                 {t.addCtvStatusLabel}

@@ -1,13 +1,25 @@
 import { CollaboratorNotification, Job } from '../../models/index.js';
 import { collaboratorNotificationService } from '../../services/collaboratorNotificationService.js';
 import { applySseHeaders } from '../../utils/sseHeaders.js';
+import {
+  hasCollaboratorNotificationAdminColumn,
+  isMissingCollaboratorNotificationAdminColumnError,
+} from '../../utils/collaboratorNotificationSchema.js';
 
-/** DB chưa chạy migration thêm cột admin_id → Sequelize/MySQL lỗi 1054 */
-function isMissingAdminNotificationsAdminColumn(err) {
-  const e = err?.parent || err?.original || err;
-  if (e?.errno === 1054 || e?.code === 'ER_BAD_FIELD_ERROR') return true;
-  const m = String(e?.sqlMessage || err?.message || '');
-  return /Unknown column ['`]?admin_id['`]?/i.test(m) || /Unknown column ['`]?collaborator_notifications\.admin_id/i.test(m);
+const ADMIN_NOTIFICATIONS_MIGRATION_HINT =
+  'Chạy migration: node backend/scripts/add-collaborator-notification-recipient-columns.js';
+
+function logAdminNotificationError(scope, error, extra = {}) {
+  const e = error?.parent || error?.original || error;
+  console.error(`[AdminNotifications:${scope}]`, {
+    message: error?.message || e?.message || String(error),
+    sqlMessage: e?.sqlMessage,
+    sql: e?.sql,
+    code: e?.code || error?.code,
+    errno: e?.errno,
+    status: error?.status,
+    ...extra,
+  });
 }
 
 export const adminNotificationController = {
@@ -18,25 +30,61 @@ export const adminNotificationController = {
       const limit = Math.min(Math.max(parseInt(req.query.limit || '20', 10), 1), 100);
       const offset = (page - 1) * limit;
 
-      const { count, rows } = await CollaboratorNotification.findAndCountAll({
+      const schemaReady = await hasCollaboratorNotificationAdminColumn();
+      if (!schemaReady) {
+        console.warn('[AdminNotifications:getNotifications] missing admin_id column', { adminId });
+        return res.json({
+          success: true,
+          meta: { schemaReady: false, hint: ADMIN_NOTIFICATIONS_MIGRATION_HINT },
+          data: {
+            notifications: [],
+            pagination: { total: 0, page: 1, limit: 20, totalPages: 0 },
+          },
+        });
+      }
+
+      const baseQuery = {
         where: { adminId },
-        include: [
-          {
-            model: Job,
-            as: 'job',
-            required: false,
-            attributes: ['id', 'jobCode', 'title', 'slug']
-          }
-        ],
         order: [['created_at', 'DESC']],
         limit,
-        offset
+        offset,
+      };
+      const jobInclude = {
+        model: Job,
+        as: 'job',
+        required: false,
+        attributes: ['id', 'jobCode', 'title', 'slug'],
+      };
+
+      let count;
+      let rows;
+      try {
+        ({ count, rows } = await CollaboratorNotification.findAndCountAll({
+          ...baseQuery,
+          include: [jobInclude],
+        }));
+      } catch (includeError) {
+        if (isMissingCollaboratorNotificationAdminColumnError(includeError)) throw includeError;
+        logAdminNotificationError('getNotifications', includeError, {
+          adminId,
+          retry: 'without job include',
+        });
+        ({ count, rows } = await CollaboratorNotification.findAndCountAll(baseQuery));
+      }
+
+      console.info('[AdminNotifications:getNotifications] ok', {
+        adminId,
+        page,
+        limit,
+        total: count,
+        returned: rows.length,
       });
 
       res.json({
         success: true,
+        meta: { schemaReady: true },
         data: {
-          notifications: rows,
+          notifications: rows.map((row) => (typeof row.toJSON === 'function' ? row.toJSON() : row)),
           pagination: {
             total: count,
             page,
@@ -46,15 +94,21 @@ export const adminNotificationController = {
         }
       });
     } catch (error) {
-      if (isMissingAdminNotificationsAdminColumn(error)) {
+      if (isMissingCollaboratorNotificationAdminColumnError(error)) {
+        logAdminNotificationError('getNotifications', error, {
+          adminId: req.admin?.id,
+          fallback: 'missing admin_id column',
+        });
         return res.json({
           success: true,
+          meta: { schemaReady: false, hint: ADMIN_NOTIFICATIONS_MIGRATION_HINT },
           data: {
             notifications: [],
             pagination: { total: 0, page: 1, limit: 20, totalPages: 0 }
           }
         });
       }
+      logAdminNotificationError('getNotifications', error, { adminId: req.admin?.id });
       next(error);
     }
   },
@@ -62,14 +116,34 @@ export const adminNotificationController = {
   getUnreadCount: async (req, res, next) => {
     try {
       const adminId = req.admin.id;
+      const schemaReady = await hasCollaboratorNotificationAdminColumn();
+      if (!schemaReady) {
+        console.warn('[AdminNotifications:getUnreadCount] missing admin_id column', { adminId });
+        return res.json({
+          success: true,
+          meta: { schemaReady: false, hint: ADMIN_NOTIFICATIONS_MIGRATION_HINT },
+          data: { count: 0 },
+        });
+      }
+
       const count = await CollaboratorNotification.count({
         where: { adminId, isRead: false }
       });
-      res.json({ success: true, data: { count } });
+      console.info('[AdminNotifications:getUnreadCount] ok', { adminId, count });
+      res.json({ success: true, meta: { schemaReady: true }, data: { count } });
     } catch (error) {
-      if (isMissingAdminNotificationsAdminColumn(error)) {
-        return res.json({ success: true, data: { count: 0 } });
+      if (isMissingCollaboratorNotificationAdminColumnError(error)) {
+        logAdminNotificationError('getUnreadCount', error, {
+          adminId: req.admin?.id,
+          fallback: 'missing admin_id column',
+        });
+        return res.json({
+          success: true,
+          meta: { schemaReady: false, hint: ADMIN_NOTIFICATIONS_MIGRATION_HINT },
+          data: { count: 0 },
+        });
       }
+      logAdminNotificationError('getUnreadCount', error, { adminId: req.admin?.id });
       next(error);
     }
   },
@@ -99,12 +173,14 @@ export const adminNotificationController = {
         data: { notification }
       });
     } catch (error) {
-      if (isMissingAdminNotificationsAdminColumn(error)) {
+      if (isMissingCollaboratorNotificationAdminColumnError(error)) {
+        logAdminNotificationError('markRead', error, { adminId: req.admin?.id, notificationId: req.params?.id });
         return res.status(404).json({
           success: false,
           message: 'Chưa hỗ trợ thông báo admin — chạy migration collaborator_notifications (admin_id)'
         });
       }
+      logAdminNotificationError('markRead', error, { adminId: req.admin?.id, notificationId: req.params?.id });
       next(error);
     }
   },
@@ -122,9 +198,11 @@ export const adminNotificationController = {
         message: 'Đã đánh dấu tất cả thông báo là đã đọc'
       });
     } catch (error) {
-      if (isMissingAdminNotificationsAdminColumn(error)) {
+      if (isMissingCollaboratorNotificationAdminColumnError(error)) {
+        logAdminNotificationError('markAllRead', error, { adminId: req.admin?.id });
         return res.json({ success: true, message: 'OK (schema chưa có admin_id)' });
       }
+      logAdminNotificationError('markAllRead', error, { adminId: req.admin?.id });
       next(error);
     }
   },
@@ -132,6 +210,7 @@ export const adminNotificationController = {
   stream: async (req, res, next) => {
     try {
       const adminId = req.admin.id;
+      console.info('[AdminNotifications:stream] connected', { adminId });
 
       applySseHeaders(req, res);
       res.flushHeaders?.();
@@ -150,6 +229,7 @@ export const adminNotificationController = {
         collaboratorNotificationService.unsubscribeAdmin(adminId, res);
       });
     } catch (error) {
+      logAdminNotificationError('stream', error, { adminId: req.admin?.id });
       next(error);
     }
   }

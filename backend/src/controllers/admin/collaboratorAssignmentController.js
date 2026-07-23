@@ -18,6 +18,8 @@ export const collaboratorAssignmentController = {
         search,
         adminId,
         cvStorageId,
+        collaboratorId,
+        collaborator_id,
         status,
         sortBy = 'created_at',
         sortOrder = 'DESC'
@@ -44,6 +46,10 @@ export const collaboratorAssignmentController = {
       }
 
       let cvWhere = {};
+      const collaboratorFilterId = collaboratorId || collaborator_id;
+      if (collaboratorFilterId) {
+        cvWhere.collaboratorId = parseInt(String(collaboratorFilterId), 10);
+      }
       if (search) {
         cvWhere[Op.or] = [
           { name: { [Op.like]: `%${search}%` } },
@@ -60,7 +66,15 @@ export const collaboratorAssignmentController = {
             as: 'cvStorage',
             required: true,
             where: cvWhere,
-            attributes: ['id', 'code', 'name', 'email', 'phone', 'furigana', 'status']
+            attributes: ['id', 'code', 'name', 'email', 'phone', 'furigana', 'status', 'collaboratorId'],
+            include: [
+              {
+                model: Collaborator,
+                as: 'collaborator',
+                required: false,
+                attributes: ['id', 'name', 'code', 'email', 'phone']
+              }
+            ]
           },
           {
             model: Admin,

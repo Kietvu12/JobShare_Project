@@ -416,7 +416,9 @@ async function fetchJobDetailByIdOrSlug(scopePath, jobIdOrSlug, fetchOptions = {
   );
   const listData = await handleResponse(listResponse);
   const matched = (listData?.data?.jobs || []).find(
-    (job) => String(job.slug || '').trim() === key
+    (job) =>
+      String(job.slug || '').trim() === key
+      || String(job.jobCode || '').trim() === key
   );
   if (!matched?.id) {
     throw directError || Object.assign(new Error('Không tìm thấy việc làm'), { status: 404 });
@@ -4256,10 +4258,11 @@ const apiService = {
     return handleResponse(response);
   },
 
-  streamAdminNotifications: async () => {
+  streamAdminNotifications: async (options = {}) => {
     return fetch(`${API_BASE_URL}/admin/notifications/stream`, {
       method: 'GET',
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
+      signal: options.signal,
     });
   },
 
