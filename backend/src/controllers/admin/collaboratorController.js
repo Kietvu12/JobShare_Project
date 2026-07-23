@@ -1,4 +1,4 @@
-import { Collaborator, RankLevel, Group, ActionLog, CVStorage, JobApplication } from '../../models/index.js';
+import { Collaborator, RankLevel, Group, ActionLog, CVStorage, JobApplication, Admin, CollaboratorAssignment } from '../../models/index.js';
 import { hashPassword } from '../../utils/password.js';
 import { Op, col } from 'sequelize';
 import sequelize from '../../config/database.js';
@@ -12,6 +12,76 @@ const mapOrderField = (fieldName) => {
     'approvedAt': 'approved_at'
   };
   return fieldMap[fieldName] || fieldName;
+};
+
+const parseOptionalAdminId = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const n = parseInt(String(value), 10);
+  return Number.isNaN(n) || n < 1 ? null : n;
+};
+
+const attachCollaboratorAdminContext = async (collaboratorData, collaboratorId) => {
+  const cvRows = await CVStorage.findAll({
+    where: { collaboratorId },
+    attributes: ['id', 'code', 'name', 'adminId'],
+    include: [
+      {
+        model: Admin,
+        as: 'admin',
+        required: false,
+        attributes: ['id', 'name', 'email', 'role']
+      }
+    ]
+  });
+
+  const cvIds = cvRows.map((row) => row.id).filter(Boolean);
+  let assignments = [];
+  if (cvIds.length) {
+    assignments = await CollaboratorAssignment.findAll({
+      where: { cvStorageId: cvIds, status: 1 },
+      include: [
+        {
+          model: Admin,
+          as: 'admin',
+          required: false,
+          attributes: ['id', 'name', 'email', 'role']
+        },
+        {
+          model: Admin,
+          as: 'assignedByAdmin',
+          required: false,
+          attributes: ['id', 'name', 'email']
+        },
+        {
+          model: CVStorage,
+          as: 'cvStorage',
+          required: false,
+          attributes: ['id', 'code', 'name', 'collaboratorId']
+        }
+      ],
+      order: [['created_at', 'DESC']]
+    });
+  }
+
+  const adminMap = new Map();
+  assignments.forEach((assignment) => {
+    const admin = assignment.admin;
+    if (admin?.id != null) {
+      adminMap.set(admin.id, admin.toJSON ? admin.toJSON() : admin);
+    }
+  });
+
+  collaboratorData.managedCvCount = cvRows.length;
+  collaboratorData.assignedAdmins = Array.from(adminMap.values());
+  collaboratorData.cvAssignments = assignments.map((row) => row.toJSON());
+  collaboratorData.cvAssignmentByCvId = Object.fromEntries(
+    assignments.map((row) => {
+      const json = row.toJSON();
+      return [String(json.cvStorageId), json];
+    })
+  );
+
+  return collaboratorData;
 };
 
 /**
@@ -188,6 +258,12 @@ export const collaboratorController = {
             as: 'group',
             required: false,
             attributes: ['id', 'name', 'code', 'referralCode']
+          },
+          {
+            model: Admin,
+            as: 'referredByAdmin',
+            required: false,
+            attributes: ['id', 'name', 'email', 'role']
           }
         ]
       });
@@ -205,6 +281,8 @@ export const collaboratorController = {
       if (collaboratorData.businessLicense && typeof collaboratorData.businessLicense === 'string' && collaboratorData.businessLicense.trim()) {
         collaboratorData.businessLicenseUrl = await getSignedUrlForFile(collaboratorData.businessLicense, 'view');
       }
+
+      await attachCollaboratorAdminContext(collaboratorData, collaborator.id);
 
       res.json({
         success: true,
@@ -269,6 +347,7 @@ export const collaboratorController = {
         rankLevelId,
         description,
         groupId,
+        referredByAdminId,
         status = 1,
         points = 0
       } = req.body;
@@ -310,6 +389,17 @@ export const collaboratorController = {
       const resolvedRankLevelId =
         rankLevelId != null && rankLevelId !== '' ? rankLevelId : 1;
 
+      const parsedReferredByAdminId = parseOptionalAdminId(referredByAdminId);
+      if (parsedReferredByAdminId) {
+        const referredAdmin = await Admin.findByPk(parsedReferredByAdminId);
+        if (!referredAdmin) {
+          return res.status(400).json({
+            success: false,
+            message: 'Admin giới thiệu không tồn tại'
+          });
+        }
+      }
+
       const collaborator = await Collaborator.create({
         name,
         code,
@@ -338,6 +428,7 @@ export const collaboratorController = {
         rankLevelId: resolvedRankLevelId,
         description,
         groupId,
+        referredByAdminId: parsedReferredByAdminId,
         status,
         points,
         approvedAt
@@ -355,6 +446,12 @@ export const collaboratorController = {
             model: Group,
             as: 'group',
             required: false
+          },
+          {
+            model: Admin,
+            as: 'referredByAdmin',
+            required: false,
+            attributes: ['id', 'name', 'email', 'role']
           }
         ]
       });
@@ -418,6 +515,7 @@ export const collaboratorController = {
         rankLevelId,
         description,
         groupId,
+        referredByAdminId,
         status,
         points
       } = req.body;
@@ -489,6 +587,19 @@ export const collaboratorController = {
       if (rankLevelId !== undefined) collaborator.rankLevelId = rankLevelId;
       if (description !== undefined) collaborator.description = description;
       if (groupId !== undefined) collaborator.groupId = groupId;
+      if (referredByAdminId !== undefined) {
+        const parsedReferredByAdminId = parseOptionalAdminId(referredByAdminId);
+        if (parsedReferredByAdminId) {
+          const referredAdmin = await Admin.findByPk(parsedReferredByAdminId);
+          if (!referredAdmin) {
+            return res.status(400).json({
+              success: false,
+              message: 'Admin giới thiệu không tồn tại'
+            });
+          }
+        }
+        collaborator.referredByAdminId = parsedReferredByAdminId;
+      }
       if (status !== undefined) collaborator.status = status;
       if (points !== undefined) collaborator.points = points;
 
@@ -506,6 +617,12 @@ export const collaboratorController = {
             model: Group,
             as: 'group',
             required: false
+          },
+          {
+            model: Admin,
+            as: 'referredByAdmin',
+            required: false,
+            attributes: ['id', 'name', 'email', 'role']
           }
         ]
       });

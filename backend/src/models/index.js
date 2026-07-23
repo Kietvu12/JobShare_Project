@@ -342,6 +342,11 @@ export const Collaborator = sequelize.define(
       type: DataTypes.BIGINT.UNSIGNED,
       field: 'group_id'
     },
+    referredByAdminId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: true,
+      field: 'referred_by_admin_id'
+    },
     rememberToken: {
       type: DataTypes.STRING(100),
       field: 'remember_token'
@@ -3490,6 +3495,20 @@ export const JobPickup = sequelize.define(
       allowNull: true,
       field: 'name_jp'
     },
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    descriptionEn: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'description_en'
+    },
+    descriptionJp: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'description_jp'
+    },
     coverUrl: {
       type: DataTypes.STRING(512),
       allowNull: true,
@@ -4385,6 +4404,9 @@ RankLevel.hasMany(Collaborator, { as: 'collaborators', foreignKey: 'rankLevelId'
 
 Collaborator.belongsTo(Group, { as: 'group', foreignKey: 'groupId' });
 Group.hasMany(Collaborator, { as: 'collaborators', foreignKey: 'groupId' });
+
+Collaborator.belongsTo(Admin, { as: 'referredByAdmin', foreignKey: 'referredByAdminId' });
+Admin.hasMany(Collaborator, { as: 'referredCollaborators', foreignKey: 'referredByAdminId' });
 
 // Collaborator Assignment associations (phân công hồ sơ CV cho AdminBackOffice)
 CollaboratorAssignment.belongsTo(CVStorage, { as: 'cvStorage', foreignKey: 'cvStorageId' });

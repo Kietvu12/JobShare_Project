@@ -17,8 +17,14 @@ export async function findJobByIdOrSlug(idOrSlug, options = {}) {
     return Job.findByPk(parseInt(raw, 10), options);
   }
 
-  return Job.findOne({
+  const bySlug = await Job.findOne({
     ...options,
     where: { slug: raw },
+  });
+  if (bySlug) return bySlug;
+
+  return Job.findOne({
+    ...options,
+    where: { jobCode: raw },
   });
 }

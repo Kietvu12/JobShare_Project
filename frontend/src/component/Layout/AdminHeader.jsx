@@ -6,6 +6,13 @@ import { useNotification } from '../../context/NotificationContext';
 import { translations } from '../../translations/translations';
 import apiService from '../../services/api';
 
+function logAdminNotif(level, scope, detail) {
+  const payload = { scope, ...detail };
+  if (level === 'error') console.error('[AdminNotifications]', payload);
+  else if (level === 'warn') console.warn('[AdminNotifications]', payload);
+  else console.info('[AdminNotifications]', payload);
+}
+
 const ICON_TINT = '#b07a8a';
 const BREADCRUMB_COLOR = '#67748E';
 const TITLE_COLOR = '#441C2C';
@@ -63,15 +70,99 @@ const AdminHeader = () => {
   const [adminNotifOpen, setAdminNotifOpen] = useState(false);
   const [adminNotifList, setAdminNotifList] = useState([]);
   const [adminNotifLoading, setAdminNotifLoading] = useState(false);
+  const [adminNotifSchemaHint, setAdminNotifSchemaHint] = useState(null);
   const adminNotifPanelRef = useRef(null);
   const adminNotifStreamAbortRef = useRef(null);
 
   const refreshAdminNotifCount = async () => {
     try {
       const c = await apiService.getAdminNotificationUnreadCount();
+      logAdminNotif('info', 'unreadCount', { count: c });
       setAdminNotifUnread(typeof c === 'number' ? c : 0);
-    } catch {
-      /* ignore */
+    } catch (error) {
+      logAdminNotif('error', 'unreadCount', {
+        message: error?.message,
+        status: error?.status,
+        data: error?.data,
+      });
+    }
+  };
+
+  const mergeAdminNotifications = (incoming, prev) => {
+    const map = new Map();
+    [...(Array.isArray(incoming) ? incoming : []), ...(Array.isArray(prev) ? prev : [])].forEach((n) => {
+      if (n?.id != null) map.set(String(n.id), n);
+    });
+    return Array.from(map.values())
+      .sort((a, b) => {
+        const ta = new Date(a?.createdAt || a?.created_at || 0).getTime();
+        const tb = new Date(b?.createdAt || b?.created_at || 0).getTime();
+        return tb - ta;
+      })
+      .slice(0, 20);
+  };
+
+  const loadAdminNotifications = async () => {
+    setAdminNotifLoading(true);
+    try {
+      const res = await apiService.getAdminNotifications({ page: 1, limit: 20 });
+      logAdminNotif('info', 'loadList', {
+        success: res?.success,
+        schemaReady: res?.meta?.schemaReady,
+        notificationCount: (res?.data?.notifications ?? res?.notifications ?? []).length,
+        pagination: res?.data?.pagination ?? res?.pagination,
+        response: res,
+      });
+
+      if (res?.meta?.schemaReady === false) {
+        setAdminNotifSchemaHint(res?.meta?.hint || 'DB chưa có cột admin_id cho thông báo admin.');
+        setAdminNotifUnread(0);
+        logAdminNotif('error', 'loadList', {
+          message: 'DB chưa migration cột admin_id — thông báo admin không lưu được',
+          hint: res?.meta?.hint,
+        });
+        return;
+      }
+
+      setAdminNotifSchemaHint(null);
+
+      if (res?.success === false) {
+        logAdminNotif('error', 'loadList', {
+          message: res?.message || 'API trả success=false',
+          response: res,
+        });
+        return;
+      }
+
+      const rows = res?.data?.notifications ?? res?.notifications ?? [];
+      if (!Array.isArray(rows)) {
+        logAdminNotif('error', 'loadList', {
+          message: 'notifications không phải mảng',
+          type: typeof rows,
+          response: res,
+        });
+        return;
+      }
+
+      if (rows.length === 0) {
+        logAdminNotif('warn', 'loadList', {
+          message: 'API trả danh sách thông báo rỗng',
+          paginationTotal: res?.data?.pagination?.total ?? res?.pagination?.total,
+          response: res,
+        });
+      }
+
+      setAdminNotifList((prev) => mergeAdminNotifications(rows, prev));
+      await refreshAdminNotifCount();
+    } catch (error) {
+      logAdminNotif('error', 'loadList', {
+        message: error?.message,
+        status: error?.status,
+        data: error?.data,
+        stack: error?.stack,
+      });
+    } finally {
+      setAdminNotifLoading(false);
     }
   };
 
@@ -91,12 +182,23 @@ const AdminHeader = () => {
   };
 
   useEffect(() => {
+    if (adminNotifUnread > 0 && !adminNotifLoading && (!adminNotifList || adminNotifList.length === 0)) {
+      logAdminNotif('warn', 'stateMismatch', {
+        message: 'Có unread count nhưng danh sách thông báo trống',
+        unread: adminNotifUnread,
+        listLength: adminNotifList?.length ?? 0,
+      });
+    }
+  }, [adminNotifUnread, adminNotifList, adminNotifLoading]);
+
+  useEffect(() => {
     let timer;
     const tick = () => {
       refreshAdminNotifCount();
       refreshSupportChatUnreadCount();
     };
     tick();
+    loadAdminNotifications();
     timer = setInterval(tick, 45000);
     const onFocus = () => tick();
     const onSupportChatRead = () => refreshSupportChatUnreadCount();
@@ -130,11 +232,30 @@ const AdminHeader = () => {
     const start = async () => {
       let response = null;
       try {
-        response = await apiService.streamAdminNotifications();
-      } catch {
+        response = await apiService.streamAdminNotifications({ signal: controller.signal });
+      } catch (error) {
+        if (error?.name === 'AbortError') return;
+        logAdminNotif('error', 'streamConnect', {
+          message: error?.message,
+          status: error?.status,
+        });
         return;
       }
-      if (!mounted || !response || !response.ok || !response.body) return;
+
+      if (!response || !response.ok || !response.body) {
+        logAdminNotif('error', 'streamConnect', {
+          message: 'Phản hồi stream không hợp lệ',
+          ok: response?.ok,
+          status: response?.status,
+          statusText: response?.statusText,
+          hasBody: Boolean(response?.body),
+        });
+        return;
+      }
+
+      if (!mounted) return;
+
+      logAdminNotif('info', 'streamConnect', { status: response.status });
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder('utf-8');
@@ -150,9 +271,15 @@ const AdminHeader = () => {
         }
         if (eventName === 'notification' && dataStr) {
           try {
-            patchLocalOnIncoming(JSON.parse(dataStr));
-          } catch {
-            // ignore malformed payload
+            const payload = JSON.parse(dataStr);
+            logAdminNotif('info', 'streamEvent', { eventName, payload });
+            patchLocalOnIncoming(payload);
+          } catch (error) {
+            logAdminNotif('error', 'streamEvent', {
+              message: 'Không parse được payload SSE',
+              dataStr,
+              parseError: error?.message,
+            });
           }
         }
       };
@@ -169,8 +296,12 @@ const AdminHeader = () => {
             if (trimmed) processEventBlock(trimmed);
           }
         }
-      } catch {
-        // stream closed
+      } catch (error) {
+        if (error?.name === 'AbortError') return;
+        logAdminNotif('error', 'streamRead', {
+          message: error?.message,
+          name: error?.name,
+        });
       }
     };
 
@@ -185,24 +316,7 @@ const AdminHeader = () => {
 
   useEffect(() => {
     if (!adminNotifOpen) return undefined;
-    const load = async () => {
-      setAdminNotifLoading(true);
-      try {
-        const [res, count] = await Promise.all([
-          apiService.getAdminNotifications({ page: 1, limit: 20 }),
-          apiService.getAdminNotificationUnreadCount(),
-        ]);
-        const rows = res?.data?.notifications ?? res?.notifications ?? [];
-        setAdminNotifList(Array.isArray(rows) ? rows : []);
-        setAdminNotifUnread(typeof count === 'number' ? count : 0);
-      } catch {
-        setAdminNotifList([]);
-        await refreshAdminNotifCount();
-      } finally {
-        setAdminNotifLoading(false);
-      }
-    };
-    load();
+    loadAdminNotifications();
     const onDoc = (e) => {
       if (adminNotifPanelRef.current && !adminNotifPanelRef.current.contains(e.target)) {
         setAdminNotifOpen(false);
@@ -723,7 +837,12 @@ const AdminHeader = () => {
                 {adminNotifLoading && (
                   <div className="px-3 py-6 text-center text-[10px]" style={{ color: '#6b7280' }}>…</div>
                 )}
-                {!adminNotifLoading && (!adminNotifList || adminNotifList.length === 0) && (
+                {!adminNotifLoading && adminNotifSchemaHint && (
+                  <div className="px-3 py-4 text-center text-[10px] leading-relaxed" style={{ color: '#b45309', backgroundColor: '#fffbeb' }}>
+                    {adminNotifSchemaHint}
+                  </div>
+                )}
+                {!adminNotifLoading && !adminNotifSchemaHint && (!adminNotifList || adminNotifList.length === 0) && (
                   <div className="px-3 py-6 text-center text-[10px]" style={{ color: '#6b7280' }}>
                     {language === 'vi' ? 'Không có thông báo.' : language === 'en' ? 'No notifications.' : '通知はありません。'}
                   </div>

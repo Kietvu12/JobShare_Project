@@ -66,7 +66,15 @@ const AdminJobPickupsPage = () => {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({ name: '', nameEn: '', nameJp: '', coverUrl: '' });
+  const [form, setForm] = useState({
+    name: '',
+    nameEn: '',
+    nameJp: '',
+    description: '',
+    descriptionEn: '',
+    descriptionJp: '',
+    coverUrl: '',
+  });
   const [coverUploading, setCoverUploading] = useState(false);
 
   const [pickupPanelOpen, setPickupPanelOpen] = useState(false);
@@ -268,7 +276,15 @@ const AdminJobPickupsPage = () => {
 
   const openCreate = () => {
     setEditingId(null);
-    setForm({ name: '', nameEn: '', nameJp: '', coverUrl: '' });
+    setForm({
+      name: '',
+      nameEn: '',
+      nameJp: '',
+      description: '',
+      descriptionEn: '',
+      descriptionJp: '',
+      coverUrl: '',
+    });
     setFormOpen(true);
   };
 
@@ -278,7 +294,10 @@ const AdminJobPickupsPage = () => {
       name: p.name || '',
       nameEn: p.nameEn || '',
       nameJp: p.nameJp || '',
-      coverUrl: p.coverUrl || p.cover_url || ''
+      description: p.description || '',
+      descriptionEn: p.descriptionEn || p.description_en || '',
+      descriptionJp: p.descriptionJp || p.description_jp || '',
+      coverUrl: p.coverUrl || p.cover_url || '',
     });
     setFormOpen(true);
   };
@@ -292,7 +311,10 @@ const AdminJobPickupsPage = () => {
     const body = {
       name: form.name.trim(),
       nameEn: form.nameEn.trim() || null,
-      nameJp: form.nameJp.trim() || null
+      nameJp: form.nameJp.trim() || null,
+      description: form.description.trim() || null,
+      descriptionEn: form.descriptionEn.trim() || null,
+      descriptionJp: form.descriptionJp.trim() || null,
     };
     try {
       if (editingId) {
@@ -687,7 +709,12 @@ const AdminJobPickupsPage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pb-2">
               {pickups.map((p, index) => {
                 const displayName = pickByLanguage(p.name, p.nameEn, p.nameJp, language);
-                const subEnJp = [p.nameEn, p.nameJp].filter(Boolean).join(' · ');
+                const displayDescription = pickByLanguage(
+                  p.description,
+                  p.descriptionEn || p.description_en,
+                  p.descriptionJp || p.description_jp,
+                  language
+                );
                 const createdAt = p.createdAt
                   ? new Date(p.createdAt).toLocaleString(dateLocale, { dateStyle: 'short', timeStyle: 'short' })
                   : '—';
@@ -769,9 +796,9 @@ const AdminJobPickupsPage = () => {
                         }`}
                         style={{ color: '#374151' }}
                       >
-                        {subEnJp || '—'}
+                        {displayDescription || '—'}
                       </p>
-                      {subEnJp && (
+                      {displayDescription && (
                         <button
                           type="button"
                           onClick={(e) => {
@@ -881,7 +908,7 @@ const AdminJobPickupsPage = () => {
           role="presentation"
         >
           <div
-            className="w-full max-w-md rounded-xl border bg-white p-4 shadow-lg"
+            className="w-full max-w-lg rounded-xl border bg-white p-4 shadow-lg max-h-[90vh] overflow-y-auto"
             style={{ borderColor: '#e5e7eb' }}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
@@ -932,6 +959,43 @@ const AdminJobPickupsPage = () => {
                   value={form.nameJp}
                   onChange={(e) => setForm((f) => ({ ...f, nameJp: e.target.value }))}
                   className="w-full rounded-lg border px-3 py-2 text-sm"
+                  style={{ borderColor: '#d1d5db', outline: 'none' }}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold" style={{ color: '#374151' }}>
+                  {t.jobPickupsDescription}
+                </label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  rows={3}
+                  className="w-full resize-y rounded-lg border px-3 py-2 text-sm"
+                  style={{ borderColor: '#d1d5db', outline: 'none' }}
+                  placeholder={t.jobPickupsDescriptionPlaceholder}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold" style={{ color: '#374151' }}>
+                  {t.jobPickupsDescriptionEn}
+                </label>
+                <textarea
+                  value={form.descriptionEn}
+                  onChange={(e) => setForm((f) => ({ ...f, descriptionEn: e.target.value }))}
+                  rows={3}
+                  className="w-full resize-y rounded-lg border px-3 py-2 text-sm"
+                  style={{ borderColor: '#d1d5db', outline: 'none' }}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold" style={{ color: '#374151' }}>
+                  {t.jobPickupsDescriptionJp}
+                </label>
+                <textarea
+                  value={form.descriptionJp}
+                  onChange={(e) => setForm((f) => ({ ...f, descriptionJp: e.target.value }))}
+                  rows={3}
+                  className="w-full resize-y rounded-lg border px-3 py-2 text-sm"
                   style={{ borderColor: '#d1d5db', outline: 'none' }}
                 />
               </div>

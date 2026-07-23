@@ -2,6 +2,7 @@ import { JobPickup, JobPickupId, Job } from '../../models/index.js';
 import { Op } from 'sequelize';
 import sequelize from '../../config/database.js';
 import { MARKETPLACE_PICKUP_NAME } from '../../constants/candidateSharing.js';
+import { getJobPickupQueryAttributes } from '../../utils/jobPickupSchema.js';
 
 // Helper function to map model field names to database column names
 const mapOrderField = (fieldName) => {
@@ -58,8 +59,10 @@ export const jobPickupController = {
         orderClause.push(['id', 'DESC']);
       }
 
+      const attributes = await getJobPickupQueryAttributes();
       const { count, rows } = await JobPickup.findAndCountAll({
         where,
+        ...(attributes ? { attributes } : {}),
         limit: parseInt(limit),
         offset,
         order: orderClause
@@ -121,7 +124,8 @@ export const jobPickupController = {
     try {
       const { id } = req.params;
 
-      const pickup = await JobPickup.findByPk(id);
+      const attributes = await getJobPickupQueryAttributes();
+      const pickup = await JobPickup.findByPk(id, attributes ? { attributes } : undefined);
 
       if (!pickup) {
         return res.status(404).json({

@@ -126,38 +126,50 @@ export const collaboratorNotificationService = {
     if (adminId != null) row.adminId = adminId;
     if (businessId != null) row.businessId = businessId;
 
-    let notification;
     try {
-      notification = await CollaboratorNotification.create(row);
-    } catch (err) {
-      const e = err?.parent || err?.original || err;
-      const missingBusinessId = e?.errno === 1054
-        && /Unknown column ['`]?business_id['`]?/i.test(String(e?.sqlMessage || err?.message || ''));
-      if (missingBusinessId && row.businessId != null) {
-        const { businessId: _omit, ...withoutBusiness } = row;
-        notification = await CollaboratorNotification.create(withoutBusiness);
-      } else {
-        throw err;
+      let notification;
+      try {
+        notification = await CollaboratorNotification.create(row);
+      } catch (err) {
+        const e = err?.parent || err?.original || err;
+        const missingBusinessId = e?.errno === 1054
+          && /Unknown column ['`]?business_id['`]?/i.test(String(e?.sqlMessage || err?.message || ''));
+        if (missingBusinessId && row.businessId != null) {
+          const { businessId: _omit, ...withoutBusiness } = row;
+          notification = await CollaboratorNotification.create(withoutBusiness);
+        } else {
+          throw err;
+        }
       }
+
+      const payload = {
+        id: notification.id,
+        title: notification.title,
+        content: notification.content,
+        jobId: notification.jobId,
+        url: notification.url,
+        isRead: notification.isRead,
+        createdAt: notification.createdAt || notification.created_at || new Date().toISOString()
+      };
+      if (collaboratorId) publishToCollaborator(collaboratorId, payload);
+      const savedAdminId = notification.adminId ?? notification.admin_id ?? null;
+      if (savedAdminId) publishToAdmin(savedAdminId, payload);
+      // Chỉ push SSE khi đã lưu business_id — tránh badge tăng mà danh sách API trống
+      const savedBusinessId = notification.businessId ?? notification.business_id ?? null;
+      if (savedBusinessId) publishToBusiness(savedBusinessId, payload);
+
+      return notification;
+    } catch (error) {
+      console.error('[CollaboratorNotification:createAndEmit] failed', {
+        collaboratorId,
+        adminId,
+        businessId,
+        title,
+        message: error?.message,
+        sqlMessage: error?.parent?.sqlMessage || error?.original?.sqlMessage,
+      });
+      return null;
     }
-
-    const payload = {
-      id: notification.id,
-      title: notification.title,
-      content: notification.content,
-      jobId: notification.jobId,
-      url: notification.url,
-      isRead: notification.isRead,
-      createdAt: notification.createdAt || notification.created_at || new Date().toISOString()
-    };
-    if (collaboratorId) publishToCollaborator(collaboratorId, payload);
-    const savedAdminId = notification.adminId ?? notification.admin_id ?? null;
-    if (savedAdminId) publishToAdmin(savedAdminId, payload);
-    // Chỉ push SSE khi đã lưu business_id — tránh badge tăng mà danh sách API trống
-    const savedBusinessId = notification.businessId ?? notification.business_id ?? null;
-    if (savedBusinessId) publishToBusiness(savedBusinessId, payload);
-
-    return notification;
   },
 
   subscribeAdmin(adminId, res) {

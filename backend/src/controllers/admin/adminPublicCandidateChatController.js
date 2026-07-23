@@ -27,7 +27,9 @@ export const adminPublicCandidateChatController = {
       const offset = (page - 1) * limit;
 
       const { count, rows } = await PublicCandidateChatSession.findAndCountAll({
-        order: sequelize.literal('`PublicCandidateChatSession`.`updated_at` DESC'),
+        order: sequelize.literal(
+          'COALESCE(`PublicCandidateChatSession`.`last_message_at`, `PublicCandidateChatSession`.`created_at`) DESC'
+        ),
         limit,
         offset,
         include: [

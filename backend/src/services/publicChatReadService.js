@@ -22,11 +22,13 @@ export async function markAdminPublicChatSessionRead(session, MessageModel) {
 
   const readAt = latestRow?.created_at ? new Date(latestRow.created_at) : new Date();
 
-  session.adminLastSeenAt = readAt;
+  const patch = { adminLastSeenAt: readAt };
   if (latestRow?.created_at) {
-    session.lastVisitorMessageAt = readAt;
+    patch.lastVisitorMessageAt = readAt;
   }
-  await session.save();
+  // Không bump updated_at — tránh phiên nhảy lên đầu danh sách khi admin chỉ mở xem.
+  await session.update(patch, { timestamps: false });
+  session.set(patch);
   return readAt;
 }
 
@@ -51,8 +53,8 @@ export async function markVisitorPublicChatSessionRead(session, MessageModel) {
   );
 
   const readAt = latestRow?.created_at ? new Date(latestRow.created_at) : new Date();
-  session.visitorLastSeenAt = readAt;
-  await session.save();
+  await session.update({ visitorLastSeenAt: readAt }, { timestamps: false });
+  session.set('visitorLastSeenAt', readAt);
   return readAt;
 }
 
