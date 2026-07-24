@@ -486,10 +486,11 @@ function CollaboratorLandingChatbot() {
     if (open && tab === 'messages') {
       localStorage.setItem(LS_LAST_READ_ADMIN, new Date().toISOString());
       setUnreadAdminCount(0);
-      if (sessionToken) {
-        apiService.markPublicCtvChatRead(sessionToken).then((res) => {
+      const tok = sessionToken || localStorage.getItem(LS_TOKEN);
+      if (tok) {
+        apiService.markPublicCtvChatRead(tok).then((res) => {
           if (res?.success) {
-            apiService.getPublicCtvChatMessages(sessionToken).then((msgsRes) => {
+            apiService.getPublicCtvChatMessages(tok).then((msgsRes) => {
               if (msgsRes?.success) setLiveMessages(msgsRes.data?.messages || []);
             });
           }

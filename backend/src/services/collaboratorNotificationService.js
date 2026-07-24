@@ -3,6 +3,7 @@ import { Admin, CollaboratorNotification } from '../models/index.js';
 
 const collaboratorStreams = new Map();
 const adminStreams = new Map();
+const businessStreams = new Map();
 
 const formatDateVi = (dateValue) => {
   if (!dateValue) return '';
@@ -26,6 +27,19 @@ const publishToCollaborator = (collaboratorId, payload) => {
       writeSseEvent(res, 'notification', payload);
     } catch (err) {
       // Nếu stream lỗi thì bỏ qua, cleanup sẽ xử lý khi connection close.
+    }
+  }
+};
+
+const publishToBusiness = (businessId, payload) => {
+  if (!businessId) return;
+  const streams = businessStreams.get(Number(businessId));
+  if (!streams || streams.size === 0) return;
+  for (const res of streams) {
+    try {
+      writeSseEvent(res, 'notification', payload);
+    } catch (err) {
+      // ignore
     }
   }
 };
@@ -104,18 +118,29 @@ export const collaboratorNotificationService = {
     }
   },
 
-  async createAndEmit({ collaboratorId = null, adminId = null, title, content, jobId = null, url = null }) {
-    if ((!collaboratorId && !adminId) || !title || !content) return null;
+  async createAndEmit({ collaboratorId = null, adminId = null, businessId = null, title, content, jobId = null, url = null }) {
+    if ((!collaboratorId && !adminId && !businessId) || !title || !content) return null;
+
+    const row = { title, content, jobId, url, isRead: false };
+    if (collaboratorId != null) row.collaboratorId = collaboratorId;
+    if (adminId != null) row.adminId = adminId;
+    if (businessId != null) row.businessId = businessId;
+
     try {
-      const notification = await CollaboratorNotification.create({
-        collaboratorId,
-        adminId,
-        title,
-        content,
-        jobId,
-        url,
-        isRead: false
-      });
+      let notification;
+      try {
+        notification = await CollaboratorNotification.create(row);
+      } catch (err) {
+        const e = err?.parent || err?.original || err;
+        const missingBusinessId = e?.errno === 1054
+          && /Unknown column ['`]?business_id['`]?/i.test(String(e?.sqlMessage || err?.message || ''));
+        if (missingBusinessId && row.businessId != null) {
+          const { businessId: _omit, ...withoutBusiness } = row;
+          notification = await CollaboratorNotification.create(withoutBusiness);
+        } else {
+          throw err;
+        }
+      }
 
       const payload = {
         id: notification.id,
@@ -127,13 +152,18 @@ export const collaboratorNotificationService = {
         createdAt: notification.createdAt || notification.created_at || new Date().toISOString()
       };
       if (collaboratorId) publishToCollaborator(collaboratorId, payload);
-      if (adminId) publishToAdmin(adminId, payload);
+      const savedAdminId = notification.adminId ?? notification.admin_id ?? null;
+      if (savedAdminId) publishToAdmin(savedAdminId, payload);
+      // Chỉ push SSE khi đã lưu business_id — tránh badge tăng mà danh sách API trống
+      const savedBusinessId = notification.businessId ?? notification.business_id ?? null;
+      if (savedBusinessId) publishToBusiness(savedBusinessId, payload);
 
       return notification;
     } catch (error) {
       console.error('[CollaboratorNotification:createAndEmit] failed', {
         collaboratorId,
         adminId,
+        businessId,
         title,
         message: error?.message,
         sqlMessage: error?.parent?.sqlMessage || error?.original?.sqlMessage,
@@ -154,6 +184,116 @@ export const collaboratorNotificationService = {
     if (!streams) return;
     streams.delete(res);
     if (streams.size === 0) adminStreams.delete(key);
+  },
+
+  subscribeBusiness(businessId, res) {
+    const key = Number(businessId);
+    if (!businessStreams.has(key)) businessStreams.set(key, new Set());
+    businessStreams.get(key).add(res);
+  },
+
+  unsubscribeBusiness(businessId, res) {
+    const key = Number(businessId);
+    const streams = businessStreams.get(key);
+    if (!streams) return;
+    streams.delete(res);
+    if (streams.size === 0) businessStreams.delete(key);
+  },
+
+  async notifyBusinessNominationCreated({
+    businessId,
+    candidateName,
+    jobCode,
+    jobId = null,
+    jobApplicationId = null,
+    ctvName = null,
+  }) {
+    if (!businessId) return null;
+    const safeCandidate = candidateName || 'Ứng viên';
+    const safeJobCode = jobCode || 'N/A';
+    const safeCtv = ctvName || 'CTV';
+    return this.createAndEmit({
+      businessId,
+      title: 'Đơn tiến cử mới',
+      content: `${safeCtv} đã tiến cử hồ sơ ${safeCandidate} cho JD ${safeJobCode}.`,
+      jobId,
+      url: jobApplicationId
+        ? `/business/applications?nominationId=${jobApplicationId}`
+        : '/business/applications',
+    });
+  },
+
+  async notifyBusinessIncomingMessage({
+    businessId,
+    jobCode,
+    jobId = null,
+    jobApplicationId = null,
+    senderLabel = 'CTV',
+  }) {
+    if (!businessId) return null;
+    const safeJobCode = jobCode || 'N/A';
+    return this.createAndEmit({
+      businessId,
+      title: 'Tin nhắn mới',
+      content: `${senderLabel} gửi tin nhắn mới về đơn tiến cử ${safeJobCode}.`,
+      jobId,
+      url: jobApplicationId
+        ? `/business/applications?nominationId=${jobApplicationId}`
+        : '/business/messages',
+    });
+  },
+
+  async notifyBusinessStatusChanged({
+    businessId,
+    candidateName,
+    jobCode,
+    status,
+    jobId = null,
+    jobApplicationId = null,
+  }) {
+    if (!businessId) return null;
+    const content = buildStatusContent({
+      status,
+      candidateName,
+      jobCode,
+      nyushaDate: null,
+    });
+    return this.createAndEmit({
+      businessId,
+      title: 'Cập nhật trạng thái đơn tiến cử',
+      content,
+      jobId,
+      url: jobApplicationId
+        ? `/business/applications?nominationId=${jobApplicationId}`
+        : '/business/applications',
+    });
+  },
+
+  async notifyBusinessListingApproved({ businessId, jobTitle, jobId = null, listingId = null }) {
+    if (!businessId) return null;
+    return this.createAndEmit({
+      businessId,
+      title: 'Job đã được duyệt trên Sàn CTV',
+      content: `JD "${jobTitle || '—'}" đã được WS duyệt và đăng lên Sàn CTV.`,
+      jobId,
+      url: listingId
+        ? `/business/candidate-sharing?tab=jobs&listingId=${listingId}`
+        : '/business/candidate-sharing?tab=jobs',
+    });
+  },
+
+  async notifyBusinessListingRejected({ businessId, jobTitle, reason = null, listingId = null }) {
+    if (!businessId) return null;
+    const suffix = reason ? ` Lý do: ${reason}` : '';
+    return this.createAndEmit({
+      businessId,
+      title: 'Job bị từ chối trên Sàn CTV',
+      content: `JD "${jobTitle || '—'}" chưa được duyệt lên Sàn CTV.${suffix}`,
+      jobId: null,
+      url: listingId
+        ? `/business/candidate-sharing?tab=jobs&listingId=${listingId}`
+        : '/business/candidate-sharing?tab=jobs',
+    });
   },
 
   async notifySupplementInfoRequested({ collaboratorId, cvId, candidateName }) {
