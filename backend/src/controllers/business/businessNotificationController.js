@@ -1,6 +1,11 @@
 import { CollaboratorNotification, Job } from '../../models/index.js';
+import sequelize from '../../config/database.js';
 import { collaboratorNotificationService } from '../../services/collaboratorNotificationService.js';
 import { applySseHeaders } from '../../utils/sseHeaders.js';
+
+const NOTIFICATION_LIST_ORDER = [
+  [sequelize.literal('`collaborator_notifications`.`created_at`'), 'DESC'],
+];
 
 function isMissingBusinessNotificationsColumn(err) {
   const e = err?.parent || err?.original || err;
@@ -27,7 +32,7 @@ export const businessNotificationController = {
             attributes: ['id', 'jobCode', 'title', 'slug'],
           },
         ],
-        order: [['created_at', 'DESC']],
+        order: NOTIFICATION_LIST_ORDER,
         limit,
         offset,
       });
