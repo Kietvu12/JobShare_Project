@@ -88,8 +88,8 @@ export default function CvTemplateDateTriplet({
 
   return (
     <div
-      className={`inline-flex items-baseline flex-wrap ${className}`}
-      style={{ letterSpacing: 0, gap: 0, lineHeight: 1.35 }}
+      className={`cv-template-date-triplet cv-pdf-date-inline inline-flex items-baseline flex-nowrap ${className}`}
+      style={{ letterSpacing: 0, gap: 0, lineHeight: 1.35, whiteSpace: 'nowrap', fontSize: '11px' }}
     >
       {errorMessage ? <div className="w-full text-[10px] text-rose-600">{errorMessage}</div> : null}
       {prefix ? <span>{prefix}</span> : null}

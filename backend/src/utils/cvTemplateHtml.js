@@ -1146,12 +1146,24 @@ ${(() => {
       const major = edu.major != null ? String(edu.major).trim() : '';
       const schoolDisplay = schoolName || (edu.content ? String(edu.content).split(/\s*\/\s*/)[0]?.trim() : '') || '　';
       const majorDisplay = major || (edu.content ? String(edu.content).split(/\s*\/\s*/).slice(1).join(' / ').trim() : '') || '　';
+      const yearsDisplay = (() => {
+        const startY = parseInt(String(edu.year ?? '').replace(/\D/g, ''), 10);
+        const startM = parseInt(String(edu.month ?? '').replace(/\D/g, ''), 10) || 1;
+        const endY = parseInt(String(edu.endYear ?? '').replace(/\D/g, ''), 10);
+        const endM = parseInt(String(edu.endMonth ?? '').replace(/\D/g, ''), 10) || 1;
+        if (!Number.isFinite(startY) || startY < 1000 || !Number.isFinite(endY) || endY < 1000) return '';
+        const clampM = (m) => Math.min(12, Math.max(1, m));
+        const diffMonths = (endY * 12 + clampM(endM)) - (startY * 12 + clampM(startM));
+        if (diffMonths <= 0) return '';
+        const y = Math.round(diffMonths / 12);
+        return y > 0 ? `${y}年` : '';
+      })();
       return `<tr>
         <td style="border:1px solid #1f2937;padding:4px">${orBlank(schoolDisplay)}</td>
         <td style="border:1px solid #1f2937;padding:4px">${orBlank(majorDisplay)}</td>
         <td style="border:1px solid #1f2937;padding:4px;text-align:center">${startYm || '　'}</td>
         <td style="border:1px solid #1f2937;padding:4px;text-align:center">${endYm || '　'}</td>
-        <td style="border:1px solid #1f2937;padding:4px;text-align:center">　</td>
+        <td style="border:1px solid #1f2937;padding:4px;text-align:center">${yearsDisplay || '　'}</td>
       </tr>`;
     }).join('')}
   </table>

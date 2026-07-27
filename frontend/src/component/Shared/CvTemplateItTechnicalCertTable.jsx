@@ -96,7 +96,7 @@ export default function CvTemplateItTechnicalCertTable({
       data-cv-fixed-cert-visible={JSON.stringify(visibleKinds)}
     >
     <ResizableCvTable
-      className="w-full border-collapse mt-3 font-bold"
+      className="w-full border-collapse mt-3"
       style={{ fontSize: '11px', color: '#1f2937', borderColor: '#1f2937' }}
       colPercents={colSaved('rirekisho', 'certificates_v2', DEFAULT_CERT_COL_PERCENTS)}
       layoutKey={cvLayoutKey(cvTpl, 'rirekisho', 'certificates_v2')}
@@ -106,7 +106,7 @@ export default function CvTemplateItTechnicalCertTable({
         <tr>
           <td
             rowSpan={titleRowSpan}
-            className="border p-2 text-center align-middle"
+            className="border p-2 text-center align-middle font-bold"
             style={{ ...CELL_BORDER, backgroundColor: '#e2efd9', width: '5rem' }}
           >
             <SupplementTplText
@@ -116,11 +116,11 @@ export default function CvTemplateItTechnicalCertTable({
               linkedFieldKeys={['addCandidate-certificates', 'jlptLevel', 'toeicScore', 'ieltsScore', 'hasDrivingLicense']}
             />
           </td>
-          <td className="border p-1.5 text-center font-medium" style={HEADER_BG} />
-          <td colSpan={4} className="border p-1.5 text-center font-medium" style={HEADER_BG}>
+          <td className="border p-1.5 text-center font-normal" style={HEADER_BG} />
+          <td colSpan={4} className="border p-1.5 text-center font-normal" style={HEADER_BG}>
             <SupplementTplText fieldKey={`tpl-${tplPrefix}-cert-h-name`} text="名称" supplementMarking={supplementMarking} className="select-text inline" />
           </td>
-          <td className="border p-1.5 text-center font-medium" style={HEADER_BG}>
+          <td className="border p-1.5 text-center font-normal" style={HEADER_BG}>
             <SupplementTplText fieldKey={`tpl-${tplPrefix}-cert-h-ym`} text="取得年月" supplementMarking={supplementMarking} className="select-text inline" />
           </td>
         </tr>

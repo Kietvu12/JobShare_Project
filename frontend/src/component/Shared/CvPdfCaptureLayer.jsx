@@ -5,7 +5,6 @@ import {
   CV_TEMPLATE_DIR_MAP,
   elementToPdfBlob,
   elementsToPdfBlob,
-  hasElementLayout,
   waitForDocumentFonts,
   waitForCvPdfSectionElements,
 } from '../../utils/cvClientPdf.js';
@@ -25,16 +24,13 @@ const CAPTURE_LAYER_OFFSCREEN_STYLE = {
 /**
  * Lớp render template CV để capture DOM → PDF (client-side).
  * Parent truyền renderTemplate(tpl, { pdfExportMode, pdfSectionRefs }).
- * resolveVisibleSection(tpl, part) — ưu tiên DOM preview đang hiển thị (WYSIWYG).
  */
-const CvPdfCaptureLayer = forwardRef(function CvPdfCaptureLayer({ renderTemplate, resolveVisibleSection }, ref) {
+const CvPdfCaptureLayer = forwardRef(function CvPdfCaptureLayer({ renderTemplate }, ref) {
   const [activeTemplates, setActiveTemplates] = useState([]);
   const [captureParts, setCaptureParts] = useState(['rirekisho', 'shokumu']);
   const [capturing, setCapturing] = useState(false);
   const layerRef = useRef(null);
   const sectionRefsMap = useRef({});
-  const resolveVisibleSectionRef = useRef(resolveVisibleSection);
-  resolveVisibleSectionRef.current = resolveVisibleSection;
 
   const getSectionRefs = useCallback((tpl) => {
     if (!sectionRefsMap.current[tpl]) {
@@ -60,7 +56,6 @@ const CvPdfCaptureLayer = forwardRef(function CvPdfCaptureLayer({ renderTemplate
     });
     await waitForDocumentFonts();
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    await new Promise((resolve) => setTimeout(resolve, 1200));
   }, []);
 
   const unmountAfterCapture = useCallback(() => {
@@ -83,46 +78,28 @@ const CvPdfCaptureLayer = forwardRef(function CvPdfCaptureLayer({ renderTemplate
     return elements;
   }, [queryLayerSection]);
 
-  const getVisibleSectionsIfReady = useCallback((tpl) => {
-    const resolver = resolveVisibleSectionRef.current;
-    if (typeof resolver !== 'function') return null;
-
-    const elR = resolver(tpl, 'rirekisho');
-    const elS = resolver(tpl, 'shokumu');
-    const panel = elR?.closest('#add-candidate-panel-preview');
-    const panelInner = panel?.querySelector('.cv-preview-scroll');
-    const panelWidth = panelInner?.clientWidth || panel?.clientWidth || 0;
-    if (panelWidth > 0 && panelWidth < CV_PDF_CAPTURE_WIDTH_PX * 0.92) return null;
-    if (!elR?.isConnected || !elS?.isConnected) return null;
-    if (!hasElementLayout(elR) || !hasElementLayout(elS)) return null;
-    return { rirekisho: elR, shokumu: elS };
-  }, []);
-
-  const tryCaptureVisibleSection = useCallback(async (tpl, part) => {
-    const sections = getVisibleSectionsIfReady(tpl);
-    const el = sections?.[part];
-    if (!el) return null;
-
-    await waitForDocumentFonts();
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    try {
-      return await elementToPdfBlob(el);
-    } catch (error) {
-      console.warn(`Visible CV section capture failed (${tpl}/${part}), fallback to capture layer:`, error);
-      return null;
-    }
-  }, [getVisibleSectionsIfReady]);
-
   const captureFromLayer = useCallback(async (tpl, parts) => {
-    await mountForCapture([tpl], parts);
-    try {
-      const elements = await ensureLayerSectionsReady(tpl, parts);
-      if (elements.length === 1) {
-        return elementToPdfBlob(elements[0]);
+    const runOnce = async () => {
+      await mountForCapture([tpl], parts);
+      try {
+        const elements = await ensureLayerSectionsReady(tpl, parts);
+        if (elements.length === 1) {
+          return elementToPdfBlob(elements[0]);
+        }
+        return elementsToPdfBlob(elements);
+      } finally {
+        unmountAfterCapture();
       }
-      return elementsToPdfBlob(elements);
-    } finally {
-      unmountAfterCapture();
+    };
+
+    try {
+      return await runOnce();
+    } catch (error) {
+      const msg = error?.message || '';
+      if (!/chưa sẵn sàng|Không render|Không chụp được/.test(msg)) throw error;
+      await waitForDocumentFonts();
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      return runOnce();
     }
   }, [ensureLayerSectionsReady, mountForCapture, unmountAfterCapture]);
 
@@ -135,33 +112,7 @@ const CvPdfCaptureLayer = forwardRef(function CvPdfCaptureLayer({ renderTemplate
       const results = [];
 
       for (const tpl of keys) {
-        const visible = getVisibleSectionsIfReady(tpl);
-        let capturedFromVisible = false;
-
-        if (visible) {
-          try {
-            for (const part of ['rirekisho', 'shokumu']) {
-              const el = visible[part];
-              if (!el) throw new Error(`Missing visible section ${part}`);
-              const blob = await elementToPdfBlob(el);
-              results.push({
-                cvTemplate: tpl,
-                part,
-                dir: CV_TEMPLATE_DIR_MAP[tpl],
-                blob,
-              });
-            }
-            capturedFromVisible = true;
-          } catch (error) {
-            console.warn(`Visible CV save capture failed (${tpl}), fallback to capture layer:`, error);
-            for (let i = results.length - 1; i >= 0; i -= 1) {
-              if (results[i].cvTemplate === tpl) results.splice(i, 1);
-            }
-          }
-        }
-
-        if (capturedFromVisible) continue;
-
+        // Luôn capture qua offscreen layer (A4, đủ 2 tab) — tránh lệch layout/chữ khi lưu từ panel preview.
         await mountForCapture([tpl], ['rirekisho', 'shokumu']);
         try {
           const elements = await ensureLayerSectionsReady(tpl, ['rirekisho', 'shokumu']);
@@ -188,27 +139,15 @@ const CvPdfCaptureLayer = forwardRef(function CvPdfCaptureLayer({ renderTemplate
       const tpl = CV_TEMPLATE_DIR_MAP[template] ? template : 'common';
 
       if (tab === 'rirekisho') {
-        const visiblePdf = await tryCaptureVisibleSection(tpl, 'rirekisho');
-        if (visiblePdf) return visiblePdf;
         return captureFromLayer(tpl, ['rirekisho']);
       }
       if (tab === 'shokumu') {
-        const visiblePdf = await tryCaptureVisibleSection(tpl, 'shokumu');
-        if (visiblePdf) return visiblePdf;
         return captureFromLayer(tpl, ['shokumu']);
       }
 
-      const visible = getVisibleSectionsIfReady(tpl);
-      if (visible?.rirekisho && visible?.shokumu) {
-        try {
-          return await elementsToPdfBlob([visible.rirekisho, visible.shokumu]);
-        } catch (error) {
-          console.warn('Visible CV full capture failed, fallback to capture layer:', error);
-        }
-      }
       return captureFromLayer(tpl, ['rirekisho', 'shokumu']);
     },
-  }), [captureFromLayer, ensureLayerSectionsReady, getVisibleSectionsIfReady, mountForCapture, tryCaptureVisibleSection, unmountAfterCapture]);
+  }), [captureFromLayer, ensureLayerSectionsReady, mountForCapture, unmountAfterCapture]);
 
   if (!activeTemplates.length) return null;
 

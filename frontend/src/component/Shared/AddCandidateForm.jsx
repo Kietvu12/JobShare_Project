@@ -65,7 +65,9 @@ import {
   currentResidenceFromLocationCountry,
   resolveCurrentLocationAndDesiredFromCv,
 } from '../../utils/mergeResumeDataFromAi.js';
+import { withEducationYearsCalculated, calculateEducationYearsFromDates } from '../../utils/cvEducationUtils.js';
 import { isValidCvPhone, normalizeCvPhone } from '../../utils/cvPhoneUtils.js';
+import { TECHNICAL_TOOLS_ALL } from '../../constants/technicalToolsGrid.js';
 
 const mapPassportToBool = (v) => (v === '有' ? 1 : v === '無' ? 0 : undefined);
 
@@ -1237,8 +1239,9 @@ const AddCandidateForm = ({
   };
   /** Ô text cho mảng: đồng bộ [arrayName][index][subfield]. displayValue = giá trị hiển thị (nếu khác value).
    * Khi focus không truyền children để React không ghi đè → tránh lỗi ký tự sai thứ tự. Chỉ cập nhật state khi blur.
-   *  certificates + subfield 'yearMonth': hiển thị dạng "YYYY年MM月", khi trống "　年　月" để user nhập trước 年 và 月. */
-  const cvEditableArray = (arrayName, index, subfield, className = '', style = {}, displayValue = undefined, supp = null) => {
+   *  certificates + subfield 'yearMonth': hiển thị dạng "YYYY年MM月", khi trống "　年　月" để user nhập trước 年 và 月.
+   *  cellKeySuffix: phân biệt nhiều ô cùng subfield trên UI (tránh focus chéo). */
+  const cvEditableArray = (arrayName, index, subfield, className = '', style = {}, displayValue = undefined, supp = null, cellKeySuffix = '') => {
     const arr = formData[arrayName] || [];
     const item = arr[index] || {};
     const isYearMonth = arrayName === 'certificates' && subfield === 'yearMonth';
@@ -1248,7 +1251,7 @@ const AddCandidateForm = ({
       : isYearMonth
         ? ((item.year || '　　') + '年' + (item.month || '　　') + '月')
         : displayEditableScalarText(String(value ?? '').replace(/\r\n?/g, '\n'));
-    const cellKey = `${arrayName}-${index}-${subfield}`;
+    const cellKey = `${arrayName}-${index}-${subfield}${cellKeySuffix ? `-${cellKeySuffix}` : ''}`;
     const isFocused = focusedCvArrayField === cellKey;
     const marks = formData.adminSupplementMarks || [];
     const onField = isAdmin ? supplementMarking.handleFieldContextMenu : null;
@@ -1329,6 +1332,8 @@ const AddCandidateForm = ({
           } else {
             next[index] = { ...next[index], [subfield]: v || '' };
           }
+        } else if (arrayName === 'educations' && subfield === 'years') {
+          // 年数 — tự tính từ ngày, bỏ qua nhập tay
         } else {
           next[index] = { ...next[index], [subfield]: v || '' };
           if (arrayName === 'educations' && subfield === 'content') {
@@ -1336,6 +1341,9 @@ const AddCandidateForm = ({
             next[index].school_name = parts[0] ?? '';
             next[index].major = parts.slice(1).join(' / ') ?? '';
           }
+        }
+        if (arrayName === 'educations') {
+          next[index] = withEducationYearsCalculated(next[index]);
         }
           return { ...prev, [arrayName]: next };
         });
@@ -1591,7 +1599,7 @@ const AddCandidateForm = ({
       const p = toSchoolNameMajor(pending.schoolLabel);
       result.push({ ...p, year: pending.year, month: pending.month, endYear: '', endMonth: '' });
     }
-    return result;
+    return result.map(withEducationYearsCalculated);
   };
 
   /** Chuẩn hóa education từ API (cũ/mới) sang shape form: year, month, endYear, endMonth, school_name, major. */
@@ -1606,7 +1614,7 @@ const AddCandidateForm = ({
       const school_name = (edu?.school_name || '').toString().trim();
       const major = (edu?.major || '').toString().trim();
       const content = [school_name, major].filter(Boolean).join(' / ');
-      return { school_name, major, year, month, endYear, endMonth, content };
+      return withEducationYearsCalculated({ school_name, major, year, month, endYear, endMonth, content });
     });
   };
 
@@ -2357,7 +2365,7 @@ const AddCandidateForm = ({
       cvInsertPendingRef.current = null;
       return {
       ...prev,
-        educations: [...(prev.educations || []), { school_name: '', major: '', year: '', month: '', endYear: '', endMonth: '', content: '' }]
+        educations: [...(prev.educations || []), { school_name: '', major: '', year: '', month: '', endYear: '', endMonth: '', years: '', content: '' }]
       };
     });
   };
@@ -2370,7 +2378,7 @@ const AddCandidateForm = ({
       if (!r || r.type !== 'education' || r.index !== index) return prev;
       cvInsertPendingRef.current = null;
       const next = [...(prev.educations || [])];
-      next.splice(index, 0, { school_name: '', major: '', year: '', month: '', endYear: '', endMonth: '', content: '' });
+      next.splice(index, 0, { school_name: '', major: '', year: '', month: '', endYear: '', endMonth: '', years: '', content: '' });
       return { ...prev, educations: next };
     });
   };
@@ -2388,6 +2396,7 @@ const AddCandidateForm = ({
       updated[index].school_name = parts[0] ?? '';
       updated[index].major = parts.slice(1).join(' / ') ?? '';
     }
+    updated[index] = withEducationYearsCalculated(updated[index]);
     setFormData(prev => ({ ...prev, educations: updated }));
   };
 
@@ -2701,7 +2710,7 @@ const AddCandidateForm = ({
     });
   };
 
-  const TECHNICAL_TOOLS = ['AutoCAD', 'CATIA', 'I-DEAS', 'SolidWorks', 'PLC', 'C++', 'NX', 'Java'];
+  const TECHNICAL_TOOLS = TECHNICAL_TOOLS_ALL;
 
   const handleAddLearnedToolFromSelect = (e) => {
     const value = e.target.value;
@@ -5166,6 +5175,7 @@ const AddCandidateForm = ({
                               style={{ borderColor: '#d1d5db' }}
                               data-supplement-field={isAdmin ? `learnedTool-${index}-years` : undefined}
                             />
+                            <span>年</span>
                           </div>
                           <button
                             type="button"
@@ -5261,6 +5271,7 @@ const AddCandidateForm = ({
                               style={{ borderColor: '#d1d5db' }}
                               data-supplement-field={isAdmin ? `experienceTool-${index}-years` : undefined}
                             />
+                            <span>年</span>
                           </div>
                           <button
                             type="button"
@@ -5728,7 +5739,7 @@ const AddCandidateForm = ({
                   </div>
                 )}
 
-                <div className="cv-form-a4-preview-shell">
+                <div className="cv-form-a4-preview-shell add-candidate-cv-content-shell">
                   {cvTemplate === 'upload' ? (
                     <div className="rounded-lg border p-3" style={{ borderColor: '#e5e7eb', backgroundColor: 'white' }}>
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-2" style={{ borderColor: '#e5e7eb' }}>
@@ -5914,7 +5925,7 @@ const AddCandidateForm = ({
         >
           <div
             className="relative rounded-xl shadow-2xl flex flex-col bg-white overflow-hidden"
-            style={{ width: '95vw', maxWidth: '960px', maxHeight: '95vh' }}
+            style={{ width: '95vw', maxWidth: '1080px', maxHeight: '95vh' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-2 px-4 py-2 border-b flex-shrink-0" style={{ borderColor: '#e5e7eb' }}>

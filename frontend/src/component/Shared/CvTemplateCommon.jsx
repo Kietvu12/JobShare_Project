@@ -410,7 +410,7 @@ const CvTemplateCommon = ({
                         const parts = birthDateParts;
                         return (
                           <div
-                            className="flex min-w-0 max-w-full items-baseline flex-wrap justify-center"
+                            className="flex min-w-0 max-w-full items-baseline flex-wrap justify-center cv-pdf-date-inline"
                             style={{ columnGap: '0.35em', rowGap: '0.15rem' }}
                             onClick={() => clearDateFieldError('birthDate')}
                           >
@@ -728,19 +728,35 @@ const CvTemplateCommon = ({
                               <span {...cvEditableArray('educations', i, 'year', 'block', {}, undefined, sm(`tpl-common-edu-${i}-year`, `education-${i}-year`))} />
                             </td>
                             <td className="border p-1.5 text-center text-xs" style={{ borderColor: '#1f2937' }}><span {...cvEditableArray('educations', i, 'month', 'block', {}, undefined, sm(`tpl-common-edu-${i}-month`, `education-${i}-month`))} /></td>
-                            <td className="border p-1.5 text-xs" style={{ borderColor: '#1f2937' }}>
-                              <span {...cvEditableArray('educations', i, 'content', 'block', {}, schoolMajor, sm(`tpl-common-edu-${i}-content`, `education-${i}-content`))} /> 入学
+                            <td className="border p-1.5 text-xs min-w-0 max-w-0" style={{ borderColor: '#1f2937', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                              <span className="break-words" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                <span
+                                  {...cvEditableArray(
+                                    'educations',
+                                    i,
+                                    'content',
+                                    'inline break-words',
+                                    { display: 'inline', wordBreak: 'break-word', overflowWrap: 'anywhere' },
+                                    schoolMajor,
+                                    sm(`tpl-common-edu-${i}-content`, `education-${i}-content`)
+                                  )}
+                                />
+                                {' '}入学
+                              </span>
                             </td>
                           </tr>
                           <tr>
                             <td className="border p-1.5 text-center text-xs" style={{ borderColor: '#1f2937' }}><span {...cvEditableArray('educations', i, 'endYear', 'block', {}, undefined, sm(`tpl-common-edu-${i}-endYear`, `education-${i}-endYear`))} /></td>
                             <td className="border p-1.5 text-center text-xs" style={{ borderColor: '#1f2937' }}><span {...cvEditableArray('educations', i, 'endMonth', 'block', {}, undefined, sm(`tpl-common-edu-${i}-endMonth`, `education-${i}-endMonth`))} /></td>
-                            <td className="border p-1.5 text-xs" style={{ borderColor: '#1f2937' }}>
-                              <span {...cvEditableArray('educations', i, 'content', 'block', {}, schoolMajor, sm(`tpl-common-edu-${i}-content-end`, `education-${i}-content`))} /> 卒業
+                            <td className="border p-1.5 text-xs min-w-0 max-w-0" style={{ borderColor: '#1f2937', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                              <span className="break-words" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                {schoolMajor || '　'}
+                                {' '}卒業
+                              </span>
                             </td>
                           </tr>
                           {i < eduCount - 1 && handleInsertEducationAt && (
-                            <tr>
+                            <tr className="cv-pdf-hide">
                               <td colSpan={3} className="border p-0.5 text-center" style={{ borderColor: '#e5e7eb', backgroundColor: '#f3f4f6' }}>
                                 <button type="button" onClick={() => handleInsertEducationAt(i + 1)} className="text-xs text-amber-600 hover:text-amber-800">挿入</button>
                               </td>
@@ -749,7 +765,7 @@ const CvTemplateCommon = ({
                         </React.Fragment>
                       );
                     })}
-                    <tr>
+                    <tr className="cv-pdf-hide">
                       <td colSpan={3} className="border p-1 text-center" style={{ borderColor: '#e5e7eb', backgroundColor: '#f9fafb' }}>
                         <button type="button" onClick={() => handleAddEducation()} className="text-xs flex items-center justify-center gap-1 mx-auto text-blue-600 hover:text-blue-800">
                           <Plus className="w-3.5 h-3.5" /> 行を追加
@@ -796,7 +812,10 @@ const CvTemplateCommon = ({
                               <span {...cvEditableArray('workExperiences', i, 'startMonth', 'block', {}, emp.startMonth || '', sm(`tpl-common-rireki-wexp-${i}-startMonth`, `employment-${i}-startMonth`))} />
                             </td>
                             <td className="border p-1.5 text-xs" style={{ borderColor: '#1f2937' }}>
-                              <span {...cvEditableArray('workExperiences', i, 'company_name', 'block', {}, rawName, sm(`tpl-common-rireki-wexp-${i}-company`, `employment-${i}-company`))} /> 入社
+                              <span style={{ whiteSpace: 'pre-wrap' }}>
+                                <span {...cvEditableArray('workExperiences', i, 'company_name', '', {}, rawName, sm(`tpl-common-rireki-wexp-${i}-company`, `employment-${i}-company`))} />
+                                {' '}入社
+                              </span>
                             </td>
                           </tr>
                           <tr>
@@ -807,11 +826,14 @@ const CvTemplateCommon = ({
                               <span {...cvEditableArray('workExperiences', i, 'endMonth', 'block', {}, emp.endMonth || '', sm(`tpl-common-rireki-wexp-${i}-endMonth`, `employment-${i}-endMonth`))} />
                             </td>
                             <td className="border p-1.5 text-xs" style={{ borderColor: '#1f2937' }}>
-                              <span {...cvEditableArray('workExperiences', i, 'company_name', 'block', {}, rawName, sm(`tpl-common-rireki-wexp-${i}-company-end`, `employment-${i}-company`))} /> {emp.endCurrent ? '現在に至る' : '退社'}
+                              <span style={{ whiteSpace: 'pre-wrap' }}>
+                                {rawName || '　'}
+                                {' '}{emp.endCurrent ? '現在に至る' : '退社'}
+                              </span>
                             </td>
                           </tr>
                           {i < workCount - 1 && handleInsertWorkExperienceAt && (
-                            <tr>
+                            <tr className="cv-pdf-hide">
                               <td colSpan={3} className="border p-0.5 text-center" style={{ borderColor: '#e5e7eb', backgroundColor: '#f3f4f6' }}>
                                 <button type="button" onClick={() => handleInsertWorkExperienceAt(i + 1)} className="text-xs text-amber-600 hover:text-amber-800">挿入</button>
                               </td>
@@ -820,7 +842,7 @@ const CvTemplateCommon = ({
                         </React.Fragment>
                       );
                     })}
-                    <tr>
+                    <tr className="cv-pdf-hide">
                       <td colSpan={3} className="border p-1 text-center" style={{ borderColor: '#e5e7eb', backgroundColor: '#f9fafb' }}>
                         <button type="button" onClick={handleAddWorkExperience} className="text-xs flex items-center justify-center gap-1 mx-auto text-blue-600 hover:text-blue-800">
                           <Plus className="w-3.5 h-3.5" /> 行を追加
@@ -869,7 +891,7 @@ const CvTemplateCommon = ({
                           <td className="border p-1.5 text-xs" style={{ borderColor: '#1f2937' }}><span {...cvEditableArray('certificates', i, 'name', 'block', {}, undefined, sm(`tpl-common-cert-${i}-name`, `certificate-${i}-name`))} /></td>
                         </tr>
                         {i < certCount - 1 && handleInsertCertificateAt && (
-                          <tr>
+                          <tr className="cv-pdf-hide">
                             <td colSpan={3} className="border p-0.5 text-center" style={{ borderColor: '#e5e7eb', backgroundColor: '#f3f4f6' }}>
                               <button type="button" onClick={() => handleInsertCertificateAt(i + 1)} className="text-xs text-amber-600 hover:text-amber-800">挿入</button>
                             </td>
@@ -877,7 +899,7 @@ const CvTemplateCommon = ({
                         )}
                       </React.Fragment>
                     ))}
-                    <tr>
+                    <tr className="cv-pdf-hide">
                       <td colSpan={3} className="border p-1 text-center" style={{ borderColor: '#e5e7eb', backgroundColor: '#f9fafb' }}>
                         <button type="button" onClick={handleAddCertificate} className="text-xs flex items-center justify-center gap-1 mx-auto text-blue-600 hover:text-blue-800">
                           <Plus className="w-3.5 h-3.5" /> 行を追加
@@ -1009,7 +1031,7 @@ const CvTemplateCommon = ({
                       <div className="mt-1 text-[10px] text-rose-600">{dateFieldErrors.visaExpirationDate}</div>
                     ) : null}
                     <div className="mt-1 text-xs min-h-[2em]">
-                      <div className="flex min-w-0 max-w-full items-baseline flex-wrap justify-start" style={{ columnGap: '0.35em', rowGap: '0.15rem' }}>
+                      <div className="flex min-w-0 max-w-full items-baseline flex-wrap justify-start cv-pdf-date-inline" style={{ columnGap: '0.35em', rowGap: '0.15rem' }}>
                         <span
                           ref={visaYearRef}
                           contentEditable
@@ -1097,13 +1119,21 @@ const CvTemplateCommon = ({
                     <div className="text-xs text-gray-700">
                       <SupplementTplText fieldKey="tpl-common-jikopr" text="自己PR" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-strengths']} />
                     </div>
-                    <div className="mt-1 text-xs min-h-[4rem] whitespace-pre-wrap" {...cvEditable('strengths', '', {}, sm('tpl-common-strengths', 'strengths'))} />
+                    <div
+                      className="mt-1 text-xs min-h-[4rem] whitespace-pre-wrap"
+                      style={{ fontFamily: 'inherit', fontWeight: 400 }}
+                      {...cvEditable('strengths', '', {}, sm('tpl-common-strengths', 'strengths'))}
+                    />
                   </td>
                   <td className="border p-1.5 align-top text-left" style={{ borderColor: '#1f2937', width: '50%' }}>
                     <div className="text-xs text-gray-700">
                       <SupplementTplText fieldKey="tpl-common-hobby" text="趣味・特技" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-hobbies']} />
                     </div>
-                    <div className="mt-1 text-xs min-h-[4rem] whitespace-pre-wrap" {...cvEditable('hobbiesSpecialSkills', '', {}, sm('tpl-common-hobbiesSpecialSkills', 'hobbiesSpecialSkills'))} />
+                    <div
+                      className="mt-1 text-xs min-h-[4rem] whitespace-pre-wrap"
+                      style={{ fontFamily: 'inherit', fontWeight: 400 }}
+                      {...cvEditable('hobbiesSpecialSkills', '', {}, sm('tpl-common-hobbiesSpecialSkills', 'hobbiesSpecialSkills'))}
+                    />
                   </td>
                 </tr>
               </tbody>
@@ -1119,11 +1149,15 @@ const CvTemplateCommon = ({
             >
               <tbody>
                 <tr>
-                  <td className="border p-1.5 align-top text-left" style={{ borderColor: '#1f2937' }}>
+                  <td className="border p-1.5 align-top text-left" style={{ borderColor: '#1f2937' }} data-cv-pdf-keep-structure>
                     <div className="text-xs text-gray-700">
                       <SupplementTplText fieldKey="tpl-common-shibo" text="志望動機" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-motivation']} />
                     </div>
-                    <div className="mt-1 text-xs min-h-[5rem] whitespace-pre-wrap" {...cvEditable('motivation', '', {}, sm('tpl-common-motivation', 'motivation'))} />
+                    <div
+                      className="mt-1 text-xs min-h-[5rem] whitespace-pre-wrap"
+                      style={{ fontFamily: 'inherit', fontWeight: 400 }}
+                      {...cvEditable('motivation', '', {}, sm('tpl-common-motivation', 'motivation'))}
+                    />
                   </td>
                 </tr>
               </tbody>
@@ -1139,16 +1173,41 @@ const CvTemplateCommon = ({
             >
               <tbody>
                 <tr>
-                  <td className="border p-1.5 align-top text-left" style={{ borderColor: '#1f2937' }}>
+                  <td className="border p-1.5 align-top text-left" style={{ borderColor: '#1f2937' }} data-cv-pdf-keep-structure>
                     <div className="text-xs text-gray-700 font-medium">
                       <SupplementTplText fieldKey="tpl-common-honin-kibo" text="本人希望記入欄" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-block6-prefs']} />
                     </div>
-                    <ul className="mt-1 text-xs list-none space-y-0.5 pl-0">
-                      <li className="flex flex-wrap items-start gap-x-1 min-w-0"><span className="mr-1 shrink-0">-</span><span className="text-gray-600 shrink-0"><SupplementTplText fieldKey="tpl-common-gen-nenshu-lbl" text="現在年収:" supplementMarking={supplementMarking} linkedFieldKeys={['label-currentSalary']} /></span><span className="ml-1 min-w-0 break-words" {...cvEditable('currentSalary', '', {}, sm('tpl-common-currentSalary', 'currentSalary'))} /></li>
-                      <li className="flex flex-wrap items-start gap-x-1 min-w-0"><span className="mr-1 shrink-0">-</span><span className="text-gray-600 shrink-0"><SupplementTplText fieldKey="tpl-common-kibo-nenshu-lbl" text="希望年収:" supplementMarking={supplementMarking} linkedFieldKeys={['label-desiredSalary']} /></span><span className="ml-1 min-w-0 break-words" {...cvEditable('desiredSalary', '', {}, sm('tpl-common-desiredSalary', 'desiredSalary'))} /></li>
-                      <li className="flex flex-wrap items-start gap-x-1 min-w-0"><span className="mr-1 shrink-0">-</span><span className="text-gray-600 shrink-0"><SupplementTplText fieldKey="tpl-common-kibo-shokushu-lbl" text="希望職種:" supplementMarking={supplementMarking} linkedFieldKeys={['label-desiredPosition']} /></span><span className="ml-1 min-w-0 break-words" {...cvEditable('desiredPosition', '', {}, sm('tpl-common-desiredPosition', 'desiredPosition'))} /></li>
-                      <li className="flex flex-wrap items-start gap-x-1 min-w-0"><span className="mr-1 shrink-0">-</span><span className="text-gray-600 shrink-0"><SupplementTplText fieldKey="tpl-common-kibo-kinmuchu-lbl" text="希望勤務地:" supplementMarking={supplementMarking} linkedFieldKeys={['label-desiredLocation']} /></span><span className="ml-1 min-w-0 break-words" {...cvEditable('desiredLocation', '', {}, sm('tpl-common-desiredLocation', 'desiredLocation'))} /></li>
-                      <li className="flex flex-wrap items-start gap-x-1 min-w-0"><span className="mr-1 shrink-0">-</span><span className="text-gray-600 shrink-0"><SupplementTplText fieldKey="tpl-common-kibo-nyusha-lbl" text="希望入社日:" supplementMarking={supplementMarking} linkedFieldKeys={['label-desiredStartDate']} /></span><span className="ml-1 min-w-0 break-words" {...cvEditable('desiredStartDate', '', {}, sm('tpl-common-desiredStartDate', 'desiredStartDate'))} /></li>
+                    <ul className="mt-1 text-xs list-none space-y-1 pl-0">
+                      <li className="min-w-0 leading-snug">
+                        <span>- </span>
+                        <span className="text-gray-600"><SupplementTplText fieldKey="tpl-common-gen-nenshu-lbl" text="現在年収:" supplementMarking={supplementMarking} linkedFieldKeys={['label-currentSalary']} /></span>
+                        {' '}
+                        <span {...cvEditable('currentSalary', 'inline', {}, sm('tpl-common-currentSalary', 'currentSalary'))} />
+                      </li>
+                      <li className="min-w-0 leading-snug">
+                        <span>- </span>
+                        <span className="text-gray-600"><SupplementTplText fieldKey="tpl-common-kibo-nenshu-lbl" text="希望年収:" supplementMarking={supplementMarking} linkedFieldKeys={['label-desiredSalary']} /></span>
+                        {' '}
+                        <span {...cvEditable('desiredSalary', 'inline', {}, sm('tpl-common-desiredSalary', 'desiredSalary'))} />
+                      </li>
+                      <li className="min-w-0 leading-snug">
+                        <span>- </span>
+                        <span className="text-gray-600"><SupplementTplText fieldKey="tpl-common-kibo-shokushu-lbl" text="希望職種:" supplementMarking={supplementMarking} linkedFieldKeys={['label-desiredPosition']} /></span>
+                        {' '}
+                        <span {...cvEditable('desiredPosition', 'inline', {}, sm('tpl-common-desiredPosition', 'desiredPosition'))} />
+                      </li>
+                      <li className="min-w-0 leading-snug">
+                        <span>- </span>
+                        <span className="text-gray-600"><SupplementTplText fieldKey="tpl-common-kibo-kinmuchu-lbl" text="希望勤務地:" supplementMarking={supplementMarking} linkedFieldKeys={['label-desiredLocation']} /></span>
+                        {' '}
+                        <span {...cvEditable('desiredLocation', 'inline', {}, sm('tpl-common-desiredLocation', 'desiredLocation'))} />
+                      </li>
+                      <li className="min-w-0 leading-snug">
+                        <span>- </span>
+                        <span className="text-gray-600"><SupplementTplText fieldKey="tpl-common-kibo-nyusha-lbl" text="希望入社日:" supplementMarking={supplementMarking} linkedFieldKeys={['label-desiredStartDate']} /></span>
+                        {' '}
+                        <span {...cvEditable('desiredStartDate', 'inline', {}, sm('tpl-common-desiredStartDate', 'desiredStartDate'))} />
+                      </li>
                     </ul>
                   </td>
                 </tr>
@@ -1298,7 +1357,7 @@ const CvTemplateCommon = ({
               return (
                 <ResizableCvTable
                   className="w-full border-collapse border"
-                  style={{ borderColor: '#1f2937' }}
+                  style={{ borderColor: '#1f2937', fontSize: '11px' }}
                   colPercents={colSaved('shokumu', 'workHistory', [65, 35])}
                   layoutKey={cvLayoutKey('common', 'shokumu', 'workHistory')}
                   onLayoutCommit={onCvTableLayoutCommit}
@@ -1354,7 +1413,7 @@ const CvTemplateCommon = ({
                             onMouseEnter={() => setHoveredWorkIndex(idx)}
                             onMouseLeave={() => setHoveredWorkIndex(null)}
                           >
-                            <td className="px-2 py-1.5 text-xs align-top border-0 whitespace-nowrap relative" style={{ borderColor: '#1f2937', width: '68%' }}>
+                            <td className="px-2 py-1.5 align-top border-0 whitespace-nowrap relative cv-pdf-shokumu-period" style={{ borderColor: '#1f2937', width: '68%' }} data-cv-shokumu-period data-cv-period-display={periodDisplay}>
                               {hoveredWorkIndex === idx && typeof handleRemoveWorkExperienceAt === 'function' ? (
                                 <button
                                   type="button"
@@ -1434,11 +1493,11 @@ const CvTemplateCommon = ({
                                 )}
                               </span>
                             </td>
-                            <td className="px-2 py-1.5 text-xs align-top border-0 text-right whitespace-nowrap" style={{ borderColor: '#1f2937', width: '32%' }}>
+                            <td className="px-2 py-1.5 align-top border-0 text-right whitespace-nowrap" style={{ borderColor: '#1f2937', width: '32%' }}>
                               <span {...cvEditableArray('workExperiences', idx, 'company_name', 'inline-block min-w-[10em] text-right', {}, companyDisplay, sm(`tpl-common-shokumu-${idx}-company`, `employment-${idx}-company`))} />
                             </td>
                           </tr>
-                          <tr className="text-[9px] leading-none text-gray-700" style={{ backgroundColor: '#d1d5db' }}>
+                          <tr className="leading-none text-gray-700" style={{ backgroundColor: '#d1d5db', fontSize: '11px' }}>
                             <td className="px-2 py-0.5 align-middle border-0 border-b border-r" style={{ borderColor: '#1f2937' }}>
                               <SupplementTplText fieldKey={`tpl-common-shokumu-${idx}-jigyo-mokuteki-lbl`} text="【事業目的】" supplementMarking={supplementMarking} linkedFieldKeys={[`employment-${idx}-business`]} className="select-text inline min-w-0 leading-none font-normal" />
                             </td>
@@ -1450,19 +1509,20 @@ const CvTemplateCommon = ({
                             <td
                               className="p-2 align-top min-w-0 border-0 border-r border-dotted"
                               style={{ borderColor: '#1f2937' }}
+                              data-cv-pdf-keep-structure
                             >
-                              <div className="text-xs whitespace-pre-wrap min-h-[2em] mb-2" {...cvEditableArray('workExperiences', idx, 'business_purpose', 'block', {}, emp.business_purpose, sm(`tpl-common-shokumu-${idx}-business`, `employment-${idx}-business`))} />
-                              <div className="text-[10px] text-gray-600 mb-0.5">
+                              <div className="whitespace-pre-wrap min-h-[2em] mb-2" {...cvEditableArray('workExperiences', idx, 'business_purpose', 'block', {}, emp.business_purpose, sm(`tpl-common-shokumu-${idx}-business`, `employment-${idx}-business`))} />
+                              <div className="text-gray-600 mb-0.5">
                                 <SupplementTplText fieldKey={`tpl-common-shokumu-${idx}-gyomu-lbl`} text="【業務内容】" supplementMarking={supplementMarking} linkedFieldKeys={[`employment-${idx}-description`]} />
                               </div>
-                              <div className="text-xs whitespace-pre-wrap min-h-[2em] mb-2" {...cvEditableArray('workExperiences', idx, 'description', 'block', {}, emp.description, sm(`tpl-common-shokumu-${idx}-desc`, `employment-${idx}-description`))} />
-                              <div className="text-[10px] text-gray-600 mb-0.5">
+                              <div className="whitespace-pre-wrap min-h-[2em] mb-2" {...cvEditableArray('workExperiences', idx, 'description', 'block', {}, emp.description, sm(`tpl-common-shokumu-${idx}-desc`, `employment-${idx}-description`))} />
+                              <div className="text-gray-600 mb-0.5">
                                 <SupplementTplText fieldKey={`tpl-common-shokumu-${idx}-tool-lbl`} text="【ツール】" supplementMarking={supplementMarking} linkedFieldKeys={[`employment-${idx}-tools`]} />
                               </div>
-                              <div className="text-xs whitespace-pre-wrap min-h-[1.5em]" {...cvEditableArray('workExperiences', idx, 'tools_tech', 'block', {}, emp.tools_tech, sm(`tpl-common-shokumu-${idx}-tools`, `employment-${idx}-tools`))} />
+                              <div className="whitespace-pre-wrap min-h-[1.5em]" {...cvEditableArray('workExperiences', idx, 'tools_tech', 'block', {}, emp.tools_tech, sm(`tpl-common-shokumu-${idx}-tools`, `employment-${idx}-tools`))} />
                             </td>
-                            <td className="p-2 align-top border-0">
-                              <div className="text-xs whitespace-pre-wrap w-full min-h-[4em]" {...cvEditableArray('workExperiences', idx, 'scale_role', 'block', { width: '100%', minHeight: '4em' }, emp.scale_role, sm(`tpl-common-shokumu-${idx}-scale`, `employment-${idx}-scale`))} />
+                            <td className="p-2 align-top border-0" data-cv-pdf-keep-structure>
+                              <div className="whitespace-pre-wrap w-full min-h-[4em]" {...cvEditableArray('workExperiences', idx, 'scale_role', 'block', { width: '100%', minHeight: '4em' }, emp.scale_role, sm(`tpl-common-shokumu-${idx}-scale`, `employment-${idx}-scale`))} />
                             </td>
                           </tr>
                         </React.Fragment>
@@ -1496,7 +1556,7 @@ const CvTemplateCommon = ({
             </div>
             <ResizableCvTable
               className="w-full border-collapse border mb-1"
-              style={{ borderColor: '#1f2937', fontSize: '10px' }}
+              style={{ borderColor: '#1f2937', fontSize: '11px' }}
               colPercents={colSaved('shokumu', 'cert', [60, 40])}
               layoutKey={cvLayoutKey('common', 'shokumu', 'cert')}
               onLayoutCommit={onCvTableLayoutCommit}

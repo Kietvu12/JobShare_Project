@@ -488,6 +488,18 @@ button:focus-visible {
   background-color: #fff;
 }
 
+/* AddCandidateForm — preview CV đồng bộ khổ PDF client-side (280mm) trên desktop */
+@media (min-width: 1280px) {
+  .add-candidate-cv-preview-bleed .add-candidate-cv-content-shell {
+    width: min(100%, 280mm);
+    max-width: min(100%, 280mm);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 10mm;
+    padding-right: 10mm;
+  }
+}
+
 /* AddCandidateForm: dưới xl — preview CV full ngang, bỏ padding “lề A4” và đổ bóng để sát mép màn */
 @media (max-width: 1279px) {
   .cv-form-a4-preview-shell {
@@ -515,6 +527,8 @@ button:focus-visible {
   -webkit-overflow-scrolling: touch;
   padding: 0 1px 4px;
   box-sizing: border-box;
+  font-family: 'MS Mincho', 'MS 明朝', 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+  font-weight: 400;
 }
 
 .cv-resizable-table-wrap {
@@ -524,6 +538,19 @@ button:focus-visible {
   box-sizing: border-box;
   min-width: 0;
   max-width: 100%;
+}
+
+/* Bảng thông tin cá nhân 履歴書 (IT/Technical) — hàng thoáng hơn, không fit sát nội dung */
+.cv-template-body table.cv-personal-grid-v3 tbody tr:not(:first-child) td {
+  padding-top: 0.4375rem;
+  padding-bottom: 0.4375rem;
+  min-height: 2.375rem;
+  box-sizing: border-box;
+}
+
+.cv-template-body table.cv-personal-grid-v3 tbody tr:first-child td {
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
 }
 
 [data-cv-pdf-section] {

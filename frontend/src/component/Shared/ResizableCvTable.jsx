@@ -216,7 +216,11 @@ export default function ResizableCvTable({
   }, [colCount, colPercents]);
 
   return (
-    <div ref={wrapRef} className="relative w-full cv-resizable-table-wrap">
+    <div
+      ref={wrapRef}
+      className="relative w-full cv-resizable-table-wrap"
+      data-cv-layout-key={layoutKey || undefined}
+    >
       <table
         ref={tableRef}
         className={className}

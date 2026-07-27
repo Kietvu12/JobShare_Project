@@ -1,6 +1,6 @@
 import { domToCanvas } from 'modern-screenshot';
 import {
-  A4_WIDTH_MM,
+  CV_PDF_PAGE_WIDTH_MM,
   CV_PDF_HORIZONTAL_PADDING_PX,
   addPagedCanvasToPdf,
   buildCapturePaginationPlan,
@@ -8,14 +8,17 @@ import {
   mmToPx,
 } from './cvPdfPagination.js';
 
-/** ~210mm @ 96dpi — bề ngang trang A4 khi capture (gồm padding hai lề). */
-export const CV_PDF_CAPTURE_WIDTH_PX = Math.round(mmToPx(A4_WIDTH_MM));
+/** ~CV_PDF_PAGE_WIDTH_MM @ 96dpi — bề ngang trang PDF khi capture (gồm padding hai lề). */
+export const CV_PDF_CAPTURE_WIDTH_PX = Math.round(mmToPx(CV_PDF_PAGE_WIDTH_MM));
 
 /** Bù thêm chiều cao capture — viền dưới 1px của bảng cuối hay bị cắt khi domToCanvas. */
 export const CV_PDF_CAPTURE_BORDER_BLEED_PX = 8;
 
 /** Đẩy layer capture ra ngoài viewport — vẫn layout/paint cho modern-screenshot. */
 export const CV_PDF_CAPTURE_OFFSCREEN_TRANSFORM = 'translateX(-200vw)';
+
+/** Cỡ chữ nội dung bảng 職務経歴書 — đồng nhất khi capture PDF. */
+const CV_PDF_SHOKUMU_TABLE_FONT_SIZE = '11px';
 
 export const CV_TEMPLATE_DIR_MAP = {
   common: 'Common',
@@ -59,10 +62,10 @@ const captureUiRestoreByElement = new WeakMap();
 const CV_PDF_ACTION_BUTTON_RE =
   /行を追加|挿入|削除|プロジェクト|ブロックを表示|Xóa|Xem preview|preview|Tải ảnh|Upload|アップロード|追加/i;
 
-/** Nút chọn giá trị (男/女) — giữ lại trong PDF, không coi là nút thao tác. */
+/** Nút chọn giá trị (男/女, 有/無) — giữ lại trong PDF, không coi là nút thao tác. */
 function isCvPdfSelectionButton(btn) {
   const text = (btn.textContent || '').replace(/\s+/g, ' ').trim();
-  return text === '男' || text === '女';
+  return text === '男' || text === '女' || text === '有' || text === '無';
 }
 
 /** Nút thêm/xóa/chèn/preview trong bảng — ẩn khi xuất PDF. */
@@ -95,7 +98,7 @@ function isCvPdfActionRow(tr) {
 
   const rowText = (tr.textContent || '').replace(/\s+/g, ' ').trim();
   if (/^挿入$/.test(rowText) && buttons.length === 1) return true;
-  if (/^行を追加$/.test(rowText) && buttons.length === 1 && buttons.every(isCvPdfActionButton)) return true;
+  if (/行を追加/.test(rowText) && buttons.length === 1 && buttons.every(isCvPdfActionButton)) return true;
 
   return buttons.length > 0 && buttons.every(isCvPdfActionButton)
     && /^(行を追加|挿入|プロジェクトを追加|削除|追加)$/.test(rowText);
@@ -184,7 +187,11 @@ function enhanceTextInputForPdfCapture(input) {
   });
   if (input.className.includes('w-14')) marker.style.width = '3.5em';
   else if (input.className.includes('w-12')) marker.style.width = '3em';
-  else if (input.className.includes('flex-1') || input.className.includes('min-w-[10rem]')) {
+  else if (input.closest('[data-cv-shokumu-period], .whitespace-nowrap')) {
+    marker.style.whiteSpace = 'nowrap';
+    marker.style.wordBreak = 'normal';
+    marker.style.display = 'inline';
+  } else if (input.className.includes('flex-1') || input.className.includes('min-w-[10rem]')) {
     marker.style.flex = '1 1 auto';
     marker.style.minWidth = '8rem';
   }
@@ -221,6 +228,122 @@ function enhanceTextInputForPdfCapture(input) {
     input.style.opacity = prev.opacity;
     input.style.position = prev.position;
   };
+}
+
+function readContentEditableCaptureText(el) {
+  if (!el) return '';
+  const raw = (el.innerText || el.textContent || '').replace(/\r\n?/g, '\n').replace(/\u00a0/g, ' ');
+  return raw.trimEnd();
+}
+
+function resolveCvPdfCaptureFont(el, cs) {
+  const templateRoot = el.closest('.cv-template-body, [data-cv-pdf-section]');
+  const bodyCs = templateRoot ? getComputedStyle(templateRoot) : cs;
+  return {
+    fontFamily: bodyCs.fontFamily || cs.fontFamily,
+    fontSize: cs.fontSize || bodyCs.fontSize,
+    lineHeight: cs.lineHeight || bodyCs.lineHeight,
+  };
+}
+
+function isInsideShokumuTable(el) {
+  return Boolean(el?.closest?.('[data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap'));
+}
+
+function resolveCvPdfContentFontSize(el, fonts) {
+  if (isInsideShokumuTable(el)) return CV_PDF_SHOKUMU_TABLE_FONT_SIZE;
+  return fonts.fontSize;
+}
+
+/** modern-screenshot hay vẽ trùng chữ / lệch đậm nhạt với contentEditable — thay bằng span tĩnh. */
+function enhanceContentEditableForPdfCapture(el) {
+  if (!(el instanceof HTMLElement) || !el.isContentEditable) return null;
+  if (el.closest('.cv-pdf-hide')) return null;
+  if (el.dataset.cvPdfEditableEnhanced === '1') return null;
+
+  const parent = el.parentNode;
+  if (!parent) return null;
+
+  const text = readContentEditableCaptureText(el);
+  const cs = getComputedStyle(el);
+  const fonts = resolveCvPdfCaptureFont(el, cs);
+  const inDateInline = el.closest('.cv-pdf-date-inline');
+  const isBlock = !inDateInline && cs.display === 'block';
+
+  const marker = document.createElement('span');
+  marker.dataset.cvPdfEditableMarker = '1';
+  marker.textContent = text;
+  Object.assign(marker.style, {
+    display: inDateInline ? 'inline' : (isBlock ? 'block' : 'inline-block'),
+    whiteSpace: inDateInline ? 'nowrap' : (cs.whiteSpace === 'normal' ? 'pre-wrap' : (cs.whiteSpace || 'pre-wrap')),
+    wordBreak: 'break-word',
+    background: 'transparent',
+    fontFamily: fonts.fontFamily,
+    fontSize: resolveCvPdfContentFontSize(el, fonts),
+    lineHeight: fonts.lineHeight,
+    fontWeight: '400',
+    fontStyle: 'normal',
+    color: '#1f2937',
+    textAlign: cs.textAlign,
+    verticalAlign: 'baseline',
+    minWidth: '0',
+    boxSizing: 'border-box',
+    WebkitFontSmoothing: 'antialiased',
+  });
+  if (isBlock || el.classList.contains('w-full')) marker.style.width = '100%';
+  if (el.classList.contains('text-center')) marker.style.textAlign = 'center';
+  if (el.classList.contains('text-right')) marker.style.textAlign = 'right';
+  if (el.style.width) marker.style.width = el.style.width;
+  if (cs.minHeight && cs.minHeight !== '0px') marker.style.minHeight = cs.minHeight;
+
+  el.dataset.cvPdfEditableEnhanced = '1';
+  el.contentEditable = 'false';
+  parent.replaceChild(marker, el);
+
+  return () => {
+    if (marker.parentNode === parent) parent.replaceChild(el, marker);
+    delete el.dataset.cvPdfEditableEnhanced;
+    el.contentEditable = 'true';
+  };
+}
+
+/** Nhóm nút chọn (男/女, 有/無) → chỉ hiện giá trị đang chọn, cùng độ đậm. */
+function enhanceCvSelectionButtonsForPdfCapture(root, restoreFns) {
+  if (!(root instanceof HTMLElement)) return;
+
+  const groups = new Map();
+  root.querySelectorAll('button').forEach((btn) => {
+    if (!isCvPdfSelectionButton(btn)) return;
+    const parent = btn.parentElement;
+    if (!parent) return;
+    if (!groups.has(parent)) groups.set(parent, []);
+    groups.get(parent).push(btn);
+  });
+
+  groups.forEach((buttons, parent) => {
+    parent.querySelectorAll(':scope > span').forEach((sep) => {
+      if ((sep.textContent || '').trim() === '・') hideNodeForPdfCapture(sep, restoreFns);
+    });
+
+    const selected = buttons.find(
+      (btn) => /\bfont-semibold\b/.test(btn.className) || /\btext-gray-900\b/.test(btn.className)
+    );
+
+    buttons.forEach((btn) => hideNodeForPdfCapture(btn, restoreFns));
+
+    if (selected) {
+      const span = document.createElement('span');
+      span.dataset.cvPdfSelectionValue = '1';
+      span.textContent = (selected.textContent || '').replace(/\s+/g, ' ').trim();
+      Object.assign(span.style, {
+        fontWeight: '400',
+        color: '#1f2937',
+        fontSize: getComputedStyle(selected).fontSize,
+      });
+      parent.appendChild(span);
+      restoreFns.push(() => span.remove());
+    }
+  });
 }
 
 function hideNodeForPdfCapture(node, restoreFns) {
@@ -299,15 +422,85 @@ function suppressScrollbarsForCapture(root, restoreFns) {
       min-height: 0 !important;
       max-height: none !important;
     }
+    [data-cv-pdf-capture-root] [data-cv-layout-key$="::personalGrid_v3"] tr {
+      height: initial !important;
+      min-height: initial !important;
+      max-height: initial !important;
+    }
     [data-cv-pdf-capture-root] td,
     [data-cv-pdf-capture-root] th {
       height: auto !important;
       min-height: 0 !important;
       max-height: none !important;
       overflow: visible !important;
+      vertical-align: middle !important;
+      padding-top: 6px !important;
+      padding-bottom: 6px !important;
+    }
+    [data-cv-pdf-capture-root] [data-cv-layout-key$="::personalGrid_v3"] td,
+    [data-cv-pdf-capture-root] [data-cv-layout-key$="::personalGrid_v3"] th {
+      height: initial !important;
+      min-height: 38px !important;
+      max-height: initial !important;
+      padding-top: 7px !important;
+      padding-bottom: 7px !important;
+      box-sizing: border-box !important;
+    }
+    [data-cv-pdf-capture-root] [data-cv-layout-key$="::personalGrid_v3"] tbody tr:first-child td,
+    [data-cv-pdf-capture-root] [data-cv-layout-key$="::personalGrid_v3"] tbody tr:first-child th {
+      min-height: initial !important;
+      padding-top: 10px !important;
+      padding-bottom: 10px !important;
+    }
+    [data-cv-pdf-capture-root] [data-cv-layout-key$="::personalGrid_v3"] td[style*="e2efd9"],
+    [data-cv-pdf-capture-root] [data-cv-layout-key$="::personalGrid_v3"] th[style*="e2efd9"] {
+      white-space: nowrap !important;
+      word-break: keep-all !important;
+      overflow-wrap: normal !important;
+    }
+    [data-cv-pdf-capture-root] td:not(.whitespace-nowrap):not([data-cv-shokumu-period]),
+    [data-cv-pdf-capture-root] th:not(.whitespace-nowrap) {
       word-break: break-word !important;
       overflow-wrap: break-word !important;
-      vertical-align: top !important;
+    }
+    [data-cv-pdf-capture-root] td.whitespace-nowrap,
+    [data-cv-pdf-capture-root] [data-cv-shokumu-period],
+    [data-cv-pdf-capture-root] [data-cv-pdf-period-flat] {
+      word-break: keep-all !important;
+      overflow-wrap: normal !important;
+      white-space: nowrap !important;
+    }
+    [data-cv-pdf-capture-root] .cv-resizable-table-wrap {
+      overflow: visible !important;
+      max-width: 100% !important;
+    }
+    [data-cv-pdf-capture-root] .cv-resizable-table-wrap table {
+      width: 100% !important;
+      max-width: 100% !important;
+      table-layout: fixed !important;
+      box-sizing: border-box !important;
+    }
+    [data-cv-pdf-capture-root] [data-cv-pdf-keep-structure] {
+      border: 1px solid #1f2937 !important;
+      box-sizing: border-box !important;
+    }
+    [data-cv-pdf-capture-root] [data-cv-shokumu-cert-list],
+    [data-cv-pdf-capture-root] [data-cv-pdf-cert-flat] {
+      border: none !important;
+    }
+    [data-cv-pdf-capture-root] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap td,
+    [data-cv-pdf-capture-root] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap th,
+    [data-cv-pdf-capture-root] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap td *,
+    [data-cv-pdf-capture-root] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap th *,
+    [data-cv-pdf-capture-root] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-editable-marker],
+    [data-cv-pdf-capture-root] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-period-flat],
+    [data-cv-pdf-capture-root] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-flat-cell] {
+      font-size: 11px !important;
+    }
+    [data-cv-pdf-capture-root] [data-cv-pdf-flat-cell] {
+      font-weight: 400 !important;
+      color: #1f2937 !important;
+      -webkit-font-smoothing: auto !important;
     }
     [data-cv-pdf-capture-root] .cv-resizable-table-wrap [role="separator"] {
       display: none !important;
@@ -315,6 +508,14 @@ function suppressScrollbarsForCapture(root, restoreFns) {
     [data-cv-pdf-capture-root] select {
       visibility: hidden !important;
       pointer-events: none !important;
+    }
+    [data-cv-pdf-capture-root] .cv-pdf-hide,
+    [data-cv-pdf-capture-root] tr[data-cv-pdf-hidden-row="1"] {
+      display: none !important;
+    }
+    [data-cv-pdf-capture-root] .cv-pdf-date-inline {
+      flex-wrap: nowrap !important;
+      white-space: nowrap !important;
     }
   `;
   document.head.appendChild(styleEl);
@@ -423,6 +624,7 @@ function suppressScrollableAncestors(element, restoreFns) {
 function forceAutoTableLayoutForCapture(root, restoreFns) {
   if (!(root instanceof HTMLElement)) return;
   root.querySelectorAll('tr').forEach((tr) => {
+    if (isPersonalGridEl(tr)) return;
     const prev = {
       height: tr.style.height,
       minHeight: tr.style.minHeight,
@@ -440,6 +642,7 @@ function forceAutoTableLayoutForCapture(root, restoreFns) {
     }
   });
   root.querySelectorAll('td, th').forEach((cell) => {
+    if (isPersonalGridEl(cell)) return;
     const prev = {
       height: cell.style.height,
       minHeight: cell.style.minHeight,
@@ -459,6 +662,11 @@ function forceAutoTableLayoutForCapture(root, restoreFns) {
       });
     }
   });
+}
+
+/** personalGrid_v3 — giữ layout preview (không ghi đè % cột khi capture PDF). */
+function isPersonalGridEl(el) {
+  return Boolean(el?.closest?.('[data-cv-layout-key$="::personalGrid_v3"]'));
 }
 
 function applyFixedCertTablePdfLayout(root, restoreFns) {
@@ -487,8 +695,282 @@ function applyFixedCertTablePdfLayout(root, restoreFns) {
   });
 }
 
+const CV_PDF_FLAT_CELL_SKIP_SELECTOR = [
+  'img',
+  '.cv-pdf-date-inline',
+  'input[type="file"]',
+  'label',
+  'select',
+  '[data-cv-pdf-keep-structure]',
+].join(', ');
+
+function shouldSkipCvPdfFlatCell(cell) {
+  if (!(cell instanceof HTMLTableCellElement)) return true;
+  if (cell.closest('.cv-pdf-hide, tr.cv-pdf-hide, [data-cv-pdf-hidden-row="1"]')) return true;
+  if (cell.hasAttribute('data-cv-pdf-keep-structure')) return true;
+  if (cell.querySelector('[data-cv-pdf-keep-structure]')) return true;
+  if (cell.hasAttribute('data-cv-shokumu-period')) return true;
+  if (cell.querySelector(CV_PDF_FLAT_CELL_SKIP_SELECTOR)) return true;
+  if (cell.querySelector('[data-cv-shokumu-cert-list], [data-cv-pdf-cert-flat]')) return true;
+  if (cell.querySelector('input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"])')) return true;
+  if (cell.querySelector('ul, ol')) return true;
+  if (cell.querySelector('.inline-flex, .flex, .grid')) return true;
+  if (cell.querySelectorAll('[contenteditable]').length > 1) return true;
+  if (cell.colSpan > 1) return true;
+  const text = (cell.textContent || '').replace(/\s+/g, ' ').trim();
+  if (!text || text === '以上') return true;
+  return false;
+}
+
+function normalizeShokumuPeriodCaptureText(raw) {
+  return String(raw || '')
+    .replace(/\r\n?/g, ' ')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/(\d)\s+(年)/g, '$1$2')
+    .replace(/(年)\s+(\d)/g, '$1$2')
+    .replace(/(\d)\s+(月)/g, '$1$2')
+    .replace(/(月)\s+(～)/g, '$1$2')
+    .replace(/(～)\s+(\d)/g, '$1$2')
+    .replace(/\s+現在\s*$/g, ' 現在')
+    .trim();
+}
+
+function readShokumuPeriodCellText(cell) {
+  const scratch = cell.cloneNode(true);
+  scratch.querySelectorAll('button').forEach((btn) => btn.remove());
+  return normalizeShokumuPeriodCaptureText(scratch.innerText || '');
+}
+
+/** 職務経歴: gộp ô kỳ công việc (input 年/月) thành một dòng — tránh xuống dòng từng ký tự khi capture. */
+function flattenShokumuPeriodCellsForPdfCapture(root, restoreFns) {
+  if (!(root instanceof HTMLElement)) return;
+
+  root.querySelectorAll('[data-cv-shokumu-period]').forEach((cell) => {
+    const preset = (cell.getAttribute('data-cv-period-display') || '').trim();
+    const text = preset || readShokumuPeriodCellText(cell);
+    if (!text) return;
+
+    const templateBody = root.querySelector('.cv-template-body') || root;
+    const fonts = resolveCvPdfCaptureFont(cell, getComputedStyle(cell));
+    const flat = document.createElement('span');
+    flat.dataset.cvPdfPeriodFlat = '1';
+    flat.textContent = text;
+    Object.assign(flat.style, {
+      whiteSpace: 'nowrap',
+      fontFamily: fonts.fontFamily,
+      fontSize: CV_PDF_SHOKUMU_TABLE_FONT_SIZE,
+      fontWeight: '400',
+      color: '#1f2937',
+      letterSpacing: 0,
+    });
+
+    const prevHtml = cell.innerHTML;
+    const prevWhiteSpace = cell.style.whiteSpace;
+    cell.innerHTML = '';
+    cell.style.whiteSpace = 'nowrap';
+    cell.appendChild(flat);
+    restoreFns.push(() => {
+      cell.innerHTML = prevHtml;
+      cell.style.whiteSpace = prevWhiteSpace;
+    });
+  });
+}
+
+function normalizeShokumuCertRowText(raw) {
+  return String(raw || '')
+    .replace(/\r\n?/g, ' ')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\(\s+/g, '（')
+    .replace(/\s+\)/g, '）')
+    .replace(/\(\s*(\d)/g, '（$1')
+    .replace(/(\d)\s+年/g, '$1年')
+    .replace(/年\s+(\d)/g, '年$1')
+    .replace(/(\d)\s+月/g, '$1月')
+    .trim();
+}
+
+function readShokumuCertRowText(row) {
+  const extract = (node) => {
+    const scratch = node.cloneNode(true);
+    scratch.querySelectorAll('button, .cv-pdf-hide').forEach((el) => el.remove());
+    scratch.querySelectorAll('input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"])').forEach((input) => {
+      const val = String(input.value || '').trim();
+      input.replaceWith(document.createTextNode(val));
+    });
+    return normalizeShokumuCertRowText(scratch.textContent || scratch.innerText || '');
+  };
+
+  return extract(row) || normalizeShokumuCertRowText(row.textContent || row.innerText || '');
+}
+
+/** 職務経歴 資格・免許: gộp flex (・name（年月）) thành khối text — tránh PDF xuống dòng từng ký tự / mất nội dung. */
+function flattenShokumuCertRowsForPdfCapture(root, restoreFns) {
+  if (!(root instanceof HTMLElement)) return;
+
+  const templateBody = root.querySelector('.cv-template-body') || root;
+  const fonts = resolveCvPdfCaptureFont(templateBody, getComputedStyle(templateBody));
+
+  root.querySelectorAll('[data-cv-shokumu-cert-list]').forEach((list) => {
+    const lines = [];
+    list.querySelectorAll('[data-cv-shokumu-cert-row]').forEach((row) => {
+      const line = readShokumuCertRowText(row);
+      if (line) lines.push(line);
+    });
+    if (!lines.length) return;
+
+    const prevHtml = list.innerHTML;
+
+    const flat = document.createElement('div');
+    flat.dataset.cvPdfCertFlat = '1';
+    flat.textContent = lines.join('\n');
+    Object.assign(flat.style, {
+      display: 'block',
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-word',
+      fontFamily: fonts.fontFamily,
+      fontSize: CV_PDF_SHOKUMU_TABLE_FONT_SIZE,
+      fontWeight: '400',
+      color: '#1f2937',
+      lineHeight: '1.5',
+      margin: '0',
+      padding: '0',
+      minHeight: '1.5em',
+      border: 'none',
+    });
+
+    list.innerHTML = '';
+    list.appendChild(flat);
+    restoreFns.push(() => {
+      list.innerHTML = prevHtml;
+    });
+  });
+}
+
+/** 職務経歴書: ép cỡ chữ đồng nhất trong các bảng — tránh text-xs / text-[10px] lệch nhau khi PDF. */
+function normalizeShokumuTableFontSizesForPdfCapture(root, restoreFns) {
+  if (!(root instanceof HTMLElement)) return;
+
+  const section = root.matches('[data-cv-pdf-section="shokumu"]')
+    ? root
+    : root.querySelector('[data-cv-pdf-section="shokumu"]');
+  if (!section) return;
+
+  section.querySelectorAll('.cv-resizable-table-wrap td, .cv-resizable-table-wrap th').forEach((cell) => {
+    const prev = cell.style.fontSize;
+    cell.style.fontSize = CV_PDF_SHOKUMU_TABLE_FONT_SIZE;
+    restoreFns.push(() => {
+      cell.style.fontSize = prev;
+    });
+
+    cell.querySelectorAll('[data-cv-pdf-editable-marker], [data-cv-pdf-period-flat], [data-cv-pdf-flat-cell]').forEach((node) => {
+      const prevNode = node.style.fontSize;
+      node.style.fontSize = CV_PDF_SHOKUMU_TABLE_FONT_SIZE;
+      restoreFns.push(() => {
+        node.style.fontSize = prevNode;
+      });
+    });
+  });
+}
+
+function normalizeCvPdfFlatCellText(text) {
+  return String(text || '')
+    .replace(/\r\n?/g, '\n')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\n+(入学|卒業|入社|退社|現在に至る)\s*$/gm, ' $1')
+    .replace(/([：:])\n+/g, '$1 ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+/** Gộp mỗi ô bảng CV thành một khối chữ — tránh marker contentEditable + suffix 入学/卒業 lệch đậm nhạt. */
+function flattenCvPdfTableCellsForCapture(root, restoreFns) {
+  if (!(root instanceof HTMLElement)) return;
+
+  const templateBody = root.querySelector('.cv-template-body') || root;
+  const fonts = resolveCvPdfCaptureFont(templateBody, getComputedStyle(templateBody));
+
+  root.querySelectorAll('.cv-resizable-table-wrap td').forEach((cell) => {
+    if (shouldSkipCvPdfFlatCell(cell)) return;
+
+    const text = normalizeCvPdfFlatCellText(cell.innerText || '');
+    if (!text) return;
+
+    const prevHtml = cell.innerHTML;
+    const cs = getComputedStyle(cell);
+    const textAlign = cs.textAlign === 'center' || cell.classList.contains('text-center')
+      ? 'center'
+      : (cs.textAlign === 'right' || cell.classList.contains('text-right') ? 'right' : 'left');
+
+    const flat = document.createElement('div');
+    flat.dataset.cvPdfFlatCell = '1';
+    flat.textContent = text;
+    Object.assign(flat.style, {
+      fontFamily: fonts.fontFamily,
+      fontSize: fonts.fontSize || '11px',
+      lineHeight: '1.5',
+      fontWeight: '400',
+      fontStyle: 'normal',
+      color: '#1f2937',
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-word',
+      textAlign,
+      padding: '0',
+      margin: '0',
+      background: 'transparent',
+    });
+
+    cell.innerHTML = '';
+    cell.appendChild(flat);
+    restoreFns.push(() => {
+      cell.innerHTML = prevHtml;
+    });
+  });
+}
+
+function flattenDateTripletsForPdfCapture(root, restoreFns) {
+  if (!(root instanceof HTMLElement)) return;
+
+  root.querySelectorAll('.cv-template-date-triplet').forEach((wrap) => {
+    const text = (wrap.innerText || '')
+      .replace(/\r\n?/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!text) return;
+
+    const fonts = resolveCvPdfCaptureFont(wrap, getComputedStyle(wrap));
+    const flat = document.createElement('span');
+    flat.dataset.cvPdfDateFlat = '1';
+    flat.textContent = text;
+    Object.assign(flat.style, {
+      whiteSpace: 'nowrap',
+      fontFamily: fonts.fontFamily,
+      fontSize: fonts.fontSize || '10px',
+      fontWeight: '400',
+      color: '#1f2937',
+      letterSpacing: 0,
+    });
+
+    const prevHtml = wrap.innerHTML;
+    const prevWhiteSpace = wrap.style.whiteSpace;
+    wrap.innerHTML = '';
+    wrap.style.whiteSpace = 'nowrap';
+    wrap.appendChild(flat);
+    restoreFns.push(() => {
+      wrap.innerHTML = prevHtml;
+      wrap.style.whiteSpace = prevWhiteSpace;
+    });
+  });
+}
+
 function preparePdfCaptureUi(root) {
   const restoreFns = [];
+
+  applyFixedCertTablePdfLayout(root, restoreFns);
+
+  flattenShokumuCertRowsForPdfCapture(root, restoreFns);
 
   root.querySelectorAll('.cv-pdf-hide').forEach((node) => {
     hideNodeForPdfCapture(node, restoreFns);
@@ -500,7 +982,7 @@ function preparePdfCaptureUi(root) {
     if (label) hideNodeForPdfCapture(label, restoreFns);
   });
 
-  applyFixedCertTablePdfLayout(root, restoreFns);
+  flattenDateTripletsForPdfCapture(root, restoreFns);
 
   root.querySelectorAll('tr').forEach((tr) => {
     if (!isCvPdfActionRow(tr)) return;
@@ -524,6 +1006,8 @@ function preparePdfCaptureUi(root) {
     });
   });
 
+  flattenShokumuPeriodCellsForPdfCapture(root, restoreFns);
+
   root.querySelectorAll('input[type="checkbox"]').forEach((input) => {
     const restore = enhanceCheckboxForPdfCapture(input);
     if (restore) restoreFns.push(restore);
@@ -534,7 +1018,18 @@ function preparePdfCaptureUi(root) {
     if (restore) restoreFns.push(restore);
   });
 
+  root.querySelectorAll('[contenteditable=""], [contenteditable="true"], [contenteditable="plaintext-only"]').forEach((node) => {
+    const restore = enhanceContentEditableForPdfCapture(node);
+    if (restore) restoreFns.push(restore);
+  });
+
+  enhanceCvSelectionButtonsForPdfCapture(root, restoreFns);
+
   forceAutoTableLayoutForCapture(root, restoreFns);
+
+  flattenCvPdfTableCellsForCapture(root, restoreFns);
+
+  normalizeShokumuTableFontSizesForPdfCapture(root, restoreFns);
 
   return () => {
     restoreFns.reverse().forEach((fn) => fn());
@@ -628,7 +1123,7 @@ function measureCaptureDimensions(element, { prepare = true } = {}) {
   };
 }
 
-async function waitForElementLayout(elements, maxMs = 5000) {
+export async function waitForElementLayout(elements, maxMs = 5000) {
   const list = (elements || []).filter(Boolean);
   if (!list.length) return false;
 
@@ -642,19 +1137,14 @@ async function waitForElementLayout(elements, maxMs = 5000) {
   return list.every((el) => hasElementLayout(el));
 }
 
-/** Đợi section DOM có layout — dùng query trực tiếp, tránh ref React stale. */
-export async function waitForCvPdfSectionElements(getElements, parts = ['rirekisho', 'shokumu'], layerRoot = null, maxMs = 10000) {
+/** Đợi section DOM có layout — chỉ đọc, không mutate DOM React. */
+export async function waitForCvPdfSectionElements(getElements, parts = ['rirekisho', 'shokumu'], _layerRoot = null, maxMs = 10000) {
   const deadline = Date.now() + maxMs;
 
   while (Date.now() < deadline) {
     const elements = typeof getElements === 'function' ? getElements() : null;
     if (Array.isArray(elements) && elements.length === parts.length) {
-      const ready = await withVisibleCaptureLayer(elements[0], layerRoot, async () => {
-        prepareElementForCapture(elements);
-        await waitForElementLayout(elements);
-        return elements.every((el) => hasElementLayout(el));
-      });
-      restoreElementAfterCapture(elements);
+      const ready = elements.every((el) => el?.isConnected && hasElementLayout(el));
       if (ready) return elements;
     }
     await new Promise((resolve) => setTimeout(resolve, 60));
@@ -662,14 +1152,7 @@ export async function waitForCvPdfSectionElements(getElements, parts = ['rirekis
 
   const elements = typeof getElements === 'function' ? getElements() : null;
   if (!Array.isArray(elements) || elements.length !== parts.length) return null;
-
-  const ready = await withVisibleCaptureLayer(elements[0], layerRoot, async () => {
-    prepareElementForCapture(elements);
-    await waitForElementLayout(elements, 1500);
-    return elements.every((el) => hasElementLayout(el));
-  });
-  restoreElementAfterCapture(elements);
-  return ready ? elements : null;
+  return elements.every((el) => el?.isConnected && hasElementLayout(el)) ? elements : null;
 }
 
 /** @deprecated dùng waitForCvPdfSectionElements */
@@ -720,6 +1203,7 @@ function shouldIncludeNodeForCvCapture(node) {
   if (el.closest?.('[data-cv-pdf-hidden-row="1"], [data-cv-pdf-hidden-btn="1"]')) return false;
   if (tag === 'INPUT' && el.type === 'checkbox' && el.dataset.cvPdfCheckboxEnhanced === '1') return false;
   if (tag === 'INPUT' && el.dataset.cvPdfInputEnhanced === '1') return false;
+  if (el.dataset.cvPdfEditableEnhanced === '1') return false;
   return true;
 }
 
@@ -761,9 +1245,124 @@ async function withVisibleCaptureLayer(element, layerRoot, run) {
   }
 }
 
-/**
- * Capture DOM trực tiếp (giữ class + stylesheet Tailwind) qua modern-screenshot.
- */
+/** Clone section DOM — mọi chỉnh sửa phục vụ PDF chỉ trên bản sao, không phá cây DOM React. */
+function mountCaptureClone(element) {
+  const sandbox = document.createElement('div');
+  sandbox.className = 'cv-pdf-capture-sandbox';
+  sandbox.setAttribute('data-cv-pdf-capture-sandbox', '1');
+  sandbox.style.cssText = [
+    'position:fixed',
+    'left:0',
+    'top:0',
+    `width:${CV_PDF_CAPTURE_WIDTH_PX}px`,
+    `transform:${CV_PDF_CAPTURE_OFFSCREEN_TRANSFORM}`,
+    'visibility:visible',
+    'opacity:1',
+    'pointer-events:none',
+    'z-index:-1',
+    'background:#ffffff',
+    'overflow:visible',
+  ].join(';');
+
+  const clone = element.cloneNode(true);
+  if (clone instanceof HTMLElement) {
+    clone.removeAttribute('id');
+    clone.querySelectorAll('[id]').forEach((node) => node.removeAttribute('id'));
+  }
+
+  sandbox.appendChild(clone);
+  const styleEl = document.createElement('style');
+  styleEl.textContent = `
+    [data-cv-pdf-capture-sandbox] .cv-template-body {
+      font-family: 'MS Mincho', 'MS 明朝', 'Yu Mincho', 'Hiragino Mincho ProN', serif !important;
+      font-weight: 400 !important;
+    }
+    [data-cv-pdf-capture-sandbox] .cv-template-body .font-bold,
+    [data-cv-pdf-capture-sandbox] .cv-template-body h2 {
+      font-weight: 700 !important;
+    }
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-flat-cell],
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-editable-marker],
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-date-flat] {
+      font-weight: 400 !important;
+    }
+    [data-cv-pdf-capture-sandbox] .cv-pdf-date-inline,
+    [data-cv-pdf-capture-sandbox] .cv-template-date-triplet {
+      flex-wrap: nowrap !important;
+      white-space: nowrap !important;
+      font-size: 10px !important;
+    }
+    [data-cv-pdf-capture-sandbox] .cv-template-date-triplet [contenteditable] {
+      display: inline !important;
+      width: auto !important;
+    }
+    [data-cv-pdf-capture-sandbox] [data-cv-layout-key$="::personalGrid_v3"] td {
+      overflow: visible !important;
+      min-height: 38px !important;
+      padding-top: 7px !important;
+      padding-bottom: 7px !important;
+      box-sizing: border-box !important;
+    }
+    [data-cv-pdf-capture-sandbox] [data-cv-layout-key$="::personalGrid_v3"] tbody tr:first-child td {
+      min-height: initial !important;
+      padding-top: 10px !important;
+      padding-bottom: 10px !important;
+    }
+    [data-cv-pdf-capture-sandbox] [data-cv-layout-key$="::personalGrid_v3"] td[style*="e2efd9"] {
+      white-space: nowrap !important;
+      word-break: keep-all !important;
+      overflow-wrap: normal !important;
+    }
+    [data-cv-pdf-capture-sandbox] [data-cv-layout-key$="::personalGrid_v3"] .cv-template-date-triplet,
+    [data-cv-pdf-capture-sandbox] [data-cv-layout-key$="::personalGrid_v3"] [data-cv-pdf-date-flat] {
+      font-size: 11px !important;
+      letter-spacing: 0 !important;
+    }
+    [data-cv-pdf-capture-sandbox] td.whitespace-nowrap,
+    [data-cv-pdf-capture-sandbox] [data-cv-shokumu-period],
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-period-flat] {
+      word-break: keep-all !important;
+      overflow-wrap: normal !important;
+      white-space: nowrap !important;
+    }
+    [data-cv-pdf-capture-sandbox] .cv-resizable-table-wrap {
+      overflow: visible !important;
+      max-width: 100% !important;
+    }
+    [data-cv-pdf-capture-sandbox] .cv-resizable-table-wrap table {
+      width: 100% !important;
+      max-width: 100% !important;
+      table-layout: fixed !important;
+      box-sizing: border-box !important;
+    }
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-keep-structure] {
+      border: 1px solid #1f2937 !important;
+      box-sizing: border-box !important;
+    }
+    [data-cv-pdf-capture-sandbox] [data-cv-shokumu-cert-list],
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-cert-flat] {
+      border: none !important;
+    }
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap td,
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap th,
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap td *,
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap th *,
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-editable-marker],
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-period-flat],
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-flat-cell],
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-cert-flat] {
+      font-size: 11px !important;
+    }
+  `;
+  sandbox.appendChild(styleEl);
+  document.body.appendChild(sandbox);
+  return { sandbox, clone };
+}
+
+function unmountCaptureClone(sandbox) {
+  sandbox?.remove();
+}
+
 async function captureElementToCanvas(element, scale = 2) {
   if (!element) {
     throw new Error('Thiếu phần tử DOM để xuất PDF');
@@ -771,65 +1370,79 @@ async function captureElementToCanvas(element, scale = 2) {
 
   await waitForDocumentFonts();
 
-  return withVisibleCaptureLayer(element, null, async () => {
-    const ancestorScrollRestoreFns = [];
-    suppressScrollableAncestors(element, ancestorScrollRestoreFns);
-    prepareElementForCapture([element]);
-    try {
-      await waitForImagesLoaded(element);
-      let layoutReady = await waitForElementLayout([element]);
-      if (!layoutReady) {
-        await new Promise((resolve) => setTimeout(resolve, 400));
-        layoutReady = await waitForElementLayout([element], 2000);
-      }
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      forceAutoTableLayoutForCapture(element);
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-      const { width, height } = measureCaptureDimensions(element, { prepare: false });
-
-      if (!layoutReady || height < 8 || width < 8) {
-        throw new Error('Nội dung CV chưa sẵn sàng để xuất PDF. Vui lòng thử lại sau vài giây.');
-      }
-
-      const canvas = await domToCanvas(element, {
-        scale,
-        width,
-        height,
-        backgroundColor: '#ffffff',
-        filter: shouldIncludeNodeForCvCapture,
-        fetch: {
-          requestInit: { cache: 'no-cache' },
-        },
-        fetchFn: async (url) => {
-          if (url.startsWith('data:') || url.startsWith('blob:')) return url;
-          try {
-            const res = await fetch(url, { mode: 'cors', cache: 'no-cache' });
-            if (!res.ok) return false;
-            const blob = await res.blob();
-            return await new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result);
-              reader.onerror = reject;
-              reader.readAsDataURL(blob);
-            });
-          } catch {
-            return false;
-          }
-        },
-      });
-
-      if (!canvas || canvas.width < 8 || canvas.height < 8) {
-        throw new Error('Không chụp được nội dung CV. Vui lòng thử lại.');
-      }
-
-      const paginationPlan = buildCapturePaginationPlan(element, canvas, scale);
-      return { canvas, paginationPlan };
-    } finally {
-      restoreElementAfterCapture([element]);
-      ancestorScrollRestoreFns.reverse().forEach((fn) => fn());
+  const { sandbox, clone } = mountCaptureClone(element);
+  try {
+    prepareElementForCapture([clone]);
+    await waitForImagesLoaded(clone);
+    void clone.offsetHeight;
+    let layoutReady = await waitForElementLayout([clone]);
+    if (!layoutReady) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      void clone.offsetHeight;
+      layoutReady = await waitForElementLayout([clone], 2500);
     }
-  });
+    if (!layoutReady) {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      void clone.offsetHeight;
+      layoutReady = await waitForElementLayout([clone], 3000);
+    }
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    forceAutoTableLayoutForCapture(clone);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    let { width, height } = measureCaptureDimensions(clone, { prepare: false });
+    if (height < 8) {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      void clone.offsetHeight;
+      ({ width, height } = measureCaptureDimensions(clone, { prepare: false }));
+    }
+    if (height < 8) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      void clone.offsetHeight;
+      ({ width, height } = measureCaptureDimensions(clone, { prepare: false }));
+    }
+
+    if (!layoutReady || height < 8 || width < 8) {
+      throw new Error('Nội dung CV chưa sẵn sàng để xuất PDF. Vui lòng thử lại sau vài giây.');
+    }
+
+    const canvas = await domToCanvas(clone, {
+      scale,
+      width,
+      height,
+      backgroundColor: '#ffffff',
+      filter: shouldIncludeNodeForCvCapture,
+      fetch: {
+        requestInit: { cache: 'no-cache' },
+      },
+      fetchFn: async (url) => {
+        if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+        try {
+          const res = await fetch(url, { mode: 'cors', cache: 'no-cache' });
+          if (!res.ok) return false;
+          const blob = await res.blob();
+          return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch {
+          return false;
+        }
+      },
+    });
+
+    if (!canvas || canvas.width < 8 || canvas.height < 8) {
+      throw new Error('Không chụp được nội dung CV. Vui lòng thử lại.');
+    }
+
+    const paginationPlan = buildCapturePaginationPlan(clone, canvas, scale);
+    return { canvas, paginationPlan };
+  } finally {
+    restoreElementAfterCapture([clone]);
+    unmountCaptureClone(sandbox);
+  }
 }
 
 /** Một section DOM → PDF blob (có thể nhiều trang nếu nội dung dài). */
@@ -838,8 +1451,24 @@ export async function elementToPdfBlob(element, options = {}) {
     throw new Error('Thiếu phần tử DOM để xuất PDF');
   }
   const scale = options.scale ?? 2;
-  const { canvas, paginationPlan } = await captureElementToCanvas(element, scale);
-  return createPdfFromCanvas(canvas, paginationPlan, scale).output('blob');
+  const retries = options.retries ?? 2;
+  const retryable = /chưa sẵn sàng|Không chụp được/;
+  let lastError;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const { canvas, paginationPlan } = await captureElementToCanvas(element, scale);
+      return createPdfFromCanvas(canvas, paginationPlan, scale).output('blob');
+    } catch (error) {
+      lastError = error;
+      if (attempt >= retries || !retryable.test(error?.message || '')) throw error;
+      await waitForDocumentFonts();
+      await new Promise((resolve) => setTimeout(resolve, 400 + attempt * 450));
+      void element.offsetHeight;
+    }
+  }
+
+  throw lastError;
 }
 
 /** Nhiều section → một PDF (mỗi section bắt đầu trang mới nếu cần). */
