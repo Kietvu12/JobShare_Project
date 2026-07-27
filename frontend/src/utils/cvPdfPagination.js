@@ -10,10 +10,12 @@ export const CV_PDF_MARGIN_MM = {
 
 export const A4_WIDTH_MM = 210;
 export const A4_HEIGHT_MM = 297;
+/** Khổ ngang PDF CV client-side — rộng hơn A4 để bảng/label không bị chật. */
+export const CV_PDF_PAGE_WIDTH_MM = 280;
 /** Chiều cao trang PDF tối đa: A4 rộng × A3 cao — nhiều nội dung/trang, ít cắt bảng. */
 export const CV_PDF_PAGE_HEIGHT_MM = 420;
 
-export const CV_PDF_CONTENT_WIDTH_MM = A4_WIDTH_MM - CV_PDF_MARGIN_MM.left - CV_PDF_MARGIN_MM.right;
+export const CV_PDF_CONTENT_WIDTH_MM = CV_PDF_PAGE_WIDTH_MM - CV_PDF_MARGIN_MM.left - CV_PDF_MARGIN_MM.right;
 export const CV_PDF_CONTENT_HEIGHT_MM = CV_PDF_PAGE_HEIGHT_MM - CV_PDF_MARGIN_MM.top - CV_PDF_MARGIN_MM.bottom;
 
 export function mmToPx(mm) {
@@ -284,6 +286,7 @@ export function snapshotCellRectsForPdf(root) {
       bottom: r.bottom - rootRect.top,
       left: r.left - rootRect.left,
       right: r.right - rootRect.left,
+      skipBottomRepaint: Boolean(cell.closest('[data-cv-table-footer-row]')),
     });
   });
   return cells;
@@ -358,6 +361,7 @@ function paintDocumentBottomEdgeBorders(ctx, cellSnapshots, scale, sliceTopPx, s
   ctx.fillStyle = BORDER_COLOR;
 
   for (const cell of cellSnapshots) {
+    if (cell.skipBottomRepaint) continue;
     if (cell.bottom < maxBottom - 2) continue;
     if (cell.bottom <= sliceTopPx + EPS || cell.top >= sliceBottomPx - EPS) continue;
 
@@ -388,7 +392,7 @@ function sliceTotalPageHeightMm(sliceHeightMm) {
 /** Kích thước trang PDF — luôn portrait (cao >= rộng). Trang ngắn (vd. 本人希望記入欄) nếu không ép min height sẽ bị jsPDF/viewer đảo thành dải dọc hẹp. */
 function pdfPageFormatMm(sliceHeightMm) {
   const pageHeight = sliceTotalPageHeightMm(sliceHeightMm);
-  return [A4_WIDTH_MM, Math.max(pageHeight, A4_HEIGHT_MM)];
+  return [CV_PDF_PAGE_WIDTH_MM, Math.max(pageHeight, A4_HEIGHT_MM)];
 }
 
 function buildPdfSlices(sourceCanvas, paginationPlan, scale = 2) {
@@ -452,7 +456,7 @@ function renderSliceOnPdf(pdf, slice) {
 export function createPdfFromCanvas(sourceCanvas, paginationPlan, scale = 2) {
   const slices = buildPdfSlices(sourceCanvas, paginationPlan, scale);
   if (!slices.length) {
-    return new jsPDF({ unit: 'mm', compress: true, format: [A4_WIDTH_MM, CV_PDF_PAGE_HEIGHT_MM] });
+    return new jsPDF({ unit: 'mm', compress: true, format: [CV_PDF_PAGE_WIDTH_MM, CV_PDF_PAGE_HEIGHT_MM] });
   }
 
   const pdf = new jsPDF({
