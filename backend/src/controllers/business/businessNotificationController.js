@@ -1,11 +1,11 @@
 import { CollaboratorNotification, Job } from '../../models/index.js';
-import sequelize from '../../config/database.js';
 import { collaboratorNotificationService } from '../../services/collaboratorNotificationService.js';
 import { applySseHeaders } from '../../utils/sseHeaders.js';
-
-const NOTIFICATION_LIST_ORDER = [
-  [sequelize.literal('`collaborator_notifications`.`created_at`'), 'DESC'],
-];
+import {
+  buildCollaboratorNotificationListFindOptions,
+  getCollaboratorNotificationLegacyListFallbackOptions,
+  isMissingCollaboratorNotificationTimestampError,
+} from '../../utils/collaboratorNotificationSchema.js';
 
 function isMissingBusinessNotificationsColumn(err) {
   const e = err?.parent || err?.original || err;
@@ -21,21 +21,35 @@ export const businessNotificationController = {
       const page = Math.max(parseInt(req.query.page || '1', 10), 1);
       const limit = Math.min(Math.max(parseInt(req.query.limit || '20', 10), 1), 100);
       const offset = (page - 1) * limit;
-
-      const { count, rows } = await CollaboratorNotification.findAndCountAll({
+      const listOptions = await buildCollaboratorNotificationListFindOptions();
+      const jobInclude = {
+        model: Job,
+        as: 'job',
+        required: false,
+        attributes: ['id', 'jobCode', 'title', 'slug'],
+      };
+      const baseQuery = {
         where: { businessId },
-        include: [
-          {
-            model: Job,
-            as: 'job',
-            required: false,
-            attributes: ['id', 'jobCode', 'title', 'slug'],
-          },
-        ],
-        order: NOTIFICATION_LIST_ORDER,
+        include: [jobInclude],
+        ...listOptions,
         limit,
         offset,
-      });
+      };
+
+      let result;
+      try {
+        result = await CollaboratorNotification.findAndCountAll(baseQuery);
+      } catch (listError) {
+        if (isMissingCollaboratorNotificationTimestampError(listError)) {
+          result = await CollaboratorNotification.findAndCountAll(
+            getCollaboratorNotificationLegacyListFallbackOptions(baseQuery),
+          );
+        } else {
+          throw listError;
+        }
+      }
+
+      const { count, rows } = result;
 
       res.json({
         success: true,

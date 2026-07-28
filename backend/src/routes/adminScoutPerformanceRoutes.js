@@ -7,6 +7,7 @@ const router = express.Router();
 router.use(authenticate, isSuperAdminOrBackoffice);
 
 router.get('/performance-requests', adminScoutPerformanceController.list);
+router.get('/cv-search', adminScoutPerformanceController.searchCandidates);
 router.post('/performance-requests/:id/approve', adminScoutPerformanceController.approve);
 router.post('/performance-requests/:id/reject', adminScoutPerformanceController.reject);
 

@@ -26,6 +26,16 @@ const getLocalizedCategoryName = (category, language) => {
   return category.name || category.nameJp || category.nameEn || '';
 };
 
+/** Chuẩn hóa kết quả sequelize.query — luôn trả về mảng rows. */
+const toSelectRows = (raw) => {
+  if (Array.isArray(raw)) {
+    if (raw.length === 2 && Array.isArray(raw[0])) return raw[0];
+    return raw;
+  }
+  if (raw != null && typeof raw === 'object') return [raw];
+  return [];
+};
+
 /**
  * Dashboard Controller (CTV)
  * Cung cấp thống kê và dữ liệu cho dashboard của CTV
@@ -151,7 +161,7 @@ export const dashboardController = {
       res.json({
         success: true,
         data: {
-          applications: results || []
+          applications: toSelectRows(results)
         }
       });
     } catch (error) {
@@ -208,7 +218,7 @@ export const dashboardController = {
         }
       );
 
-      const categories = (results || []).map((row) => {
+      const categories = toSelectRows(results).map((row) => {
         const category = normalizeCategoryRow(row);
         return {
           ...category,
@@ -293,8 +303,8 @@ export const dashboardController = {
       res.json({
         success: true,
         data: {
-          offers: offerResults || [],
-          rejections: rejectionResults || []
+          offers: toSelectRows(offerResults),
+          rejections: toSelectRows(rejectionResults)
         }
       });
     } catch (error) {

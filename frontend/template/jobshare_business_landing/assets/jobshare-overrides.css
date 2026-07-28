@@ -1,0 +1,83 @@
+/* JobShare Business — overrides trên template gốc */
+html, body {
+  overflow-x: hidden;
+}
+header.fixed {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+header.fixed.-hide {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+.jobshare-hero-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+  line-height: 1.35;
+  color: #1a1a1a;
+}
+.jobshare-hero-kicker {
+  font-size: clamp(14px, 2vw, 18px);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.jobshare-hero-brand {
+  font-size: clamp(28px, 5vw, 46px);
+  font-weight: 800;
+  color: #c61414;
+  letter-spacing: -0.02em;
+}
+.jobshare-hero-sub {
+  font-size: clamp(13px, 1.8vw, 16px);
+  font-weight: 500;
+  color: #4b5563;
+  max-width: 32em;
+}
+header h1 a img {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+}
+footer .left h2 a img {
+  filter: brightness(0) invert(1);
+  height: 32px;
+  width: auto;
+}
+header .right .nav_area nav.subnav ul {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+header .right .nav_area nav.subnav ul li.contact a {
+  width: auto;
+  min-width: 108px;
+  padding: 0 18px;
+  white-space: nowrap;
+  line-height: 42px;
+  font-size: 13px;
+}
+header .right .nav_area nav ul li.contact-register a {
+  background: #c61414;
+  color: #fff;
+  border-color: #c61414;
+}
+header .right .nav_area nav ul li.contact-register a:hover {
+  background: #a01010;
+  border-color: #a01010;
+  color: #fff;
+}
+footer .row .right .subnav ul {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+footer .row .right .subnav ul li.contact-register a {
+  background: #c61414;
+  border-color: #c61414;
+}
+footer .row .right .subnav ul li.contact-register a span {
+  color: #fff;
+}

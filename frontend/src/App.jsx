@@ -86,6 +86,7 @@ import AgentEventDetailPage from './page/Agent/EventDetailPage';
 import AgentEventsPage from './page/Agent/AgentEventsPage';
 import CollaboratorLandingHome from './page/LandingPage/Collaborator/Home';
 import CandidateLandingHome from './page/LandingPage/Candidate/Home';
+import BusinessLandingHome from './page/LandingPage/Business/Home';
 import CandidateLoginPage from './page/LandingPage/Candidate/CandidateLoginPage';
 import CandidateRegisterPage from './page/LandingPage/Candidate/CandidateRegisterPage';
 import CandidateResetPasswordPage from './page/LandingPage/Candidate/CandidateResetPasswordPage';
@@ -104,6 +105,7 @@ import JobApplication from './page/Bussiness/JobApplication';
 import Candidate from './page/Bussiness/Candidate';
 import Scout from './page/Bussiness/Scout';
 import AdminScoutPerformancePage from './page/Admin/ScoutPerformancePage';
+import AdminWsChatPage from './page/Admin/AdminWsChatPage';
 import AdminCreditRequestsPage from './page/Admin/AdminCreditRequestsPage';
 import AgentScoutPerformancePage from './page/Agent/ScoutPerformancePage';
 import Branding from './page/Bussiness/Branding';
@@ -267,6 +269,7 @@ function App() {
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="payments/:id" element={<PaymentRequestDetailPage />} />
             <Route path="scout-performance" element={<AdminScoutPerformancePage />} />
+            <Route path="ws-chat" element={<AdminWsChatPage />} />
             <Route path="business-credit-requests" element={<AdminCreditRequestsPage />} />
             <Route path="candidate-sharing" element={<AdminCandidateSharingPage />} />
             <Route path="companies" element={<CompaniesPage />} />
@@ -274,7 +277,6 @@ function App() {
             <Route path="companies/:companyId" element={<AdminCompanyDetailPage />} />
             <Route path="companies/:companyId/edit" element={<AddCompanyPage />} />
             <Route path="business-accounts" element={<AdminBusinessesPage />} />
-            <Route path="business-accounts/create" element={<AdminBusinessDetailPage />} />
             <Route path="business-accounts/:businessId" element={<AdminBusinessDetailPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="accounts" element={<AccountsPage />} />
@@ -318,6 +320,8 @@ function App() {
           <Route path="/landing/collaborator/*" element={<LegacyPublicRedirect persona="collaborator" />} />
           <Route path="/collaborator/*" element={<LegacyPublicRedirect persona="collaborator" />} />
           <Route path="/landing/candidate/*" element={<LegacyPublicRedirect persona="candidate" />} />
+          <Route path="/landing/business" element={<BusinessLandingHome />} />
+          <Route path="/landing/business/*" element={<BusinessLandingHome />} />
           <Route path="/candidate/*" element={<LegacyPublicRedirect persona="candidate" />} />
 
           {/* Localized candidate landing: /{lang}/candidate/... */}
@@ -343,6 +347,7 @@ function App() {
 
           {/* Localized collaborator landing: /{lang}/... */}
           <Route path="/:lang" element={<LocaleGuard />}>
+            <Route path="business" element={<BusinessLandingHome />} />
             <Route path="collaborator/jobs/:jobId" element={<LegacyLocaleCollaboratorJobRedirect />} />
             <Route element={<CollaboratorLayout />}>
               <Route index element={<CollaboratorLandingHome />} />

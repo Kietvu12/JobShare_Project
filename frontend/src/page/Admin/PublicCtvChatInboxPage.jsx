@@ -10,6 +10,7 @@ import { fetchAdminSupportUnread } from '../../utils/publicCtvChatUnread';
 import { appendUniqueChatMessage, buildMessagePreview } from '../../utils/publicSupportChatUi';
 import PublicSupportChatComposer from '../../component/Shared/PublicSupportChatComposer';
 import PublicSupportChatMessageBody from '../../component/Shared/PublicSupportChatMessageBody';
+import WsChatPanel from '../../component/Shared/WsScoutPerformanceChat';
 
 function normalizeSearch(s) {
   return String(s || '')
@@ -94,17 +95,37 @@ function isSameSessionId(a, b) {
   return Number.isFinite(na) && Number.isFinite(nb) && na === nb;
 }
 
+function businessSessionMatches(s, q) {
+  if (!q) return true;
+  const parts = [
+    s.business?.companyName,
+    s.business?.contactName,
+    s.title,
+    s.lastMessagePreview,
+    s.id != null ? String(s.id) : '',
+  ]
+    .filter(Boolean)
+    .map((x) => String(x).toLowerCase());
+  return parts.some((p) => p.includes(q));
+}
+
 
 const PublicCtvChatInboxPage = () => {
   const { language } = useLanguage();
   const t = translations[language] || translations.vi;
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get('tab') === 'candidate' ? 'candidate' : 'ctv';
+  const tabParam = searchParams.get('tab');
+  const tab = tabParam === 'candidate' ? 'candidate' : tabParam === 'business' ? 'business' : 'ctv';
+  const businessSessionId = searchParams.get('sessionId') || null;
+  const businessRequestId = searchParams.get('requestId') || null;
+  const [resolvedBusinessSessionId, setResolvedBusinessSessionId] = useState(businessSessionId);
 
   const [ctvSessions, setCtvSessions] = useState([]);
   const [candidateSessions, setCandidateSessions] = useState([]);
+  const [businessSessions, setBusinessSessions] = useState([]);
   const [loadingCtv, setLoadingCtv] = useState(true);
   const [loadingCandidate, setLoadingCandidate] = useState(true);
+  const [loadingBusiness, setLoadingBusiness] = useState(true);
 
   const [sessionMeta, setSessionMeta] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -156,6 +177,18 @@ const PublicCtvChatInboxPage = () => {
     }
   }, []);
 
+  const loadBusinessSessions = useCallback(async () => {
+    setLoadingBusiness(true);
+    try {
+      const res = await apiService.getAdminWsChatSessions({ page: 1, limit: 100 });
+      if (res.success && res.data?.sessions) setBusinessSessions(res.data.sessions);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingBusiness(false);
+    }
+  }, []);
+
   const bumpUnreadForSession = useCallback((sessionId) => {
     if (!sessionId) return;
     const key = String(sessionId);
@@ -169,6 +202,8 @@ const PublicCtvChatInboxPage = () => {
     try {
       if (tabRef.current === 'ctv') {
         await loadCtvSessions();
+      } else if (tabRef.current === 'business') {
+        await loadBusinessSessions();
       } else {
         await loadCandidateSessions();
       }
@@ -187,10 +222,38 @@ const PublicCtvChatInboxPage = () => {
   }, []);
 
   useEffect(() => {
+    if (tab !== 'business') return;
+    if (businessSessionId) {
+      setResolvedBusinessSessionId(businessSessionId);
+      return;
+    }
+    if (!businessRequestId) {
+      setResolvedBusinessSessionId(null);
+      return;
+    }
+    apiService.getAdminWsChatSessionByRequestId(businessRequestId)
+      .then((res) => {
+        const id = res?.data?.session?.id;
+        if (id) {
+          setResolvedBusinessSessionId(String(id));
+          setSearchParams((prev) => {
+            const p = new URLSearchParams(prev);
+            p.set('tab', 'business');
+            p.set('sessionId', String(id));
+            p.delete('requestId');
+            return p;
+          }, { replace: true });
+        }
+      })
+      .catch(console.error);
+  }, [tab, businessSessionId, businessRequestId, setSearchParams]);
+
+  useEffect(() => {
     loadCtvSessions();
     loadCandidateSessions();
+    loadBusinessSessions();
     refreshUnreadSummary();
-  }, [loadCtvSessions, loadCandidateSessions, refreshUnreadSummary]);
+  }, [loadCtvSessions, loadCandidateSessions, loadBusinessSessions, refreshUnreadSummary]);
 
   useEffect(() => {
     const onRead = () => {
@@ -269,8 +332,8 @@ const PublicCtvChatInboxPage = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const rawSessions = tab === 'ctv' ? ctvSessions : candidateSessions;
-  const loadingList = tab === 'ctv' ? loadingCtv : loadingCandidate;
+  const rawSessions = tab === 'ctv' ? ctvSessions : tab === 'business' ? businessSessions : candidateSessions;
+  const loadingList = tab === 'ctv' ? loadingCtv : tab === 'business' ? loadingBusiness : loadingCandidate;
 
   const selectedId = useMemo(() => {
     const raw = searchParams.get('sessionId');
@@ -299,21 +362,29 @@ const PublicCtvChatInboxPage = () => {
         (sum, s) => sum + getChatPreviewUnreadCount(s, localUnreadBySession[String(s.id)]),
         0
       ),
+      business: businessSessions.reduce(
+        (sum, s) => sum + getChatPreviewUnreadCount(s, localUnreadBySession[String(s.id)]),
+        0
+      ),
     }),
-    [ctvSessions, candidateSessions, localUnreadBySession]
+    [ctvSessions, candidateSessions, businessSessions, localUnreadBySession]
   );
 
   const tabUnreadSenders = useMemo(() => {
-    const sessions = tab === 'ctv' ? ctvSessions : candidateSessions;
+    const sessions = tab === 'ctv' ? ctvSessions : tab === 'business' ? businessSessions : candidateSessions;
     return sessions
       .map((s) => ({
         sessionId: s.id,
-        label: tab === 'ctv' ? (s.collaboratorName || s.visitorLabel || `Khách #${s.id}`) : (s.applicantName || s.visitorLabel || `Khách #${s.id}`),
+        label: tab === 'ctv'
+          ? (s.collaboratorName || s.visitorLabel || `Khách #${s.id}`)
+          : tab === 'business'
+            ? (s.business?.companyName || s.title || `DN #${s.id}`)
+            : (s.applicantName || s.visitorLabel || `Khách #${s.id}`),
         unreadCount: getChatPreviewUnreadCount(s, localUnreadBySession[String(s.id)]),
       }))
       .filter((item) => item.unreadCount > 0)
       .sort((a, b) => b.unreadCount - a.unreadCount);
-  }, [tab, ctvSessions, candidateSessions, localUnreadBySession]);
+  }, [tab, ctvSessions, candidateSessions, businessSessions, localUnreadBySession]);
 
   const otherTabUnreadTotal = tab === 'ctv' ? tabUnreadTotals.candidate : tabUnreadTotals.ctv;
   const otherTabLabel = tab === 'ctv' ? t.adminMessagesTabCandidate : t.adminMessagesTabCtv;
@@ -330,9 +401,11 @@ const PublicCtvChatInboxPage = () => {
       return getSessionSortTime(b) - getSessionSortTime(a);
     });
     if (!searchQ) return sorted;
-    return sorted.filter((s) =>
-      tab === 'ctv' ? ctvSessionMatches(s, searchQ) : candidateSessionMatches(s, searchQ)
-    );
+    return sorted.filter((s) => {
+      if (tab === 'ctv') return ctvSessionMatches(s, searchQ);
+      if (tab === 'business') return businessSessionMatches(s, searchQ);
+      return candidateSessionMatches(s, searchQ);
+    });
   }, [sessionsWithUnread, searchQ, tab, previewUnreadCountBySessionId]);
 
   selectedIdRef.current = selectedId;
@@ -462,7 +535,7 @@ const PublicCtvChatInboxPage = () => {
   }, [bumpUnreadForSession, markSessionSeen, refreshListForTab, resolveActiveThread, tab, selectedId]);
 
   const loadThread = useCallback(async () => {
-    if (!selectedId) {
+    if (!selectedId || tab === 'business') {
       setSessionMeta(null);
       setMessages([]);
       return;
@@ -622,6 +695,14 @@ const PublicCtvChatInboxPage = () => {
     return bits.length ? bits.join(' · ') : null;
   };
 
+  const displayBusinessTitle = (s) => s.business?.companyName || s.title || `Doanh nghiệp #${s.id}`;
+
+  const displayBusinessSubtitle = (s) => {
+    const bits = ['Scout Performance'];
+    if (s.business?.contactName) bits.push(s.business.contactName);
+    return bits.join(' · ');
+  };
+
   const existingCtvIds = useMemo(() => {
     return new Set(ctvSessions.filter((s) => s.collaboratorId).map((s) => Number(s.collaboratorId)));
   }, [ctvSessions]);
@@ -661,6 +742,22 @@ const PublicCtvChatInboxPage = () => {
             )}
           </span>
         </button>
+        <button
+          type="button"
+          onClick={() => setTab('business')}
+          className={`border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
+            tab === 'business' ? 'border-red-600 text-red-700' : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <span className="inline-flex items-center gap-2">
+            Doanh nghiệp (WS)
+            {tabUnreadTotals.business > 0 && (
+              <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                {tabUnreadTotals.business > 99 ? '99+' : tabUnreadTotals.business}
+              </span>
+            )}
+          </span>
+        </button>
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] lg:items-stretch">
@@ -679,7 +776,9 @@ const PublicCtvChatInboxPage = () => {
                 placeholder={
                   tab === 'ctv'
                     ? 'Tìm CTV (tên, mã, email, SĐT) hoặc tạo chat mới…'
-                    : t.adminMessagesSearchSessionsCandidate
+                    : tab === 'business'
+                      ? 'Tìm doanh nghiệp, nội dung chat…'
+                      : t.adminMessagesSearchSessionsCandidate
                 }
                 className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-8 text-sm outline-none focus:border-red-400"
                 autoComplete="off"
@@ -815,6 +914,43 @@ const PublicCtvChatInboxPage = () => {
                         {getSessionSortTime(s) ? new Date(getSessionSortTime(s)).toLocaleString('vi-VN') : '—'}
                       </div>
                     </>
+                  ) : tab === 'business' ? (
+                    <>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className={`${isUnread ? 'font-bold text-red-900' : 'font-medium'}`}>
+                          {displayBusinessTitle(s)}
+                        </span>
+                        {isUnread && (
+                          <>
+                            <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                              Chưa đọc
+                            </span>
+                            <span
+                              className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white"
+                              title={`${unreadCount} tin chưa đọc`}
+                            >
+                              {unreadCount > 99 ? '99+' : unreadCount}
+                            </span>
+                          </>
+                        )}
+                        {s.performanceRequest?.wantsSimilarCandidates && (
+                          <span className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-800">
+                            Tìm tương tự
+                          </span>
+                        )}
+                      </div>
+                      <div className={`truncate text-xs ${isUnread ? 'font-medium text-slate-700' : 'text-slate-500'}`}>
+                        {displayBusinessSubtitle(s)}
+                      </div>
+                      {previewText && (
+                        <div className={`mt-1 truncate text-xs ${isUnread ? 'font-semibold text-red-800' : 'text-slate-500'}`}>
+                          {previewText}
+                        </div>
+                      )}
+                      <div className="truncate text-[11px] text-slate-400">
+                        {getSessionSortTime(s) ? new Date(getSessionSortTime(s)).toLocaleString('vi-VN') : '—'}
+                      </div>
+                    </>
                   ) : (
                     <>
                       <div className="flex flex-wrap items-center gap-1.5">
@@ -866,6 +1002,15 @@ const PublicCtvChatInboxPage = () => {
           {!selectedId ? (
             <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-slate-500">
               {t.adminMessagesSelectSession}
+            </div>
+          ) : tab === 'business' ? (
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <WsChatPanel
+                mode="admin"
+                hideSidebar
+                initialSessionId={selectedId}
+                key={selectedId}
+              />
             </div>
           ) : (
             <>

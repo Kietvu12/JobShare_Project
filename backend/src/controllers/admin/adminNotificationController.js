@@ -1,18 +1,16 @@
 import { CollaboratorNotification, Job } from '../../models/index.js';
-import sequelize from '../../config/database.js';
 import { collaboratorNotificationService } from '../../services/collaboratorNotificationService.js';
 import { applySseHeaders } from '../../utils/sseHeaders.js';
 import {
   hasCollaboratorNotificationAdminColumn,
+  buildCollaboratorNotificationListFindOptions,
+  getCollaboratorNotificationLegacyListFallbackOptions,
   isMissingCollaboratorNotificationAdminColumnError,
+  isMissingCollaboratorNotificationTimestampError,
 } from '../../utils/collaboratorNotificationSchema.js';
 
 const ADMIN_NOTIFICATIONS_MIGRATION_HINT =
-  'Chạy migration: node backend/scripts/add-collaborator-notification-recipient-columns.js';
-
-const NOTIFICATION_LIST_ORDER = [
-  [sequelize.literal('`collaborator_notifications`.`created_at`'), 'DESC'],
-];
+  'Chạy migration: node scripts/add-collaborator-notification-recipient-columns.js';
 
 function logAdminNotificationError(scope, error, extra = {}) {
   const e = error?.parent || error?.original || error;
@@ -42,15 +40,12 @@ const JOB_INCLUDE = {
   attributes: ['id', 'jobCode', 'title', 'slug'],
 };
 
-const LIST_ATTRS_WITHOUT_BUSINESS_ID = [
-  'id', 'collaboratorId', 'adminId', 'title', 'content', 'jobId', 'url', 'isRead', 'createdAt', 'updatedAt',
-];
-
 async function findAdminNotifications(adminId, page, limit) {
   const offset = (page - 1) * limit;
+  const listOptions = await buildCollaboratorNotificationListFindOptions();
   const baseQuery = {
     where: { adminId },
-    order: NOTIFICATION_LIST_ORDER,
+    ...listOptions,
     limit,
     offset,
   };
@@ -59,34 +54,47 @@ async function findAdminNotifications(adminId, page, limit) {
     include: [JOB_INCLUDE],
   };
 
+  const runQuery = (query) => CollaboratorNotification.findAndCountAll(query);
+
   try {
-    return await CollaboratorNotification.findAndCountAll(withJob);
+    return await runQuery(withJob);
   } catch (error) {
     if (isMissingCollaboratorNotificationAdminColumnError(error)) {
       throw error;
     }
     if (isMissingBusinessIdColumn(error)) {
-      return await CollaboratorNotification.findAndCountAll({
+      return runQuery({
         ...withJob,
-        attributes: LIST_ATTRS_WITHOUT_BUSINESS_ID,
+        attributes: mergeExclude(withJob.attributes, ['businessId']),
       });
+    }
+    if (isMissingCollaboratorNotificationTimestampError(error)) {
+      return runQuery(getCollaboratorNotificationLegacyListFallbackOptions(withJob));
     }
     logAdminNotificationError('getNotifications', error, {
       adminId,
       retry: 'without job include',
     });
     try {
-      return await CollaboratorNotification.findAndCountAll(baseQuery);
+      return await runQuery(baseQuery);
     } catch (retryError) {
       if (isMissingBusinessIdColumn(retryError)) {
-        return await CollaboratorNotification.findAndCountAll({
+        return runQuery({
           ...baseQuery,
-          attributes: LIST_ATTRS_WITHOUT_BUSINESS_ID,
+          attributes: mergeExclude(baseQuery.attributes, ['businessId']),
         });
+      }
+      if (isMissingCollaboratorNotificationTimestampError(retryError)) {
+        return runQuery(getCollaboratorNotificationLegacyListFallbackOptions(baseQuery));
       }
       throw retryError;
     }
   }
+}
+
+function mergeExclude(attributes, extra = []) {
+  const exclude = [...new Set([...(attributes?.exclude || []), ...extra])];
+  return { ...(attributes || {}), exclude };
 }
 
 export const adminNotificationController = {

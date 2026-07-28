@@ -83,6 +83,7 @@ export default function ScoutCandidateProfilePanel({
   highlightQuery = '',
   onClose = null,
   treatAsUnlocked = false,
+  hideContact = false,
   accessLabel = 'Hồ sơ đã mở — thông tin đầy đủ',
   accessLabelColor = '#047857',
   footerNote = null,
@@ -90,6 +91,7 @@ export default function ScoutCandidateProfilePanel({
   className = '',
 }) {
   const isUnlocked = treatAsUnlocked || Boolean(candidate?.isUnlocked)
+  const shouldHideContact = hideContact || candidate?.hideContact || candidate?.isPerformancePartial
 
   const hl = useMemo(
     () => (text) => highlightSearchText(text, highlightQuery),
@@ -123,7 +125,10 @@ export default function ScoutCandidateProfilePanel({
     ['Địa chỉ hiện tại', candidate.addressCurrent],
     ['Địa chỉ gốc', candidate.addressOrigin],
     ['Mã bưu điện', candidate.postalCode],
-  ].filter(([, v]) => v && v !== '—')
+  ].filter(([label, v]) => {
+    if (shouldHideContact && (label === 'Email' || label === 'SĐT')) return false
+    return v && v !== '—'
+  })
 
   const visaRows = [
     ['Tư cách lưu trú', getScoutResidenceStatusLabel(candidate.jpResidenceStatus)],

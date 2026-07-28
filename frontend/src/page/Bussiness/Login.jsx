@@ -1,304 +1,479 @@
-import React, { useState, useEffect } from 'react'
-import { Helmet } from 'react-helmet-async'
-import { Link, useNavigate } from 'react-router-dom'
-import { ChevronLeft, Mail, Lock, Eye, EyeOff, Building2, ArrowRight } from 'lucide-react'
-import apiService from '../../services/api'
-
-const inputClass =
-  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-800 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100'
-const labelClass = 'mb-1 block text-[10px] font-semibold text-slate-600'
-
-const FEATURES = [
-  'Quản lý JD và tiến cử ứng viên tập trung',
-  'Scout Credit, Scout Performance & dịch vụ WS',
-  'Theo dõi billing, request và tin nhắn realtime',
-]
+import React, { useState, useEffect, useRef } from 'react';
+import { Helmet } from 'react-helmet-async';
+import { useNavigate, Link } from 'react-router-dom';
+import {
+  Mail, Lock, AlertCircle, Loader2, Eye, EyeOff, Globe, MessageCircle, ArrowLeft, CheckCircle,
+} from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
+import { translations } from '../../translations/translations';
+import logoImage from '../../assets/Login_files/logo-removebg-preview-C0FMBBYQ.png';
+import apiService from '../../services/api';
 
 const Login = () => {
-  const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [remember, setRemember] = useState(false)
-  const [showPw, setShowPw] = useState(false)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [forgotMode, setForgotMode] = useState(false)
-  const [forgotEmail, setForgotEmail] = useState('')
-  const [forgotSent, setForgotSent] = useState(false)
+  const navigate = useNavigate();
+  const { language, changeLanguage } = useLanguage();
+  const t = translations[language] || translations.vi;
+
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [remember, setRemember] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  const languageMenuRef = useRef(null);
+  const [isLanguageButtonHovered, setIsLanguageButtonHovered] = useState(false);
+  const [hoveredLanguageItem, setHoveredLanguageItem] = useState(null);
+  const [isSubmitButtonHovered, setIsSubmitButtonHovered] = useState(false);
+  const [isChatButtonHovered, setIsChatButtonHovered] = useState(false);
+  const [isEyeButtonHovered, setIsEyeButtonHovered] = useState(false);
+
+  const [view, setView] = useState('login');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+
+  const languages = [
+    { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' },
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'ja', name: '日本語', flag: '🇯🇵' },
+  ];
+
+  const backHomeText = language === 'en'
+    ? 'Back to home'
+    : language === 'ja'
+      ? 'ホームに戻る'
+      : 'Quay lại trang chủ';
+
+  const loginTitle = language === 'en'
+    ? 'Business login'
+    : language === 'ja'
+      ? '企業ログイン'
+      : 'Đăng nhập doanh nghiệp';
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    const userType = localStorage.getItem('userType')
-    const remembered = localStorage.getItem('businessRememberEmail')
+    const token = localStorage.getItem('token');
+    const userType = localStorage.getItem('userType');
+    const remembered = localStorage.getItem('businessRememberEmail');
     if (remembered) {
-      setEmail(remembered)
-      setRemember(true)
+      setFormData((prev) => ({ ...prev, email: remembered }));
+      setRemember(true);
     }
     if (token && userType === 'business') {
-      navigate('/business', { replace: true })
+      navigate('/business', { replace: true });
     }
-  }, [navigate])
+  }, [navigate]);
 
-  const onLogin = async (e) => {
-    e.preventDefault()
-    setError('')
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (languageMenuRef.current && !languageMenuRef.current.contains(event.target)) {
+        setShowLanguageMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-    if (!email.trim() || !password) {
-      setError('Vui lòng nhập email và mật khẩu')
-      return
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError('Email không hợp lệ')
-      return
-    }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (error) setError('');
+  };
 
-    setLoading(true)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
     try {
+      if (!formData.email || !formData.password) {
+        setError(t.pleaseEnterEmailPassword);
+        setLoading(false);
+        return;
+      }
+
       const response = await apiService.loginBusiness({
-        email: email.trim(),
-        password,
-      })
+        email: formData.email.trim(),
+        password: formData.password,
+      });
 
       if (response.success && response.data?.token) {
         if (remember) {
-          localStorage.setItem('businessRememberEmail', email.trim())
+          localStorage.setItem('businessRememberEmail', formData.email.trim());
         } else {
-          localStorage.removeItem('businessRememberEmail')
+          localStorage.removeItem('businessRememberEmail');
         }
-        localStorage.setItem('userType', 'business')
-        localStorage.setItem('token', response.data.token)
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('userType', 'business');
         if (response.data.business) {
-          localStorage.setItem('user', JSON.stringify(response.data.business))
+          localStorage.setItem('user', JSON.stringify(response.data.business));
         }
-        navigate('/business', { replace: true })
+        navigate('/business', { replace: true });
       } else {
-        setError(response.message || 'Đăng nhập thất bại')
+        setError(response.message || t.loginFailed);
       }
     } catch (err) {
-      setError(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.')
+      setError(err.message || t.loginFailedCheck);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const onForgot = async (e) => {
-    e.preventDefault()
-    setError('')
-    if (!forgotEmail.trim()) {
-      setError('Vui lòng nhập email')
-      return
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!forgotEmail) {
+      setError(t.pleaseEnterEmailPassword);
+      return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail.trim())) {
-      setError('Email không hợp lệ')
-      return
-    }
-    setLoading(true)
+    setLoading(true);
     try {
-      await apiService.forgotPasswordBusiness(forgotEmail.trim())
-      setForgotSent(true)
+      const response = await apiService.forgotPasswordBusiness(forgotEmail.trim());
+      if (response.success) {
+        setForgotSuccess(true);
+      } else {
+        setError(response.message || t.loginFailed);
+      }
     } catch (err) {
-      setError(err.message || 'Không thể gửi email. Vui lòng thử lại.')
+      setError(err.message || t.loginFailed);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-100 via-violet-50 to-blue-50 px-3 py-6 sm:px-4 sm:py-8">
+    <div className="min-h-screen bg-white flex items-center justify-center relative py-8" style={{ fontFamily: '"Myriad Pro", sans-serif' }}>
       <Helmet>
         <title>Đăng nhập doanh nghiệp | JobShare Business</title>
         <meta name="description" content="Đăng nhập JobShare Business để quản lý tuyển dụng, JD, ứng viên và dịch vụ tuyển dụng." />
       </Helmet>
 
-      <div className="mx-auto w-full max-w-4xl">
-        <div className="mb-4 flex items-center justify-between">
-          <Link to="/business" className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-700 hover:text-violet-800">
-            <ChevronLeft className="h-3.5 w-3.5" />
-            Quay lại
-          </Link>
-          <img src="/logo.png" alt="JobShare" className="h-8 w-auto" />
-        </div>
-
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5 md:grid md:min-h-[480px] md:grid-cols-[1fr_1.1fr]">
-          <div className="hidden flex-col justify-between border-b border-slate-100 bg-gradient-to-br from-violet-600 to-indigo-700 p-6 text-white md:flex md:border-b-0 md:border-r md:border-slate-100">
-            <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-[10px] font-semibold">
-                <Building2 className="h-3.5 w-3.5" />
-                JobShare Business
-              </div>
-              <h1 className="text-lg font-bold leading-snug">Nền tảng tuyển dụng dành cho doanh nghiệp</h1>
-              <p className="mt-2 text-[11px] leading-relaxed text-violet-100">
-                Quản lý toàn bộ quy trình tuyển dụng — từ JD, scout ứng viên đến billing và phối hợp với WS.
-              </p>
-            </div>
-            <ul className="space-y-2.5">
-              {FEATURES.map((item) => (
-                <li key={item} className="flex items-start gap-2 text-[10px] leading-relaxed text-violet-50">
-                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-white/80" />
-                  {item}
-                </li>
+      <div className="fixed top-6 left-6 z-50">
+        <div className="relative" ref={languageMenuRef}>
+          <button
+            type="button"
+            onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+            onMouseEnter={() => setIsLanguageButtonHovered(true)}
+            onMouseLeave={() => setIsLanguageButtonHovered(false)}
+            className="border-2 rounded-lg px-4 py-2 flex items-center gap-2 shadow-md transition-colors"
+            style={{
+              fontFamily: '"Myriad Pro", sans-serif',
+              backgroundColor: isLanguageButtonHovered ? '#dc2626' : 'white',
+              borderColor: '#dc2626',
+            }}
+          >
+            <Globe className="text-xl transition-colors" style={{ color: isLanguageButtonHovered ? 'white' : '#1f2937' }} />
+            <span className="text-sm font-medium transition-colors" style={{ color: isLanguageButtonHovered ? 'white' : '#1f2937' }}>
+              {languages.find((lang) => lang.code === language)?.flag}{' '}
+              {languages.find((lang) => lang.code === language)?.name}
+            </span>
+          </button>
+          {showLanguageMenu && (
+            <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+              {languages.map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => {
+                    changeLanguage(lang.code);
+                    setShowLanguageMenu(false);
+                  }}
+                  onMouseEnter={() => setHoveredLanguageItem(lang.code)}
+                  onMouseLeave={() => setHoveredLanguageItem(null)}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-left transition-colors"
+                  style={{
+                    backgroundColor: hoveredLanguageItem === lang.code ? '#f9fafb' : (language === lang.code ? '#fef2f2' : 'transparent'),
+                    color: language === lang.code ? '#dc2626' : '#374151',
+                  }}
+                >
+                  <span>{lang.flag}</span>
+                  <span className="text-sm font-medium">{lang.name}</span>
+                  {language === lang.code && (
+                    <span className="ml-auto" style={{ color: '#dc2626' }}>✓</span>
+                  )}
+                </button>
               ))}
-            </ul>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="w-full max-w-5xl mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden border-2 border-black">
+        <div className="flex flex-col lg:flex-row">
+          <div className="bg-white p-8 lg:p-12 flex flex-col justify-center items-center lg:items-start lg:w-2/5 relative" style={{ fontFamily: '"Myriad Pro", sans-serif' }}>
+            <Link
+              to="/"
+              className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-red-600 transition-colors mb-6 w-full justify-center lg:justify-start no-underline"
+              style={{ fontFamily: '"Myriad Pro", sans-serif' }}
+            >
+              <ArrowLeft className="w-4 h-4 flex-shrink-0" />
+              {backHomeText}
+            </Link>
+            <div className="mb-8 lg:mb-12 w-full">
+              <div className="flex justify-center lg:justify-start mb-8">
+                <img alt="JobShare Logo" className="h-20 lg:h-24 w-auto object-contain" src={logoImage} />
+              </div>
+            </div>
+            <div className="space-y-3 w-full mt-auto">
+              {view === 'login' ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => { setView('forgotPassword'); setError(''); setForgotSuccess(false); setForgotEmail(''); }}
+                    className="block text-black hover:text-red-700 text-sm transition-colors text-center lg:text-left underline bg-transparent border-none cursor-pointer p-0 w-full lg:w-auto"
+                    style={{ fontFamily: '"Myriad Pro", sans-serif' }}
+                  >
+                    {t.forgotPassword}
+                  </button>
+                  <Link
+                    to="/business/register"
+                    className="block text-black hover:text-red-700 text-sm transition-colors text-center lg:text-left underline"
+                    style={{ fontFamily: '"Myriad Pro", sans-serif' }}
+                  >
+                    {language === 'en' ? 'Business registration' : language === 'ja' ? '企業登録' : 'Đăng ký doanh nghiệp'}
+                  </Link>
+                  <Link
+                    to="/login"
+                    className="block text-black hover:text-red-700 text-sm transition-colors text-center lg:text-left underline"
+                    style={{ fontFamily: '"Myriad Pro", sans-serif' }}
+                  >
+                    {t.loginAsAgent}
+                  </Link>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setView('login'); setError(''); setForgotSuccess(false); }}
+                  className="block text-black hover:text-red-700 text-sm transition-colors text-center lg:text-left underline bg-transparent border-none cursor-pointer p-0 w-full lg:w-auto"
+                  style={{ fontFamily: '"Myriad Pro", sans-serif' }}
+                >
+                  {t.backToLogin}
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="px-5 py-6 sm:px-6 sm:py-8">
-            {!forgotMode ? (
-              <>
-                <div className="mb-6">
-                  <h2 className="text-sm font-bold text-slate-900 sm:text-base">Đăng nhập</h2>
-                  <p className="mt-1 text-[10px] text-slate-500">Truy cập portal doanh nghiệp JobShare</p>
+          <div className="bg-white p-8 lg:p-12 flex-1 lg:w-3/5" style={{ fontFamily: '"Myriad Pro", sans-serif' }}>
+            {view === 'login' ? (
+              <form onSubmit={handleSubmit} className="max-w-md mx-auto lg:mx-0">
+                <div className="mb-8">
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-2" style={{ fontFamily: '"Myriad Pro", sans-serif' }}>
+                    {loginTitle}
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    {language === 'en'
+                      ? 'Access the JobShare Business portal'
+                      : language === 'ja'
+                        ? 'JobShare Businessポータルにアクセス'
+                        : 'Truy cập portal doanh nghiệp JobShare'}
+                  </p>
                 </div>
 
-                <form onSubmit={onLogin} className="space-y-4">
-                  {error && (
-                    <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[10px] text-red-700" role="alert">
-                      {error}
-                    </div>
-                  )}
-
-                  <div>
-                    <label className={labelClass} htmlFor="email">Email đăng nhập</label>
+                <div className="space-y-5">
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-900 mb-2" style={{ fontFamily: '"Myriad Pro", sans-serif' }}>
+                      Email
+                    </label>
                     <div className="relative">
-                      <Mail className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                        <Mail className="w-5 h-5" />
+                      </div>
                       <input
-                        id="email"
                         type="email"
-                        className={`${inputClass} pl-9`}
-                        value={email}
-                        onChange={(e) => { setEmail(e.target.value); setError('') }}
-                        placeholder="admin@company.com"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        placeholder="Email"
+                        className="w-full pl-12 pr-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition-all text-gray-900 placeholder-gray-400"
+                        style={{ fontFamily: '"Myriad Pro", sans-serif' }}
+                        required
                         autoComplete="email"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label className={labelClass} htmlFor="password">Mật khẩu</label>
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-900 mb-2" style={{ fontFamily: '"Myriad Pro", sans-serif' }}>
+                      {t.password}
+                    </label>
                     <div className="relative">
-                      <Lock className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                        <Lock className="w-5 h-5" />
+                      </div>
                       <input
-                        id="password"
-                        type={showPw ? 'text' : 'password'}
-                        className={`${inputClass} pl-9 pr-10`}
-                        value={password}
-                        onChange={(e) => { setPassword(e.target.value); setError('') }}
-                        placeholder="••••••••"
+                        type={showPassword ? 'text' : 'password'}
+                        name="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder={t.passwordPlaceholder}
+                        className="w-full pl-12 pr-12 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition-all text-gray-900 placeholder-gray-400"
+                        style={{ fontFamily: '"Myriad Pro", sans-serif' }}
+                        required
                         autoComplete="current-password"
                       />
                       <button
                         type="button"
-                        onClick={() => setShowPw((v) => !v)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-600"
-                        aria-label={showPw ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                        onClick={() => setShowPassword(!showPassword)}
+                        onMouseEnter={() => setIsEyeButtonHovered(true)}
+                        onMouseLeave={() => setIsEyeButtonHovered(false)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 transition-colors"
+                        style={{ color: isEyeButtonHovered ? '#b91c1c' : '#6b7280' }}
                       >
-                        {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between gap-2">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={remember}
-                        onChange={(e) => setRemember(e.target.checked)}
-                        className="h-3.5 w-3.5 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
-                      />
-                      <span className="text-[10px] text-slate-600">Ghi nhớ email</span>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => { setForgotMode(true); setError(''); setForgotSent(false) }}
-                      className="text-[10px] font-semibold text-violet-700 hover:text-violet-800"
-                    >
-                      Quên mật khẩu?
-                    </button>
-                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={remember}
+                      onChange={(e) => setRemember(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                    />
+                    <span className="text-sm text-gray-600">
+                      {language === 'en' ? 'Remember email' : language === 'ja' ? 'メールを記憶' : 'Ghi nhớ email'}
+                    </span>
+                  </label>
+
+                  {error && (
+                    <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                      <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  )}
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 py-2.5 text-xs font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
+                    onMouseEnter={() => setIsSubmitButtonHovered(true)}
+                    onMouseLeave={() => setIsSubmitButtonHovered(false)}
+                    className={`w-full py-3.5 rounded-lg transition-colors font-semibold shadow-md transition-all duration-200 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    style={{
+                      fontFamily: '"Myriad Pro", sans-serif',
+                      backgroundColor: isSubmitButtonHovered ? '#b91c1c' : '#dc2626',
+                      color: 'white',
+                      boxShadow: isSubmitButtonHovered
+                        ? '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+                        : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                      transform: isSubmitButtonHovered ? 'translateY(-2px)' : 'translateY(0)',
+                    }}
                   >
-                    {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
-                    {!loading && <ArrowRight className="h-3.5 w-3.5" />}
+                    {loading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>{t.loggingIn}</span>
+                      </span>
+                    ) : (
+                      t.login
+                    )}
                   </button>
-                </form>
-
-                <p className="mt-5 text-center text-[10px] text-slate-500">
-                  Chưa có tài khoản?{' '}
-                  <Link to="/business/register" className="font-semibold text-violet-700 hover:text-violet-800">
-                    Đăng ký doanh nghiệp
-                  </Link>
-                </p>
-              </>
+                </div>
+              </form>
             ) : (
-              <>
-                <div className="mb-6">
-                  <h2 className="text-sm font-bold text-slate-900 sm:text-base">Quên mật khẩu</h2>
-                  <p className="mt-1 text-[10px] text-slate-500">
-                    Nhập email đăng nhập, chúng tôi sẽ gửi link đặt lại mật khẩu.
-                  </p>
+              <div className="max-w-md mx-auto lg:mx-0">
+                <div className="mb-8">
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-2" style={{ fontFamily: '"Myriad Pro", sans-serif' }}>
+                    {t.forgotPasswordTitle}
+                  </h2>
+                  <p className="text-sm text-gray-500">{t.forgotPasswordDesc}</p>
                 </div>
 
-                {forgotSent ? (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
-                    <p className="text-xs font-semibold text-emerald-800">Email đã được gửi!</p>
-                    <p className="mt-1 text-[10px] leading-relaxed text-emerald-700">
-                      Kiểm tra hộp thư <strong>{forgotEmail}</strong> và làm theo hướng dẫn để đặt lại mật khẩu.
-                    </p>
+                {forgotSuccess ? (
+                  <div className="space-y-5">
+                    <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+                      <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                      <span>{t.forgotPasswordDesc}</span>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => { setForgotMode(false); setForgotSent(false) }}
-                      className="mt-4 text-[10px] font-semibold text-violet-700 hover:text-violet-800"
+                      onClick={() => { setView('login'); setError(''); setForgotSuccess(false); }}
+                      onMouseEnter={() => setIsSubmitButtonHovered(true)}
+                      onMouseLeave={() => setIsSubmitButtonHovered(false)}
+                      className="w-full py-3.5 rounded-lg font-semibold shadow-md transition-all duration-200"
+                      style={{
+                        fontFamily: '"Myriad Pro", sans-serif',
+                        backgroundColor: isSubmitButtonHovered ? '#b91c1c' : '#dc2626',
+                        color: 'white',
+                      }}
                     >
-                      Quay lại đăng nhập
+                      {t.backToLogin}
                     </button>
                   </div>
                 ) : (
-                  <form onSubmit={onForgot} className="space-y-4">
-                    {error && (
-                      <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[10px] text-red-700" role="alert">
-                        {error}
-                      </div>
-                    )}
-                    <div>
-                      <label className={labelClass} htmlFor="forgotEmail">Email đăng nhập</label>
+                  <form onSubmit={handleForgotPassword} className="space-y-5">
+                    <div className="relative">
+                      <label className="block text-sm font-medium text-gray-900 mb-2" style={{ fontFamily: '"Myriad Pro", sans-serif' }}>
+                        Email
+                      </label>
                       <div className="relative">
-                        <Mail className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                          <Mail className="w-5 h-5" />
+                        </div>
                         <input
-                          id="forgotEmail"
                           type="email"
-                          className={`${inputClass} pl-9`}
                           value={forgotEmail}
-                          onChange={(e) => { setForgotEmail(e.target.value); setError('') }}
-                          placeholder="admin@company.com"
+                          onChange={(e) => { setForgotEmail(e.target.value); if (error) setError(''); }}
+                          placeholder="Email"
+                          className="w-full pl-12 pr-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition-all text-gray-900 placeholder-gray-400"
+                          style={{ fontFamily: '"Myriad Pro", sans-serif' }}
+                          required
                         />
                       </div>
                     </div>
+
+                    {error && (
+                      <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                        <span>{error}</span>
+                      </div>
+                    )}
+
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full rounded-lg bg-violet-600 py-2.5 text-xs font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
+                      onMouseEnter={() => setIsSubmitButtonHovered(true)}
+                      onMouseLeave={() => setIsSubmitButtonHovered(false)}
+                      className={`w-full py-3.5 rounded-lg font-semibold shadow-md transition-all duration-200 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      style={{
+                        fontFamily: '"Myriad Pro", sans-serif',
+                        backgroundColor: isSubmitButtonHovered ? '#b91c1c' : '#dc2626',
+                        color: 'white',
+                      }}
                     >
-                      {loading ? 'Đang gửi...' : 'Gửi link đặt lại mật khẩu'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setForgotMode(false); setError('') }}
-                      className="w-full text-[10px] font-semibold text-slate-500 hover:text-slate-700"
-                    >
-                      Quay lại đăng nhập
+                      {loading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>{t.sending}</span>
+                        </span>
+                      ) : (
+                        t.sendResetLink
+                      )}
                     </button>
                   </form>
                 )}
-              </>
+              </div>
             )}
           </div>
         </div>
       </div>
-    </div>
-  )
-}
 
-export default Login
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+        <div className="relative">
+          <button
+            type="button"
+            onMouseEnter={() => setIsChatButtonHovered(true)}
+            onMouseLeave={() => setIsChatButtonHovered(false)}
+            className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-colors"
+            style={{ backgroundColor: isChatButtonHovered ? '#b91c1c' : '#dc2626' }}
+          >
+            <MessageCircle className="text-xl" style={{ color: 'white' }} />
+          </button>
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+            1
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Login;

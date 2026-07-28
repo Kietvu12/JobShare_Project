@@ -14,6 +14,8 @@ const TABLE = 'collaborator_notifications';
 const COLUMNS = [
   { name: 'admin_id', spec: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true } },
   { name: 'business_id', spec: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true } },
+  { name: 'created_at', spec: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW } },
+  { name: 'updated_at', spec: { type: DataTypes.DATE, allowNull: true, defaultValue: DataTypes.NOW } },
 ];
 
 async function main() {

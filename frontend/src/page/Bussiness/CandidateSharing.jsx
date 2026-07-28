@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { ChevronRight, Plus, Loader2, X } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import {
+  ChevronRight, Plus, Loader2, X, Network, Handshake, Shield, BarChart3,
+  FileText, Settings, Users, History, BookOpen, AlertTriangle, ArrowRight,
+} from 'lucide-react'
 import apiService from '../../services/api'
 import NominationChat from '../../component/Chat/NominationChat'
 import JobCommissionEditor, { validateCommissionForMarketplace } from '../../component/Bussiness/JobCommissionEditor'
@@ -12,7 +15,255 @@ const scrollbarStyle = `
   .ctv-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
   .ctv-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   .ctv-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+  .ctv-onboard-scroll::-webkit-scrollbar { display: none; }
+  .ctv-onboard-scroll { -ms-overflow-style: none; scrollbar-width: none; }
 `
+
+const valueCards = [
+  {
+    icon: Network,
+    color: 'text-violet-600',
+    bg: 'bg-violet-50',
+    title: 'Mở rộng mạng lưới',
+    desc: 'Kết nối hàng nghìn CTV HR Partner trên toàn quốc, mở rộng nguồn ứng viên nhanh chóng.',
+    image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=200&fit=crop',
+  },
+  {
+    icon: Handshake,
+    color: 'text-violet-600',
+    bg: 'bg-violet-50',
+    title: 'Tuyển dụng hiệu quả',
+    desc: 'CTV chuyên nghiệp tìm kiếm và tiến cử ứng viên phù hợp, giảm tải cho đội HR.',
+    image: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?w=400&h=200&fit=crop',
+  },
+  {
+    icon: Shield,
+    color: 'text-violet-600',
+    bg: 'bg-violet-50',
+    title: 'Đảm bảo thông tin',
+    desc: 'JobShare là trung gian đảm bảo bảo mật thông tin doanh nghiệp và ứng viên.',
+    image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400&h=200&fit=crop',
+  },
+  {
+    icon: BarChart3,
+    color: 'text-violet-600',
+    bg: 'bg-violet-50',
+    title: 'Minh bạch & Tối ưu',
+    desc: 'Theo dõi tiến độ, phí thưởng và hiệu quả tuyển dụng minh bạch trên một nền tảng.',
+    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=200&fit=crop',
+  },
+]
+
+const processSteps = [
+  { num: '01', title: 'Chọn JD của bạn', desc: 'Chọn job description sẵn có hoặc tạo JD mới trên JobShare.' },
+  { num: '02', title: 'Thiết lập phí', desc: 'Cài đặt phí thưởng CTV bạn sẵn sàng trả cho mỗi lần tuyển thành công.' },
+  { num: '03', title: 'Đăng lên Sàn HR', desc: 'Gửi duyệt WS — hệ thống tự động kết nối với CTV phù hợp.' },
+  { num: '04', title: 'CTV tiếp cận & ứng tuyển', desc: 'CTV tìm ứng viên, tiến cử và JobShare hỗ trợ quản lý tiến trình.' },
+]
+
+const highlightFeatures = [
+  { icon: FileText, title: 'Đăng JD dễ dàng', desc: 'Chọn JD có sẵn, thiết lập phí và đăng lên sàn chỉ vài bước.' },
+  { icon: Settings, title: 'Thiết lập phí linh hoạt', desc: 'Phí cố định hoặc theo % lương — tùy chỉnh theo từng vị trí.' },
+  { icon: Users, title: 'Kết nối CTV chất lượng', desc: 'Mạng lưới CTV HR Partner được WS kiểm duyệt và đánh giá.' },
+  { icon: Shield, title: 'Bảo vệ & minh bạch', desc: 'Thanh toán qua JobShare, hợp đồng và lịch sử giao dịch rõ ràng.' },
+]
+
+const onboardQuickActions = [
+  { icon: Plus, title: 'Đăng tin tuyển dụng', desc: 'Đưa JD lên Sàn HR', action: 'create' },
+  { icon: FileText, title: 'Quản lý tin tuyển dụng', desc: 'Theo dõi job trên sàn', action: 'create' },
+  { icon: Users, title: 'Kết nối CTV', desc: 'Xem CTV quan tâm job', action: 'create' },
+  { icon: History, title: 'Lịch sử giao dịch', desc: 'Thanh toán & chia phí', path: '/business/candidate-sharing?tab=costs' },
+  { icon: BookOpen, title: 'Hướng dẫn sử dụng', desc: 'Tài liệu hướng dẫn Sàn HR', path: '/business/knowledge' },
+]
+
+const onboardNotifications = [
+  { dot: 'bg-emerald-500', text: 'Chào mừng bạn đến với Sàn HR JobShare!', time: 'Vừa xong' },
+  { dot: 'bg-violet-500', text: 'Đăng job đầu tiên để kết nối với CTV HR Partner', time: '1 phút trước' },
+  { dot: 'bg-blue-500', text: 'Thiết lập phí thưởng CTV trước khi đăng tin', time: '2 phút trước' },
+  { dot: 'bg-rose-500', text: 'WS sẽ duyệt tin trước khi hiển thị trên sàn', time: '3 phút trước', warn: true },
+]
+
+const onboardNews = [
+  { title: 'Mở rộng kết nối tuyển dụng với CTV trên JobShare', date: '20/05/2024', img: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=200&h=150&fit=crop' },
+  { title: 'Hướng dẫn thiết lập phí thưởng CTV hiệu quả', date: '18/05/2024', img: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=200&h=150&fit=crop' },
+  { title: 'Quy trình duyệt tin và tiến cử ứng viên trên Sàn HR', date: '15/05/2024', img: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=200&h=150&fit=crop' },
+]
+
+function OnboardingSidebar({ onCreate, onNavigate }) {
+  const handleAction = (item) => {
+    if (item.action === 'create') onCreate()
+    else if (item.path) onNavigate(item.path)
+  }
+
+  return (
+    <div className="flex flex-col gap-2 lg:gap-3 min-w-0 overflow-y-auto ctv-onboard-scroll pr-1">
+      <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
+        <h2 className="text-xs font-bold text-slate-800 mb-1.5">Thao tác nhanh</h2>
+        <div className="flex flex-col gap-0.5">
+          {onboardQuickActions.map((a) => {
+            const Icon = a.icon
+            return (
+              <button
+                key={a.title}
+                type="button"
+                onClick={() => handleAction(a)}
+                className="flex items-center gap-2 p-1 rounded-lg hover:bg-slate-50 transition-colors text-left w-full"
+              >
+                <div className="w-6 h-6 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-3 h-3 text-violet-600" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[9px] font-semibold text-slate-800">{a.title}</div>
+                  <div className="text-[8px] text-slate-400 truncate">{a.desc}</div>
+                </div>
+                <ChevronRight className="ml-auto w-3 h-3 text-slate-300 flex-shrink-0" />
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            Thông báo
+            <span className="bg-rose-500 text-white text-[8px] font-bold rounded-full px-1.5 py-0.5">4</span>
+          </h2>
+          <button type="button" className="text-[9px] font-semibold text-violet-600">Xem tất cả</button>
+        </div>
+        <div className="flex flex-col gap-2">
+          {onboardNotifications.map((n) => (
+            <div key={n.text} className="flex items-start gap-1.5">
+              {n.warn
+                ? <AlertTriangle className="w-3 h-3 text-rose-500 mt-0.5 flex-shrink-0" />
+                : <span className={`w-1.5 h-1.5 rounded-full ${n.dot} mt-1 flex-shrink-0`} />}
+              <div className="min-w-0">
+                <p className="text-[9px] text-slate-700 leading-snug">{n.text}</p>
+                <p className="text-[8px] text-slate-400 mt-0.5">{n.time}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xs font-bold text-slate-800">Tin tức &amp; Insights</h2>
+          <button type="button" className="text-[9px] font-semibold text-violet-600">Xem tất cả</button>
+        </div>
+        <div className="flex flex-col gap-2">
+          {onboardNews.map((n) => (
+            <div key={n.title} className="flex gap-2">
+              <img src={n.img} alt={n.title} className="w-12 h-9 rounded-lg object-cover flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[9px] font-medium text-slate-700 leading-snug line-clamp-2">{n.title}</p>
+                <p className="text-[8px] text-slate-400 mt-0.5">{n.date}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function OnboardingView({ onCreate }) {
+  return (
+    <>
+      <div>
+        <h1 className="text-sm lg:text-base font-bold text-slate-800">
+          Sàn HR – Kết nối tuyển dụng, Tiên phong hiệu quả
+        </h1>
+        <p className="text-[10px] lg:text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
+          JobShare Sàn HR kết nối doanh nghiệp với hàng nghìn CTV HR Partner chuyên nghiệp trên toàn quốc.
+          Nền tảng trung gian đảm bảo bảo mật thông tin và minh bạch trong suốt quá trình tuyển dụng.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        {valueCards.map((card) => {
+          const Icon = card.icon
+          return (
+            <div key={card.title} className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm flex flex-col">
+              <div className="aspect-[2/1] overflow-hidden">
+                <img src={card.image} alt={card.title} className="w-full h-full object-cover" />
+              </div>
+              <div className="p-2.5 flex flex-col gap-1 flex-1">
+                <div className={`w-7 h-7 rounded-lg ${card.bg} flex items-center justify-center`}>
+                  <Icon className={`w-3.5 h-3.5 ${card.color}`} />
+                </div>
+                <h3 className="text-[11px] font-bold text-slate-800">{card.title}</h3>
+                <p className="text-[9px] text-slate-500 leading-relaxed">{card.desc}</p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-100 p-3 lg:p-4">
+        <h2 className="text-xs font-bold text-slate-800 mb-3">Quy trình đăng tuyển trên Sàn HR</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          {processSteps.map((step, idx) => (
+            <div key={step.num} className="relative flex flex-col gap-1.5">
+              {idx < processSteps.length - 1 && (
+                <div className="hidden xl:block absolute top-4 left-[calc(100%-8px)] w-full h-px bg-violet-100 z-0" />
+              )}
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-violet-600 text-white text-[10px] font-bold relative z-10">
+                {step.num}
+              </span>
+              <h3 className="text-[10px] font-bold text-slate-800">{step.title}</h3>
+              <p className="text-[9px] text-slate-500 leading-relaxed">{step.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-xs font-bold text-slate-800 mb-2">Tính năng nổi bật</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {highlightFeatures.map((f) => {
+            const Icon = f.icon
+            return (
+              <div key={f.title} className="bg-white rounded-xl border border-slate-100 p-2.5 flex gap-2">
+                <div className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-3.5 h-3.5 text-violet-600" />
+                </div>
+                <div>
+                  <h3 className="text-[10px] font-bold text-slate-800">{f.title}</h3>
+                  <p className="text-[9px] text-slate-500 mt-0.5 leading-relaxed">{f.desc}</p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-gradient-to-r from-violet-600 to-violet-700 p-4 lg:p-5 flex flex-col sm:flex-row sm:items-center gap-4 overflow-hidden relative">
+        <div className="flex-1 min-w-0 relative z-10">
+          <h2 className="text-sm lg:text-base font-bold text-white">Sẵn sàng mở rộng đội ngũ của bạn?</h2>
+          <p className="text-[10px] text-violet-100 mt-1 max-w-md">
+            Đăng job đầu tiên lên Sàn HR và kết nối ngay với mạng lưới CTV HR Partner trên JobShare.
+          </p>
+          <button
+            type="button"
+            onClick={onCreate}
+            className="mt-3 inline-flex items-center gap-2 bg-white text-violet-700 hover:bg-violet-50 text-[11px] font-bold rounded-xl px-5 py-2.5 transition-colors"
+          >
+            Đăng tin ngay
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="hidden sm:block flex-shrink-0 w-36 h-28 rounded-xl overflow-hidden opacity-90 relative z-10">
+          <img
+            src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=200&fit=crop"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </div>
+    </>
+  )
+}
 
 function formatDateShort(value) {
   if (!value) return '—'
@@ -234,6 +485,7 @@ const Avatar = ({ id, size = 24, bg = '#e0e7ff', color = '#4f46e5' }) => (
 const VALID_TABS = ['jobs', 'nominations', 'candidates', 'costs']
 
 const CandidateSharing = () => {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const urlTab = searchParams.get('tab')
   const urlNominationId = searchParams.get('nominationId')
@@ -363,6 +615,51 @@ const CandidateSharing = () => {
     { key: 'costs', label: 'Thanh toán & chia phí' },
   ]
 
+  const hasListings = listings.length > 0 || (stats?.totalListings ?? 0) > 0
+
+  const openCreateModal = () => setShowCreate(true)
+
+  if (loading) {
+    return (
+      <>
+        <style>{scrollbarStyle}</style>
+        <CreateListingModal
+          open={showCreate}
+          onClose={closeCreateModal}
+          onCreated={loadData}
+          initialJobId={createJobId}
+        />
+        <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9' }}>
+          <div className="flex items-center gap-2 text-slate-500 text-sm">
+            <Loader2 className="w-5 h-5 animate-spin" /> Đang tải sàn CTV...
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  if (!hasListings) {
+    return (
+      <>
+        <style>{scrollbarStyle}</style>
+        <CreateListingModal
+          open={showCreate}
+          onClose={closeCreateModal}
+          onCreated={loadData}
+          initialJobId={createJobId}
+        />
+        <div className="h-screen bg-slate-50 p-2 lg:p-3 overflow-hidden">
+          <div className="max-w-[1440px] mx-auto h-full grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-2 lg:gap-3">
+            <div className="flex flex-col gap-2 lg:gap-3 min-w-0 overflow-y-auto ctv-onboard-scroll pr-1">
+              <OnboardingView onCreate={openCreateModal} />
+            </div>
+            <OnboardingSidebar onCreate={openCreateModal} onNavigate={navigate} />
+          </div>
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       <style>{scrollbarStyle}</style>
@@ -373,12 +670,6 @@ const CandidateSharing = () => {
         initialJobId={createJobId}
       />
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f1f5f9', fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: 11 }}>
-
-        {loading ? (
-          <div className="flex items-center justify-center flex-1 gap-2 text-slate-500">
-            <Loader2 className="w-5 h-5 animate-spin" /> Đang tải sàn CTV...
-          </div>
-        ) : (
         <>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '8px 14px 0', background: '#fff' }}>
           <button type="button" onClick={() => setShowCreate(true)} style={{ fontSize: 9, fontWeight: 600, color: '#fff', background: '#3b82f6', border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -619,7 +910,6 @@ const CandidateSharing = () => {
           </div>
         </div>
         </>
-        )}
       </div>
     </>
   )

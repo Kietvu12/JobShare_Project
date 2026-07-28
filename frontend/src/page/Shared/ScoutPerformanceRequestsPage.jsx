@@ -1,16 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Search, Loader2, CheckCircle, XCircle, Building2, FileText, Clock,
+  Search, Loader2, CheckCircle, XCircle, Building2, FileText, Clock, Plus, Trash2, MessageSquare,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import apiService from '../../services/api';
 
 const STATUS_META = {
   pending: { label: 'Chờ duyệt', color: '#d97706', bg: '#fef3c7' },
-  approved: { label: 'Đã duyệt', color: '#059669', bg: '#d1fae5' },
+  approved: { label: 'Đã gửi gợi ý', color: '#059669', bg: '#d1fae5' },
   rejected: { label: 'Từ chối', color: '#dc2626', bg: '#fee2e2' },
   cancelled: { label: 'Đã hủy', color: '#64748b', bg: '#f1f5f9' },
 };
+
+const SOURCE_LABEL = { scout: 'Scout', ctv: 'CTV', system: 'Hệ thống' };
 
 function formatDate(value) {
   if (!value) return '—';
@@ -35,7 +38,17 @@ const ScoutPerformanceRequestsPage = ({ variant = 'admin' }) => {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, totalPages: 0 });
   const [actionId, setActionId] = useState(null);
-  const [noteModal, setNoteModal] = useState({ open: false, id: null, action: null, note: '' });
+  const [noteModal, setNoteModal] = useState({
+    open: false,
+    id: null,
+    action: null,
+    note: '',
+    triggerCvId: null,
+    selectedCvIds: [],
+  });
+  const [cvSearchInput, setCvSearchInput] = useState('');
+  const [cvSearchResults, setCvSearchResults] = useState([]);
+  const [cvSearchLoading, setCvSearchLoading] = useState(false);
 
   const loadList = useCallback(async () => {
     try {
@@ -74,25 +87,44 @@ const ScoutPerformanceRequestsPage = ({ variant = 'admin' }) => {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const pendingCount = useMemo(
-    () => requests.filter((r) => r.status === 'pending').length,
-    [requests],
-  );
+  const searchCandidates = useCallback(async (q) => {
+    if (!isAdmin) return;
+    setCvSearchLoading(true);
+    try {
+      const res = await apiService.searchAdminScoutPerformanceCandidates({ search: q || undefined, limit: 25 });
+      setCvSearchResults(res?.data?.candidates || []);
+    } catch (e) {
+      console.error(e);
+      setCvSearchResults([]);
+    } finally {
+      setCvSearchLoading(false);
+    }
+  }, [isAdmin]);
 
-  const runAction = async (id, action, note) => {
+  useEffect(() => {
+    if (!noteModal.open || noteModal.action !== 'approve' || !isAdmin) return;
+    const timer = setTimeout(() => searchCandidates(cvSearchInput.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [noteModal.open, noteModal.action, cvSearchInput, isAdmin, searchCandidates]);
+
+  const runAction = async (id, action, note, recommendationCvIds) => {
     setActionId(id);
     try {
+      const body = { note };
+      if (action === 'approve') body.recommendationCvIds = recommendationCvIds;
       const res = action === 'approve'
         ? (isAdmin
-          ? await apiService.approveAdminScoutPerformanceRequest(id, { note })
-          : await apiService.approveCtvScoutPerformanceRequest(id, { note }))
+          ? await apiService.approveAdminScoutPerformanceRequest(id, body)
+          : await apiService.approveCtvScoutPerformanceRequest(id, body))
         : (isAdmin
-          ? await apiService.rejectAdminScoutPerformanceRequest(id, { note })
-          : await apiService.rejectCtvScoutPerformanceRequest(id, { note }));
+          ? await apiService.rejectAdminScoutPerformanceRequest(id, body)
+          : await apiService.rejectCtvScoutPerformanceRequest(id, body));
 
       if (res?.success) {
         alert(res.message || 'Đã xử lý yêu cầu');
-        setNoteModal({ open: false, id: null, action: null, note: '' });
+        setNoteModal({ open: false, id: null, action: null, note: '', triggerCvId: null, selectedCvIds: [] });
+        setCvSearchInput('');
+        setCvSearchResults([]);
         loadList();
       } else {
         alert(res?.message || 'Xử lý thất bại');
@@ -105,16 +137,57 @@ const ScoutPerformanceRequestsPage = ({ variant = 'admin' }) => {
     }
   };
 
-  const openNoteModal = (id, action) => {
-    setNoteModal({ open: true, id, action, note: '' });
+  const openNoteModal = (req, action) => {
+    const triggerCvId = req.cvId || req.cv?.id || null;
+    setNoteModal({
+      open: true,
+      id: req.id,
+      action,
+      note: '',
+      triggerCvId,
+      selectedCvIds: triggerCvId ? [Number(triggerCvId)] : [],
+    });
+    setCvSearchInput('');
+    if (isAdmin && action === 'approve') searchCandidates('');
   };
+
+  const toggleSelectedCv = (cvId) => {
+    setNoteModal((m) => {
+      const id = Number(cvId);
+      const exists = m.selectedCvIds.includes(id);
+      return {
+        ...m,
+        selectedCvIds: exists
+          ? m.selectedCvIds.filter((x) => x !== id)
+          : [...m.selectedCvIds, id],
+      };
+    });
+  };
+
+  const selectedCvDetails = useMemo(() => {
+    const map = new Map(cvSearchResults.map((c) => [Number(c.id), c]));
+    if (noteModal.triggerCvId && !map.has(Number(noteModal.triggerCvId))) {
+      const req = requests.find((r) => r.id === noteModal.id);
+      if (req?.cv) {
+        map.set(Number(noteModal.triggerCvId), {
+          id: noteModal.triggerCvId,
+          code: req.cv.code,
+          name: req.cv.name,
+          desiredPosition: req.cv.desiredPosition,
+          source: 'scout',
+          onScout: true,
+        });
+      }
+    }
+    return noteModal.selectedCvIds.map((id) => map.get(Number(id))).filter(Boolean);
+  }, [noteModal.selectedCvIds, noteModal.triggerCvId, noteModal.id, cvSearchResults, requests]);
 
   return (
     <div className="p-3 md:p-4 max-w-6xl mx-auto">
       <div className="mb-4">
         <h1 className="text-lg font-bold text-slate-800">Yêu cầu Scout Performance</h1>
         <p className="text-xs text-slate-500 mt-1">
-          Doanh nghiệp gửi yêu cầu mở hồ sơ Scout qua Admin/CTV (không trừ credit). Duyệt để mở liên hệ ứng viên.
+          Doanh nghiệp gửi yêu cầu dịch vụ gợi ý ứng viên. WS tìm hồ sơ phù hợp (Scout / CTV / hệ thống) rồi gửi cho DN — không hiển thị email/SĐT.
         </p>
       </div>
 
@@ -136,7 +209,7 @@ const ScoutPerformanceRequestsPage = ({ variant = 'admin' }) => {
         >
           <option value="">Tất cả trạng thái</option>
           <option value="pending">Chờ duyệt</option>
-          <option value="approved">Đã duyệt</option>
+          <option value="approved">Đã gửi gợi ý</option>
           <option value="rejected">Từ chối</option>
         </select>
         {statusFilter === 'pending' && pagination.total > 0 && (
@@ -173,25 +246,23 @@ const ScoutPerformanceRequestsPage = ({ variant = 'admin' }) => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <span className="text-xs font-bold text-slate-800">#{req.id}</span>
-                      <span
-                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                        style={{ color: st.color, background: st.bg }}
-                      >
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ color: st.color, background: st.bg }}>
                         {st.label}
                       </span>
+                      {req.recommendationCount > 0 && (
+                        <span className="text-[10px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+                          {req.recommendationCount} gợi ý
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-slate-700 mb-1">
                       <Building2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                       <span className="font-semibold">{req.business?.companyName || '—'}</span>
-                      {req.business?.contactName ? (
-                        <span className="text-slate-400">· {req.business.contactName}</span>
-                      ) : null}
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-slate-600 mb-1">
                       <FileText className="w-3.5 h-3.5 text-violet-500 shrink-0" />
                       <span>
-                        {req.cv?.code || `CV #${req.cvId}`}
-                        {req.cv?.name ? ` · ${req.cv.name}` : ''}
+                        Quan tâm: {req.cv?.code || `CV #${req.cvId}`}
                         {req.cv?.desiredPosition ? ` · ${req.cv.desiredPosition}` : ''}
                       </span>
                     </div>
@@ -201,9 +272,7 @@ const ScoutPerformanceRequestsPage = ({ variant = 'admin' }) => {
                       </div>
                     )}
                     {req.adminNote && (
-                      <div className="text-[11px] text-slate-500 mt-1">
-                        Phản hồi: {req.adminNote}
-                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1">Phản hồi WS: {req.adminNote}</div>
                     )}
                     <div className="flex items-center gap-1 text-[10px] text-slate-400 mt-2">
                       <Clock className="w-3 h-3" />
@@ -213,26 +282,44 @@ const ScoutPerformanceRequestsPage = ({ variant = 'admin' }) => {
                   </div>
 
                   {req.status === 'pending' && (
-                    <div className="flex gap-1.5 shrink-0">
+                    <div className="flex gap-1.5 shrink-0 flex-wrap justify-end">
+                      {variant === 'admin' && (
+                        <Link
+                          to={`/admin/public-ctv-chat?tab=business&requestId=${req.id}`}
+                          className="flex items-center gap-1 text-[11px] font-semibold text-indigo-700 border border-indigo-200 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          Mở chat
+                        </Link>
+                      )}
                       <button
                         type="button"
                         disabled={actionId === req.id}
-                        onClick={() => openNoteModal(req.id, 'approve')}
+                        onClick={() => openNoteModal(req, 'approve')}
                         className="flex items-center gap-1 text-[11px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 px-2.5 py-1.5 rounded-lg"
                       >
                         <CheckCircle className="w-3.5 h-3.5" />
-                        Duyệt
+                        Gửi gợi ý
                       </button>
                       <button
                         type="button"
                         disabled={actionId === req.id}
-                        onClick={() => openNoteModal(req.id, 'reject')}
+                        onClick={() => openNoteModal(req, 'reject')}
                         className="flex items-center gap-1 text-[11px] font-semibold text-red-600 border border-red-200 hover:bg-red-50 disabled:opacity-50 px-2.5 py-1.5 rounded-lg"
                       >
                         <XCircle className="w-3.5 h-3.5" />
                         Từ chối
                       </button>
                     </div>
+                  )}
+                  {req.status !== 'pending' && variant === 'admin' && (
+                    <Link
+                      to={`/admin/public-ctv-chat?tab=business&requestId=${req.id}`}
+                      className="flex items-center gap-1 text-[11px] font-semibold text-indigo-700 border border-indigo-200 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg shrink-0"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      Mở chat
+                    </Link>
                   )}
                 </div>
               </div>
@@ -243,51 +330,81 @@ const ScoutPerformanceRequestsPage = ({ variant = 'admin' }) => {
 
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-4">
-          <button
-            type="button"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => p - 1)}
-            className="text-xs px-2 py-1 border rounded disabled:opacity-40"
-          >
-            Trước
-          </button>
+          <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="text-xs px-2 py-1 border rounded disabled:opacity-40">Trước</button>
           <span className="text-xs text-slate-500">{page}/{pagination.totalPages}</span>
-          <button
-            type="button"
-            disabled={page >= pagination.totalPages}
-            onClick={() => setPage((p) => p + 1)}
-            className="text-xs px-2 py-1 border rounded disabled:opacity-40"
-          >
-            Sau
-          </button>
+          <button type="button" disabled={page >= pagination.totalPages} onClick={() => setPage((p) => p + 1)} className="text-xs px-2 py-1 border rounded disabled:opacity-40">Sau</button>
         </div>
       )}
 
       {noteModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-xl p-4 w-full max-w-md shadow-xl">
+          <div className="bg-white rounded-xl p-4 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-sm font-bold text-slate-800 mb-2">
-              {noteModal.action === 'approve' ? 'Duyệt yêu cầu' : 'Từ chối yêu cầu'}
+              {noteModal.action === 'approve' ? 'Gửi gợi ý Scout Performance' : 'Từ chối yêu cầu'}
             </h3>
+            {noteModal.action === 'approve' && isAdmin && (
+              <div className="mb-3">
+                <div className="text-xs font-semibold text-slate-700 mb-1">Ứng viên gợi ý ({noteModal.selectedCvIds.length})</div>
+                {selectedCvDetails.length > 0 && (
+                  <div className="flex flex-col gap-1 mb-2">
+                    {selectedCvDetails.map((c) => (
+                      <div key={c.id} className="flex items-center justify-between text-xs bg-slate-50 rounded px-2 py-1.5 border border-slate-200">
+                        <span>{c.code || `#${c.id}`} · {c.name || c.desiredPosition || '—'} · {SOURCE_LABEL[c.source] || c.source}</span>
+                        <button type="button" onClick={() => toggleSelectedCv(c.id)} className="text-red-500 p-0.5"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-2 py-1.5 mb-2">
+                  <Search className="w-3.5 h-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={cvSearchInput}
+                    onChange={(e) => setCvSearchInput(e.target.value)}
+                    placeholder="Tìm CV trong hệ thống (mã, tên, vị trí...)"
+                    className="bg-transparent outline-none text-xs w-full"
+                  />
+                </div>
+                {cvSearchLoading ? (
+                  <div className="text-xs text-slate-400 py-2 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Đang tìm...</div>
+                ) : (
+                  <div className="max-h-40 overflow-y-auto border border-slate-100 rounded-lg">
+                    {cvSearchResults.length === 0 ? (
+                      <div className="text-xs text-slate-400 p-2 text-center">Không có kết quả</div>
+                    ) : cvSearchResults.map((c) => {
+                      const selected = noteModal.selectedCvIds.includes(Number(c.id));
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => toggleSelectedCv(c.id)}
+                          className={`w-full text-left text-xs px-2 py-1.5 border-b border-slate-50 flex items-center justify-between ${selected ? 'bg-blue-50' : 'hover:bg-slate-50'}`}
+                        >
+                          <span>{c.code || `#${c.id}`} · {c.name || '—'} · {c.desiredPosition || '—'}</span>
+                          <span className="text-[10px] text-slate-400">{SOURCE_LABEL[c.source] || c.source}{selected ? ' ✓' : ''}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            {noteModal.action === 'approve' && !isAdmin && (
+              <p className="text-xs text-slate-500 mb-2">Hồ sơ trigger sẽ được gửi làm gợi ý mặc định.</p>
+            )}
             <textarea
               value={noteModal.note}
               onChange={(e) => setNoteModal((m) => ({ ...m, note: e.target.value }))}
-              placeholder="Ghi chú (tuỳ chọn)"
+              placeholder="Ghi chú gửi doanh nghiệp (tuỳ chọn)"
               rows={3}
               className="w-full text-xs border border-slate-200 rounded-lg p-2 mb-3 outline-none focus:border-blue-400"
             />
             <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setNoteModal({ open: false, id: null, action: null, note: '', triggerCvId: null, selectedCvIds: [] })} className="text-xs px-3 py-1.5 border rounded-lg">Hủy</button>
               <button
                 type="button"
-                onClick={() => setNoteModal({ open: false, id: null, action: null, note: '' })}
-                className="text-xs px-3 py-1.5 border rounded-lg"
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                disabled={actionId != null}
-                onClick={() => runAction(noteModal.id, noteModal.action, noteModal.note)}
+                disabled={actionId != null || (noteModal.action === 'approve' && noteModal.selectedCvIds.length === 0)}
+                onClick={() => runAction(noteModal.id, noteModal.action, noteModal.note, noteModal.selectedCvIds)}
                 className="text-xs px-3 py-1.5 rounded-lg text-white bg-blue-600 disabled:opacity-50"
               >
                 Xác nhận

@@ -59,6 +59,9 @@ export function switchLocaleInPathname(pathname, newLocale) {
     const rest = pathname.slice('/collaborator'.length) || '';
     return withLocalePath(lang, rest || '/');
   }
+  if (pathname.startsWith('/landing/business')) {
+    return withLocalePath(lang, '/business');
+  }
   if (pathname === '/') return withLocalePath(lang, '/');
   return withLocalePath(lang, pathname);
 }
@@ -128,11 +131,19 @@ export function resolvePublicBlogPrefix(pathname) {
   return resolveCollaboratorPrefix(pathname);
 }
 
+export function resolveBusinessLandingPrefix(pathname) {
+  const locale = getLocaleFromPathname(pathname);
+  if (locale) return `/${locale}/business`;
+  if (pathname.startsWith('/landing/business')) return '/landing/business';
+  return withLocalePath(getPreferredLocale(), '/business');
+}
+
 export function localizedPersonaHref(locale, persona) {
   const lang = isSupportedLocale(locale) ? locale : getPreferredLocale();
   if (persona === 'candidate') return withLocalePath(lang, '/candidate');
   if (persona === 'collaborator') return withLocalePath(lang, '/');
-  return '/business';
+  if (persona === 'company' || persona === 'business') return withLocalePath(lang, '/business');
+  return withLocalePath(lang, '/business');
 }
 
 export function legacyPublicRedirectPath(pathname, search = '', hash = '', persona = 'collaborator') {
@@ -154,6 +165,9 @@ export function legacyPublicRedirectPath(pathname, search = '', hash = '', perso
   if (pathname.startsWith('/collaborator')) {
     rest = pathname.slice('/collaborator'.length) || '';
     return `${withLocalePath(lang, rest || '/')}${search}${hash}`;
+  }
+  if (pathname.startsWith('/landing/business')) {
+    return `${withLocalePath(lang, '/business')}${search}${hash}`;
   }
 
   if (persona === 'candidate') {

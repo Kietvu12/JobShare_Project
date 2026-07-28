@@ -36,6 +36,12 @@ function getClient() {
   return s3Client;
 }
 
+/** CopySource header — encode ký tự đặc biệt/Unicode trong key (tránh lỗi x-amz-copy-source). */
+function buildS3CopySource(bucket, key) {
+  const normalizedKey = String(key || '').replace(/^\/+/, '');
+  return `${bucket}/${encodeURIComponent(normalizedKey).replace(/%2F/g, '/')}`;
+}
+
 /**
  * Build S3 key cho CV template PDF - lưu theo folder id ứng viên.
  * Format: cvs/{cvId}/cv-rirekisho.pdf (tab 1 - Lý lịch). Giữ tên buildCvTemplatePdfKey để tương thích.
@@ -408,7 +414,7 @@ export async function copyCvOriginalsToNewSnapshot(cvId, newDateTime, sourceFold
     const destKey = `${destFolderKey}/${fileName}`;
     await client.send(new CopyObjectCommand({
       Bucket: bucket,
-      CopySource: `${bucket}/${sourceKey}`,
+      CopySource: buildS3CopySource(bucket, sourceKey),
       Key: destKey
     }));
   }
@@ -434,7 +440,7 @@ export async function copySingleFileToCvOriginalSnapshot(cvId, newDateTime, sour
   const metaValue = encodeOriginalFilenameMetadata(displayName);
   await client.send(new CopyObjectCommand({
     Bucket: bucket,
-    CopySource: `${bucket}/${fullSource}`,
+    CopySource: buildS3CopySource(bucket, fullSource),
     Key: destKey,
     ...(metaValue
       ? { Metadata: { [ORIGINAL_FILENAME_META_KEY]: metaValue }, MetadataDirective: 'REPLACE' }
@@ -463,7 +469,7 @@ export async function copyCvTemplatesToNewSnapshot(cvId, newDateTime, sourceTemp
     const destKey = `${destFolderKey}/${suffix}`;
     await client.send(new CopyObjectCommand({
       Bucket: bucket,
-      CopySource: `${bucket}/${sourceKey}`,
+      CopySource: buildS3CopySource(bucket, sourceKey),
       Key: destKey
     }));
   }
@@ -641,7 +647,7 @@ export async function copyPostTempThumbnailToPost(sourceTempKey, postId) {
   const fullSource = resolveS3Key(sourceTempKey);
   await client.send(new CopyObjectCommand({
     Bucket: bucket,
-    CopySource: `${bucket}/${fullSource}`,
+    CopySource: buildS3CopySource(bucket, fullSource),
     Key: destKey
   }));
   return destKey;

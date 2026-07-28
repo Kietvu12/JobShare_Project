@@ -989,12 +989,196 @@ export const BusinessScoutPerformanceRequest = sequelize.define(
       allowNull: true,
       field: 'handled_at',
     },
+    businessViewedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'business_viewed_at',
+    },
+    businessExploreStatus: {
+      type: DataTypes.STRING(30),
+      allowNull: true,
+      field: 'business_explore_status',
+    },
+    wantsSimilarCandidates: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: 'wants_similar_candidates',
+    },
   },
   {
     tableName: 'business_scout_performance_requests',
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
+  }
+);
+
+export const BusinessScoutPerformanceRecommendation = sequelize.define(
+  'BusinessScoutPerformanceRecommendation',
+  {
+    id: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    requestId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: false,
+      field: 'request_id',
+    },
+    cvId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: false,
+      field: 'cv_id',
+    },
+    source: {
+      type: DataTypes.STRING(30),
+      allowNull: false,
+      defaultValue: 'system',
+    },
+    adminNote: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'admin_note',
+    },
+    sortOrder: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      defaultValue: 0,
+      field: 'sort_order',
+    },
+  },
+  {
+    tableName: 'business_scout_performance_recommendations',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+  }
+);
+
+export const BusinessWsChatSession = sequelize.define(
+  'BusinessWsChatSession',
+  {
+    id: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    businessId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: false,
+      field: 'business_id',
+    },
+    performanceRequestId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: true,
+      field: 'performance_request_id',
+    },
+    sessionType: {
+      type: DataTypes.STRING(32),
+      allowNull: false,
+      defaultValue: 'scout_performance',
+      field: 'session_type',
+    },
+    title: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    status: {
+      type: DataTypes.STRING(32),
+      allowNull: false,
+      defaultValue: 'active',
+    },
+    lastMessageAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'last_message_at',
+    },
+    lastMessagePreview: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+      field: 'last_message_preview',
+    },
+  },
+  {
+    tableName: 'business_ws_chat_sessions',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    paranoid: true,
+    deletedAt: 'deleted_at',
+  }
+);
+
+export const BusinessWsChatMessage = sequelize.define(
+  'BusinessWsChatMessage',
+  {
+    id: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    sessionId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: false,
+      field: 'session_id',
+    },
+    senderType: {
+      type: DataTypes.ENUM('business', 'admin', 'system'),
+      allowNull: false,
+      field: 'sender_type',
+    },
+    adminId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: true,
+      field: 'admin_id',
+    },
+    businessId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: true,
+      field: 'business_id',
+    },
+    content: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    messageType: {
+      type: DataTypes.STRING(32),
+      allowNull: false,
+      defaultValue: 'text',
+      field: 'message_type',
+    },
+    requestPayload: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      field: 'request_payload',
+    },
+    cvAttachments: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      field: 'cv_attachments',
+    },
+    isReadByBusiness: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: 'is_read_by_business',
+    },
+    isReadByAdmin: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: 'is_read_by_admin',
+    },
+  },
+  {
+    tableName: 'business_ws_chat_messages',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    paranoid: true,
+    deletedAt: 'deleted_at',
   }
 );
 
@@ -4455,8 +4639,19 @@ BusinessScoutPerformanceRequest.belongsTo(CVStorage, { as: 'cv', foreignKey: 'cv
 BusinessScoutPerformanceRequest.belongsTo(Admin, { as: 'handledByAdmin', foreignKey: 'handledByAdminId' });
 BusinessScoutPerformanceRequest.belongsTo(Collaborator, { as: 'handledByCollaborator', foreignKey: 'handledByCollaboratorId' });
 BusinessScoutPerformanceRequest.belongsTo(BusinessScoutUnlock, { as: 'scoutUnlock', foreignKey: 'scoutUnlockId' });
+BusinessScoutPerformanceRequest.hasMany(BusinessScoutPerformanceRecommendation, { as: 'recommendations', foreignKey: 'requestId' });
+BusinessScoutPerformanceRecommendation.belongsTo(BusinessScoutPerformanceRequest, { as: 'request', foreignKey: 'requestId' });
+BusinessScoutPerformanceRecommendation.belongsTo(CVStorage, { as: 'cv', foreignKey: 'cvId' });
 Business.hasMany(BusinessScoutPerformanceRequest, { as: 'scoutPerformanceRequests', foreignKey: 'businessId' });
 CVStorage.hasMany(BusinessScoutPerformanceRequest, { as: 'scoutPerformanceRequests', foreignKey: 'cvId' });
+BusinessWsChatSession.belongsTo(Business, { as: 'business', foreignKey: 'businessId' });
+BusinessWsChatSession.belongsTo(BusinessScoutPerformanceRequest, { as: 'performanceRequest', foreignKey: 'performanceRequestId' });
+BusinessWsChatSession.hasMany(BusinessWsChatMessage, { as: 'messages', foreignKey: 'sessionId' });
+BusinessWsChatMessage.belongsTo(BusinessWsChatSession, { as: 'session', foreignKey: 'sessionId' });
+BusinessWsChatMessage.belongsTo(Admin, { as: 'admin', foreignKey: 'adminId' });
+BusinessWsChatMessage.belongsTo(Business, { as: 'business', foreignKey: 'businessId' });
+Business.hasMany(BusinessWsChatSession, { as: 'wsChatSessions', foreignKey: 'businessId' });
+BusinessScoutPerformanceRequest.hasOne(BusinessWsChatSession, { as: 'wsChatSession', foreignKey: 'performanceRequestId' });
 
 BusinessInvoice.belongsTo(Business, { as: 'business', foreignKey: 'businessId' });
 Business.hasMany(BusinessInvoice, { as: 'invoices', foreignKey: 'businessId' });
@@ -4939,6 +5134,9 @@ export default {
   BusinessScoutUnlock,
   BusinessSavedCandidate,
   BusinessScoutPerformanceRequest,
+  BusinessScoutPerformanceRecommendation,
+  BusinessWsChatSession,
+  BusinessWsChatMessage,
   BusinessInvoice,
   BusinessCreditRequest,
   BusinessLandingPage,

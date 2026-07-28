@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Search,
   ChevronDown,
@@ -29,6 +30,7 @@ import {
   Coins,
   ExternalLink,
 } from 'lucide-react'
+import { useWsScoutChat, WsSessionListItem, WsChatThread } from '../../component/Shared/WsScoutPerformanceChat'
 
 const ICON_SM = { width: 10, height: 10 }
 const ICON_MD = { width: 12, height: 12 }
@@ -398,7 +400,10 @@ const RequestFormPanel = ({ onClose, requestType, setRequestType, description, s
 )
 
 const Message = () => {
-  const [activeTab, setActiveTab] = useState(0)
+  const [searchParams] = useSearchParams()
+  const wsSessionId = searchParams.get('sessionId') || null
+  const initialTab = searchParams.get('tab') === 'ws' ? WS_TAB_INDEX : 0
+  const [activeTab, setActiveTab] = useState(initialTab)
   const [activeConv, setActiveConv] = useState(1)
   const [activeWsConv, setActiveWsConv] = useState(101)
   const [activeCtvConv, setActiveCtvConv] = useState(201)
@@ -419,6 +424,11 @@ const Message = () => {
 
   const isWsTab = activeTab === WS_TAB_INDEX
   const isCtvTab = activeTab === CTV_TAB_INDEX
+  const wsChat = useWsScoutChat({
+    mode: 'business',
+    initialSessionId: wsSessionId,
+    enabled: isWsTab,
+  })
   const selectedConv = [...CONVERSATIONS, ...SCOUT_CONVERSATIONS].find(c => c.id === activeConv) || CONVERSATIONS[0]
   const selectedWsConv = WS_CONVERSATIONS.find(c => c.id === activeWsConv) || WS_CONVERSATIONS[0]
   const selectedCtvConv = CTV_CONVERSATIONS.find(c => c.id === activeCtvConv) || CTV_CONVERSATIONS[0]
@@ -462,11 +472,18 @@ const Message = () => {
     ctvMsgEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [ctvMessages])
 
+  useEffect(() => {
+    if (searchParams.get('tab') === 'ws') {
+      setActiveTab(WS_TAB_INDEX)
+      setShowRequestForm(false)
+    }
+  }, [searchParams])
+
   const handleTabChange = (i) => {
     setActiveTab(i)
     if (i === WS_TAB_INDEX) {
       setWsChatTab(0)
-      setShowRequestForm(true)
+      setShowRequestForm(false)
     }
     if (i === CTV_TAB_INDEX) setShowRequestForm(false)
   }
@@ -477,7 +494,7 @@ const Message = () => {
 
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '210px 1fr 210px', overflow: 'hidden', border: bd, borderRadius: 8, background: '#fff', minHeight: 0 }}>
 
-        {/* LEFT */}
+        <>
         <div style={{ borderRight: bd, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
           <div style={{ display: 'flex', borderBottom: bd, flexShrink: 0 }}>
             {TABS.map((tab, i) => (
@@ -498,24 +515,32 @@ const Message = () => {
               <div style={{ padding: '4px 6px', borderBottom: bd, flexShrink: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, border: bd, borderRadius: 6, padding: '3px 6px', background: '#f8fafc', marginBottom: 4 }}>
                   <Search {...ICON_MD} color="#94a3b8" style={{ flexShrink: 0 }} />
-                  <input placeholder="Tìm kiếm theo tên, nội dung, yêu cầu..." style={{ flex: 1, border: 'none', background: 'transparent', fontSize: 8, outline: 'none', minWidth: 0 }} />
-                </div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <button type="button" style={{ flex: 1, border: bd, borderRadius: 6, padding: '3px 6px', background: '#fff', cursor: 'pointer', fontSize: 8, color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    Tất cả trạng thái <ChevronDown {...ICON_SM} />
-                  </button>
-                  <button type="button" style={{ border: bd, borderRadius: 6, padding: '3px 6px', background: '#fff', cursor: 'pointer', display: 'flex' }}>
-                    <Filter {...ICON_MD} color="#64748b" />
-                  </button>
+                  <input
+                    value={wsChat.search}
+                    onChange={(e) => wsChat.setSearch(e.target.value)}
+                    placeholder="Tìm kiếm theo tên, nội dung, yêu cầu..."
+                    style={{ flex: 1, border: 'none', background: 'transparent', fontSize: 8, outline: 'none', minWidth: 0 }}
+                  />
                 </div>
               </div>
               <div className="msg-scroll-hide" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
-                {WS_CONVERSATIONS.map(conv => (
-                  <WsConvItem key={conv.id} conv={conv} active={activeWsConv === conv.id} onClick={() => setActiveWsConv(conv.id)} />
+                {wsChat.loadingSessions && (
+                  <div style={{ padding: 12, fontSize: 8, color: '#94a3b8' }}>Đang tải...</div>
+                )}
+                {!wsChat.loadingSessions && wsChat.sessions.length === 0 && (
+                  <div style={{ padding: 12, fontSize: 8, color: '#94a3b8', lineHeight: 1.5 }}>
+                    Chưa có cuộc trò chuyện với WS.
+                  </div>
+                )}
+                {wsChat.sessions.map((session) => (
+                  <WsSessionListItem
+                    key={session.id}
+                    session={session}
+                    mode="business"
+                    active={session.id === wsChat.activeSessionId}
+                    onClick={() => wsChat.setActiveSessionId(session.id)}
+                  />
                 ))}
-                <button type="button" style={{ padding: '10px 9px', fontSize: 8, color: '#4f46e5', cursor: 'pointer', background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 2, lineHeight: 1.5 }}>
-                  Xem tất cả cuộc trò chuyện <ChevronRight {...ICON_SM} />
-                </button>
               </div>
             </>
           ) : isCtvTab ? (
@@ -566,88 +591,7 @@ const Message = () => {
 
         {/* CENTER */}
         {isWsTab ? (
-          <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#f8fafc', minHeight: 0, position: 'relative' }}>
-            <div style={{ background: '#fff', borderBottom: bd, padding: '4px 8px', flexShrink: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                <WsLogo size={30} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', lineHeight: 1.3 }}>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: '#1e293b' }}>{selectedWsConv.title}</span>
-                    <Tag type="active">Đang hoạt động</Tag>
-                  </div>
-                  <div style={{ fontSize: 8, color: '#64748b', marginTop: 2, lineHeight: 1.45 }}>Đội ngũ tư vấn tuyển dụng của JobShare</div>
-                  <div style={{ fontSize: 7, color: '#94a3b8', lineHeight: 1.45 }}>Thời gian phản hồi trung bình: 15 phút</div>
-                </div>
-                <div style={{ display: 'flex', gap: 3, alignItems: 'center', flexShrink: 0 }}>
-                  <button type="button" onClick={() => setShowRequestForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 3, border: '1.5px solid #4f46e5', borderRadius: 5, padding: '3px 7px', fontSize: 8, color: '#4f46e5', background: '#fff', cursor: 'pointer', fontWeight: 600 }}>
-                    <ClipboardList {...ICON_SM} /> Phiếu gửi yêu cầu
-                  </button>
-                  <button type="button" style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 2, display: 'flex' }}>
-                    <MoreHorizontal {...ICON_MD} color="#64748b" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', borderBottom: bd, background: '#fff', padding: '0 8px', flexShrink: 0 }}>
-              {['Trò chuyện', 'Yêu cầu của tôi', 'Lịch sử yêu cầu'].map((t, i) => (
-                <div key={i} onClick={() => setWsChatTab(i)} style={{
-                  padding: '4px 6px', fontSize: 8, cursor: 'pointer',
-                  color: wsChatTab === i ? '#4f46e5' : '#64748b',
-                  borderBottom: wsChatTab === i ? '2px solid #4f46e5' : '2px solid transparent',
-                  fontWeight: wsChatTab === i ? 600 : 400,
-                }}>{t}</div>
-              ))}
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 6, minHeight: 0 }}>
-              {wsChatTab === 0 ? (
-                <>
-                  <div style={{ textAlign: 'center', fontSize: 8, color: '#94a3b8', position: 'relative' }}>
-                    <span style={{ background: '#f8fafc', padding: '0 6px', position: 'relative', zIndex: 1 }}>Hôm nay</span>
-                    <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 1, background: '#e2e8f0', zIndex: 0 }} />
-                  </div>
-                  {wsMessages.map(msg => <ChatMessage key={msg.id} msg={msg} showWsAvatar />)}
-                  <div ref={wsMsgEndRef} />
-                </>
-              ) : (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: '#94a3b8', padding: 20, textAlign: 'center', lineHeight: 1.5 }}>
-                  {wsChatTab === 1 ? 'Danh sách yêu cầu đang xử lý sẽ hiển thị tại đây.' : 'Lịch sử các yêu cầu đã gửi tới WS Team.'}
-                </div>
-              )}
-            </div>
-
-            <div style={{ background: '#fff', borderTop: bd, padding: '2px 6px', display: 'flex', gap: 2, flexWrap: 'wrap', flexShrink: 0 }}>
-              {WS_QUICK_REPLIES.map((qr, i) => (
-                <button key={i} type="button" onClick={() => setWsInput(qr)} style={{ fontSize: 8, border: bd, borderRadius: 99, padding: '1px 6px', background: '#fff', color: '#475569', cursor: 'pointer' }}>{qr}</button>
-              ))}
-              <button type="button" style={{ fontSize: 8, border: bd, borderRadius: 99, padding: '1px 6px', background: '#fff', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                <MoreHorizontal {...ICON_SM} />
-              </button>
-            </div>
-
-            <div style={{ background: '#fff', borderTop: bd, padding: '4px 6px', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-              <input value={wsInput} onChange={e => setWsInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleWsSend()} placeholder="Nhập tin nhắn..." style={{ flex: 1, border: bd, borderRadius: 99, padding: '4px 10px', fontSize: 8, background: '#f8fafc', color: '#1e293b', outline: 'none' }} />
-              <button type="button" style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}><Paperclip {...ICON_MD} color="#64748b" /></button>
-              <button type="button" style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}><Smile {...ICON_MD} color="#64748b" /></button>
-              <button type="button" onClick={handleWsSend} style={{ width: 26, height: 26, borderRadius: '50%', background: '#4f46e5', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Send {...ICON_SM} color="#fff" />
-              </button>
-            </div>
-
-            {showRequestForm && (
-              <>
-                <div onClick={() => setShowRequestForm(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.25)', zIndex: 10 }} />
-                <RequestFormPanel
-                  onClose={() => setShowRequestForm(false)}
-                  requestType={requestType}
-                  setRequestType={setRequestType}
-                  description={requestDescription}
-                  setDescription={setRequestDescription}
-                />
-              </>
-            )}
-          </div>
+          <WsChatThread mode="business" chat={wsChat} showHeader />
         ) : isCtvTab ? (
           <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#f8fafc', minHeight: 0 }}>
             {/* Header */}
@@ -994,6 +938,7 @@ const Message = () => {
           </div>
         )}
 
+        </>
       </div>
     </div>
   )

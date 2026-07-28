@@ -97,7 +97,7 @@ const CollaboratorLayout = () => {
   const personaHref = {
     collaborator: localizedPersonaHref(language, 'collaborator'),
     candidate: localizedPersonaHref(language, 'candidate'),
-    company: '/business',
+    company: localizedPersonaHref(language, 'company'),
   };
   const navLinks = buildCollaboratorNavLinks(prefix, t);
 

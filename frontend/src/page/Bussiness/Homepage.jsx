@@ -1,9 +1,12 @@
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Users, FileWarning, UserX, TrendingDown, Sparkles, Search,
   UserPlus, BarChart3, FilePlus2, Briefcase, BookOpen,
-  Bell, AlertTriangle, CheckCircle2, Clock3, Lock, Unlock
+  Bell, AlertTriangle, CheckCircle2, Clock3, Lock, Unlock,
+  Loader2, Check, Scale,
 } from 'lucide-react'
+import apiService from '../../services/api'
 
 const actionCards = [
   {
@@ -116,12 +119,12 @@ const quickStats = [
 ]
 
 const quickActions = [
-  { icon: Sparkles, title: 'Tạo JD mới (AI)', desc: 'Tạo JD miễn phí bằng AI', color: 'text-violet-500', bg: 'bg-violet-50' },
-  { icon: Search, title: 'Tìm ứng viên (Scout)', desc: 'Tìm kiếm trong kho ứng viên', color: 'text-blue-500', bg: 'bg-blue-50' },
-  { icon: UserPlus, title: 'Dùng Scout Performance', desc: 'Yêu cầu WS hỗ trợ giới thiệu', color: 'text-emerald-500', bg: 'bg-emerald-50' },
-  { icon: FilePlus2, title: 'Tạo Landing Page', desc: 'Tạo trang tuyển dụng miễn phí', color: 'text-amber-500', bg: 'bg-amber-50' },
-  { icon: Briefcase, title: 'Đăng job lên Sàn CTV', desc: 'Kết nối với CTV HR Partner', color: 'text-rose-500', bg: 'bg-rose-50' },
-  { icon: BookOpen, title: 'Xem hướng dẫn', desc: 'Hướng dẫn sử dụng platform', color: 'text-slate-500', bg: 'bg-slate-100' },
+  { icon: Sparkles, title: 'Tạo JD mới (AI)', desc: 'Tạo JD miễn phí bằng AI', color: 'text-violet-500', bg: 'bg-violet-50', path: '/business/jobs/ai-builder' },
+  { icon: Search, title: 'Tìm ứng viên (Scout)', desc: 'Tìm kiếm trong kho ứng viên', color: 'text-blue-500', bg: 'bg-blue-50', path: '/business/scout' },
+  { icon: UserPlus, title: 'Dùng Scout Performance', desc: 'Yêu cầu WS hỗ trợ giới thiệu', color: 'text-emerald-500', bg: 'bg-emerald-50', path: '/business/scout' },
+  { icon: FilePlus2, title: 'Tạo Landing Page', desc: 'Tạo trang tuyển dụng miễn phí', color: 'text-amber-500', bg: 'bg-amber-50', path: '/business/saiyo' },
+  { icon: Briefcase, title: 'Đăng job lên Sàn CTV', desc: 'Kết nối với CTV HR Partner', color: 'text-rose-500', bg: 'bg-rose-50', path: '/business/candidate-sharing' },
+  { icon: BookOpen, title: 'Xem hướng dẫn', desc: 'Hướng dẫn sử dụng platform', color: 'text-slate-500', bg: 'bg-slate-100', path: '/business/knowledge' },
 ]
 
 const notifications = [
@@ -204,6 +207,82 @@ const jobs = [
   },
 ]
 
+const solutionCards = [
+  {
+    num: '01',
+    title: 'Scout Credit',
+    subtitle: 'Tự chủ tìm kiếm ứng viên',
+    theme: {
+      badge: 'bg-blue-600',
+      border: 'border-blue-100',
+      bg: 'bg-gradient-to-b from-blue-50 to-white',
+      btn: 'bg-blue-600 hover:bg-blue-700',
+      accent: 'text-blue-600',
+    },
+    image: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=400&h=280&fit=crop',
+    features: ['Tìm kiếm & unlock hồ sơ', 'Chủ động tiếp cận ứng viên', 'Quản lý credit linh hoạt'],
+    suitableFor: 'Doanh nghiệp muốn chủ động sourcing',
+    footer: 'Chỉ từ 1,000 credit',
+    path: '/business/scout',
+  },
+  {
+    num: '02',
+    title: 'Scout Performance',
+    subtitle: 'WS hỗ trợ tìm & tiếp cận ứng viên',
+    theme: {
+      badge: 'bg-emerald-600',
+      border: 'border-emerald-100',
+      bg: 'bg-gradient-to-b from-emerald-50 to-white',
+      btn: 'bg-emerald-600 hover:bg-emerald-700',
+      accent: 'text-emerald-600',
+    },
+    image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=280&fit=crop',
+    features: ['WS tìm & gợi ý ứng viên', 'Chat trực tiếp với đội ngũ', 'Tiết kiệm thời gian HR'],
+    suitableFor: 'Vị trí khó tuyển, cần hỗ trợ chuyên sâu',
+    footer: 'Hiệu quả – Tiết kiệm thời gian',
+    path: '/business/scout',
+  },
+  {
+    num: '03',
+    title: 'Saiyo Branding',
+    subtitle: 'Xây dựng thương hiệu tuyển dụng',
+    theme: {
+      badge: 'bg-violet-600',
+      border: 'border-violet-100',
+      bg: 'bg-gradient-to-b from-violet-50 to-white',
+      btn: 'bg-violet-600 hover:bg-violet-700',
+      accent: 'text-violet-600',
+    },
+    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=280&fit=crop',
+    features: ['Landing page tuyển dụng', 'JD chuẩn đa ngôn ngữ', 'Thu hút ứng viên chủ động'],
+    suitableFor: 'Tăng nhận diện thương hiệu employer',
+    footer: 'Tăng nhận diện – Thu hút nhân tài',
+    path: '/business/saiyo',
+  },
+  {
+    num: '04',
+    title: 'Sàn CTV (HR Partner)',
+    subtitle: 'Mạng lưới tuyển dụng mở rộng',
+    theme: {
+      badge: 'bg-orange-500',
+      border: 'border-orange-100',
+      bg: 'bg-gradient-to-b from-orange-50 to-white',
+      btn: 'bg-orange-500 hover:bg-orange-600',
+      accent: 'text-orange-600',
+    },
+    image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=280&fit=crop',
+    features: ['Kết nối CTV HR Partner', 'Tiến cử ứng viên chất lượng', 'Mở rộng nguồn nhanh'],
+    suitableFor: 'Tuyển số lượng lớn, đa vị trí',
+    footer: 'Mở rộng nhanh – Chi phí tối ưu',
+    path: '/business/candidate-sharing',
+  },
+]
+
+const scrollbarHideStyle = `
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+`
+
 const Sparkline = ({ points, color }) => (
   <svg viewBox="0 0 105 32" className="w-full h-9" preserveAspectRatio="none">
     <polyline
@@ -251,217 +330,360 @@ const ActionCard = ({ c }) => {
         </div>
       </div>
       <p className="text-[8px] text-slate-500 leading-snug flex-1">{c.desc}</p>
-      <button className={`${c.buttonColor} text-white text-[8px] font-semibold rounded-lg py-1 px-2 transition-colors w-full leading-tight mt-auto min-h-[28px] flex items-center justify-center text-center`}>
+      <button type="button" className={`${c.buttonColor} text-white text-[8px] font-semibold rounded-lg py-1 px-2 transition-colors w-full leading-tight mt-auto min-h-[28px] flex items-center justify-center text-center`}>
         {c.button}
       </button>
     </div>
   )
 }
 
-const scrollbarHideStyle = `
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-`
-
-const Homepage = () => {
+function SolutionCard({ card, onUse }) {
   return (
-    <>
-    <style>{scrollbarHideStyle}</style>
-    <div className="h-screen bg-slate-50 p-2 lg:p-3 overflow-hidden">
-      <div className="max-w-[1440px] mx-auto h-full grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-2 lg:gap-3">
-
-        {/* Main column */}
-        <div className="flex flex-col gap-2 lg:gap-3 min-w-0 overflow-y-auto pr-1 scrollbar-hide">
-          <div>
-            <h1 className="text-sm lg:text-base font-bold text-slate-800 flex items-center gap-1.5">
-              Xin chào, Nguyễn Văn A <span className="inline-block text-sm">👋</span>
-            </h1>
-            <p className="text-[10px] lg:text-xs text-slate-500 mt-0.5">Bạn đang cần gì hôm nay?</p>
-          </div>
-
-          {/* Action cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-stretch">
-            {actionCards.map((c, i) => <ActionCard key={i} c={c} />)}
-          </div>
-
-          {/* Recruitment Health + Tổng quan nhanh */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-3 items-stretch">
-            <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5 flex flex-col">
-              <div className="flex items-center justify-between mb-2 flex-wrap gap-1.5">
-                <h2 className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                  Recruitment Health
-                  <span className="text-slate-300 text-[10px]">ⓘ</span>
-                </h2>
-                <select className="text-[9px] border border-slate-200 rounded-lg px-2 py-0.5 text-slate-600 bg-white">
-                  <option>7 ngày qua</option>
-                  <option>30 ngày qua</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-2 flex-1">
-                {healthMetrics.map((m, i) => <ScoreCard key={i} m={m} />)}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5 flex flex-col">
-              <h2 className="text-xs font-bold text-slate-800 mb-2">Tổng quan nhanh</h2>
-              <div className="flex flex-col gap-2.5 flex-1">
-                {quickStats.map((s, i) => {
-                  const Icon = s.icon
-                  return (
-                    <div key={i} className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-500 min-w-0">
-                        <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${s.color}`} />
-                        <span className="truncate">{s.label}</span>
-                      </div>
-                      <span className="text-xs font-bold text-slate-800 flex-shrink-0">{s.value}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Danh sách JD table */}
-          <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xs font-bold text-slate-800">Danh sách JD (Anken)</h2>
-              <button className="text-[9px] font-semibold text-blue-600 hover:text-blue-700">Xem tất cả JD</button>
-            </div>
-            <div className="overflow-x-auto -mx-2 lg:-mx-2.5">
-              <table className="w-full text-left text-[9px] table-fixed">
-                <colgroup>
-                  <col className="w-[18%]" />
-                  <col className="w-[11%]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[9%]" />
-                  <col className="w-[15%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[17%]" />
-                </colgroup>
-                <thead>
-                  <tr className="text-[8px] text-slate-400 uppercase">
-                    <th className="font-medium px-2 lg:px-2.5 py-1.5">JD / Vị trí</th>
-                    <th className="font-medium px-1 py-1.5">Trạng thái</th>
-                    <th className="font-medium px-1 py-1.5">Dịch vụ</th>
-                    <th className="font-medium px-1 py-1.5 text-right">Tổng</th>
-                    <th className="font-medium px-1 py-1.5 text-right">Phù hợp</th>
-                    <th className="font-medium px-1 py-1.5">Hiệu quả</th>
-                    <th className="font-medium px-1 py-1.5">Đăng</th>
-                    <th className="font-medium px-1 lg:px-2.5 py-1.5 text-right">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {jobs.map((j, i) => (
-                    <tr key={i} className="border-t border-slate-100">
-                      <td className="px-2 lg:px-2.5 py-2">
-                        <div className="font-semibold text-slate-800 text-[10px] truncate">{j.name}</div>
-                        <div className="text-[8px] text-slate-400 truncate">{j.jp}</div>
-                      </td>
-                      <td className="px-1 py-2">
-                        <span className={`inline-flex items-center gap-1 text-[8px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap ${j.statusColor}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${j.statusDot}`} />
-                          {j.status}
-                        </span>
-                      </td>
-                      <td className="px-1 py-2">
-                        <div className="flex flex-col gap-0.5">
-                          {j.services.map((s, k) => (
-                            <span key={k} className={`text-[8px] font-medium truncate ${s.color}`}>● {s.label}</span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-1 py-2 text-right text-slate-700">{j.total}</td>
-                      <td className="px-1 py-2 text-right text-slate-700">{j.matched}</td>
-                      <td className="px-1 py-2">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[8px] font-semibold text-slate-700 w-5 flex-shrink-0">{j.rate}%</span>
-                          <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
-                            <div className={`h-full ${j.rateColor} rounded-full`} style={{ width: `${j.rate}%` }} />
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-1 py-2 text-slate-500 whitespace-nowrap">{j.time}</td>
-                      <td className="px-1 lg:px-2.5 py-2 text-right whitespace-nowrap">
-                        <button className="text-[8px] font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg px-1.5 py-0.5">Chi tiết</button>
-                        <button className="ml-1 text-slate-400 hover:text-slate-600 text-[10px]">⋮</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+    <div className={`rounded-2xl border ${card.theme.border} ${card.theme.bg} p-3 flex flex-col h-full shadow-sm`}>
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div>
+          <span className={`inline-flex items-center justify-center w-6 h-6 rounded-lg text-white text-[10px] font-bold ${card.theme.badge}`}>
+            {card.num}
+          </span>
+          <h3 className="text-sm font-bold text-slate-800 mt-2">{card.title}</h3>
+          <p className="text-[10px] text-slate-500 mt-0.5">{card.subtitle}</p>
         </div>
+      </div>
 
-        {/* Sidebar */}
-        <div className="flex flex-col gap-2 lg:gap-3 min-w-0 overflow-y-auto pr-1 scrollbar-hide">
-          <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
-            <h2 className="text-xs font-bold text-slate-800 mb-1.5">Thao tác nhanh</h2>
-            <div className="flex flex-col gap-0.5">
-              {quickActions.map((a, i) => {
-                const Icon = a.icon
-                return (
-                  <button key={i} className="flex items-center gap-2 p-1 rounded-lg hover:bg-slate-50 transition-colors text-left w-full">
-                    <div className={`w-6 h-6 rounded-lg ${a.bg} flex items-center justify-center flex-shrink-0`}>
-                      <Icon className={`w-3 h-3 ${a.color}`} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[9px] font-semibold text-slate-800">{a.title}</div>
-                      <div className="text-[8px] text-slate-400 truncate">{a.desc}</div>
-                    </div>
-                    <span className="ml-auto text-slate-300 flex-shrink-0 text-[10px]">›</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
+      <div className="rounded-xl overflow-hidden bg-white/60 border border-white/80 mb-3 aspect-[4/3]">
+        <img src={card.image} alt={card.title} className="w-full h-full object-cover" />
+      </div>
 
-          {/* Notifications */}
-          <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                Thông báo
-                <span className="bg-rose-500 text-white text-[8px] font-bold rounded-full px-1.5 py-0.5">4</span>
-              </h2>
-            </div>
-            <div className="flex flex-col gap-2">
-              {notifications.map((n, i) => (
-                <div key={i} className="flex items-start gap-1.5">
-                  {n.warn
-                    ? <AlertTriangle className="w-3 h-3 text-rose-500 mt-0.5 flex-shrink-0" />
-                    : <span className={`w-1.5 h-1.5 rounded-full ${n.dot} mt-1 flex-shrink-0`} />}
-                  <div className="min-w-0">
-                    <p className="text-[9px] text-slate-700 leading-snug">{n.text}</p>
-                    <p className="text-[8px] text-slate-400 mt-0.5">{n.time}</p>
-                  </div>
+      <ul className="flex flex-col gap-1.5 mb-3 flex-1">
+        {card.features.map((f) => (
+          <li key={f} className="flex items-start gap-1.5 text-[10px] text-slate-600">
+            <Check className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${card.theme.accent}`} />
+            <span>{f}</span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="text-[9px] text-slate-500 mb-2">
+        <span className="font-semibold text-slate-600">Phù hợp:</span> {card.suitableFor}
+      </p>
+
+      <button
+        type="button"
+        onClick={() => onUse(card.path)}
+        className={`w-full ${card.theme.btn} text-white text-[11px] font-semibold rounded-xl py-2.5 transition-colors`}
+      >
+        Sử dụng ngay
+      </button>
+
+      <p className={`text-[9px] font-medium text-center mt-2 ${card.theme.accent}`}>{card.footer}</p>
+    </div>
+  )
+}
+
+function HomepageSidebar({ onNavigate }) {
+  return (
+    <div className="flex flex-col gap-2 lg:gap-3 min-w-0 overflow-y-auto pr-1 scrollbar-hide">
+      <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
+        <h2 className="text-xs font-bold text-slate-800 mb-1.5">Thao tác nhanh</h2>
+        <div className="flex flex-col gap-0.5">
+          {quickActions.map((a) => {
+            const Icon = a.icon
+            return (
+              <button
+                key={a.title}
+                type="button"
+                onClick={() => onNavigate(a.path)}
+                className="flex items-center gap-2 p-1 rounded-lg hover:bg-slate-50 transition-colors text-left w-full"
+              >
+                <div className={`w-6 h-6 rounded-lg ${a.bg} flex items-center justify-center flex-shrink-0`}>
+                  <Icon className={`w-3 h-3 ${a.color}`} />
                 </div>
-              ))}
-            </div>
-            <button className="text-[9px] font-semibold text-blue-600 mt-2">Xem tất cả thông báo</button>
-          </div>
-
-          {/* News */}
-          <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xs font-bold text-slate-800">Tin tức &amp; Insights</h2>
-              <button className="text-[9px] font-semibold text-blue-600">Xem tất cả</button>
-            </div>
-            <div className="flex flex-col gap-2">
-              {news.map((n, i) => (
-                <div key={i} className="flex gap-2">
-                  <img src={n.img} alt={n.title} className="w-12 h-9 rounded-lg object-cover flex-shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-medium text-slate-700 leading-snug line-clamp-2">{n.title}</p>
-                    <p className="text-[8px] text-slate-400 mt-0.5">{n.date}</p>
-                  </div>
+                <div className="min-w-0">
+                  <div className="text-[9px] font-semibold text-slate-800">{a.title}</div>
+                  <div className="text-[8px] text-slate-400 truncate">{a.desc}</div>
                 </div>
-              ))}
+                <span className="ml-auto text-slate-300 flex-shrink-0 text-[10px]">›</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            Thông báo
+            <span className="bg-rose-500 text-white text-[8px] font-bold rounded-full px-1.5 py-0.5">4</span>
+          </h2>
+          <button type="button" className="text-[9px] font-semibold text-blue-600">Xem tất cả</button>
+        </div>
+        <div className="flex flex-col gap-2">
+          {notifications.map((n) => (
+            <div key={n.text} className="flex items-start gap-1.5">
+              {n.warn
+                ? <AlertTriangle className="w-3 h-3 text-rose-500 mt-0.5 flex-shrink-0" />
+                : <span className={`w-1.5 h-1.5 rounded-full ${n.dot} mt-1 flex-shrink-0`} />}
+              <div className="min-w-0">
+                <p className="text-[9px] text-slate-700 leading-snug">{n.text}</p>
+                <p className="text-[8px] text-slate-400 mt-0.5">{n.time}</p>
+              </div>
             </div>
-          </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xs font-bold text-slate-800">Tin tức &amp; Insights</h2>
+          <button type="button" className="text-[9px] font-semibold text-blue-600">Xem tất cả</button>
+        </div>
+        <div className="flex flex-col gap-2">
+          {news.map((n) => (
+            <div key={n.title} className="flex gap-2">
+              <img src={n.img} alt={n.title} className="w-12 h-9 rounded-lg object-cover flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[9px] font-medium text-slate-700 leading-snug line-clamp-2">{n.title}</p>
+                <p className="text-[8px] text-slate-400 mt-0.5">{n.date}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
+  )
+}
+
+function OnboardingView({ displayName, onNavigate }) {
+  return (
+    <>
+      <div>
+        <h1 className="text-sm lg:text-base font-bold text-slate-800 flex items-center gap-1.5">
+          Xin chào, {displayName} <span className="inline-block text-sm">👋</span>
+        </h1>
+        <p className="text-[10px] lg:text-xs text-slate-500 mt-0.5 max-w-2xl">
+          JobShare là nền tảng tuyển dụng thông minh giúp doanh nghiệp tìm kiếm, tiếp cận và quản lý ứng viên hiệu quả.
+        </p>
+      </div>
+
+      <div>
+        <h2 className="text-xs lg:text-sm font-bold text-slate-800 mb-2">
+          Khám phá 4 giải pháp tuyển dụng tối ưu cùng JobShare
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-stretch">
+          {solutionCards.map((card) => (
+            <SolutionCard key={card.num} card={card} onUse={onNavigate} />
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-sky-100 bg-sky-50/80 px-3 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+        <div className="flex items-start gap-2 flex-1 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-white border border-sky-100 flex items-center justify-center flex-shrink-0">
+            <Scale className="w-4 h-4 text-sky-600" />
+          </div>
+          <p className="text-[10px] text-slate-600 leading-relaxed">
+            <span className="font-semibold text-slate-800">Không chắc giải pháp nào phù hợp?</span>
+            {' '}Đội ngũ chuyên gia của JobShare sẵn sàng tư vấn miễn phí cho doanh nghiệp của bạn.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onNavigate('/business/messages?tab=ws')}
+          className="flex-shrink-0 bg-sky-600 hover:bg-sky-700 text-white text-[10px] font-semibold rounded-lg px-4 py-2 transition-colors"
+        >
+          Nhận tư vấn ngay
+        </button>
+      </div>
+    </>
+  )
+}
+
+function DashboardView({ displayName }) {
+  return (
+    <>
+      <div>
+        <h1 className="text-sm lg:text-base font-bold text-slate-800 flex items-center gap-1.5">
+          Xin chào, {displayName} <span className="inline-block text-sm">👋</span>
+        </h1>
+        <p className="text-[10px] lg:text-xs text-slate-500 mt-0.5">Bạn đang cần gì hôm nay?</p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-stretch">
+        {actionCards.map((c) => <ActionCard key={c.title} c={c} />)}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-3 items-stretch">
+        <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5 flex flex-col">
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-1.5">
+            <h2 className="text-xs font-bold text-slate-800 flex items-center gap-1">
+              Recruitment Health
+              <span className="text-slate-300 text-[10px]">ⓘ</span>
+            </h2>
+            <select className="text-[9px] border border-slate-200 rounded-lg px-2 py-0.5 text-slate-600 bg-white">
+              <option>7 ngày qua</option>
+              <option>30 ngày qua</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-2 flex-1">
+            {healthMetrics.map((m) => <ScoreCard key={m.label} m={m} />)}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5 flex flex-col">
+          <h2 className="text-xs font-bold text-slate-800 mb-2">Tổng quan nhanh</h2>
+          <div className="flex flex-col gap-2.5 flex-1">
+            {quickStats.map((s) => {
+              const Icon = s.icon
+              return (
+                <div key={s.label} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 min-w-0">
+                    <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${s.color}`} />
+                    <span className="truncate">{s.label}</span>
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 flex-shrink-0">{s.value}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xs font-bold text-slate-800">Danh sách JD (Anken)</h2>
+          <button type="button" className="text-[9px] font-semibold text-blue-600 hover:text-blue-700">Xem tất cả JD</button>
+        </div>
+        <div className="overflow-x-auto -mx-2 lg:-mx-2.5">
+          <table className="w-full text-left text-[9px] table-fixed">
+            <colgroup>
+              <col className="w-[18%]" />
+              <col className="w-[11%]" />
+              <col className="w-[14%]" />
+              <col className="w-[8%]" />
+              <col className="w-[9%]" />
+              <col className="w-[15%]" />
+              <col className="w-[8%]" />
+              <col className="w-[17%]" />
+            </colgroup>
+            <thead>
+              <tr className="text-[8px] text-slate-400 uppercase">
+                <th className="font-medium px-2 lg:px-2.5 py-1.5">JD / Vị trí</th>
+                <th className="font-medium px-1 py-1.5">Trạng thái</th>
+                <th className="font-medium px-1 py-1.5">Dịch vụ</th>
+                <th className="font-medium px-1 py-1.5 text-right">Tổng</th>
+                <th className="font-medium px-1 py-1.5 text-right">Phù hợp</th>
+                <th className="font-medium px-1 py-1.5">Hiệu quả</th>
+                <th className="font-medium px-1 py-1.5">Đăng</th>
+                <th className="font-medium px-1 lg:px-2.5 py-1.5 text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {jobs.map((j) => (
+                <tr key={j.name} className="border-t border-slate-100">
+                  <td className="px-2 lg:px-2.5 py-2">
+                    <div className="font-semibold text-slate-800 text-[10px] truncate">{j.name}</div>
+                    <div className="text-[8px] text-slate-400 truncate">{j.jp}</div>
+                  </td>
+                  <td className="px-1 py-2">
+                    <span className={`inline-flex items-center gap-1 text-[8px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap ${j.statusColor}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${j.statusDot}`} />
+                      {j.status}
+                    </span>
+                  </td>
+                  <td className="px-1 py-2">
+                    <div className="flex flex-col gap-0.5">
+                      {j.services.map((s) => (
+                        <span key={s.label} className={`text-[8px] font-medium truncate ${s.color}`}>● {s.label}</span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-1 py-2 text-right text-slate-700">{j.total}</td>
+                  <td className="px-1 py-2 text-right text-slate-700">{j.matched}</td>
+                  <td className="px-1 py-2">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[8px] font-semibold text-slate-700 w-5 flex-shrink-0">{j.rate}%</span>
+                      <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
+                        <div className={`h-full ${j.rateColor} rounded-full`} style={{ width: `${j.rate}%` }} />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-1 py-2 text-slate-500 whitespace-nowrap">{j.time}</td>
+                  <td className="px-1 lg:px-2.5 py-2 text-right whitespace-nowrap">
+                    <button type="button" className="text-[8px] font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg px-1.5 py-0.5">Chi tiết</button>
+                    <button type="button" className="ml-1 text-slate-400 hover:text-slate-600 text-[10px]">⋮</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  )
+}
+
+const Homepage = () => {
+  const navigate = useNavigate()
+  const [loading, setLoading] = useState(true)
+  const [hasData, setHasData] = useState(false)
+  const [displayName, setDisplayName] = useState('bạn')
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      try {
+        const [profileRes, jobsRes, statsRes] = await Promise.all([
+          apiService.getBusinessProfile().catch(() => null),
+          apiService.getBusinessJobs({ page: 1, limit: 1 }).catch(() => null),
+          apiService.getBusinessApplicationStats().catch(() => null),
+        ])
+
+        if (cancelled) return
+
+        const business = profileRes?.data?.business || profileRes?.data || null
+        const name = business?.contactName || business?.companyName
+        if (name) setDisplayName(name)
+
+        const jobTotal = Number(jobsRes?.data?.pagination?.total ?? jobsRes?.data?.total ?? 0)
+        const appTotal = Number(statsRes?.data?.stats?.total ?? statsRes?.data?.total ?? 0)
+        setHasData(jobTotal > 0 || appTotal > 0)
+      } catch (e) {
+        console.error(e)
+        setHasData(false)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  const handleNavigate = useMemo(() => (path) => navigate(path), [navigate])
+
+  if (loading) {
+    return (
+      <div className="h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <style>{scrollbarHideStyle}</style>
+      <div className="h-screen bg-slate-50 p-2 lg:p-3 overflow-hidden">
+        <div className="max-w-[1440px] mx-auto h-full grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-2 lg:gap-3">
+          <div className="flex flex-col gap-2 lg:gap-3 min-w-0 overflow-y-auto pr-1 scrollbar-hide">
+            {hasData
+              ? <DashboardView displayName={displayName} />
+              : <OnboardingView displayName={displayName} onNavigate={handleNavigate} />}
+          </div>
+
+          <HomepageSidebar onNavigate={handleNavigate} />
+        </div>
+      </div>
     </>
   )
 }

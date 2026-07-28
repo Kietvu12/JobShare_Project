@@ -7,12 +7,25 @@ import {
 } from '../models/index.js';
 import {
   SCOUT_LISTING_STATUS,
+  SCOUT_PERFORMANCE_PRIVATE_CV_FIELDS,
   SCOUT_PRIVATE_CV_FIELDS,
   SCOUT_UNLOCK_TYPES,
   canCvBeListedOnScout,
 } from '../constants/scoutCredit.js';
 import { getScoutCreditCost, unlockScoutCvForBusiness } from './scoutCreditService.js';
-import { getPendingPerformanceRequestForBusiness } from './scoutPerformanceService.js';
+async function attachPerformanceRequestMeta(businessId, payload) {
+  if (!businessId || !payload?.id) return payload;
+  if (payload.isUnlocked && payload.unlockType && payload.unlockType !== SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE) {
+    return payload;
+  }
+  const { getPerformanceRequestMetaForBusiness } = await import('./scoutPerformanceService.js');
+  const performanceRequest = await getPerformanceRequestMetaForBusiness({
+    businessId,
+    cvId: payload.id,
+  });
+  if (performanceRequest) payload.performanceRequest = performanceRequest;
+  return payload;
+}
 
 const ANONYMOUS_LABEL = 'Ứng viên ẩn danh';
 
@@ -193,12 +206,29 @@ function buildUnlockedScoutPayload(cvJson) {
   };
 }
 
-/** Export để Job Application (Sàn CTV) xem full hồ sơ mà không tạo ScoutUnlock */
-export { buildUnlockedScoutPayload };
-
-function buildPublicScoutPayload(cvJson, { isUnlocked = false, search } = {}) {
-  if (!isUnlocked) return buildLockedScoutPayload(cvJson, { search });
+/** Scout Performance — profile mở một phần, không email/SĐT */
+function buildPerformanceUnlockedScoutPayload(cvJson) {
   const payload = buildUnlockedScoutPayload(cvJson);
+  delete payload.email;
+  delete payload.phone;
+  payload.isPerformancePartial = true;
+  payload.hideContact = true;
+  return {
+    ...payload,
+    ...pickFields(cvJson, SCOUT_PERFORMANCE_PRIVATE_CV_FIELDS),
+    email: undefined,
+    phone: undefined,
+  };
+}
+
+/** Export để Job Application (Sàn CTV) xem full hồ sơ mà không tạo ScoutUnlock */
+export { buildUnlockedScoutPayload, buildPerformanceUnlockedScoutPayload };
+
+function buildPublicScoutPayload(cvJson, { isUnlocked = false, unlockType = null, search } = {}) {
+  if (!isUnlocked) return buildLockedScoutPayload(cvJson, { search });
+  const payload = unlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE
+    ? buildPerformanceUnlockedScoutPayload(cvJson)
+    : buildUnlockedScoutPayload(cvJson);
   const snippets = extractSearchSnippets(cvJson, search);
   if (snippets.length) payload.searchSnippets = snippets;
   return payload;
@@ -309,8 +339,12 @@ export async function listUnlockedCandidatesForBusiness({
   const candidates = rows.map((unlock) => {
     const cvJson = unlock.cv?.toJSON?.() || unlock.cv;
     const saved = savedMap.get(Number(unlock.cvId));
+    const unlockType = unlock.unlockType || SCOUT_UNLOCK_TYPES.SCOUT_CREDIT;
+    const basePayload = unlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE
+      ? buildPerformanceUnlockedScoutPayload(cvJson)
+      : buildUnlockedScoutPayload(cvJson);
     return {
-      ...buildUnlockedScoutPayload(cvJson),
+      ...basePayload,
       ...buildUnlockedCandidateMeta(unlock, saved),
     };
   });
@@ -357,23 +391,17 @@ export async function getUnlockedCandidateForBusiness({ businessId, cvId }) {
   });
 
   const cvJson = unlock.cv.toJSON();
+  const unlockType = unlock.unlockType || SCOUT_UNLOCK_TYPES.SCOUT_CREDIT;
+  const basePayload = unlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE
+    ? buildPerformanceUnlockedScoutPayload(cvJson)
+    : buildUnlockedScoutPayload(cvJson);
   return {
     candidate: {
-      ...buildUnlockedScoutPayload(cvJson),
+      ...basePayload,
       ...buildUnlockedCandidateMeta(unlock, saved),
     },
     unlockedAt: unlock.unlockedAt || unlock.createdAt || null,
   };
-}
-
-async function attachPerformanceRequestMeta(businessId, payload) {
-  if (!businessId || !payload?.id || payload.isUnlocked) return payload;
-  const performanceRequest = await getPendingPerformanceRequestForBusiness({
-    businessId,
-    cvId: payload.id,
-  });
-  if (performanceRequest) payload.performanceRequest = performanceRequest;
-  return payload;
 }
 
 async function getUnlockedCvIdSet(businessId, cvIds) {
@@ -460,8 +488,9 @@ export async function listScoutCandidatesForBusiness({
     rows.map(async (cv) => {
       const json = cv.toJSON();
       const isUnlocked = unlockedSet.has(Number(cv.id));
-      const payload = buildPublicScoutPayload(json, { isUnlocked, search });
-      if (isUnlocked) payload.unlockType = unlockTypeMap.get(Number(cv.id)) || null;
+      const unlockType = unlockTypeMap.get(Number(cv.id)) || null;
+      const payload = buildPublicScoutPayload(json, { isUnlocked, unlockType, search });
+      if (isUnlocked) payload.unlockType = unlockType;
       return attachPerformanceRequestMeta(businessId, payload);
     }),
   );
@@ -509,7 +538,11 @@ export async function getScoutCandidateForBusiness({ businessId, cvId, search })
 
   const isUnlocked = Boolean(unlock);
   const json = cv.toJSON();
-  let payload = buildPublicScoutPayload(json, { isUnlocked, search });
+  let payload = buildPublicScoutPayload(json, {
+    isUnlocked,
+    unlockType: unlock?.unlockType || null,
+    search,
+  });
   payload = await attachPerformanceRequestMeta(businessId, payload);
   if (unlock) payload.unlockType = unlock.unlockType;
 

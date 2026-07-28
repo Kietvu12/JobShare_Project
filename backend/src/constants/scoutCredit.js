@@ -99,6 +99,9 @@ export const SCOUT_PUBLIC_CV_FIELDS = [
   'jobCategoryId',
 ];
 
+/** Liên hệ trực tiếp — ẩn với Scout Performance (WS điều phối) */
+export const SCOUT_CONTACT_CV_FIELDS = ['email', 'phone'];
+
 /** Field chỉ hiện sau khi doanh nghiệp mở khóa Scout Credit */
 export const SCOUT_PRIVATE_CV_FIELDS = [
   'name',
@@ -122,6 +125,24 @@ export const SCOUT_PRIVATE_CV_FIELDS = [
   'cvCareerHistoryPath',
   'avatarPhotoPath',
 ];
+
+/** Private fields cho Scout Performance — có profile, không email/SĐT */
+export const SCOUT_PERFORMANCE_PRIVATE_CV_FIELDS = SCOUT_PRIVATE_CV_FIELDS.filter(
+  (f) => !SCOUT_CONTACT_CV_FIELDS.includes(f),
+);
+
+/** Scout Performance — DN phản hồi CTA */
+export const SCOUT_PERFORMANCE_EXPLORE_STATUS = {
+  INTERESTED: 'interested',
+  DECLINED: 'declined',
+};
+
+/** Nguồn gợi ý ứng viên */
+export const SCOUT_PERFORMANCE_RECOMMENDATION_SOURCES = {
+  SCOUT: 'scout',
+  CTV: 'ctv',
+  SYSTEM: 'system',
+};
 
 /** Học vấn, kinh nghiệm, chứng chỉ — chỉ hiện sau khi mở khóa (ẩn khi chưa mở) */
 export const SCOUT_UNLOCKED_PROFILE_FIELDS = [

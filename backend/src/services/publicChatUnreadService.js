@@ -1,5 +1,25 @@
 import sequelize from '../config/database.js';
 
+const CHAT_TABLES = {
+  ctv: {
+    sessionTable: 'public_ctv_chat_sessions',
+    messageTable: 'public_ctv_chat_messages',
+  },
+  candidate: {
+    sessionTable: 'public_candidate_chat_sessions',
+    messageTable: 'public_candidate_chat_messages',
+  },
+};
+
+const toSelectRows = (raw) => {
+  if (Array.isArray(raw)) {
+    if (raw.length === 2 && Array.isArray(raw[0])) return raw[0];
+    return raw;
+  }
+  if (raw != null && typeof raw === 'object') return [raw];
+  return [];
+};
+
 /**
  * Đếm tin visitor chưa đọc (admin chưa seen) theo session id.
  * @param {'ctv'|'candidate'} kind
@@ -26,7 +46,82 @@ export async function countUnreadVisitorMessagesBySession(kind, sessionIds) {
   );
 
   return Object.fromEntries(
-    (rows || []).map((r) => [Number(r.sessionId), Number(r.unreadCount || 0)])
+    toSelectRows(rows).map((r) => [Number(r.sessionId), Number(r.unreadCount || 0)])
+  );
+}
+
+/**
+ * Tin nhắn mới nhất (mọi sender) theo session id — dùng admin inbox list.
+ * @param {'ctv'|'candidate'} kind
+ * @param {number[]} sessionIds
+ * @returns {Promise<Record<number, { preview: string|null, senderType: string|null }>>}
+ */
+export async function getLatestMessagePreviewsBySession(kind, sessionIds) {
+  if (!sessionIds?.length) return {};
+  const { messageTable } = CHAT_TABLES[kind] || CHAT_TABLES.ctv;
+
+  const rows = await sequelize.query(
+    `
+    SELECT m.session_id AS sessionId, m.body AS preview, m.sender_type AS senderType
+    FROM ${messageTable} m
+    INNER JOIN (
+      SELECT session_id, MAX(created_at) AS max_created_at
+      FROM ${messageTable}
+      WHERE session_id IN (:ids)
+      GROUP BY session_id
+    ) latest ON latest.session_id = m.session_id AND latest.max_created_at = m.created_at
+    WHERE m.session_id IN (:ids)
+    `,
+    { replacements: { ids: sessionIds }, type: sequelize.QueryTypes.SELECT }
+  );
+
+  return Object.fromEntries(
+    toSelectRows(rows).map((r) => [
+      Number(r.sessionId),
+      {
+        preview: r.preview ? String(r.preview).slice(0, 120) : null,
+        senderType: r.senderType ? String(r.senderType) : null,
+      },
+    ])
+  );
+}
+
+/**
+ * Tin visitor chưa đọc mới nhất theo session id.
+ * @param {'ctv'|'candidate'} kind
+ * @param {number[]} sessionIds
+ * @returns {Promise<Record<number, { preview: string|null }>>}
+ */
+export async function getLatestUnreadVisitorPreviewsBySession(kind, sessionIds) {
+  if (!sessionIds?.length) return {};
+  const { sessionTable, messageTable } = CHAT_TABLES[kind] || CHAT_TABLES.ctv;
+
+  const rows = await sequelize.query(
+    `
+    SELECT m.session_id AS sessionId, m.body AS preview
+    FROM ${sessionTable} s
+    INNER JOIN ${messageTable} m ON m.session_id = s.id
+      AND m.sender_type = 'visitor'
+      AND (s.admin_last_seen_at IS NULL OR m.created_at > s.admin_last_seen_at)
+    INNER JOIN (
+      SELECT m2.session_id, MAX(m2.created_at) AS max_created_at
+      FROM ${sessionTable} s2
+      INNER JOIN ${messageTable} m2 ON m2.session_id = s2.id
+        AND m2.sender_type = 'visitor'
+        AND (s2.admin_last_seen_at IS NULL OR m2.created_at > s2.admin_last_seen_at)
+      WHERE m2.session_id IN (:ids)
+      GROUP BY m2.session_id
+    ) latest ON latest.session_id = m.session_id AND latest.max_created_at = m.created_at
+    WHERE m.session_id IN (:ids)
+    `,
+    { replacements: { ids: sessionIds }, type: sequelize.QueryTypes.SELECT }
+  );
+
+  return Object.fromEntries(
+    toSelectRows(rows).map((r) => [
+      Number(r.sessionId),
+      { preview: r.preview ? String(r.preview).slice(0, 120) : null },
+    ])
   );
 }
 

@@ -9,7 +9,11 @@ import {
 import { getScoutCreditCost } from '../../services/scoutCreditService.js';
 import {
   createScoutPerformanceRequest,
+  getScoutPerformanceRequestDetail,
   listScoutPerformanceRequests,
+  markScoutPerformanceRequestViewed,
+  requestSimilarScoutPerformanceCandidates,
+  setScoutPerformanceExploreStatus,
 } from '../../services/scoutPerformanceService.js';
 
 function handleServiceError(res, error, next) {
@@ -177,7 +181,29 @@ export const businessScoutController = {
       });
       res.json({
         success: true,
-        message: 'Đã gửi yêu cầu Scout Performance. Admin/CTV sẽ xử lý sớm.',
+        message: 'Đã mở hồ sơ bằng Scout Performance.',
+        data: { request },
+      });
+    } catch (error) {
+      return handleServiceError(res, error, next);
+    }
+  },
+
+  requestSimilarCandidates: async (req, res, next) => {
+    try {
+      const requestId = parseInt(req.params.id, 10);
+      if (Number.isNaN(requestId)) {
+        return res.status(400).json({ success: false, message: 'ID yêu cầu không hợp lệ' });
+      }
+      const { message } = req.body || {};
+      const request = await requestSimilarScoutPerformanceCandidates({
+        businessId: req.business.id,
+        requestId,
+        message,
+      });
+      res.json({
+        success: true,
+        message: 'Đã gửi yêu cầu tìm thêm ứng viên tương tự. JobShare WS sẽ trao đổi qua Tin nhắn.',
         data: { request },
       });
     } catch (error) {
@@ -198,6 +224,62 @@ export const businessScoutController = {
         businessId: req.business.id,
       });
       res.json({ success: true, data });
+    } catch (error) {
+      return handleServiceError(res, error, next);
+    }
+  },
+
+  getPerformanceRequest: async (req, res, next) => {
+    try {
+      const requestId = parseInt(req.params.id, 10);
+      if (Number.isNaN(requestId)) {
+        return res.status(400).json({ success: false, message: 'ID yêu cầu không hợp lệ' });
+      }
+      const request = await getScoutPerformanceRequestDetail({
+        requestId,
+        businessId: req.business.id,
+      });
+      res.json({ success: true, data: { request } });
+    } catch (error) {
+      return handleServiceError(res, error, next);
+    }
+  },
+
+  markPerformanceRequestViewed: async (req, res, next) => {
+    try {
+      const requestId = parseInt(req.params.id, 10);
+      if (Number.isNaN(requestId)) {
+        return res.status(400).json({ success: false, message: 'ID yêu cầu không hợp lệ' });
+      }
+      const data = await markScoutPerformanceRequestViewed({
+        requestId,
+        businessId: req.business.id,
+      });
+      res.json({ success: true, data });
+    } catch (error) {
+      return handleServiceError(res, error, next);
+    }
+  },
+
+  setPerformanceExploreStatus: async (req, res, next) => {
+    try {
+      const requestId = parseInt(req.params.id, 10);
+      if (Number.isNaN(requestId)) {
+        return res.status(400).json({ success: false, message: 'ID yêu cầu không hợp lệ' });
+      }
+      const { action } = req.body || {};
+      const data = await setScoutPerformanceExploreStatus({
+        requestId,
+        businessId: req.business.id,
+        action,
+      });
+      res.json({
+        success: true,
+        message: action === 'interested'
+          ? 'Cảm ơn bạn. JobShare WS sẽ liên hệ hỗ trợ thêm.'
+          : 'Đã ghi nhận phản hồi của bạn.',
+        data,
+      });
     } catch (error) {
       return handleServiceError(res, error, next);
     }

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ArrowLeft, Coins, Loader2, Save, Trash2 } from 'lucide-react';
 import apiService from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
@@ -23,7 +23,8 @@ function formatDate(value) {
 
 export default function AdminBusinessDetailPage() {
   const { businessId } = useParams();
-  const isCreate = businessId === 'create';
+  const location = useLocation();
+  const isCreate = businessId === 'create' || location.pathname.endsWith('/business-accounts/create');
   const navigate = useNavigate();
   const { language } = useLanguage();
   const t = translations[language] || translations.vi;

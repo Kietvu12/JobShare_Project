@@ -34,11 +34,12 @@ export const ctvScoutPerformanceController = {
       if (Number.isNaN(requestId)) {
         return res.status(400).json({ success: false, message: 'ID yêu cầu không hợp lệ' });
       }
-      const { note } = req.body || {};
+      const { note, recommendationCvIds } = req.body || {};
       const request = await approveScoutPerformanceRequest({
         requestId,
         collaboratorId: req.collaborator.id,
         note,
+        recommendationCvIds,
       });
       res.json({
         success: true,

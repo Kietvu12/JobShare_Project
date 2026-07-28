@@ -216,7 +216,7 @@ const CandidateLayout = () => {
   const switchPersona = (id) => {
     if (id === 'collaborator') navigate(localizedPersonaHref(language, 'collaborator'));
     else if (id === 'candidate') navigate(localizedPersonaHref(language, 'candidate'));
-    else if (id === 'company') navigate('/business');
+    else if (id === 'company') navigate(localizedPersonaHref(language, 'company'));
   };
   const handleLanguageChange = (lang) => {
     changeLanguage(lang);
@@ -301,7 +301,7 @@ const CandidateLayout = () => {
                         <span className="block truncate text-[11px] text-neutral-500">{personaSubText.candidate}</span>
                       </span>
                     </button>
-                    <button type="button" onClick={() => { setPersonaDropdownOpen(false); navigate('/business'); }} className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50">
+                    <button type="button" onClick={() => { setPersonaDropdownOpen(false); navigate(localizedPersonaHref(language, 'company')); }} className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50">
                       <Building2 className="h-4 w-4 text-neutral-700" />
                       <span className="min-w-0 flex-1">
                         <span className="block text-xs font-semibold text-neutral-900">{personaText.company}</span>

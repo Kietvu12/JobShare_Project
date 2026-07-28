@@ -2,6 +2,7 @@ import {
   approveScoutPerformanceRequest,
   listScoutPerformanceRequests,
   rejectScoutPerformanceRequest,
+  searchCvsForPerformanceRecommendation,
 } from '../../services/scoutPerformanceService.js';
 
 function handleError(res, error, next) {
@@ -28,15 +29,16 @@ export const adminScoutPerformanceController = {
       if (Number.isNaN(requestId)) {
         return res.status(400).json({ success: false, message: 'ID yêu cầu không hợp lệ' });
       }
-      const { note } = req.body || {};
+      const { note, recommendationCvIds } = req.body || {};
       const request = await approveScoutPerformanceRequest({
         requestId,
         adminId: req.admin.id,
         note,
+        recommendationCvIds,
       });
       res.json({
         success: true,
-        message: 'Đã duyệt yêu cầu Scout Performance',
+        message: 'Đã duyệt và gửi gợi ý Scout Performance cho doanh nghiệp',
         data: { request },
       });
     } catch (error) {
@@ -61,6 +63,16 @@ export const adminScoutPerformanceController = {
         message: 'Đã từ chối yêu cầu Scout Performance',
         data: { request },
       });
+    } catch (error) {
+      return handleError(res, error, next);
+    }
+  },
+
+  searchCandidates: async (req, res, next) => {
+    try {
+      const { search, limit } = req.query;
+      const candidates = await searchCvsForPerformanceRecommendation({ search, limit });
+      res.json({ success: true, data: { candidates } });
     } catch (error) {
       return handleError(res, error, next);
     }

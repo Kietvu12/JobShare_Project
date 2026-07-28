@@ -982,6 +982,15 @@ const apiService = {
     return handleResponse(response);
   },
 
+  requestSimilarScoutPerformanceCandidates: async (requestId, body = {}) => {
+    const response = await fetch(`${API_BASE_URL}/business/scout/performance-requests/${requestId}/similar-candidates`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
   getBusinessScoutPerformanceRequests: async (params = {}) => {
     const filtered = Object.fromEntries(
       Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
@@ -989,6 +998,140 @@ const apiService = {
     const queryString = new URLSearchParams(filtered).toString();
     const response = await fetch(
       `${API_BASE_URL}/business/scout/performance-requests${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET', headers: getAuthHeaders() }
+    );
+    return handleResponse(response);
+  },
+
+  getBusinessScoutPerformanceRequestById: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/business/scout/performance-requests/${id}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  markBusinessScoutPerformanceRequestViewed: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/business/scout/performance-requests/${id}/view`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({}),
+    });
+    return handleResponse(response);
+  },
+
+  setBusinessScoutPerformanceExplore: async (id, action) => {
+    const response = await fetch(`${API_BASE_URL}/business/scout/performance-requests/${id}/explore`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ action }),
+    });
+    return handleResponse(response);
+  },
+
+  getBusinessWsChatSessions: async (params = {}) => {
+    const filtered = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
+    );
+    const queryString = new URLSearchParams(filtered).toString();
+    const response = await fetch(
+      `${API_BASE_URL}/business/ws-chat/sessions${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET', headers: getAuthHeaders() }
+    );
+    return handleResponse(response);
+  },
+
+  getBusinessWsChatMessages: async (sessionId) => {
+    const response = await fetch(`${API_BASE_URL}/business/ws-chat/sessions/${sessionId}/messages`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  sendBusinessWsChatMessage: async (sessionId, body = {}) => {
+    const response = await fetch(`${API_BASE_URL}/business/ws-chat/sessions/${sessionId}/messages`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
+  getAdminWsChatSessions: async (params = {}) => {
+    const filtered = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
+    );
+    const queryString = new URLSearchParams(filtered).toString();
+    const response = await fetch(
+      `${API_BASE_URL}/admin/ws-chat/sessions${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET', headers: getAuthHeaders() }
+    );
+    return handleResponse(response);
+  },
+
+  getAdminWsChatSessionByRequestId: async (requestId) => {
+    const response = await fetch(`${API_BASE_URL}/admin/ws-chat/sessions/by-performance-request/${requestId}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getAdminWsChatMessages: async (sessionId) => {
+    const response = await fetch(`${API_BASE_URL}/admin/ws-chat/sessions/${sessionId}/messages`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  sendAdminWsChatMessage: async (sessionId, body = {}) => {
+    const response = await fetch(`${API_BASE_URL}/admin/ws-chat/sessions/${sessionId}/messages`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
+  searchAdminWsChatCandidates: async (params = {}) => {
+    const filtered = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
+    );
+    const queryString = new URLSearchParams(filtered).toString();
+    const response = await fetch(
+      `${API_BASE_URL}/admin/ws-chat/cv-search${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET', headers: getAuthHeaders() }
+    );
+    return handleResponse(response);
+  },
+
+  acceptAdminWsChatPerformanceRequest: async (sessionId, body = {}) => {
+    const response = await fetch(`${API_BASE_URL}/admin/ws-chat/sessions/${sessionId}/performance-request/accept`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
+  rejectAdminWsChatPerformanceRequest: async (sessionId, body = {}) => {
+    const response = await fetch(`${API_BASE_URL}/admin/ws-chat/sessions/${sessionId}/performance-request/reject`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
+  searchAdminScoutPerformanceCandidates: async (params = {}) => {
+    const filtered = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
+    );
+    const queryString = new URLSearchParams(filtered).toString();
+    const response = await fetch(
+      `${API_BASE_URL}/admin/scout/cv-search${queryString ? `?${queryString}` : ''}`,
       { method: 'GET', headers: getAuthHeaders() }
     );
     return handleResponse(response);
