@@ -4,15 +4,22 @@ import { collaboratorNotificationService } from '../../services/collaboratorNoti
 import { applySseHeaders } from '../../utils/sseHeaders.js';
 import {
   hasCollaboratorNotificationAdminColumn,
+  hasCollaboratorNotificationBusinessColumn,
+  hasCollaboratorNotificationTimestampColumns,
   isMissingCollaboratorNotificationAdminColumnError,
+  isMissingCollaboratorNotificationTimestampColumnError,
 } from '../../utils/collaboratorNotificationSchema.js';
 
 const ADMIN_NOTIFICATIONS_MIGRATION_HINT =
-  'Chạy migration: node backend/scripts/add-collaborator-notification-recipient-columns.js';
+  'Chạy migration: node backend/scripts/add-collaborator-notification-recipient-columns.js '
+  + '&& node backend/scripts/add-collaborator-notification-timestamp-columns.js';
 
-const NOTIFICATION_LIST_ORDER = [
-  [sequelize.literal('`collaborator_notifications`.`created_at`'), 'DESC'],
-];
+function getNotificationListOrder(hasTimestamps) {
+  if (hasTimestamps) {
+    return [[sequelize.literal('`collaborator_notifications`.`created_at`'), 'DESC']];
+  }
+  return [['id', 'DESC']];
+}
 
 
 
@@ -42,121 +49,100 @@ function logAdminNotificationError(scope, error, extra = {}) {
 
 
 
-/** Model có businessId nhưng DB chưa migration → COUNT(*) vẫn chạy, SELECT danh sách lỗi */
-
-function isMissingBusinessIdColumn(err) {
-
-  const e = err?.parent || err?.original || err;
-
-  const m = String(e?.sqlMessage || err?.message || '');
-
-  return (e?.errno === 1054 || e?.code === 'ER_BAD_FIELD_ERROR')
-
-    && /Unknown column ['`]?business_id['`]?/i.test(m);
-
-}
-
-
-
 const JOB_INCLUDE = {
-
   model: Job,
-
   as: 'job',
-
   required: false,
-
   attributes: ['id', 'jobCode', 'title', 'slug'],
-
 };
 
-
-
 const LIST_ATTRS_WITHOUT_BUSINESS_ID = [
-
   'id', 'collaboratorId', 'adminId', 'title', 'content', 'jobId', 'url', 'isRead', 'createdAt', 'updatedAt',
-
 ];
 
+const LIST_ATTRS_WITHOUT_TIMESTAMPS = [
+  'id', 'collaboratorId', 'adminId', 'businessId', 'title', 'content', 'jobId', 'url', 'isRead',
+];
 
+const LIST_ATTRS_WITHOUT_BUSINESS_ID_OR_TIMESTAMPS = [
+  'id', 'collaboratorId', 'adminId', 'title', 'content', 'jobId', 'url', 'isRead',
+];
+
+function isMissingBusinessIdColumn(err) {
+  const e = err?.parent || err?.original || err;
+  const m = String(e?.sqlMessage || err?.message || '');
+  return (e?.errno === 1054 || e?.code === 'ER_BAD_FIELD_ERROR')
+    && /Unknown column ['`]?business_id['`]?/i.test(m);
+}
+
+function pickListAttributes({ hasTimestamps, hasBusinessId }) {
+  if (!hasTimestamps && !hasBusinessId) return LIST_ATTRS_WITHOUT_BUSINESS_ID_OR_TIMESTAMPS;
+  if (!hasTimestamps) return LIST_ATTRS_WITHOUT_TIMESTAMPS;
+  if (!hasBusinessId) return LIST_ATTRS_WITHOUT_BUSINESS_ID;
+  return undefined;
+}
 
 async function findAdminNotifications(adminId, page, limit) {
-
   const offset = (page - 1) * limit;
+  const hasTimestamps = await hasCollaboratorNotificationTimestampColumns();
+  const order = getNotificationListOrder(hasTimestamps);
+  const hasBusinessId = await hasCollaboratorNotificationBusinessColumn();
+  const attributes = pickListAttributes({ hasTimestamps, hasBusinessId });
 
   const baseQuery = {
     where: { adminId },
-    order: NOTIFICATION_LIST_ORDER,
+    order,
     limit,
     offset,
+    ...(attributes ? { attributes } : {}),
   };
 
   const withJob = {
-
     ...baseQuery,
-
     include: [JOB_INCLUDE],
-
   };
 
-
-
   try {
-
     return await CollaboratorNotification.findAndCountAll(withJob);
-
   } catch (error) {
-
     if (isMissingCollaboratorNotificationAdminColumnError(error)) {
-
       throw error;
-
     }
 
-    if (isMissingBusinessIdColumn(error)) {
-
-      return await CollaboratorNotification.findAndCountAll({
-
-        ...withJob,
-
-        attributes: LIST_ATTRS_WITHOUT_BUSINESS_ID,
-
+    if (isMissingCollaboratorNotificationTimestampColumnError(error) || isMissingBusinessIdColumn(error)) {
+      const fallbackAttrs = pickListAttributes({
+        hasTimestamps: !isMissingCollaboratorNotificationTimestampColumnError(error) && hasTimestamps,
+        hasBusinessId: !isMissingBusinessIdColumn(error) && hasBusinessId,
       });
-
+      return await CollaboratorNotification.findAndCountAll({
+        ...withJob,
+        order: isMissingCollaboratorNotificationTimestampColumnError(error) ? [['id', 'DESC']] : order,
+        ...(fallbackAttrs ? { attributes: fallbackAttrs } : {}),
+      });
     }
 
     logAdminNotificationError('getNotifications', error, {
-
       adminId,
-
       retry: 'without job include',
-
     });
 
     try {
-
       return await CollaboratorNotification.findAndCountAll(baseQuery);
-
     } catch (retryError) {
-
-      if (isMissingBusinessIdColumn(retryError)) {
-
-        return await CollaboratorNotification.findAndCountAll({
-
-          ...baseQuery,
-
-          attributes: LIST_ATTRS_WITHOUT_BUSINESS_ID,
-
+      if (isMissingCollaboratorNotificationTimestampColumnError(retryError) || isMissingBusinessIdColumn(retryError)) {
+        const fallbackAttrs = pickListAttributes({
+          hasTimestamps: !isMissingCollaboratorNotificationTimestampColumnError(retryError) && hasTimestamps,
+          hasBusinessId: !isMissingBusinessIdColumn(retryError) && hasBusinessId,
         });
-
+        return await CollaboratorNotification.findAndCountAll({
+          ...baseQuery,
+          order: isMissingCollaboratorNotificationTimestampColumnError(retryError) ? [['id', 'DESC']] : order,
+          ...(fallbackAttrs ? { attributes: fallbackAttrs } : {}),
+        });
       }
-
       throw retryError;
-
     }
-
   }
-
 }
 
 
