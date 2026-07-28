@@ -1115,7 +1115,7 @@ const Scout = () => {
     return (
       <>
         <style>{scrollbarStyle}</style>
-        <div className="h-screen bg-slate-50 flex items-center justify-center">
+        <div className="h-full min-h-0 bg-slate-50 flex items-center justify-center">
           <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
         </div>
       </>
@@ -1127,8 +1127,8 @@ const Scout = () => {
       <>
         <style>{scrollbarStyle}</style>
         {sharedModals}
-        <div className="h-screen bg-slate-50 p-2 lg:p-3 overflow-hidden">
-          <div className="max-w-[1440px] mx-auto h-full grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-2 lg:gap-3">
+        <div className="h-full min-h-0 bg-slate-50 p-2 lg:p-3 overflow-hidden">
+          <div className="w-full h-full grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-2 lg:gap-3">
             <div className="flex flex-col gap-2 lg:gap-3 min-w-0 overflow-y-auto scout-onboard-scroll pr-1">
               <ScoutOnboardingView
                 previewCandidates={previewCandidates}
@@ -1147,8 +1147,8 @@ const Scout = () => {
   return (
     <>
       <style>{scrollbarStyle}</style>
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 12, flex: 1, overflow: 'hidden', padding: 12 }}>
+      <div className="h-full min-h-0 flex flex-col bg-slate-50">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-3 flex-1 min-h-0 overflow-hidden p-2 lg:p-3 w-full">
           <div className="flex flex-col gap-2 scout-scrollbar" style={{ minHeight: 0, overflowY: 'auto' }}>
             <div className="bg-white rounded-xl border border-slate-100" style={{ padding: 10 }}>
               <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>

@@ -331,8 +331,8 @@ const JobManagement = () => {
   return (
     <>
       <style>{s}</style>
-      <div className="h-screen bg-slate-50 overflow-hidden" style={{ padding: '8px' }}>
-      <div className="h-full mx-auto grid gap-2" style={{ maxWidth: 1440, gridTemplateColumns: '1fr 220px' }}>
+      <div className="h-full min-h-0 bg-slate-50 p-2 lg:p-3 overflow-hidden">
+      <div className="w-full h-full grid grid-cols-1 xl:grid-cols-[1fr_220px] gap-2 lg:gap-3">
 
         {/* ── Main ── */}
         <div className="flex flex-col gap-2 min-w-0 min-h-0 overflow-y-auto hide-sb" style={{ paddingRight: 2 }}>

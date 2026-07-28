@@ -664,7 +664,7 @@ const Homepage = () => {
 
   if (loading) {
     return (
-      <div className="h-screen bg-slate-50 flex items-center justify-center">
+      <div className="h-full min-h-0 bg-slate-50 flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
       </div>
     )
@@ -673,8 +673,8 @@ const Homepage = () => {
   return (
     <>
       <style>{scrollbarHideStyle}</style>
-      <div className="h-screen bg-slate-50 p-2 lg:p-3 overflow-hidden">
-        <div className="max-w-[1440px] mx-auto h-full grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-2 lg:gap-3">
+      <div className="h-full min-h-0 bg-slate-50 p-2 lg:p-3 overflow-hidden">
+        <div className="w-full h-full grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-2 lg:gap-3">
           <div className="flex flex-col gap-2 lg:gap-3 min-w-0 overflow-y-auto pr-1 scrollbar-hide">
             {hasData
               ? <DashboardView displayName={displayName} />
