@@ -4,6 +4,7 @@ import {
   listWsChatMessagesForBusiness,
   listWsChatSessionsForBusiness,
   sendWsChatMessageFromBusiness,
+  syncAllPendingCreditRequestsForBusiness,
 } from '../../services/businessWsChatService.js';
 
 export const businessWsChatController = {
@@ -71,6 +72,18 @@ export const businessWsChatController = {
         content: req.body.content,
       });
       res.json({ success: true, data: { message }, message: 'Đã gửi tin nhắn' });
+    } catch (error) {
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      next(error);
+    }
+  },
+
+  syncCreditRequests: async (req, res, next) => {
+    try {
+      const result = await syncAllPendingCreditRequestsForBusiness({ businessId: req.business.id });
+      res.json({ success: true, data: result, message: 'Đã đồng bộ yêu cầu credit vào chat' });
     } catch (error) {
       if (error.statusCode) {
         return res.status(error.statusCode).json({ success: false, message: error.message });

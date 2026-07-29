@@ -1041,6 +1041,14 @@ const apiService = {
     return handleResponse(response);
   },
 
+  syncBusinessWsChatCreditRequests: async () => {
+    const response = await fetch(`${API_BASE_URL}/business/ws-chat/sync-credit-requests`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   getBusinessWsChatMessages: async (sessionId) => {
     const response = await fetch(`${API_BASE_URL}/business/ws-chat/sessions/${sessionId}/messages`, {
       method: 'GET',
@@ -1118,6 +1126,24 @@ const apiService = {
 
   rejectAdminWsChatPerformanceRequest: async (sessionId, body = {}) => {
     const response = await fetch(`${API_BASE_URL}/admin/ws-chat/sessions/${sessionId}/performance-request/reject`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
+  acceptAdminWsChatCreditRequest: async (sessionId, body = {}) => {
+    const response = await fetch(`${API_BASE_URL}/admin/ws-chat/sessions/${sessionId}/credit-request/accept`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
+  rejectAdminWsChatCreditRequest: async (sessionId, body = {}) => {
+    const response = await fetch(`${API_BASE_URL}/admin/ws-chat/sessions/${sessionId}/credit-request/reject`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(body),

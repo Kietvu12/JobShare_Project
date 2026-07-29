@@ -234,7 +234,6 @@ export default function JdTemplate({
   const L = LABELS[lang] || LABELS.vi;
 
   const buildEditableProps = (editKey, value, onBlur, className = '', style = {}) => ({
-    key: `${lang}:${editKey}`,
     contentEditable: true,
     suppressContentEditableWarning: true,
     onBlur,
@@ -247,6 +246,7 @@ export default function JdTemplate({
     },
     className: className || 'outline-none block',
     style: { outline: 'none', minHeight: '1.2em', ...style },
+    'data-edit-key': `${lang}:${editKey}`,
   });
 
   const countryLabelByLang = (countryRaw) => {

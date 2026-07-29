@@ -78,7 +78,7 @@ export const businessBillingController = {
   createCreditRequest: async (req, res, next) => {
     try {
       const { amount, note, paymentMethod } = req.body || {};
-      const request = await createBusinessCreditRequest({
+      const { request, wsChat } = await createBusinessCreditRequest({
         businessId: req.business.id,
         amount,
         note,
@@ -87,7 +87,7 @@ export const businessBillingController = {
       res.status(201).json({
         success: true,
         message: 'Đã gửi yêu cầu nạp credit. WS sẽ xử lý trong thời gian sớm nhất.',
-        data: { request },
+        data: { request, wsChat },
       });
     } catch (error) {
       return handleServiceError(res, error, next);

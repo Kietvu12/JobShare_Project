@@ -3,6 +3,7 @@ import sequelize from '../config/database.js';
 import {
   Admin,
   Business,
+  BusinessCreditRequest,
   BusinessScoutPerformanceRequest,
   BusinessWsChatMessage,
   BusinessWsChatSession,
@@ -10,6 +11,7 @@ import {
   JobCategory,
 } from '../models/index.js';
 import { SCOUT_PERFORMANCE_REQUEST_STATUS } from '../constants/scoutCredit.js';
+import { CREDIT_REQUEST_STATUS } from '../constants/businessBilling.js';
 import { collaboratorNotificationService } from './collaboratorNotificationService.js';
 
 export const WS_CHAT_SESSION_TYPES = {
@@ -28,6 +30,8 @@ export const WS_CHAT_MESSAGE_TYPES = {
   SIMILAR_CANDIDATES_REQUEST: 'similar_candidates_request',
   PERFORMANCE_REQUEST: 'performance_request',
   PERFORMANCE_DECISION: 'performance_decision',
+  CREDIT_REQUEST: 'credit_request',
+  CREDIT_DECISION: 'credit_decision',
 };
 
 function buildBusinessWsChatSessionTitle(business) {
@@ -100,6 +104,56 @@ function formatMessageRow(row) {
       ? { id: json.business.id, companyName: json.business.companyName, contactName: json.business.contactName }
       : null,
   };
+}
+
+async function updateCreditRequestMessageStatus({
+  sessionId,
+  requestId,
+  status,
+  adminNote = null,
+  transaction = null,
+}) {
+  const rows = await BusinessWsChatMessage.findAll({
+    where: { sessionId, messageType: WS_CHAT_MESSAGE_TYPES.CREDIT_REQUEST },
+    attributes: ['id', 'requestPayload'],
+    transaction,
+  });
+  const message = rows.find((row) => Number(row.requestPayload?.requestId) === Number(requestId));
+  if (!message?.requestPayload) return null;
+
+  const payload = {
+    ...(message.requestPayload || {}),
+    status,
+    requestId: requestId || message.requestPayload.requestId,
+  };
+  if (adminNote) payload.adminNote = adminNote;
+  await message.update({ requestPayload: payload }, { transaction });
+  return message;
+}
+
+async function notifyAdminsCreditRequestCreated({ creditRequest, business, sessionId }) {
+  const companyName = business?.companyName || 'Doanh nghiệp';
+  const amount = Number(creditRequest.amount) || 0;
+  const code = creditRequest.requestCode || `#${creditRequest.id}`;
+  const content = `${companyName} yêu cầu nạp ${amount.toLocaleString('vi-VN')} credit (${code}).`;
+  const adminUrl = sessionId
+    ? `/admin/public-ctv-chat?tab=business&sessionId=${sessionId}`
+    : '/admin/business-credit-requests';
+
+  const admins = await Admin.findAll({
+    where: { isActive: true, status: 1, role: { [Op.in]: [1, 2] } },
+    attributes: ['id'],
+  });
+  for (const admin of admins) {
+    await collaboratorNotificationService.createAndEmit({
+      collaboratorId: null,
+      adminId: admin.id,
+      title: 'Yêu cầu nạp credit mới',
+      content,
+      jobId: null,
+      url: adminUrl,
+    });
+  }
 }
 
 async function updatePerformanceRequestMessageStatus({
@@ -365,6 +419,92 @@ export async function createWsChatPerformanceRequestMessage({
   return message;
 }
 
+export async function createWsChatCreditRequestMessage({
+  businessId,
+  creditRequest,
+  transaction = null,
+}) {
+  const business = await Business.findByPk(businessId, {
+    attributes: ['id', 'companyName', 'contactName'],
+    transaction,
+  });
+  const session = await ensureWsChatSessionForBusiness({ businessId, business, transaction });
+
+  const already = await hasWsChatMessageForRequest({
+    sessionId: session.id,
+    messageType: WS_CHAT_MESSAGE_TYPES.CREDIT_REQUEST,
+    requestId: creditRequest.id,
+    transaction,
+  });
+  if (already) return { message: null, session };
+
+  const amount = Number(creditRequest.amount) || 0;
+  const requestCode = creditRequest.requestCode || creditRequest.request_code;
+  const content = `Yêu cầu nạp ${amount.toLocaleString('vi-VN')} credit (${requestCode})`;
+
+  const message = await BusinessWsChatMessage.create(
+    {
+      sessionId: session.id,
+      senderType: WS_CHAT_SENDER_TYPES.BUSINESS,
+      businessId,
+      messageType: WS_CHAT_MESSAGE_TYPES.CREDIT_REQUEST,
+      requestPayload: {
+        requestId: creditRequest.id,
+        requestCode,
+        amount,
+        note: creditRequest.note || null,
+        paymentMethod: creditRequest.paymentMethod || creditRequest.payment_method || 'bank_transfer',
+        status: 'pending',
+      },
+      content,
+      isReadByBusiness: true,
+      isReadByAdmin: false,
+    },
+    { transaction },
+  );
+
+  await touchSessionPreview(session, { content, transaction });
+
+  if (!transaction && message) {
+    await notifyAdminsCreditRequestCreated({ creditRequest, business, sessionId: session.id });
+  }
+
+  return { message, session };
+}
+
+/** Backfill: pending credit requests chưa có tin nhắn chat (yêu cầu tạo trước khi bật sync). */
+export async function ensurePendingCreditRequestsInWsChat({ businessId }) {
+  if (!businessId) return;
+
+  const pendingRows = await BusinessCreditRequest.findAll({
+    where: { businessId, status: CREDIT_REQUEST_STATUS.PENDING },
+    order: [['id', 'ASC']],
+  });
+  if (!pendingRows.length) return;
+
+  for (const row of pendingRows) {
+    const json = row.toJSON ? row.toJSON() : row;
+    try {
+      await createWsChatCreditRequestMessage({
+        businessId,
+        creditRequest: {
+          id: json.id,
+          requestCode: json.requestCode || json.request_code,
+          amount: json.amount,
+          note: json.note,
+          paymentMethod: json.paymentMethod || json.payment_method,
+        },
+      });
+    } catch (err) {
+      console.error('[WsChat] ensurePendingCreditRequestsInWsChat failed:', {
+        businessId,
+        requestId: json.id,
+        message: err?.message || err,
+      });
+    }
+  }
+}
+
 export async function createWsChatSystemMessage({
   sessionId,
   content,
@@ -618,6 +758,7 @@ export async function getWsChatSessionForAdmin({ sessionId }) {
 
 export async function listWsChatMessagesForBusiness({ sessionId, businessId }) {
   await loadSessionForBusiness(sessionId, businessId);
+  await ensurePendingCreditRequestsInWsChat({ businessId });
 
   const messages = await BusinessWsChatMessage.findAll({
     where: { sessionId },
@@ -642,7 +783,8 @@ export async function listWsChatMessagesForBusiness({ sessionId, businessId }) {
 }
 
 export async function listWsChatMessagesForAdmin({ sessionId }) {
-  await loadSessionForAdmin(sessionId);
+  const session = await loadSessionForAdmin(sessionId);
+  await ensurePendingCreditRequestsInWsChat({ businessId: session.businessId });
 
   const messages = await BusinessWsChatMessage.findAll({
     where: { sessionId },
@@ -999,6 +1141,230 @@ export async function syncWsChatAfterPerformanceRejection({
   }));
 }
 
+export async function syncWsChatAfterCreditRequestCreated({ businessId, creditRequest }) {
+  try {
+    const { message, session } = await createWsChatCreditRequestMessage({ businessId, creditRequest });
+    return {
+      sessionId: session?.id || null,
+      message: message ? formatMessageRow(message) : null,
+    };
+  } catch (error) {
+    console.error('[WsChat] syncWsChatAfterCreditRequestCreated failed:', error?.message || error);
+    return null;
+  }
+}
+
+export async function syncAllPendingCreditRequestsForBusiness({ businessId }) {
+  await ensurePendingCreditRequestsInWsChat({ businessId });
+  const session = await BusinessWsChatSession.findOne({
+    where: { businessId, sessionType: WS_CHAT_SESSION_TYPES.SCOUT_PERFORMANCE },
+  });
+  return { sessionId: session?.id || null };
+}
+
+export async function syncWsChatAfterCreditApproval({
+  requestId,
+  businessId,
+  adminId = null,
+  adminNote = null,
+  amount = null,
+  requestCode = null,
+}) {
+  const session = await BusinessWsChatSession.findOne({
+    where: {
+      businessId,
+      sessionType: WS_CHAT_SESSION_TYPES.SCOUT_PERFORMANCE,
+    },
+  });
+  if (!session) return null;
+
+  await updateCreditRequestMessageStatus({
+    sessionId: session.id,
+    requestId,
+    status: 'approved',
+    adminNote: adminNote?.trim() || null,
+  });
+
+  const creditLabel = amount != null ? `${Number(amount).toLocaleString('vi-VN')} credit` : 'credit';
+  const codeLabel = requestCode ? ` (${requestCode})` : '';
+  const decisionMessage = await BusinessWsChatMessage.create({
+    sessionId: session.id,
+    senderType: WS_CHAT_SENDER_TYPES.ADMIN,
+    adminId,
+    messageType: WS_CHAT_MESSAGE_TYPES.CREDIT_DECISION,
+    content: adminNote?.trim() || `WS đã duyệt yêu cầu nạp ${creditLabel}${codeLabel}. Credit đã được cộng vào tài khoản.`,
+    requestPayload: {
+      requestId,
+      requestCode,
+      amount,
+      status: 'approved',
+      decision: 'accepted',
+      adminNote: adminNote?.trim() || null,
+    },
+    isReadByAdmin: true,
+    isReadByBusiness: false,
+  });
+
+  await touchSessionPreview(session, {
+    content: adminNote?.trim() || `Đã duyệt yêu cầu nạp ${creditLabel}`,
+  });
+
+  await collaboratorNotificationService.createAndEmit({
+    businessId: session.businessId,
+    collaboratorId: null,
+    adminId: null,
+    title: 'Yêu cầu nạp credit đã được duyệt',
+    content: adminNote?.trim() || `WS đã duyệt và cộng ${creditLabel} vào tài khoản của bạn.`,
+    jobId: null,
+    url: `/business/messages?tab=ws&wsView=chat&sessionId=${session.id}`,
+  });
+
+  return formatMessageRow(await decisionMessage.reload({
+    include: [{ model: Admin, as: 'admin', required: false, attributes: ['id', 'name', 'email'] }],
+  }));
+}
+
+export async function syncWsChatAfterCreditRejection({
+  requestId,
+  businessId,
+  adminId = null,
+  adminNote = null,
+  requestCode = null,
+}) {
+  const session = await BusinessWsChatSession.findOne({
+    where: {
+      businessId,
+      sessionType: WS_CHAT_SESSION_TYPES.SCOUT_PERFORMANCE,
+    },
+  });
+  if (!session) return null;
+
+  await updateCreditRequestMessageStatus({
+    sessionId: session.id,
+    requestId,
+    status: 'rejected',
+    adminNote: adminNote?.trim() || null,
+  });
+
+  const codeLabel = requestCode ? ` (${requestCode})` : '';
+  const decisionMessage = await BusinessWsChatMessage.create({
+    sessionId: session.id,
+    senderType: WS_CHAT_SENDER_TYPES.ADMIN,
+    adminId,
+    messageType: WS_CHAT_MESSAGE_TYPES.CREDIT_DECISION,
+    content: adminNote?.trim() || `WS đã từ chối yêu cầu nạp credit${codeLabel}.`,
+    requestPayload: {
+      requestId,
+      requestCode,
+      status: 'rejected',
+      decision: 'rejected',
+      adminNote: adminNote?.trim() || null,
+    },
+    isReadByAdmin: true,
+    isReadByBusiness: false,
+  });
+
+  await touchSessionPreview(session, { content: adminNote?.trim() || 'Yêu cầu nạp credit bị từ chối' });
+
+  await collaboratorNotificationService.createAndEmit({
+    businessId: session.businessId,
+    collaboratorId: null,
+    adminId: null,
+    title: 'Yêu cầu nạp credit bị từ chối',
+    content: adminNote?.trim() || `WS đã từ chối yêu cầu nạp credit${codeLabel}.`,
+    jobId: null,
+    url: `/business/messages?tab=ws&wsView=chat&sessionId=${session.id}`,
+  });
+
+  return formatMessageRow(await decisionMessage.reload({
+    include: [{ model: Admin, as: 'admin', required: false, attributes: ['id', 'name', 'email'] }],
+  }));
+}
+
+export async function syncWsChatAfterCreditCancellation({
+  requestId,
+  businessId,
+}) {
+  const session = await BusinessWsChatSession.findOne({
+    where: {
+      businessId,
+      sessionType: WS_CHAT_SESSION_TYPES.SCOUT_PERFORMANCE,
+    },
+  });
+  if (!session) return null;
+
+  await updateCreditRequestMessageStatus({
+    sessionId: session.id,
+    requestId,
+    status: 'cancelled',
+  });
+
+  return createWsChatSystemMessage({
+    sessionId: session.id,
+    content: 'Doanh nghiệp đã hủy yêu cầu nạp credit đang chờ duyệt.',
+  });
+}
+
+export async function acceptCreditRequestInChat({
+  sessionId,
+  adminId,
+  requestId,
+  note,
+}) {
+  const session = await loadSessionForAdmin(sessionId);
+  const creditRequestId = parseInt(requestId, 10);
+  if (!Number.isFinite(creditRequestId) || creditRequestId <= 0) {
+    const err = new Error('Thiếu mã yêu cầu nạp credit');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const { approveBusinessCreditRequest } = await import('./businessCreditRequestService.js');
+  const request = await approveBusinessCreditRequest({
+    requestId: creditRequestId,
+    adminId,
+    adminNote: note,
+  });
+
+  if (Number(request.businessId) !== Number(session.businessId)) {
+    const err = new Error('Yêu cầu không thuộc cuộc trò chuyện này');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  return { request };
+}
+
+export async function rejectCreditRequestInChat({
+  sessionId,
+  adminId,
+  requestId,
+  note,
+}) {
+  const session = await loadSessionForAdmin(sessionId);
+  const creditRequestId = parseInt(requestId, 10);
+  if (!Number.isFinite(creditRequestId) || creditRequestId <= 0) {
+    const err = new Error('Thiếu mã yêu cầu nạp credit');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const { rejectBusinessCreditRequest } = await import('./businessCreditRequestService.js');
+  const request = await rejectBusinessCreditRequest({
+    requestId: creditRequestId,
+    adminId,
+    adminNote: note,
+  });
+
+  if (Number(request.businessId) !== Number(session.businessId)) {
+    const err = new Error('Yêu cầu không thuộc cuộc trò chuyện này');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  return { request };
+}
+
 export default {
   ensureWsChatSessionForBusiness,
   ensureWsChatSessionForPerformanceRequest,
@@ -1007,8 +1373,11 @@ export default {
   createWsChatPerformanceOpenedMessage,
   createWsChatSimilarCandidatesRequestMessage,
   createWsChatPerformanceRequestMessage,
+  createWsChatCreditRequestMessage,
   acceptPerformanceRequestInChat,
   rejectPerformanceRequestInChat,
+  acceptCreditRequestInChat,
+  rejectCreditRequestInChat,
   listWsChatSessionsForBusiness,
   listWsChatSessionsForAdmin,
   getWsChatSessionForBusiness,
@@ -1020,5 +1389,11 @@ export default {
   searchWsChatCandidateMentions,
   syncWsChatAfterPerformanceApproval,
   syncWsChatAfterPerformanceRejection,
+  ensurePendingCreditRequestsInWsChat,
+  syncAllPendingCreditRequestsForBusiness,
+  syncWsChatAfterCreditRequestCreated,
+  syncWsChatAfterCreditApproval,
+  syncWsChatAfterCreditRejection,
+  syncWsChatAfterCreditCancellation,
   getWsChatSessionByPerformanceRequestId,
 };

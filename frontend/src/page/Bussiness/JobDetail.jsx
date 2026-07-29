@@ -65,7 +65,7 @@ function formatDate(value) {
   return d.toLocaleDateString('vi-VN')
 }
 
-const JobDetail = () => {
+const JobDetail = ({ embedded = false }) => {
   const navigate = useNavigate()
   const { jobId } = useParams()
   const [activeTab, setActiveTab] = useState('Tổng quan')
@@ -263,7 +263,7 @@ const JobDetail = () => {
 
   if (loading) {
     return (
-      <div className="h-screen bg-slate-50 flex items-center justify-center text-slate-500 text-sm gap-2">
+      <div className={`${embedded ? 'h-full' : 'h-screen'} bg-slate-50 flex items-center justify-center text-slate-500 text-sm gap-2`}>
         <Loader2 className="w-4 h-4 animate-spin" />
         Đang tải chi tiết JD...
       </div>
@@ -272,11 +272,13 @@ const JobDetail = () => {
 
   if (!job) {
     return (
-      <div className="h-screen bg-slate-50 flex flex-col items-center justify-center text-slate-500 text-sm gap-3">
+      <div className={`${embedded ? 'h-full' : 'h-screen'} bg-slate-50 flex flex-col items-center justify-center text-slate-500 text-sm gap-3`}>
         <p>Không tìm thấy JD.</p>
-        <button type="button" onClick={() => navigate('/business/jobs')} className="text-blue-600 font-semibold text-xs">
-          Quay lại danh sách
-        </button>
+        {!embedded && (
+          <button type="button" onClick={() => navigate('/business/jobs')} className="text-blue-600 font-semibold text-xs">
+            Quay lại danh sách
+          </button>
+        )}
       </div>
     )
   }
@@ -284,15 +286,16 @@ const JobDetail = () => {
   return (
     <>
       <style>{s}</style>
-      <div className="h-screen bg-slate-50 overflow-hidden" style={{ padding: '8px' }}>
-        <div className="h-full mx-auto flex flex-col gap-2 overflow-y-auto hide-sb" style={{ maxWidth: 1140, paddingRight: 2 }}>
+      <div className={`${embedded ? 'h-full min-h-0' : 'h-screen'} bg-slate-50 overflow-hidden`} style={{ padding: embedded ? 0 : '8px' }}>
+        <div className={`h-full ${embedded ? 'min-h-0' : 'mx-auto'} flex flex-col gap-2 overflow-y-auto hide-sb`} style={embedded ? undefined : { maxWidth: 1140, paddingRight: 2 }}>
 
-          {/* Breadcrumb */}
+          {!embedded && (
           <div className="flex items-center gap-1" style={{ fontSize: 10, color: '#94a3b8' }}>
             <button onClick={() => navigate('/business/jobs')} className="hover:text-blue-600 transition-colors">Quản lý JD</button>
             <ChevronRight style={{ width: 10, height: 10 }} />
             <span style={{ fontWeight: 600, color: '#475569' }}>Chi tiết JD</span>
           </div>
+          )}
 
           {/* Header */}
           <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '12px 14px' }}>

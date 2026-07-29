@@ -8,6 +8,7 @@ import apiService from '../../services/api'
 import NominationChat from '../../component/Chat/NominationChat'
 import JobCommissionEditor, { validateCommissionForMarketplace } from '../../component/Bussiness/JobCommissionEditor'
 import { isPersistableJobValue } from '../../utils/jobCommissionUi'
+import { normalizeJobSalaryCurrency } from '../../utils/jobSalaryCurrency'
 
 const scrollbarStyle = `
   .ctv-scrollbar::-webkit-scrollbar { width: 4px; }
@@ -298,17 +299,20 @@ function buildCommissionSeedFromJob(job) {
   return { types, valuesByType };
 }
 
+const EMPTY_JOB_VALUE = { typeId: '', valueId: '', value: '', isRequired: false, viewOnCollaborator: '' }
+
 function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
   const [jobs, setJobs] = useState([])
   const [jobId, setJobId] = useState('')
   const [jobCommissionType, setJobCommissionType] = useState('fixed')
-  const [jobValues, setJobValues] = useState([])
+  const [jobValues, setJobValues] = useState([EMPTY_JOB_VALUE])
+  const [salaryCurrency, setSalaryCurrency] = useState('JPY')
   const [commissionSeed, setCommissionSeed] = useState({ types: [], valuesByType: {} })
   const [headcount, setHeadcount] = useState(1)
   const [requirements, setRequirements] = useState('')
   const [recruitmentDeadline, setRecruitmentDeadline] = useState('')
   const [creating, setCreating] = useState(false)
-  const [loadingJob, setLoadingJob] = useState(false)
+  const [loadingJobMeta, setLoadingJobMeta] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -323,51 +327,34 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
     if (!open) return
     setJobId(initialJobId ? String(initialJobId) : '')
     setJobCommissionType('fixed')
-    setJobValues([])
+    setJobValues([{ ...EMPTY_JOB_VALUE }])
+    setSalaryCurrency('JPY')
+    setCommissionSeed({ types: [], valuesByType: {} })
     setHeadcount(1)
     setRequirements('')
     setRecruitmentDeadline('')
   }, [open, initialJobId])
 
   useEffect(() => {
-    if (!jobId) {
-      setJobCommissionType('fixed')
-      setJobValues([])
-      setCommissionSeed({ types: [], valuesByType: {} })
-      return
-    }
+    if (!jobId) return
     let mounted = true
-    setLoadingJob(true)
+    setLoadingJobMeta(true)
     apiService.getBusinessJobById(jobId).then((res) => {
       if (!mounted) return
       const job = res?.data?.job || res?.data
-      setJobCommissionType(job?.jobCommissionType || job?.job_commission_type || 'fixed')
       setCommissionSeed(buildCommissionSeedFromJob(job))
-      const rows = Array.isArray(job?.jobValues) ? job.jobValues : []
-      setJobValues(
-        rows.length
-          ? rows.map((jv) => ({
-              typeId: jv.typeId ?? jv.type_id ?? '',
-              valueId: jv.valueId ?? jv.value_id ?? '',
-              value: jv.value ?? '',
-              isRequired: !!jv.isRequired,
-              viewOnCollaborator: jv.viewOnCollaborator || jv.view_on_collaborator || '',
-            }))
-          : [{ typeId: '', valueId: '', value: '', isRequired: false, viewOnCollaborator: '' }],
-      )
-      if (job?.deadline && !recruitmentDeadline) {
-        const d = String(job.deadline).slice(0, 10)
-        setRecruitmentDeadline(d)
+      if (job?.salaryCurrency) {
+        setSalaryCurrency(normalizeJobSalaryCurrency(job.salaryCurrency))
+      }
+      if (job?.deadline) {
+        setRecruitmentDeadline(String(job.deadline).slice(0, 10))
       }
     }).catch(() => {
-      if (mounted) {
-        setJobValues([{ typeId: '', valueId: '', value: '', isRequired: false, viewOnCollaborator: '' }])
-      }
+      if (mounted) setCommissionSeed({ types: [], valuesByType: {} })
     }).finally(() => {
-      if (mounted) setLoadingJob(false)
+      if (mounted) setLoadingJobMeta(false)
     })
     return () => { mounted = false }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId])
 
   const handleCreate = async (submitAfter) => {
@@ -410,35 +397,40 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="text-sm font-bold">Đưa job lên sàn CTV</h3>
+          <div>
+            <h3 className="text-sm font-bold">Đưa job lên sàn CTV</h3>
+            <p className="text-[10px] text-slate-500 mt-0.5">Chọn JD và thiết lập phí thưởng CTV trước khi gửi duyệt</p>
+          </div>
           <button type="button" onClick={onClose}><X className="w-4 h-4 text-slate-400" /></button>
         </div>
-        <div className="p-4 space-y-3 text-sm">
+        <div className="p-4 space-y-4 text-sm">
           <div>
-            <label className="text-xs font-semibold text-slate-600">Chọn JD</label>
+            <label className="text-xs font-semibold text-slate-600">Chọn JD <span className="text-red-500">*</span></label>
             <select value={jobId} onChange={(e) => setJobId(e.target.value)} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm">
               <option value="">-- Chọn việc làm --</option>
               {jobs.map((j) => <option key={j.id} value={j.id}>{j.title} ({j.jobCode})</option>)}
             </select>
           </div>
-          {jobId && (
-            loadingJob ? (
-              <div className="flex items-center gap-2 text-xs text-slate-500 py-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Đang tải cài đặt phí...
-              </div>
-            ) : (
-              <JobCommissionEditor
-                jobCommissionType={jobCommissionType}
-                onCommissionTypeChange={setJobCommissionType}
-                jobValues={jobValues}
-                onJobValuesChange={setJobValues}
-                seedTypes={commissionSeed.types}
-                seedValuesByType={commissionSeed.valuesByType}
-              />
-            )
-          )}
+
+          {loadingJobMeta && jobId ? (
+            <div className="flex items-center gap-2 text-xs text-slate-500 py-1">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Đang tải thông tin JD...
+            </div>
+          ) : null}
+
+          <JobCommissionEditor
+            jobCommissionType={jobCommissionType}
+            onCommissionTypeChange={setJobCommissionType}
+            jobValues={jobValues}
+            onJobValuesChange={setJobValues}
+            seedTypes={commissionSeed.types}
+            seedValuesByType={commissionSeed.valuesByType}
+            salaryCurrency={salaryCurrency}
+            onSalaryCurrencyChange={setSalaryCurrency}
+          />
+
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-xs font-semibold text-slate-600">Số lượng tuyển</label>
@@ -629,7 +621,7 @@ const CandidateSharing = () => {
           onCreated={loadData}
           initialJobId={createJobId}
         />
-        <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9' }}>
+        <div className="h-full min-h-0 w-full flex items-center justify-center bg-slate-50">
           <div className="flex items-center gap-2 text-slate-500 text-sm">
             <Loader2 className="w-5 h-5 animate-spin" /> Đang tải sàn CTV...
           </div>
@@ -648,8 +640,8 @@ const CandidateSharing = () => {
           onCreated={loadData}
           initialJobId={createJobId}
         />
-        <div className="h-screen bg-slate-50 p-2 lg:p-3 overflow-hidden">
-          <div className="max-w-[1440px] mx-auto h-full grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-2 lg:gap-3">
+        <div className="h-full min-h-0 w-full bg-slate-50 p-2 lg:p-3 overflow-hidden">
+          <div className="w-full h-full min-h-0 grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-2 lg:gap-3">
             <div className="flex flex-col gap-2 lg:gap-3 min-w-0 overflow-y-auto ctv-onboard-scroll pr-1">
               <OnboardingView onCreate={openCreateModal} />
             </div>
@@ -669,7 +661,7 @@ const CandidateSharing = () => {
         onCreated={loadData}
         initialJobId={createJobId}
       />
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f1f5f9', fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: 11 }}>
+      <div className="h-full min-h-0 w-full flex flex-col bg-slate-50" style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: 11 }}>
         <>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '8px 14px 0', background: '#fff' }}>
           <button type="button" onClick={() => setShowCreate(true)} style={{ fontSize: 9, fontWeight: 600, color: '#fff', background: '#3b82f6', border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>

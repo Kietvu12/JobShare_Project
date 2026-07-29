@@ -6,8 +6,14 @@ import {
   sendWsChatMessageFromAdmin,
   acceptPerformanceRequestInChat,
   rejectPerformanceRequestInChat,
+  acceptCreditRequestInChat,
+  rejectCreditRequestInChat,
   getWsChatSessionByPerformanceRequestId,
 } from '../../services/businessWsChatService.js';
+
+function getAdminId(req) {
+  return req.adminId || req.admin?.id || null;
+}
 
 export const adminWsChatController = {
   listSessions: async (req, res, next) => {
@@ -75,7 +81,7 @@ export const adminWsChatController = {
       const cvIds = Array.isArray(req.body.cvIds) ? req.body.cvIds : [];
       const message = await sendWsChatMessageFromAdmin({
         sessionId: req.params.id,
-        adminId: req.user.id,
+        adminId: getAdminId(req),
         content: req.body.content,
         cvIds,
       });
@@ -93,7 +99,7 @@ export const adminWsChatController = {
       const cvIds = Array.isArray(req.body.cvIds) ? req.body.cvIds : [];
       const data = await acceptPerformanceRequestInChat({
         sessionId: req.params.id,
-        adminId: req.user.id,
+        adminId: getAdminId(req),
         cvIds,
         note: req.body.note,
       });
@@ -110,10 +116,44 @@ export const adminWsChatController = {
     try {
       const data = await rejectPerformanceRequestInChat({
         sessionId: req.params.id,
-        adminId: req.user.id,
+        adminId: getAdminId(req),
         note: req.body.note,
       });
       res.json({ success: true, data, message: 'Đã từ chối yêu cầu Scout Performance' });
+    } catch (error) {
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      next(error);
+    }
+  },
+
+  acceptCreditRequest: async (req, res, next) => {
+    try {
+      const data = await acceptCreditRequestInChat({
+        sessionId: req.params.id,
+        adminId: getAdminId(req),
+        requestId: req.body.requestId,
+        note: req.body.note,
+      });
+      res.json({ success: true, data, message: 'Đã duyệt yêu cầu nạp credit' });
+    } catch (error) {
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      next(error);
+    }
+  },
+
+  rejectCreditRequest: async (req, res, next) => {
+    try {
+      const data = await rejectCreditRequestInChat({
+        sessionId: req.params.id,
+        adminId: getAdminId(req),
+        requestId: req.body.requestId,
+        note: req.body.note,
+      });
+      res.json({ success: true, data, message: 'Đã từ chối yêu cầu nạp credit' });
     } catch (error) {
       if (error.statusCode) {
         return res.status(error.statusCode).json({ success: false, message: error.message });

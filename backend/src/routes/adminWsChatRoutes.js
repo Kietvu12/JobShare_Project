@@ -14,5 +14,7 @@ router.get('/sessions/:id/messages', adminWsChatController.listMessages);
 router.post('/sessions/:id/messages', adminWsChatController.sendMessage);
 router.post('/sessions/:id/performance-request/accept', adminWsChatController.acceptPerformanceRequest);
 router.post('/sessions/:id/performance-request/reject', adminWsChatController.rejectPerformanceRequest);
+router.post('/sessions/:id/credit-request/accept', adminWsChatController.acceptCreditRequest);
+router.post('/sessions/:id/credit-request/reject', adminWsChatController.rejectCreditRequest);
 
 export default router;

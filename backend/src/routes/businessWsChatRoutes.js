@@ -7,6 +7,7 @@ const router = express.Router();
 router.use(authenticateBusiness);
 
 router.get('/sessions', businessWsChatController.listSessions);
+router.post('/sync-credit-requests', businessWsChatController.syncCreditRequests);
 router.get('/sessions/by-performance-request/:requestId', businessWsChatController.getSessionByPerformanceRequest);
 router.get('/sessions/:id', businessWsChatController.getSession);
 router.get('/sessions/:id/messages', businessWsChatController.listMessages);

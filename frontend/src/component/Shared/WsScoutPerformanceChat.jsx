@@ -66,6 +66,141 @@ function getRequestedCvFromMessage(message) {
   }
 }
 
+const PAYMENT_METHOD_LABELS = {
+  bank_transfer: 'Chuyển khoản ngân hàng',
+  other: 'Khác / Liên hệ WS',
+}
+
+const CREDIT_STATUS_STYLES = {
+  pending: { label: 'Chờ WS duyệt', color: '#2563eb', bg: '#dbeafe' },
+  approved: { label: 'Đã duyệt', color: '#16a34a', bg: '#dcfce7' },
+  rejected: { label: 'Từ chối', color: '#dc2626', bg: '#fee2e2' },
+  cancelled: { label: 'Đã hủy', color: '#64748b', bg: '#f1f5f9' },
+}
+
+function CreditRequestEventCard({
+  message,
+  mode,
+  onApprove,
+  onReject,
+  actionRequestId,
+}) {
+  const payload = message.requestPayload || {}
+  const status = payload.status || 'pending'
+  const statusStyle = CREDIT_STATUS_STYLES[status] || CREDIT_STATUS_STYLES.pending
+  const isPending = status === 'pending'
+  const [rejectNote, setRejectNote] = useState('')
+  const [showReject, setShowReject] = useState(false)
+
+  return (
+    <div style={{
+      width: '100%', maxWidth: 320, background: '#fff', border: '1.5px solid #fde68a',
+      borderRadius: 10, padding: '10px 12px', boxShadow: '0 2px 8px rgba(234,179,8,0.12)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#92400e' }}>Yêu cầu nạp credit</div>
+        <span style={{ fontSize: 7, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: statusStyle.color, background: statusStyle.bg }}>
+          {statusStyle.label}
+        </span>
+      </div>
+
+      <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.65, marginBottom: 8 }}>
+        <div><strong>Mã:</strong> {payload.requestCode || `#${payload.requestId}`}</div>
+        <div><strong>Số credit:</strong> {Number(payload.amount || 0).toLocaleString('vi-VN')}</div>
+        <div><strong>Thanh toán:</strong> {PAYMENT_METHOD_LABELS[payload.paymentMethod] || payload.paymentMethod || '—'}</div>
+        {payload.note && <div><strong>Ghi chú DN:</strong> {payload.note}</div>}
+        {payload.adminNote && <div><strong>Phản hồi WS:</strong> {payload.adminNote}</div>}
+      </div>
+
+      {mode === 'admin' && isPending && onApprove && onReject && (
+        <div style={{ borderTop: '1px solid #fef3c7', paddingTop: 8 }}>
+          {!showReject ? (
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                type="button"
+                disabled={actionRequestId === payload.requestId}
+                onClick={() => onApprove(payload.requestId)}
+                style={{
+                  flex: 1, border: 'none', borderRadius: 6, padding: '6px 8px', fontSize: 8, fontWeight: 700,
+                  background: actionRequestId === payload.requestId ? '#bbf7d0' : '#16a34a', color: '#fff', cursor: 'pointer',
+                }}
+              >
+                {actionRequestId === payload.requestId ? 'Đang duyệt...' : 'Duyệt'}
+              </button>
+              <button
+                type="button"
+                disabled={actionRequestId === payload.requestId}
+                onClick={() => setShowReject(true)}
+                style={{
+                  flex: 1, border: bd, borderRadius: 6, padding: '6px 8px', fontSize: 8, fontWeight: 600,
+                  background: '#fff', color: '#dc2626', cursor: 'pointer',
+                }}
+              >
+                Từ chối
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <textarea
+                value={rejectNote}
+                onChange={(e) => setRejectNote(e.target.value)}
+                rows={2}
+                placeholder="Lý do từ chối (tuỳ chọn)..."
+                style={{ border: bd, borderRadius: 6, padding: '6px 8px', fontSize: 8, resize: 'none', outline: 'none' }}
+              />
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowReject(false); setRejectNote('') }}
+                  style={{ flex: 1, border: bd, borderRadius: 6, padding: '6px 8px', fontSize: 8, background: '#fff', cursor: 'pointer' }}
+                >
+                  Huỷ
+                </button>
+                <button
+                  type="button"
+                  disabled={actionRequestId === payload.requestId}
+                  onClick={() => onReject(payload.requestId, rejectNote)}
+                  style={{
+                    flex: 1, border: 'none', borderRadius: 6, padding: '6px 8px', fontSize: 8, fontWeight: 700,
+                    background: '#dc2626', color: '#fff', cursor: 'pointer',
+                  }}
+                >
+                  Xác nhận từ chối
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {mode === 'business' && isPending && (
+        <div style={{ fontSize: 7, color: '#92400e', background: '#fffbeb', borderRadius: 6, padding: '6px 8px' }}>
+          WS sẽ xem xét và phản hồi trong cuộc trò chuyện này.
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CreditDecisionEventCard({ message }) {
+  const payload = message.requestPayload || {}
+  const accepted = payload.decision === 'accepted' || payload.status === 'approved'
+  return (
+    <div style={{
+      width: '100%', maxWidth: 320, background: accepted ? '#ecfdf5' : '#fef2f2',
+      border: `1.5px solid ${accepted ? '#bbf7d0' : '#fecaca'}`,
+      borderRadius: 10, padding: '10px 12px',
+    }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: accepted ? '#166534' : '#991b1b', marginBottom: 4 }}>
+        {accepted ? 'WS đã duyệt yêu cầu nạp credit' : 'WS đã từ chối yêu cầu nạp credit'}
+      </div>
+      {message.content && (
+        <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.55 }}>{message.content}</div>
+      )}
+    </div>
+  )
+}
+
 function ScoutPerformanceEventCard({ message, mode, onOpenCv }) {
   const payload = message.requestPayload || {}
   const requestedCv = getRequestedCvFromMessage(message)
@@ -109,16 +244,58 @@ function ScoutPerformanceEventCard({ message, mode, onOpenCv }) {
   )
 }
 
-function ChatBubble({ message, mode, onOpenCv }) {
+function ChatBubble({ message, mode, onOpenCv, onApproveCredit, onRejectCredit, creditActionId }) {
   const isPerformanceEvent = [
     'performance_opened',
     'similar_candidates_request',
     'performance_request',
   ].includes(message.messageType)
+  const isCreditRequest = message.messageType === 'credit_request'
+  const isCreditDecision = message.messageType === 'credit_decision'
   const isOutgoing = mode === 'admin'
     ? message.senderType === 'admin'
     : message.senderType === 'business'
   const isSystem = message.senderType === 'system'
+
+  if (isCreditRequest) {
+    return (
+      <div style={{
+        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-end' : 'flex-start',
+        flexDirection: mode === 'business' ? 'row-reverse' : 'row', alignItems: 'flex-end',
+      }}>
+        {mode !== 'business' && <WsLogo size={24} />}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+          <CreditRequestEventCard
+            message={message}
+            mode={mode}
+            onApprove={onApproveCredit}
+            onReject={onRejectCredit}
+            actionRequestId={creditActionId}
+          />
+          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
+            {formatTime(message.createdAt)}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (isCreditDecision) {
+    return (
+      <div style={{
+        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-start' : 'flex-end',
+        flexDirection: mode === 'business' ? 'row' : 'row-reverse', alignItems: 'flex-end',
+      }}>
+        {mode === 'business' && <WsLogo size={24} />}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+          <CreditDecisionEventCard message={message} />
+          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'left' : 'right' }}>
+            {formatTime(message.createdAt)}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (isPerformanceEvent) {
     return (
@@ -415,11 +592,39 @@ export function useWsScoutChat({ mode = 'business', initialSessionId = null, ena
     }
   }
 
-  const reloadMessages = useCallback(async () => {
-    if (!activeSessionId) return
-    await loadMessages(activeSessionId)
+  const reloadMessages = useCallback(async (sessionIdOverride) => {
+    const sid = sessionIdOverride ?? activeSessionId
+    if (!sid) return
+    await loadMessages(sid)
     await loadSessions()
   }, [activeSessionId, loadMessages, loadSessions])
+
+  const syncCreditRequestsToChat = useCallback(async () => {
+    if (mode !== 'business') return null
+    try {
+      const res = await apiService.syncBusinessWsChatCreditRequests()
+      const sessionId = res?.data?.sessionId
+      if (sessionId) {
+        setActiveSessionId(Number(sessionId))
+        await loadMessages(Number(sessionId))
+        await loadSessions()
+      } else if (activeSessionId) {
+        await loadMessages(activeSessionId)
+      }
+      return res?.data || null
+    } catch (e) {
+      console.error(e)
+      return null
+    }
+  }, [mode, activeSessionId, loadMessages, loadSessions])
+
+  const appendMessage = useCallback((message) => {
+    if (!message?.id) return
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === message.id)) return prev
+      return [...prev, message]
+    })
+  }, [])
 
   const activeSession = sessions.find((s) => s.id === activeSessionId) || null
 
@@ -436,6 +641,8 @@ export function useWsScoutChat({ mode = 'business', initialSessionId = null, ena
     setSearch,
     sendMessage,
     reloadMessages,
+    syncCreditRequestsToChat,
+    appendMessage,
     searchCandidates: api.searchCandidates,
   }
 }
@@ -457,6 +664,7 @@ export function WsChatThread({
   } = chat
 
   const [input, setInput] = useState('')
+  const [creditActionId, setCreditActionId] = useState(null)
   const endRef = useRef(null)
 
   useEffect(() => {
@@ -466,6 +674,44 @@ export function WsChatThread({
   const openCv = (cvId) => {
     if (!cvId) return
     navigate(`/business/scout?cvId=${cvId}`)
+  }
+
+  const handleApproveCredit = async (requestId) => {
+    if (!activeSessionId || !requestId) return
+    if (!window.confirm('Duyệt yêu cầu nạp credit này? Credit sẽ được cộng vào tài khoản doanh nghiệp.')) return
+    setCreditActionId(requestId)
+    try {
+      const res = await apiService.acceptAdminWsChatCreditRequest(activeSessionId, { requestId })
+      if (res?.success) {
+        await chat.reloadMessages?.()
+      } else {
+        alert(res?.message || 'Không thể duyệt yêu cầu')
+      }
+    } catch (e) {
+      alert(e?.message || 'Không thể duyệt yêu cầu')
+    } finally {
+      setCreditActionId(null)
+    }
+  }
+
+  const handleRejectCredit = async (requestId, note) => {
+    if (!activeSessionId || !requestId) return
+    setCreditActionId(requestId)
+    try {
+      const res = await apiService.rejectAdminWsChatCreditRequest(activeSessionId, {
+        requestId,
+        note: note?.trim() || undefined,
+      })
+      if (res?.success) {
+        await chat.reloadMessages?.()
+      } else {
+        alert(res?.message || 'Không thể từ chối yêu cầu')
+      }
+    } catch (e) {
+      alert(e?.message || 'Không thể từ chối yêu cầu')
+    } finally {
+      setCreditActionId(null)
+    }
   }
 
   const headerTitle = mode === 'admin'
@@ -510,6 +756,9 @@ export function WsChatThread({
             message={msg}
             mode={mode}
             onOpenCv={mode === 'business' ? openCv : undefined}
+            onApproveCredit={mode === 'admin' ? handleApproveCredit : undefined}
+            onRejectCredit={mode === 'admin' ? handleRejectCredit : undefined}
+            creditActionId={creditActionId}
           />
         ))}
         <div ref={endRef} />

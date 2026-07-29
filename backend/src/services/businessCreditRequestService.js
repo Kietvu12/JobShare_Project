@@ -81,7 +81,17 @@ export async function createBusinessCreditRequest({ businessId, amount, note, pa
   const requestCode = buildRequestCode(request.id, now);
   await request.update({ requestCode });
 
-  return formatCreditRequestRow(await request.reload());
+  const formatted = formatCreditRequestRow(await request.reload());
+
+  let wsChat = null;
+  try {
+    const { syncWsChatAfterCreditRequestCreated } = await import('./businessWsChatService.js');
+    wsChat = await syncWsChatAfterCreditRequestCreated({ businessId, creditRequest: formatted });
+  } catch (err) {
+    console.error('[CreditRequest] ws chat message failed:', err?.message || err);
+  }
+
+  return { request: formatted, wsChat };
 }
 
 export async function listBusinessCreditRequests({
@@ -195,6 +205,12 @@ export async function approveBusinessCreditRequest({ requestId, adminId, adminNo
       transaction,
     });
 
+    if (!result?.history?.id) {
+      const err = new Error('Không thể ghi lịch sử credit');
+      err.statusCode = 500;
+      throw err;
+    }
+
     await request.update(
       {
         status: CREDIT_REQUEST_STATUS.APPROVED,
@@ -207,12 +223,28 @@ export async function approveBusinessCreditRequest({ requestId, adminId, adminNo
     );
 
     await transaction.commit();
-    return formatCreditRequestRow(await BusinessCreditRequest.findByPk(request.id, {
+    const formatted = formatCreditRequestRow(await BusinessCreditRequest.findByPk(request.id, {
       include: [
         { model: Business, as: 'business', attributes: ['id', 'companyName', 'contactName', 'email'] },
         { model: Admin, as: 'handledByAdmin', attributes: ['id', 'name', 'email'] },
       ],
     }));
+
+    try {
+      const { syncWsChatAfterCreditApproval } = await import('./businessWsChatService.js');
+      await syncWsChatAfterCreditApproval({
+        requestId: request.id,
+        businessId: request.businessId,
+        adminId,
+        adminNote,
+        amount: request.amount,
+        requestCode: request.requestCode,
+      });
+    } catch (err) {
+      console.error('[CreditRequest] ws chat approval sync failed:', err?.message || err);
+    }
+
+    return formatted;
   } catch (error) {
     await transaction.rollback();
     throw error;
@@ -239,7 +271,22 @@ export async function rejectBusinessCreditRequest({ requestId, adminId, adminNot
     handledAt: new Date(),
   });
 
-  return formatCreditRequestRow(request);
+  const formatted = formatCreditRequestRow(request);
+
+  try {
+    const { syncWsChatAfterCreditRejection } = await import('./businessWsChatService.js');
+    await syncWsChatAfterCreditRejection({
+      requestId: request.id,
+      businessId: request.businessId,
+      adminId,
+      adminNote,
+      requestCode: request.requestCode,
+    });
+  } catch (err) {
+    console.error('[CreditRequest] ws chat rejection sync failed:', err?.message || err);
+  }
+
+  return formatted;
 }
 
 const creditRequestIncludes = [
@@ -332,7 +379,19 @@ export async function cancelBusinessCreditRequest({ requestId, businessId, admin
     handledAt: new Date(),
   });
 
-  return formatCreditRequestRow(await findCreditRequestById(request.id));
+  const formatted = formatCreditRequestRow(await findCreditRequestById(request.id));
+
+  try {
+    const { syncWsChatAfterCreditCancellation } = await import('./businessWsChatService.js');
+    await syncWsChatAfterCreditCancellation({
+      requestId: request.id,
+      businessId: request.businessId,
+    });
+  } catch (err) {
+    console.error('[CreditRequest] ws chat cancellation sync failed:', err?.message || err);
+  }
+
+  return formatted;
 }
 
 export default {

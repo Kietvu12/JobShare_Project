@@ -2,6 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import apiService from '../../services/api';
 import { isPersistableJobValue } from '../../utils/jobCommissionUi';
+import {
+  JOB_SALARY_CURRENCY_OPTIONS,
+  formatFixedAmountWithCurrency,
+  getJobCurrencyShortLabel,
+} from '../../utils/jobSalaryCurrency';
 
 /**
  * Cài đặt phí giới thiệu (jobCommissionType + jobValues) — dùng khi đưa job lên sàn CTV.
@@ -14,6 +19,8 @@ export default function JobCommissionEditor({
   onJobValuesChange,
   seedTypes = [],
   seedValuesByType = {},
+  salaryCurrency = 'JPY',
+  onSalaryCurrencyChange,
 }) {
   const [types, setTypes] = useState([]);
   const [valuesByType, setValuesByType] = useState({});
@@ -90,13 +97,29 @@ export default function JobCommissionEditor({
   const pickValueName = (value) => value?.valuename || `Value #${value?.id}`;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-3">
+    <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 space-y-3">
       <div>
-        <div className="text-xs font-semibold text-slate-700 mb-1">Cài đặt phí giới thiệu</div>
+        <div className="text-xs font-bold text-slate-800 mb-1">Cài đặt phí</div>
         <p className="text-[10px] text-slate-500">
-          Phí thưởng CTV — giống phần &quot;Cài đặt phí&quot; khi tạo job. Bắt buộc khi đưa lên sàn.
+          Thiết lập phí thưởng CTV khi đưa job lên sàn — giống phần &quot;Cài đặt phí&quot; khi tạo JD.
         </p>
       </div>
+
+      {onSalaryCurrencyChange && (
+        <div className="pb-2 border-b border-slate-200">
+          <label className="block text-xs font-semibold text-slate-700 mb-1">Đơn vị tiền tệ</label>
+          <select
+            value={salaryCurrency || 'JPY'}
+            onChange={(e) => onSalaryCurrencyChange(e.target.value)}
+            className="w-full max-w-xs border rounded-lg px-3 py-2 text-sm bg-white"
+          >
+            {JOB_SALARY_CURRENCY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <p className="text-[10px] text-slate-500 mt-1">Áp dụng cho phí cố định (Job Values).</p>
+        </div>
+      )}
 
       <div>
         <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -105,14 +128,14 @@ export default function JobCommissionEditor({
         <select
           value={jobCommissionType}
           onChange={(e) => onCommissionTypeChange(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-sm"
+          className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
         >
           <option value="fixed">Số tiền cố định</option>
           <option value="percent">Phần trăm</option>
         </select>
         <p className="text-[10px] text-slate-500 mt-1">
           {jobCommissionType === 'fixed'
-            ? 'Giá trị hiểu là số tiền cố định (Y). Ví dụ: 50000000 = 50 triệu Y'
+            ? `Giá trị hiểu là số tiền cố định (${getJobCurrencyShortLabel(salaryCurrency)}). Ví dụ: 50000000 = 50 triệu ${getJobCurrencyShortLabel(salaryCurrency)}`
             : 'Giá trị hiểu là phần trăm (%). Ví dụ: 30 = 30%'}
         </p>
       </div>
@@ -197,8 +220,12 @@ export default function JobCommissionEditor({
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Giá trị cụ thể
-              {jobCommissionType === 'fixed' && <span className="text-slate-400 ml-1">(Y)</span>}
-              {jobCommissionType === 'percent' && <span className="text-slate-400 ml-1">(%)</span>}
+              {!(Number(jv.typeId) === 7 && Number(jv.valueId) === 34) && jobCommissionType === 'fixed' && (
+                <span className="text-slate-400 text-[10px] ml-1">({getJobCurrencyShortLabel(salaryCurrency)})</span>
+              )}
+              {!(Number(jv.typeId) === 7 && Number(jv.valueId) === 34) && jobCommissionType === 'percent' && (
+                <span className="text-slate-400 text-[10px] ml-1">(%)</span>
+              )}
             </label>
             {Number(jv.typeId) === 7 && Number(jv.valueId) === 34 ? (
               <input
@@ -223,15 +250,23 @@ export default function JobCommissionEditor({
                   }
                   setRow(index, { value: inputValue });
                 }}
-                placeholder={jobCommissionType === 'fixed' ? 'VD: 50000000 (Y)' : 'VD: 30 (%)'}
-                className="w-full border rounded px-2 py-1.5 text-xs"
+                placeholder={jobCommissionType === 'fixed'
+                  ? `VD: 50000000 (${getJobCurrencyShortLabel(salaryCurrency)})`
+                  : 'VD: 30 (%)'}
+                className="w-full border rounded px-2 py-1.5 text-xs bg-white"
               />
+            )}
+            {jobCommissionType === 'fixed' && jv.value && !(Number(jv.typeId) === 7 && Number(jv.valueId) === 34) && (
+              <p className="text-[10px] text-slate-500 mt-1">
+                {formatFixedAmountWithCurrency(jv.value, salaryCurrency)}
+              </p>
             )}
           </div>
           {Number(jv.typeId) === 7 && Number(jv.valueId) === 34 && (
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Giá trị hiển thị cho CTV <span className="text-slate-400">(Y)</span>
+                Giá trị hiển thị cho CTV
+                <span className="text-slate-400 text-[10px] ml-1">({getJobCurrencyShortLabel(salaryCurrency)})</span>
               </label>
               <input
                 type="text"
@@ -257,7 +292,7 @@ export default function JobCommissionEditor({
       <button
         type="button"
         onClick={addRow}
-        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700"
+        className="w-full px-3 py-2 border-2 border-dashed border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:border-blue-500 hover:text-blue-600 transition-colors flex items-center justify-center gap-2 bg-white"
       >
         <Plus className="w-3.5 h-3.5" />
         Thêm Job Value
