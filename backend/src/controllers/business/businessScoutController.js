@@ -56,13 +56,14 @@ export const businessScoutController = {
    */
   listUnlockedCandidates: async (req, res, next) => {
     try {
-      const { page, limit, search, pipelineStatus, sortBy, sortOrder } = req.query;
+      const { page, limit, search, pipelineStatus, unlockType, sortBy, sortOrder } = req.query;
       const data = await listUnlockedCandidatesForBusiness({
         businessId: req.business.id,
         page,
         limit,
         search,
         pipelineStatus,
+        unlockType,
         sortBy,
         sortOrder,
       });

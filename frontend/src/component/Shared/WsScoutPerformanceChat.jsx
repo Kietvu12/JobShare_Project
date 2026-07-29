@@ -1,7 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Send, Search, ExternalLink } from 'lucide-react'
+import { Send, Search, ExternalLink, Users, Loader2, X } from 'lucide-react'
 import apiService from '../../services/api'
+import {
+  SCOUT_APPROACH_STATUS_OPTIONS,
+  getScoutDisplayName,
+  getScoutPipelineMeta,
+} from '../../utils/scoutCandidateDisplay'
 
 const ICON_SM = { width: 10, height: 10 }
 const bd = '1px solid #e2e8f0'
@@ -76,6 +81,29 @@ const CREDIT_STATUS_STYLES = {
   approved: { label: 'Đã duyệt', color: '#16a34a', bg: '#dcfce7' },
   rejected: { label: 'Từ chối', color: '#dc2626', bg: '#fee2e2' },
   cancelled: { label: 'Đã hủy', color: '#64748b', bg: '#f1f5f9' },
+}
+
+function SaiyoBrandingRequestEventCard({ message }) {
+  const payload = message.requestPayload || {}
+  const title = payload.serviceTitle || 'Dịch vụ Saiyo Branding'
+
+  return (
+    <div style={{
+      width: '100%', maxWidth: 320, background: '#fff', border: '1.5px solid #ddd6fe',
+      borderRadius: 10, padding: '10px 12px', boxShadow: '0 2px 8px rgba(139,92,246,0.12)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#5b21b6' }}>Yêu cầu Saiyo Branding</div>
+        <span style={{ fontSize: 7, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: '#7c3aed', background: '#ede9fe' }}>
+          Chờ WS
+        </span>
+      </div>
+      <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.65 }}>
+        <div><strong>Dịch vụ:</strong> {title}</div>
+        {payload.note && <div><strong>Ghi chú DN:</strong> {payload.note}</div>}
+      </div>
+    </div>
+  )
 }
 
 function CreditRequestEventCard({
@@ -201,6 +229,195 @@ function CreditDecisionEventCard({ message }) {
   )
 }
 
+function ApproachStatusUpdateEventCard({ message, mode, onOpenCv }) {
+  const payload = message.requestPayload || {}
+  const statusLabel = payload.pipelineStatusLabel || payload.pipelineStatus || '—'
+  const cvFromAttachment = (message.cvAttachments || [])[0]
+  const cv = cvFromAttachment?.cvId
+    ? cvFromAttachment
+    : (payload.cvId ? { cvId: payload.cvId, code: payload.cvCode } : null)
+
+  return (
+    <div style={{
+      width: '100%', maxWidth: 320, background: '#f0fdf4', border: '1.5px solid #bbf7d0',
+      borderRadius: 10, padding: '10px 12px',
+    }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: '#166534', marginBottom: 6 }}>
+        Cập nhật trạng thái tiếp cận
+      </div>
+      {message.content && (
+        <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.55, marginBottom: 8 }}>
+          {message.content}
+        </div>
+      )}
+      <div style={{
+        fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7',
+        borderRadius: 6, padding: '5px 8px', marginBottom: cv ? 8 : 0,
+      }}
+      >
+        {statusLabel}
+      </div>
+      {cv && (
+        <CvAttachmentCard
+          cv={cv}
+          mode={mode}
+          kind="recommendation"
+          onOpen={mode === 'business' ? onOpenCv : undefined}
+        />
+      )}
+    </div>
+  )
+}
+
+function WsAdminScoutPerformanceCandidatesPanel({
+  open,
+  sessionId,
+  onClose,
+  onStatusUpdated,
+}) {
+  const [loading, setLoading] = useState(false)
+  const [candidates, setCandidates] = useState([])
+  const [error, setError] = useState('')
+  const [updatingCvId, setUpdatingCvId] = useState(null)
+
+  const load = useCallback(async () => {
+    if (!sessionId) return
+    setLoading(true)
+    setError('')
+    try {
+      const res = await apiService.getAdminWsChatScoutPerformanceCandidates(sessionId)
+      if (res?.success) {
+        setCandidates(res.data?.candidates || [])
+      } else {
+        setCandidates([])
+        setError(res?.message || 'Không tải được danh sách')
+      }
+    } catch (e) {
+      console.error(e)
+      setCandidates([])
+      setError('Không tải được danh sách Scout Performance')
+    } finally {
+      setLoading(false)
+    }
+  }, [sessionId])
+
+  useEffect(() => {
+    if (open && sessionId) load()
+  }, [open, sessionId, load])
+
+  const handleChangeStatus = async (cvId, pipelineStatus) => {
+    if (!sessionId || !cvId) return
+    setUpdatingCvId(cvId)
+    try {
+      const res = await apiService.updateAdminWsChatScoutPerformanceApproachStatus(
+        sessionId,
+        cvId,
+        pipelineStatus,
+      )
+      if (res?.success) {
+        setCandidates((prev) => prev.map((c) => (
+          c.id === cvId
+            ? { ...c, pipelineStatus, pipelineStatusLabel: res.data?.candidate?.pipelineStatusLabel }
+            : c
+        )))
+        onStatusUpdated?.(res.data?.message)
+      } else {
+        alert(res?.message || 'Cập nhật thất bại')
+      }
+    } catch (e) {
+      console.error(e)
+      alert('Cập nhật thất bại')
+    } finally {
+      setUpdatingCvId(null)
+    }
+  }
+
+  if (!open) return null
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 30, background: 'rgba(15,23,42,0.35)',
+      display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end',
+    }}
+    >
+      <div style={{
+        width: 'min(100%, 320px)', background: '#fff', borderLeft: bd,
+        display: 'flex', flexDirection: 'column', minHeight: 0, boxShadow: '-4px 0 24px rgba(0,0,0,0.08)',
+      }}
+      >
+        <div style={{
+          padding: '10px 12px', borderBottom: bd, display: 'flex', alignItems: 'center', gap: 8,
+        }}
+        >
+          <Users style={{ width: 14, height: 14, color: '#4f46e5' }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#1e293b' }}>Ứng viên Scout Performance</div>
+            <div style={{ fontSize: 8, color: '#64748b' }}>Cập nhật trạng thái tiếp cận — DN nhận tin nhắn tự động</div>
+          </div>
+          <button type="button" onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}>
+            <X style={{ width: 14, height: 14, color: '#64748b' }} />
+          </button>
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
+          {loading && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 9, color: '#64748b', padding: 12 }}>
+              <Loader2 style={{ width: 12, height: 12 }} className="animate-spin" />
+              Đang tải...
+            </div>
+          )}
+          {error && !loading && (
+            <div style={{ fontSize: 9, color: '#b91c1c', padding: 8 }}>{error}</div>
+          )}
+          {!loading && !error && candidates.length === 0 && (
+            <div style={{ fontSize: 9, color: '#94a3b8', padding: 12, lineHeight: 1.5 }}>
+              Doanh nghiệp chưa có ứng viên Scout Performance nào.
+            </div>
+          )}
+          {!loading && candidates.map((c) => {
+            const approach = getScoutPipelineMeta(c.pipelineStatus)
+            return (
+              <div
+                key={c.id}
+                style={{
+                  border: bd, borderRadius: 8, padding: '8px 10px', marginBottom: 8, background: '#f8fafc',
+                }}
+              >
+                <div style={{ fontSize: 9, fontWeight: 700, color: '#1e293b' }}>
+                  {getScoutDisplayName(c)}
+                </div>
+                <div style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>
+                  {c.code || `CV #${c.id}`}
+                  {c.desiredPosition ? ` · ${c.desiredPosition}` : ''}
+                </div>
+                <div style={{ marginTop: 6 }}>
+                  <label style={{ fontSize: 7, color: '#94a3b8', display: 'block', marginBottom: 3 }}>
+                    Trạng thái tiếp cận
+                  </label>
+                  <select
+                    value={c.pipelineStatus || 'new'}
+                    disabled={updatingCvId === c.id}
+                    onChange={(e) => handleChangeStatus(c.id, e.target.value)}
+                    style={{
+                      width: '100%', fontSize: 9, fontWeight: 600, color: approach.color,
+                      background: approach.bg, border: '1px solid #e2e8f0', borderRadius: 6,
+                      padding: '5px 6px',
+                    }}
+                  >
+                    {SCOUT_APPROACH_STATUS_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ScoutPerformanceEventCard({ message, mode, onOpenCv }) {
   const payload = message.requestPayload || {}
   const requestedCv = getRequestedCvFromMessage(message)
@@ -251,7 +468,9 @@ function ChatBubble({ message, mode, onOpenCv, onApproveCredit, onRejectCredit, 
     'performance_request',
   ].includes(message.messageType)
   const isCreditRequest = message.messageType === 'credit_request'
+  const isSaiyoBrandingRequest = message.messageType === 'saiyo_branding_request'
   const isCreditDecision = message.messageType === 'credit_decision'
+  const isApproachUpdate = message.messageType === 'approach_status_update'
   const isOutgoing = mode === 'admin'
     ? message.senderType === 'admin'
     : message.senderType === 'business'
@@ -280,6 +499,23 @@ function ChatBubble({ message, mode, onOpenCv, onApproveCredit, onRejectCredit, 
     )
   }
 
+  if (isSaiyoBrandingRequest) {
+    return (
+      <div style={{
+        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-end' : 'flex-start',
+        flexDirection: mode === 'business' ? 'row-reverse' : 'row', alignItems: 'flex-end',
+      }}>
+        {mode !== 'business' && <WsLogo size={24} />}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+          <SaiyoBrandingRequestEventCard message={message} />
+          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
+            {formatTime(message.createdAt)}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (isCreditDecision) {
     return (
       <div style={{
@@ -289,6 +525,23 @@ function ChatBubble({ message, mode, onOpenCv, onApproveCredit, onRejectCredit, 
         {mode === 'business' && <WsLogo size={24} />}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
           <CreditDecisionEventCard message={message} />
+          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'left' : 'right' }}>
+            {formatTime(message.createdAt)}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (isApproachUpdate) {
+    return (
+      <div style={{
+        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-start' : 'flex-end',
+        flexDirection: mode === 'business' ? 'row' : 'row-reverse', alignItems: 'flex-end',
+      }}>
+        {mode === 'business' && <WsLogo size={24} />}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+          <ApproachStatusUpdateEventCard message={message} mode={mode} onOpenCv={onOpenCv} />
           <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'left' : 'right' }}>
             {formatTime(message.createdAt)}
           </div>
@@ -665,6 +918,7 @@ export function WsChatThread({
 
   const [input, setInput] = useState('')
   const [creditActionId, setCreditActionId] = useState(null)
+  const [perfListOpen, setPerfListOpen] = useState(false)
   const endRef = useRef(null)
 
   useEffect(() => {
@@ -723,7 +977,13 @@ export function WsChatThread({
     : 'Scout Performance'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%', background: '#f8fafc' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%', background: '#f8fafc', position: 'relative' }}>
+      <WsAdminScoutPerformanceCandidatesPanel
+        open={mode === 'admin' && perfListOpen}
+        sessionId={activeSessionId}
+        onClose={() => setPerfListOpen(false)}
+        onStatusUpdated={() => chat.reloadMessages?.()}
+      />
       {showHeader && (
         <div style={{ background: '#fff', borderBottom: bd, padding: '8px 10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -734,6 +994,34 @@ export function WsChatThread({
                 Scout Performance · {requestStatusLabel}
               </div>
             </div>
+            {mode === 'admin' && activeSessionId && (
+              <button
+                type="button"
+                onClick={() => setPerfListOpen(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4, border: bd, borderRadius: 6,
+                  padding: '4px 8px', fontSize: 8, fontWeight: 600, background: '#eef2ff',
+                  color: '#4338ca', cursor: 'pointer', whiteSpace: 'nowrap',
+                }}
+              >
+                <Users style={{ width: 10, height: 10 }} />
+                UV Scout Performance
+              </button>
+            )}
+            {mode === 'business' && (
+              <button
+                type="button"
+                onClick={() => navigate('/business/candidates?list=scout_performance')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4, border: bd, borderRadius: 6,
+                  padding: '4px 8px', fontSize: 8, fontWeight: 600, background: '#fff',
+                  color: '#4f46e5', cursor: 'pointer', whiteSpace: 'nowrap',
+                }}
+              >
+                <Users style={{ width: 10, height: 10 }} />
+                Danh sách UV
+              </button>
+            )}
             {mode === 'business' && activeSession?.triggerCv?.id && (
               <button type="button" onClick={() => openCv(activeSession.triggerCv.id)} style={{ display: 'flex', alignItems: 'center', gap: 4, border: bd, borderRadius: 6, padding: '4px 8px', fontSize: 8, background: '#fff', cursor: 'pointer' }}>
                 <ExternalLink width={10} height={10} /> Hồ sơ tham chiếu

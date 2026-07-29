@@ -9,6 +9,7 @@ router.use(authenticateBusiness);
 
 router.get('/templates', businessLandingPageController.getTemplates);
 router.get('/dashboard', businessLandingPageController.getDashboard);
+router.post('/branding-service-requests', businessLandingPageController.createBrandingServiceRequest);
 router.get('/', businessLandingPageController.list);
 router.post('/', businessLandingPageController.create);
 router.get('/:id', businessLandingPageController.getById);

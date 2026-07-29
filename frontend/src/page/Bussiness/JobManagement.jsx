@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Plus, Search, Briefcase, Loader2, Trash2, MoreHorizontal,
-  CheckCircle2, AlertCircle, Shield, MessageSquare,
+  Plus, Search, Briefcase, Trash2, MoreHorizontal,
+  CheckCircle2, AlertCircle, Shield, MessageSquare, PanelLeft, X,
 } from 'lucide-react'
 import apiService from '../../services/api'
 import JobAiBuilderPanel from '../../component/Bussiness/JobAiBuilderPanel'
+import JobCreatedNextStepsModal from '../../component/Bussiness/JobCreatedNextStepsModal'
 import {
   deleteJobBuilderThread,
   listJobBuilderThreads,
@@ -35,6 +36,36 @@ function getThreadTitle(thread) {
   return thread?.title || 'JD mới'
 }
 
+const jobManagementStyles = `
+  .business-jobs-shell {
+    --jobs-zoom: 1;
+    height: 100%;
+    min-height: 0;
+  }
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    .business-jobs-shell { --jobs-zoom: 0.84; }
+  }
+  @media (min-width: 1280px) and (max-width: 1535px) {
+    .business-jobs-shell { --jobs-zoom: 0.9; }
+  }
+  @media (min-width: 1536px) and (max-width: 1919px) {
+    .business-jobs-shell { --jobs-zoom: 0.96; }
+  }
+  .business-jobs-ui {
+    zoom: var(--jobs-zoom);
+    height: 100%;
+    min-height: 0;
+  }
+  @supports not (zoom: 1) {
+    .business-jobs-ui {
+      transform: scale(var(--jobs-zoom));
+      transform-origin: top left;
+      width: calc(100% / var(--jobs-zoom));
+      height: calc(100% / var(--jobs-zoom));
+    }
+  }
+`
+
 function countJobsByStatus(jobs) {
   const counts = { total: 0, active: 0, paused: 0, closed: 0 }
   ;(jobs || []).forEach((job) => {
@@ -59,6 +90,8 @@ const JobManagement = () => {
   const [activeThreadId, setActiveThreadId] = useState(null)
   const [savedJobId, setSavedJobId] = useState(null)
   const [statusCounts, setStatusCounts] = useState({ total: 0, active: 0, paused: 0, closed: 0 })
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [nextStepsModal, setNextStepsModal] = useState({ open: false, jobId: null })
 
   const refreshThreads = useCallback(() => {
     setThreads(listJobBuilderThreads())
@@ -124,6 +157,7 @@ const JobManagement = () => {
     setActiveThreadId(thread.id)
     setSavedJobId(thread.jobId || null)
     builderRef.current?.loadThread?.(thread)
+    setSidebarOpen(false)
   }
 
   const handleThreadPersist = useCallback((thread) => {
@@ -131,12 +165,44 @@ const JobManagement = () => {
     setActiveThreadId((prev) => prev || thread?.id || null)
   }, [refreshThreads])
 
-  const handleJobSaved = useCallback(({ jobId, thread }) => {
+  const handleJobSaved = useCallback(({ jobId, thread, isCreate }) => {
     setSavedJobId(jobId)
     setActiveThreadId(thread?.id || null)
     refreshThreads()
     loadAllJobs()
+    if (isCreate && jobId) {
+      setNextStepsModal({ open: true, jobId })
+    }
   }, [refreshThreads, loadAllJobs])
+
+  const closeNextStepsModal = useCallback(() => {
+    setNextStepsModal({ open: false, jobId: null })
+  }, [])
+
+  const handleNextStepSelect = useCallback((stepNum, jobId) => {
+    closeNextStepsModal()
+    const id = jobId ? String(jobId) : ''
+    switch (stepNum) {
+      case '①':
+        navigate(id ? `/business/scout?jobId=${encodeURIComponent(id)}` : '/business/scout')
+        break
+      case '②':
+        navigate(id
+          ? `/business/messages?tab=ws&jobId=${encodeURIComponent(id)}`
+          : '/business/messages?tab=ws')
+        break
+      case '③':
+        navigate(id
+          ? `/business/candidate-sharing?create=1&jobId=${encodeURIComponent(id)}`
+          : '/business/candidate-sharing?create=1')
+        break
+      case '④':
+        navigate('/business/saiyo', { state: id ? { openLandingCreate: true, jobId: id } : { openLandingCreate: true } })
+        break
+      default:
+        break
+    }
+  }, [closeNextStepsModal, navigate])
 
   const handleDeleteThread = useCallback((thread, e) => {
     e?.stopPropagation?.()
@@ -163,137 +229,220 @@ const JobManagement = () => {
     { icon: Shield, label: 'Đã đóng', value: statusCounts.closed },
   ], [statusCounts])
 
-  return (
-    <div className="h-full min-h-0 flex overflow-hidden bg-white">
-      {/* ── Left sidebar: chat threads (ChatGPT-style) ── */}
-      <aside className="w-[280px] shrink-0 flex flex-col border-r border-slate-200 bg-[#f9f9f9] min-h-0">
-        <div className="p-2 shrink-0">
-          <button
-            type="button"
-            onClick={handleNewJob}
-            className="w-full flex items-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium px-3 py-2.5 transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4 shrink-0" />
-            Tạo JD mới
-          </button>
+  const activeThreadTitle = useMemo(() => {
+    const t = threads.find((th) => th.id === activeThreadId)
+    return t ? getThreadTitle(t) : 'JD mới'
+  }, [threads, activeThreadId])
+
+  const sidebarInner = (
+    <>
+      <div className="p-1.5 lg:p-2 shrink-0 flex items-center gap-1.5 lg:gap-2">
+        <button
+          type="button"
+          onClick={handleNewJob}
+          className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium px-2 py-1.5 transition-colors shadow-sm min-w-0"
+        >
+          <Plus className="w-3.5 h-3.5 shrink-0" />
+          Tạo JD mới
+        </button>
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(false)}
+          className="lg:hidden shrink-0 w-8 h-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:bg-slate-50"
+          aria-label="Đóng danh sách phiên"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="px-1.5 lg:px-2 pb-1.5 lg:pb-2 shrink-0">
+        <div className="flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-2 py-1.5">
+          <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Tìm phiên chat..."
+            className="flex-1 min-w-0 bg-transparent outline-none text-xs text-slate-700 placeholder:text-slate-400"
+          />
         </div>
+      </div>
 
-        <div className="px-2 pb-2 shrink-0">
-          <div className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-2.5 py-1.5">
-            <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm phiên chat..."
-              className="flex-1 bg-transparent outline-none text-xs text-slate-700 placeholder:text-slate-400"
-            />
-          </div>
+      {listError && (
+        <div className="mx-2 mb-2 rounded-lg bg-rose-50 border border-rose-100 text-rose-700 text-xs px-2.5 py-2 shrink-0">
+          {listError}
         </div>
+      )}
 
-        {listError && (
-          <div className="mx-2 mb-2 rounded-lg bg-rose-50 border border-rose-100 text-rose-700 text-[10px] px-2 py-1.5 shrink-0">
-            {listError}
+      <div className="px-1.5 lg:px-2 pb-1.5 lg:pb-2 shrink-0">
+        <div className="grid grid-cols-4 gap-0.5 lg:gap-1 rounded-lg lg:rounded-xl border border-slate-200 bg-white p-1 lg:p-1.5">
+          {jdStats.map((st) => {
+            const Icon = st.icon
+            return (
+              <div key={st.label} className="flex flex-col items-center gap-0.5 px-0.5 py-0.5 lg:py-1 min-w-0">
+                <Icon className="w-3 h-3 text-slate-400" />
+                <span className="text-[8px] text-slate-500 truncate w-full text-center leading-tight">{st.label}</span>
+                <span className="text-[10px] font-bold text-slate-800 tabular-nums">
+                  {loading ? '…' : st.value}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto px-1.5 lg:px-2 pb-1.5 lg:pb-2">
+        <p className="text-[9px] lg:text-[10px] font-semibold text-slate-400 uppercase tracking-wide px-1.5 lg:px-2 py-1 lg:py-1.5">
+          Phiên chat ({filteredThreads.length})
+        </p>
+
+        {filteredThreads.length === 0 ? (
+          <div className="text-center py-8 px-3">
+            <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <p className="text-xs text-slate-400 leading-relaxed whitespace-pre-line">
+              {searchQuery
+                ? 'Không tìm thấy phiên chat phù hợp'
+                : 'Chưa có phiên chat nào.\nBấm "Tạo JD mới" để bắt đầu.'}
+            </p>
           </div>
-        )}
-
-        <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide px-2 py-1.5">
-            Phiên chat ({filteredThreads.length})
-          </p>
-
-          {filteredThreads.length === 0 ? (
-            <div className="text-center py-8 px-3">
-              <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-              <p className="text-xs text-slate-400 leading-relaxed">
-                {searchQuery
-                  ? 'Không tìm thấy phiên chat phù hợp'
-                  : 'Chưa có phiên chat nào.\nBấm "Tạo JD mới" để bắt đầu.'}
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-0.5">
-              {filteredThreads.map((thread, index) => {
-                const isActive = activeThreadId === thread.id
-                const colorClass = THREAD_ICON_COLORS[index % THREAD_ICON_COLORS.length]
-                const isSaved = Boolean(thread.jobId)
-                return (
-                  <div
-                    key={thread.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => handleSelectThread(thread)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSelectThread(thread)}
-                    className={`group relative flex items-start gap-2 rounded-xl px-2.5 py-2 text-left transition-colors cursor-pointer ${
-                      isActive
-                        ? 'bg-white shadow-sm border border-slate-200'
-                        : 'hover:bg-white/80 border border-transparent'
-                    }`}
-                  >
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
-                      <MessageSquare className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="flex-1 min-w-0 pr-6">
-                      <p className="text-xs font-medium text-slate-800 truncate leading-snug">
-                        {getThreadTitle(thread)}
-                      </p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className={`text-[10px] truncate ${isSaved ? 'text-emerald-600' : 'text-amber-600'}`}>
-                          {isSaved ? 'Đã lưu' : 'Nháp'}
+        ) : (
+          <div className="flex flex-col gap-0.5">
+            {filteredThreads.map((thread, index) => {
+              const isActive = activeThreadId === thread.id
+              const colorClass = THREAD_ICON_COLORS[index % THREAD_ICON_COLORS.length]
+              const isSaved = Boolean(thread.jobId)
+              return (
+                <div
+                  key={thread.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleSelectThread(thread)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSelectThread(thread)}
+                  className={`group relative flex items-start gap-1.5 lg:gap-2 rounded-lg lg:rounded-xl px-2 py-2 lg:px-2.5 lg:py-2.5 text-left transition-colors cursor-pointer ${
+                    isActive
+                      ? 'bg-white shadow-sm border border-slate-200'
+                      : 'hover:bg-white/80 border border-transparent'
+                  }`}
+                >
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
+                    <MessageSquare className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex-1 min-w-0 pr-7 lg:pr-8">
+                    <p className="text-xs font-medium text-slate-800 truncate leading-snug">
+                      {getThreadTitle(thread)}
+                    </p>
+                    <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                      <span className={`text-[10px] ${isSaved ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {isSaved ? 'Đã lưu' : 'Nháp'}
+                      </span>
+                      {formatThreadDate(thread.updatedAt) ? (
+                        <span className="text-[10px] text-slate-400">
+                          · {formatThreadDate(thread.updatedAt)}
                         </span>
-                        {formatThreadDate(thread.updatedAt) ? (
-                          <span className="text-[10px] text-slate-400 truncate">
-                            · {formatThreadDate(thread.updatedAt)}
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="absolute right-1.5 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5">
-                      <button
-                        type="button"
-                        title="Xóa phiên"
-                        onClick={(e) => handleDeleteThread(thread, e)}
-                        className="w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
+                      ) : null}
                     </div>
                   </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
 
-        <div className="shrink-0 border-t border-slate-200 p-2 bg-white/60">
-          <div className="grid grid-cols-2 gap-1">
-            {jdStats.map((st) => {
-              const Icon = st.icon
-              return (
-                <div key={st.label} className="flex items-center gap-1.5 px-2 py-1 rounded-lg">
-                  <Icon className="w-3 h-3 text-slate-400 shrink-0" />
-                  <span className="text-[10px] text-slate-500 truncate">{st.label}</span>
-                  <span className="text-[10px] font-bold text-slate-700 ml-auto">
-                    {loading ? '…' : st.value}
-                  </span>
+                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex lg:hidden items-center">
+                    <button
+                      type="button"
+                      title="Xóa phiên"
+                      onClick={(e) => handleDeleteThread(thread, e)}
+                      className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="absolute right-1.5 top-1/2 -translate-y-1/2 hidden lg:group-hover:flex items-center gap-0.5">
+                    <button
+                      type="button"
+                      title="Xóa phiên"
+                      onClick={(e) => handleDeleteThread(thread, e)}
+                      className="w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               )
             })}
           </div>
-          <button
-            type="button"
-            onClick={() => navigate('/business/jobs/create')}
-            className="mt-2 w-full flex items-center justify-center gap-1.5 text-[10px] font-semibold text-slate-500 hover:text-slate-700 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-          >
-            <MoreHorizontal className="w-3 h-3" />
-            Tạo JD thủ công
-          </button>
-        </div>
+        )}
+      </div>
+
+      <div className="shrink-0 border-t border-slate-200 p-1.5 lg:p-2 bg-white/80">
+        <button
+          type="button"
+          onClick={() => {
+            navigate('/business/jobs/create')
+            setSidebarOpen(false)
+          }}
+          className="w-full flex items-center justify-center gap-1 text-[10px] lg:text-xs font-semibold text-slate-500 hover:text-slate-700 py-1.5 lg:py-2 rounded-lg hover:bg-slate-100 transition-colors"
+        >
+          <MoreHorizontal className="w-3 h-3 lg:w-3.5 lg:h-3.5" />
+          Tạo JD thủ công
+        </button>
+      </div>
+    </>
+  )
+
+  return (
+    <>
+      <style>{jobManagementStyles}</style>
+      <JobCreatedNextStepsModal
+        open={nextStepsModal.open}
+        jobId={nextStepsModal.jobId}
+        onClose={closeNextStepsModal}
+        onSelect={handleNextStepSelect}
+      />
+      <div className="business-jobs-shell h-full min-h-0 overflow-hidden">
+        <div className="business-jobs-ui h-full min-h-0 flex overflow-hidden bg-white relative">
+      {sidebarOpen && (
+        <button
+          type="button"
+          aria-label="Đóng overlay"
+          className="lg:hidden fixed inset-0 z-40 bg-slate-900/40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`
+          z-50 flex flex-col border-r border-slate-200 bg-[#f9f9f9] min-h-0
+          w-[min(100%,20rem)] max-w-[85vw] sm:max-w-[20rem]
+          fixed inset-y-0 left-0 shadow-xl
+          transition-transform duration-200 ease-out
+          lg:static lg:z-auto lg:w-[200px] xl:w-[216px] lg:shrink-0 lg:shadow-none lg:max-w-none
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+      >
+        {sidebarInner}
       </aside>
 
-      <main className="flex-1 min-w-0 min-h-0 flex flex-col bg-white">
-        <div className="flex-1 min-h-0">
+      <main className="flex-1 min-w-0 min-h-0 flex flex-col bg-white w-full">
+        <div className="lg:hidden shrink-0 flex items-center gap-1.5 border-b border-slate-200 px-2 py-1.5 bg-white">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="shrink-0 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs font-medium text-slate-700"
+          >
+            <PanelLeft className="w-3.5 h-3.5" />
+            Phiên
+          </button>
+          <p className="flex-1 min-w-0 text-xs font-semibold text-slate-800 truncate">
+            {activeThreadTitle}
+          </p>
+          <button
+            type="button"
+            onClick={handleNewJob}
+            className="shrink-0 inline-flex items-center gap-0.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-2 py-1.5"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span className="sr-only sm:not-sr-only sm:inline">Mới</span>
+          </button>
+        </div>
+
+        <div className="flex-1 min-h-0 min-w-0">
           <JobAiBuilderPanel
             ref={builderRef}
             embedded
@@ -304,7 +453,9 @@ const JobManagement = () => {
           />
         </div>
       </main>
-    </div>
+        </div>
+      </div>
+    </>
   )
 }
 

@@ -37,6 +37,7 @@ import {
   getNumberOfHiresDisplayLabel,
 } from '../../utils/numberOfHiresOptions.js';
 import { isPersistableJobValue } from '../../utils/jobCommissionUi';
+import JobCommissionEditor, { validateCommissionForMarketplace } from '../../component/Bussiness/JobCommissionEditor';
 import {
   ArrowLeft,
   Briefcase,
@@ -1904,7 +1905,14 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
       newErrors.categoryId = t.jobCategoryRequired || 'Danh mục là bắt buộc';
     }
 
-    // Job Values: nếu typeId = 2 thì phải chọn valueId
+    // Job Values
+    if (isBusinessPortal) {
+      const persistable = jobValues.filter(isPersistableJobValue);
+      if (persistable.length) {
+        const commissionErr = validateCommissionForMarketplace(formData.jobCommissionType, jobValues);
+        if (commissionErr) newErrors.jobValues = commissionErr;
+      }
+    } else {
     const invalidJobValues = jobValues.filter(jv => jv.typeId === 2 && !jv.valueId);
     if (invalidJobValues.length > 0) {
       newErrors.jobValues = 'Vui lòng chọn Value cho các Type có ID = 2';
@@ -1921,6 +1929,7 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
           break;
         }
       }
+    }
     }
 
     setErrors(newErrors);
@@ -5717,13 +5726,30 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
             </div>
           </div>
 
-          {/* Chi tiết hoa hồng (Job Values) */}
+          {/* Phí giới thiệu nhân sự / Job Values (admin) */}
           <div className={sectionCardClass} style={{ borderColor: '#e5e7eb' }}>
             <h2 className={sectionTitleClass} style={{ color: '#111827', borderColor: '#e5e7eb' }}>
               <Money className="w-4 h-4 text-blue-600" />
-              {t.jobCommissionDetailSectionTitle || 'Cài đặt phí'}
+              {isBusinessPortal
+                ? 'Phí giới thiệu nhân sự'
+                : (t.jobCommissionDetailSectionTitle || 'Cài đặt phí')}
             </h2>
             <div className="space-y-3">
+              {isBusinessPortal ? (
+                <>
+                  <JobCommissionEditor
+                    jobCommissionType={formData.jobCommissionType || 'fixed'}
+                    onCommissionTypeChange={(v) => setFormData((prev) => ({ ...prev, jobCommissionType: v }))}
+                    jobValues={jobValues}
+                    onJobValuesChange={setJobValues}
+                    commissionSeedJob={jobId ? { id: jobId, jobCommissionType: formData.jobCommissionType, jobValues } : null}
+                    salaryCurrency={formData.salaryCurrency}
+                    onSalaryCurrencyChange={(v) => setFormData((prev) => ({ ...prev, salaryCurrency: v }))}
+                  />
+                  {errors.jobValues && <p className="text-[10px] text-red-500 mt-2">{errors.jobValues}</p>}
+                </>
+              ) : (
+              <>
               <div className="mb-4 pb-3 border-b border-gray-200">
                 <label className="block text-xs font-semibold text-gray-900 mb-2">
                   {t.jobSalaryCurrencyLabel || 'Đơn vị tiền tệ'}
@@ -5745,7 +5771,7 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
               {/* Commission Type */}
               <div className="mb-4 pb-3 border-b border-gray-200">
                 <label className="block text-xs font-semibold text-gray-900 mb-2">
-                  Loại hoa hồng <span className="text-red-500">*</span>
+                  Loại phí giới thiệu nhân sự <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="jobCommissionType"
@@ -6041,6 +6067,8 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                 Thêm Job Value
               </button>
               {errors.jobValues && <p className="text-[10px] text-red-500 mt-2">{errors.jobValues}</p>}
+              </>
+              )}
             </div>
           </div>
 

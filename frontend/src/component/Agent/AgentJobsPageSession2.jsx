@@ -1271,7 +1271,7 @@ const mockJobs = [
       tags.push({
         label:
           language === 'vi'
-            ? 'Tuyển dụng trực tiếp'
+            ? 'Tiến cử trực tiếp với doanh nghiệp'
             : language === 'en'
               ? 'Direct recruitment'
               : '直接採用',

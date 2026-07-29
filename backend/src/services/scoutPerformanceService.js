@@ -441,17 +441,14 @@ export async function getPendingPerformanceRequestForBusiness({ businessId, cvId
 export async function getPerformanceRequestMetaForBusiness({
   businessId,
   cvId,
-  statuses = [
-    SCOUT_PERFORMANCE_REQUEST_STATUS.PENDING,
-    SCOUT_PERFORMANCE_REQUEST_STATUS.APPROVED,
-  ],
+  statuses,
 }) {
+  const where = { businessId, cvId };
+  if (Array.isArray(statuses) && statuses.length) {
+    where.status = { [Op.in]: statuses };
+  }
   const row = await BusinessScoutPerformanceRequest.findOne({
-    where: {
-      businessId,
-      cvId,
-      status: { [Op.in]: statuses },
-    },
+    where,
     include: [
       {
         model: BusinessScoutPerformanceRecommendation,

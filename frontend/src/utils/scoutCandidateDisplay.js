@@ -159,9 +159,35 @@ export const SCOUT_UNLOCK_SOURCE_LABELS = {
   scout_performance: { label: 'Scout Performance', color: '#f59e0b' },
 };
 
+export const SCOUT_PERFORMANCE_REQUEST_STATUS_META = {
+  pending: { label: 'Chờ WS duyệt', color: '#d97706', bg: '#fef3c7' },
+  approved: { label: 'WS đã gửi gợi ý', color: '#059669', bg: '#d1fae5' },
+  rejected: { label: 'WS từ chối', color: '#dc2626', bg: '#fee2e2' },
+  cancelled: { label: 'Đã hủy', color: '#64748b', bg: '#f1f5f9' },
+};
+
+export const SCOUT_PERFORMANCE_EXPLORE_META = {
+  interested: { label: 'Đang làm việc với WS', color: '#4f46e5', bg: '#e0e7ff' },
+  declined: { label: 'Không tìm hiểu thêm', color: '#64748b', bg: '#f1f5f9' },
+};
+
+export function getScoutPerformanceRequestMeta(status) {
+  return SCOUT_PERFORMANCE_REQUEST_STATUS_META[status] || SCOUT_PERFORMANCE_REQUEST_STATUS_META.pending;
+}
+
+export function getScoutPerformanceExploreMeta(exploreStatus) {
+  if (!exploreStatus) return null;
+  return SCOUT_PERFORMANCE_EXPLORE_META[exploreStatus] || null;
+}
+
 export function getScoutPipelineMeta(status) {
   return SCOUT_PIPELINE_LABELS[status] || SCOUT_PIPELINE_LABELS.new;
 }
+
+export const SCOUT_APPROACH_STATUS_OPTIONS = Object.entries(SCOUT_PIPELINE_LABELS).map(([value, meta]) => ({
+  value,
+  label: meta.label,
+}));
 
 export function getScoutUnlockSourceMeta(unlockType) {
   return SCOUT_UNLOCK_SOURCE_LABELS[unlockType] || SCOUT_UNLOCK_SOURCE_LABELS.scout_credit;

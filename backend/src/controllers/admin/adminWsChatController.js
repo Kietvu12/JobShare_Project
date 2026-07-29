@@ -9,6 +9,8 @@ import {
   acceptCreditRequestInChat,
   rejectCreditRequestInChat,
   getWsChatSessionByPerformanceRequestId,
+  listScoutPerformanceCandidatesForWsSession,
+  updateScoutPerformanceApproachStatusInWsChat,
 } from '../../services/businessWsChatService.js';
 
 function getAdminId(req) {
@@ -154,6 +156,39 @@ export const adminWsChatController = {
         note: req.body.note,
       });
       res.json({ success: true, data, message: 'Đã từ chối yêu cầu nạp credit' });
+    } catch (error) {
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      next(error);
+    }
+  },
+
+  listScoutPerformanceCandidates: async (req, res, next) => {
+    try {
+      const data = await listScoutPerformanceCandidatesForWsSession({ sessionId: req.params.id });
+      res.json({ success: true, data });
+    } catch (error) {
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      next(error);
+    }
+  },
+
+  updateScoutPerformanceApproachStatus: async (req, res, next) => {
+    try {
+      const data = await updateScoutPerformanceApproachStatusInWsChat({
+        sessionId: req.params.id,
+        adminId: getAdminId(req),
+        cvId: req.params.cvId,
+        pipelineStatus: req.body.pipelineStatus,
+      });
+      res.json({
+        success: true,
+        data,
+        message: data?.message?.content || 'Đã cập nhật trạng thái tiếp cận',
+      });
     } catch (error) {
       if (error.statusCode) {
         return res.status(error.statusCode).json({ success: false, message: error.message });

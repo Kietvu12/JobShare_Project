@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import {
   Search, SlidersHorizontal, ChevronRight, ChevronLeft,
   UserCheck, X, Unlock, Users, Check, BadgeCheck, Loader2, Briefcase,
@@ -36,6 +36,35 @@ const scrollbarStyle = `
   }
   .scout-onboard-scroll::-webkit-scrollbar { display: none; }
   .scout-onboard-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .business-homepage-shell {
+    --hp-zoom: 1;
+  }
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    .business-homepage-shell { --hp-zoom: 0.88; }
+  }
+  @media (min-width: 1280px) and (max-width: 1535px) {
+    .business-homepage-shell { --hp-zoom: 0.8; }
+  }
+  @media (min-width: 1536px) and (max-width: 1919px) {
+    .business-homepage-shell { --hp-zoom: 0.94; }
+  }
+  @media (min-width: 1920px) {
+    .business-homepage-shell { --hp-zoom: 1; }
+  }
+  .business-homepage-ui {
+    zoom: var(--hp-zoom);
+  }
+  @supports not (zoom: 1) {
+    .business-homepage-ui {
+      transform: scale(var(--hp-zoom));
+      transform-origin: top left;
+      width: calc(100% / var(--hp-zoom));
+    }
+  }
 `
 
 const scoutSolutionCards = [
@@ -85,11 +114,11 @@ const scoutSolutionCards = [
 ]
 
 const scoutQuickActions = [
-  { icon: Sparkles, title: 'Tạo JD mới (AI)', desc: 'Tạo JD miễn phí bằng AI', path: '/business/jobs/ai-builder' },
-  { icon: Search, title: 'Tìm ứng viên (Scout Credit)', desc: 'Tìm trong kho ứng viên', action: 'explore' },
-  { icon: MessageSquare, title: 'Gửi yêu cầu WS (Performance)', desc: 'Nhờ WS hỗ trợ tìm kiếm', action: 'explore' },
-  { icon: Users, title: 'Dùng Scout Performance', desc: 'Mở hồ sơ & chat WS', action: 'explore' },
-  { icon: BookOpen, title: 'Xem hướng dẫn sử dụng', desc: 'Tài liệu hướng dẫn Scout', path: '/business/knowledge' },
+  { icon: Sparkles, title: 'Tạo JD mới (AI)', desc: 'Tạo JD miễn phí bằng AI', color: 'text-violet-500', bg: 'bg-violet-50', path: '/business/jobs/ai-builder' },
+  { icon: Search, title: 'Tìm ứng viên (Scout Credit)', desc: 'Tìm trong kho ứng viên', color: 'text-blue-500', bg: 'bg-blue-50', action: 'explore' },
+  { icon: MessageSquare, title: 'Gửi yêu cầu WS (Performance)', desc: 'Nhờ WS hỗ trợ tìm kiếm', color: 'text-emerald-500', bg: 'bg-emerald-50', action: 'explore' },
+  { icon: Users, title: 'Dùng Scout Performance', desc: 'Mở hồ sơ & chat WS', color: 'text-indigo-500', bg: 'bg-indigo-50', action: 'explore' },
+  { icon: BookOpen, title: 'Xem hướng dẫn sử dụng', desc: 'Tài liệu hướng dẫn Scout', color: 'text-slate-500', bg: 'bg-slate-100', path: '/business/knowledge' },
 ]
 
 const scoutNotifications = [
@@ -106,35 +135,37 @@ const scoutNews = [
 
 function ScoutSolutionCard({ card, onStart }) {
   return (
-    <div className={`rounded-2xl border ${card.theme.border} ${card.theme.bg} p-3 flex flex-col h-full shadow-sm`}>
-      <span className={`inline-flex items-center justify-center w-6 h-6 rounded-lg text-white text-[10px] font-bold ${card.theme.badge}`}>
-        {card.num}
-      </span>
-      <h3 className="text-sm font-bold text-slate-800 mt-2">{card.title}</h3>
-      <p className="text-[10px] text-slate-500 mt-0.5">{card.subtitle}</p>
+    <div className={`rounded-xl sm:rounded-2xl border ${card.theme.border} ${card.theme.bg} p-2.5 sm:p-3.5 2xl:p-5 flex flex-col h-full shadow-sm min-w-0 min-h-0`}>
+      <div className="mb-1.5 sm:mb-2 2xl:mb-3 shrink-0">
+        <span className={`inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 2xl:w-7 2xl:h-7 rounded-md sm:rounded-lg text-white text-[9px] sm:text-[10px] 2xl:text-xs font-bold ${card.theme.badge}`}>
+          {card.num}
+        </span>
+        <h3 className="text-sm sm:text-base 2xl:text-lg font-bold text-slate-800 mt-1.5 sm:mt-2 leading-tight">{card.title}</h3>
+        <p className="text-[11px] sm:text-xs 2xl:text-sm text-slate-500 mt-0.5">{card.subtitle}</p>
+      </div>
 
-      <div className="rounded-xl overflow-hidden bg-white/60 border border-white/80 my-3 aspect-[4/3]">
+      <div className="rounded-lg sm:rounded-xl overflow-hidden bg-white/60 border border-white/80 mb-2 sm:mb-3 2xl:mb-4 flex-1 min-h-[5.5rem] sm:min-h-[6.5rem] 2xl:min-h-[9rem] max-h-32 sm:max-h-40 2xl:max-h-56">
         <img src={card.image} alt={card.title} className="w-full h-full object-cover" />
       </div>
 
-      <ul className="flex flex-col gap-1.5 mb-3 flex-1">
+      <ul className="flex flex-col gap-1 sm:gap-1.5 2xl:gap-2 mb-2 sm:mb-3 shrink-0">
         {card.features.map((f) => (
-          <li key={f} className="flex items-start gap-1.5 text-[10px] text-slate-600">
-            <Check className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${card.theme.accent}`} />
+          <li key={f} className="flex items-start gap-1 sm:gap-1.5 text-[11px] sm:text-xs 2xl:text-sm text-slate-600 leading-snug">
+            <Check className={`w-3 h-3 sm:w-3.5 sm:h-3.5 2xl:w-4 2xl:h-4 flex-shrink-0 mt-0.5 ${card.theme.accent}`} />
             <span>{f}</span>
           </li>
         ))}
       </ul>
 
-      <p className={`text-[9px] font-medium mb-2 ${card.theme.accent}`}>{card.footer}</p>
+      <p className={`text-[11px] sm:text-xs 2xl:text-sm font-medium mb-1.5 sm:mb-2 2xl:mb-3 shrink-0 ${card.theme.accent}`}>{card.footer}</p>
 
       <button
         type="button"
         onClick={() => onStart(card.mode)}
-        className={`w-full ${card.theme.btn} text-white text-[11px] font-semibold rounded-xl py-2.5 transition-colors inline-flex items-center justify-center gap-1.5`}
+        className={`w-full shrink-0 ${card.theme.btn} text-white text-xs sm:text-sm 2xl:text-base font-semibold rounded-lg sm:rounded-xl py-2 sm:py-2.5 2xl:py-3 transition-colors inline-flex items-center justify-center gap-1.5`}
       >
         Bắt đầu với {card.title}
-        <ArrowRight className="w-3.5 h-3.5" />
+        <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
       </button>
     </div>
   )
@@ -147,9 +178,9 @@ function ScoutOnboardingSidebar({ onExplore, onNavigate }) {
   }
 
   return (
-    <div className="flex flex-col gap-2 lg:gap-3 min-w-0 overflow-y-auto scout-onboard-scroll pr-1">
-      <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
-        <h2 className="text-xs font-bold text-slate-800 mb-1.5">Thao tác nhanh</h2>
+    <div className="flex flex-col gap-2 sm:gap-3 2xl:gap-4 min-w-0 xl:h-full xl:min-h-0 xl:overflow-y-auto xl:pr-1 scrollbar-hide">
+      <div className="bg-white rounded-lg sm:rounded-xl border border-slate-100 p-2 sm:p-3">
+        <h2 className="text-xs sm:text-sm font-bold text-slate-800 mb-1.5 sm:mb-2">Thao tác nhanh</h2>
         <div className="flex flex-col gap-0.5">
           {scoutQuickActions.map((a) => {
             const Icon = a.icon
@@ -158,57 +189,57 @@ function ScoutOnboardingSidebar({ onExplore, onNavigate }) {
                 key={a.title}
                 type="button"
                 onClick={() => handleAction(a)}
-                className="flex items-center gap-2 p-1 rounded-lg hover:bg-slate-50 transition-colors text-left w-full"
+                className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-lg hover:bg-slate-50 transition-colors text-left w-full"
               >
-                <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-3 h-3 text-blue-600" />
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${a.bg} flex items-center justify-center flex-shrink-0`}>
+                  <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${a.color}`} />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[9px] font-semibold text-slate-800">{a.title}</div>
-                  <div className="text-[8px] text-slate-400 truncate">{a.desc}</div>
+                  <div className="text-[11px] sm:text-xs font-semibold text-slate-800 leading-snug">{a.title}</div>
+                  <div className="text-[10px] sm:text-[11px] text-slate-400 truncate">{a.desc}</div>
                 </div>
-                <ChevronRight className="ml-auto w-3 h-3 text-slate-300 flex-shrink-0" />
+                <span className="ml-auto text-slate-300 flex-shrink-0 text-xs sm:text-sm">›</span>
               </button>
             )
           })}
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+      <div className="bg-white rounded-lg sm:rounded-xl border border-slate-100 p-2 sm:p-3">
+        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+          <h2 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1 sm:gap-1.5">
             Thông báo
-            <span className="bg-rose-500 text-white text-[8px] font-bold rounded-full px-1.5 py-0.5">4</span>
+            <span className="bg-rose-500 text-white text-[9px] sm:text-[10px] font-bold rounded-full px-1 sm:px-1.5 py-0.5">4</span>
           </h2>
-          <button type="button" className="text-[9px] font-semibold text-blue-600">Xem tất cả</button>
+          <button type="button" className="text-[10px] sm:text-xs font-semibold text-blue-600">Xem tất cả</button>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 sm:gap-2.5">
           {scoutNotifications.map((n) => (
-            <div key={n.text} className="flex items-start gap-1.5">
+            <div key={n.text} className="flex items-start gap-1.5 sm:gap-2">
               {n.warn
-                ? <AlertTriangle className="w-3 h-3 text-rose-500 mt-0.5 flex-shrink-0" />
-                : <span className={`w-1.5 h-1.5 rounded-full ${n.dot} mt-1 flex-shrink-0`} />}
+                ? <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 mt-0.5 flex-shrink-0" />
+                : <span className={`w-2 h-2 rounded-full ${n.dot} mt-1 flex-shrink-0`} />}
               <div className="min-w-0">
-                <p className="text-[9px] text-slate-700 leading-snug">{n.text}</p>
-                <p className="text-[8px] text-slate-400 mt-0.5">{n.time}</p>
+                <p className="text-[11px] sm:text-xs text-slate-700 leading-snug">{n.text}</p>
+                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">{n.time}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xs font-bold text-slate-800">Tin tức &amp; Insights</h2>
-          <button type="button" className="text-[9px] font-semibold text-blue-600">Xem tất cả</button>
+      <div className="bg-white rounded-lg sm:rounded-xl border border-slate-100 p-2 sm:p-3">
+        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+          <h2 className="text-xs sm:text-sm font-bold text-slate-800">Tin tức &amp; Insights</h2>
+          <button type="button" className="text-[10px] sm:text-xs font-semibold text-blue-600">Xem tất cả</button>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 sm:gap-3">
           {scoutNews.map((n) => (
-            <div key={n.title} className="flex gap-2">
-              <img src={n.img} alt={n.title} className="w-12 h-9 rounded-lg object-cover flex-shrink-0" />
+            <div key={n.title} className="flex gap-2 sm:gap-3">
+              <img src={n.img} alt={n.title} className="w-12 h-9 sm:w-14 sm:h-10 rounded-md sm:rounded-lg object-cover flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-[9px] font-medium text-slate-700 leading-snug line-clamp-2">{n.title}</p>
-                <p className="text-[8px] text-slate-400 mt-0.5">{n.date}</p>
+                <p className="text-[11px] sm:text-xs font-medium text-slate-700 leading-snug line-clamp-2">{n.title}</p>
+                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">{n.date}</p>
               </div>
             </div>
           ))}
@@ -220,29 +251,29 @@ function ScoutOnboardingSidebar({ onExplore, onNavigate }) {
 
 function ScoutOnboardingView({ previewCandidates, scoutCreditCost, onStart, onExplore }) {
   return (
-    <>
-      <div>
-        <h1 className="text-sm lg:text-base font-bold text-slate-800">Scout</h1>
-        <p className="text-[10px] lg:text-xs text-slate-500 mt-0.5 max-w-2xl">
+    <div className="flex flex-col gap-3 sm:gap-4 2xl:gap-5 min-w-0 xl:flex-1 xl:min-h-0 xl:h-full">
+      <div className="shrink-0">
+        <h1 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-slate-800">Scout</h1>
+        <p className="text-xs sm:text-sm 2xl:text-base text-slate-500 mt-0.5 sm:mt-1 max-w-4xl">
           JobShare giúp bạn tiếp cận đúng ứng viên nhanh hơn với 2 giải pháp linh hoạt.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 2xl:gap-4 items-stretch shrink-0">
         {scoutSolutionCards.map((card) => (
           <ScoutSolutionCard key={card.num} card={card} onStart={onStart} />
         ))}
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-        <div className="px-3 py-2 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-          <h2 className="text-xs font-bold text-slate-800">Ứng viên tiềm năng gợi ý cho bạn</h2>
-          <span className="text-[9px] text-slate-400">Hồ sơ đang được ẩn danh</span>
+      <div className="bg-white rounded-lg sm:rounded-xl border border-slate-100 overflow-hidden shrink-0 xl:mt-auto">
+        <div className="px-3 sm:px-4 py-2 sm:py-2.5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+          <h2 className="text-xs sm:text-sm font-bold text-slate-800">Ứng viên tiềm năng gợi ý cho bạn</h2>
+          <span className="text-[10px] sm:text-xs text-slate-400">Hồ sơ đang được ẩn danh</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left min-w-[640px]">
             <thead>
-              <tr className="text-[8px] text-slate-400 uppercase bg-slate-50 border-b border-slate-100">
+              <tr className="text-[10px] sm:text-xs text-slate-400 uppercase bg-slate-50 border-b border-slate-100">
                 <th className="font-medium px-3 py-2">Ứng viên</th>
                 <th className="font-medium px-2 py-2">Kinh nghiệm</th>
                 <th className="font-medium px-2 py-2">Kỹ năng</th>
@@ -255,8 +286,8 @@ function ScoutOnboardingView({ previewCandidates, scoutCreditCost, onStart, onEx
             <tbody>
               {previewCandidates.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-6 text-center text-[10px] text-slate-400">
-                    Đang tải gợi ý ứng viên...
+                  <td colSpan={7} className="px-3 py-6 sm:py-8 text-center text-xs sm:text-sm text-slate-400">
+                    Chưa có gợi ý ứng viên — bấm &quot;Khám phá toàn bộ ứng viên&quot; để vào kho Scout.
                   </td>
                 </tr>
               ) : previewCandidates.map((c) => {
@@ -268,25 +299,25 @@ function ScoutOnboardingView({ previewCandidates, scoutCreditCost, onStart, onEx
                       <div className="flex items-center gap-2">
                         <AvatarCircle candidate={c} size={28} />
                         <div>
-                          <div className="text-[10px] font-semibold text-slate-800">{getDisplayName(c)}</div>
-                          <div className="text-[8px] text-slate-400">{c.desiredPosition || c.jobCategory?.name || '—'}</div>
+                          <div className="text-xs sm:text-sm font-semibold text-slate-800">{getDisplayName(c)}</div>
+                          <div className="text-[10px] sm:text-xs text-slate-400">{c.desiredPosition || c.jobCategory?.name || '—'}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-2 py-2 text-[9px] text-slate-600">{formatExperienceYears(c.experienceYears)}</td>
+                    <td className="px-2 py-2 text-xs sm:text-sm text-slate-600">{formatExperienceYears(c.experienceYears)}</td>
                     <td className="px-2 py-2">
                       <div className="flex flex-wrap gap-1">
                         {skills.map((s) => (
-                          <span key={s} className="text-[7px] font-medium text-blue-600 bg-blue-50 rounded-full px-1.5 py-0.5">{s}</span>
+                          <span key={s} className="text-[10px] sm:text-xs font-medium text-blue-600 bg-blue-50 rounded-full px-1.5 py-0.5">{s}</span>
                         ))}
-                        {more > 0 && <span className="text-[7px] text-slate-400">+{more}</span>}
+                        {more > 0 && <span className="text-[10px] text-slate-400">+{more}</span>}
                       </div>
                     </td>
-                    <td className="px-2 py-2 text-[9px] text-slate-600">{c.desiredIncome || '—'}</td>
-                    <td className="px-2 py-2 text-[9px] text-slate-600">{c.desiredWorkLocation || '—'}</td>
+                    <td className="px-2 py-2 text-xs sm:text-sm text-slate-600">{c.desiredIncome || '—'}</td>
+                    <td className="px-2 py-2 text-xs sm:text-sm text-slate-600">{c.desiredWorkLocation || '—'}</td>
                     <td className="px-2 py-2 text-center">
-                      <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-600">
-                        <Gauge className="w-3 h-3" />
+                      <span className="inline-flex items-center gap-0.5 text-xs sm:text-sm font-bold text-emerald-600">
+                        <Gauge className="w-3.5 h-3.5" />
                         —
                       </span>
                     </td>
@@ -294,10 +325,10 @@ function ScoutOnboardingView({ previewCandidates, scoutCreditCost, onStart, onEx
                       <button
                         type="button"
                         onClick={onExplore}
-                        className="w-6 h-6 rounded-full bg-slate-100 hover:bg-blue-50 flex items-center justify-center mx-auto transition-colors"
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 hover:bg-blue-50 flex items-center justify-center mx-auto transition-colors"
                         title={`Mở hồ sơ (${scoutCreditCost} credit)`}
                       >
-                        <Lock className="w-3 h-3 text-slate-400" />
+                        <Lock className="w-3.5 h-3.5 text-slate-400" />
                       </button>
                     </td>
                   </tr>
@@ -306,18 +337,18 @@ function ScoutOnboardingView({ previewCandidates, scoutCreditCost, onStart, onEx
             </tbody>
           </table>
         </div>
-        <div className="px-3 py-2 border-t border-slate-100">
+        <div className="px-3 sm:px-4 py-2 sm:py-2.5 border-t border-slate-100">
           <button
             type="button"
             onClick={onExplore}
-            className="w-full text-[10px] font-semibold text-slate-700 bg-white border border-slate-200 hover:border-blue-300 hover:text-blue-600 rounded-xl py-2.5 transition-colors inline-flex items-center justify-center gap-1.5"
+            className="w-full text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:border-blue-300 hover:text-blue-600 rounded-lg sm:rounded-xl py-2 sm:py-2.5 transition-colors inline-flex items-center justify-center gap-1.5"
           >
             Khám phá toàn bộ ứng viên
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
         </div>
       </div>
-    </>
+    </div>
   )
 }
 
@@ -469,6 +500,7 @@ function AvatarCircle({ candidate, size = 36 }) {
 
 const Scout = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedJobId = searchParams.get('jobId') || ''
   const performanceRequestId = searchParams.get('performanceRequestId') || ''
@@ -509,28 +541,20 @@ const Scout = () => {
     sessionId: null,
   })
   const [activityLoading, setActivityLoading] = useState(true)
-  const [hasScoutActivity, setHasScoutActivity] = useState(false)
   const [forceDashboard, setForceDashboard] = useState(false)
   const [previewCandidates, setPreviewCandidates] = useState([])
 
   useEffect(() => {
     let cancelled = false
-    async function loadActivity() {
+    async function loadPreview() {
       try {
-        const [unlockRes, perfRes, previewRes] = await Promise.all([
-          apiService.getBusinessScoutUnlockedCandidates({ page: 1, limit: 1 }).catch(() => null),
-          apiService.getBusinessScoutPerformanceRequests({ page: 1, limit: 1 }).catch(() => null),
-          apiService.getBusinessScoutCandidates({
-            page: 1,
-            limit: 5,
-            sortBy: 'scoutListedAt',
-            sortOrder: 'DESC',
-          }).catch(() => null),
-        ])
+        const previewRes = await apiService.getBusinessScoutCandidates({
+          page: 1,
+          limit: 5,
+          sortBy: 'scoutListedAt',
+          sortOrder: 'DESC',
+        }).catch(() => null)
         if (cancelled) return
-        const unlockTotal = Number(unlockRes?.data?.pagination?.total ?? 0)
-        const perfTotal = Number(perfRes?.data?.pagination?.total ?? 0)
-        setHasScoutActivity(unlockTotal > 0 || perfTotal > 0)
         if (previewRes?.success && previewRes.data) {
           setPreviewCandidates(previewRes.data.candidates || [])
           if (typeof previewRes.data.scoutCreditCost === 'number') {
@@ -546,7 +570,7 @@ const Scout = () => {
         if (!cancelled) setActivityLoading(false)
       }
     }
-    loadActivity()
+    loadPreview()
     return () => { cancelled = true }
   }, [])
 
@@ -554,11 +578,22 @@ const Scout = () => {
     setForceDashboard(true)
   }, [])
 
+  /** Màn landing Scout luôn hiển thị trước; vào kho khi bấm CTA hoặc deep link job/performance. */
   const showOnboarding = !activityLoading
-    && !hasScoutActivity
     && !forceDashboard
     && !performanceRequestId
     && !selectedJobId
+
+  useEffect(() => {
+    if (performanceRequestId || selectedJobId) {
+      setForceDashboard(true)
+    }
+  }, [performanceRequestId, selectedJobId])
+
+  useEffect(() => {
+    if (performanceRequestId || selectedJobId) return
+    setForceDashboard(false)
+  }, [location.key, performanceRequestId, selectedJobId])
 
   useEffect(() => {
     setCredit(userCredit || 0)
@@ -1127,17 +1162,19 @@ const Scout = () => {
       <>
         <style>{scrollbarStyle}</style>
         {sharedModals}
-        <div className="h-full min-h-0 bg-slate-50 p-2 lg:p-3 overflow-hidden">
-          <div className="w-full h-full grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-2 lg:gap-3">
-            <div className="flex flex-col gap-2 lg:gap-3 min-w-0 overflow-y-auto scout-onboard-scroll pr-1">
-              <ScoutOnboardingView
-                previewCandidates={previewCandidates}
-                scoutCreditCost={scoutCreditCost}
-                onStart={enterScoutDashboard}
-                onExplore={enterScoutDashboard}
-              />
+        <div className="business-homepage-shell min-h-0 h-full bg-slate-50 overflow-x-hidden xl:h-full xl:overflow-hidden">
+          <div className="business-homepage-ui w-full min-h-0 p-3 sm:p-4 2xl:p-5 xl:h-full xl:flex xl:flex-col">
+            <div className="w-full xl:flex-1 xl:min-h-0 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] gap-3 sm:gap-4 2xl:gap-5 items-stretch">
+              <div className="flex flex-col min-w-0 xl:overflow-y-auto xl:min-h-0 xl:h-full xl:pr-1 scrollbar-hide">
+                <ScoutOnboardingView
+                  previewCandidates={previewCandidates}
+                  scoutCreditCost={scoutCreditCost}
+                  onStart={enterScoutDashboard}
+                  onExplore={enterScoutDashboard}
+                />
+              </div>
+              <ScoutOnboardingSidebar onExplore={enterScoutDashboard} onNavigate={navigate} />
             </div>
-            <ScoutOnboardingSidebar onExplore={enterScoutDashboard} onNavigate={navigate} />
           </div>
         </div>
       </>

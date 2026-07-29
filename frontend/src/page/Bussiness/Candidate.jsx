@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
-  Search, ChevronRight, MoreHorizontal, Phone, Mail, Loader2, BadgeCheck,
+  Search, ChevronRight, MoreHorizontal, Phone, Mail, Loader2, BadgeCheck, MessageSquare,
 } from 'lucide-react'
 import apiService from '../../services/api'
 import {
@@ -20,11 +20,37 @@ import {
   formatScoutAgeGender,
   getScoutPipelineMeta,
   getScoutUnlockSourceMeta,
+  getScoutPerformanceRequestMeta,
+  getScoutPerformanceExploreMeta,
+  SCOUT_PERFORMANCE_REQUEST_STATUS_LABELS,
 } from '../../utils/scoutCandidateDisplay'
 
 const ICON_SM = { width: 10, height: 10 }
 const ANONYMOUS_AVATAR = 'https://api.dicebear.com/7.x/shapes/svg?seed=scout-unlocked'
 const PAGE_SIZE = 20
+
+const CANDIDATE_LIST_SOURCES = [
+  {
+    id: 'scout_credit',
+    label: 'Ứng viên Scout Credit',
+    listTitle: 'Danh sách Scout Credit',
+    emptyText: 'Chưa có ứng viên nào mở bằng Scout Credit.',
+    emptyLinkLabel: 'Tìm ứng viên trên Scout →',
+    emptyLinkTo: '/business/scout',
+  },
+  {
+    id: 'scout_performance',
+    label: 'Ứng viên Scout Performance',
+    listTitle: 'Danh sách Scout Performance',
+    emptyText: 'Chưa có ứng viên nào từ Scout Performance.',
+    emptyLinkLabel: 'Yêu cầu Scout Performance →',
+    emptyLinkTo: '/business/scout',
+  },
+]
+
+function getListSourceMeta(sourceId) {
+  return CANDIDATE_LIST_SOURCES.find((s) => s.id === sourceId) || CANDIDATE_LIST_SOURCES[0]
+}
 
 const scrollbarStyle = `
   .candidate-scrollbar::-webkit-scrollbar { width: 6px; }
@@ -72,16 +98,21 @@ function CandidateList({
   page,
   totalPages,
   onPageChange,
+  listSource,
 }) {
+  const sourceMeta = getListSourceMeta(listSource)
   const pageStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
   const pageEnd = Math.min(page * PAGE_SIZE, total)
 
   return (
     <div className="bg-white rounded-xl border border-slate-100 h-full flex flex-col" style={{ minHeight: 0 }}>
       <div style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>
-        <h2 style={{ fontSize: 11, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>
-          Hồ sơ ứng viên đã mở Scout
+        <h2 style={{ fontSize: 11, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
+          {sourceMeta.listTitle}
         </h2>
+        <div style={{ fontSize: 8, color: '#94a3b8', marginBottom: 6 }}>
+          Chọn gói dịch vụ từ menu trái · Hồ sơ ứng viên
+        </div>
         <div className="flex items-center gap-1" style={{ marginBottom: 6 }}>
           <div className="flex items-center gap-1 bg-slate-50 rounded-lg flex-1" style={{ padding: '4px 6px' }}>
             <Search style={{ width: 10, height: 10, color: '#94a3b8', flexShrink: 0 }} />
@@ -106,10 +137,10 @@ function CandidateList({
           </div>
         ) : candidates.length === 0 ? (
           <div style={{ padding: 16, textAlign: 'center', fontSize: 9, color: '#94a3b8' }}>
-            Chưa có ứng viên nào được mở Scout.
+            {sourceMeta.emptyText}
             <div style={{ marginTop: 8 }}>
-              <Link to="/business/scout" style={{ fontSize: 9, color: '#3b82f6', fontWeight: 600 }}>
-                Tìm ứng viên trên Scout →
+              <Link to={sourceMeta.emptyLinkTo} style={{ fontSize: 9, color: '#3b82f6', fontWeight: 600 }}>
+                {sourceMeta.emptyLinkLabel}
               </Link>
             </div>
           </div>
@@ -118,6 +149,13 @@ function CandidateList({
             {candidates.map((c) => {
               const pipeline = getScoutPipelineMeta(c.pipelineStatus)
               const source = getScoutUnlockSourceMeta(c.unlockType)
+              const perfReq = c.performanceRequest
+              const perfSt = perfReq?.status ? getScoutPerformanceRequestMeta(perfReq.status) : null
+              const wsWork = perfReq?.businessExploreStatus
+                ? getScoutPerformanceExploreMeta(perfReq.businessExploreStatus)
+                : (perfReq?.wantsSimilarCandidates
+                  ? { label: 'WS đang tìm UV tương tự', color: '#7c3aed', bg: '#ede9fe' }
+                  : null)
               return (
                 <div
                   key={c.id}
@@ -143,6 +181,12 @@ function CandidateList({
                       <div style={{ fontSize: 7, color: source.color, fontWeight: 500, marginTop: 1 }}>
                         ● {source.label}
                       </div>
+                      {perfSt && (
+                        <div style={{ fontSize: 7, color: perfSt.color, fontWeight: 600, marginTop: 2 }}>
+                          WS: {perfSt.label}
+                          {wsWork ? ` · ${wsWork.label}` : ''}
+                        </div>
+                      )}
                     </div>
                     <span
                       style={{
@@ -155,7 +199,7 @@ function CandidateList({
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {pipeline.label}
+                      Tiếp cận: {pipeline.label}
                     </span>
                   </div>
                   <div style={{ fontSize: 7, color: '#94a3b8', marginTop: 4, textAlign: 'right' }}>
@@ -405,7 +449,12 @@ function CandidateDetail({ candidate, loading }) {
   )
 }
 
-function CandidateSidebar({ candidate }) {
+function CandidateSidebar({
+  candidate,
+  listSource,
+  exploreSubmitting,
+  onExploreStatus,
+}) {
   if (!candidate) {
     return (
       <div className="bg-white rounded-xl border border-slate-100 text-center" style={{ padding: 16, fontSize: 9, color: '#94a3b8' }}>
@@ -416,6 +465,13 @@ function CandidateSidebar({ candidate }) {
 
   const pipeline = getScoutPipelineMeta(candidate.pipelineStatus)
   const source = getScoutUnlockSourceMeta(candidate.unlockType)
+  const isPerformanceList = listSource === 'scout_performance'
+  const perfReq = candidate.performanceRequest
+  const perfStatusMeta = perfReq?.status ? getScoutPerformanceRequestMeta(perfReq.status) : null
+  const exploreMeta = perfReq?.businessExploreStatus
+    ? getScoutPerformanceExploreMeta(perfReq.businessExploreStatus)
+    : null
+  const canSetExplore = perfReq?.status === 'approved' && !perfReq?.businessExploreStatus
 
   const timeline = [
     {
@@ -425,12 +481,140 @@ function CandidateSidebar({ candidate }) {
     ...(candidate.savedAt && candidate.savedAt !== candidate.unlockedAt
       ? [{ date: formatListDate(candidate.savedAt), action: 'Thêm vào hồ sơ ứng viên' }]
       : []),
+    ...(perfReq?.requestedAt
+      ? [{
+        date: formatListDate(perfReq.requestedAt),
+        action: `Yêu cầu Scout Performance (${SCOUT_PERFORMANCE_REQUEST_STATUS_LABELS[perfReq.status] || perfReq.status})`,
+      }]
+      : []),
+    ...(perfReq?.handledAt
+      ? [{ date: formatListDate(perfReq.handledAt), action: 'WS xử lý yêu cầu' }]
+      : []),
+    ...(perfReq?.businessExploreStatus === 'interested'
+      ? [{ date: '—', action: 'DN xác nhận quan tâm — WS đang hỗ trợ liên hệ' }]
+      : []),
+    ...(perfReq?.wantsSimilarCandidates
+      ? [{ date: '—', action: 'WS đang tìm thêm ứng viên tương tự' }]
+      : []),
   ]
 
   return (
     <div className="flex flex-col gap-2 candidate-scrollbar" style={{ minHeight: 0 }}>
+      {isPerformanceList && (
+        <div className="bg-white rounded-xl border border-violet-100" style={{ padding: '10px' }}>
+          <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>Scout Performance · WS</h3>
+          {!perfReq ? (
+            <p style={{ fontSize: 8, color: '#94a3b8', lineHeight: 1.4 }}>
+              Chưa có yêu cầu WS gắn với hồ sơ này.
+            </p>
+          ) : (
+            <>
+              {perfStatusMeta && (
+                <div
+                  style={{
+                    width: '100%',
+                    fontSize: 9,
+                    padding: '5px 6px',
+                    borderRadius: 4,
+                    border: '1px solid #e2e8f0',
+                    color: perfStatusMeta.color,
+                    background: perfStatusMeta.bg,
+                    fontWeight: 600,
+                    marginBottom: 6,
+                  }}
+                >
+                  Yêu cầu: {perfStatusMeta.label}
+                  {perfReq.recommendationCount > 0 ? ` · ${perfReq.recommendationCount} gợi ý` : ''}
+                </div>
+              )}
+              {exploreMeta ? (
+                <div
+                  style={{
+                    width: '100%',
+                    fontSize: 9,
+                    padding: '5px 6px',
+                    borderRadius: 4,
+                    border: '1px solid #e2e8f0',
+                    color: exploreMeta.color,
+                    background: exploreMeta.bg,
+                    fontWeight: 600,
+                    marginBottom: 6,
+                  }}
+                >
+                  Làm việc với WS: {exploreMeta.label}
+                </div>
+              ) : perfReq.wantsSimilarCandidates ? (
+                <div style={{ fontSize: 8, color: '#7c3aed', fontWeight: 600, marginBottom: 6 }}>
+                  WS đang tìm ứng viên tương tự cho bạn
+                </div>
+              ) : perfReq.status === 'pending' ? (
+                <div style={{ fontSize: 8, color: '#d97706', marginBottom: 6 }}>
+                  WS đang xem xét yêu cầu của bạn
+                </div>
+              ) : null}
+              {canSetExplore && (
+                <div style={{ marginBottom: 6 }}>
+                  <p style={{ fontSize: 8, color: '#475569', marginBottom: 6, lineHeight: 1.4 }}>
+                    WS có gợi ý phù hợp. Bạn có muốn WS hỗ trợ thêm về ứng viên này?
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <button
+                      type="button"
+                      disabled={exploreSubmitting}
+                      onClick={() => onExploreStatus?.(perfReq.id, 'interested')}
+                      style={{
+                        width: '100%', fontSize: 9, fontWeight: 600, color: 'white', background: '#4f46e5',
+                        border: 'none', borderRadius: 4, padding: '6px', cursor: exploreSubmitting ? 'wait' : 'pointer',
+                        opacity: exploreSubmitting ? 0.7 : 1,
+                      }}
+                    >
+                      Có — WS hỗ trợ liên hệ
+                    </button>
+                    <button
+                      type="button"
+                      disabled={exploreSubmitting}
+                      onClick={() => onExploreStatus?.(perfReq.id, 'declined')}
+                      style={{
+                        width: '100%', fontSize: 9, fontWeight: 600, color: '#64748b', background: '#f8fafc',
+                        border: '1px solid #e2e8f0', borderRadius: 4, padding: '6px',
+                        cursor: exploreSubmitting ? 'wait' : 'pointer',
+                        opacity: exploreSubmitting ? 0.7 : 1,
+                      }}
+                    >
+                      Không, cảm ơn
+                    </button>
+                  </div>
+                </div>
+              )}
+              <Link
+                to={perfReq.id ? `/business/scout?performanceRequestId=${perfReq.id}` : '/business/scout'}
+                style={{
+                  fontSize: 8, fontWeight: 600, color: '#3b82f6', textDecoration: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4,
+                }}
+              >
+                Xem gợi ý trên Scout
+                <ChevronRight style={{ width: 9, height: 9 }} />
+              </Link>
+              <Link
+                to="/business/messages?tab=ws"
+                style={{
+                  fontSize: 8, fontWeight: 600, color: '#7c3aed', textDecoration: 'none',
+                  display: 'flex', alignItems: 'center', gap: 4,
+                }}
+              >
+                <MessageSquare style={{ width: 9, height: 9 }} />
+                Chat với WS
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px' }}>
-        <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>Trạng thái</h3>
+        <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>
+          {listSource === 'scout_performance' ? 'Trạng thái tiếp cận' : 'Trạng thái'}
+        </h3>
         <div
           style={{
             width: '100%',
@@ -447,7 +631,7 @@ function CandidateSidebar({ candidate }) {
           {pipeline.label}
         </div>
         <div style={{ fontSize: 8, color: '#94a3b8' }}>
-          Chi phí mở: {candidate.creditCost ?? '—'} credit
+          {isPerformanceList ? 'Gói Scout Performance' : `Chi phí mở: ${candidate.creditCost ?? '—'} credit`}
         </div>
       </div>
 
@@ -522,6 +706,12 @@ function CandidateSidebar({ candidate }) {
 }
 
 const Candidate = () => {
+  const [searchParams] = useSearchParams()
+  const listSourceParam = searchParams.get('list')
+  const listSource = CANDIDATE_LIST_SOURCES.some((s) => s.id === listSourceParam)
+    ? listSourceParam
+    : CANDIDATE_LIST_SOURCES[0].id
+
   const [candidates, setCandidates] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchInput, setSearchInput] = useState('')
@@ -532,6 +722,38 @@ const Candidate = () => {
   const [selectedDetail, setSelectedDetail] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [error, setError] = useState('')
+  const [exploreSubmitting, setExploreSubmitting] = useState(false)
+
+  const patchPerformanceExplore = useCallback((cvId, requestId, action) => {
+    const updater = (prev) => {
+      if (!prev || prev.id !== cvId) return prev
+      return {
+        ...prev,
+        performanceRequest: {
+          ...(prev.performanceRequest || {}),
+          id: requestId,
+          businessExploreStatus: action,
+        },
+      }
+    }
+    setSelectedDetail(updater)
+    setCandidates((prev) => prev.map((c) => updater(c)))
+  }, [])
+
+  const handlePerformanceExplore = useCallback(async (requestId, action) => {
+    if (!requestId) return
+    setExploreSubmitting(true)
+    try {
+      const res = await apiService.setBusinessScoutPerformanceExplore(requestId, action)
+      if (res?.success && selectedId) {
+        patchPerformanceExplore(selectedId, requestId, action)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setExploreSubmitting(false)
+    }
+  }, [patchPerformanceExplore, selectedId])
 
   const loadList = useCallback(async () => {
     try {
@@ -541,6 +763,7 @@ const Candidate = () => {
         page,
         limit: PAGE_SIZE,
         search: searchQuery || undefined,
+        unlockType: listSource,
         sortBy: 'unlockedAt',
         sortOrder: 'DESC',
       })
@@ -563,7 +786,13 @@ const Candidate = () => {
     } finally {
       setLoading(false)
     }
-  }, [page, searchQuery])
+  }, [page, searchQuery, listSource])
+
+  useEffect(() => {
+    setPage(1)
+    setSelectedId(null)
+    setSelectedDetail(null)
+  }, [listSource])
 
   useEffect(() => {
     loadList()
@@ -631,6 +860,7 @@ const Candidate = () => {
               page={page}
               totalPages={totalPages}
               onPageChange={setPage}
+              listSource={listSource}
             />
           </div>
 
@@ -639,7 +869,12 @@ const Candidate = () => {
           </div>
 
           <div style={{ height: '100%', overflowY: 'auto' }} className="candidate-scrollbar">
-            <CandidateSidebar candidate={selectedCand} />
+            <CandidateSidebar
+              candidate={selectedCand}
+              listSource={listSource}
+              exploreSubmitting={exploreSubmitting}
+              onExploreStatus={handlePerformanceExplore}
+            />
           </div>
         </div>
       </div>

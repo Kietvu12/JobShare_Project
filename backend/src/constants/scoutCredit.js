@@ -61,6 +61,22 @@ export const BUSINESS_CANDIDATE_PIPELINE = {
   CONTACT: 'contact',
 };
 
+export const BUSINESS_CANDIDATE_PIPELINE_LABELS = {
+  [BUSINESS_CANDIDATE_PIPELINE.NEW]: 'Mới',
+  [BUSINESS_CANDIDATE_PIPELINE.PROCESSING]: 'Đang xử lý',
+  [BUSINESS_CANDIDATE_PIPELINE.INTERVIEW]: 'Phỏng vấn',
+  [BUSINESS_CANDIDATE_PIPELINE.HIRED]: 'Đã tuyển',
+  [BUSINESS_CANDIDATE_PIPELINE.REJECTED]: 'Không phù hợp',
+  [BUSINESS_CANDIDATE_PIPELINE.CONTACT]: 'Liên hệ',
+};
+
+export function getBusinessCandidatePipelineLabel(status) {
+  const key = String(status || '').trim();
+  return BUSINESS_CANDIDATE_PIPELINE_LABELS[key] || key || '—';
+}
+
+export const BUSINESS_CANDIDATE_PIPELINE_VALUES = Object.values(BUSINESS_CANDIDATE_PIPELINE);
+
 /**
  * CV có thể đưa lên Scout không (ngoài scout_status).
  * @param {object} cv — cv_storages row

@@ -4,14 +4,22 @@ import {
   Admin,
   Business,
   BusinessCreditRequest,
+  BusinessSavedCandidate,
   BusinessScoutPerformanceRequest,
+  BusinessScoutUnlock,
   BusinessWsChatMessage,
   BusinessWsChatSession,
   CVStorage,
   JobCategory,
 } from '../models/index.js';
-import { SCOUT_PERFORMANCE_REQUEST_STATUS } from '../constants/scoutCredit.js';
+import {
+  SCOUT_PERFORMANCE_REQUEST_STATUS,
+  SCOUT_UNLOCK_TYPES,
+  BUSINESS_CANDIDATE_PIPELINE_VALUES,
+  getBusinessCandidatePipelineLabel,
+} from '../constants/scoutCredit.js';
 import { CREDIT_REQUEST_STATUS } from '../constants/businessBilling.js';
+import { getSaiyoBrandingServiceLabel } from '../constants/saiyoBranding.js';
 import { collaboratorNotificationService } from './collaboratorNotificationService.js';
 
 export const WS_CHAT_SESSION_TYPES = {
@@ -32,6 +40,8 @@ export const WS_CHAT_MESSAGE_TYPES = {
   PERFORMANCE_DECISION: 'performance_decision',
   CREDIT_REQUEST: 'credit_request',
   CREDIT_DECISION: 'credit_decision',
+  APPROACH_STATUS_UPDATE: 'approach_status_update',
+  SAIYO_BRANDING_REQUEST: 'saiyo_branding_request',
 };
 
 function buildBusinessWsChatSessionTitle(business) {
@@ -467,6 +477,75 @@ export async function createWsChatCreditRequestMessage({
 
   if (!transaction && message) {
     await notifyAdminsCreditRequestCreated({ creditRequest, business, sessionId: session.id });
+  }
+
+  return { message, session };
+}
+
+async function notifyAdminsSaiyoBrandingRequestCreated({ business, sessionId, serviceTitle }) {
+  const companyName = business?.companyName || 'Doanh nghiệp';
+  const content = `${companyName} yêu cầu dịch vụ Saiyo Branding: ${serviceTitle}.`;
+  const adminUrl = sessionId
+    ? `/admin/public-ctv-chat?tab=business&sessionId=${sessionId}`
+    : '/admin/public-ctv-chat?tab=business';
+
+  const admins = await Admin.findAll({
+    where: { isActive: true, status: 1, role: { [Op.in]: [1, 2] } },
+    attributes: ['id'],
+  });
+  for (const admin of admins) {
+    await collaboratorNotificationService.createAndEmit({
+      collaboratorId: null,
+      adminId: admin.id,
+      title: 'Yêu cầu Saiyo Branding mới',
+      content,
+      jobId: null,
+      url: adminUrl,
+    });
+  }
+}
+
+export async function createWsChatSaiyoBrandingServiceRequestMessage({
+  businessId,
+  serviceKey,
+  serviceTitle,
+  note = null,
+  transaction = null,
+}) {
+  const business = await Business.findByPk(businessId, {
+    attributes: ['id', 'companyName', 'contactName'],
+    transaction,
+  });
+  const session = await ensureWsChatSessionForBusiness({ businessId, business, transaction });
+
+  const title = serviceTitle?.trim() || getSaiyoBrandingServiceLabel(serviceKey);
+  const content = `Yêu cầu dịch vụ Saiyo Branding: ${title}`;
+  const requestedAt = new Date().toISOString();
+
+  const message = await BusinessWsChatMessage.create(
+    {
+      sessionId: session.id,
+      senderType: WS_CHAT_SENDER_TYPES.BUSINESS,
+      businessId,
+      messageType: WS_CHAT_MESSAGE_TYPES.SAIYO_BRANDING_REQUEST,
+      requestPayload: {
+        serviceKey,
+        serviceTitle: title,
+        note: note ? String(note).trim() : null,
+        status: 'pending',
+        requestedAt,
+      },
+      content,
+      isReadByBusiness: true,
+      isReadByAdmin: false,
+    },
+    { transaction },
+  );
+
+  await touchSessionPreview(session, { content, transaction });
+
+  if (!transaction && message) {
+    await notifyAdminsSaiyoBrandingRequestCreated({ business, sessionId: session.id, serviceTitle: title });
   }
 
   return { message, session };
@@ -1365,6 +1444,140 @@ export async function rejectCreditRequestInChat({
   return { request };
 }
 
+export async function listScoutPerformanceCandidatesForWsSession({ sessionId }) {
+  const session = await loadSessionForAdmin(sessionId);
+  const { listUnlockedCandidatesForBusiness } = await import('./businessScoutService.js');
+  return listUnlockedCandidatesForBusiness({
+    businessId: session.businessId,
+    unlockType: SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE,
+    page: 1,
+    limit: 100,
+    sortBy: 'unlockedAt',
+    sortOrder: 'DESC',
+  });
+}
+
+export async function updateScoutPerformanceApproachStatusInWsChat({
+  sessionId,
+  adminId,
+  cvId,
+  pipelineStatus,
+}) {
+  const session = await loadSessionForAdmin(sessionId);
+  const parsedCvId = parseInt(cvId, 10);
+  if (!Number.isFinite(parsedCvId) || parsedCvId <= 0) {
+    const err = new Error('ID hồ sơ không hợp lệ');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const normalizedStatus = String(pipelineStatus || '').trim();
+  if (!BUSINESS_CANDIDATE_PIPELINE_VALUES.includes(normalizedStatus)) {
+    const err = new Error('Trạng thái tiếp cận không hợp lệ');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const unlock = await BusinessScoutUnlock.findOne({
+    where: {
+      businessId: session.businessId,
+      cvId: parsedCvId,
+      unlockType: SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE,
+    },
+    include: [
+      {
+        model: CVStorage,
+        as: 'cv',
+        required: true,
+        include: [
+          {
+            model: JobCategory,
+            as: 'jobCategory',
+            required: false,
+            attributes: ['id', 'name', 'nameEn', 'nameJp', 'slug'],
+          },
+        ],
+      },
+    ],
+  });
+
+  if (!unlock?.cv) {
+    const err = new Error('Không tìm thấy ứng viên Scout Performance của doanh nghiệp này');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const label = getBusinessCandidatePipelineLabel(normalizedStatus);
+  const cvJson = unlock.cv.toJSON();
+
+  let saved = await BusinessSavedCandidate.findOne({
+    where: { businessId: session.businessId, cvId: parsedCvId },
+  });
+
+  const previousPipelineStatus = saved?.pipelineStatus || null;
+
+  if (!saved) {
+    saved = await BusinessSavedCandidate.create({
+      businessId: session.businessId,
+      cvId: parsedCvId,
+      source: SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE,
+      scoutUnlockId: unlock.id,
+      pipelineStatus: normalizedStatus,
+      savedAt: new Date(),
+    });
+  } else if (saved.pipelineStatus !== normalizedStatus) {
+    await saved.update({ pipelineStatus: normalizedStatus });
+  }
+
+  if (previousPipelineStatus === normalizedStatus) {
+    return {
+      candidate: {
+        id: parsedCvId,
+        code: cvJson.code || null,
+        pipelineStatus: normalizedStatus,
+        pipelineStatusLabel: label,
+      },
+      message: null,
+      unchanged: true,
+    };
+  }
+
+  const cvLabel = cvJson.code || `CV #${parsedCvId}`;
+  const content = `WS đã đổi trạng thái tiếp cận ứng viên ${cvLabel} sang thành — ${label}`;
+
+  const message = await BusinessWsChatMessage.create({
+    sessionId: session.id,
+    senderType: WS_CHAT_SENDER_TYPES.SYSTEM,
+    adminId: adminId || null,
+    messageType: WS_CHAT_MESSAGE_TYPES.APPROACH_STATUS_UPDATE,
+    content,
+    requestPayload: {
+      cvId: parsedCvId,
+      pipelineStatus: normalizedStatus,
+      pipelineStatusLabel: label,
+      cvCode: cvJson.code || null,
+      previousPipelineStatus,
+    },
+    cvAttachments: [formatCvAttachment(cvJson)],
+    isReadByBusiness: false,
+    isReadByAdmin: true,
+  });
+
+  await touchSessionPreview(session, { content });
+
+  return {
+    candidate: {
+      id: parsedCvId,
+      code: cvJson.code || null,
+      name: cvJson.name || null,
+      desiredPosition: cvJson.desiredPosition || null,
+      pipelineStatus: normalizedStatus,
+      pipelineStatusLabel: label,
+    },
+    message: formatMessageRow(message),
+  };
+}
+
 export default {
   ensureWsChatSessionForBusiness,
   ensureWsChatSessionForPerformanceRequest,
@@ -1374,10 +1587,13 @@ export default {
   createWsChatSimilarCandidatesRequestMessage,
   createWsChatPerformanceRequestMessage,
   createWsChatCreditRequestMessage,
+  createWsChatSaiyoBrandingServiceRequestMessage,
   acceptPerformanceRequestInChat,
   rejectPerformanceRequestInChat,
   acceptCreditRequestInChat,
   rejectCreditRequestInChat,
+  listScoutPerformanceCandidatesForWsSession,
+  updateScoutPerformanceApproachStatusInWsChat,
   listWsChatSessionsForBusiness,
   listWsChatSessionsForAdmin,
   getWsChatSessionForBusiness,

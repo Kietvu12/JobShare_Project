@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import {
   ChevronRight, Plus, Loader2, X, Network, Handshake, Shield, BarChart3,
   FileText, Settings, Users, History, BookOpen, AlertTriangle, ArrowRight,
@@ -8,6 +8,11 @@ import apiService from '../../services/api'
 import NominationChat from '../../component/Chat/NominationChat'
 import JobCommissionEditor, { validateCommissionForMarketplace } from '../../component/Bussiness/JobCommissionEditor'
 import { isPersistableJobValue } from '../../utils/jobCommissionUi'
+import {
+  SIMPLE_FEE_MODES,
+  parseJobCommissionToSimple,
+  simpleCommissionToPayload,
+} from '../../utils/businessSimpleCommission'
 import { normalizeJobSalaryCurrency } from '../../utils/jobSalaryCurrency'
 
 const scrollbarStyle = `
@@ -18,6 +23,35 @@ const scrollbarStyle = `
   .ctv-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
   .ctv-onboard-scroll::-webkit-scrollbar { display: none; }
   .ctv-onboard-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .business-homepage-shell {
+    --hp-zoom: 1;
+  }
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    .business-homepage-shell { --hp-zoom: 0.88; }
+  }
+  @media (min-width: 1280px) and (max-width: 1535px) {
+    .business-homepage-shell { --hp-zoom: 0.8; }
+  }
+  @media (min-width: 1536px) and (max-width: 1919px) {
+    .business-homepage-shell { --hp-zoom: 0.94; }
+  }
+  @media (min-width: 1920px) {
+    .business-homepage-shell { --hp-zoom: 1; }
+  }
+  .business-homepage-ui {
+    zoom: var(--hp-zoom);
+  }
+  @supports not (zoom: 1) {
+    .business-homepage-ui {
+      transform: scale(var(--hp-zoom));
+      transform-origin: top left;
+      width: calc(100% / var(--hp-zoom));
+    }
+  }
 `
 
 const valueCards = [
@@ -64,15 +98,15 @@ const processSteps = [
 
 const highlightFeatures = [
   { icon: FileText, title: 'Đăng JD dễ dàng', desc: 'Chọn JD có sẵn, thiết lập phí và đăng lên sàn chỉ vài bước.' },
-  { icon: Settings, title: 'Thiết lập phí linh hoạt', desc: 'Phí cố định hoặc theo % lương — tùy chỉnh theo từng vị trí.' },
+  { icon: Settings, title: 'Thiết lập phí linh hoạt', desc: '% thu nhập năm, cố định hoặc theo tháng lương — một bước, không JLPT.' },
   { icon: Users, title: 'Kết nối CTV chất lượng', desc: 'Mạng lưới CTV HR Partner được WS kiểm duyệt và đánh giá.' },
   { icon: Shield, title: 'Bảo vệ & minh bạch', desc: 'Thanh toán qua JobShare, hợp đồng và lịch sử giao dịch rõ ràng.' },
 ]
 
 const onboardQuickActions = [
   { icon: Plus, title: 'Đăng tin tuyển dụng', desc: 'Đưa JD lên Sàn HR', action: 'create' },
-  { icon: FileText, title: 'Quản lý tin tuyển dụng', desc: 'Theo dõi job trên sàn', action: 'create' },
-  { icon: Users, title: 'Kết nối CTV', desc: 'Xem CTV quan tâm job', action: 'create' },
+  { icon: FileText, title: 'Quản lý tin tuyển dụng', desc: 'Theo dõi job trên sàn', action: 'create', viewWhenListed: true },
+  { icon: Users, title: 'Kết nối CTV', desc: 'Xem CTV quan tâm job', action: 'dashboard' },
   { icon: History, title: 'Lịch sử giao dịch', desc: 'Thanh toán & chia phí', path: '/business/candidate-sharing?tab=costs' },
   { icon: BookOpen, title: 'Hướng dẫn sử dụng', desc: 'Tài liệu hướng dẫn Sàn HR', path: '/business/knowledge' },
 ]
@@ -90,16 +124,21 @@ const onboardNews = [
   { title: 'Quy trình duyệt tin và tiến cử ứng viên trên Sàn HR', date: '15/05/2024', img: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=200&h=150&fit=crop' },
 ]
 
-function OnboardingSidebar({ onCreate, onNavigate }) {
+function OnboardingSidebar({ onCreate, onViewDetails, hasMarketplaceData, onNavigate }) {
   const handleAction = (item) => {
-    if (item.action === 'create') onCreate()
+    if (item.action === 'create') {
+      if (hasMarketplaceData && item.viewWhenListed) onViewDetails()
+      else onCreate()
+      return
+    }
+    if (item.action === 'dashboard') onViewDetails()
     else if (item.path) onNavigate(item.path)
   }
 
   return (
-    <div className="flex flex-col gap-2 lg:gap-3 min-w-0 overflow-y-auto ctv-onboard-scroll pr-1">
-      <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
-        <h2 className="text-xs font-bold text-slate-800 mb-1.5">Thao tác nhanh</h2>
+    <div className="flex flex-col gap-2 sm:gap-3 2xl:gap-4 min-w-0 xl:h-full xl:min-h-0 xl:overflow-y-auto xl:pr-1 scrollbar-hide">
+      <div className="bg-white rounded-lg sm:rounded-xl border border-slate-100 p-2 sm:p-3">
+        <h2 className="text-xs sm:text-sm font-bold text-slate-800 mb-1.5 sm:mb-2">Thao tác nhanh</h2>
         <div className="flex flex-col gap-0.5">
           {onboardQuickActions.map((a) => {
             const Icon = a.icon
@@ -108,57 +147,57 @@ function OnboardingSidebar({ onCreate, onNavigate }) {
                 key={a.title}
                 type="button"
                 onClick={() => handleAction(a)}
-                className="flex items-center gap-2 p-1 rounded-lg hover:bg-slate-50 transition-colors text-left w-full"
+                className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-lg hover:bg-slate-50 transition-colors text-left w-full"
               >
-                <div className="w-6 h-6 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-3 h-3 text-violet-600" />
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-600" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[9px] font-semibold text-slate-800">{a.title}</div>
-                  <div className="text-[8px] text-slate-400 truncate">{a.desc}</div>
+                  <div className="text-[11px] sm:text-xs font-semibold text-slate-800 leading-snug">{a.title}</div>
+                  <div className="text-[10px] sm:text-[11px] text-slate-400 truncate">{a.desc}</div>
                 </div>
-                <ChevronRight className="ml-auto w-3 h-3 text-slate-300 flex-shrink-0" />
+                <span className="ml-auto text-slate-300 flex-shrink-0 text-xs sm:text-sm">›</span>
               </button>
             )
           })}
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+      <div className="bg-white rounded-lg sm:rounded-xl border border-slate-100 p-2 sm:p-3">
+        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+          <h2 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1 sm:gap-1.5">
             Thông báo
-            <span className="bg-rose-500 text-white text-[8px] font-bold rounded-full px-1.5 py-0.5">4</span>
+            <span className="bg-rose-500 text-white text-[9px] sm:text-[10px] font-bold rounded-full px-1 sm:px-1.5 py-0.5">4</span>
           </h2>
-          <button type="button" className="text-[9px] font-semibold text-violet-600">Xem tất cả</button>
+          <button type="button" className="text-[10px] sm:text-xs font-semibold text-violet-600">Xem tất cả</button>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 sm:gap-2.5">
           {onboardNotifications.map((n) => (
-            <div key={n.text} className="flex items-start gap-1.5">
+            <div key={n.text} className="flex items-start gap-1.5 sm:gap-2">
               {n.warn
-                ? <AlertTriangle className="w-3 h-3 text-rose-500 mt-0.5 flex-shrink-0" />
-                : <span className={`w-1.5 h-1.5 rounded-full ${n.dot} mt-1 flex-shrink-0`} />}
+                ? <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 mt-0.5 flex-shrink-0" />
+                : <span className={`w-2 h-2 rounded-full ${n.dot} mt-1 flex-shrink-0`} />}
               <div className="min-w-0">
-                <p className="text-[9px] text-slate-700 leading-snug">{n.text}</p>
-                <p className="text-[8px] text-slate-400 mt-0.5">{n.time}</p>
+                <p className="text-[11px] sm:text-xs text-slate-700 leading-snug">{n.text}</p>
+                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">{n.time}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 p-2 lg:p-2.5">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xs font-bold text-slate-800">Tin tức &amp; Insights</h2>
-          <button type="button" className="text-[9px] font-semibold text-violet-600">Xem tất cả</button>
+      <div className="bg-white rounded-lg sm:rounded-xl border border-slate-100 p-2 sm:p-3">
+        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+          <h2 className="text-xs sm:text-sm font-bold text-slate-800">Tin tức &amp; Insights</h2>
+          <button type="button" className="text-[10px] sm:text-xs font-semibold text-violet-600">Xem tất cả</button>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 sm:gap-3">
           {onboardNews.map((n) => (
-            <div key={n.title} className="flex gap-2">
-              <img src={n.img} alt={n.title} className="w-12 h-9 rounded-lg object-cover flex-shrink-0" />
+            <div key={n.title} className="flex gap-2 sm:gap-3">
+              <img src={n.img} alt={n.title} className="w-12 h-9 sm:w-14 sm:h-10 rounded-md sm:rounded-lg object-cover flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-[9px] font-medium text-slate-700 leading-snug line-clamp-2">{n.title}</p>
-                <p className="text-[8px] text-slate-400 mt-0.5">{n.date}</p>
+                <p className="text-[11px] sm:text-xs font-medium text-slate-700 leading-snug line-clamp-2">{n.title}</p>
+                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">{n.date}</p>
               </div>
             </div>
           ))}
@@ -168,70 +207,75 @@ function OnboardingSidebar({ onCreate, onNavigate }) {
   )
 }
 
-function OnboardingView({ onCreate }) {
+function OnboardingView({ hasMarketplaceData, onCreate, onViewDetails }) {
+  const handleCta = () => {
+    if (hasMarketplaceData) onViewDetails()
+    else onCreate()
+  }
+
   return (
-    <>
-      <div>
-        <h1 className="text-sm lg:text-base font-bold text-slate-800">
+    <div className="flex flex-col gap-3 sm:gap-4 2xl:gap-5 min-w-0 xl:flex-1 xl:min-h-0 xl:h-full">
+      <div className="shrink-0">
+        <h1 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-slate-800 leading-snug">
           Sàn HR – Kết nối tuyển dụng, Tiên phong hiệu quả
         </h1>
-        <p className="text-[10px] lg:text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
+        <p className="text-xs sm:text-sm 2xl:text-base text-slate-500 mt-0.5 sm:mt-1 max-w-4xl leading-relaxed">
           JobShare Sàn HR kết nối doanh nghiệp với hàng nghìn CTV HR Partner chuyên nghiệp trên toàn quốc.
           Nền tảng trung gian đảm bảo bảo mật thông tin và minh bạch trong suốt quá trình tuyển dụng.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-3 2xl:gap-4 items-stretch shrink-0">
         {valueCards.map((card) => {
           const Icon = card.icon
           return (
-            <div key={card.title} className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm flex flex-col">
-              <div className="aspect-[2/1] overflow-hidden">
+            <div key={card.title} className="bg-white rounded-lg sm:rounded-xl border border-slate-100 overflow-hidden shadow-sm flex flex-col min-w-0">
+              <div className="aspect-[2/1] max-h-28 sm:max-h-32 2xl:max-h-36 overflow-hidden">
                 <img src={card.image} alt={card.title} className="w-full h-full object-cover" />
               </div>
-              <div className="p-2.5 flex flex-col gap-1 flex-1">
-                <div className={`w-7 h-7 rounded-lg ${card.bg} flex items-center justify-center`}>
-                  <Icon className={`w-3.5 h-3.5 ${card.color}`} />
+              <div className="p-2.5 sm:p-3 flex flex-col gap-1 flex-1">
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${card.bg} flex items-center justify-center`}>
+                  <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${card.color}`} />
                 </div>
-                <h3 className="text-[11px] font-bold text-slate-800">{card.title}</h3>
-                <p className="text-[9px] text-slate-500 leading-relaxed">{card.desc}</p>
+                <h3 className="text-xs sm:text-sm font-bold text-slate-800">{card.title}</h3>
+                <p className="text-[10px] sm:text-xs text-slate-500 leading-relaxed">{card.desc}</p>
               </div>
             </div>
           )
         })}
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 p-3 lg:p-4">
-        <h2 className="text-xs font-bold text-slate-800 mb-3">Quy trình đăng tuyển trên Sàn HR</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="bg-white rounded-lg sm:rounded-xl border border-slate-100 p-3 sm:p-4 2xl:p-5 shrink-0">
+        <h2 className="text-xs sm:text-sm font-bold text-slate-800 mb-3 sm:mb-4">Quy trình đăng tuyển trên Sàn HR</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
           {processSteps.map((step, idx) => (
-            <div key={step.num} className="relative flex flex-col gap-1.5">
+            <div key={step.num} className="relative flex flex-col gap-1.5 sm:gap-2">
               {idx < processSteps.length - 1 && (
                 <div className="hidden xl:block absolute top-4 left-[calc(100%-8px)] w-full h-px bg-violet-100 z-0" />
               )}
-              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-violet-600 text-white text-[10px] font-bold relative z-10">
+              <span className="inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-violet-600 text-white text-[10px] sm:text-xs font-bold relative z-10">
                 {step.num}
               </span>
-              <h3 className="text-[10px] font-bold text-slate-800">{step.title}</h3>
-              <p className="text-[9px] text-slate-500 leading-relaxed">{step.desc}</p>
+              <h3 className="text-[11px] sm:text-xs font-bold text-slate-800">{step.title}</h3>
+              <p className="text-[10px] sm:text-xs text-slate-500 leading-relaxed">{step.desc}</p>
             </div>
           ))}
         </div>
       </div>
 
-      <div>
-        <h2 className="text-xs font-bold text-slate-800 mb-2">Tính năng nổi bật</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div className="shrink-0">
+        <h2 className="text-xs sm:text-sm font-bold text-slate-800 mb-2 sm:mb-3">Tính năng nổi bật</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
           {highlightFeatures.map((f) => {
             const Icon = f.icon
             return (
-              <div key={f.title} className="bg-white rounded-xl border border-slate-100 p-2.5 flex gap-2">
-                <div className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-3.5 h-3.5 text-violet-600" />
+              <div key={f.title} className="bg-white rounded-lg sm:rounded-xl border border-slate-100 p-2.5 sm:p-3 flex gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-4 h-4 text-violet-600" />
                 </div>
                 <div>
-                  <h3 className="text-[10px] font-bold text-slate-800">{f.title}</h3>
-                  <p className="text-[9px] text-slate-500 mt-0.5 leading-relaxed">{f.desc}</p>
+                  <h3 className="text-[11px] sm:text-xs font-bold text-slate-800">{f.title}</h3>
+                  <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 leading-relaxed">{f.desc}</p>
                 </div>
               </div>
             )
@@ -239,30 +283,32 @@ function OnboardingView({ onCreate }) {
         </div>
       </div>
 
-      <div className="rounded-2xl bg-gradient-to-r from-violet-600 to-violet-700 p-4 lg:p-5 flex flex-col sm:flex-row sm:items-center gap-4 overflow-hidden relative">
-        <div className="flex-1 min-w-0 relative z-10">
-          <h2 className="text-sm lg:text-base font-bold text-white">Sẵn sàng mở rộng đội ngũ của bạn?</h2>
-          <p className="text-[10px] text-violet-100 mt-1 max-w-md">
-            Đăng job đầu tiên lên Sàn HR và kết nối ngay với mạng lưới CTV HR Partner trên JobShare.
-          </p>
-          <button
-            type="button"
-            onClick={onCreate}
-            className="mt-3 inline-flex items-center gap-2 bg-white text-violet-700 hover:bg-violet-50 text-[11px] font-bold rounded-xl px-5 py-2.5 transition-colors"
-          >
-            Đăng tin ngay
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="hidden sm:block flex-shrink-0 w-36 h-28 rounded-xl overflow-hidden opacity-90 relative z-10">
+      <div className="rounded-lg sm:rounded-xl border border-violet-100 bg-violet-50/90 px-3 py-3 sm:px-4 sm:py-4 2xl:px-5 2xl:py-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 shrink-0 xl:mt-auto">
+        <div className="hidden sm:block flex-shrink-0 w-24 h-20 sm:w-28 sm:h-24 rounded-lg overflow-hidden bg-white/80 border border-violet-100">
           <img
             src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=200&fit=crop"
             alt=""
             className="w-full h-full object-cover"
           />
         </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-sm sm:text-base 2xl:text-lg font-bold text-slate-800">Sẵn sàng mở rộng đội ngũ của bạn?</h2>
+          <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-xl leading-relaxed">
+            {hasMarketplaceData
+              ? 'Theo dõi job trên sàn, đơn tiến cử và trao đổi với CTV HR Partner ngay trên JobShare.'
+              : 'Đăng tin ngay để kết nối với hàng nghìn CTV HR Partner trên JobShare.'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleCta}
+          className="flex-shrink-0 inline-flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white text-xs sm:text-sm font-semibold rounded-lg sm:rounded-xl px-4 py-2.5 sm:px-5 sm:py-3 transition-colors w-full sm:w-auto"
+        >
+          {hasMarketplaceData ? 'Xem chi tiết' : 'Đăng tin ngay'}
+          <ArrowRight className="w-4 h-4" />
+        </button>
       </div>
-    </>
+    </div>
   )
 }
 
@@ -275,39 +321,13 @@ function formatDateShort(value) {
   }
 }
 
-function buildCommissionSeedFromJob(job) {
-  const rows = Array.isArray(job?.jobValues) ? job.jobValues : [];
-  const types = [];
-  const valuesByType = {};
-  const seenTypes = new Set();
-  rows.forEach((jv) => {
-    const type = jv?.type || jv?.Type;
-    const valueRef = jv?.valueRef || jv?.value_ref || jv?.Value;
-    const typeId = type?.id ?? jv?.typeId ?? jv?.type_id;
-    if (!typeId) return;
-    if (type && !seenTypes.has(typeId)) {
-      seenTypes.add(typeId);
-      types.push(type);
-    }
-    if (valueRef?.id) {
-      if (!valuesByType[typeId]) valuesByType[typeId] = [];
-      if (!valuesByType[typeId].some((v) => v.id === valueRef.id)) {
-        valuesByType[typeId].push(valueRef);
-      }
-    }
-  });
-  return { types, valuesByType };
-}
-
-const EMPTY_JOB_VALUE = { typeId: '', valueId: '', value: '', isRequired: false, viewOnCollaborator: '' }
-
 function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
   const [jobs, setJobs] = useState([])
   const [jobId, setJobId] = useState('')
-  const [jobCommissionType, setJobCommissionType] = useState('fixed')
-  const [jobValues, setJobValues] = useState([EMPTY_JOB_VALUE])
+  const [jobCommissionType, setJobCommissionType] = useState('percent')
+  const [jobValues, setJobValues] = useState(() => simpleCommissionToPayload(SIMPLE_FEE_MODES.PERCENT_ANNUAL, '').jobValues)
   const [salaryCurrency, setSalaryCurrency] = useState('JPY')
-  const [commissionSeed, setCommissionSeed] = useState({ types: [], valuesByType: {} })
+  const [commissionSeedJob, setCommissionSeedJob] = useState(null)
   const [headcount, setHeadcount] = useState(1)
   const [requirements, setRequirements] = useState('')
   const [recruitmentDeadline, setRecruitmentDeadline] = useState('')
@@ -326,10 +346,11 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
   useEffect(() => {
     if (!open) return
     setJobId(initialJobId ? String(initialJobId) : '')
-    setJobCommissionType('fixed')
-    setJobValues([{ ...EMPTY_JOB_VALUE }])
+    const emptyPayload = simpleCommissionToPayload(SIMPLE_FEE_MODES.PERCENT_ANNUAL, '')
+    setJobCommissionType(emptyPayload.jobCommissionType)
+    setJobValues(emptyPayload.jobValues)
     setSalaryCurrency('JPY')
-    setCommissionSeed({ types: [], valuesByType: {} })
+    setCommissionSeedJob(null)
     setHeadcount(1)
     setRequirements('')
     setRecruitmentDeadline('')
@@ -342,7 +363,13 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
     apiService.getBusinessJobById(jobId).then((res) => {
       if (!mounted) return
       const job = res?.data?.job || res?.data
-      setCommissionSeed(buildCommissionSeedFromJob(job))
+      setCommissionSeedJob(job || null)
+      const parsed = parseJobCommissionToSimple(job)
+      const payload = simpleCommissionToPayload(parsed.feeMode, parsed.amount, {
+        viewOnCollaborator: parsed.viewOnCollaborator,
+      })
+      setJobCommissionType(payload.jobCommissionType)
+      setJobValues(payload.jobValues)
       if (job?.salaryCurrency) {
         setSalaryCurrency(normalizeJobSalaryCurrency(job.salaryCurrency))
       }
@@ -350,7 +377,7 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
         setRecruitmentDeadline(String(job.deadline).slice(0, 10))
       }
     }).catch(() => {
-      if (mounted) setCommissionSeed({ types: [], valuesByType: {} })
+      if (mounted) setCommissionSeedJob(null)
     }).finally(() => {
       if (mounted) setLoadingJobMeta(false)
     })
@@ -425,8 +452,7 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
             onCommissionTypeChange={setJobCommissionType}
             jobValues={jobValues}
             onJobValuesChange={setJobValues}
-            seedTypes={commissionSeed.types}
-            seedValuesByType={commissionSeed.valuesByType}
+            commissionSeedJob={commissionSeedJob}
             salaryCurrency={salaryCurrency}
             onSalaryCurrencyChange={setSalaryCurrency}
           />
@@ -478,6 +504,7 @@ const VALID_TABS = ['jobs', 'nominations', 'candidates', 'costs']
 
 const CandidateSharing = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const urlTab = searchParams.get('tab')
   const urlNominationId = searchParams.get('nominationId')
@@ -489,6 +516,7 @@ const CandidateSharing = () => {
     urlTab && VALID_TABS.includes(urlTab) ? urlTab : 'jobs'
   ))
   const [loading, setLoading] = useState(true)
+  const [forceDashboard, setForceDashboard] = useState(false)
   const [stats, setStats] = useState(null)
   const [listings, setListings] = useState([])
   const [nominations, setNominations] = useState([])
@@ -609,56 +637,40 @@ const CandidateSharing = () => {
 
   const hasListings = listings.length > 0 || (stats?.totalListings ?? 0) > 0
 
+  const deepLinkDashboard = Boolean(
+    urlNominationId
+    || urlListingId
+    || (urlTab && VALID_TABS.includes(urlTab) && urlTab !== 'jobs'),
+  )
+
+  const showOnboarding = !loading && !forceDashboard && !deepLinkDashboard
+
+  const enterMarketplaceDashboard = useCallback(() => {
+    setForceDashboard(true)
+  }, [])
+
+  useEffect(() => {
+    if (deepLinkDashboard) setForceDashboard(true)
+  }, [deepLinkDashboard])
+
+  useEffect(() => {
+    if (deepLinkDashboard) return
+    setForceDashboard(false)
+  }, [location.key, deepLinkDashboard])
+
   const openCreateModal = () => setShowCreate(true)
 
-  if (loading) {
-    return (
-      <>
-        <style>{scrollbarStyle}</style>
-        <CreateListingModal
-          open={showCreate}
-          onClose={closeCreateModal}
-          onCreated={loadData}
-          initialJobId={createJobId}
-        />
-        <div className="h-full min-h-0 w-full flex items-center justify-center bg-slate-50">
-          <div className="flex items-center gap-2 text-slate-500 text-sm">
-            <Loader2 className="w-5 h-5 animate-spin" /> Đang tải sàn CTV...
-          </div>
-        </div>
-      </>
-    )
-  }
+  const handleCreatedListing = useCallback(async () => {
+    await loadData()
+  }, [loadData])
 
-  if (!hasListings) {
-    return (
-      <>
-        <style>{scrollbarStyle}</style>
-        <CreateListingModal
-          open={showCreate}
-          onClose={closeCreateModal}
-          onCreated={loadData}
-          initialJobId={createJobId}
-        />
-        <div className="h-full min-h-0 w-full bg-slate-50 p-2 lg:p-3 overflow-hidden">
-          <div className="w-full h-full min-h-0 grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-2 lg:gap-3">
-            <div className="flex flex-col gap-2 lg:gap-3 min-w-0 overflow-y-auto ctv-onboard-scroll pr-1">
-              <OnboardingView onCreate={openCreateModal} />
-            </div>
-            <OnboardingSidebar onCreate={openCreateModal} onNavigate={navigate} />
-          </div>
-        </div>
-      </>
-    )
-  }
-
-  return (
+  const marketplaceShell = (
     <>
       <style>{scrollbarStyle}</style>
       <CreateListingModal
         open={showCreate}
         onClose={closeCreateModal}
-        onCreated={loadData}
+        onCreated={handleCreatedListing}
         initialJobId={createJobId}
       />
       <div className="h-full min-h-0 w-full flex flex-col bg-slate-50" style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: 11 }}>
@@ -905,6 +917,60 @@ const CandidateSharing = () => {
       </div>
     </>
   )
+
+  if (loading) {
+    return (
+      <>
+        <style>{scrollbarStyle}</style>
+        <CreateListingModal
+          open={showCreate}
+          onClose={closeCreateModal}
+          onCreated={handleCreatedListing}
+          initialJobId={createJobId}
+        />
+        <div className="h-full min-h-0 w-full flex items-center justify-center bg-slate-50">
+          <div className="flex items-center gap-2 text-slate-500 text-sm">
+            <Loader2 className="w-5 h-5 animate-spin" /> Đang tải sàn CTV...
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  if (showOnboarding) {
+    return (
+      <>
+        <style>{scrollbarStyle}</style>
+        <CreateListingModal
+          open={showCreate}
+          onClose={closeCreateModal}
+          onCreated={handleCreatedListing}
+          initialJobId={createJobId}
+        />
+        <div className="business-homepage-shell min-h-0 h-full bg-slate-50 overflow-x-hidden xl:h-full xl:overflow-hidden">
+          <div className="business-homepage-ui w-full min-h-0 p-3 sm:p-4 2xl:p-5 xl:h-full xl:flex xl:flex-col">
+            <div className="w-full xl:flex-1 xl:min-h-0 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] gap-3 sm:gap-4 2xl:gap-5 items-stretch">
+              <div className="flex flex-col min-w-0 xl:overflow-y-auto xl:min-h-0 xl:h-full xl:pr-1 scrollbar-hide">
+                <OnboardingView
+                  hasMarketplaceData={hasListings}
+                  onCreate={openCreateModal}
+                  onViewDetails={enterMarketplaceDashboard}
+                />
+              </div>
+              <OnboardingSidebar
+                onCreate={openCreateModal}
+                onViewDetails={enterMarketplaceDashboard}
+                hasMarketplaceData={hasListings}
+                onNavigate={navigate}
+              />
+            </div>
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  return marketplaceShell
 }
 
 export default CandidateSharing

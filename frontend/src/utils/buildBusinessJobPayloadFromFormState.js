@@ -1,4 +1,5 @@
 import { normalizeJobSalaryCurrency } from './jobSalaryCurrency.js';
+import { isPersistableJobValue } from './jobCommissionUi.js';
 
 function slugify(text) {
   return String(text || '')
@@ -146,7 +147,15 @@ export function buildBusinessJobPayloadFromFormState(snapshot, options = {}) {
         establishedDate: recruitingCompany.establishedDate || null,
       }
       : null,
-    jobValues: [],
+    jobValues: (snapshot.jobValues || [])
+      .filter(isPersistableJobValue)
+      .map((jv) => ({
+        typeId: jv.typeId ? parseInt(jv.typeId, 10) : null,
+        valueId: jv.valueId ? parseInt(jv.valueId, 10) : null,
+        value: jv.value != null && String(jv.value).trim() !== '' ? String(jv.value).trim() : null,
+        isRequired: !!jv.isRequired,
+        viewOnCollaborator: jv.viewOnCollaborator || null,
+      })),
     jobPickupIds: [],
     campaignIds: [],
   };

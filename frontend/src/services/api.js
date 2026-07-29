@@ -1151,6 +1151,26 @@ const apiService = {
     return handleResponse(response);
   },
 
+  getAdminWsChatScoutPerformanceCandidates: async (sessionId) => {
+    const response = await fetch(`${API_BASE_URL}/admin/ws-chat/sessions/${sessionId}/scout-performance-candidates`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  updateAdminWsChatScoutPerformanceApproachStatus: async (sessionId, cvId, pipelineStatus) => {
+    const response = await fetch(
+      `${API_BASE_URL}/admin/ws-chat/sessions/${sessionId}/scout-performance-candidates/${cvId}/approach-status`,
+      {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ pipelineStatus }),
+      },
+    );
+    return handleResponse(response);
+  },
+
   searchAdminScoutPerformanceCandidates: async (params = {}) => {
     const filtered = Object.fromEntries(
       Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
@@ -1235,6 +1255,15 @@ const apiService = {
     const response = await fetch(`${API_BASE_URL}/business/landing-pages/dashboard`, {
       method: 'GET',
       headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  createBusinessSaiyoBrandingServiceRequest: async (body = {}) => {
+    const response = await fetch(`${API_BASE_URL}/business/landing-pages/branding-service-requests`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
     });
     return handleResponse(response);
   },

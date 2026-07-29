@@ -271,6 +271,7 @@ export async function listUnlockedCandidatesForBusiness({
   limit = 20,
   search,
   pipelineStatus,
+  unlockType,
   sortBy = 'unlockedAt',
   sortOrder = 'DESC',
 }) {
@@ -280,6 +281,13 @@ export async function listUnlockedCandidatesForBusiness({
 
   const cvSearchWhere = buildUnlockedSearchWhere(search);
   const unlockWhere = { businessId };
+
+  const normalizedUnlockType = unlockType != null && String(unlockType).trim()
+    ? String(unlockType).trim()
+    : null;
+  if (normalizedUnlockType) {
+    unlockWhere.unlockType = normalizedUnlockType;
+  }
 
   if (pipelineStatus && String(pipelineStatus).trim()) {
     const status = String(pipelineStatus).trim();
@@ -336,18 +344,22 @@ export async function listUnlockedCandidatesForBusiness({
     : [];
   const savedMap = new Map(savedRows.map((row) => [Number(row.cvId), row]));
 
-  const candidates = rows.map((unlock) => {
+  const candidates = await Promise.all(rows.map(async (unlock) => {
     const cvJson = unlock.cv?.toJSON?.() || unlock.cv;
     const saved = savedMap.get(Number(unlock.cvId));
     const unlockType = unlock.unlockType || SCOUT_UNLOCK_TYPES.SCOUT_CREDIT;
     const basePayload = unlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE
       ? buildPerformanceUnlockedScoutPayload(cvJson)
       : buildUnlockedScoutPayload(cvJson);
-    return {
+    let item = {
       ...basePayload,
       ...buildUnlockedCandidateMeta(unlock, saved),
     };
-  });
+    if (unlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE) {
+      item = await attachPerformanceRequestMeta(businessId, item);
+    }
+    return item;
+  }));
 
   return {
     candidates,
@@ -395,11 +407,13 @@ export async function getUnlockedCandidateForBusiness({ businessId, cvId }) {
   const basePayload = unlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE
     ? buildPerformanceUnlockedScoutPayload(cvJson)
     : buildUnlockedScoutPayload(cvJson);
+  let candidate = {
+    ...basePayload,
+    ...buildUnlockedCandidateMeta(unlock, saved),
+  };
+  candidate = await attachPerformanceRequestMeta(businessId, candidate);
   return {
-    candidate: {
-      ...basePayload,
-      ...buildUnlockedCandidateMeta(unlock, saved),
-    },
+    candidate,
     unlockedAt: unlock.unlockedAt || unlock.createdAt || null,
   };
 }

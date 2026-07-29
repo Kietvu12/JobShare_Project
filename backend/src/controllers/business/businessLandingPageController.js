@@ -20,6 +20,11 @@ import {
   getSignedUrlForFile,
   buildLandingPageMediaKey,
 } from '../../services/s3Service.js';
+import {
+  getSaiyoBrandingServiceLabel,
+  isValidSaiyoBrandingServiceKey,
+} from '../../constants/saiyoBranding.js';
+import { createWsChatSaiyoBrandingServiceRequestMessage } from '../../services/businessWsChatService.js';
 
 function handleError(res, error, next) {
   if (error.statusCode) {
@@ -37,6 +42,40 @@ export const businessLandingPageController = {
     try {
       const data = await getLandingPageDashboard({ businessId: req.business.id });
       res.json({ success: true, data });
+    } catch (error) {
+      return handleError(res, error, next);
+    }
+  },
+
+  createBrandingServiceRequest: async (req, res, next) => {
+    try {
+      const { serviceKey, note } = req.body || {};
+      const key = String(serviceKey || '').trim();
+      if (!isValidSaiyoBrandingServiceKey(key)) {
+        return res.status(400).json({ success: false, message: 'Loại dịch vụ không hợp lệ' });
+      }
+      const serviceTitle = getSaiyoBrandingServiceLabel(key);
+      const { message, session } = await createWsChatSaiyoBrandingServiceRequestMessage({
+        businessId: req.business.id,
+        serviceKey: key,
+        serviceTitle,
+        note,
+      });
+      res.status(201).json({
+        success: true,
+        data: {
+          sessionId: session?.id || null,
+          message: message
+            ? {
+                id: message.id,
+                content: message.content,
+                messageType: message.messageType,
+                requestPayload: message.requestPayload,
+              }
+            : null,
+        },
+        message: 'Đã gửi yêu cầu tới JobShare WS. Bạn có thể theo dõi trong mục Tin nhắn.',
+      });
     } catch (error) {
       return handleError(res, error, next);
     }

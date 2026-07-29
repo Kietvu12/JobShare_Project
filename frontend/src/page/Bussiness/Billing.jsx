@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Coins,
   ArrowDownToLine,
@@ -53,30 +53,71 @@ const TAB_DEFS = [
   { key: 'closed', label: 'Đã đóng' },
 ]
 
+const REQUEST_TYPE_OPTIONS = [
+  { value: 'all', label: 'Tất cả loại yêu cầu' },
+  { value: 'credit_topup', label: 'Nạp credit' },
+  { value: 'scout_performance', label: 'Scout Performance' },
+  { value: 'scout_credit', label: 'Scout Credit' },
+  { value: 'saiyo_branding', label: 'Saiyo Branding' },
+  { value: 'partner_ctv', label: 'Partner CTV' },
+]
+
+const SERVICE_NAV_PATHS = {
+  scout_credit: '/business/scout',
+  scout_performance: '/business/scout',
+  saiyo_branding: '/business/saiyo',
+  partner_ctv: '/business/candidate-sharing',
+}
+
+function getRequestNavigatePath(row) {
+  switch (row?.sourceType) {
+    case 'scout_performance':
+      return '/business/messages?tab=ws'
+    case 'scout_credit':
+      return '/business/candidates?list=scout_credit'
+    case 'saiyo_branding':
+      return '/business/saiyo'
+    case 'partner_ctv':
+      return '/business/candidate-sharing'
+    default:
+      return null
+  }
+}
+
 const cardStyle = { background: '#fff', border: bd, borderRadius: 8, padding: '8px 10px' }
 const linkStyle = { fontSize: 8, color: '#4f46e5', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 2, padding: 0 }
 
-const SectionHeader = ({ title, action }) => (
+const SectionHeader = ({ title, action, onAction }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
     <div style={{ fontSize: 9, fontWeight: 700, color: '#1e293b' }}>{title}</div>
     {action && (
-      <button type="button" style={linkStyle}>{action} <ChevronRight {...ICON_SM} /></button>
+      <button type="button" onClick={onAction} style={linkStyle}>{action} <ChevronRight {...ICON_SM} /></button>
     )}
   </div>
 )
 
 const Billing = ({ focusSection }) => {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const isRequestsView = focusSection === 'requests'
+  const requestsSectionRef = useRef(null)
+  const transactionsSectionRef = useRef(null)
+  const servicesSectionRef = useRef(null)
+
   const [activeTab, setActiveTab] = useState('all')
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [requestTypeFilter, setRequestTypeFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [requestsLoading, setRequestsLoading] = useState(false)
+  const [txLoading, setTxLoading] = useState(false)
   const [error, setError] = useState('')
   const [dashboard, setDashboard] = useState(null)
   const [transactions, setTransactions] = useState([])
+  const [txPagination, setTxPagination] = useState(null)
+  const [txExpanded, setTxExpanded] = useState(false)
+  const [txPage, setTxPage] = useState(1)
   const [requests, setRequests] = useState([])
   const [requestPagination, setRequestPagination] = useState(null)
   const [tabCounts, setTabCounts] = useState({})
@@ -85,24 +126,40 @@ const Billing = ({ focusSection }) => {
   const [editCreditRequest, setEditCreditRequest] = useState(null)
   const [actionRequestId, setActionRequestId] = useState(null)
   const [successMsg, setSuccessMsg] = useState('')
+  const [invoicesModalOpen, setInvoicesModalOpen] = useState(false)
+  const [allInvoices, setAllInvoices] = useState([])
+  const [invoicesLoading, setInvoicesLoading] = useState(false)
+
+  const loadTransactions = useCallback(async (pageNum = 1, expanded = txExpanded) => {
+    if (isRequestsView) return
+    setTxLoading(true)
+    try {
+      const limit = expanded ? 20 : 10
+      const res = await apiService.getBusinessBillingTransactions({ page: pageNum, limit })
+      if (res?.success) {
+        setTransactions(res.data?.transactions || [])
+        setTxPagination(res.data?.pagination || null)
+      }
+    } catch {
+      setTransactions([])
+    } finally {
+      setTxLoading(false)
+    }
+  }, [isRequestsView, txExpanded])
 
   const loadDashboard = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const [dashRes, txRes] = await Promise.all([
-        apiService.getBusinessBillingDashboard(),
-        !isRequestsView ? apiService.getBusinessBillingTransactions({ page: 1, limit: 10 }) : Promise.resolve(null),
-      ])
+      const dashRes = await apiService.getBusinessBillingDashboard()
       if (dashRes?.success) setDashboard(dashRes.data)
       else setError(dashRes?.message || 'Không tải được dữ liệu billing')
-      if (txRes?.success) setTransactions(txRes.data?.transactions || [])
     } catch (e) {
       setError(e?.message || 'Không tải được dữ liệu billing')
     } finally {
       setLoading(false)
     }
-  }, [isRequestsView])
+  }, [])
 
   const loadRequests = useCallback(async () => {
     setRequestsLoading(true)
@@ -111,6 +168,7 @@ const Billing = ({ focusSection }) => {
         page,
         limit: 8,
         tab: activeTab === 'all' ? undefined : activeTab,
+        type: requestTypeFilter === 'all' ? undefined : requestTypeFilter,
         search: search || undefined,
       })
       if (res?.success) {
@@ -123,7 +181,11 @@ const Billing = ({ focusSection }) => {
     } finally {
       setRequestsLoading(false)
     }
-  }, [page, activeTab, search])
+  }, [page, activeTab, search, requestTypeFilter])
+
+  useEffect(() => {
+    if (!isRequestsView) loadTransactions(txPage, txExpanded)
+  }, [isRequestsView, loadTransactions, txPage, txExpanded])
 
   useEffect(() => {
     if (searchParams.get('topup') === '1') {
@@ -179,6 +241,88 @@ const Billing = ({ focusSection }) => {
     for (let i = 1; i <= max; i += 1) pages.push(i)
     return pages
   }, [totalPages])
+
+  const txTotalPages = txPagination?.totalPages || 1
+
+  const scrollToRef = (ref) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const openInvoicesModal = useCallback(async () => {
+    setInvoicesModalOpen(true)
+    setInvoicesLoading(true)
+    try {
+      const res = await apiService.getBusinessBillingInvoices({ page: 1, limit: 50 })
+      if (res?.success) setAllInvoices(res.data?.invoices || [])
+      else setAllInvoices([])
+    } catch {
+      setAllInvoices([])
+    } finally {
+      setInvoicesLoading(false)
+    }
+  }, [])
+
+  const resetRequestFilters = () => {
+    setSearchInput('')
+    setSearch('')
+    setRequestTypeFilter('all')
+    setActiveTab('all')
+    setPage(1)
+  }
+
+  const focusRequestByCode = (code) => {
+    if (!code) return
+    scrollToRef(requestsSectionRef)
+    setSearchInput(String(code))
+    setSearch(String(code).trim())
+    setPage(1)
+  }
+
+  const handleSummaryAction = (index) => {
+    switch (index) {
+      case 0:
+        openCreateCreditModal()
+        break
+      case 1:
+        setTxExpanded(true)
+        setTxPage(1)
+        scrollToRef(transactionsSectionRef)
+        break
+      case 2:
+        setActiveTab('processing')
+        setPage(1)
+        scrollToRef(requestsSectionRef)
+        break
+      case 3:
+        scrollToRef(servicesSectionRef)
+        break
+      case 4:
+        openInvoicesModal()
+        break
+      default:
+        break
+    }
+  }
+
+  const handleServiceDetail = (svc) => {
+    const path = SERVICE_NAV_PATHS[svc.key]
+    if (path) navigate(path)
+  }
+
+  const handleRequestRowAction = (row) => {
+    if (row.sourceType === 'credit_topup' && row.rawStatus === 'pending') {
+      openEditCreditModal(row)
+      return
+    }
+    const path = getRequestNavigatePath(row)
+    if (path) {
+      navigate(path)
+      return
+    }
+    window.alert(
+      `${row.type}\nMã: ${row.requestCode || row.id}\nTrạng thái: ${row.status}\nJD: ${row.jd}\nỨng viên: ${row.candidate}`,
+    )
+  }
 
   const handleCreditRequestSuccess = async (data) => {
     const request = data?.request || data
@@ -263,7 +407,12 @@ const Billing = ({ focusSection }) => {
       )}
 
       {successMsg && (
-        <div style={{ ...cardStyle, color: '#15803d', background: '#f0fdf4', fontSize: 9, flexShrink: 0 }}>{successMsg}</div>
+        <div style={{ ...cardStyle, color: '#15803d', background: '#f0fdf4', fontSize: 9, flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+          <span>{successMsg}</span>
+          <button type="button" onClick={() => setSuccessMsg('')} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
+            <X {...ICON_MD} color="#15803d" />
+          </button>
+        </div>
       )}
 
       <CreditTopUpModal
@@ -289,7 +438,7 @@ const Billing = ({ focusSection }) => {
               <div style={{ fontSize: 14, fontWeight: 800, color: '#1e293b', lineHeight: 1.1 }}>{card.value}</div>
               <button
                 type="button"
-                onClick={() => { if (i === 0) openCreateCreditModal() }}
+                onClick={() => handleSummaryAction(i)}
                 style={{ ...linkStyle, marginTop: 'auto' }}
               >
                 {card.link} <ChevronRight {...ICON_SM} />
@@ -305,9 +454,26 @@ const Billing = ({ focusSection }) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, overflow: 'hidden' }}>
 
           {!isRequestsView && (
-          <div style={{ ...cardStyle, flex: '0 0 auto', maxHeight: '38%', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
-            <SectionHeader title="Lịch sử giao dịch credit" action="Xem tất cả" />
-            <div className="billing-scroll-hide" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
+          <div ref={transactionsSectionRef} style={{ ...cardStyle, flex: txExpanded ? '1 1 auto' : '0 0 auto', maxHeight: txExpanded ? 'none' : '38%', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+            <SectionHeader
+              title="Lịch sử giao dịch credit"
+              action={txExpanded ? 'Thu gọn' : 'Xem tất cả'}
+              onAction={() => {
+                if (txExpanded) {
+                  setTxExpanded(false)
+                  setTxPage(1)
+                } else {
+                  setTxExpanded(true)
+                  setTxPage(1)
+                }
+              }}
+            />
+            <div className="billing-scroll-hide" style={{ overflowY: 'auto', flex: 1, minHeight: 0, position: 'relative' }}>
+              {txLoading && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+                  <Loader2 className="animate-spin" style={{ width: 14, height: 14, color: '#6366f1' }} />
+                </div>
+              )}
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
@@ -335,11 +501,32 @@ const Billing = ({ focusSection }) => {
                 </tbody>
               </table>
             </div>
+            {txExpanded && txTotalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, paddingTop: 8, borderTop: bd, flexShrink: 0, marginTop: 4 }}>
+                <button
+                  type="button"
+                  disabled={txPage <= 1}
+                  onClick={() => setTxPage((p) => Math.max(1, p - 1))}
+                  style={{ width: 22, height: 22, borderRadius: 5, border: bd, background: '#fff', cursor: txPage <= 1 ? 'not-allowed' : 'pointer', opacity: txPage <= 1 ? 0.5 : 1, fontSize: 8 }}
+                >
+                  ‹
+                </button>
+                <span style={{ fontSize: 8, color: '#64748b' }}>{txPage} / {txTotalPages}</span>
+                <button
+                  type="button"
+                  disabled={txPage >= txTotalPages}
+                  onClick={() => setTxPage((p) => Math.min(txTotalPages, p + 1))}
+                  style={{ width: 22, height: 22, borderRadius: 5, border: bd, background: '#fff', cursor: txPage >= txTotalPages ? 'not-allowed' : 'pointer', opacity: txPage >= txTotalPages ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <ChevronRight {...ICON_SM} color="#64748b" />
+                </button>
+              </div>
+            )}
           </div>
           )}
 
-          <div style={{ ...cardStyle, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
-            <SectionHeader title="Danh sách yêu cầu" />
+          <div ref={requestsSectionRef} style={{ ...cardStyle, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+            <SectionHeader title="Danh sách yêu cầu" action="Xóa bộ lọc" onAction={resetRequestFilters} />
 
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8, flexShrink: 0 }}>
               {requestTabs.map(tab => (
@@ -358,9 +545,18 @@ const Billing = ({ focusSection }) => {
             </div>
 
             <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexShrink: 0 }}>
-              <button type="button" style={{ border: bd, borderRadius: 6, padding: '4px 8px', background: '#fff', fontSize: 8, color: '#64748b', display: 'flex', alignItems: 'center', gap: 3, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                Tất cả loại yêu cầu <ChevronDown {...ICON_SM} />
-              </button>
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <select
+                  value={requestTypeFilter}
+                  onChange={(e) => { setRequestTypeFilter(e.target.value); setPage(1) }}
+                  style={{ border: bd, borderRadius: 6, padding: '4px 24px 4px 8px', background: '#fff', fontSize: 8, color: '#64748b', cursor: 'pointer', appearance: 'none', maxWidth: 140 }}
+                >
+                  {REQUEST_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <ChevronDown {...ICON_SM} color="#94a3b8" style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              </div>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4, border: bd, borderRadius: 6, padding: '3px 8px', background: '#f8fafc', minWidth: 0 }}>
                 <Search {...ICON_MD} color="#94a3b8" />
                 <input
@@ -370,7 +566,12 @@ const Billing = ({ focusSection }) => {
                   style={{ flex: 1, border: 'none', background: 'transparent', fontSize: 8, outline: 'none', minWidth: 0 }}
                 />
               </div>
-              <button type="button" style={{ border: bd, borderRadius: 6, padding: '4px 6px', background: '#fff', cursor: 'pointer', display: 'flex' }}>
+              <button
+                type="button"
+                title="Xóa bộ lọc"
+                onClick={resetRequestFilters}
+                style={{ border: bd, borderRadius: 6, padding: '4px 6px', background: '#fff', cursor: 'pointer', display: 'flex' }}
+              >
                 <Filter {...ICON_MD} color="#64748b" />
               </button>
             </div>
@@ -396,7 +597,11 @@ const Billing = ({ focusSection }) => {
                     </tr>
                   ) : requests.map((row) => (
                     <tr key={row.requestCode || row.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ fontSize: 8, fontWeight: 600, color: '#4f46e5', padding: '7px 4px', lineHeight: 1.45 }}>{row.id}</td>
+                      <td style={{ fontSize: 8, fontWeight: 600, color: '#4f46e5', padding: '7px 4px', lineHeight: 1.45 }}>
+                        <button type="button" onClick={() => handleRequestRowAction(row)} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: '#4f46e5', fontWeight: 600, fontSize: 8 }}>
+                          {row.id}
+                        </button>
+                      </td>
                       <td style={{ fontSize: 8, color: '#1e293b', padding: '7px 4px', lineHeight: 1.45 }}>{row.type}</td>
                       <td style={{ fontSize: 8, color: '#64748b', padding: '7px 4px', lineHeight: 1.45, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.jd}</td>
                       <td style={{ fontSize: 8, color: '#64748b', padding: '7px 4px', lineHeight: 1.45 }}>{row.candidate}</td>
@@ -432,7 +637,7 @@ const Billing = ({ focusSection }) => {
                             </button>
                           </div>
                         ) : (
-                          <button type="button" style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                          <button type="button" onClick={() => handleRequestRowAction(row)} title="Chi tiết / mở liên quan" style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
                             <MoreHorizontal {...ICON_MD} color="#94a3b8" />
                           </button>
                         )}
@@ -450,6 +655,9 @@ const Billing = ({ focusSection }) => {
                   : '—'}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                {page > 1 && (
+                  <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} style={{ width: 22, height: 22, borderRadius: 5, border: bd, background: '#fff', cursor: 'pointer', fontSize: 10, color: '#64748b' }}>‹</button>
+                )}
                 {pageNumbers.map(p => (
                   <button key={p} type="button" onClick={() => setPage(p)} style={{
                     width: 22, height: 22, borderRadius: 5, border: bd, fontSize: 8, cursor: 'pointer',
@@ -468,8 +676,8 @@ const Billing = ({ focusSection }) => {
 
         <div className="billing-scroll-hide" style={{ display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto', minHeight: 0 }}>
 
-          <div style={cardStyle}>
-            <SectionHeader title="Dịch vụ đang sử dụng" action="Xem tất cả" />
+          <div ref={servicesSectionRef} style={cardStyle}>
+            <SectionHeader title="Dịch vụ đang sử dụng" action="Khám phá" onAction={() => navigate('/business')} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {services.length === 0 ? (
                 <p style={{ fontSize: 8, color: '#94a3b8' }}>Chưa có dịch vụ.</p>
@@ -488,7 +696,7 @@ const Billing = ({ focusSection }) => {
                       </div>
                       <div style={{ fontSize: 7, color: '#94a3b8', lineHeight: 1.45 }}>{svc.desc}</div>
                     </div>
-                    <button type="button" style={{ fontSize: 8, color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, fontWeight: 600 }}>Chi tiết</button>
+                    <button type="button" onClick={() => handleServiceDetail(svc)} style={{ fontSize: 8, color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, fontWeight: 600 }}>Chi tiết</button>
                   </div>
                 )
               })}
@@ -507,12 +715,17 @@ const Billing = ({ focusSection }) => {
           </button>
 
           <div style={cardStyle}>
-            <SectionHeader title="Yêu cầu gần đây" action="Xem tất cả" />
+            <SectionHeader title="Yêu cầu gần đây" action="Xem tất cả" onAction={() => { setActiveTab('all'); setPage(1); scrollToRef(requestsSectionRef) }} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {recentRequests.length === 0 ? (
                 <p style={{ fontSize: 8, color: '#94a3b8' }}>Chưa có yêu cầu.</p>
               ) : recentRequests.map((req) => (
-                <div key={req.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <button
+                  key={req.id}
+                  type="button"
+                  onClick={() => focusRequestByCode(req.id)}
+                  style={{ display: 'flex', gap: 8, alignItems: 'flex-start', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', width: '100%', padding: 0 }}
+                >
                   <div style={{ width: 22, height: 22, borderRadius: 5, background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <ClipboardList {...ICON_SM} color="#5b21b6" />
                   </div>
@@ -523,18 +736,23 @@ const Billing = ({ focusSection }) => {
                     <div style={{ fontSize: 7, color: '#94a3b8', lineHeight: 1.45 }}>{req.date}</div>
                   </div>
                   <span style={{ fontSize: 7, padding: '2px 5px', borderRadius: 99, background: req.statusBg, color: req.statusColor, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>{req.status}</span>
-                </div>
+                </button>
               ))}
             </div>
           </div>
 
           <div style={cardStyle}>
-            <SectionHeader title="Invoice chưa thanh toán" action="Xem tất cả" />
+            <SectionHeader title="Invoice chưa thanh toán" action="Xem tất cả" onAction={openInvoicesModal} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {unpaidInvoices.length === 0 ? (
                 <p style={{ fontSize: 8, color: '#94a3b8' }}>Không có hóa đơn chưa thanh toán.</p>
               ) : unpaidInvoices.map((inv) => (
-                <div key={inv.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <button
+                  key={inv.id}
+                  type="button"
+                  onClick={openInvoicesModal}
+                  style={{ display: 'flex', gap: 8, alignItems: 'flex-start', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', width: '100%', padding: 0 }}
+                >
                   <div style={{ width: 22, height: 22, borderRadius: 5, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <FileWarning {...ICON_SM} color="#dc2626" />
                   </div>
@@ -544,7 +762,7 @@ const Billing = ({ focusSection }) => {
                     <div style={{ fontSize: 7, color: '#94a3b8', lineHeight: 1.45 }}>{inv.due}</div>
                   </div>
                   <span style={{ fontSize: 7, padding: '2px 5px', borderRadius: 99, background: '#fee2e2', color: '#dc2626', fontWeight: 600, whiteSpace: 'nowrap' }}>Chưa thanh toán</span>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -564,6 +782,57 @@ const Billing = ({ focusSection }) => {
           </div>
         </div>
       </div>
+
+      {invoicesModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setInvoicesModalOpen(false)}
+        >
+          <div
+            style={{ ...cardStyle, width: '100%', maxWidth: 420, maxHeight: '80vh', display: 'flex', flexDirection: 'column', padding: 12, boxShadow: '0 12px 40px rgba(0,0,0,0.15)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#1e293b' }}>Danh sách hóa đơn</div>
+              <button type="button" onClick={() => setInvoicesModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}>
+                <X {...ICON_MD} color="#64748b" />
+              </button>
+            </div>
+            <div className="billing-scroll-hide" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
+              {invoicesLoading ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 24, color: '#64748b', fontSize: 9 }}>
+                  <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} />
+                  Đang tải...
+                </div>
+              ) : allInvoices.length === 0 ? (
+                <p style={{ fontSize: 9, color: '#94a3b8', textAlign: 'center', padding: 16 }}>Không có hóa đơn.</p>
+              ) : (
+                allInvoices.map((inv) => (
+                  <div key={inv.invoiceCode || inv.id} style={{ padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: '#1e293b' }}>{inv.id || inv.invoiceCode}</div>
+                    <div style={{ fontSize: 9, fontWeight: 600, color: '#1e293b', marginTop: 2 }}>{inv.amount}</div>
+                    <div style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>{inv.due}</div>
+                    {inv.description && <div style={{ fontSize: 8, color: '#94a3b8', marginTop: 4 }}>{inv.description}</div>}
+                    <span style={{
+                      display: 'inline-block', marginTop: 6, fontSize: 7, padding: '2px 6px', borderRadius: 99, fontWeight: 600,
+                      background: inv.status === 'paid' ? '#dcfce7' : '#fee2e2',
+                      color: inv.status === 'paid' ? '#16a34a' : '#dc2626',
+                    }}
+                    >
+                      {inv.statusLabel || (inv.status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán')}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+            <p style={{ fontSize: 8, color: '#94a3b8', marginTop: 10, lineHeight: 1.45 }}>
+              Liên hệ JobShare WS nếu cần hỗ trợ thanh toán hoặc xuất hóa đơn.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
