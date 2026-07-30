@@ -21,27 +21,60 @@ import {
 import apiService from '../../services/api'
 import CreditTopUpModal from '../../component/Bussiness/CreditTopUpModal'
 
-const ICON_SM = { width: 10, height: 10 }
-const ICON_MD = { width: 12, height: 12 }
-const bd = '1px solid #e2e8f0'
+const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
+const BRAND = '#0077B6'
 
-const SCROLL_HIDE = `
+const billingStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
   .billing-scroll-hide::-webkit-scrollbar { display: none; }
   .billing-scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .billing-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+  .billing-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  .billing-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+  .business-homepage-shell { --hp-zoom: 1; }
+  @media (min-width: 1280px) and (max-width: 1535px) {
+    .business-homepage-shell { --hp-zoom: 0.92; }
+  }
+  .business-homepage-ui { zoom: var(--hp-zoom); }
+  @supports not (zoom: 1) {
+    .business-homepage-ui {
+      transform: scale(var(--hp-zoom));
+      transform-origin: top left;
+      width: calc(100% / var(--hp-zoom));
+      height: calc(100% / var(--hp-zoom));
+    }
+  }
 `
 
+const CARD = 'rounded-xl border border-slate-200 bg-white p-3 shadow-sm'
+const linkActionCls =
+  'inline-flex items-center gap-0.5 text-[11px] font-semibold text-[#0077B6] transition-colors hover:text-[#006399] bg-transparent border-0 cursor-pointer p-0'
+
+/** @deprecated inline sections — prefer CARD + Tailwind */
+const bd = '1px solid #e2e8f0'
+const cardStyle = {
+  background: '#fff',
+  border: bd,
+  borderRadius: 12,
+  padding: 12,
+  boxShadow: '0 1px 2px rgb(15 23 42 / 0.04)',
+}
+
+const ICON_SM = { width: 10, height: 10 }
+const ICON_MD = { width: 12, height: 12 }
+
 const SERVICE_ICON_MAP = {
-  scout_credit: { icon: Briefcase, iconBg: '#dbeafe', iconColor: '#2563eb' },
-  scout_performance: { icon: TrendingUp, iconBg: '#ede9fe', iconColor: '#7c3aed' },
+  scout_credit: { icon: Briefcase, iconBg: '#e8f4fa', iconColor: '#0077B6' },
+  scout_performance: { icon: TrendingUp, iconBg: '#e0f2fe', iconColor: '#0369a1' },
   saiyo_branding: { icon: FileText, iconBg: '#fce7f3', iconColor: '#db2777' },
   partner_ctv: { icon: Layers, iconBg: '#ffedd5', iconColor: '#ea580c' },
 }
 
 const SUMMARY_ICON_MAP = [
-  { icon: Coins, bg: '#ffedd5', color: '#ea580c', link: 'Nạp thêm credit' },
-  { icon: ArrowDownToLine, bg: '#ede9fe', color: '#7c3aed', link: 'Chi tiết' },
+  { icon: Coins, bg: '#e8f4fa', color: '#0077B6', link: 'Nạp thêm credit' },
+  { icon: ArrowDownToLine, bg: '#e0f2fe', color: '#0369a1', link: 'Chi tiết' },
   { icon: ClipboardList, bg: '#dcfce7', color: '#16a34a', link: 'Xem danh sách' },
-  { icon: Layers, bg: '#dbeafe', color: '#2563eb', link: 'Xem chi tiết' },
+  { icon: Layers, bg: '#e8f4fa', color: '#0077B6', link: 'Xem chi tiết' },
   { icon: FileWarning, bg: '#fee2e2', color: '#dc2626', link: 'Xem chi tiết' },
 ]
 
@@ -84,14 +117,13 @@ function getRequestNavigatePath(row) {
   }
 }
 
-const cardStyle = { background: '#fff', border: bd, borderRadius: 8, padding: '8px 10px' }
-const linkStyle = { fontSize: 8, color: '#4f46e5', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 2, padding: 0 }
-
 const SectionHeader = ({ title, action, onAction }) => (
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-    <div style={{ fontSize: 9, fontWeight: 700, color: '#1e293b' }}>{title}</div>
+  <div className="mb-2 flex items-center justify-between">
+    <div className="text-xs font-bold text-slate-800">{title}</div>
     {action && (
-      <button type="button" onClick={onAction} style={linkStyle}>{action} <ChevronRight {...ICON_SM} /></button>
+      <button type="button" onClick={onAction} className={linkActionCls}>
+        {action} <ChevronRight className="h-2.5 w-2.5 shrink-0" />
+      </button>
     )}
   </div>
 )
@@ -391,26 +423,36 @@ const Billing = ({ focusSection }) => {
 
   if (loading && !dashboard) {
     return (
-      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', gap: 8, fontSize: 10, color: '#64748b' }}>
-        <Loader2 className="animate-spin" style={{ width: 16, height: 16 }} />
+      <div
+        className="flex h-full items-center justify-center gap-2 bg-[#f4f6f8] text-xs text-slate-500"
+        style={{ fontFamily: PAGE_FONT }}
+      >
+        <Loader2 className="h-4 w-4 animate-spin text-[#0077B6]" />
         Đang tải billing...
       </div>
     )
   }
 
+  const pageBtnCls =
+    'flex h-[22px] w-[22px] items-center justify-center rounded-md border border-slate-200 bg-white text-[11px] text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50'
+
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#f8fafc', overflow: 'hidden', padding: '6px 8px', gap: 8, fontSize: 9, minHeight: 0 }}>
-      <style>{SCROLL_HIDE}</style>
+    <div
+      className="business-homepage-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#f4f6f8]"
+      style={{ fontFamily: PAGE_FONT }}
+    >
+      <style>{billingStyles}</style>
+      <div className="business-homepage-ui flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-3 sm:p-4 text-[11px]">
 
       {error && (
-        <div style={{ ...cardStyle, color: '#b45309', fontSize: 9, flexShrink: 0 }}>{error}</div>
+        <div className={`${CARD} shrink-0 text-xs text-amber-800`}>{error}</div>
       )}
 
       {successMsg && (
-        <div style={{ ...cardStyle, color: '#15803d', background: '#f0fdf4', fontSize: 9, flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+        <div className={`${CARD} flex shrink-0 items-start justify-between gap-2 border-emerald-200 bg-emerald-50 text-xs text-emerald-800`}>
           <span>{successMsg}</span>
-          <button type="button" onClick={() => setSuccessMsg('')} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
-            <X {...ICON_MD} color="#15803d" />
+          <button type="button" onClick={() => setSuccessMsg('')} className="shrink-0 border-0 bg-transparent p-0 cursor-pointer">
+            <X className="h-3 w-3 text-emerald-700" />
           </button>
         </div>
       )}
@@ -426,32 +468,39 @@ const Billing = ({ focusSection }) => {
       />
 
       {!isRequestsView && (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, flexShrink: 0 }}>
+      <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5 xl:gap-0 xl:overflow-hidden xl:rounded-xl xl:border xl:border-slate-200 xl:bg-white xl:shadow-sm xl:divide-x xl:divide-slate-100">
         {summaryCards.map((card, i) => {
           const Icon = card.icon
           return (
-            <div key={i} style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 6, minHeight: 72 }}>
-              <div style={{ width: 24, height: 24, borderRadius: 6, background: card.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon {...ICON_MD} color={card.color} />
-              </div>
-              <div style={{ fontSize: 8, color: '#64748b', lineHeight: 1.4 }}>{card.label}</div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#1e293b', lineHeight: 1.1 }}>{card.value}</div>
-              <button
-                type="button"
-                onClick={() => handleSummaryAction(i)}
-                style={{ ...linkStyle, marginTop: 'auto' }}
+            <div
+              key={i}
+              className="flex min-w-0 items-start gap-2 rounded-lg border border-slate-200/90 bg-white p-2 shadow-sm xl:rounded-none xl:border-0 xl:shadow-none xl:p-2.5"
+            >
+              <div
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+                style={{ background: card.bg }}
               >
-                {card.link} <ChevronRight {...ICON_SM} />
-              </button>
+                <Icon className="h-3.5 w-3.5" style={{ color: card.color }} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[10px] leading-tight text-slate-500">{card.label}</div>
+                <div className="truncate text-sm font-bold leading-snug text-slate-900">{card.value}</div>
+                <button
+                  type="button"
+                  onClick={() => handleSummaryAction(i)}
+                  className={`${linkActionCls} mt-0.5 text-[10px]`}
+                >
+                  {card.link} <ChevronRight className="h-2 w-2 shrink-0" />
+                </button>
+              </div>
             </div>
           )
         })}
       </div>
       )}
 
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 260px', gap: 8, minHeight: 0, overflow: 'hidden' }}>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0, overflow: 'hidden' }}>
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-hidden lg:grid-cols-[1fr_280px]">
+        <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
 
           {!isRequestsView && (
           <div ref={transactionsSectionRef} style={{ ...cardStyle, flex: txExpanded ? '1 1 auto' : '0 0 auto', maxHeight: txExpanded ? 'none' : '38%', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
@@ -471,7 +520,7 @@ const Billing = ({ focusSection }) => {
             <div className="billing-scroll-hide" style={{ overflowY: 'auto', flex: 1, minHeight: 0, position: 'relative' }}>
               {txLoading && (
                 <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-                  <Loader2 className="animate-spin" style={{ width: 14, height: 14, color: '#6366f1' }} />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0077B6]" />
                 </div>
               )}
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -528,58 +577,59 @@ const Billing = ({ focusSection }) => {
           <div ref={requestsSectionRef} style={{ ...cardStyle, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
             <SectionHeader title="Danh sách yêu cầu" action="Xóa bộ lọc" onAction={resetRequestFilters} />
 
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8, flexShrink: 0 }}>
+            <div className="mb-2 flex flex-wrap gap-1.5 shrink-0">
               {requestTabs.map(tab => (
                 <button
                   key={tab.key}
                   type="button"
                   onClick={() => { setActiveTab(tab.key); setPage(1) }}
-                  style={{
-                    fontSize: 8, padding: '3px 8px', borderRadius: 99, cursor: 'pointer', border: activeTab === tab.key ? 'none' : bd,
-                    background: activeTab === tab.key ? '#4f46e5' : '#fff', color: activeTab === tab.key ? '#fff' : '#64748b', fontWeight: 600,
-                  }}
+                  className={`cursor-pointer rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors ${
+                    activeTab === tab.key
+                      ? 'border-0 bg-[#0077B6] text-white'
+                      : 'border border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+                  }`}
                 >
                   {tab.label} ({tab.count})
                 </button>
               ))}
             </div>
 
-            <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexShrink: 0 }}>
-              <div style={{ position: 'relative', flexShrink: 0 }}>
+            <div className="mb-2 flex shrink-0 gap-2">
+              <div className="relative shrink-0">
                 <select
                   value={requestTypeFilter}
                   onChange={(e) => { setRequestTypeFilter(e.target.value); setPage(1) }}
-                  style={{ border: bd, borderRadius: 6, padding: '4px 24px 4px 8px', background: '#fff', fontSize: 8, color: '#64748b', cursor: 'pointer', appearance: 'none', maxWidth: 140 }}
+                  className="max-w-[160px] cursor-pointer appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-2 pr-7 text-[10px] text-slate-600 outline-none"
                 >
                   {REQUEST_TYPE_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
-                <ChevronDown {...ICON_SM} color="#94a3b8" style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-slate-400" />
               </div>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4, border: bd, borderRadius: 6, padding: '3px 8px', background: '#f8fafc', minWidth: 0 }}>
-                <Search {...ICON_MD} color="#94a3b8" />
+              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1">
+                <Search className="h-3 w-3 shrink-0 text-slate-400" />
                 <input
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Tìm theo mã yêu cầu, JD, ứng viên..."
-                  style={{ flex: 1, border: 'none', background: 'transparent', fontSize: 8, outline: 'none', minWidth: 0 }}
+                  className="min-w-0 flex-1 border-0 bg-transparent text-[11px] outline-none"
                 />
               </div>
               <button
                 type="button"
                 title="Xóa bộ lọc"
                 onClick={resetRequestFilters}
-                style={{ border: bd, borderRadius: 6, padding: '4px 6px', background: '#fff', cursor: 'pointer', display: 'flex' }}
+                className="flex cursor-pointer rounded-lg border border-slate-200 bg-white p-1.5 hover:bg-slate-50"
               >
-                <Filter {...ICON_MD} color="#64748b" />
+                <Filter className="h-3 w-3 text-slate-500" />
               </button>
             </div>
 
             <div className="billing-scroll-hide" style={{ overflowY: 'auto', flex: 1, minHeight: 0, position: 'relative' }}>
               {requestsLoading && (
                 <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-                  <Loader2 className="animate-spin" style={{ width: 14, height: 14, color: '#6366f1' }} />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0077B6]" />
                 </div>
               )}
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
@@ -597,8 +647,8 @@ const Billing = ({ focusSection }) => {
                     </tr>
                   ) : requests.map((row) => (
                     <tr key={row.requestCode || row.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ fontSize: 8, fontWeight: 600, color: '#4f46e5', padding: '7px 4px', lineHeight: 1.45 }}>
-                        <button type="button" onClick={() => handleRequestRowAction(row)} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: '#4f46e5', fontWeight: 600, fontSize: 8 }}>
+                      <td style={{ fontSize: 8, fontWeight: 600, color: '#0077B6', padding: '7px 4px', lineHeight: 1.45 }}>
+                        <button type="button" onClick={() => handleRequestRowAction(row)} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: '#0077B6', fontWeight: 600, fontSize: 8 }}>
                           {row.id}
                         </button>
                       </td>
@@ -610,7 +660,7 @@ const Billing = ({ focusSection }) => {
                       </td>
                       <td style={{ padding: '7px 4px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#ede9fe', color: '#5b21b6', fontSize: 7, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{row.wsInitials}</div>
+                          <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-[#e8f4fa] text-[7px] font-bold text-[#0077B6]">{row.wsInitials}</div>
                           <span style={{ fontSize: 8, color: '#1e293b', whiteSpace: 'nowrap' }}>{row.ws}</span>
                         </div>
                       </td>
@@ -623,7 +673,7 @@ const Billing = ({ focusSection }) => {
                               type="button"
                               disabled={actionRequestId === row.rawId}
                               onClick={() => openEditCreditModal(row)}
-                              style={{ fontSize: 7, fontWeight: 600, color: '#4f46e5', background: '#eef2ff', border: 'none', borderRadius: 4, padding: '3px 6px', cursor: 'pointer' }}
+                              style={{ fontSize: 7, fontWeight: 600, color: '#0077B6', background: '#e8f4fa', border: 'none', borderRadius: 4, padding: '3px 6px', cursor: 'pointer' }}
                             >
                               Sửa
                             </button>
@@ -659,10 +709,14 @@ const Billing = ({ focusSection }) => {
                   <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} style={{ width: 22, height: 22, borderRadius: 5, border: bd, background: '#fff', cursor: 'pointer', fontSize: 10, color: '#64748b' }}>‹</button>
                 )}
                 {pageNumbers.map(p => (
-                  <button key={p} type="button" onClick={() => setPage(p)} style={{
-                    width: 22, height: 22, borderRadius: 5, border: bd, fontSize: 8, cursor: 'pointer',
-                    background: page === p ? '#4f46e5' : '#fff', color: page === p ? '#fff' : '#64748b', fontWeight: 600,
-                  }}>{p}</button>
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPage(p)}
+                    className={`${pageBtnCls} font-semibold ${page === p ? 'border-[#0077B6] bg-[#0077B6] text-white' : ''}`}
+                  >
+                    {p}
+                  </button>
                 ))}
                 {page < totalPages && (
                   <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} style={{ width: 22, height: 22, borderRadius: 5, border: bd, background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -674,9 +728,9 @@ const Billing = ({ focusSection }) => {
           </div>
         </div>
 
-        <div className="billing-scroll-hide" style={{ display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto', minHeight: 0 }}>
+        <div className="billing-scrollbar flex min-h-0 flex-col gap-3 overflow-y-auto">
 
-          <div ref={servicesSectionRef} style={cardStyle}>
+          <div ref={servicesSectionRef} className={CARD}>
             <SectionHeader title="Dịch vụ đang sử dụng" action="Khám phá" onAction={() => navigate('/business')} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {services.length === 0 ? (
@@ -696,7 +750,9 @@ const Billing = ({ focusSection }) => {
                       </div>
                       <div style={{ fontSize: 7, color: '#94a3b8', lineHeight: 1.45 }}>{svc.desc}</div>
                     </div>
-                    <button type="button" onClick={() => handleServiceDetail(svc)} style={{ fontSize: 8, color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, fontWeight: 600 }}>Chi tiết</button>
+                    <button type="button" onClick={() => handleServiceDetail(svc)} className="shrink-0 border-0 bg-transparent text-[11px] font-semibold text-[#0077B6] cursor-pointer hover:text-[#006399]">
+                      Chi tiết
+                    </button>
                   </div>
                 )
               })}
@@ -706,15 +762,12 @@ const Billing = ({ focusSection }) => {
           <button
             type="button"
             onClick={openCreateCreditModal}
-            style={{
-            width: '100%', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8,
-            padding: '8px', fontSize: 9, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-          }}
+            className="flex w-full items-center justify-center gap-1 rounded-xl border-0 bg-[#0077B6] py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#006399] cursor-pointer"
           >
-            <Plus {...ICON_MD} color="#fff" /> Tạo yêu cầu mới
+            <Plus className="h-3 w-3" /> Tạo yêu cầu mới
           </button>
 
-          <div style={cardStyle}>
+          <div className={CARD}>
             <SectionHeader title="Yêu cầu gần đây" action="Xem tất cả" onAction={() => { setActiveTab('all'); setPage(1); scrollToRef(requestsSectionRef) }} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {recentRequests.length === 0 ? (
@@ -726,11 +779,11 @@ const Billing = ({ focusSection }) => {
                   onClick={() => focusRequestByCode(req.id)}
                   style={{ display: 'flex', gap: 8, alignItems: 'flex-start', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', width: '100%', padding: 0 }}
                 >
-                  <div style={{ width: 22, height: 22, borderRadius: 5, background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <ClipboardList {...ICON_SM} color="#5b21b6" />
+                  <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-[#e8f4fa]">
+                    <ClipboardList {...ICON_SM} color="#0077B6" />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 8, fontWeight: 600, color: '#4f46e5', lineHeight: 1.4 }}>{req.id}</div>
+                    <div style={{ fontSize: 8, fontWeight: 600, color: '#0077B6', lineHeight: 1.4 }}>{req.id}</div>
                     <div style={{ fontSize: 8, color: '#1e293b', lineHeight: 1.45 }}>{req.title}</div>
                     <div style={{ fontSize: 7, color: '#94a3b8', lineHeight: 1.45 }}>{req.sub}</div>
                     <div style={{ fontSize: 7, color: '#94a3b8', lineHeight: 1.45 }}>{req.date}</div>
@@ -741,7 +794,7 @@ const Billing = ({ focusSection }) => {
             </div>
           </div>
 
-          <div style={cardStyle}>
+          <div className={CARD}>
             <SectionHeader title="Invoice chưa thanh toán" action="Xem tất cả" onAction={openInvoicesModal} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {unpaidInvoices.length === 0 ? (
@@ -767,7 +820,7 @@ const Billing = ({ focusSection }) => {
             </div>
           </div>
 
-          <div style={cardStyle}>
+          <div className={CARD}>
             <SectionHeader title="Hoạt động gần đây" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {activities.length === 0 ? (
@@ -787,20 +840,20 @@ const Billing = ({ focusSection }) => {
         <div
           role="dialog"
           aria-modal="true"
-          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4"
           onClick={() => setInvoicesModalOpen(false)}
         >
           <div
-            style={{ ...cardStyle, width: '100%', maxWidth: 420, maxHeight: '80vh', display: 'flex', flexDirection: 'column', padding: 12, boxShadow: '0 12px 40px rgba(0,0,0,0.15)' }}
+            className={`${CARD} flex max-h-[80vh] w-full max-w-md flex-col p-4 shadow-xl`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#1e293b' }}>Danh sách hóa đơn</div>
-              <button type="button" onClick={() => setInvoicesModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}>
-                <X {...ICON_MD} color="#64748b" />
+            <div className="mb-3 flex items-center justify-between">
+              <div className="text-sm font-bold text-slate-800">Danh sách hóa đơn</div>
+              <button type="button" onClick={() => setInvoicesModalOpen(false)} className="border-0 bg-transparent p-0 cursor-pointer">
+                <X className="h-3.5 w-3.5 text-slate-500" />
               </button>
             </div>
-            <div className="billing-scroll-hide" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
+            <div className="billing-scrollbar min-h-0 flex-1 overflow-y-auto">
               {invoicesLoading ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 24, color: '#64748b', fontSize: 9 }}>
                   <Loader2 className="animate-spin" style={{ width: 14, height: 14 }} />
@@ -827,12 +880,13 @@ const Billing = ({ focusSection }) => {
                 ))
               )}
             </div>
-            <p style={{ fontSize: 8, color: '#94a3b8', marginTop: 10, lineHeight: 1.45 }}>
+            <p className="mt-3 text-[10px] leading-relaxed text-slate-400">
               Liên hệ JobShare WS nếu cần hỗ trợ thanh toán hoặc xuất hóa đơn.
             </p>
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

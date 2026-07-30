@@ -1,20 +1,93 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
-  Plus, Bookmark, BarChart3, Users, TrendingUp, Loader2, Check, Headphones,
+  Plus,
+  Bookmark,
+  BarChart3,
+  Users,
+  TrendingUp,
+  Loader2,
+  Check,
+  ArrowUpRight,
+  Sparkles,
+  Megaphone,
+  CalendarDays,
+  Building2,
 } from 'lucide-react'
 import apiService from '../../services/api'
 import TemplateSlidePanel from '../../component/BusinessBranding/TemplateSlidePanel'
 import { isCompanyBuilderContent } from '../../utils/companyLandingPageSchema'
 import { HomepageSidebar } from './Homepage'
 
-const scrollbarStyle = `
-  .branding-scrollbar::-webkit-scrollbar { width: 6px; }
-  .branding-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .branding-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-  .branding-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-  .branding-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
+const BRAND = '#0077B6'
+
+const homepageStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+  .business-homepage-scroll::-webkit-scrollbar { width: 4px; }
+  .business-homepage-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .business-homepage-shell { --hp-zoom: 1; }
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    .business-homepage-shell { --hp-zoom: 0.9; }
+  }
+  @media (min-width: 1280px) and (max-width: 1535px) {
+    .business-homepage-shell { --hp-zoom: 0.86; }
+  }
+  @media (min-width: 1024px) and (max-height: 760px) {
+    .business-homepage-shell { --hp-zoom: 0.78; }
+  }
+  @media (min-width: 1024px) and (min-height: 761px) and (max-height: 860px) {
+    .business-homepage-shell { --hp-zoom: 0.84; }
+  }
+  @media (min-width: 1536px) and (min-height: 861px) {
+    .business-homepage-shell { --hp-zoom: 0.94; }
+  }
+  @media (min-width: 1920px) and (min-height: 900px) {
+    .business-homepage-shell { --hp-zoom: 1; }
+  }
+  .business-homepage-ui { zoom: var(--hp-zoom); }
+  @supports not (zoom: 1) {
+    .business-homepage-ui {
+      transform: scale(var(--hp-zoom));
+      transform-origin: top left;
+      width: calc(100% / var(--hp-zoom));
+    }
+  }
+
+  @keyframes biz-hp-card-slide-in {
+    from { opacity: 0; transform: translateY(28px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .biz-hp-solution-card-wrap {
+    height: 100%;
+    animation: biz-hp-card-slide-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  .biz-hp-solution-card {
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease;
+    will-change: transform;
+  }
+  .biz-hp-solution-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 16px 32px -12px rgba(0, 119, 182, 0.35);
+  }
+  .biz-hp-solution-card.biz-hp-solution-card--dark:hover {
+    box-shadow: 0 16px 32px -12px rgba(0, 60, 100, 0.45);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .biz-hp-solution-card-wrap { animation: none; }
+    .biz-hp-solution-card { transition: none; }
+    .biz-hp-solution-card:hover { transform: none; }
+  }
 `
+
+const CARD_SURFACE = {
+  brandLight: 'bg-[#e8f4fa] border border-[#cce5f0]/80 text-slate-900',
+  neutral: 'bg-white border border-slate-200/90 text-slate-900',
+  primary: 'bg-[#0077B6] border border-[#0077B6] text-white shadow-sm shadow-[#0077B6]/15',
+}
 
 const STATUS_STYLE = {
   'Nháp': { color: '#64748b', bg: '#f1f5f9' },
@@ -26,9 +99,11 @@ const STATUS_STYLE = {
 const SERVICE_PACKAGES = [
   {
     id: 'landing',
-    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=320&fit=crop',
-    title: 'Tạo landing page chuyên nghiệp',
-    description: 'Trang tuyển dụng theo thương hiệu, tối ưu chuyển đổi ứng viên.',
+    num: '01',
+    title: 'Landing page chuyên nghiệp',
+    subtitle: 'Trang tuyển dụng theo thương hiệu',
+    variant: 'primary',
+    icon: Sparkles,
     features: [
       'Thiết kế theo thương hiệu doanh nghiệp',
       'Tối ưu hiển thị mobile',
@@ -36,13 +111,16 @@ const SERVICE_PACKAGES = [
       'Tích hợp JobShare',
       'Báo cáo lượt xem & ứng tuyển',
     ],
+    suitableFor: 'Doanh nghiệp cần trang tuyển dụng chuẩn employer branding, tối ưu chuyển đổi ứng viên.',
     action: 'landing',
   },
   {
     id: 'recruitment_ads',
-    image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&h=320&fit=crop',
-    title: 'Chạy quảng cáo tuyển dụng',
-    description: 'Tiếp cận ứng viên tiềm năng trên các nền tảng quảng cáo.',
+    num: '02',
+    title: 'Quảng cáo tuyển dụng',
+    subtitle: 'Tiếp cận ứng viên đa kênh',
+    variant: 'brandLight',
+    icon: Megaphone,
     features: [
       'Quảng cáo FB, IG, LinkedIn, Google',
       'Targeting chính xác theo JD',
@@ -50,14 +128,17 @@ const SERVICE_PACKAGES = [
       'Báo cáo realtime',
       'Hỗ trợ triển khai A-Z',
     ],
+    suitableFor: 'Doanh nghiệp muốn mở rộng reach và thu hút ứng viên tiềm năng nhanh.',
     action: 'admin_request',
     serviceKey: 'recruitment_ads',
   },
   {
     id: 'recruitment_event',
-    image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=320&fit=crop',
-    title: 'Tổ chức seminar, event tuyển dụng',
-    description: 'Sự kiện online/offline thu hút và kết nối ứng viên.',
+    num: '03',
+    title: 'Seminar & event tuyển dụng',
+    subtitle: 'Sự kiện online / offline',
+    variant: 'neutral',
+    icon: CalendarDays,
     features: [
       'Lên kế hoạch & kịch bản sự kiện',
       'Thiết kế banner, tài liệu',
@@ -65,14 +146,17 @@ const SERVICE_PACKAGES = [
       'Livestream & ghi hình',
       'Báo cáo hiệu quả sau sự kiện',
     ],
+    suitableFor: 'Doanh nghiệp tổ chức hội thảo, job fair hoặc buổi giới thiệu công ty.',
     action: 'admin_request',
     serviceKey: 'recruitment_event',
   },
   {
     id: 'company_profile',
-    image: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=600&h=320&fit=crop',
-    title: 'Làm company profile (chuẩn thương hiệu)',
-    description: 'Hồ sơ năng lực công ty chuyên nghiệp, chuẩn employer branding.',
+    num: '04',
+    title: 'Company profile',
+    subtitle: 'Hồ sơ năng lực chuẩn thương hiệu',
+    variant: 'neutral',
+    icon: Building2,
     features: [
       'Thiết kế hiện đại, bắt mắt',
       'Nội dung chuẩn SEO',
@@ -80,6 +164,7 @@ const SERVICE_PACKAGES = [
       'Hỗ trợ chỉnh sửa & cập nhật',
       'Bàn giao file & hướng dẫn sử dụng',
     ],
+    suitableFor: 'Doanh nghiệp cần bộ tài liệu giới thiệu công ty thống nhất trên mọi kênh.',
     action: 'admin_request',
     serviceKey: 'company_profile',
   },
@@ -94,39 +179,131 @@ function formatDate(value) {
   }
 }
 
-function ServicePackageCard({ pkg, onUse, loadingKey }) {
-  const busy = Boolean(loadingKey && (loadingKey === pkg.serviceKey || loadingKey === pkg.id))
+function BrandingServiceCard({ card, onUse, loadingKey }) {
+  const isOnDark = card.variant === 'primary'
+  const surface = CARD_SURFACE[card.variant] || CARD_SURFACE.neutral
+  const DecoIcon = card.icon
+  const busy = Boolean(loadingKey && (loadingKey === card.serviceKey || loadingKey === card.id))
+
+  const bodyClass = isOnDark ? 'text-white/95' : 'text-slate-600'
+  const mutedClass = isOnDark ? 'text-white/85' : 'text-slate-500'
+
   return (
-    <div className="bg-white rounded-xl border border-slate-100 flex flex-col h-full overflow-hidden shadow-sm">
-      <div className="h-28 sm:h-32 overflow-hidden bg-slate-100 shrink-0">
-        <img src={pkg.image} alt="" className="w-full h-full object-cover" />
-      </div>
-      <div className="p-3 sm:p-4 flex flex-col flex-1 gap-2">
-        <h3 className="text-sm font-bold text-slate-800 leading-snug">{pkg.title}</h3>
-        <p className="text-xs text-slate-500 leading-relaxed">{pkg.description}</p>
-        <ul className="flex flex-col gap-1.5 flex-1 mt-1">
-          {pkg.features.map((f) => (
-            <li key={f} className="flex items-start gap-1.5 text-xs text-slate-600">
-              <Check className="w-3.5 h-3.5 text-violet-600 flex-shrink-0 mt-0.5" />
-              <span>{f}</span>
-            </li>
-          ))}
-        </ul>
+    <article
+      className={`biz-hp-solution-card ${isOnDark ? 'biz-hp-solution-card--dark' : ''} relative grid h-full min-h-[300px] grid-rows-[2rem_4.75rem_minmax(0,1fr)_auto] overflow-hidden rounded-[1.25rem] p-3.5 sm:p-4 ${surface}`}
+    >
+      <div className="relative z-20 flex items-start justify-between gap-2">
+        <span
+          className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold ${
+            isOnDark ? 'bg-white/20 text-white' : 'bg-white text-slate-800 shadow-sm ring-1 ring-slate-100'
+          }`}
+        >
+          {card.num}
+        </span>
         <button
           type="button"
           disabled={busy}
-          onClick={() => onUse(pkg)}
-          className="mt-2 w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg py-2.5 transition-colors flex items-center justify-center gap-2"
+          onClick={() => onUse(card)}
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors disabled:opacity-60 ${
+            isOnDark
+              ? 'bg-white/15 text-white hover:bg-white/25'
+              : 'bg-white text-slate-600 shadow-sm ring-1 ring-slate-100 hover:text-[#0077B6]'
+          }`}
+          aria-label={`Sử dụng ${card.title}`}
         >
-          {busy && <Loader2 className="w-4 h-4 animate-spin" />}
-          Sử dụng ngay
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpRight className="h-4 w-4" strokeWidth={2} />}
+        </button>
+      </div>
+
+      <div className="relative z-10 mt-2 pr-14">
+        <h3 className="line-clamp-2 text-base font-bold leading-tight sm:text-lg">{card.title}</h3>
+        <p className={`mt-1 line-clamp-2 text-xs leading-snug sm:text-[13px] ${mutedClass}`}>{card.subtitle}</p>
+      </div>
+
+      <div className="pointer-events-none absolute right-0 top-[3.25rem] z-0 translate-x-[18%]" aria-hidden>
+        <DecoIcon
+          className={`h-[6.5rem] w-[6.5rem] sm:h-28 sm:w-28 ${isOnDark ? 'text-white/30' : 'text-[#0077B6]/22'}`}
+          strokeWidth={1.1}
+        />
+      </div>
+
+      <div className="relative z-10 mt-3 flex min-h-0 flex-col">
+        <h4 className={`shrink-0 text-xs font-bold sm:text-[13px] ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}>
+          Tính năng nổi bật
+        </h4>
+        <ul className={`mt-2 flex min-h-0 flex-1 flex-col gap-2 text-[11px] leading-snug sm:text-xs ${bodyClass}`}>
+          {card.features.map((line) => (
+            <li key={line} className="flex gap-2">
+              <Check className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`} strokeWidth={2.5} />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className={`relative z-10 mt-3 shrink-0 border-t pt-3 ${isOnDark ? 'border-white/20' : 'border-slate-200/80'}`}>
+        <h4 className={`text-xs font-bold sm:text-[13px] ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}>Phù hợp với</h4>
+        <p className={`mt-1.5 min-h-[2.75rem] text-[11px] leading-snug sm:text-xs ${bodyClass}`}>{card.suitableFor}</p>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onUse(card)}
+          className={`mt-2.5 w-full rounded-lg py-2 text-xs font-semibold transition-colors disabled:opacity-60 ${
+            isOnDark
+              ? 'bg-white/20 text-white hover:bg-white/30'
+              : 'bg-[#0077B6] text-white hover:bg-[#006399] shadow-sm shadow-[#0077B6]/15'
+          }`}
+        >
+          {busy ? 'Đang gửi...' : 'Sử dụng ngay'}
+        </button>
+      </div>
+    </article>
+  )
+}
+
+function BrandingOverviewMain({ onPackageUse, onConsultation, requestLoadingKey }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <header className="shrink-0">
+        <h1 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl">Saiyo Branding</h1>
+        <p className="mt-1 text-xs leading-snug text-slate-600 sm:text-sm">
+          Xây dựng thương hiệu tuyển dụng — gói dịch vụ, landing page, thống kê hiệu quả và form ứng tuyển.
+        </p>
+      </header>
+
+      <div className="grid grid-cols-1 items-stretch gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {SERVICE_PACKAGES.map((card, index) => (
+          <div
+            key={card.num}
+            className="biz-hp-solution-card-wrap"
+            style={{ animationDelay: `${0.06 + index * 0.1}s` }}
+          >
+            <BrandingServiceCard card={card} onUse={onPackageUse} loadingKey={requestLoadingKey} />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="min-w-0 flex-1 text-xs leading-snug text-slate-700">
+          <span className="font-semibold text-slate-900">Không chắc gói nào phù hợp?</span>
+          {' '}
+          JobShare tư vấn miễn phí cho doanh nghiệp của bạn.
+        </p>
+        <button
+          type="button"
+          disabled={requestLoadingKey === 'consultation'}
+          onClick={onConsultation}
+          className="shrink-0 rounded-lg bg-[#0077B6] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#006399] disabled:opacity-60 inline-flex items-center justify-center gap-2"
+        >
+          {requestLoadingKey === 'consultation' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+          Nhận tư vấn ngay
         </button>
       </div>
     </div>
   )
 }
 
-function BrandingStatsView({
+function BrandingStatsSection({
   statCards,
   displayPages,
   activities,
@@ -135,72 +312,93 @@ function BrandingStatsView({
   copyPublicLink,
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 12 }}>
-        <div className="bg-white rounded-xl border border-slate-100" style={{ padding: 12, height: 'fit-content' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, marginBottom: 8 }}>📄</div>
-            <h2 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>Trang giới thiệu DN</h2>
-            <p style={{ fontSize: 8, color: '#64748b', marginBottom: 8 }}>Template, đa trang, motion, SEO</p>
+    <div className="flex flex-col gap-2">
+      <h2 className="text-sm font-bold text-slate-900 sm:text-base">Thống kê &amp; landing page</h2>
+
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        {statCards.map((s, i) => {
+          const Icon = s.icon
+          const accent = i === 0
+          return (
+            <div
+              key={i}
+              className={`rounded-xl border p-3 shadow-sm ${accent ? 'border-[#cce5f0]/80 bg-[#e8f4fa]' : 'border-slate-200/90 bg-white'}`}
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: accent ? 'rgba(0,119,182,0.12)' : `${s.color}20` }}>
+                  <Icon className="h-4 w-4" style={{ color: accent ? BRAND : s.color }} />
+                </div>
+                <span className="text-[10px] font-medium leading-snug text-slate-500 sm:text-xs">{s.label}</span>
+              </div>
+              <div className="text-xl font-bold tabular-nums text-slate-800">{s.value}</div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="grid gap-2 lg:grid-cols-[220px_1fr]">
+        <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm h-fit">
+          <div className="flex flex-col items-center text-center">
+            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-[#e8f4fa] text-xl">📄</div>
+            <h2 className="mb-1.5 text-xs font-bold text-slate-800">Trang giới thiệu DN</h2>
+            <p className="mb-3 text-[10px] leading-snug text-slate-500">Template, đa trang, motion, SEO</p>
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              style={{ width: '100%', fontSize: 8, fontWeight: 600, color: 'white', background: '#3b82f6', border: 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}
+              className="flex w-full items-center justify-center gap-1 rounded-lg bg-[#0077B6] py-2 px-3 text-xs font-semibold text-white transition-colors hover:bg-[#006399]"
             >
-              <Plus style={{ width: 9, height: 9 }} />
+              <Plus className="h-3.5 w-3.5" />
               Tạo
             </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-100" style={{ padding: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <h2 style={{ fontSize: 11, fontWeight: 700, color: '#1e293b' }}>Tất cả landing pages</h2>
-            <button type="button" onClick={() => setShowCreate(true)} style={{ fontSize: 9, fontWeight: 600, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer' }}>
+        <div className="min-w-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xs font-bold text-slate-900 sm:text-sm">Tất cả landing pages</h2>
+            <button type="button" onClick={() => setShowCreate(true)} className="text-[10px] font-semibold text-[#0077B6] hover:text-[#006399] sm:text-xs">
               + Tạo mới
             </button>
           </div>
 
           {displayPages.length === 0 ? (
-            <div style={{ padding: 24, textAlign: 'center', fontSize: 9, color: '#94a3b8' }}>
-              Chưa có landing page. Bấm Tạo để bắt đầu.
-            </div>
+            <div className="py-8 text-center text-xs text-slate-400">Chưa có landing page. Bấm Tạo để bắt đầu.</div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', fontSize: 9, borderCollapse: 'collapse' }}>
+            <div className="overflow-x-auto business-homepage-scroll">
+              <table className="w-full border-collapse text-xs">
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                    <th style={{ padding: '8px', textAlign: 'left', fontWeight: 600, color: '#64748b' }}>Tên</th>
-                    <th style={{ padding: '8px', textAlign: 'left', fontWeight: 600, color: '#64748b' }}>Loại</th>
-                    <th style={{ padding: '8px', textAlign: 'center', fontWeight: 600, color: '#64748b' }}>Lượt xem</th>
-                    <th style={{ padding: '8px', textAlign: 'center', fontWeight: 600, color: '#64748b' }}>Form</th>
-                    <th style={{ padding: '8px', fontWeight: 600, color: '#64748b' }}>Trạng thái</th>
-                    <th style={{ padding: '8px', textAlign: 'right', fontWeight: 600, color: '#64748b' }}>Thao tác</th>
+                  <tr className="border-b border-slate-100 bg-slate-50/80 text-[10px] uppercase tracking-wide text-slate-400">
+                    <th className="px-2 py-2 text-left font-semibold">Tên</th>
+                    <th className="px-2 py-2 text-left font-semibold">Loại</th>
+                    <th className="px-2 py-2 text-center font-semibold">Lượt xem</th>
+                    <th className="px-2 py-2 text-center font-semibold">Form</th>
+                    <th className="px-2 py-2 font-semibold">Trạng thái</th>
+                    <th className="px-2 py-2 text-right font-semibold">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   {displayPages.map((p) => {
                     const st = STATUS_STYLE[p.statusLabel] || STATUS_STYLE['Nháp']
                     return (
-                      <tr key={p.id} style={{ borderTop: '1px solid #e2e8f0' }}>
-                        <td style={{ padding: '8px', fontWeight: 600, color: '#1e293b' }}>{p.title}</td>
-                        <td style={{ padding: '8px', color: '#64748b' }}>
+                      <tr key={p.id} className="border-t border-slate-100 hover:bg-slate-50/60">
+                        <td className="px-2 py-2 font-semibold text-slate-800">{p.title}</td>
+                        <td className="px-2 py-2 text-slate-500">
                           {p.builderType === 'company' || isCompanyBuilderContent(p.content) ? 'Giới thiệu DN' : (p.job?.title || p.job?.jobCode || 'Tuyển dụng')}
                         </td>
-                        <td style={{ padding: '8px', textAlign: 'center', color: '#475569' }}>{p.viewsCount}</td>
-                        <td style={{ padding: '8px', textAlign: 'center', color: '#475569' }}>{p.formSubmissionsCount}</td>
-                        <td style={{ padding: '8px' }}>
-                          <span style={{ fontSize: 8, fontWeight: 600, color: st.color, background: st.bg, borderRadius: 20, padding: '2px 6px' }}>
+                        <td className="px-2 py-2 text-center tabular-nums text-slate-600">{p.viewsCount}</td>
+                        <td className="px-2 py-2 text-center tabular-nums text-slate-600">{p.formSubmissionsCount}</td>
+                        <td className="px-2 py-2">
+                          <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ color: st.color, background: st.bg }}>
                             {p.statusLabel}
                           </span>
                         </td>
-                        <td style={{ padding: '8px', textAlign: 'right' }}>
-                          <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                            <button type="button" onClick={() => openEditor(p)} style={{ fontSize: 7, fontWeight: 600, color: '#3b82f6', background: '#eff6ff', border: 'none', borderRadius: 4, padding: '3px 5px', cursor: 'pointer' }}>Sửa</button>
+                        <td className="px-2 py-2 text-right">
+                          <div className="flex flex-wrap justify-end gap-1">
+                            <button type="button" onClick={() => openEditor(p)} className="rounded-md bg-[#e8f4fa] px-2 py-1 text-[10px] font-semibold text-[#0077B6] hover:bg-[#cce5f0]">Sửa</button>
                             {p.status === 1 && (
                               <>
-                                <button type="button" onClick={() => copyPublicLink(p)} style={{ fontSize: 7, fontWeight: 600, color: '#64748b', background: '#f1f5f9', border: 'none', borderRadius: 4, padding: '3px 5px', cursor: 'pointer' }}>Copy link</button>
-                                <a href={p.publicPath} target="_blank" rel="noreferrer" style={{ fontSize: 7, fontWeight: 600, color: '#64748b', background: '#f1f5f9', borderRadius: 4, padding: '3px 5px', textDecoration: 'none' }}>Xem</a>
+                                <button type="button" onClick={() => copyPublicLink(p)} className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-200">Copy link</button>
+                                <a href={p.publicPath} target="_blank" rel="noreferrer" className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 no-underline hover:bg-slate-200">Xem</a>
                               </>
                             )}
                           </div>
@@ -215,33 +413,16 @@ function BrandingStatsView({
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
-        {statCards.map((s, i) => {
-          const Icon = s.icon
-          return (
-            <div key={i} className="bg-white rounded-xl border border-slate-100" style={{ padding: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 6, background: s.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon style={{ width: 11, height: 11, color: s.color }} />
-                </div>
-                <span style={{ fontSize: 9, color: '#64748b', fontWeight: 500 }}>{s.label}</span>
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#1e293b', marginBottom: 2 }}>{s.value}</div>
-            </div>
-          )
-        })}
-      </div>
-
-      <div className="bg-white rounded-xl border border-slate-100" style={{ padding: 12 }}>
-        <h2 style={{ fontSize: 11, fontWeight: 700, color: '#1e293b', marginBottom: 10 }}>Hoạt động gần đây</h2>
+      <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
+        <h2 className="mb-3 text-xs font-bold text-[#0077B6]">Hoạt động gần đây</h2>
         {activities.length === 0 ? (
-          <div style={{ fontSize: 9, color: '#94a3b8' }}>Chưa có hoạt động</div>
+          <div className="text-xs text-slate-400">Chưa có hoạt động</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="flex flex-col divide-y divide-slate-100">
             {activities.map((a) => (
-              <div key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, padding: '8px 0', borderBottom: '1px solid #e2e8f0' }}>
-                <div style={{ flex: 1, fontSize: 9, color: '#334155' }}>{a.message}</div>
-                <div style={{ fontSize: 8, color: '#94a3b8', whiteSpace: 'nowrap' }}>{formatDate(a.createdAt)}</div>
+              <div key={a.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
+                <div className="flex-1 text-xs text-slate-700">{a.message}</div>
+                <div className="shrink-0 whitespace-nowrap text-[10px] text-slate-400">{formatDate(a.createdAt)}</div>
               </div>
             ))}
           </div>
@@ -251,10 +432,39 @@ function BrandingStatsView({
   )
 }
 
+function BrandingUnifiedMain({
+  onPackageUse,
+  onConsultation,
+  requestLoadingKey,
+  statCards,
+  displayPages,
+  activities,
+  setShowCreate,
+  openEditor,
+  copyPublicLink,
+}) {
+  return (
+    <div className="flex min-h-0 flex-col gap-4 pb-2">
+      <BrandingOverviewMain
+        onPackageUse={onPackageUse}
+        onConsultation={onConsultation}
+        requestLoadingKey={requestLoadingKey}
+      />
+      <BrandingStatsSection
+        statCards={statCards}
+        displayPages={displayPages}
+        activities={activities}
+        setShowCreate={setShowCreate}
+        openEditor={openEditor}
+        copyPublicLink={copyPublicLink}
+      />
+    </div>
+  )
+}
+
 const Branding = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const [tab, setTab] = useState('overview')
   const [loading, setLoading] = useState(true)
   const [dashboard, setDashboard] = useState(null)
   const [landingPages, setLandingPages] = useState([])
@@ -282,21 +492,26 @@ const Branding = () => {
   }, [loadData])
 
   useEffect(() => {
-    if (location.state?.openLandingCreate) {
-      setTab('overview')
-      setShowCreate(true)
-      navigate(location.pathname, { replace: true, state: {} })
+    if (location.search.includes('view=')) {
+      navigate(location.pathname, { replace: true, state: location.state })
     }
-  }, [location.pathname, location.state, navigate])
+  }, [location.pathname, location.search, location.state, navigate])
+
+  useEffect(() => {
+    if (location.state?.openLandingCreate) {
+      setShowCreate(true)
+      navigate(location.pathname + location.search, { replace: true, state: {} })
+    }
+  }, [location.pathname, location.search, location.state, navigate])
 
   const stats = dashboard?.stats || {}
   const activities = dashboard?.activities || []
 
   const statCards = [
-    { icon: Bookmark, value: stats.views || 0, label: 'Lượt xem', color: '#3b82f6' },
-    { icon: BarChart3, value: stats.formSubmissions || 0, label: 'Lượt đăng ký form', color: '#f59e0b' },
-    { icon: Users, value: stats.candidates || 0, label: 'Hồ sơ ứng viên', color: '#8b5cf6' },
-    { icon: TrendingUp, value: `${stats.conversionRate || 0}%`, label: 'Tỷ lệ chuyển đổi', color: '#10b981' },
+    { icon: Bookmark, value: stats.views || 0, label: 'Lượt xem', color: BRAND },
+    { icon: BarChart3, value: stats.formSubmissions || 0, label: 'Lượt đăng ký form', color: '#d97706' },
+    { icon: Users, value: stats.candidates || 0, label: 'Hồ sơ ứng viên', color: '#0d9488' },
+    { icon: TrendingUp, value: `${stats.conversionRate || 0}%`, label: 'Tỷ lệ chuyển đổi', color: '#059669' },
   ]
 
   const handleCreated = () => {
@@ -351,95 +566,40 @@ const Branding = () => {
     sendServiceRequest('consultation')
   }
 
-  const tabs = [
-    { key: 'overview', label: 'Tổng quan' },
-    { key: 'stats', label: 'Thống kê hiệu quả' },
-  ]
-
   return (
     <>
-      <style>{scrollbarStyle}</style>
+      <style>{homepageStyles}</style>
       <TemplateSlidePanel open={showCreate} onClose={() => setShowCreate(false)} onCreated={handleCreated} />
 
-      <div className="min-h-0 bg-slate-50 h-full flex flex-col overflow-hidden">
-        <div className="bg-white border-b border-slate-200 shrink-0 px-4 pt-4 pb-0">
-          <h1 className="text-xl font-bold text-slate-800">Saiyo Branding</h1>
-          <p className="text-sm text-slate-500 mt-1 max-w-3xl">
-            Xây dựng thương hiệu tuyển dụng mạnh mẽ, chuyên nghiệp để thu hút và giữ chân nhân tài phù hợp.
-          </p>
-          <div className="flex gap-1 mt-4">
-            {tabs.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => setTab(t.key)}
-                className={`text-sm font-semibold px-4 py-2.5 border-b-2 transition-colors ${
-                  tab === t.key
-                    ? 'border-violet-600 text-violet-700'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-hidden">
+      <div
+        className="business-homepage-shell min-h-0 overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden"
+        style={{ fontFamily: PAGE_FONT }}
+      >
+        <div className="business-homepage-ui w-full min-h-0 p-2.5 sm:p-3 xl:h-full xl:flex xl:flex-col">
           {loading ? (
-            <div className="flex items-center justify-center gap-2 py-20 text-slate-500">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Đang tải...
-            </div>
-          ) : tab === 'overview' ? (
-            <div className="branding-scrollbar h-full overflow-y-auto p-4">
-              <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] gap-4 items-start">
-                <div className="min-w-0 flex flex-col gap-4">
-                  <h2 className="text-base font-bold text-slate-800">Các gói dịch vụ Saiyo Branding</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                    {SERVICE_PACKAGES.map((pkg) => (
-                      <ServicePackageCard
-                        key={pkg.id}
-                        pkg={pkg}
-                        onUse={handlePackageUse}
-                        loadingKey={requestLoadingKey}
-                      />
-                    ))}
-                  </div>
-
-                  <div className="rounded-xl border border-violet-100 bg-violet-50/80 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
-                    <p className="text-sm text-slate-600 flex-1">
-                      <span className="font-semibold text-slate-800">Chưa biết gói nào phù hợp với doanh nghiệp của bạn?</span>
-                    </p>
-                    <button
-                      type="button"
-                      disabled={requestLoadingKey === 'consultation'}
-                      onClick={handleConsultation}
-                      className="flex-shrink-0 inline-flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg px-5 py-2.5"
-                    >
-                      {requestLoadingKey === 'consultation' ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Headphones className="w-4 h-4" />
-                      )}
-                      Nhận tư vấn miễn phí
-                    </button>
-                  </div>
-                </div>
-
-                <HomepageSidebar onNavigate={handleNavigate} />
-              </div>
+            <div className="flex flex-1 items-center justify-center gap-2 py-20 text-slate-500">
+              <Loader2 className="h-5 w-5 animate-spin text-[#0077B6]" />
+              <span className="text-sm">Đang tải...</span>
             </div>
           ) : (
-            <div className="branding-scrollbar h-full overflow-y-auto p-3">
-              <BrandingStatsView
-                statCards={statCards}
-                displayPages={landingPages}
-                activities={activities}
-                setShowCreate={setShowCreate}
-                openEditor={openEditor}
-                copyPublicLink={copyPublicLink}
-              />
+            <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:h-full xl:grid-cols-[minmax(0,1fr)_minmax(196px,228px)] xl:gap-3 xl:overflow-hidden">
+              <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col xl:h-full xl:overflow-y-auto xl:pr-0.5">
+                <BrandingUnifiedMain
+                  onPackageUse={handlePackageUse}
+                  onConsultation={handleConsultation}
+                  requestLoadingKey={requestLoadingKey}
+                  statCards={statCards}
+                  displayPages={landingPages}
+                  activities={activities}
+                  setShowCreate={setShowCreate}
+                  openEditor={openEditor}
+                  copyPublicLink={copyPublicLink}
+                />
+              </div>
+
+              <div className="business-homepage-scroll scrollbar-hide min-h-0 xl:h-full xl:overflow-y-auto xl:pr-0.5">
+                <HomepageSidebar onNavigate={handleNavigate} />
+              </div>
             </div>
           )}
         </div>

@@ -4,7 +4,7 @@ import {
   Search, SlidersHorizontal, ChevronRight, ChevronLeft,
   UserCheck, X, Unlock, Users, Check, BadgeCheck, Loader2, Briefcase,
   Sparkles, FilePlus2, BookOpen, AlertTriangle, ArrowRight, Lock,
-  MessageSquare, Gauge,
+  MessageSquare, Gauge, ArrowUpRight, Coins, UserPlus,
 } from 'lucide-react'
 import apiService from '../../services/api'
 import useBusinessUser from '../../hooks/useBusinessUser'
@@ -19,12 +19,17 @@ import ScoutCandidateProfilePanel from '../../component/Bussiness/ScoutCandidate
 const ICON_SM = { width: 10, height: 10 }
 const ICON_MD = { width: 12, height: 12 }
 
-const scrollbarStyle = `
+const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
+
+const scoutPageStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
   .scout-scrollbar::-webkit-scrollbar { width: 6px; }
   .scout-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .scout-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
   .scout-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   .scout-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+  .business-homepage-scroll::-webkit-scrollbar { width: 4px; }
+  .business-homepage-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
   .scout-search-highlight {
     background-color: #fef08a !important;
     color: #92400e !important;
@@ -34,30 +39,29 @@ const scrollbarStyle = `
     box-decoration-break: clone;
     -webkit-box-decoration-break: clone;
   }
-  .scout-onboard-scroll::-webkit-scrollbar { display: none; }
-  .scout-onboard-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-  .business-homepage-shell {
-    --hp-zoom: 1;
-  }
+  .business-homepage-shell { --hp-zoom: 1; }
   @media (min-width: 1024px) and (max-width: 1279px) {
-    .business-homepage-shell { --hp-zoom: 0.88; }
+    .business-homepage-shell { --hp-zoom: 0.9; }
   }
   @media (min-width: 1280px) and (max-width: 1535px) {
-    .business-homepage-shell { --hp-zoom: 0.8; }
+    .business-homepage-shell { --hp-zoom: 0.86; }
   }
-  @media (min-width: 1536px) and (max-width: 1919px) {
+  @media (min-width: 1024px) and (max-height: 760px) {
+    .business-homepage-shell { --hp-zoom: 0.78; }
+  }
+  @media (min-width: 1024px) and (min-height: 761px) and (max-height: 860px) {
+    .business-homepage-shell { --hp-zoom: 0.84; }
+  }
+  @media (min-width: 1536px) and (min-height: 861px) {
     .business-homepage-shell { --hp-zoom: 0.94; }
   }
-  @media (min-width: 1920px) {
+  @media (min-width: 1920px) and (min-height: 900px) {
     .business-homepage-shell { --hp-zoom: 1; }
   }
-  .business-homepage-ui {
-    zoom: var(--hp-zoom);
-  }
+  .business-homepage-ui { zoom: var(--hp-zoom); }
   @supports not (zoom: 1) {
     .business-homepage-ui {
       transform: scale(var(--hp-zoom));
@@ -65,21 +69,42 @@ const scrollbarStyle = `
       width: calc(100% / var(--hp-zoom));
     }
   }
+
+  @keyframes biz-hp-card-slide-in {
+    from { opacity: 0; transform: translateY(28px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .biz-hp-solution-card-wrap {
+    height: 100%;
+    animation: biz-hp-card-slide-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  .biz-hp-solution-card {
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease;
+  }
+  .biz-hp-solution-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 32px -12px rgba(0, 119, 182, 0.35);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .biz-hp-solution-card-wrap { animation: none; }
+    .biz-hp-solution-card { transition: none; }
+    .biz-hp-solution-card:hover { transform: none; }
+  }
 `
+
+const CARD_SURFACE = {
+  brandLight: 'bg-[#e8f4fa] border border-[#cce5f0]/80 text-slate-900',
+  neutral: 'bg-white border border-slate-200/90 text-slate-900',
+}
 
 const scoutSolutionCards = [
   {
     num: '01',
     title: 'Scout Credit',
     subtitle: 'Tự chủ tìm kiếm & tiếp cận ứng viên',
-    theme: {
-      badge: 'bg-blue-600',
-      border: 'border-blue-100',
-      bg: 'bg-gradient-to-b from-blue-50 to-white',
-      btn: 'bg-blue-600 hover:bg-blue-700',
-      accent: 'text-blue-600',
-    },
-    image: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=400&h=280&fit=crop',
+    variant: 'brandLight',
+    icon: Coins,
+    mode: 'credit',
     features: [
       'Tìm kiếm AI theo kỹ năng & vị trí',
       'Xem hồ sơ ẩn danh trước khi unlock',
@@ -87,44 +112,39 @@ const scoutSolutionCards = [
       'Quản lý danh sách yêu thích',
       'Thanh toán credit linh hoạt',
     ],
-    footer: 'Chỉ từ 1,000 credit · 1 credit = 1 lượt mở hồ sơ',
-    mode: 'credit',
+    suitableFor: 'Doanh nghiệp chủ động tìm ứng viên, cần linh hoạt và kiểm soát chi phí tuyển dụng.',
+    footerNote: 'Chỉ từ 1,000 credit · 1 credit = 1 lượt mở hồ sơ',
   },
   {
     num: '02',
     title: 'Scout Performance',
     subtitle: 'WS hỗ trợ tìm kiếm & tiếp cận ứng viên',
-    theme: {
-      badge: 'bg-emerald-600',
-      border: 'border-emerald-100',
-      bg: 'bg-gradient-to-b from-emerald-50 to-white',
-      btn: 'bg-emerald-600 hover:bg-emerald-700',
-      accent: 'text-emerald-600',
-    },
-    image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=280&fit=crop',
+    variant: 'neutral',
+    icon: UserPlus,
+    mode: 'performance',
     features: [
       'WS tìm kiếm & đánh giá ứng viên',
       'WS chủ động gửi ứng viên theo JD',
       'Gợi ý thay thế khi cần',
-      'Phí theo kết quả tuyển dụng',
+      'Phí 20% dịch vụ giới thiệu việc làm khi tuyển thành công',
     ],
-    footer: 'Hiệu quả – Tiết kiệm thời gian HR',
-    mode: 'performance',
+    suitableFor: 'Doanh nghiệp bận rộn, thiếu thời gian tìm kiếm ứng viên chất lượng.',
+    footerNote: 'Không tốn credit mở hồ sơ · Phí 20% khi giới thiệu việc làm thành công',
   },
 ]
 
 const scoutQuickActions = [
-  { icon: Sparkles, title: 'Tạo JD mới (AI)', desc: 'Tạo JD miễn phí bằng AI', color: 'text-violet-500', bg: 'bg-violet-50', path: '/business/jobs/ai-builder' },
-  { icon: Search, title: 'Tìm ứng viên (Scout Credit)', desc: 'Tìm trong kho ứng viên', color: 'text-blue-500', bg: 'bg-blue-50', action: 'explore' },
-  { icon: MessageSquare, title: 'Gửi yêu cầu WS (Performance)', desc: 'Nhờ WS hỗ trợ tìm kiếm', color: 'text-emerald-500', bg: 'bg-emerald-50', action: 'explore' },
-  { icon: Users, title: 'Dùng Scout Performance', desc: 'Mở hồ sơ & chat WS', color: 'text-indigo-500', bg: 'bg-indigo-50', action: 'explore' },
-  { icon: BookOpen, title: 'Xem hướng dẫn sử dụng', desc: 'Tài liệu hướng dẫn Scout', color: 'text-slate-500', bg: 'bg-slate-100', path: '/business/knowledge' },
+  { icon: Sparkles, title: 'Tạo JD mới (AI)', desc: 'Tạo JD miễn phí bằng AI', path: '/business/jobs' },
+  { icon: Search, title: 'Tìm ứng viên (Scout Credit)', desc: 'Tìm trong kho ứng viên', action: 'explore' },
+  { icon: MessageSquare, title: 'Gửi yêu cầu WS (Performance)', desc: 'Nhờ WS hỗ trợ tìm kiếm', action: 'explore' },
+  { icon: Users, title: 'Dùng Scout Performance', desc: 'Mở hồ sơ & chat WS', action: 'explore' },
+  { icon: BookOpen, title: 'Xem hướng dẫn sử dụng', desc: 'Tài liệu hướng dẫn Scout', path: '/business/knowledge' },
 ]
 
 const scoutNotifications = [
-  { dot: 'bg-emerald-500', text: 'Có 3 ứng viên mới phù hợp với Mechanical Engineer', time: '10 phút trước' },
-  { dot: 'bg-violet-500', text: 'WS đã gửi 5 ứng viên gợi ý cho IT Developer', time: '1 giờ trước' },
-  { dot: 'bg-blue-500', text: 'Ứng viên T.N.H đã trả lời tin nhắn', time: '2 giờ trước' },
+  { dot: 'bg-[#0077B6]', text: 'Có 3 ứng viên mới phù hợp với Mechanical Engineer', time: '10 phút trước' },
+  { dot: 'bg-[#0077B6]', text: 'WS đã gửi 5 ứng viên gợi ý cho IT Developer', time: '1 giờ trước' },
+  { dot: 'bg-slate-400', text: 'Ứng viên T.N.H đã trả lời tin nhắn', time: '2 giờ trước' },
   { dot: 'bg-rose-500', text: 'Credit Scout sắp hết — nạp thêm để tiếp tục unlock', time: '3 giờ trước', warn: true },
 ]
 
@@ -133,40 +153,60 @@ const scoutNews = [
   { title: '5 cách tiếp cận ứng viên kỹ thuật hiệu quả qua Scout', date: '18/05/2024', img: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=200&h=150&fit=crop' },
 ]
 
-function ScoutSolutionCard({ card, onStart }) {
+function ScoutSolutionCard({ card, onStart, animationDelay = 0 }) {
+  const surface = CARD_SURFACE[card.variant] || CARD_SURFACE.neutral
+  const DecoIcon = card.icon
+  const bodyClass = 'text-slate-600'
+  const mutedClass = 'text-slate-500'
+
   return (
-    <div className={`rounded-xl sm:rounded-2xl border ${card.theme.border} ${card.theme.bg} p-2.5 sm:p-3.5 2xl:p-5 flex flex-col h-full shadow-sm min-w-0 min-h-0`}>
-      <div className="mb-1.5 sm:mb-2 2xl:mb-3 shrink-0">
-        <span className={`inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 2xl:w-7 2xl:h-7 rounded-md sm:rounded-lg text-white text-[9px] sm:text-[10px] 2xl:text-xs font-bold ${card.theme.badge}`}>
-          {card.num}
-        </span>
-        <h3 className="text-sm sm:text-base 2xl:text-lg font-bold text-slate-800 mt-1.5 sm:mt-2 leading-tight">{card.title}</h3>
-        <p className="text-[11px] sm:text-xs 2xl:text-sm text-slate-500 mt-0.5">{card.subtitle}</p>
-      </div>
-
-      <div className="rounded-lg sm:rounded-xl overflow-hidden bg-white/60 border border-white/80 mb-2 sm:mb-3 2xl:mb-4 flex-1 min-h-[5.5rem] sm:min-h-[6.5rem] 2xl:min-h-[9rem] max-h-32 sm:max-h-40 2xl:max-h-56">
-        <img src={card.image} alt={card.title} className="w-full h-full object-cover" />
-      </div>
-
-      <ul className="flex flex-col gap-1 sm:gap-1.5 2xl:gap-2 mb-2 sm:mb-3 shrink-0">
-        {card.features.map((f) => (
-          <li key={f} className="flex items-start gap-1 sm:gap-1.5 text-[11px] sm:text-xs 2xl:text-sm text-slate-600 leading-snug">
-            <Check className={`w-3 h-3 sm:w-3.5 sm:h-3.5 2xl:w-4 2xl:h-4 flex-shrink-0 mt-0.5 ${card.theme.accent}`} />
-            <span>{f}</span>
-          </li>
-        ))}
-      </ul>
-
-      <p className={`text-[11px] sm:text-xs 2xl:text-sm font-medium mb-1.5 sm:mb-2 2xl:mb-3 shrink-0 ${card.theme.accent}`}>{card.footer}</p>
-
-      <button
-        type="button"
-        onClick={() => onStart(card.mode)}
-        className={`w-full shrink-0 ${card.theme.btn} text-white text-xs sm:text-sm 2xl:text-base font-semibold rounded-lg sm:rounded-xl py-2 sm:py-2.5 2xl:py-3 transition-colors inline-flex items-center justify-center gap-1.5`}
+    <div className="biz-hp-solution-card-wrap h-full" style={{ animationDelay: `${animationDelay}s` }}>
+      <article
+        className={`biz-hp-solution-card relative flex h-full min-h-[280px] flex-col overflow-hidden rounded-[1.25rem] p-3.5 sm:p-4 ${surface}`}
       >
-        Bắt đầu với {card.title}
-        <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-      </button>
+        <div className="relative z-20 flex items-start justify-between gap-2">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-[11px] font-bold text-slate-800 shadow-sm ring-1 ring-slate-100">
+            {card.num}
+          </span>
+        </div>
+
+        <div className="relative z-10 mt-2 pr-14">
+          <h3 className="line-clamp-2 text-base font-bold leading-tight sm:text-lg">{card.title}</h3>
+          <p className={`mt-1 line-clamp-2 text-xs leading-snug sm:text-[13px] ${mutedClass}`}>{card.subtitle}</p>
+        </div>
+
+        <div className="pointer-events-none absolute right-0 top-[3.25rem] z-0 translate-x-[18%]" aria-hidden>
+          <DecoIcon className="h-[6.5rem] w-[6.5rem] text-[#0077B6]/22 sm:h-28 sm:w-28" strokeWidth={1.1} />
+        </div>
+
+        <div className="relative z-10 mt-3 flex min-h-0 flex-1 flex-col">
+          <h4 className="shrink-0 text-xs font-bold text-[#0077B6] sm:text-[13px]">Tính năng nổi bật</h4>
+          <ul className={`mt-2 flex min-h-0 flex-1 flex-col gap-2 text-[11px] leading-snug sm:text-xs ${bodyClass}`}>
+            {card.features.map((line) => (
+              <li key={line} className="flex gap-2">
+                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0077B6]" strokeWidth={2.5} />
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="relative z-10 mt-3 shrink-0 border-t border-slate-200/80 pt-3">
+          <h4 className="text-xs font-bold text-[#0077B6] sm:text-[13px]">Phù hợp với</h4>
+          <p className={`mt-1.5 text-[11px] leading-snug sm:text-xs ${bodyClass}`}>{card.suitableFor}</p>
+          {card.footerNote ? (
+            <p className="mt-2 text-[10px] font-semibold text-[#0077B6] sm:text-[11px]">{card.footerNote}</p>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => onStart(card.mode)}
+            className="mt-3 w-full rounded-lg bg-[#0077B6] py-2.5 text-xs font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:text-sm inline-flex items-center justify-center gap-1.5"
+          >
+            Bắt đầu với {card.title}
+            <ArrowRight className="h-4 w-4 shrink-0" />
+          </button>
+        </div>
+      </article>
     </div>
   )
 }
@@ -178,10 +218,10 @@ function ScoutOnboardingSidebar({ onExplore, onNavigate }) {
   }
 
   return (
-    <div className="flex flex-col gap-2 sm:gap-3 2xl:gap-4 min-w-0 xl:h-full xl:min-h-0 xl:overflow-y-auto xl:pr-1 scrollbar-hide">
-      <div className="bg-white rounded-lg sm:rounded-xl border border-slate-100 p-2 sm:p-3">
-        <h2 className="text-xs sm:text-sm font-bold text-slate-800 mb-1.5 sm:mb-2">Thao tác nhanh</h2>
-        <div className="flex flex-col gap-0.5">
+    <div className="flex min-h-0 flex-col gap-3 xl:h-full xl:overflow-y-auto xl:pr-0.5 business-homepage-scroll scrollbar-hide">
+      <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
+        <h2 className="text-xs font-bold text-slate-900">Thao tác nhanh</h2>
+        <div className="mt-2.5 flex flex-col gap-1">
           {scoutQuickActions.map((a) => {
             const Icon = a.icon
             return (
@@ -189,57 +229,59 @@ function ScoutOnboardingSidebar({ onExplore, onNavigate }) {
                 key={a.title}
                 type="button"
                 onClick={() => handleAction(a)}
-                className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-lg hover:bg-slate-50 transition-colors text-left w-full"
+                className="flex w-full items-center gap-2 rounded-lg p-2 text-left transition-colors hover:bg-[#e8f4fa]"
               >
-                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${a.bg} flex items-center justify-center flex-shrink-0`}>
-                  <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${a.color}`} />
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#e8f4fa] text-[#0077B6]">
+                  <Icon className="h-3.5 w-3.5" strokeWidth={2} />
                 </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] sm:text-xs font-semibold text-slate-800 leading-snug">{a.title}</div>
-                  <div className="text-[10px] sm:text-[11px] text-slate-400 truncate">{a.desc}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[11px] font-semibold leading-snug text-slate-800">{a.title}</div>
+                  <div className="truncate text-[10px] text-slate-500">{a.desc}</div>
                 </div>
-                <span className="ml-auto text-slate-300 flex-shrink-0 text-xs sm:text-sm">›</span>
+                <ArrowUpRight className="h-3 w-3 shrink-0 text-slate-300" />
               </button>
             )
           })}
         </div>
       </div>
 
-      <div className="bg-white rounded-lg sm:rounded-xl border border-slate-100 p-2 sm:p-3">
-        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-          <h2 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1 sm:gap-1.5">
+      <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="flex items-center gap-2 text-xs font-bold text-slate-900">
             Thông báo
-            <span className="bg-rose-500 text-white text-[9px] sm:text-[10px] font-bold rounded-full px-1 sm:px-1.5 py-0.5">4</span>
+            <span className="rounded-full bg-[#0077B6] px-1.5 py-0.5 text-[9px] font-bold text-white">4</span>
           </h2>
-          <button type="button" className="text-[10px] sm:text-xs font-semibold text-blue-600">Xem tất cả</button>
+          <button type="button" className="shrink-0 text-[10px] font-semibold text-[#0077B6]">Xem tất cả</button>
         </div>
-        <div className="flex flex-col gap-2 sm:gap-2.5">
+        <div className="flex flex-col divide-y divide-slate-100">
           {scoutNotifications.map((n) => (
-            <div key={n.text} className="flex items-start gap-1.5 sm:gap-2">
-              {n.warn
-                ? <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 mt-0.5 flex-shrink-0" />
-                : <span className={`w-2 h-2 rounded-full ${n.dot} mt-1 flex-shrink-0`} />}
-              <div className="min-w-0">
-                <p className="text-[11px] sm:text-xs text-slate-700 leading-snug">{n.text}</p>
-                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">{n.time}</p>
+            <div key={n.text} className="flex items-start gap-2.5 py-3 first:pt-0 last:pb-0">
+              {n.warn ? (
+                <AlertTriangle className="mt-1 h-3.5 w-3.5 shrink-0 text-rose-500" />
+              ) : (
+                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.dot}`} />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] leading-relaxed text-slate-700">{n.text}</p>
+                <p className="mt-1.5 text-[10px] leading-none text-slate-400">{n.time}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="bg-white rounded-lg sm:rounded-xl border border-slate-100 p-2 sm:p-3">
-        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-          <h2 className="text-xs sm:text-sm font-bold text-slate-800">Tin tức &amp; Insights</h2>
-          <button type="button" className="text-[10px] sm:text-xs font-semibold text-blue-600">Xem tất cả</button>
+      <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-xs font-bold text-slate-900">Tin tức &amp; Insights</h2>
+          <button type="button" className="shrink-0 text-[10px] font-semibold text-[#0077B6]">Xem tất cả</button>
         </div>
-        <div className="flex flex-col gap-2 sm:gap-3">
+        <div className="flex flex-col gap-3">
           {scoutNews.map((n) => (
-            <div key={n.title} className="flex gap-2 sm:gap-3">
-              <img src={n.img} alt={n.title} className="w-12 h-9 sm:w-14 sm:h-10 rounded-md sm:rounded-lg object-cover flex-shrink-0" />
+            <div key={n.title} className="flex gap-2.5">
+              <img src={n.img} alt="" className="h-10 w-14 shrink-0 rounded-md object-cover" />
               <div className="min-w-0">
-                <p className="text-[11px] sm:text-xs font-medium text-slate-700 leading-snug line-clamp-2">{n.title}</p>
-                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">{n.date}</p>
+                <p className="line-clamp-2 text-[11px] font-medium leading-relaxed text-slate-800">{n.title}</p>
+                <p className="mt-1.5 text-[10px] text-slate-400">{n.date}</p>
               </div>
             </div>
           ))}
@@ -251,24 +293,29 @@ function ScoutOnboardingSidebar({ onExplore, onNavigate }) {
 
 function ScoutOnboardingView({ previewCandidates, scoutCreditCost, onStart, onExplore }) {
   return (
-    <div className="flex flex-col gap-3 sm:gap-4 2xl:gap-5 min-w-0 xl:flex-1 xl:min-h-0 xl:h-full">
-      <div className="shrink-0">
-        <h1 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-slate-800">Scout</h1>
-        <p className="text-xs sm:text-sm 2xl:text-base text-slate-500 mt-0.5 sm:mt-1 max-w-4xl">
-          JobShare giúp bạn tiếp cận đúng ứng viên nhanh hơn với 2 giải pháp linh hoạt.
+    <div className="flex h-full min-h-0 flex-col gap-2 sm:gap-3">
+      <header className="shrink-0">
+        <h1 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl">Scout</h1>
+        <p className="mt-1 max-w-4xl text-xs leading-snug text-slate-600 sm:text-sm">
+          JobShare giúp bạn tiếp cận đúng ứng viên nhanh hơn với Scout Credit và Scout Performance.
         </p>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 2xl:gap-4 items-stretch shrink-0">
-        {scoutSolutionCards.map((card) => (
-          <ScoutSolutionCard key={card.num} card={card} onStart={onStart} />
+      <div className="grid shrink-0 grid-cols-1 items-stretch gap-2 sm:grid-cols-2 sm:gap-3">
+        {scoutSolutionCards.map((card, index) => (
+          <ScoutSolutionCard
+            key={card.num}
+            card={card}
+            onStart={onStart}
+            animationDelay={0.06 + index * 0.1}
+          />
         ))}
       </div>
 
-      <div className="bg-white rounded-lg sm:rounded-xl border border-slate-100 overflow-hidden shrink-0 xl:mt-auto">
-        <div className="px-3 sm:px-4 py-2 sm:py-2.5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-          <h2 className="text-xs sm:text-sm font-bold text-slate-800">Ứng viên tiềm năng gợi ý cho bạn</h2>
-          <span className="text-[10px] sm:text-xs text-slate-400">Hồ sơ đang được ẩn danh</span>
+      <div className="mt-auto shrink-0 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
+        <div className="flex flex-col gap-1 border-b border-slate-100 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+          <h2 className="text-xs font-bold text-slate-900 sm:text-sm">Ứng viên tiềm năng gợi ý cho bạn</h2>
+          <span className="text-[10px] text-slate-500 sm:text-[11px]">Hồ sơ đang được ẩn danh</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left min-w-[640px]">
@@ -308,7 +355,7 @@ function ScoutOnboardingView({ previewCandidates, scoutCreditCost, onStart, onEx
                     <td className="px-2 py-2">
                       <div className="flex flex-wrap gap-1">
                         {skills.map((s) => (
-                          <span key={s} className="text-[10px] sm:text-xs font-medium text-blue-600 bg-blue-50 rounded-full px-1.5 py-0.5">{s}</span>
+                          <span key={s} className="rounded-full bg-[#e8f4fa] px-1.5 py-0.5 text-[10px] font-medium text-[#0077B6] sm:text-xs">{s}</span>
                         ))}
                         {more > 0 && <span className="text-[10px] text-slate-400">+{more}</span>}
                       </div>
@@ -316,7 +363,7 @@ function ScoutOnboardingView({ previewCandidates, scoutCreditCost, onStart, onEx
                     <td className="px-2 py-2 text-xs sm:text-sm text-slate-600">{c.desiredIncome || '—'}</td>
                     <td className="px-2 py-2 text-xs sm:text-sm text-slate-600">{c.desiredWorkLocation || '—'}</td>
                     <td className="px-2 py-2 text-center">
-                      <span className="inline-flex items-center gap-0.5 text-xs sm:text-sm font-bold text-emerald-600">
+                      <span className="inline-flex items-center gap-0.5 text-xs font-bold text-[#0077B6] sm:text-sm">
                         <Gauge className="w-3.5 h-3.5" />
                         —
                       </span>
@@ -325,7 +372,7 @@ function ScoutOnboardingView({ previewCandidates, scoutCreditCost, onStart, onEx
                       <button
                         type="button"
                         onClick={onExplore}
-                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 hover:bg-blue-50 flex items-center justify-center mx-auto transition-colors"
+                        className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 transition-colors hover:bg-[#e8f4fa] sm:h-8 sm:w-8"
                         title={`Mở hồ sơ (${scoutCreditCost} credit)`}
                       >
                         <Lock className="w-3.5 h-3.5 text-slate-400" />
@@ -341,7 +388,7 @@ function ScoutOnboardingView({ previewCandidates, scoutCreditCost, onStart, onEx
           <button
             type="button"
             onClick={onExplore}
-            className="w-full text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:border-blue-300 hover:text-blue-600 rounded-lg sm:rounded-xl py-2 sm:py-2.5 transition-colors inline-flex items-center justify-center gap-1.5"
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-[#0077B6]/35 hover:text-[#0077B6] sm:rounded-xl sm:py-2.5 sm:text-sm"
           >
             Khám phá toàn bộ ứng viên
             <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -422,7 +469,7 @@ function ScoutActionModal({
   const isConfirm = kind === 'performance-confirm' || kind === 'unlock-confirm' || kind === 'similar-candidates-prompt'
   const noticeButtonClass = noticeVariant === 'error'
     ? 'bg-red-600 hover:bg-red-700'
-    : 'bg-blue-600 hover:bg-blue-700'
+    : 'bg-[#0077B6] hover:bg-[#006399]'
 
   return (
     <div
@@ -450,7 +497,7 @@ function ScoutActionModal({
                 type="button"
                 disabled={loading}
                 onClick={onConfirm}
-                className="text-xs px-3 py-2 rounded-lg text-white bg-blue-600 disabled:opacity-50"
+                className="text-xs px-3 py-2 rounded-lg text-white bg-[#0077B6] disabled:opacity-50"
               >
                 {loading ? 'Đang xử lý...' : confirmLabel}
               </button>
@@ -881,7 +928,23 @@ const Scout = () => {
     setActionModal({ open: true, kind: 'notice', title, message, noticeVariant, requestId: null, sessionId: null })
   }
 
-  const handlePerformanceRequestClick = async () => {
+  const handlePerformanceRequestClick = () => {
+    if (!selectedCand?.id) return
+    if (selectedCand.isUnlocked && selectedCand.unlockType !== 'scout_performance') return
+    if (selectedCand.unlockType === 'scout_performance') return
+
+    setActionModal({
+      open: true,
+      kind: 'performance-confirm',
+      title: 'Mở hồ sơ bằng Scout Performance?',
+      message: '',
+      noticeVariant: 'info',
+      requestId: null,
+      sessionId: null,
+    })
+  }
+
+  const submitPerformanceUnlock = async () => {
     if (!selectedCand?.id) return
     if (selectedCand.isUnlocked && selectedCand.unlockType !== 'scout_performance') return
     if (selectedCand.unlockType === 'scout_performance') return
@@ -1101,7 +1164,7 @@ const Scout = () => {
                 type="button"
                 disabled={exploreSubmitting}
                 onClick={() => handlePerformanceExplore('interested')}
-                className="text-xs px-3 py-2 rounded-lg text-white bg-blue-600 disabled:opacity-50"
+                className="text-xs px-3 py-2 rounded-lg text-white bg-[#0077B6] disabled:opacity-50"
               >
                 Có, tôi muốn tìm hiểu
               </button>
@@ -1124,15 +1187,23 @@ const Scout = () => {
             ? confirmSimilarCandidates
             : actionModal.kind === 'unlock-confirm'
               ? submitUnlock
-              : closeActionModal
+              : actionModal.kind === 'performance-confirm'
+                ? submitPerformanceUnlock
+                : closeActionModal
         }
-        loading={actionModal.kind === 'similar-candidates-prompt' ? performanceRequesting : unlocking}
+        loading={
+          actionModal.kind === 'similar-candidates-prompt' || actionModal.kind === 'performance-confirm'
+            ? performanceRequesting
+            : unlocking
+        }
         confirmLabel={
           actionModal.kind === 'similar-candidates-prompt'
             ? 'Có'
             : actionModal.kind === 'unlock-confirm'
               ? `Dùng ${scoutCreditCost} credit`
-              : 'Xác nhận'
+              : actionModal.kind === 'performance-confirm'
+                ? 'Đồng ý mở hồ sơ'
+                : 'Xác nhận'
         }
         cancelLabel={actionModal.kind === 'similar-candidates-prompt' ? 'Không' : 'Hủy'}
       >
@@ -1142,6 +1213,18 @@ const Scout = () => {
             {selectedCand.isUnlocked && selectedCand.name ? ` của ${selectedCand.name}` : ''}?
           </p>
         )}
+        {actionModal.kind === 'performance-confirm' && selectedCand && (
+          <div className="text-xs text-slate-600 leading-relaxed space-y-2">
+            <p>
+              Mở hồ sơ bằng <strong>Scout Performance</strong>
+              {selectedCand.name ? ` của ${selectedCand.name}` : ''} — <strong>không tốn credit</strong>.
+              Email và SĐT sẽ không hiển thị; JobShare WS hỗ trợ liên hệ khi bạn quan tâm.
+            </p>
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-amber-900">
+              Khi giới thiệu việc làm thành công, phí dịch vụ là <strong>20%</strong> (tính trên phí giới thiệu việc làm).
+            </p>
+          </div>
+        )}
       </ScoutActionModal>
     </>
   )
@@ -1149,9 +1232,9 @@ const Scout = () => {
   if (activityLoading) {
     return (
       <>
-        <style>{scrollbarStyle}</style>
-        <div className="h-full min-h-0 bg-slate-50 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+        <style>{scoutPageStyles}</style>
+        <div className="business-homepage-shell flex h-full min-h-0 items-center justify-center bg-[#f4f6f8]" style={{ fontFamily: PAGE_FONT }}>
+          <Loader2 className="h-6 w-6 animate-spin text-[#0077B6]" />
         </div>
       </>
     )
@@ -1160,12 +1243,12 @@ const Scout = () => {
   if (showOnboarding) {
     return (
       <>
-        <style>{scrollbarStyle}</style>
+        <style>{scoutPageStyles}</style>
         {sharedModals}
-        <div className="business-homepage-shell min-h-0 h-full bg-slate-50 overflow-x-hidden xl:h-full xl:overflow-hidden">
-          <div className="business-homepage-ui w-full min-h-0 p-3 sm:p-4 2xl:p-5 xl:h-full xl:flex xl:flex-col">
-            <div className="w-full xl:flex-1 xl:min-h-0 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] gap-3 sm:gap-4 2xl:gap-5 items-stretch">
-              <div className="flex flex-col min-w-0 xl:overflow-y-auto xl:min-h-0 xl:h-full xl:pr-1 scrollbar-hide">
+        <div className="business-homepage-shell min-h-0 h-full overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden" style={{ fontFamily: PAGE_FONT }}>
+          <div className="business-homepage-ui w-full min-h-0 p-2.5 sm:p-3 xl:h-full xl:flex xl:flex-col">
+            <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:h-full xl:grid-cols-[minmax(0,1fr)_minmax(196px,228px)] xl:gap-3 xl:overflow-hidden">
+              <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col xl:h-full xl:overflow-y-auto xl:pr-0.5">
                 <ScoutOnboardingView
                   previewCandidates={previewCandidates}
                   scoutCreditCost={scoutCreditCost}
@@ -1183,13 +1266,14 @@ const Scout = () => {
 
   return (
     <>
-      <style>{scrollbarStyle}</style>
-      <div className="h-full min-h-0 flex flex-col bg-slate-50">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-3 flex-1 min-h-0 overflow-hidden p-2 lg:p-3 w-full">
+      <style>{scoutPageStyles}</style>
+      <div className="business-homepage-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#f4f6f8]" style={{ fontFamily: PAGE_FONT }}>
+        <div className="business-homepage-ui flex min-h-0 flex-1 flex-col p-2 lg:p-3">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-3 flex-1 min-h-0 overflow-hidden w-full">
           <div className="flex flex-col gap-2 scout-scrollbar" style={{ minHeight: 0, overflowY: 'auto' }}>
             <div className="bg-white rounded-xl border border-slate-100" style={{ padding: 10 }}>
               <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
-                <Briefcase {...ICON_SM} color="#6366f1" aria-hidden />
+                <Briefcase {...ICON_SM} color="#0077B6" aria-hidden />
                 <select
                   value={selectedJobId}
                   onChange={(e) => handleJobChange(e.target.value)}
@@ -1233,7 +1317,7 @@ const Scout = () => {
               </div>
 
               <div className="flex items-center gap-2 flex-wrap" style={{ marginBottom: 8 }}>
-                <button type="button" style={{ fontSize: 9, fontWeight: 600, color: '#3b82f6', background: 'none', border: 'none', cursor: 'default', padding: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
+                <button type="button" style={{ fontSize: 9, fontWeight: 600, color: '#0077B6', background: 'none', border: 'none', cursor: 'default', padding: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
                   <SlidersHorizontal {...ICON_SM} aria-hidden />
                   Credit: {credit} · Mở hồ sơ: {scoutCreditCost} credit
                 </button>
@@ -1272,8 +1356,8 @@ const Scout = () => {
                         style={{
                           padding: 10,
                           borderRadius: 8,
-                          border: selectedId === c.id ? '1px solid #3b82f6' : '1px solid #e2e8f0',
-                          background: selectedId === c.id ? '#eff6ff' : 'white',
+                          border: selectedId === c.id ? '1px solid #0077B6' : '1px solid #e2e8f0',
+                          background: selectedId === c.id ? '#e8f4fa' : 'white',
                           cursor: 'pointer',
                           transition: 'all 0.2s',
                         }}
@@ -1317,7 +1401,7 @@ const Scout = () => {
                             )}
                             <div className="flex items-center flex-wrap gap-1" style={{ marginTop: 4 }}>
                               {visibleSkills.map((skill) => (
-                                <span key={skill} style={{ fontSize: 7, fontWeight: 500, color: '#3b82f6', background: '#eff6ff', borderRadius: 10, padding: '1px 5px' }}>
+                                <span key={skill} style={{ fontSize: 7, fontWeight: 500, color: '#0077B6', background: '#e8f4fa', borderRadius: 10, padding: '1px 5px' }}>
                                   {hl(skill)}
                                 </span>
                               ))}
@@ -1375,7 +1459,7 @@ const Scout = () => {
                         width: 18,
                         height: 18,
                         borderRadius: 2,
-                        background: page === p ? '#3b82f6' : 'white',
+                        background: page === p ? '#0077B6' : 'white',
                         color: page === p ? 'white' : '#64748b',
                         border: page === p ? 'none' : '1px solid #e2e8f0',
                         cursor: 'pointer',
@@ -1420,8 +1504,8 @@ const Scout = () => {
                 )}
 
                 {performanceDetail?.recommendations?.length > 0 && (
-                  <div className="bg-white rounded-xl border border-blue-100" style={{ padding: 10, background: '#eff6ff' }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: '#1d4ed8', marginBottom: 6 }}>
+                  <div className="bg-white rounded-xl border border-blue-100" style={{ padding: 10, background: '#e8f4fa' }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: '#006399', marginBottom: 6 }}>
                       Gợi ý từ JobShare WS ({performanceDetail.recommendations.length})
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -1436,7 +1520,7 @@ const Scout = () => {
                             onClick={() => { setActiveRecommendationId(c.id); setSelectedId(c.id) }}
                             style={{
                               textAlign: 'left', padding: 6, borderRadius: 6, fontSize: 8,
-                              border: active ? '1px solid #3b82f6' : '1px solid #dbeafe',
+                              border: active ? '1px solid #0077B6' : '1px solid #e8f4fa',
                               background: active ? 'white' : '#f8fafc', cursor: 'pointer',
                             }}
                           >
@@ -1456,15 +1540,17 @@ const Scout = () => {
                   showLockedHint={!displayCandidate.isUnlocked}
                   hideContact={isPerformancePartialUnlock}
                   accessLabel={isPerformancePartialUnlock ? 'Scout Performance — hồ sơ gợi ý' : 'Hồ sơ đã mở — thông tin đầy đủ'}
-                  accessLabelColor={isPerformancePartialUnlock ? '#2563eb' : '#047857'}
-                  footerNote={isPerformancePartialUnlock ? 'Email và SĐT không hiển thị. JobShare WS sẽ hỗ trợ liên hệ khi bạn quan tâm ứng viên này.' : null}
+                  accessLabelColor={isPerformancePartialUnlock ? '#0077B6' : '#047857'}
+                  footerNote={isPerformancePartialUnlock
+                    ? 'Email và SĐT không hiển thị. JobShare WS sẽ hỗ trợ liên hệ khi bạn quan tâm. Phí dịch vụ 20% khi giới thiệu việc làm thành công.'
+                    : null}
                 />
 
                 {!displayCandidate.isUnlocked && !isPerformancePartialUnlock && (
                   <div className="bg-white rounded-xl border border-slate-100" style={{ padding: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b5cf6' }}>
-                        <Unlock {...ICON_MD} color="#8b5cf6" aria-hidden />
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0077B6' }}>
+                        <Unlock {...ICON_MD} color="#0077B6" aria-hidden />
                       </div>
                       <div>
                         <div style={{ fontSize: 10, fontWeight: 700, color: '#1e293b' }}>Mở liên hệ bằng Credit</div>
@@ -1481,7 +1567,7 @@ const Scout = () => {
                       type="button"
                       onClick={handleUnlockClick}
                       disabled={unlocking || credit < scoutCreditCost}
-                      style={{ width: '100%', fontSize: 9, fontWeight: 600, color: 'white', background: unlocking || credit < scoutCreditCost ? '#c4b5fd' : '#8b5cf6', border: 'none', borderRadius: 6, padding: '7px', cursor: unlocking || credit < scoutCreditCost ? 'not-allowed' : 'pointer', marginBottom: 6 }}
+                      style={{ width: '100%', fontSize: 9, fontWeight: 600, color: 'white', background: unlocking || credit < scoutCreditCost ? '#94c5e0' : '#0077B6', border: 'none', borderRadius: 6, padding: '7px', cursor: unlocking || credit < scoutCreditCost ? 'not-allowed' : 'pointer', marginBottom: 6 }}
                     >
                       {unlocking ? 'Đang mở...' : 'Mở liên hệ ứng viên'}
                     </button>
@@ -1493,9 +1579,9 @@ const Scout = () => {
                 )}
 
                 {displayCandidate.isUnlocked && isPerformancePartialUnlock && (
-                  <div className="bg-white rounded-xl border border-blue-100" style={{ padding: 10, background: '#eff6ff' }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: '#2563eb', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Check {...ICON_MD} color="#2563eb" aria-hidden />
+                  <div className="bg-white rounded-xl border border-blue-100" style={{ padding: 10, background: '#e8f4fa' }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: '#0077B6', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Check {...ICON_MD} color="#0077B6" aria-hidden />
                       Hồ sơ gợi ý Scout Performance (không hiển thị email/SĐT)
                     </div>
                   </div>
@@ -1511,11 +1597,11 @@ const Scout = () => {
                 )}
 
                 {!isPerformancePartialUnlock && selectedCand?.performanceRequest?.wantsSimilarCandidates && (
-                  <div className="bg-white rounded-xl border border-indigo-200" style={{ padding: 10, background: '#eef2ff' }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: '#4338ca', marginBottom: 4 }}>
+                  <div className="rounded-xl border border-[#cce5f0]/80 bg-[#e8f4fa]" style={{ padding: 10 }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: '#0077B6', marginBottom: 4 }}>
                       Đã yêu cầu tìm ứng viên tương tự
                     </div>
-                    <div style={{ fontSize: 8, color: '#6366f1', lineHeight: 1.35 }}>
+                    <div style={{ fontSize: 8, color: '#0077B6', lineHeight: 1.35 }}>
                       JobShare WS đang tìm và gửi gợi ý qua Tin nhắn → WS.
                     </div>
                   </div>
@@ -1524,8 +1610,8 @@ const Scout = () => {
                 {!performanceDetail && !isPerformancePartialUnlock && (
                 <div className="bg-white rounded-xl border border-slate-100" style={{ padding: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}>
-                      <Users {...ICON_MD} color="#3b82f6" aria-hidden />
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: '#e8f4fa', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0077B6' }}>
+                      <Users {...ICON_MD} color="#0077B6" aria-hidden />
                     </div>
                     <div>
                       <div style={{ fontSize: 10, fontWeight: 700, color: '#1e293b' }}>Scout Performance</div>
@@ -1534,7 +1620,8 @@ const Scout = () => {
                   </div>
 
                   <p style={{ fontSize: 8, color: '#64748b', lineHeight: 1.45, marginBottom: 8 }}>
-                    Mở hồ sơ ngay không tốn credit. Sau đó bạn có thể nhờ đội ngũ WorkStation tìm thêm ứng viên tương tự qua chat.
+                    Mở hồ sơ ngay không tốn credit. Khi giới thiệu việc làm thành công, phí dịch vụ là 20%.
+                    Sau đó bạn có thể nhờ đội ngũ WorkStation tìm thêm ứng viên tương tự qua chat.
                   </p>
 
                   <button
@@ -1547,7 +1634,7 @@ const Scout = () => {
                     onClick={handlePerformanceRequestClick}
                     style={{
                       width: '100%', fontSize: 9, fontWeight: 600, color: 'white',
-                      background: performanceRequesting ? '#94a3b8' : '#3b82f6',
+                      background: performanceRequesting ? '#94a3b8' : '#0077B6',
                       border: 'none', borderRadius: 6, padding: '7px',
                       cursor: performanceRequesting ? 'not-allowed' : 'pointer',
                       marginBottom: 6,
@@ -1564,6 +1651,7 @@ const Scout = () => {
                     {[
                       'Không tốn credit',
                       'Mở hồ sơ ngay (không hiển thị email/SĐT)',
+                      'Phí 20% khi giới thiệu việc làm thành công',
                       'Có thể nhờ WS tìm thêm ứng viên tương tự',
                     ].map((item) => (
                       <div key={item} style={{ fontSize: 7, color: '#10b981', display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -1583,6 +1671,7 @@ const Scout = () => {
               </>
             )}
           </div>
+        </div>
         </div>
       </div>
 

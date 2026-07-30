@@ -20,6 +20,7 @@ import { canCVBeNominated } from '../../constants/cvStatus.js';
 import { collaboratorNotificationService } from '../../services/collaboratorNotificationService.js';
 import { nominationEmailService } from '../../services/nominationEmailService.js';
 import { createNominationIntroMessages } from '../../services/nominationIntroMessageService.js';
+import { sendBusinessNewApplicationWithCv } from '../../services/businessApplicationEmailService.js';
 
 // Helper function to map model field names to database column names
 const mapOrderField = (fieldName) => {
@@ -687,6 +688,20 @@ export const jobApplicationController = {
         });
       } catch (adminNotifyErr) {
         console.error('[CTV createJobApplication] Error sending admin new-nomination email:', adminNotifyErr);
+      }
+
+      try {
+        await sendBusinessNewApplicationWithCv({
+          jobApplicationId: jobApplication.id,
+          jobId: jobApplication.jobId || job?.id,
+          businessId: jobApplication.job?.businessId || job?.businessId,
+          candidateName: jobApplication.cv?.name || null,
+          jobTitleVi: jobApplication.job?.title || job.title || null,
+          jobTitleEn: jobApplication.job?.titleEn || jobApplication.job?.title_en || job.titleEn || null,
+          jobTitleJp: jobApplication.job?.titleJp || jobApplication.job?.title_jp || job.titleJp || null,
+        });
+      } catch (bizMailErr) {
+        console.error('[CTV createJobApplication] Error sending business application email:', bizMailErr);
       }
 
       res.status(201).json({

@@ -1,24 +1,31 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  Plus, Search, Briefcase, Trash2, MoreHorizontal,
-  CheckCircle2, AlertCircle, Shield, MessageSquare, PanelLeft, X,
+  Plus, Search, Trash2, MoreHorizontal,
+  MessageSquare, PanelLeft, X,
 } from 'lucide-react'
-import apiService from '../../services/api'
 import JobAiBuilderPanel from '../../component/Bussiness/JobAiBuilderPanel'
-import JobCreatedNextStepsModal from '../../component/Bussiness/JobCreatedNextStepsModal'
+import DeleteJobBuilderThreadModal from '../../component/Bussiness/DeleteJobBuilderThreadModal'
 import {
   deleteJobBuilderThread,
+  ensureJobBuilderThreadForJob,
+  getJobBuilderThread,
+  getJobBuilderThreadByJobId,
+  importLegacyJobBuilderThreadsFromLocalStorage,
   listJobBuilderThreads,
 } from '../../utils/jobBuilderThreadStorage'
+import {
+  clearPendingMarketplaceListingDraft,
+  createAndSubmitMarketplaceListing,
+  peekPendingMarketplaceListingDraft,
+} from '../../utils/marketplaceListingFlow'
+import apiService from '../../services/api'
+import useBusinessUser from '../../hooks/useBusinessUser'
 
-const THREAD_ICON_COLORS = [
-  'bg-blue-100 text-blue-600',
-  'bg-violet-100 text-violet-600',
-  'bg-emerald-100 text-emerald-600',
-  'bg-amber-100 text-amber-600',
-  'bg-rose-100 text-rose-600',
-]
+const BUSINESS_JOBS_FONT =
+  "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
+
+const THREAD_ICON_CLASS = 'border border-slate-200 bg-white text-[#0077B6]'
 
 function formatThreadDate(value) {
   if (!value) return ''
@@ -37,24 +44,173 @@ function getThreadTitle(thread) {
 }
 
 const jobManagementStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
   .business-jobs-shell {
-    --jobs-zoom: 1;
+    --jobs-zoom: clamp(0.42, 0.40 + 0.009vw, 0.70);
+    --jobs-jd-zoom: clamp(0.50, 0.48 + 0.005vw, 0.64);
     height: 100%;
     min-height: 0;
+    font-family: ${BUSINESS_JOBS_FONT};
   }
-  @media (min-width: 1024px) and (max-width: 1279px) {
-    .business-jobs-shell { --jobs-zoom: 0.84; }
+  @media (min-width: 1024px) and (max-width: 1535px) {
+    .business-jobs-shell {
+      --jobs-zoom: clamp(0.38, 0.36 + 0.007vw, 0.54);
+      --jobs-jd-zoom: clamp(0.46, 0.44 + 0.004vw, 0.56);
+    }
   }
-  @media (min-width: 1280px) and (max-width: 1535px) {
-    .business-jobs-shell { --jobs-zoom: 0.9; }
+  @media (min-width: 1536px) {
+    .business-jobs-shell {
+      --jobs-zoom: clamp(0.52, 0.48 + 0.01vw, 0.78);
+      --jobs-jd-zoom: clamp(0.58, 0.54 + 0.006vw, 0.72);
+    }
   }
-  @media (min-width: 1536px) and (max-width: 1919px) {
-    .business-jobs-shell { --jobs-zoom: 0.96; }
+  @media (max-width: 1023px) {
+    .business-jobs-shell {
+      --jobs-zoom: clamp(0.40, 0.38 + 0.018vw, 0.58);
+    }
+  }
+  @media (max-height: 900px) and (min-width: 1024px) {
+    .business-jobs-shell {
+      --jobs-zoom: clamp(0.36, 0.34 + 0.006vw, 0.50);
+      --jobs-jd-zoom: clamp(0.44, 0.42 + 0.003vw, 0.52);
+    }
+  }
+  @media (max-height: 820px) and (min-width: 1024px) {
+    .business-jobs-shell {
+      --jobs-zoom: clamp(0.32, 0.30 + 0.005vw, 0.44);
+      --jobs-jd-zoom: clamp(0.40, 0.38 + 0.002vw, 0.48);
+    }
+  }
+  .business-jobs-ui .business-jd-preview-root {
+    --jobs-jd-extra: 0.62;
+    zoom: calc(var(--jobs-jd-zoom) * var(--jobs-jd-extra));
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+  }
+  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-button,
+  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-corner {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact {
+    font-size: var(--jd-fs-body);
+    line-height: 1.35;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .jd-template-option-control,
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .jd-template-option-control option {
+    font-size: var(--jd-fs-body);
+    line-height: 1.35;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact.text-xs,
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .text-xs {
+    font-size: var(--jd-fs-body);
+    line-height: 1.35;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .text-sm,
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .text-\\[10px\\] {
+    font-size: var(--jd-fs-title);
+    line-height: 1.35;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .px-3 {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .py-2 {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .py-2\\.5 {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .w-36 {
+    width: 6.25rem;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .w-28 {
+    width: 5rem;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .w-24 {
+    width: 4.25rem;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .min-h-\\[60px\\] {
+    min-height: 2.25rem;
+  }
+  @supports not (zoom: 1) {
+    .business-jobs-ui .business-jd-preview-root {
+      transform: scale(calc(var(--jobs-jd-zoom) * var(--jobs-jd-extra, 0.62)));
+      transform-origin: top left;
+    }
   }
   .business-jobs-ui {
     zoom: var(--jobs-zoom);
     height: 100%;
     min-height: 0;
+    --jd-fs-title: 10px;
+    --jd-fs-body: 9px;
+    --jd-icon: 14px;
+    --jd-icon-hit: 24px;
+  }
+  @media (min-width: 1280px) {
+    .business-jobs-ui {
+      --jd-fs-title: 11px;
+      --jd-fs-body: 10px;
+    }
+  }
+  .business-jobs-ui .biz-jd-title {
+    font-size: var(--jd-fs-title);
+    line-height: 1.35;
+    font-weight: 600;
+    color: #1e293b;
+  }
+  .business-jobs-ui .biz-jd-body {
+    font-size: var(--jd-fs-body);
+    line-height: 1.45;
+    color: #334155;
+  }
+  .business-jobs-ui .biz-jd-muted {
+    font-size: var(--jd-fs-body);
+    line-height: 1.45;
+    color: #64748b;
+  }
+  .business-jobs-ui .biz-jd-label {
+    font-size: var(--jd-fs-body);
+    line-height: 1.35;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #94a3b8;
+  }
+  .business-jobs-ui .biz-jd-icon {
+    width: var(--jd-icon);
+    height: var(--jd-icon);
+    flex-shrink: 0;
+  }
+  .business-jobs-ui .biz-jd-icon-hit {
+    width: var(--jd-icon-hit);
+    height: var(--jd-icon-hit);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .business-jobs-ui .biz-jd-icon-hit > svg {
+    width: var(--jd-icon);
+    height: var(--jd-icon);
   }
   @supports not (zoom: 1) {
     .business-jobs-ui {
@@ -66,80 +222,144 @@ const jobManagementStyles = `
   }
 `
 
-function countJobsByStatus(jobs) {
-  const counts = { total: 0, active: 0, paused: 0, closed: 0 }
-  ;(jobs || []).forEach((job) => {
-    counts.total += 1
-    const s = Number(job?.status)
-    if (s === 1) counts.active += 1
-    else if (s === 0) counts.paused += 1
-    else if (s === 2 || s === 3) counts.closed += 1
-  })
-  return counts
-}
-
 const JobManagement = () => {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { user: businessUser } = useBusinessUser()
+  const urlJobId = searchParams.get('jobId')
+  const quickMarketplaceParam = searchParams.get('quickMarketplace') === '1'
   const builderRef = useRef(null)
   const initializedRef = useRef(false)
+  const lastOpenedJobIdRef = useRef(null)
+  const lastBusinessUserIdRef = useRef(businessUser?.id)
 
-  const [loading, setLoading] = useState(true)
-  const [listError, setListError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
-  const [threads, setThreads] = useState(() => listJobBuilderThreads())
+  const [threads, setThreads] = useState([])
+  const [threadsLoading, setThreadsLoading] = useState(true)
   const [activeThreadId, setActiveThreadId] = useState(null)
   const [savedJobId, setSavedJobId] = useState(null)
-  const [statusCounts, setStatusCounts] = useState({ total: 0, active: 0, paused: 0, closed: 0 })
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [nextStepsModal, setNextStepsModal] = useState({ open: false, jobId: null })
+  const [deleteThreadModal, setDeleteThreadModal] = useState({ open: false, thread: null })
+  const [deletingThread, setDeletingThread] = useState(false)
+  const [marketplaceQuickCreateActive, setMarketplaceQuickCreateActive] = useState(
+    () => Boolean(peekPendingMarketplaceListingDraft()),
+  )
+  const [marketplaceSubmitting, setMarketplaceSubmitting] = useState(false)
 
-  const refreshThreads = useCallback(() => {
-    setThreads(listJobBuilderThreads())
-  }, [])
-
-  const loadAllJobs = useCallback(async () => {
-    setLoading(true)
-    setListError('')
+  const refreshThreads = useCallback(async () => {
     try {
-      let currentPage = 1
-      let totalPages = 1
-      const all = []
-      do {
-        const res = await apiService.getBusinessJobs({ page: currentPage, limit: 50 })
-        if (!res?.success) throw new Error(res?.message || 'Không thể tải danh sách JD')
-        all.push(...(res.data?.jobs || []))
-        totalPages = res.data?.pagination?.totalPages || 0
-        currentPage += 1
-      } while (currentPage <= totalPages)
-      setStatusCounts(countJobsByStatus(all))
+      const list = await listJobBuilderThreads()
+      setThreads(list)
+      return list
     } catch (err) {
-      setListError(err?.message || 'Không thể tải danh sách JD')
-      setStatusCounts({ total: 0, active: 0, paused: 0, closed: 0 })
-    } finally {
-      setLoading(false)
+      console.error('Không tải được danh sách phiên JD:', err)
+      return []
     }
   }, [])
 
   useEffect(() => {
-    loadAllJobs()
-  }, [loadAllJobs])
+    if (!businessUser?.id) return undefined
+    let cancelled = false
+    ;(async () => {
+      setThreadsLoading(true)
+      try {
+        await importLegacyJobBuilderThreadsFromLocalStorage()
+        if (!cancelled) await refreshThreads()
+      } catch {
+        if (!cancelled) await refreshThreads()
+      } finally {
+        if (!cancelled) setThreadsLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [businessUser?.id, refreshThreads])
 
   useEffect(() => {
-    if (initializedRef.current) return undefined
+    const id = businessUser?.id
+    if (!id) return
+    if (lastBusinessUserIdRef.current === id) return
+    const prev = lastBusinessUserIdRef.current
+    lastBusinessUserIdRef.current = id
+    // Lần đầu login: init effect lo loadThread / startNewSession
+    if (prev == null) return
+    // Đổi tài khoản: reset workspace + tạo box mới (lưu DB ngay)
+    refreshThreads()
+    setActiveThreadId(null)
+    setSavedJobId(null)
+    lastOpenedJobIdRef.current = null
+    builderRef.current?.startNewSession?.()
+  }, [businessUser?.id, refreshThreads])
+
+  const openJobById = useCallback(async (jobId) => {
+    const id = jobId != null && jobId !== '' ? String(jobId) : ''
+    if (!id) return
+    if (lastOpenedJobIdRef.current === id && activeThreadId) {
+      const existing = await getJobBuilderThreadByJobId(id)
+      if (existing?.id === activeThreadId) return
+    }
+    lastOpenedJobIdRef.current = id
+
+    let thread = await getJobBuilderThreadByJobId(id)
+    if (!thread) {
+      let title = ''
+      try {
+        const res = await apiService.getBusinessJobById(id)
+        const job = res?.data?.job || res?.data
+        title = job?.title || job?.titleEn || job?.titleJp || ''
+      } catch {
+        /* title mặc định trong ensure */
+      }
+      thread = await ensureJobBuilderThreadForJob(id, { title: title || undefined })
+    }
+    if (!thread) return
+
+    setActiveThreadId(thread.id)
+    setSavedJobId(thread.jobId || null)
+    await refreshThreads()
+    builderRef.current?.loadThread?.(thread)
+    setSidebarOpen(false)
+  }, [activeThreadId, refreshThreads])
+
+  useEffect(() => {
+    if (initializedRef.current || threadsLoading) return undefined
     const timer = setTimeout(() => {
       if (initializedRef.current) return
       initializedRef.current = true
-      const list = listJobBuilderThreads()
-      if (list.length > 0) {
-        setActiveThreadId(list[0].id)
-        setSavedJobId(list[0].jobId || null)
-        builderRef.current?.loadThread?.(list[0])
-      } else {
+
+      if (quickMarketplaceParam && peekPendingMarketplaceListingDraft()) {
+        const next = new URLSearchParams(searchParams)
+        next.delete('quickMarketplace')
+        setSearchParams(next, { replace: true })
+        lastOpenedJobIdRef.current = null
+        setActiveThreadId(null)
+        setSavedJobId(null)
+        setMarketplaceQuickCreateActive(true)
         builderRef.current?.startNewSession?.()
+        return
       }
+
+      if (urlJobId) {
+        openJobById(urlJobId)
+        return
+      }
+      listJobBuilderThreads().then(async (list) => {
+        if (list.length > 0) {
+          setActiveThreadId(list[0].id)
+          setSavedJobId(list[0].jobId || null)
+          const full = await getJobBuilderThread(list[0].id)
+          builderRef.current?.loadThread?.(full || list[0])
+        } else {
+          builderRef.current?.startNewSession?.()
+        }
+      })
     }, 0)
     return () => clearTimeout(timer)
-  }, [])
+  }, [urlJobId, openJobById, quickMarketplaceParam, searchParams, setSearchParams, threadsLoading])
+
+  useEffect(() => {
+    if (!initializedRef.current || !urlJobId) return
+    openJobById(urlJobId)
+  }, [urlJobId, openJobById])
 
   const filteredThreads = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -148,86 +368,120 @@ const JobManagement = () => {
   }, [threads, searchQuery])
 
   const handleNewJob = () => {
+    lastOpenedJobIdRef.current = null
+    if (searchParams.get('jobId')) {
+      const next = new URLSearchParams(searchParams)
+      next.delete('jobId')
+      setSearchParams(next, { replace: true })
+    }
     setActiveThreadId(null)
     setSavedJobId(null)
     builderRef.current?.startNewSession?.()
   }
 
-  const handleSelectThread = (thread) => {
+  const handleSelectThread = async (thread) => {
     setActiveThreadId(thread.id)
     setSavedJobId(thread.jobId || null)
-    builderRef.current?.loadThread?.(thread)
     setSidebarOpen(false)
+    const full = await getJobBuilderThread(thread.id)
+    builderRef.current?.loadThread?.(full || thread)
   }
 
   const handleThreadPersist = useCallback((thread) => {
-    refreshThreads()
-    setActiveThreadId((prev) => prev || thread?.id || null)
+    if (!thread?.id) {
+      refreshThreads().catch(() => {})
+      return
+    }
+    const nextId = String(thread.id)
+    setActiveThreadId(nextId)
+    setThreads((prev) => {
+      const replaceId = thread.replaceClientId ? String(thread.replaceClientId) : null
+      const rest = prev.filter((t) => {
+        const tid = String(t.id)
+        if (tid === nextId) return false
+        if (replaceId && tid === replaceId) return false
+        return true
+      })
+      const { replaceClientId: _rc, ...clean } = thread
+      return [{ ...clean, id: nextId }, ...rest]
+    })
+    refreshThreads().catch(() => {})
   }, [refreshThreads])
 
-  const handleJobSaved = useCallback(({ jobId, thread, isCreate }) => {
+  const handleJobSaved = useCallback(async ({ jobId, thread, isCreate }) => {
     setSavedJobId(jobId)
     setActiveThreadId(thread?.id || null)
     refreshThreads()
-    loadAllJobs()
-    if (isCreate && jobId) {
-      setNextStepsModal({ open: true, jobId })
-    }
-  }, [refreshThreads, loadAllJobs])
 
-  const closeNextStepsModal = useCallback(() => {
-    setNextStepsModal({ open: false, jobId: null })
+    const pending = peekPendingMarketplaceListingDraft()
+    if (!pending || !isCreate) return
+
+    setMarketplaceSubmitting(true)
+    try {
+      const { wsSessionId } = await createAndSubmitMarketplaceListing(jobId, pending)
+      clearPendingMarketplaceListingDraft()
+      setMarketplaceQuickCreateActive(false)
+      if (wsSessionId) {
+        navigate(`/business/messages?tab=ws&wsView=chat&sessionId=${wsSessionId}`)
+      } else {
+        navigate('/business/candidate-sharing?tab=jobs')
+      }
+    } catch (err) {
+      window.alert(
+        err?.message
+          || 'JD đã lưu nhưng không gửi được yêu cầu lên sàn. Bạn có thể thử lại tại Sàn CTV.',
+      )
+      navigate(`/business/candidate-sharing?create=1&jobId=${encodeURIComponent(jobId)}`)
+    } finally {
+      setMarketplaceSubmitting(false)
+    }
+  }, [navigate, refreshThreads])
+
+  const closeDeleteThreadModal = useCallback(() => {
+    setDeleteThreadModal({ open: false, thread: null })
   }, [])
 
-  const handleNextStepSelect = useCallback((stepNum, jobId) => {
-    closeNextStepsModal()
-    const id = jobId ? String(jobId) : ''
-    switch (stepNum) {
-      case '①':
-        navigate(id ? `/business/scout?jobId=${encodeURIComponent(id)}` : '/business/scout')
-        break
-      case '②':
-        navigate(id
-          ? `/business/messages?tab=ws&jobId=${encodeURIComponent(id)}`
-          : '/business/messages?tab=ws')
-        break
-      case '③':
-        navigate(id
-          ? `/business/candidate-sharing?create=1&jobId=${encodeURIComponent(id)}`
-          : '/business/candidate-sharing?create=1')
-        break
-      case '④':
-        navigate('/business/saiyo', { state: id ? { openLandingCreate: true, jobId: id } : { openLandingCreate: true } })
-        break
-      default:
-        break
-    }
-  }, [closeNextStepsModal, navigate])
-
-  const handleDeleteThread = useCallback((thread, e) => {
+  const handleDeleteThreadClick = useCallback((thread, e) => {
     e?.stopPropagation?.()
-    const name = getThreadTitle(thread)
-    const confirmed = window.confirm(`Xóa phiên chat "${name}"?\n\nChat và bản nháp local sẽ bị xóa. JD đã lưu trên hệ thống vẫn giữ nguyên.`)
-    if (!confirmed) return
+    setDeleteThreadModal({ open: true, thread })
+  }, [])
 
-    deleteJobBuilderThread(thread.id)
-    refreshThreads()
-    if (activeThreadId === thread.id) {
-      const remaining = listJobBuilderThreads()
-      if (remaining.length > 0) {
-        handleSelectThread(remaining[0])
-      } else {
-        handleNewJob()
+  const confirmDeleteThread = useCallback(async () => {
+    const thread = deleteThreadModal.thread
+    if (!thread || deletingThread) return
+
+    setDeletingThread(true)
+    try {
+      if (thread.jobId) {
+        const res = await apiService.deleteBusinessJob(thread.jobId)
+        if (!res?.success) {
+          window.alert(res?.message || 'Không thể xóa JD. Phiên chat chưa bị xóa.')
+          return
+        }
       }
-    }
-  }, [activeThreadId, refreshThreads])
+      await deleteJobBuilderThread(thread.id)
+      await refreshThreads()
+      closeDeleteThreadModal()
 
-  const jdStats = useMemo(() => [
-    { icon: Briefcase, label: 'Tổng JD', value: statusCounts.total },
-    { icon: CheckCircle2, label: 'Hoạt động', value: statusCounts.active },
-    { icon: AlertCircle, label: 'Tạm dừng', value: statusCounts.paused },
-    { icon: Shield, label: 'Đã đóng', value: statusCounts.closed },
-  ], [statusCounts])
+      if (activeThreadId === thread.id) {
+        const remaining = await listJobBuilderThreads()
+        if (remaining.length > 0) {
+          setActiveThreadId(remaining[0].id)
+          setSavedJobId(remaining[0].jobId || null)
+          const full = await getJobBuilderThread(remaining[0].id)
+          builderRef.current?.loadThread?.(full || remaining[0])
+        } else {
+          setActiveThreadId(null)
+          setSavedJobId(null)
+          builderRef.current?.startNewSession?.()
+        }
+      }
+    } catch (err) {
+      window.alert(err?.message || 'Không thể xóa JD. Phiên chat chưa bị xóa.')
+    } finally {
+      setDeletingThread(false)
+    }
+  }, [activeThreadId, closeDeleteThreadModal, deleteThreadModal.thread, deletingThread, refreshThreads])
 
   const activeThreadTitle = useMemo(() => {
     const t = threads.find((th) => th.id === activeThreadId)
@@ -240,66 +494,43 @@ const JobManagement = () => {
         <button
           type="button"
           onClick={handleNewJob}
-          className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium px-2 py-1.5 transition-colors shadow-sm min-w-0"
+          className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 biz-jd-body font-medium px-2 py-1 transition-colors shadow-sm min-w-0"
         >
-          <Plus className="w-3.5 h-3.5 shrink-0" />
+          <Plus className="biz-jd-icon shrink-0" />
           Tạo JD mới
         </button>
         <button
           type="button"
           onClick={() => setSidebarOpen(false)}
-          className="lg:hidden shrink-0 w-8 h-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:bg-slate-50"
+          className="lg:hidden shrink-0 biz-jd-icon-hit rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
           aria-label="Đóng danh sách phiên"
         >
-          <X className="w-4 h-4" />
+          <X className="biz-jd-icon" />
         </button>
       </div>
 
       <div className="px-1.5 lg:px-2 pb-1.5 lg:pb-2 shrink-0">
         <div className="flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-2 py-1.5">
-          <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <Search className="biz-jd-icon text-slate-400 shrink-0" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm phiên chat..."
-            className="flex-1 min-w-0 bg-transparent outline-none text-xs text-slate-700 placeholder:text-slate-400"
+            className="flex-1 min-w-0 bg-transparent outline-none biz-jd-body text-slate-700 placeholder:text-slate-400"
           />
         </div>
       </div>
 
-      {listError && (
-        <div className="mx-2 mb-2 rounded-lg bg-rose-50 border border-rose-100 text-rose-700 text-xs px-2.5 py-2 shrink-0">
-          {listError}
-        </div>
-      )}
-
-      <div className="px-1.5 lg:px-2 pb-1.5 lg:pb-2 shrink-0">
-        <div className="grid grid-cols-4 gap-0.5 lg:gap-1 rounded-lg lg:rounded-xl border border-slate-200 bg-white p-1 lg:p-1.5">
-          {jdStats.map((st) => {
-            const Icon = st.icon
-            return (
-              <div key={st.label} className="flex flex-col items-center gap-0.5 px-0.5 py-0.5 lg:py-1 min-w-0">
-                <Icon className="w-3 h-3 text-slate-400" />
-                <span className="text-[8px] text-slate-500 truncate w-full text-center leading-tight">{st.label}</span>
-                <span className="text-[10px] font-bold text-slate-800 tabular-nums">
-                  {loading ? '…' : st.value}
-                </span>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
       <div className="flex-1 min-h-0 overflow-y-auto px-1.5 lg:px-2 pb-1.5 lg:pb-2">
-        <p className="text-[9px] lg:text-[10px] font-semibold text-slate-400 uppercase tracking-wide px-1.5 lg:px-2 py-1 lg:py-1.5">
+        <p className="biz-jd-label px-1.5 lg:px-2 py-1 lg:py-1.5">
           Phiên chat ({filteredThreads.length})
         </p>
 
         {filteredThreads.length === 0 ? (
           <div className="text-center py-8 px-3">
-            <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="text-xs text-slate-400 leading-relaxed whitespace-pre-line">
+            <MessageSquare className="biz-jd-icon mx-auto mb-2 text-slate-300" />
+            <p className="biz-jd-muted leading-relaxed whitespace-pre-line">
               {searchQuery
                 ? 'Không tìm thấy phiên chat phù hợp'
                 : 'Chưa có phiên chat nào.\nBấm "Tạo JD mới" để bắt đầu.'}
@@ -309,7 +540,7 @@ const JobManagement = () => {
           <div className="flex flex-col gap-0.5">
             {filteredThreads.map((thread, index) => {
               const isActive = activeThreadId === thread.id
-              const colorClass = THREAD_ICON_COLORS[index % THREAD_ICON_COLORS.length]
+              const colorClass = THREAD_ICON_CLASS
               const isSaved = Boolean(thread.jobId)
               return (
                 <div
@@ -324,19 +555,19 @@ const JobManagement = () => {
                       : 'hover:bg-white/80 border border-transparent'
                   }`}
                 >
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
-                    <MessageSquare className="w-3.5 h-3.5" />
+                  <div className={`biz-jd-icon-hit rounded-lg shrink-0 ${colorClass}`}>
+                    <MessageSquare className="biz-jd-icon" />
                   </div>
                   <div className="flex-1 min-w-0 pr-7 lg:pr-8">
-                    <p className="text-xs font-medium text-slate-800 truncate leading-snug">
+                    <p className="biz-jd-body font-medium text-slate-800 truncate leading-snug">
                       {getThreadTitle(thread)}
                     </p>
-                    <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                      <span className={`text-[10px] ${isSaved ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    <div className="flex items-center gap-1 mt-0.5 flex-wrap biz-jd-muted">
+                      <span className={isSaved ? 'text-emerald-600' : 'text-amber-600'}>
                         {isSaved ? 'Đã lưu' : 'Nháp'}
                       </span>
                       {formatThreadDate(thread.updatedAt) ? (
-                        <span className="text-[10px] text-slate-400">
+                        <span>
                           · {formatThreadDate(thread.updatedAt)}
                         </span>
                       ) : null}
@@ -347,20 +578,20 @@ const JobManagement = () => {
                     <button
                       type="button"
                       title="Xóa phiên"
-                      onClick={(e) => handleDeleteThread(thread, e)}
-                      className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                      onClick={(e) => handleDeleteThreadClick(thread, e)}
+                      className="biz-jd-icon-hit rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="biz-jd-icon" />
                     </button>
                   </div>
                   <div className="absolute right-1.5 top-1/2 -translate-y-1/2 hidden lg:group-hover:flex items-center gap-0.5">
                     <button
                       type="button"
                       title="Xóa phiên"
-                      onClick={(e) => handleDeleteThread(thread, e)}
-                      className="w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                      onClick={(e) => handleDeleteThreadClick(thread, e)}
+                      className="biz-jd-icon-hit rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="biz-jd-icon" />
                     </button>
                   </div>
                 </div>
@@ -377,9 +608,9 @@ const JobManagement = () => {
             navigate('/business/jobs/create')
             setSidebarOpen(false)
           }}
-          className="w-full flex items-center justify-center gap-1 text-[10px] lg:text-xs font-semibold text-slate-500 hover:text-slate-700 py-1.5 lg:py-2 rounded-lg hover:bg-slate-100 transition-colors"
+          className="w-full flex items-center justify-center gap-1 biz-jd-body font-semibold text-slate-500 hover:text-slate-700 py-1.5 lg:py-2 rounded-lg hover:bg-slate-100 transition-colors"
         >
-          <MoreHorizontal className="w-3 h-3 lg:w-3.5 lg:h-3.5" />
+          <MoreHorizontal className="biz-jd-icon" />
           Tạo JD thủ công
         </button>
       </div>
@@ -389,11 +620,13 @@ const JobManagement = () => {
   return (
     <>
       <style>{jobManagementStyles}</style>
-      <JobCreatedNextStepsModal
-        open={nextStepsModal.open}
-        jobId={nextStepsModal.jobId}
-        onClose={closeNextStepsModal}
-        onSelect={handleNextStepSelect}
+      <DeleteJobBuilderThreadModal
+        open={deleteThreadModal.open}
+        threadTitle={deleteThreadModal.thread ? getThreadTitle(deleteThreadModal.thread) : ''}
+        linkedJobId={deleteThreadModal.thread?.jobId}
+        onClose={closeDeleteThreadModal}
+        onConfirm={confirmDeleteThread}
+        confirming={deletingThread}
       />
       <div className="business-jobs-shell h-full min-h-0 overflow-hidden">
         <div className="business-jobs-ui h-full min-h-0 flex overflow-hidden bg-white relative">
@@ -412,7 +645,7 @@ const JobManagement = () => {
           w-[min(100%,20rem)] max-w-[85vw] sm:max-w-[20rem]
           fixed inset-y-0 left-0 shadow-xl
           transition-transform duration-200 ease-out
-          lg:static lg:z-auto lg:w-[200px] xl:w-[216px] lg:shrink-0 lg:shadow-none lg:max-w-none
+          lg:static lg:z-auto lg:w-[168px] xl:w-[180px] 2xl:w-[192px] lg:shrink-0 lg:shadow-none lg:max-w-none
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
@@ -424,25 +657,32 @@ const JobManagement = () => {
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
-            className="shrink-0 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs font-medium text-slate-700"
+            className="shrink-0 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 biz-jd-body font-medium text-slate-700"
           >
-            <PanelLeft className="w-3.5 h-3.5" />
+            <PanelLeft className="biz-jd-icon" />
             Phiên
           </button>
-          <p className="flex-1 min-w-0 text-xs font-semibold text-slate-800 truncate">
+          <p className="flex-1 min-w-0 biz-jd-title truncate">
             {activeThreadTitle}
           </p>
           <button
             type="button"
             onClick={handleNewJob}
-            className="shrink-0 inline-flex items-center gap-0.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-2 py-1.5"
+            className="shrink-0 inline-flex items-center gap-0.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white biz-jd-body font-medium px-2 py-1.5"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="biz-jd-icon" />
             <span className="sr-only sm:not-sr-only sm:inline">Mới</span>
           </button>
         </div>
 
-        <div className="flex-1 min-h-0 min-w-0">
+        <div className="flex-1 min-h-0 min-w-0 flex flex-col">
+          {marketplaceQuickCreateActive ? (
+            <div className="shrink-0 border-b border-[#0077B6]/20 bg-[#e8f4fa]/80 px-3 py-2 biz-jd-body text-slate-700">
+              {marketplaceSubmitting
+                ? 'Đang gửi WS duyệt đưa job lên sàn CTV...'
+                : 'Tạo & lưu JD bằng chat — sau khi lưu, hệ thống tự gửi WS duyệt đưa job lên sàn (phí thưởng đã cài từ Sàn CTV).'}
+            </div>
+          ) : null}
           <JobAiBuilderPanel
             ref={builderRef}
             embedded
@@ -450,6 +690,7 @@ const JobManagement = () => {
             savedJobId={savedJobId}
             onThreadPersist={handleThreadPersist}
             onJobSaved={handleJobSaved}
+            showNextStepsOnCreate={!marketplaceQuickCreateActive}
           />
         </div>
       </main>

@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Search, ChevronRight, MoreHorizontal, Phone, Mail, Loader2, BadgeCheck, MessageSquare,
+  Copy, Sparkles,
 } from 'lucide-react'
+import nothingIllustration from '../../assets/Nothing.png'
 import apiService from '../../services/api'
 import {
   normalizeScoutCertificates,
@@ -25,40 +27,166 @@ import {
   SCOUT_PERFORMANCE_REQUEST_STATUS_LABELS,
 } from '../../utils/scoutCandidateDisplay'
 
-const ICON_SM = { width: 10, height: 10 }
 const ANONYMOUS_AVATAR = 'https://api.dicebear.com/7.x/shapes/svg?seed=scout-unlocked'
 const PAGE_SIZE = 20
+
+const BRAND = '#0077B6'
+const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
+
+const LIST_FILTER_ALL = 'all'
 
 const CANDIDATE_LIST_SOURCES = [
   {
     id: 'scout_credit',
-    label: 'Ứng viên Scout Credit',
-    listTitle: 'Danh sách Scout Credit',
-    emptyText: 'Chưa có ứng viên nào mở bằng Scout Credit.',
-    emptyLinkLabel: 'Tìm ứng viên trên Scout →',
-    emptyLinkTo: '/business/scout',
+    label: 'Scout Credit',
+    emptySearchText: 'Không tìm thấy ứng viên Scout Credit.',
   },
   {
     id: 'scout_performance',
-    label: 'Ứng viên Scout Performance',
-    listTitle: 'Danh sách Scout Performance',
-    emptyText: 'Chưa có ứng viên nào từ Scout Performance.',
-    emptyLinkLabel: 'Yêu cầu Scout Performance →',
-    emptyLinkTo: '/business/scout',
+    label: 'Scout Performance',
+    emptySearchText: 'Không tìm thấy ứng viên Scout Performance.',
   },
 ]
 
-function getListSourceMeta(sourceId) {
-  return CANDIDATE_LIST_SOURCES.find((s) => s.id === sourceId) || CANDIDATE_LIST_SOURCES[0]
+const LIST_FILTER_TABS = [
+  { id: LIST_FILTER_ALL, label: 'Tất cả' },
+  ...CANDIDATE_LIST_SOURCES.map((s) => ({ id: s.id, label: s.label })),
+]
+
+function parseListFilter(listParam) {
+  if (listParam === 'scout_credit' || listParam === 'scout_performance') return listParam
+  return LIST_FILTER_ALL
 }
 
-const scrollbarStyle = `
-  .candidate-scrollbar::-webkit-scrollbar { width: 6px; }
+function isScoutPerformanceUnlock(candidate) {
+  return candidate?.unlockType === 'scout_performance'
+}
+
+const candidatePageStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+  .business-candidates-shell {
+    font-family: ${PAGE_FONT};
+    --cand-brand: ${BRAND};
+    --cand-list-col: minmax(200px, 248px);
+    --cand-side-col: minmax(168px, 200px);
+    --cand-gap: 8px;
+    --cand-pad: 8px;
+    --cand-card-pad: 10px;
+    --cand-radius: 8px;
+  }
+  @media (min-width: 1536px) {
+    .business-candidates-shell {
+      --cand-list-col: minmax(232px, 272px);
+      --cand-side-col: minmax(188px, 224px);
+      --cand-gap: 10px;
+      --cand-pad: 10px;
+      --cand-card-pad: 12px;
+      --cand-radius: 10px;
+    }
+  }
+  .business-candidates-ui {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.45;
+    color: #334155;
+    --cand-fs-2xs: 8px;
+    --cand-fs-xs: 9px;
+    --cand-fs-sm: 10px;
+    --cand-fs-md: 11px;
+    --cand-fs-lg: 12px;
+    --cand-icon: 12px;
+    --cand-avatar-list: 28px;
+    --cand-avatar-profile: 40px;
+  }
+  @media (min-width: 1536px) {
+    .business-candidates-ui {
+      --cand-fs-2xs: 9px;
+      --cand-fs-xs: 10px;
+      --cand-fs-sm: 11px;
+      --cand-fs-md: 12px;
+      --cand-fs-lg: 13px;
+      --cand-icon: 13px;
+      --cand-avatar-list: 32px;
+      --cand-avatar-profile: 44px;
+    }
+  }
+  @media (max-height: 900px) and (min-width: 1024px) {
+    .business-candidates-ui {
+      --cand-fs-2xs: 7px;
+      --cand-fs-xs: 8px;
+      --cand-fs-sm: 9px;
+      --cand-fs-md: 10px;
+      --cand-fs-lg: 11px;
+      --cand-icon: 11px;
+      --cand-avatar-list: 26px;
+      --cand-avatar-profile: 36px;
+    }
+  }
+  .business-candidates-ui .cand-fs-2xs { font-size: var(--cand-fs-2xs); line-height: 1.4; }
+  .business-candidates-ui .cand-fs-xs { font-size: var(--cand-fs-xs); line-height: 1.45; }
+  .business-candidates-ui .cand-fs-sm { font-size: var(--cand-fs-sm); line-height: 1.45; }
+  .business-candidates-ui .cand-fs-md { font-size: var(--cand-fs-md); line-height: 1.4; }
+  .business-candidates-ui .cand-fs-lg { font-size: var(--cand-fs-lg); line-height: 1.35; }
+  .business-candidates-ui .cand-icon {
+    width: var(--cand-icon);
+    height: var(--cand-icon);
+    flex-shrink: 0;
+  }
+  .business-candidates-grid {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--cand-gap);
+    padding: var(--cand-pad);
+  }
+  @media (min-width: 1024px) {
+    .business-candidates-grid {
+      grid-template-columns: var(--cand-list-col) minmax(0, 1fr);
+    }
+  }
+  .business-candidates-detail-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--cand-gap);
+  }
+  @media (min-width: 1280px) {
+    .business-candidates-detail-grid.has-sidebar {
+      grid-template-columns: minmax(0, 1fr) var(--cand-side-col);
+    }
+  }
+  .business-candidates-ui .cand-surface {
+    border-radius: var(--cand-radius);
+    padding: var(--cand-card-pad);
+  }
+  .business-candidates-ui .cand-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--cand-gap);
+  }
+  @media (min-width: 1440px) {
+    .business-candidates-ui .cand-metrics {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  .candidate-scrollbar::-webkit-scrollbar { width: 4px; }
   .candidate-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .candidate-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
   .candidate-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   .candidate-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
 `
+
+function getListFilterMeta(filterId) {
+  if (filterId === LIST_FILTER_ALL) {
+    return {
+      emptySearchText: 'Không tìm thấy ứng viên phù hợp.',
+    }
+  }
+  return CANDIDATE_LIST_SOURCES.find((s) => s.id === filterId) || { emptySearchText: 'Không tìm thấy ứng viên phù hợp.' }
+}
 
 function formatListDate(value) {
   if (!value) return '—'
@@ -69,8 +197,9 @@ function formatListDate(value) {
   }
 }
 
-function AvatarCircle({ candidate, size = 28 }) {
+function AvatarCircle({ candidate, size }) {
   const name = getScoutDisplayName(candidate)
+  const resolvedSize = size ?? 28
   const src = candidate?.avatarPhotoPath
     ? candidate.avatarPhotoPath
     : `${ANONYMOUS_AVATAR}&seed=${encodeURIComponent(String(name || candidate?.id || 'x'))}`
@@ -79,11 +208,37 @@ function AvatarCircle({ candidate, size = 28 }) {
     <img
       src={src}
       alt=""
-      style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: '#e2e8f0' }}
+      style={{ width: resolvedSize, height: resolvedSize, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: '#e2e8f0' }}
       onError={(e) => {
         e.currentTarget.src = `${ANONYMOUS_AVATAR}&seed=fallback`
       }}
     />
+  )
+}
+
+function CandidatesEmptyState() {
+  const navigate = useNavigate()
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center px-5 py-10 text-center">
+      <img
+        src={nothingIllustration}
+        alt=""
+        className="mb-4 w-full max-w-[220px] object-contain"
+        draggable={false}
+      />
+      <p className="cand-fs-sm max-w-md font-medium leading-relaxed text-slate-700">
+        Có vẻ bạn chưa mở hồ sơ ứng viên nào. Hãy dùng Scout Credit hoặc Scout Performance trên Workstation để tìm ứng viên phù hợp.
+      </p>
+      <button
+        type="button"
+        onClick={() => navigate('/business/scout')}
+        className="cand-fs-sm mt-4 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold text-white shadow-sm transition hover:opacity-95"
+        style={{ background: BRAND }}
+      >
+        <Sparkles className="cand-icon" strokeWidth={2} />
+        Tìm ứng viên trên Scout
+      </button>
+    </div>
   )
 }
 
@@ -98,114 +253,118 @@ function CandidateList({
   page,
   totalPages,
   onPageChange,
-  listSource,
+  listFilter,
+  onListFilterChange,
 }) {
-  const sourceMeta = getListSourceMeta(listSource)
+  const filterMeta = getListFilterMeta(listFilter)
   const pageStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
   const pageEnd = Math.min(page * PAGE_SIZE, total)
 
   return (
-    <div className="bg-white rounded-xl border border-slate-100 h-full flex flex-col" style={{ minHeight: 0 }}>
-      <div style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>
-        <h2 style={{ fontSize: 11, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
-          {sourceMeta.listTitle}
+    <div className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/80 bg-white shadow-sm cand-surface !p-0">
+      <div className="border-b border-slate-100 px-3 pb-2.5 pt-3">
+        <p className="cand-fs-xs font-medium text-slate-400">Hồ sơ ứng viên</p>
+        <h2 className="cand-fs-lg mt-0.5 font-bold tracking-tight text-slate-900">
+          Quản lý hồ sơ ứng viên
         </h2>
-        <div style={{ fontSize: 8, color: '#94a3b8', marginBottom: 6 }}>
-          Chọn gói dịch vụ từ menu trái · Hồ sơ ứng viên
+        {total > 0 && (
+          <span
+            className="cand-fs-xs mt-1.5 inline-flex rounded-full px-1.5 py-0.5 font-semibold text-white"
+            style={{ background: BRAND }}
+          >
+            {total} hồ sơ
+          </span>
+        )}
+        <div className="mt-2 flex flex-wrap gap-1">
+          {LIST_FILTER_TABS.map((tab) => {
+            const active = listFilter === tab.id
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => onListFilterChange(tab.id)}
+                className={`cand-fs-xs rounded-full px-2 py-0.5 font-semibold transition ${
+                  active
+                    ? 'text-white shadow-sm'
+                    : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+                style={active ? { background: BRAND } : undefined}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
         </div>
-        <div className="flex items-center gap-1" style={{ marginBottom: 6 }}>
-          <div className="flex items-center gap-1 bg-slate-50 rounded-lg flex-1" style={{ padding: '4px 6px' }}>
-            <Search style={{ width: 10, height: 10, color: '#94a3b8', flexShrink: 0 }} />
-            <input
-              type="text"
-              placeholder="Tìm kiếm ứng viên..."
-              value={searchInput}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="bg-transparent outline-none w-full"
-              style={{ fontSize: 9, color: '#475569' }}
-            />
-          </div>
+        <div className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1.5">
+          <Search className="cand-icon shrink-0 text-slate-400" strokeWidth={2} />
+          <input
+            type="text"
+            placeholder="Tìm kiếm ứng viên..."
+            value={searchInput}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="cand-fs-sm w-full bg-transparent text-slate-700 outline-none placeholder:text-slate-400"
+          />
         </div>
-        <div style={{ fontSize: 8, color: '#64748b' }}>Tổng: {total}</div>
       </div>
 
-      <div className="flex-1 overflow-y-auto candidate-scrollbar" style={{ padding: '6px', minHeight: 0 }}>
+      <div className="candidate-scrollbar min-h-0 flex-1 overflow-y-auto px-2 py-2">
         {loading ? (
-          <div className="flex items-center justify-center gap-2" style={{ padding: 20, fontSize: 9, color: '#64748b' }}>
-            <Loader2 style={{ width: 12, height: 12 }} className="animate-spin" />
+          <div className="cand-fs-sm flex items-center justify-center gap-2 py-10 text-slate-500">
+            <Loader2 className="cand-icon animate-spin" />
             Đang tải...
           </div>
         ) : candidates.length === 0 ? (
-          <div style={{ padding: 16, textAlign: 'center', fontSize: 9, color: '#94a3b8' }}>
-            {sourceMeta.emptyText}
-            <div style={{ marginTop: 8 }}>
-              <Link to={sourceMeta.emptyLinkTo} style={{ fontSize: 9, color: '#3b82f6', fontWeight: 600 }}>
-                {sourceMeta.emptyLinkLabel}
-              </Link>
-            </div>
+          <div className="cand-fs-sm px-3 py-6 text-center text-slate-500">
+            {filterMeta.emptySearchText}
           </div>
         ) : (
-          <div className="flex flex-col" style={{ gap: 4 }}>
+          <div className="flex flex-col gap-1">
             {candidates.map((c) => {
               const pipeline = getScoutPipelineMeta(c.pipelineStatus)
-              const source = getScoutUnlockSourceMeta(c.unlockType)
-              const perfReq = c.performanceRequest
-              const perfSt = perfReq?.status ? getScoutPerformanceRequestMeta(perfReq.status) : null
-              const wsWork = perfReq?.businessExploreStatus
-                ? getScoutPerformanceExploreMeta(perfReq.businessExploreStatus)
-                : (perfReq?.wantsSimilarCandidates
-                  ? { label: 'WS đang tìm UV tương tự', color: '#7c3aed', bg: '#ede9fe' }
-                  : null)
+              const unlockSource = getScoutUnlockSourceMeta(c.unlockType)
+              const isSelected = selected === c.id
               return (
-                <div
+                <button
                   key={c.id}
+                  type="button"
                   onClick={() => onSelect(c.id)}
-                  style={{
-                    padding: '8px',
-                    borderRadius: 6,
-                    border: selected === c.id ? '1px solid #3b82f6' : '1px solid #e2e8f0',
-                    background: selected === c.id ? '#eff6ff' : '#f8fafc',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition ${
+                    isSelected
+                      ? 'bg-slate-100 ring-1 ring-slate-200'
+                      : 'hover:bg-slate-50'
+                  }`}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <AvatarCircle candidate={c} size={28} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 9, fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {getScoutDisplayName(c)}
-                      </div>
-                      <div style={{ fontSize: 8, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {c.desiredPosition || c.jobCategory?.name || '—'}
-                      </div>
-                      <div style={{ fontSize: 7, color: source.color, fontWeight: 500, marginTop: 1 }}>
-                        ● {source.label}
-                      </div>
-                      {perfSt && (
-                        <div style={{ fontSize: 7, color: perfSt.color, fontWeight: 600, marginTop: 2 }}>
-                          WS: {perfSt.label}
-                          {wsWork ? ` · ${wsWork.label}` : ''}
-                        </div>
-                      )}
+                  <AvatarCircle candidate={c} size={28} />
+                  <div className="min-w-0 flex-1">
+                    <div className="cand-fs-sm truncate font-semibold text-slate-900">
+                      {getScoutDisplayName(c)}
                     </div>
-                    <span
-                      style={{
-                        fontSize: 7,
-                        fontWeight: 600,
-                        color: pipeline.color,
-                        background: pipeline.bg,
-                        borderRadius: 20,
-                        padding: '1px 4px',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      Tiếp cận: {pipeline.label}
-                    </span>
+                    <div className="cand-fs-xs truncate text-slate-500">
+                      {c.desiredPosition || c.jobCategory?.name || '—'}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <span
+                        className="cand-fs-2xs rounded-full px-1.5 py-0.5 font-semibold"
+                        style={{ color: unlockSource.color, background: `${unlockSource.color}18` }}
+                      >
+                        {unlockSource.label}
+                      </span>
+                      <span
+                        className="cand-fs-2xs rounded-full px-1.5 py-0.5 font-semibold"
+                        style={{ color: pipeline.color, background: pipeline.bg }}
+                      >
+                        {pipeline.label}
+                      </span>
+                      <span className="cand-fs-2xs text-slate-400">
+                        {formatListDate(c.unlockedAt)}
+                      </span>
+                    </div>
                   </div>
-                  <div style={{ fontSize: 7, color: '#94a3b8', marginTop: 4, textAlign: 'right' }}>
-                    {formatListDate(c.unlockedAt)}
-                  </div>
-                </div>
+                  <ChevronRight
+                    className={`cand-icon shrink-0 ${isSelected ? 'text-slate-600' : 'text-slate-300'}`}
+                    strokeWidth={2}
+                  />
+                </button>
               )
             })}
           </div>
@@ -213,33 +372,27 @@ function CandidateList({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-slate-100" style={{ padding: '6px 8px', background: '#f8fafc' }}>
-          <span style={{ fontSize: 8, color: '#94a3b8' }}>
-            {pageStart}-{pageEnd}/{total}
+        <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/80 px-3 py-2">
+          <span className="cand-fs-xs text-slate-500">
+            {pageStart}–{pageEnd} / {total}
           </span>
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-1">
             <button
               type="button"
               disabled={page <= 1}
               onClick={() => onPageChange(page - 1)}
-              style={{
-                width: 20, height: 20, borderRadius: 3, border: '1px solid #e2e8f0',
-                background: 'white', cursor: page <= 1 ? 'not-allowed' : 'pointer',
-                color: '#94a3b8', fontSize: 8, opacity: page <= 1 ? 0.5 : 1,
-              }}
+              className="cand-fs-xs flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 disabled:opacity-40"
             >
               ‹
             </button>
-            <span style={{ fontSize: 8, color: '#64748b', padding: '0 4px' }}>{page}/{totalPages}</span>
+            <span className="cand-fs-xs px-1 font-medium text-slate-600">
+              {page}/{totalPages}
+            </span>
             <button
               type="button"
               disabled={page >= totalPages}
               onClick={() => onPageChange(page + 1)}
-              style={{
-                width: 20, height: 20, borderRadius: 3, border: '1px solid #e2e8f0',
-                background: 'white', cursor: page >= totalPages ? 'not-allowed' : 'pointer',
-                color: '#94a3b8', fontSize: 8, opacity: page >= totalPages ? 0.5 : 1,
-              }}
+              className="cand-fs-xs flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 disabled:opacity-40"
             >
               ›
             </button>
@@ -250,11 +403,40 @@ function CandidateList({
   )
 }
 
+function MetricCard({ label, value, sub }) {
+  return (
+    <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
+      <p className="cand-fs-xs font-medium text-slate-500">{label}</p>
+      <p className="cand-fs-md mt-0.5 font-bold tracking-tight text-slate-900">{value}</p>
+      {sub ? <p className="cand-fs-2xs mt-0.5 text-slate-400">{sub}</p> : null}
+    </div>
+  )
+}
+
+function DetailField({ label, value }) {
+  if (!value || value === '—') return null
+  return (
+    <div>
+      <p className="cand-fs-xs font-medium text-slate-400">{label}</p>
+      <p className="cand-fs-sm mt-0.5 font-medium text-slate-900 [overflow-wrap:anywhere]">{value}</p>
+    </div>
+  )
+}
+
+function SectionCard({ title, children, className = '' }) {
+  return (
+    <div className={`cand-surface border border-slate-200/80 bg-white shadow-sm ${className}`}>
+      {title ? <h3 className="cand-fs-sm mb-2 font-bold text-slate-900">{title}</h3> : null}
+      {children}
+    </div>
+  )
+}
+
 function CandidateDetail({ candidate, loading }) {
   if (loading) {
     return (
-      <div className="bg-white rounded-xl border border-slate-100 text-center" style={{ padding: 24, fontSize: 10, color: '#64748b' }}>
-        <Loader2 style={{ width: 14, height: 14, margin: '0 auto 8px' }} className="animate-spin" />
+      <div className="cand-fs-sm cand-surface flex flex-col items-center justify-center border border-slate-200/80 bg-white py-12 text-slate-500 shadow-sm">
+        <Loader2 className="cand-icon mb-2 animate-spin" />
         Đang tải chi tiết...
       </div>
     )
@@ -262,188 +444,227 @@ function CandidateDetail({ candidate, loading }) {
 
   if (!candidate) {
     return (
-      <div className="bg-white rounded-xl border border-slate-100 text-center" style={{ padding: 24, fontSize: 10, color: '#94a3b8' }}>
-        Chọn ứng viên để xem chi tiết
+      <div className="cand-fs-sm cand-surface flex flex-col items-center justify-center border border-dashed border-slate-200 bg-white py-12 text-slate-500 shadow-sm">
+        Chọn ứng viên ở danh sách bên trái để xem hồ sơ
       </div>
     )
   }
 
   const source = getScoutUnlockSourceMeta(candidate.unlockType)
+  const pipeline = getScoutPipelineMeta(candidate.pipelineStatus)
   const skills = getScoutSkillTags(candidate)
   const educations = normalizeScoutEducations(candidate.educations)
   const workExperiences = normalizeScoutWorkExperiences(candidate.workExperiences)
   const certificates = normalizeScoutCertificates(candidate.certificates)
+  const perfReq = candidate.performanceRequest
+  const perfStatusMeta = perfReq?.status ? getScoutPerformanceRequestMeta(perfReq.status) : null
 
-  const infoRows = [
-    ['Email', candidate.email],
-    ['Phone', candidate.phone],
-    ['Furigana', candidate.furigana],
-    ['Ngày sinh', formatScoutDate(candidate.birthDate)],
-    ['Giới tính', formatScoutGender(candidate.gender)],
-    ['Địa điểm mong muốn', candidate.desiredWorkLocation],
-    ['Kinh nghiệm', formatScoutExperienceYears(candidate.experienceYears)],
-    ['Vị trí mong muốn', candidate.desiredPosition || candidate.jobCategory?.name],
-    ['Mức lương mong muốn', candidate.desiredIncome || '—'],
-    ['JLPT / Ngoại ngữ', [candidate.jlptLevel, candidate.jpConversationLevel, candidate.enConversationLevel].filter(Boolean).join(' · ') || '—'],
-  ].filter(([, value]) => value && value !== '—')
+  const copyCode = () => {
+    if (candidate.code && navigator.clipboard) {
+      navigator.clipboard.writeText(String(candidate.code)).catch(() => {})
+    }
+  }
+
+  const isPerformanceUnlock = isScoutPerformanceUnlock(candidate)
+
+  const overviewMetrics = isPerformanceUnlock
+    ? [
+        { label: 'Trạng thái tiếp cận', value: pipeline.label, sub: 'Pipeline' },
+        {
+          label: 'Yêu cầu WS',
+          value: perfStatusMeta?.label || '—',
+          sub: perfReq?.recommendationCount ? `${perfReq.recommendationCount} gợi ý` : undefined,
+        },
+        { label: 'Kinh nghiệm', value: formatScoutExperienceYears(candidate.experienceYears), sub: 'Tổng quan' },
+        { label: 'Mở hồ sơ', value: formatListDate(candidate.unlockedAt), sub: source.label },
+      ]
+    : [
+        { label: 'Trạng thái tiếp cận', value: pipeline.label, sub: 'Pipeline' },
+        { label: 'Credit đã dùng', value: candidate.creditCost != null ? String(candidate.creditCost) : '—', sub: 'Scout Credit' },
+        { label: 'Kinh nghiệm', value: formatScoutExperienceYears(candidate.experienceYears), sub: 'Tổng quan' },
+        { label: 'Mở hồ sơ', value: formatListDate(candidate.unlockedAt), sub: source.label },
+      ]
 
   return (
-    <div className="flex flex-col gap-2 candidate-scrollbar" style={{ minHeight: 0 }}>
-      <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <AvatarCircle candidate={candidate} size={50} />
-            <div style={{ position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: '#10b981', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-              <BadgeCheck {...ICON_SM} color="#fff" aria-hidden />
+    <div className="candidate-scrollbar flex min-h-0 flex-col gap-3 pb-1">
+      <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="relative shrink-0">
+            <AvatarCircle candidate={candidate} size={40} />
+            <div className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white bg-emerald-500 text-white">
+              <BadgeCheck className="h-2 w-2" aria-hidden />
             </div>
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>
-              {getScoutDisplayName(candidate)}
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <h2 className="cand-fs-lg font-bold text-slate-900">{getScoutDisplayName(candidate)}</h2>
+              <span
+                className="cand-fs-xs rounded-full px-1.5 py-0.5 font-semibold"
+                style={{ color: pipeline.color, background: pipeline.bg }}
+              >
+                {pipeline.label}
+              </span>
             </div>
-            <div style={{ fontSize: 9, color: '#64748b', marginBottom: 3 }}>
+            <p className="cand-fs-sm mt-0.5 text-slate-500">
               {candidate.desiredPosition || candidate.jobCategory?.name || '—'}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 8, color: '#94a3b8' }}>
+            </p>
+            <p className="cand-fs-xs mt-0.5 text-slate-400">
               {formatScoutAgeGender(candidate)}
-              {candidate.desiredWorkLocation ? ` | ${candidate.desiredWorkLocation}` : ''}
-            </div>
-            <div style={{ fontSize: 8, color: source.color, fontWeight: 600, marginTop: 3 }}>
-              Nguồn: {source.label} · Mở ngày {formatListDate(candidate.unlockedAt)}
-            </div>
-            {candidate.code ? (
-              <div style={{ fontSize: 8, color: '#94a3b8', marginTop: 2 }}>Mã CV: {candidate.code}</div>
-            ) : null}
+              {candidate.desiredWorkLocation ? ` · ${candidate.desiredWorkLocation}` : ''}
+            </p>
+            <p className="cand-fs-xs mt-1 font-medium" style={{ color: source.color }}>
+              {source.label} · Mở {formatListDate(candidate.unlockedAt)}
+            </p>
           </div>
-          <button type="button" style={{ width: 24, height: 24, borderRadius: 4, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <MoreHorizontal style={{ width: 10, height: 10 }} />
-          </button>
+          <div className="flex shrink-0 items-start gap-1.5">
+            <span
+              className="cand-fs-xs rounded-full border border-slate-200 px-1.5 py-0.5 font-semibold"
+              style={{ color: source.color, background: `${source.color}12` }}
+            >
+              {source.label}
+            </span>
+            <button
+              type="button"
+              className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-400 hover:bg-slate-50"
+              aria-label="Thêm"
+            >
+              <MoreHorizontal className="cand-icon" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-1.5 flex items-center justify-between px-0.5">
+          <h3 className="cand-fs-sm font-bold text-slate-900">Tổng quan</h3>
+        </div>
+        <div className="cand-metrics">
+          {overviewMetrics.map((m) => (
+            <MetricCard key={m.label} label={m.label} value={m.value} sub={m.sub} />
+          ))}
+        </div>
+      </div>
+
+      <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <h3 className="cand-fs-sm font-bold text-slate-900">Thông tin hồ sơ</h3>
+            <span className="cand-fs-2xs rounded-full bg-emerald-50 px-1.5 py-0.5 font-semibold text-emerald-700">
+              Đã mở
+            </span>
+          </div>
+          {candidate.code ? (
+            <button
+              type="button"
+              onClick={copyCode}
+              className="cand-fs-xs inline-flex items-center gap-1 font-medium text-slate-500 hover:text-slate-800"
+            >
+              Mã CV: {candidate.code}
+              <Copy className="cand-icon" />
+            </button>
+          ) : null}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <DetailField label="Email" value={candidate.email} />
+          <DetailField label="Số điện thoại" value={candidate.phone} />
+          <DetailField label="Furigana" value={candidate.furigana} />
+          <DetailField label="Ngày sinh" value={formatScoutDate(candidate.birthDate)} />
+          <DetailField label="Giới tính" value={formatScoutGender(candidate.gender)} />
+          <DetailField label="Địa điểm mong muốn" value={candidate.desiredWorkLocation} />
+          <DetailField label="Kinh nghiệm" value={formatScoutExperienceYears(candidate.experienceYears)} />
+          <DetailField label="Vị trí mong muốn" value={candidate.desiredPosition || candidate.jobCategory?.name} />
+          <DetailField label="Mức lương mong muốn" value={candidate.desiredIncome} />
+          <DetailField
+            label="JLPT / Ngoại ngữ"
+            value={[candidate.jlptLevel, candidate.jpConversationLevel, candidate.enConversationLevel].filter(Boolean).join(' · ') || null}
+          />
         </div>
       </div>
 
       {getScoutPrSummary(candidate) && (
-        <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px' }}>
-          <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>PR / Giới thiệu</h3>
-          <p style={{ fontSize: 8, color: '#475569', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
+        <SectionCard title="PR / Giới thiệu">
+          <p className="cand-fs-sm whitespace-pre-wrap leading-relaxed text-slate-600">
             {getScoutPrSummary(candidate)}
           </p>
-        </div>
-      )}
-
-      {infoRows.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px' }}>
-          <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>Thông tin cá nhân</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {infoRows.map(([label, value]) => (
-              <div key={label}>
-                <div style={{ fontSize: 8, color: '#94a3b8', marginBottom: 2 }}>{label}</div>
-                <div style={{ fontSize: 9, fontWeight: 500, color: '#1e293b', wordBreak: 'break-word' }}>{value}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+        </SectionCard>
       )}
 
       {skills.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px' }}>
-          <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>Kỹ năng</h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {skills.map((skill) => (
-              <div key={skill} style={{ fontSize: 8, fontWeight: 600, color: '#3b82f6', background: '#eff6ff', borderRadius: 12, padding: '3px 8px' }}>
-                {skill}
-              </div>
-            ))}
-          </div>
-        </div>
+        <SectionCard title="Kỹ năng">
+          <p className="cand-fs-sm leading-relaxed text-slate-600">
+            {skills.join(' · ')}
+          </p>
+        </SectionCard>
       )}
 
       {educations.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px' }}>
-          <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>Học vấn</h3>
-          <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <SectionCard title="Học vấn">
+          <ul className="flex flex-col gap-2">
             {educations.map((edu, i) => (
-              <li key={i} style={{ fontSize: 8, color: '#475569', paddingLeft: 8, borderLeft: '2px solid #e2e8f0' }}>
-                <span style={{ fontWeight: 600, color: '#1e293b' }}>{edu.period}</span>
+              <li key={i} className="cand-fs-sm border-l-2 border-slate-200 pl-2 text-slate-600">
+                <span className="font-semibold text-slate-900">{edu.period}</span>
                 {' — '}
                 {edu.content}
               </li>
             ))}
           </ul>
-        </div>
+        </SectionCard>
       )}
 
       {workExperiences.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px' }}>
-          <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>Lịch sử công việc</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <SectionCard title="Lịch sử công việc">
+          <div className="flex flex-col gap-2">
             {workExperiences.map((work, i) => (
-              <div key={i} style={{ padding: 6, borderRadius: 6, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: '#1e293b' }}>{work.companyName}</div>
-                <div style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>{work.period}</div>
+              <div key={i} className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+                <div className="cand-fs-sm font-bold text-slate-900">{work.companyName}</div>
+                <div className="cand-fs-xs mt-0.5 text-slate-500">{work.period}</div>
                 {work.description !== '—' && (
-                  <div style={{ fontSize: 8, color: '#475569', marginTop: 4, lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
+                  <div className="cand-fs-sm mt-1 whitespace-pre-wrap leading-relaxed text-slate-600">
                     {work.description}
                   </div>
                 )}
               </div>
             ))}
           </div>
-        </div>
+        </SectionCard>
       )}
 
       {certificates.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px' }}>
-          <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>Chứng chỉ</h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <SectionCard title="Chứng chỉ">
+          <div className="flex flex-wrap gap-1.5">
             {certificates.map((cert, i) => (
-              <div key={i} style={{ fontSize: 8, color: '#475569', background: '#f8fafc', borderRadius: 8, padding: '4px 8px', border: '1px solid #e2e8f0' }}>
+              <div key={i} className="cand-fs-xs rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-slate-600">
                 {cert.name}{cert.year ? ` (${cert.year})` : ''}
               </div>
             ))}
           </div>
-        </div>
+        </SectionCard>
       )}
 
       {(candidate.jpResidenceStatus || candidate.visaExpirationDate || candidate.currentResidence) && (
-        <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px' }}>
-          <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>Visa & cư trú</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {[
-              ['Tư cách lưu trú', getScoutResidenceStatusLabel(candidate.jpResidenceStatus)],
-              ['Ngày hết hạn visa', formatScoutDate(candidate.visaExpirationDate)],
-              ['Nơi cư trú hiện tại', candidate.currentResidence],
-              ['Hộ chiếu', formatScoutYesNo(candidate.passport)],
-            ].filter(([, value]) => value && value !== '—').map(([label, value]) => (
-              <div key={label}>
-                <div style={{ fontSize: 8, color: '#94a3b8', marginBottom: 2 }}>{label}</div>
-                <div style={{ fontSize: 9, fontWeight: 500, color: '#1e293b' }}>{value}</div>
-              </div>
-            ))}
+        <SectionCard title="Visa & cư trú">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <DetailField label="Tư cách lưu trú" value={getScoutResidenceStatusLabel(candidate.jpResidenceStatus)} />
+            <DetailField label="Ngày hết hạn visa" value={formatScoutDate(candidate.visaExpirationDate)} />
+            <DetailField label="Nơi cư trú hiện tại" value={candidate.currentResidence} />
+            <DetailField label="Hộ chiếu" value={formatScoutYesNo(candidate.passport)} />
           </div>
-        </div>
+        </SectionCard>
       )}
 
       {(candidate.currentIncome != null || candidate.desiredIncome != null) && (
-        <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px' }}>
-          <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>Lương</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <div>
-              <div style={{ fontSize: 8, color: '#94a3b8', marginBottom: 2 }}>Lương hiện tại</div>
-              <div style={{ fontSize: 9, fontWeight: 600, color: '#1e293b' }}>{formatScoutIncome(candidate.currentIncome)}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 8, color: '#94a3b8', marginBottom: 2 }}>Lương mong muốn</div>
-              <div style={{ fontSize: 9, fontWeight: 600, color: '#1e293b' }}>{formatScoutIncome(candidate.desiredIncome)}</div>
-            </div>
+        <SectionCard title="Lương">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <DetailField label="Lương hiện tại" value={formatScoutIncome(candidate.currentIncome)} />
+            <DetailField label="Lương mong muốn" value={formatScoutIncome(candidate.desiredIncome)} />
           </div>
-        </div>
+        </SectionCard>
       )}
 
       {candidate.motivation && (
-        <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px' }}>
-          <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>Động lực</h3>
-          <p style={{ fontSize: 8, color: '#475569', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>{candidate.motivation}</p>
-        </div>
+        <SectionCard title="Động lực">
+          <p className="cand-fs-sm whitespace-pre-wrap leading-relaxed text-slate-600">{candidate.motivation}</p>
+        </SectionCard>
       )}
     </div>
   )
@@ -451,21 +672,16 @@ function CandidateDetail({ candidate, loading }) {
 
 function CandidateSidebar({
   candidate,
-  listSource,
   exploreSubmitting,
   onExploreStatus,
 }) {
   if (!candidate) {
-    return (
-      <div className="bg-white rounded-xl border border-slate-100 text-center" style={{ padding: 16, fontSize: 9, color: '#94a3b8' }}>
-        Chưa chọn ứng viên
-      </div>
-    )
+    return null
   }
 
   const pipeline = getScoutPipelineMeta(candidate.pipelineStatus)
   const source = getScoutUnlockSourceMeta(candidate.unlockType)
-  const isPerformanceList = listSource === 'scout_performance'
+  const isPerformanceUnlock = isScoutPerformanceUnlock(candidate)
   const perfReq = candidate.performanceRequest
   const perfStatusMeta = perfReq?.status ? getScoutPerformanceRequestMeta(perfReq.status) : null
   const exploreMeta = perfReq?.businessExploreStatus
@@ -499,29 +715,20 @@ function CandidateSidebar({
   ]
 
   return (
-    <div className="flex flex-col gap-2 candidate-scrollbar" style={{ minHeight: 0 }}>
-      {isPerformanceList && (
-        <div className="bg-white rounded-xl border border-violet-100" style={{ padding: '10px' }}>
-          <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>Scout Performance · WS</h3>
+    <div className="candidate-scrollbar flex min-h-0 flex-col gap-3">
+      {isPerformanceUnlock && (
+        <div className="cand-surface border border-violet-100 bg-white shadow-sm">
+          <h3 className="cand-fs-sm mb-2 font-bold text-slate-900">Scout Performance · WS</h3>
           {!perfReq ? (
-            <p style={{ fontSize: 8, color: '#94a3b8', lineHeight: 1.4 }}>
+            <p className="cand-fs-xs text-slate-400">
               Chưa có yêu cầu WS gắn với hồ sơ này.
             </p>
           ) : (
             <>
               {perfStatusMeta && (
                 <div
-                  style={{
-                    width: '100%',
-                    fontSize: 9,
-                    padding: '5px 6px',
-                    borderRadius: 4,
-                    border: '1px solid #e2e8f0',
-                    color: perfStatusMeta.color,
-                    background: perfStatusMeta.bg,
-                    fontWeight: 600,
-                    marginBottom: 6,
-                  }}
+                  className="cand-fs-xs mb-1.5 w-full rounded border border-slate-200 px-1.5 py-1 font-semibold"
+                  style={{ color: perfStatusMeta.color, background: perfStatusMeta.bg }}
                 >
                   Yêu cầu: {perfStatusMeta.label}
                   {perfReq.recommendationCount > 0 ? ` · ${perfReq.recommendationCount} gợi ý` : ''}
@@ -529,44 +736,31 @@ function CandidateSidebar({
               )}
               {exploreMeta ? (
                 <div
-                  style={{
-                    width: '100%',
-                    fontSize: 9,
-                    padding: '5px 6px',
-                    borderRadius: 4,
-                    border: '1px solid #e2e8f0',
-                    color: exploreMeta.color,
-                    background: exploreMeta.bg,
-                    fontWeight: 600,
-                    marginBottom: 6,
-                  }}
+                  className="cand-fs-xs mb-1.5 w-full rounded border border-slate-200 px-1.5 py-1 font-semibold"
+                  style={{ color: exploreMeta.color, background: exploreMeta.bg }}
                 >
                   Làm việc với WS: {exploreMeta.label}
                 </div>
               ) : perfReq.wantsSimilarCandidates ? (
-                <div style={{ fontSize: 8, color: '#7c3aed', fontWeight: 600, marginBottom: 6 }}>
+                <div className="cand-fs-2xs mb-1.5 font-semibold text-violet-600">
                   WS đang tìm ứng viên tương tự cho bạn
                 </div>
               ) : perfReq.status === 'pending' ? (
-                <div style={{ fontSize: 8, color: '#d97706', marginBottom: 6 }}>
+                <div className="cand-fs-2xs mb-1.5 text-amber-600">
                   WS đang xem xét yêu cầu của bạn
                 </div>
               ) : null}
               {canSetExplore && (
-                <div style={{ marginBottom: 6 }}>
-                  <p style={{ fontSize: 8, color: '#475569', marginBottom: 6, lineHeight: 1.4 }}>
+                <div className="mb-1.5">
+                  <p className="cand-fs-2xs mb-1.5 text-slate-600">
                     WS có gợi ý phù hợp. Bạn có muốn WS hỗ trợ thêm về ứng viên này?
                   </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div className="flex flex-col gap-1">
                     <button
                       type="button"
                       disabled={exploreSubmitting}
                       onClick={() => onExploreStatus?.(perfReq.id, 'interested')}
-                      style={{
-                        width: '100%', fontSize: 9, fontWeight: 600, color: 'white', background: '#4f46e5',
-                        border: 'none', borderRadius: 4, padding: '6px', cursor: exploreSubmitting ? 'wait' : 'pointer',
-                        opacity: exploreSubmitting ? 0.7 : 1,
-                      }}
+                      className="cand-fs-xs w-full rounded bg-indigo-600 px-2 py-1.5 font-semibold text-white disabled:opacity-70"
                     >
                       Có — WS hỗ trợ liên hệ
                     </button>
@@ -574,12 +768,7 @@ function CandidateSidebar({
                       type="button"
                       disabled={exploreSubmitting}
                       onClick={() => onExploreStatus?.(perfReq.id, 'declined')}
-                      style={{
-                        width: '100%', fontSize: 9, fontWeight: 600, color: '#64748b', background: '#f8fafc',
-                        border: '1px solid #e2e8f0', borderRadius: 4, padding: '6px',
-                        cursor: exploreSubmitting ? 'wait' : 'pointer',
-                        opacity: exploreSubmitting ? 0.7 : 1,
-                      }}
+                      className="cand-fs-xs w-full rounded border border-slate-200 bg-slate-50 px-2 py-1.5 font-semibold text-slate-600 disabled:opacity-70"
                     >
                       Không, cảm ơn
                     </button>
@@ -588,22 +777,16 @@ function CandidateSidebar({
               )}
               <Link
                 to={perfReq.id ? `/business/scout?performanceRequestId=${perfReq.id}` : '/business/scout'}
-                style={{
-                  fontSize: 8, fontWeight: 600, color: '#3b82f6', textDecoration: 'none',
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4,
-                }}
+                className="cand-fs-2xs mb-1 flex items-center justify-between font-semibold text-[#0077B6]"
               >
                 Xem gợi ý trên Scout
-                <ChevronRight style={{ width: 9, height: 9 }} />
+                <ChevronRight className="cand-icon" />
               </Link>
               <Link
                 to="/business/messages?tab=ws"
-                style={{
-                  fontSize: 8, fontWeight: 600, color: '#7c3aed', textDecoration: 'none',
-                  display: 'flex', alignItems: 'center', gap: 4,
-                }}
+                className="cand-fs-2xs flex items-center gap-1 font-semibold text-violet-600"
               >
-                <MessageSquare style={{ width: 9, height: 9 }} />
+                <MessageSquare className="cand-icon" />
                 Chat với WS
               </Link>
             </>
@@ -611,94 +794,82 @@ function CandidateSidebar({
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px' }}>
-        <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>
-          {listSource === 'scout_performance' ? 'Trạng thái tiếp cận' : 'Trạng thái'}
+      <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
+        <h3 className="cand-fs-sm mb-2 font-bold text-slate-900">
+          {isPerformanceUnlock ? 'Trạng thái tiếp cận' : 'Trạng thái'}
         </h3>
         <div
-          style={{
-            width: '100%',
-            fontSize: 9,
-            padding: '5px 6px',
-            borderRadius: 4,
-            border: '1px solid #e2e8f0',
-            color: pipeline.color,
-            background: pipeline.bg,
-            fontWeight: 600,
-            marginBottom: 6,
-          }}
+          className="cand-fs-sm mb-1 w-full rounded-md border border-slate-200 px-2 py-1 font-semibold"
+          style={{ color: pipeline.color, background: pipeline.bg }}
         >
           {pipeline.label}
         </div>
-        <div style={{ fontSize: 8, color: '#94a3b8' }}>
-          {isPerformanceList ? 'Gói Scout Performance' : `Chi phí mở: ${candidate.creditCost ?? '—'} credit`}
-        </div>
+        <p className="cand-fs-xs text-slate-400">
+          {isPerformanceUnlock ? 'Gói Scout Performance · Phí 20% khi tuyển thành công' : `Chi phí mở: ${candidate.creditCost ?? '—'} credit`}
+        </p>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px' }}>
-        <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>Hành trình</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
+        <h3 className="cand-fs-sm mb-2 font-bold text-slate-900">Hoạt động</h3>
+        <div className="flex flex-col gap-1.5">
           {timeline.map((item, i) => (
-            <div key={i} style={{ display: 'flex', gap: 6 }}>
-              <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 7, fontWeight: 600, color: '#4f46e5' }}>
+            <div key={i} className="flex gap-2">
+              <div
+                className="cand-fs-2xs flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-bold text-white"
+                style={{ background: BRAND }}
+              >
                 ●
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 8, color: '#475569', fontWeight: 500 }}>{item.action}</div>
-                <div style={{ fontSize: 7, color: '#94a3b8', marginTop: 1 }}>{item.date}</div>
+              <div className="min-w-0 flex-1">
+                <div className="cand-fs-sm font-medium text-slate-700">{item.action}</div>
+                <div className="cand-fs-xs mt-0.5 text-slate-400">{item.date}</div>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px' }}>
+      {!isPerformanceUnlock && (
+      <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
         {candidate.phone ? (
           <a
             href={`tel:${candidate.phone}`}
-            style={{
-              width: '100%', fontSize: 9, fontWeight: 600, color: 'white', background: '#3b82f6',
-              border: 'none', borderRadius: 4, padding: '6px', cursor: 'pointer', marginBottom: 6,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, textDecoration: 'none',
-            }}
+            className="cand-fs-sm mb-1 flex w-full items-center justify-center gap-1 rounded-lg py-1.5 font-semibold text-white"
+            style={{ background: BRAND }}
           >
-            <Phone style={{ width: 9, height: 9 }} />
+            <Phone className="cand-icon" />
             Gọi {candidate.phone}
           </a>
         ) : (
-          <button type="button" disabled style={{ width: '100%', fontSize: 9, fontWeight: 600, color: '#94a3b8', background: '#f1f5f9', border: 'none', borderRadius: 4, padding: '6px', marginBottom: 6 }}>
+          <button type="button" disabled className="cand-fs-sm mb-1 w-full rounded-lg bg-slate-100 py-1.5 font-semibold text-slate-400">
             Không có SĐT
           </button>
         )}
         {candidate.email ? (
           <a
             href={`mailto:${candidate.email}`}
-            style={{
-              width: '100%', fontSize: 9, fontWeight: 600, color: '#3b82f6', background: 'white',
-              border: '1px solid #3b82f6', borderRadius: 4, padding: '6px', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, textDecoration: 'none',
-            }}
+            className="cand-fs-sm flex w-full items-center justify-center gap-1 rounded-lg border py-1.5 font-semibold"
+            style={{ borderColor: BRAND, color: BRAND }}
           >
-            <Mail style={{ width: 9, height: 9 }} />
+            <Mail className="cand-icon" />
             Email
           </a>
         ) : (
-          <button type="button" disabled style={{ width: '100%', fontSize: 9, fontWeight: 600, color: '#94a3b8', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 4, padding: '6px' }}>
+          <button type="button" disabled className="cand-fs-sm w-full rounded-lg border border-slate-200 bg-slate-50 py-1.5 font-semibold text-slate-400">
             Không có email
           </button>
         )}
       </div>
+      )}
 
-      <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px' }}>
+      <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
         <Link
           to="/business/scout"
-          style={{
-            fontSize: 8, fontWeight: 600, color: '#3b82f6', textDecoration: 'none',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}
+          className="cand-fs-sm flex items-center justify-between font-semibold hover:opacity-80"
+          style={{ color: BRAND }}
         >
           Tìm thêm trên Scout
-          <ChevronRight style={{ width: 9, height: 9 }} />
+          <ChevronRight className="cand-icon" />
         </Link>
       </div>
     </div>
@@ -706,11 +877,16 @@ function CandidateSidebar({
 }
 
 const Candidate = () => {
-  const [searchParams] = useSearchParams()
-  const listSourceParam = searchParams.get('list')
-  const listSource = CANDIDATE_LIST_SOURCES.some((s) => s.id === listSourceParam)
-    ? listSourceParam
-    : CANDIDATE_LIST_SOURCES[0].id
+  const [searchParams, setSearchParams] = useSearchParams()
+  const listFilter = parseListFilter(searchParams.get('list'))
+
+  const handleListFilterChange = useCallback((nextFilter) => {
+    if (nextFilter === LIST_FILTER_ALL) {
+      setSearchParams({}, { replace: true })
+    } else {
+      setSearchParams({ list: nextFilter }, { replace: true })
+    }
+  }, [setSearchParams])
 
   const [candidates, setCandidates] = useState([])
   const [loading, setLoading] = useState(true)
@@ -763,7 +939,7 @@ const Candidate = () => {
         page,
         limit: PAGE_SIZE,
         search: searchQuery || undefined,
-        unlockType: listSource,
+        unlockType: listFilter === LIST_FILTER_ALL ? undefined : listFilter,
         sortBy: 'unlockedAt',
         sortOrder: 'DESC',
       })
@@ -786,13 +962,13 @@ const Candidate = () => {
     } finally {
       setLoading(false)
     }
-  }, [page, searchQuery, listSource])
+  }, [page, searchQuery, listFilter])
 
   useEffect(() => {
     setPage(1)
     setSelectedId(null)
     setSelectedDetail(null)
-  }, [listSource])
+  }, [listFilter])
 
   useEffect(() => {
     loadList()
@@ -837,45 +1013,55 @@ const Candidate = () => {
 
   const totalPages = pagination.totalPages || 0
   const totalItems = pagination.total || 0
+  const showGlobalEmpty = !loading && totalItems === 0 && !searchQuery.trim() && listFilter === LIST_FILTER_ALL
 
   return (
     <>
-      <style>{scrollbarStyle}</style>
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
+      <style>{candidatePageStyles}</style>
+      <div className="business-candidates-shell flex h-full min-h-0 flex-col bg-[#f8f9fa]">
         {error && (
-          <div style={{ margin: '8px 12px 0', padding: '8px 10px', borderRadius: 8, background: '#fef2f2', border: '1px solid #fecaca', fontSize: 9, color: '#b91c1c' }}>
+          <div className="cand-fs-sm mx-3 mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-red-700">
             {error}
           </div>
         )}
-        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr 220px', gap: 12, flex: 1, overflow: 'hidden', padding: 12 }}>
-          <div style={{ height: '100%', overflowY: 'auto', background: 'white', borderRadius: 12, border: '1px solid #e2e8f0' }} className="candidate-scrollbar">
-            <CandidateList
-              candidates={candidates}
-              loading={loading}
-              selected={selectedId}
-              onSelect={setSelectedId}
-              searchInput={searchInput}
-              onSearchChange={setSearchInput}
-              total={totalItems}
-              page={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-              listSource={listSource}
-            />
-          </div>
 
-          <div style={{ height: '100%', overflowY: 'auto' }} className="candidate-scrollbar">
-            <CandidateDetail candidate={selectedCand} loading={detailLoading && !selectedCand} />
-          </div>
+        <div className="business-candidates-ui flex min-h-0 flex-1 flex-col">
+        {showGlobalEmpty ? (
+          <CandidatesEmptyState />
+        ) : (
+          <div className="business-candidates-grid">
+            <div className="flex h-full min-h-0 flex-col">
+              <CandidateList
+                candidates={candidates}
+                loading={loading}
+                selected={selectedId}
+                onSelect={setSelectedId}
+                searchInput={searchInput}
+                onSearchChange={setSearchInput}
+                total={totalItems}
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                listFilter={listFilter}
+                onListFilterChange={handleListFilterChange}
+              />
+            </div>
 
-          <div style={{ height: '100%', overflowY: 'auto' }} className="candidate-scrollbar">
-            <CandidateSidebar
-              candidate={selectedCand}
-              listSource={listSource}
-              exploreSubmitting={exploreSubmitting}
-              onExploreStatus={handlePerformanceExplore}
-            />
+            <div className="candidate-scrollbar min-h-0 overflow-y-auto">
+              <div className={`business-candidates-detail-grid ${selectedCand ? 'has-sidebar' : ''}`}>
+                <CandidateDetail
+                  candidate={selectedCand}
+                  loading={detailLoading && !selectedCand}
+                />
+                <CandidateSidebar
+                  candidate={selectedCand}
+                  exploreSubmitting={exploreSubmitting}
+                  onExploreStatus={handlePerformanceExplore}
+                />
+              </div>
+            </div>
           </div>
+        )}
         </div>
       </div>
     </>

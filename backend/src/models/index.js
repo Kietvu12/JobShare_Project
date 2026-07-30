@@ -1,5 +1,6 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
+import { applyCollaboratorFindOptionsHook } from '../utils/collaboratorSchema.js';
 
 /**
  * Định nghĩa các model Sequelize dựa trên cấu trúc DB trong schema/structure.sql
@@ -361,6 +362,8 @@ export const Collaborator = sequelize.define(
     deletedAt: 'deleted_at'
   }
 );
+
+applyCollaboratorFindOptionsHook(Collaborator);
 
 // Applicants
 export const Applicant = sequelize.define(
@@ -1179,6 +1182,85 @@ export const BusinessWsChatMessage = sequelize.define(
     updatedAt: 'updated_at',
     paranoid: true,
     deletedAt: 'deleted_at',
+  }
+);
+
+export const BusinessJobBuilderThread = sequelize.define(
+  'BusinessJobBuilderThread',
+  {
+    id: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    businessId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: false,
+      field: 'business_id',
+    },
+    jobId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: true,
+      field: 'job_id',
+    },
+    localClientId: {
+      type: DataTypes.STRING(80),
+      allowNull: true,
+      field: 'local_client_id',
+    },
+    title: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      defaultValue: 'JD mới',
+    },
+    aiSessionId: {
+      type: DataTypes.STRING(128),
+      allowNull: true,
+      field: 'ai_session_id',
+    },
+    formSnapshot: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      field: 'form_snapshot',
+    },
+    messages: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    jdOriginalStored: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      field: 'jd_original_stored',
+    },
+    // Explicit field map — tránh Sequelize order/select dùng camelCase `updatedAt`
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'created_at',
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'updated_at',
+    },
+    deletedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'deleted_at',
+    },
+  },
+  {
+    tableName: 'business_job_builder_threads',
+    timestamps: true,
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt',
+    paranoid: true,
+    deletedAt: 'deletedAt',
+    indexes: [
+      { fields: ['business_id', 'updated_at'] },
+      { fields: ['business_id', 'job_id'] },
+      { unique: true, fields: ['business_id', 'local_client_id'] },
+    ],
   }
 );
 
@@ -4653,6 +4735,11 @@ BusinessWsChatMessage.belongsTo(Business, { as: 'business', foreignKey: 'busines
 Business.hasMany(BusinessWsChatSession, { as: 'wsChatSessions', foreignKey: 'businessId' });
 BusinessScoutPerformanceRequest.hasOne(BusinessWsChatSession, { as: 'wsChatSession', foreignKey: 'performanceRequestId' });
 
+BusinessJobBuilderThread.belongsTo(Business, { as: 'business', foreignKey: 'businessId' });
+BusinessJobBuilderThread.belongsTo(Job, { as: 'job', foreignKey: 'jobId' });
+Business.hasMany(BusinessJobBuilderThread, { as: 'jobBuilderThreads', foreignKey: 'businessId' });
+Job.hasMany(BusinessJobBuilderThread, { as: 'jobBuilderThreads', foreignKey: 'jobId' });
+
 BusinessInvoice.belongsTo(Business, { as: 'business', foreignKey: 'businessId' });
 Business.hasMany(BusinessInvoice, { as: 'invoices', foreignKey: 'businessId' });
 
@@ -5137,6 +5224,7 @@ export default {
   BusinessScoutPerformanceRecommendation,
   BusinessWsChatSession,
   BusinessWsChatMessage,
+  BusinessJobBuilderThread,
   BusinessInvoice,
   BusinessCreditRequest,
   BusinessLandingPage,

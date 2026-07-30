@@ -77,6 +77,10 @@ import {
 } from '../../utils/cvMatchingCompleteness.js';
 import { getJobCategoryDisplayName } from '../../utils/jobCategoryDisplay.js';
 import QuickCreateCandidateDrawer from './QuickCreateCandidateDrawer.jsx';
+import {
+  MarketplaceCommissionSplitPanel,
+  computeMarketplaceCommissionSplit,
+} from './MarketplaceCommissionSplit.jsx';
 
 const MICROSOFT_TRANSLATOR_ENDPOINT = 'https://api.cognitive.microsofttranslator.com/translate?api-version=3.0';
 const MICROSOFT_TRANSLATOR_KEY = import.meta.env.VITE_MICROSOFT_TRANSLATOR_KEY || '';
@@ -1327,6 +1331,17 @@ const JobDetailPage = ({
 
   // Get job tags
   const jobTags = [];
+  if (job.isMarketplace || job.isDirectRecruitment || job.businessId || job.business_id || job.platformFeePercent != null) {
+    jobTags.push({
+      label:
+        language === 'vi'
+          ? 'Tiến cử trực tiếp với doanh nghiệp'
+          : language === 'en'
+            ? 'Direct recruitment with company'
+            : '企業への直接推薦',
+      color: 'violet',
+    });
+  }
   if (job.isHot) {
     jobTags.push({ label: t('jobTagSelection'), color: 'green' });
   }
@@ -1492,7 +1507,25 @@ const JobDetailPage = ({
   const rawRange = yearSalaryRangeStringForCommission(apiSalaryRanges);
   const salaryRangeData = rawRange ? parseSalaryRangeRaw(rawRange) : null;
 
-  if (useAdminAPI) {
+  // Job sàn / DN: ưu tiên layout 2 tầng (% − % sàn), không quy ra tiền từ lương
+  const marketplaceCommissionSplit = computeMarketplaceCommissionSplit({
+    job,
+    useAdminAPI,
+    jobValues: jobValuesForCommission,
+    formatAmountWithCurrency,
+    campaignPercent,
+    language,
+  });
+
+  if (marketplaceCommissionSplit) {
+    detailCommissionText = marketplaceCommissionSplit.agentFeeText;
+    detailCommissionTiers = [
+      {
+        label: language === 'vi' ? 'Phí bạn nhận' : language === 'en' ? 'Your fee' : '受取額',
+        amount: marketplaceCommissionSplit.agentFeeText,
+      },
+    ];
+  } else if (useAdminAPI) {
     // Admin: hiển thị raw value, không tính toán
     if (jobValuesForCommission.length > 0) {
       const firstJv = pickPrimaryCommissionJobValue(jobValuesForCommission) ?? jobValuesForCommission[0];
@@ -1697,6 +1730,7 @@ const JobDetailPage = ({
       green: { backgroundColor: '#dcfce7', color: '#166534', borderColor: '#86efac' },
       orange: { backgroundColor: '#fed7aa', color: '#9a3412', borderColor: '#fdba74' },
       blue: { backgroundColor: '#dbeafe', color: '#1e40af', borderColor: '#93c5fd' },
+      violet: { backgroundColor: '#ede9fe', color: '#5b21b6', borderColor: '#c4b5fd' },
     };
     return colors[color] || colors.green;
   };
@@ -2306,10 +2340,15 @@ const JobDetailPage = ({
               </div>
 
               {/* Cột phải: Thẻ điều kiện phí (ẩn landing public) + khung thông tin nhanh */}
-              {((!publicLanding && (detailCommissionTiers.length > 0 || detailCommissionText !== contactLabel)) || (displaySalaryRanges?.length > 0 || displayCategoryName || displayGender || (displayWorkingLocations?.length > 0) || displayRecruitmentLocation)) && (
-                <div className="w-full lg:w-64 xl:w-72 2xl:w-80 flex-shrink-0 flex flex-col gap-1.5 sm:gap-2">
+              {((!publicLanding && (marketplaceCommissionSplit || detailCommissionTiers.length > 0 || detailCommissionText !== contactLabel)) || (displaySalaryRanges?.length > 0 || displayCategoryName || displayGender || (displayWorkingLocations?.length > 0) || displayRecruitmentLocation)) && (
+                <div className="w-full lg:w-64 xl:w-72 2xl:w-80 flex-shrink-0 flex flex-col gap-1.5 sm:gap-2 overflow-visible">
                   {/* Block điều kiện phí */}
-                  {!publicLanding && (detailCommissionTiers.length > 0 || detailCommissionText !== contactLabel) && (
+                  {!publicLanding && marketplaceCommissionSplit && !useAdminAPI ? (
+                    <MarketplaceCommissionSplitPanel
+                      split={marketplaceCommissionSplit}
+                      language={language}
+                    />
+                  ) : !publicLanding && (detailCommissionTiers.length > 0 || detailCommissionText !== contactLabel) ? (
                     <div className="flex flex-col gap-1 sm:gap-1.5">
                       {isInCampaign && (
                         <span
@@ -2390,7 +2429,7 @@ const JobDetailPage = ({
                         )}
                       </div>
                     </div>
-                  )}
+                  ) : null}
 
                   {/* Khung nhỏ dưới điều kiện phí: thu nhập năm, danh mục, giới tính, nơi làm việc (chỉ hiển thị khi có dữ liệu) */}
                   {(displaySalaryRanges?.length > 0 || displayCategoryName || displayRecruitmentType || displayGender || (displayWorkingLocations?.length > 0) || displayRecruitmentLocation) && (

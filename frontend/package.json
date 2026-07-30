@@ -6,7 +6,7 @@
   "homepage": "/",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/build-business-landing-template.mjs && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

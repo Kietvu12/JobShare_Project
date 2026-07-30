@@ -17,7 +17,6 @@ export default function CreditTopUpModal({
   const isEdit = mode === 'edit'
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('bank_transfer')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
 
@@ -25,19 +24,16 @@ export default function CreditTopUpModal({
     if (!open) {
       setAmount('')
       setNote('')
-      setPaymentMethod('bank_transfer')
       setFormError('')
       return
     }
     if (isEdit && initialValues) {
       setAmount(String(initialValues.amount || ''))
       setNote(initialValues.note || '')
-      setPaymentMethod(initialValues.paymentMethod || 'bank_transfer')
       setFormError('')
     } else if (!isEdit) {
       setAmount('')
       setNote('')
-      setPaymentMethod('bank_transfer')
       setFormError('')
     }
   }, [open, isEdit, initialValues])
@@ -57,7 +53,6 @@ export default function CreditTopUpModal({
       const payload = {
         amount: creditAmount,
         note: note.trim() || undefined,
-        paymentMethod,
       }
       const res = isEdit
         ? await apiService.updateBusinessCreditRequest(requestId, payload)
@@ -116,18 +111,6 @@ export default function CreditTopUpModal({
           </label>
 
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 8, fontWeight: 600, color: '#475569' }}>Phương thức thanh toán</span>
-            <select
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-              style={{ border: bd, borderRadius: 6, padding: '8px 10px', fontSize: 10, outline: 'none', background: '#fff' }}
-            >
-              <option value="bank_transfer">Chuyển khoản ngân hàng</option>
-              <option value="other">Khác / Liên hệ WS</option>
-            </select>
-          </label>
-
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: 8, fontWeight: 600, color: '#475569' }}>Ghi chú (tuỳ chọn)</span>
             <textarea
               value={note}
@@ -157,7 +140,7 @@ export default function CreditTopUpModal({
               disabled={submitting}
               style={{
                 border: 'none', borderRadius: 6, padding: '8px 14px', fontSize: 9, fontWeight: 700,
-                background: submitting ? '#a5b4fc' : '#4f46e5', color: '#fff', cursor: submitting ? 'not-allowed' : 'pointer',
+                background: submitting ? '#94a3b8' : '#0077B6', color: '#fff', cursor: submitting ? 'not-allowed' : 'pointer',
                 display: 'inline-flex', alignItems: 'center', gap: 6,
               }}
             >

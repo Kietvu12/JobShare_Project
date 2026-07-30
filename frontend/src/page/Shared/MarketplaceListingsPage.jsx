@@ -30,7 +30,7 @@ const MarketplaceListingsPage = ({ variant = 'admin' }) => {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, totalPages: 0 });
   const [actionId, setActionId] = useState(null);
-  const [noteModal, setNoteModal] = useState({ open: false, id: null, action: null, note: '', reason: '' });
+  const [noteModal, setNoteModal] = useState({ open: false, id: null, action: null, note: '', reason: '', platformFeePercent: '20' });
 
   const loadList = useCallback(async () => {
     try {
@@ -64,7 +64,16 @@ const MarketplaceListingsPage = ({ variant = 'admin' }) => {
     try {
       let res;
       if (noteModal.action === 'approve') {
-        res = await apiService.approveAdminCandidateSharingListing(noteModal.id, { adminNote: noteModal.note });
+        const fee = parseFloat(String(noteModal.platformFeePercent).replace(',', '.'));
+        if (!Number.isFinite(fee) || fee < 0 || fee > 100) {
+          alert('Phí dịch vụ phải từ 0 đến 100%');
+          setActionId(null);
+          return;
+        }
+        res = await apiService.approveAdminCandidateSharingListing(noteModal.id, {
+          adminNote: noteModal.note,
+          platformFeePercent: fee,
+        });
       } else {
         res = await apiService.rejectAdminCandidateSharingListing(noteModal.id, {
           rejectionReason: noteModal.reason,
@@ -72,7 +81,7 @@ const MarketplaceListingsPage = ({ variant = 'admin' }) => {
         });
       }
       if (res?.success) {
-        setNoteModal({ open: false, id: null, action: null, note: '', reason: '' });
+        setNoteModal({ open: false, id: null, action: null, note: '', reason: '', platformFeePercent: '20' });
         loadList();
       } else {
         alert(res?.message || 'Thao tác thất bại');
@@ -149,7 +158,14 @@ const MarketplaceListingsPage = ({ variant = 'admin' }) => {
                       <button
                         type="button"
                         disabled={actionId === item.id}
-                        onClick={() => setNoteModal({ open: true, id: item.id, action: 'approve', note: '', reason: '' })}
+                        onClick={() => setNoteModal({
+                          open: true,
+                          id: item.id,
+                          action: 'approve',
+                          note: '',
+                          reason: '',
+                          platformFeePercent: String(item.platformFeePercent ?? 20),
+                        })}
                         className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-emerald-600 text-white disabled:opacity-50"
                       >
                         <CheckCircle className="w-3.5 h-3.5" /> Duyệt & Publish
@@ -177,6 +193,20 @@ const MarketplaceListingsPage = ({ variant = 'admin' }) => {
             <h3 className="font-bold text-slate-800 mb-3">
               {noteModal.action === 'approve' ? 'Duyệt & publish lên sàn CTV' : 'Từ chối listing'}
             </h3>
+            {noteModal.action === 'approve' && (
+              <div className="mb-2">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Phí sử dụng dịch vụ (%)</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.01"
+                  value={noteModal.platformFeePercent}
+                  onChange={(e) => setNoteModal((m) => ({ ...m, platformFeePercent: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+            )}
             {noteModal.action === 'reject' && (
               <textarea
                 rows={2}
@@ -194,7 +224,7 @@ const MarketplaceListingsPage = ({ variant = 'admin' }) => {
               className="w-full border rounded-lg px-3 py-2 text-sm mb-3"
             />
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setNoteModal({ open: false, id: null, action: null, note: '', reason: '' })} className="text-sm px-3 py-1.5 border rounded-lg">Hủy</button>
+              <button type="button" onClick={() => setNoteModal({ open: false, id: null, action: null, note: '', reason: '', platformFeePercent: '20' })} className="text-sm px-3 py-1.5 border rounded-lg">Hủy</button>
               <button type="button" onClick={handleAction} className="text-sm px-3 py-1.5 rounded-lg bg-blue-600 text-white">Xác nhận</button>
             </div>
           </div>

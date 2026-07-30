@@ -1,8 +1,15 @@
-const STORAGE_KEY = 'wjs_job_builder_threads';
+import apiService from '../services/api';
 
-function readAll() {
+const LEGACY_STORAGE_KEY = 'wjs_job_builder_threads';
+const LEGACY_IMPORT_FLAG_PREFIX = 'wjs_job_builder_threads_legacy_imported_';
+
+export function createJobBuilderThreadId() {
+  return `thread-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function readLegacyLocalThreads() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -10,49 +17,85 @@ function readAll() {
   }
 }
 
-function writeAll(threads) {
+export async function importLegacyJobBuilderThreadsFromLocalStorage() {
+  const bid = getCurrentBusinessUserId() || 'unknown';
+  const flagKey = `${LEGACY_IMPORT_FLAG_PREFIX}${bid}`;
+  if (localStorage.getItem(flagKey) === '1') return { imported: 0 };
+  const legacy = readLegacyLocalThreads();
+  if (!legacy.length) {
+    localStorage.setItem(flagKey, '1');
+    return { imported: 0 };
+  }
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(threads));
-  } catch {
-    /* quota */
+    const res = await apiService.importLegacyBusinessJobBuilderThreads(legacy);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+    localStorage.setItem(flagKey, '1');
+    return res?.data || { imported: legacy.length };
+  } catch (e) {
+    console.warn('Legacy JD thread import failed:', e);
+    throw e;
   }
 }
 
-export function createJobBuilderThreadId() {
-  return `thread-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+export async function listJobBuilderThreads() {
+  const res = await apiService.listBusinessJobBuilderThreads();
+  return res?.data?.threads ?? [];
 }
 
-export function listJobBuilderThreads() {
-  return readAll().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-}
-
-export function getJobBuilderThread(threadId) {
+export async function getJobBuilderThread(threadId) {
   if (!threadId) return null;
-  return readAll().find((t) => t.id === threadId) || null;
+  try {
+    const res = await apiService.getBusinessJobBuilderThread(threadId);
+    return res?.data?.thread ?? null;
+  } catch {
+    return null;
+  }
 }
 
-export function getJobBuilderThreadByJobId(jobId) {
+export async function getJobBuilderThreadByJobId(jobId) {
   if (!jobId) return null;
-  return readAll().find((t) => Number(t.jobId) === Number(jobId)) || null;
+  const res = await apiService.listBusinessJobBuilderThreads({ jobId: Number(jobId) });
+  const threads = res?.data?.threads ?? [];
+  return threads[0] || null;
 }
 
-export function upsertJobBuilderThread(thread) {
-  if (!thread?.id) return null;
-  const all = readAll();
-  const idx = all.findIndex((t) => t.id === thread.id);
-  const next = {
-    ...thread,
-    updatedAt: Date.now(),
-    createdAt: thread.createdAt || Date.now(),
+export async function ensureJobBuilderThreadForJob(jobId, { title, formSnapshot } = {}) {
+  const numericId = Number(jobId);
+  if (!Number.isFinite(numericId) || numericId <= 0) return null;
+  const existing = await getJobBuilderThreadByJobId(numericId);
+  if (existing) return existing;
+  const thread = {
+    id: createJobBuilderThreadId(),
+    jobId: numericId,
+    title: title || `JD #${numericId}`,
+    messages: [],
+    sessionId: null,
+    formSnapshot: formSnapshot || null,
   };
-  if (idx >= 0) all[idx] = { ...all[idx], ...next };
-  else all.unshift(next);
-  writeAll(all);
-  return next;
+  return upsertJobBuilderThread(thread);
 }
 
-export function deleteJobBuilderThread(threadId) {
-  writeAll(readAll().filter((t) => t.id !== threadId));
+export async function upsertJobBuilderThread(thread) {
+  if (!thread?.id && !thread?.title) return null;
+  const payload = {
+    id: thread.id,
+    jobId: thread.jobId ?? null,
+    title: thread.title || 'JD mới',
+    sessionId: thread.sessionId ?? null,
+    messages: Array.isArray(thread.messages) ? thread.messages : [],
+    formSnapshot: thread.formSnapshot ?? null,
+  };
+  // Chỉ gửi file khi có dữ liệu — tránh ghi đè null / payload quá lớn lúc auto-save
+  if (thread.jdOriginalStored != null) {
+    payload.jdOriginalStored = thread.jdOriginalStored;
+  }
+  const res = await apiService.upsertBusinessJobBuilderThread(payload);
+  return res?.data?.thread ?? null;
+}
+
+export async function deleteJobBuilderThread(threadId) {
+  if (!threadId || !/^\d+$/.test(String(threadId))) return;
+  await apiService.deleteBusinessJobBuilderThread(threadId);
 }
 
 export async function fileToStoredJd(file) {
@@ -83,4 +126,22 @@ export function storedJdToFile(stored) {
   } catch {
     return null;
   }
+}
+
+/** @deprecated — dùng API; giữ export để không vỡ import cũ */
+export function getCurrentBusinessUserId() {
+  try {
+    const raw = localStorage.getItem('user');
+    const user = raw ? JSON.parse(raw) : null;
+    const id = user?.id;
+    if (id == null || id === '') return null;
+    return String(id);
+  } catch {
+    return null;
+  }
+}
+
+/** @deprecated */
+export async function migrateLegacyJobBuilderThreads() {
+  return importLegacyJobBuilderThreadsFromLocalStorage();
 }

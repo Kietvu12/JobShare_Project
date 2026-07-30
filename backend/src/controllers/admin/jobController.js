@@ -28,6 +28,7 @@ import {
   JobRecruitingCompanyBusinessSector
 } from '../../models/index.js';
 import { Op } from 'sequelize';
+import { ensureUniqueJobCode, ensureUniqueJobSlug } from '../../utils/jobSlug.js';
 import sequelize from '../../config/database.js';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
@@ -41,7 +42,12 @@ import {
 } from '../../utils/uploadFilename.js';
 import { generateJdPdfBuffer } from '../../services/jdPdfService.js';
 import { parseDateOnlyQuery } from '../../utils/parseDateOnlyQuery.js';
-import { executeJobListQuery, MAX_JOB_LIST_LIMIT } from '../../services/jobListQueryService.js';
+import {
+  attachMarketplaceDirectRecruitmentFlags,
+  executeJobListQuery,
+  MAX_JOB_LIST_LIMIT,
+} from '../../services/jobListQueryService.js';
+import { mergeJobPickupQueryOptions } from '../../utils/jobPickupSchema.js';
 import { bumpJobListCacheVersion } from '../../services/jobListCache.js';
 import { buildJdDownloadFilename } from '../../utils/jdDownloadFilename.js';
 import {
@@ -75,6 +81,12 @@ function parseAdminJobBody(req) {
   }
 
   return b;
+}
+
+async function rollbackTransactionIfActive(transaction) {
+  if (transaction && !transaction.finished) {
+    await transaction.rollback();
+  }
 }
 
 const VALID_SALARY_CURRENCIES = new Set(['JPY', 'VND', 'USD']);
@@ -118,6 +130,35 @@ function normalizeBenefitCreateRows(benefitsInput) {
         contentJp
       });
     }
+  }
+  return rows;
+}
+
+/** Yêu cầu ứng viên: `content` NOT NULL; fallback sang EN/JP nếu tab VI trống. */
+function normalizeRequirementCreateRows(requirementsInput) {
+  if (!Array.isArray(requirementsInput)) return [];
+  const rows = [];
+  for (const req of requirementsInput) {
+    if (req == null || typeof req !== 'object') continue;
+    const content = String(req.content ?? '').trim();
+    const contentEn = req.contentEn != null && String(req.contentEn).trim() !== ''
+      ? String(req.contentEn).trim()
+      : (req.content_en != null && String(req.content_en).trim() !== ''
+        ? String(req.content_en).trim()
+        : null);
+    const contentJp = req.contentJp != null && String(req.contentJp).trim() !== ''
+      ? String(req.contentJp).trim()
+      : (req.content_jp != null && String(req.content_jp).trim() !== ''
+        ? String(req.content_jp).trim()
+        : null);
+    if (!content && !contentEn && !contentJp) continue;
+    rows.push({
+      content: content || contentEn || contentJp || '',
+      contentEn,
+      contentJp,
+      type: req.type || null,
+      status: req.status || null,
+    });
   }
   return rows;
 }
@@ -195,6 +236,42 @@ function deriveNumberOfHires(body, workingLocations = []) {
   ];
   const raw = candidates.find((v) => v != null && String(v).trim() !== '');
   return raw != null ? String(raw).trim() : null;
+}
+
+/** DB `working_locations.location` NOT NULL — bỏ row trống / map EN/JP → location */
+function normalizeWorkingLocationsForPersist(workingLocations = []) {
+  return (workingLocations || [])
+    .map((loc) => {
+      const location = String(
+        loc?.location || loc?.locationEn || loc?.location_en || loc?.locationJp || loc?.location_jp || '',
+      ).trim();
+      if (!location) return null;
+      return {
+        location,
+        country: loc.country || loc.countryEn || loc.country_en || loc.countryJp || loc.country_jp || null,
+        locationEn: loc.locationEn || loc.location_en || null,
+        locationJp: loc.locationJp || loc.location_jp || null,
+        countryEn: loc.countryEn || loc.country_en || null,
+        countryJp: loc.countryJp || loc.country_jp || null,
+        numberOfHires: loc.numberOfHires || loc.number_of_hires || null,
+      };
+    })
+    .filter(Boolean);
+}
+
+async function buildAdminJobPickupIdsInclude() {
+  const pickupInclude = await mergeJobPickupQueryOptions({
+    model: JobPickup,
+    as: 'pickup',
+    required: false,
+  });
+  return {
+    model: JobPickupId,
+    as: 'jobPickupIds',
+    required: false,
+    separate: true,
+    include: [pickupInclude],
+  };
 }
 
 /**
@@ -364,19 +441,6 @@ export const jobController = {
           ]
         },
         {
-          model: JobPickupId,
-          as: 'jobPickupIds',
-          required: false,
-          separate: true,
-          include: [
-            {
-              model: JobPickup,
-              as: 'pickup',
-              required: false
-            }
-          ]
-        },
-        {
           model: JobCampaign,
           as: 'jobCampaigns',
           required: false,
@@ -402,6 +466,7 @@ export const jobController = {
       }
 
       const jobJson = normalizeJobFilenameFields(typeof job.toJSON === 'function' ? job.toJSON() : { ...job });
+      await attachMarketplaceDirectRecruitmentFlags([jobJson]);
       res.json({
         success: true,
         data: { job: jobJson }
@@ -470,13 +535,6 @@ export const jobController = {
           ]
         },
         {
-          model: JobPickupId,
-          as: 'jobPickupIds',
-          required: false,
-          separate: true,
-          include: [{ model: JobPickup, as: 'pickup', required: false }]
-        },
-        {
           model: JobCampaign,
           as: 'jobCampaigns',
           required: false,
@@ -491,6 +549,7 @@ export const jobController = {
       }
 
       const jobJson = normalizeJobFilenameFields(typeof job.toJSON === 'function' ? job.toJSON() : { ...job });
+      await attachMarketplaceDirectRecruitmentFlags([jobJson]);
       res.json({ success: true, data: { job: jobJson } });
     } catch (error) {
       next(error);
@@ -500,6 +559,8 @@ export const jobController = {
   getJobEditData: async (req, res, next) => {
     try {
       const { id } = req.params;
+
+      const jobPickupIdsInclude = await buildAdminJobPickupIdsInclude();
 
       const job = await Job.findByPk(id, {
         include: [
@@ -560,13 +621,7 @@ export const jobController = {
               { model: Value, as: 'valueRef', required: false }
             ]
           },
-          {
-            model: JobPickupId,
-            as: 'jobPickupIds',
-            required: false,
-            separate: true,
-            include: [{ model: JobPickup, as: 'pickup', required: false }]
-          },
+          jobPickupIdsInclude,
           {
             model: JobCampaign,
             as: 'jobCampaigns',
@@ -773,12 +828,12 @@ export const jobController = {
     try {
       const body = parseAdminJobBody(req);
       const {
-        jobCode,
+        jobCode: inputJobCode,
         jobCategoryId,
         title,
         titleEn,
         titleJp,
-        slug,
+        slug: inputSlug,
         description,
         descriptionEn,
         descriptionJp,
@@ -876,6 +931,7 @@ export const jobController = {
       } = body;
 
       const benefitRows = normalizeBenefitCreateRows(benefits);
+      const requirementRows = normalizeRequirementCreateRows(requirements);
       const normalizeJsonField = (value) => {
         if (value == null || value === '') return null;
         if (Array.isArray(value)) return JSON.stringify(value);
@@ -894,30 +950,18 @@ export const jobController = {
       };
 
       // Validate required fields
-      if (!jobCode || !jobCategoryId || !title || !slug) {
+      if (!inputJobCode || !jobCategoryId || !title || !inputSlug) {
         return res.status(400).json({
           success: false,
           message: 'Mã việc làm, danh mục, tiêu đề và slug là bắt buộc'
         });
       }
 
-      // Check if job_code already exists
-      const existingJob = await Job.findOne({ where: { jobCode } });
-      if (existingJob) {
-        return res.status(409).json({
-          success: false,
-          message: 'Mã việc làm đã tồn tại'
-        });
-      }
+      // Mã job trùng → tự thêm hậu tố ngẫu nhiên
+      const jobCode = await ensureUniqueJobCode(inputJobCode);
 
-      // Check if slug already exists
-      const existingSlug = await Job.findOne({ where: { slug } });
-      if (existingSlug) {
-        return res.status(409).json({
-          success: false,
-          message: 'Slug đã tồn tại'
-        });
-      }
+      // Slug trùng → tự thêm hậu tố ngẫu nhiên
+      const slug = await ensureUniqueJobSlug(inputSlug);
 
       // Validate category
       const category = await JobCategory.findByPk(jobCategoryId);
@@ -1029,12 +1073,17 @@ export const jobController = {
         }, { transaction });
 
         // Create working locations
-        if (workingLocations.length > 0) {
+        const locationsToCreate = normalizeWorkingLocationsForPersist(workingLocations);
+        if (locationsToCreate.length > 0) {
           await WorkingLocation.bulkCreate(
-            workingLocations.map(loc => ({
+            locationsToCreate.map(loc => ({
               jobId: job.id,
               location: loc.location,
               country: loc.country,
+              locationEn: loc.locationEn,
+              locationJp: loc.locationJp,
+              countryEn: loc.countryEn,
+              countryJp: loc.countryJp,
               numberOfHires: loc.numberOfHires || null
             })),
             { transaction }
@@ -1120,15 +1169,15 @@ export const jobController = {
         }
 
         // Create requirements
-        if (requirements.length > 0) {
+        if (requirementRows.length > 0) {
           await Requirement.bulkCreate(
-            requirements.map(req => ({
+            requirementRows.map((req) => ({
               jobId: job.id,
               content: req.content,
-              contentEn: req.contentEn || req.content_en || null,
-              contentJp: req.contentJp || req.content_jp || null,
+              contentEn: req.contentEn,
+              contentJp: req.contentJp,
               type: req.type,
-              status: req.status
+              status: req.status,
             })),
             { transaction }
           );
@@ -1525,7 +1574,7 @@ export const jobController = {
           data: { job }
         });
       } catch (error) {
-        await transaction.rollback();
+        await rollbackTransactionIfActive(transaction);
         throw error;
       }
     } catch (error) {
@@ -1638,17 +1687,10 @@ export const jobController = {
         }
 
         if (jobFields.slug !== undefined) {
-          const existingSlug = await Job.findOne({
-            where: { slug: jobFields.slug, id: { [Op.ne]: id } },
-            transaction
+          jobFields.slug = await ensureUniqueJobSlug(jobFields.slug, {
+            excludeId: id,
+            transaction,
           });
-          if (existingSlug) {
-            await transaction.rollback();
-            return res.status(409).json({
-              success: false,
-              message: 'Slug đã tồn tại'
-            });
-          }
         }
 
         // jdFile / jdOriginal* được set từ JD template PDF generated, không dùng từ body
@@ -1668,12 +1710,17 @@ export const jobController = {
         // Update related data if provided
         if (workingLocations !== undefined) {
           await WorkingLocation.destroy({ where: { jobId: job.id }, transaction });
-          if (workingLocations.length > 0) {
+          const locationsToUpdate = normalizeWorkingLocationsForPersist(workingLocations);
+          if (locationsToUpdate.length > 0) {
             await WorkingLocation.bulkCreate(
-              workingLocations.map(loc => ({
+              locationsToUpdate.map(loc => ({
                 jobId: job.id,
                 location: loc.location,
                 country: loc.country,
+                locationEn: loc.locationEn,
+                locationJp: loc.locationJp,
+                countryEn: loc.countryEn,
+                countryJp: loc.countryJp,
                 numberOfHires: loc.numberOfHires || null
               })),
               { transaction }
@@ -1770,16 +1817,17 @@ export const jobController = {
         }
 
         if (requirements !== undefined) {
+          const requirementRows = normalizeRequirementCreateRows(requirements);
           await Requirement.destroy({ where: { jobId: job.id }, transaction });
-          if (requirements.length > 0) {
+          if (requirementRows.length > 0) {
             await Requirement.bulkCreate(
-              requirements.map(req => ({
+              requirementRows.map((req) => ({
                 jobId: job.id,
                 content: req.content,
-                contentEn: req.contentEn || req.content_en || null,
-                contentJp: req.contentJp || req.content_jp || null,
+                contentEn: req.contentEn,
+                contentJp: req.contentJp,
                 type: req.type,
-                status: req.status
+                status: req.status,
               })),
               { transaction }
             );
@@ -2309,16 +2357,17 @@ export const jobController = {
           await job.reload({ include: [{ model: JobCategory, as: 'category', required: false }, { model: Company, as: 'company', required: false }, { model: JobRecruitingCompany, as: 'recruitingCompany', required: false, include: [{ model: JobRecruitingCompanyService, as: 'services', required: false }, { model: JobRecruitingCompanyBusinessSector, as: 'businessSectors', required: false }] }] });
         }
 
-        // Log action
-        await ActionLog.create({
-          adminId: req.admin.id,
-          object: 'Job',
-          action: 'edit',
-          ip: req.ip || req.connection.remoteAddress,
-          before: oldData,
-          after: job.toJSON(),
-          description: `Cập nhật việc làm: ${job.title} (${job.jobCode})`
-        });
+        if (req.admin?.id) {
+          await ActionLog.create({
+            adminId: req.admin.id,
+            object: 'Job',
+            action: 'edit',
+            ip: req.ip || req.connection.remoteAddress,
+            before: oldData,
+            after: job.toJSON(),
+            description: `Cập nhật việc làm: ${job.title} (${job.jobCode})`
+          });
+        }
 
         await bumpJobListCacheVersion();
 
@@ -2328,7 +2377,7 @@ export const jobController = {
           data: { job }
         });
       } catch (error) {
-        await transaction.rollback();
+        await rollbackTransactionIfActive(transaction);
         throw error;
       }
     } catch (error) {

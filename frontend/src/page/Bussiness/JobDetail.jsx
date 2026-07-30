@@ -1,13 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  ChevronRight, ChevronDown, Edit2, Globe, MoreHorizontal, MapPin, Clock,
+  ChevronRight, ChevronDown, Globe, MoreHorizontal, MapPin, Clock,
   Award, Hash, Calendar, Users, Target, Sparkles, BarChart3, TrendingUp,
   Info, DollarSign, ArrowRight, User, Search, Star, Building2, FileText,
   Unlock, UserPlus, Loader2, Trash2,
 } from 'lucide-react'
 import apiService from '../../services/api'
-import JobDetailPage from '../../component/Shared/JobDetailPage'
 import {
   fetchAllBusinessScoutCandidates,
   fetchJobScoutAiMatches,
@@ -15,7 +14,20 @@ import {
   mergeScoutCandidateWithMatch,
   summarizeAiMatches,
 } from '../../utils/businessJobAiMatching'
-import { fetchJobRecruitmentMetrics } from '../../utils/businessJobRecruitmentMetrics'
+import {
+  fetchJobRecruitmentMetrics,
+} from '../../utils/businessJobRecruitmentMetrics'
+import {
+  buildBusinessJobDetailTabs,
+  BusinessJobDetailSectionList,
+} from '../../utils/businessJobDetailView'
+import {
+  AiMatchOverviewCard,
+  HealthOverviewGrid,
+  pickShortSkillLabels,
+  ServicesActivityOverview,
+  TopCandidatesOverview,
+} from '../../component/Bussiness/BusinessJobDetailOverview'
 
 const tabs = ['Tổng quan', 'Mô tả công việc']
 
@@ -50,6 +62,26 @@ const s = `
   .hide-sb { -ms-overflow-style: none; scrollbar-width: none; }
 `
 
+const JOB_DETAIL_SHELL_STYLE = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+  .business-jobs-shell {
+    font-family: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --jd-fs-title: 11px;
+    --jd-fs-body: 10px;
+    --jd-icon: 14px;
+    --jd-icon-hit: 24px;
+  }
+  .business-jobs-ui .biz-jd-title { font-size: var(--jd-fs-title); line-height: 1.35; font-weight: 600; color: #1e293b; }
+  .business-jobs-ui .biz-jd-body { font-size: var(--jd-fs-body); line-height: 1.45; color: #334155; }
+  .business-jobs-ui .biz-jd-muted { font-size: var(--jd-fs-body); line-height: 1.45; color: #64748b; }
+  .business-jobs-ui .biz-jd-icon { width: var(--jd-icon); height: var(--jd-icon); flex-shrink: 0; }
+  .business-jobs-ui .biz-jd-icon-hit {
+    width: var(--jd-icon-hit); height: var(--jd-icon-hit);
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .business-jobs-ui .biz-jd-icon-hit > svg { width: var(--jd-icon); height: var(--jd-icon); }
+`
+
 function getJobStatusMeta(status) {
   const n = Number(status)
   if (n === 1) return { label: 'Đang hoạt động', color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' }
@@ -65,9 +97,10 @@ function formatDate(value) {
   return d.toLocaleDateString('vi-VN')
 }
 
-const JobDetail = ({ embedded = false }) => {
+const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
   const navigate = useNavigate()
-  const { jobId } = useParams()
+  const { jobId: jobIdParam } = useParams()
+  const jobId = jobIdProp ?? jobIdParam
   const [activeTab, setActiveTab] = useState('Tổng quan')
   const [job, setJob] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -80,6 +113,7 @@ const JobDetail = ({ embedded = false }) => {
   const [metricsLoading, setMetricsLoading] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [jdContentTab, setJdContentTab] = useState('description')
   const metricsPeriodDays = 7
 
   const loadJob = useCallback(async () => {
@@ -181,6 +215,7 @@ const JobDetail = ({ embedded = false }) => {
   }
 
   const statusMeta = useMemo(() => getJobStatusMeta(job?.status), [job?.status])
+  const isOnCtvMarketplace = !!(job?.isMarketplace || job?.isDirectRecruitment)
   const recruitmentLabel = RECRUITMENT_TYPE_LABELS[Number(job?.recruitmentType ?? job?.recruitment_type)] || 'Full-time'
   const location = job?.interviewLocation || job?.interview_location || '—'
   const jobTitle = job?.title || job?.titleEn || job?.titleJp || 'Chi tiết JD'
@@ -191,6 +226,12 @@ const JobDetail = ({ embedded = false }) => {
   ]
   const matchedTotal = matchSummary?.total ?? 0
   const avgScore = matchSummary?.avgScore ?? 0
+  const jobDetailTabs = useMemo(() => buildBusinessJobDetailTabs(job), [job])
+  const jdContentTabs = useMemo(() => ([
+    { id: 'description', label: 'Mô tả', sections: jobDetailTabs.description?.sections || [] },
+    { id: 'requirements', label: 'Yêu cầu', sections: jobDetailTabs.requirements?.sections || [] },
+    { id: 'benefits', label: 'Phúc lợi', sections: jobDetailTabs.benefits?.sections || [] },
+  ]), [jobDetailTabs])
 
   const healthCards = useMemo(() => [
     {
@@ -227,7 +268,9 @@ const JobDetail = ({ embedded = false }) => {
     const topSkills = new Map()
     const topLocations = new Map()
     topCandidates.forEach((c) => {
-      (c.skills || []).forEach((sk) => topSkills.set(sk, (topSkills.get(sk) || 0) + 1))
+      pickShortSkillLabels(c.skills, 8).forEach((sk) => {
+        topSkills.set(sk, (topSkills.get(sk) || 0) + 1)
+      })
       if (c.location && c.location !== '—') {
         topLocations.set(c.location, (topLocations.get(c.location) || 0) + 1)
       }
@@ -283,37 +326,124 @@ const JobDetail = ({ embedded = false }) => {
     )
   }
 
+  const activeJdSections = jdContentTabs.find((t) => t.id === jdContentTab)?.sections || []
+  const scoutHref = `/business/scout?jobId=${job.id}`
+  const overviewBlocks = (
+    <>
+      <HealthOverviewGrid cards={healthCards} title="Recruitment Health của JD" />
+      <AiMatchOverviewCard
+        matchLoading={matchLoading}
+        matchedTotal={matchedTotal}
+        matchError={matchError}
+        matchStats={matchStats}
+        aiInsights={aiInsights}
+      />
+      <TopCandidatesOverview
+        matchLoading={matchLoading}
+        topCandidates={topCandidates}
+        onViewAll={() => navigate(scoutHref)}
+      />
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <div className="business-jobs-shell h-full min-h-0 flex flex-col overflow-hidden">
+        <style>{JOB_DETAIL_SHELL_STYLE}</style>
+        <div className="business-jobs-ui h-full min-h-0 flex flex-col bg-[#f9f9f9] overflow-hidden">
+          <div className="shrink-0 border-b border-slate-200 bg-white px-2 py-2 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <span className={`inline-flex items-center gap-1 rounded-full ${statusMeta.color} biz-jd-body font-medium px-2 py-0.5`}>
+                  <span className={`rounded-full ${statusMeta.dot} w-1.5 h-1.5`} />
+                  {statusMeta.label}
+                </span>
+                {isOnCtvMarketplace ? (
+                  <span className="inline-flex items-center rounded-full bg-violet-100 text-violet-800 border border-violet-200 biz-jd-body font-medium px-2 py-0.5 ml-1">
+                    Tiến cử trực tiếp với doanh nghiệp
+                  </span>
+                ) : null}
+                <h1 className="biz-jd-title mt-1 truncate">{jobTitle}</h1>
+                <p className="biz-jd-muted truncate mt-0.5">
+                  {location} · {recruitmentLabel} · Mã: {job.jobCode || job.job_code || job.id}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <button type="button" onClick={() => navigate(scoutHref)} className="biz-jd-body font-semibold rounded-md px-2 py-1 bg-[#0077B6] text-white">Scout</button>
+              </div>
+            </div>
+            <div className="flex gap-1">
+              {tabs.map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  className={`biz-jd-body font-semibold px-2 py-1 border-b-2 transition-colors ${
+                    activeTab === tab ? 'border-[#0077B6] text-[#0077B6]' : 'border-transparent text-slate-500'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto px-2 py-2 space-y-2 hide-sb">
+            {activeTab === 'Tổng quan' ? (
+              <div className="space-y-2">
+                {overviewBlocks}
+                <ServicesActivityOverview services={services} activities={activities} jobId={job.id} navigate={navigate} />
+              </div>
+            ) : (
+              <>
+                <div className="flex rounded-lg border border-slate-200 bg-white p-0.5 gap-0.5">
+                  {jdContentTabs.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setJdContentTab(t.id)}
+                      className={`flex-1 rounded-md px-1 py-1 biz-jd-body font-semibold ${
+                        jdContentTab === t.id ? 'bg-slate-100 text-slate-900' : 'text-slate-500'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+                <BusinessJobDetailSectionList sections={activeJdSections} />
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
-      <style>{s}</style>
-      <div className={`${embedded ? 'h-full min-h-0' : 'h-screen'} bg-slate-50 overflow-hidden`} style={{ padding: embedded ? 0 : '8px' }}>
-        <div className={`h-full ${embedded ? 'min-h-0' : 'mx-auto'} flex flex-col gap-2 overflow-y-auto hide-sb`} style={embedded ? undefined : { maxWidth: 1140, paddingRight: 2 }}>
-
-          {!embedded && (
-          <div className="flex items-center gap-1" style={{ fontSize: 10, color: '#94a3b8' }}>
-            <button onClick={() => navigate('/business/jobs')} className="hover:text-blue-600 transition-colors">Quản lý JD</button>
-            <ChevronRight style={{ width: 10, height: 10 }} />
-            <span style={{ fontWeight: 600, color: '#475569' }}>Chi tiết JD</span>
+      <style>{s}{JOB_DETAIL_SHELL_STYLE}</style>
+      <div className="business-jobs-shell h-full min-h-0 overflow-hidden">
+        <div className="business-jobs-ui h-full min-h-0 overflow-y-auto hide-sb bg-[#f9f9f9]">
+          <div className="max-w-5xl mx-auto p-2 lg:p-3 space-y-2">
+          <div className="flex items-center gap-1 biz-jd-muted">
+            <button type="button" onClick={() => navigate('/business/jobs')} className="hover:text-[#0077B6]">Quản lý JD</button>
+            <ChevronRight className="biz-jd-icon" />
+            <span className="biz-jd-body font-semibold text-slate-600">Chi tiết JD</span>
           </div>
-          )}
-
-          {/* Header */}
-          <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '12px 14px' }}>
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
             <div className="flex items-start justify-between gap-3" style={{ marginBottom: 8 }}>
               <span className={`inline-flex items-center gap-1 rounded-full ${statusMeta.color}`} style={{ fontSize: 9, fontWeight: 500, padding: '2px 8px' }}>
                 <span className={`rounded-full ${statusMeta.dot}`} style={{ width: 5, height: 5 }} />
                 {statusMeta.label}
               </span>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={() => navigate(`/business/jobs/${job.id}/edit`)}
-                  className="flex items-center gap-1 border border-slate-200 rounded-lg hover:bg-slate-50 font-medium text-slate-700 transition-colors"
-                  style={{ fontSize: 10, padding: '6px 10px' }}
+              {isOnCtvMarketplace ? (
+                <span
+                  className="inline-flex items-center rounded-full bg-violet-100 text-violet-800 border border-violet-200 font-medium"
+                  style={{ fontSize: 9, padding: '2px 8px', marginLeft: 4 }}
                 >
-                  <Edit2 style={{ width: 11, height: 11 }} />
-                  Chỉnh sửa JD
-                </button>
+                  Tiến cử trực tiếp với doanh nghiệp
+                </span>
+              ) : null}
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button className="flex items-center gap-1 border border-slate-200 rounded-lg hover:bg-slate-50 font-medium text-slate-700 transition-colors" style={{ fontSize: 10, padding: '6px 10px' }}>
                   <Globe style={{ width: 11, height: 11 }} />
                   Tạo Landing Page
@@ -383,10 +513,10 @@ const JobDetail = ({ embedded = false }) => {
                 <button
                   type="button"
                   onClick={() => navigate(`/business/scout?jobId=${job.id}`)}
-                  className="flex items-center gap-1.5 bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-lg font-semibold hover:opacity-90 transition-opacity"
-                  style={{ fontSize: 10, padding: '6px 10px' }}
+                  className="flex items-center gap-1.5 bg-[#0077B6] text-white rounded-lg font-semibold hover:bg-[#006699] transition-colors biz-jd-body"
+                  style={{ padding: '6px 10px' }}
                 >
-                  <Target style={{ width: 12, height: 12 }} />
+                  <Target className="biz-jd-icon" />
                   Tìm ứng viên với Scout
                 </button>
               </div>
@@ -400,19 +530,15 @@ const JobDetail = ({ embedded = false }) => {
             </p>
           </div>
 
-          {/* Tabs */}
-          <div className="bg-white rounded-xl border border-slate-100 flex items-center gap-4 overflow-x-auto hide-sb" style={{ padding: '0 14px' }}>
+          <div className="rounded-lg border border-slate-200 bg-white flex items-center gap-3 overflow-x-auto hide-sb px-2">
             {tabs.map((tab) => (
               <button
                 key={tab}
+                type="button"
                 onClick={() => setActiveTab(tab)}
-                className="font-medium transition-colors flex-shrink-0"
-                style={{
-                  fontSize: 11,
-                  padding: '10px 2px',
-                  borderBottom: activeTab === tab ? '2px solid #6366f1' : '2px solid transparent',
-                  color: activeTab === tab ? '#6366f1' : '#64748b',
-                }}
+                className={`biz-jd-body font-semibold flex-shrink-0 py-2 border-b-2 transition-colors ${
+                  activeTab === tab ? 'border-[#0077B6] text-[#0077B6]' : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
               >
                 {tab}
               </button>
@@ -420,219 +546,30 @@ const JobDetail = ({ embedded = false }) => {
           </div>
 
           {activeTab === 'Tổng quan' ? (
-            <>
-              {/* Recruitment Health */}
-              <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px 12px' }}>
-                <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
-                  <div className="flex items-center gap-1.5">
-                    <h2 style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>Recruitment Health của JD</h2>
-                    <Info style={{ width: 12, height: 12, color: '#cbd5e1' }} />
-                  </div>
-                  <button className="flex items-center gap-1 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors" style={{ fontSize: 10, padding: '4px 8px' }}>
-                    {metricsPeriodDays} ngày qua
-                    <ChevronDown style={{ width: 11, height: 11 }} />
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-y-4" style={{ gap: 12 }}>
-                  {healthCards.map((c, i) => {
-                    const Icon = c.icon
-                    return (
-                      <div key={i} className={i % 4 !== 0 ? 'lg:border-l border-slate-100' : ''} style={{ paddingLeft: i % 4 !== 0 ? 14 : 0 }}>
-                        <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
-                          <div className="rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0" style={{ width: 28, height: 28 }}>
-                            <Icon className="text-violet-500" style={{ width: 14, height: 14 }} />
-                          </div>
-                          <span style={{ fontSize: 10, color: '#64748b', fontWeight: 500 }}>{c.label}</span>
-                        </div>
-                        <div className="flex items-baseline gap-1" style={{ marginBottom: 2 }}>
-                          <span style={{ fontSize: 20, fontWeight: 700, color: '#4f46e5' }}>{c.score}</span>
-                          <span style={{ fontSize: 11, color: '#94a3b8' }}>/100</span>
-                        </div>
-                        <p style={{ fontSize: 10, fontWeight: 600, color: '#f59e0b', marginBottom: 8 }}>{c.rating}</p>
-                        {c.lines.map((line, k) => (
-                          <p key={k} style={{ fontSize: 9, color: '#94a3b8', lineHeight: 1.6 }}>{line}</p>
-                        ))}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* AI Suggestion */}
-              <div className="rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50 to-blue-50" style={{ padding: '14px 16px' }}>
-                <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4">
-                  <div className="flex gap-3">
-                    <div className="rounded-2xl bg-white flex items-center justify-center flex-shrink-0 relative" style={{ width: 56, height: 56 }}>
-                      <Target className="text-violet-500" style={{ width: 26, height: 26 }} />
-                      <Sparkles className="text-violet-300" style={{ width: 12, height: 12, position: 'absolute', top: -4, right: -4 }} />
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <span className="inline-block rounded-full bg-violet-100 text-violet-600" style={{ fontSize: 9, fontWeight: 600, padding: '2px 8px', marginBottom: 6 }}>AI gợi ý</span>
-                      <h2 style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 12 }}>
-                        {matchLoading ? 'Đang phân tích ứng viên Scout...' : `Có ${matchedTotal.toLocaleString('vi-VN')} hồ sơ phù hợp với JD này`}
-                      </h2>
-                      {matchError && (
-                        <p style={{ fontSize: 10, color: '#b45309', marginBottom: 8 }}>{matchError}</p>
-                      )}
-                      <div className="grid grid-cols-3" style={{ gap: 12 }}>
-                        {matchStats.map((m, i) => (
-                          <div key={i}>
-                            <p style={{ fontSize: 20, fontWeight: 700, color: '#1e293b' }}>{matchLoading ? '…' : m.value}</p>
-                            <p style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{m.label}</p>
-                            <p style={{ fontSize: 9, color: '#94a3b8' }}>{m.sub}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col justify-center lg:border-l border-violet-100" style={{ gap: 10, paddingLeft: 16 }}>
-                    {aiInsights.map((item, i) => {
-                      const Icon = item.icon
-                      return (
-                        <div key={i} className="flex items-center justify-between gap-2">
-                          <span className="flex items-center gap-1.5" style={{ fontSize: 10, color: '#64748b', flexShrink: 0 }}>
-                            <Icon style={{ width: 12, height: 12, color: '#a5b4fc' }} />
-                            {item.label}
-                          </span>
-                          <span style={{ fontSize: 10, fontWeight: 600, color: item.valueColor || '#1e293b', textAlign: 'right' }}>{item.value}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* Top candidates */}
-              <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px 12px' }}>
-                <div className="flex items-center gap-1.5" style={{ marginBottom: 10 }}>
-                  <h2 style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>Top ứng viên phù hợp nhất (Ẩn danh)</h2>
-                  <Info style={{ width: 12, height: 12, color: '#cbd5e1' }} />
-                </div>
-                {matchLoading ? (
-                  <div className="flex items-center justify-center gap-2 text-slate-500" style={{ padding: 24, fontSize: 10 }}>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Đang tải gợi ý AI...
-                  </div>
-                ) : topCandidates.length === 0 ? (
-                  <div className="text-center text-slate-400" style={{ padding: 24, fontSize: 10 }}>
-                    Chưa có ứng viên Scout phù hợp hoặc JD chưa được đồng bộ vector.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {topCandidates.map((c, i) => (
-                      <div key={c.id || i} className="border border-slate-100 rounded-lg" style={{ padding: 10 }}>
-                        <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
-                          <div className="rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0" style={{ width: 28, height: 28 }}>
-                            <User className="text-violet-400" style={{ width: 14, height: 14 }} />
-                          </div>
-                          <div style={{ minWidth: 0 }}>
-                            <p style={{ fontSize: 10, fontWeight: 700, color: '#1e293b' }}>{c.name}</p>
-                            <p style={{ fontSize: 9, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.role}</p>
-                          </div>
-                        </div>
-                        <span className="inline-block rounded-full bg-emerald-100 text-emerald-700" style={{ fontSize: 9, fontWeight: 600, padding: '2px 6px', marginBottom: 8 }}>{c.match}% match</span>
-                        <div className="flex items-center gap-1" style={{ marginBottom: 4 }}>
-                          <Calendar style={{ width: 10, height: 10, color: '#94a3b8' }} />
-                          <span style={{ fontSize: 9, color: '#64748b' }}>{c.exp}</span>
-                        </div>
-                        <div className="flex items-center gap-1" style={{ marginBottom: 8 }}>
-                          <MapPin style={{ width: 10, height: 10, color: '#94a3b8' }} />
-                          <span style={{ fontSize: 9, color: '#64748b' }}>{c.location}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {c.skills.map((sk, k) => (
-                            <span key={k} className="bg-slate-100 text-slate-600 rounded" style={{ fontSize: 9, padding: '2px 6px' }}>{sk}</span>
-                          ))}
-                          {c.extra > 0 && (
-                            <span className="bg-slate-100 text-slate-600 rounded" style={{ fontSize: 9, padding: '2px 6px' }}>+{c.extra}</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="flex justify-center" style={{ marginTop: 12 }}>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/business/scout?jobId=${job.id}`)}
-                    className="flex items-center gap-1.5 border border-violet-200 text-violet-600 bg-violet-50 hover:bg-violet-100 rounded-lg font-semibold transition-colors"
-                    style={{ fontSize: 10, padding: '8px 16px' }}
-                  >
-                    Xem danh sách tất cả ứng viên match
-                    <ArrowRight style={{ width: 11, height: 11 }} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Bottom: services + activity */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2" style={{ paddingBottom: 8 }}>
-                {/* Services */}
-                <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px 12px' }}>
-                  <h2 style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', marginBottom: 10 }}>Dịch vụ đang sử dụng cho JD này</h2>
-                  <div className="flex flex-col" style={{ gap: 10 }}>
-                    {services.map((sv, i) => {
-                      const Icon = sv.icon
-                      return (
-                        <div key={i} className="flex items-center gap-2">
-                          <div className={`rounded-lg ${sv.iconBg} flex items-center justify-center flex-shrink-0`} style={{ width: 28, height: 28 }}>
-                            <Icon className={sv.iconColor} style={{ width: 13, height: 13 }} />
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div className="flex items-center gap-2" style={{ marginBottom: 1 }}>
-                              <span style={{ fontSize: 10, fontWeight: 600, color: '#1e293b' }}>{sv.name}</span>
-                              <span className={`inline-flex items-center rounded-full flex-shrink-0 ${sv.statusColor}`} style={{ fontSize: 9, fontWeight: 500, padding: '1px 6px' }}>{sv.status}</span>
-                            </div>
-                            <p style={{ fontSize: 9, color: '#94a3b8' }}>{sv.detail}</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => sv.name === 'Scout Credit' && navigate(`/business/scout?jobId=${job.id}`)}
-                            className="font-semibold text-blue-600 hover:text-blue-700 transition-colors flex-shrink-0"
-                            style={{ fontSize: 10 }}
-                          >
-                            {sv.action}
-                          </button>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Activity */}
-                <div className="bg-white rounded-xl border border-slate-100" style={{ padding: '10px 12px' }}>
-                  <h2 style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', marginBottom: 10 }}>Lịch sử hoạt động gần đây</h2>
-                  <div className="flex flex-col" style={{ gap: 9 }}>
-                    {activities.length === 0 ? (
-                      <p style={{ fontSize: 10, color: '#94a3b8' }}>Chưa có hoạt động.</p>
-                    ) : activities.map((a, i) => {
-                      const Icon = a.icon
-                      return (
-                        <div key={i} className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2" style={{ minWidth: 0 }}>
-                            <div className={`rounded-lg ${a.iconBg} flex items-center justify-center flex-shrink-0`} style={{ width: 22, height: 22 }}>
-                              <Icon className={a.iconColor} style={{ width: 11, height: 11 }} />
-                            </div>
-                            <span style={{ fontSize: 10, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.text}</span>
-                          </div>
-                          <span style={{ fontSize: 9, color: '#94a3b8', flexShrink: 0 }}>{a.time}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
-            </>
+            <div className="space-y-2 pb-2">
+              {overviewBlocks}
+              <ServicesActivityOverview services={services} activities={activities} jobId={job.id} navigate={navigate} />
+            </div>
           ) : activeTab === 'Mô tả công việc' ? (
-            <div className="bg-white rounded-xl border border-slate-100 overflow-hidden" style={{ padding: '8px 10px', marginBottom: 8 }}>
-              <JobDetailPage
-                embeddedGeneralOnly
-                getJobApi={apiService.getBusinessJobById}
-                backPath="/business/jobs"
-                hideSaveToList
-                publicLanding
-              />
+            <div className="space-y-2 pb-2">
+              <div className="flex rounded-lg border border-slate-200 bg-white p-0.5 gap-0.5">
+                {jdContentTabs.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setJdContentTab(t.id)}
+                    className={`flex-1 rounded-md px-2 py-1.5 biz-jd-body font-semibold transition-colors ${
+                      jdContentTab === t.id ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              <BusinessJobDetailSectionList sections={activeJdSections} />
             </div>
           ) : null}
+          </div>
         </div>
       </div>
     </>

@@ -721,9 +721,7 @@ export async function executeJobListQuery({
   }
 
   const plainRows = jobsToPlainWithTruncate(slice, { isAdmin: mode === 'admin' });
-  if (mode === 'ctv') {
-    await attachMarketplaceDirectRecruitmentFlags(plainRows);
-  }
+  await attachMarketplaceDirectRecruitmentFlags(plainRows);
   if (!skipCache) {
     await setJobListCached(cachePayload, { rows: plainRows, nextCursor, hasMore });
   }
@@ -732,31 +730,40 @@ export async function executeJobListQuery({
 }
 
 /** Gắn cờ Tuyển dụng trực tiếp cho job DN đã publish trên sàn CTV */
-async function attachMarketplaceDirectRecruitmentFlags(plainRows) {
+export async function attachMarketplaceDirectRecruitmentFlags(plainRows) {
   if (!Array.isArray(plainRows) || !plainRows.length) return;
-  const businessJobIds = plainRows
-    .filter((j) => j?.businessId != null || j?.business_id != null)
-    .map((j) => Number(j.id))
-    .filter((id) => Number.isFinite(id));
-  if (!businessJobIds.length) {
+  // Lookup theo jobId (không phụ thuộc businessId trên payload — detail đôi khi thiếu field đó)
+  const jobIds = [...new Set(
+    plainRows.map((j) => Number(j?.id)).filter((id) => Number.isFinite(id) && id > 0),
+  )];
+  if (!jobIds.length) {
     plainRows.forEach((j) => {
       j.isDirectRecruitment = false;
       j.isMarketplace = false;
+      j.platformFeePercent = null;
     });
     return;
   }
   const listings = await BusinessCtvMarketplaceListing.findAll({
     where: {
-      jobId: { [Op.in]: businessJobIds },
+      jobId: { [Op.in]: jobIds },
       status: MARKETPLACE_LISTING_STATUS.PUBLISHED,
     },
-    attributes: ['jobId'],
+    attributes: ['jobId', 'platformFeePercent'],
   });
   const publishedSet = new Set(listings.map((l) => Number(l.jobId)));
+  const platformFeeByJobId = new Map();
+  listings.forEach((l) => {
+    const jid = Number(l.jobId);
+    const fee = Number(l.platformFeePercent ?? l.platform_fee_percent ?? 20);
+    platformFeeByJobId.set(jid, Number.isFinite(fee) ? fee : 20);
+  });
   plainRows.forEach((j) => {
-    const isMarketplace = publishedSet.has(Number(j.id));
+    const jobId = Number(j.id);
+    const isMarketplace = publishedSet.has(jobId);
     j.isMarketplace = isMarketplace;
     j.isDirectRecruitment = isMarketplace;
+    j.platformFeePercent = isMarketplace ? (platformFeeByJobId.get(jobId) ?? 20) : null;
   });
 }
 

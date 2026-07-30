@@ -1,7 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { JOB_HIGHLIGHT_OPTIONS } from '../../../utils/jobHighlightOptions';
 import { BUSINESS_SECTOR_OPTIONS } from '../../../utils/businessSectorOptions';
-import { getNumberOfHiresDisplayLabel } from '../../../utils/numberOfHiresOptions';
+import {
+  NUMBER_OF_HIRES_OPTION_VALUES,
+  getNumberOfHiresDisplayLabel,
+  normalizeNumberOfHiresStored,
+} from '../../../utils/numberOfHiresOptions';
+import JobCategoryPickerModal from '../../Shared/JobCategoryPickerModal';
+import {
+  JdTemplateMultiDropdown,
+  JdTemplatePickerButton,
+  JD_TEMPLATE_EXP_YEARS_OPTIONS,
+  getJdTemplateOptionTypography,
+  jdTemplateOptionControlStyle,
+} from './JdTemplateOptionControl';
 import logoImage from '../../../assets/logo.png';
 
 /** Liên hệ Workstation JobShare - giá trị cố định */
@@ -11,6 +23,16 @@ const HEADER_CONTACT = {
   mail: 'jobshare@work-station.vn',
 };
 const JD_BORDER_COLOR = '#cbd5e1';
+
+function isYearlySalaryType(type) {
+  const t = String(type ?? '').toLowerCase();
+  return t.includes('year') || t.includes('năm') || t.includes('年');
+}
+
+function isMonthlySalaryType(type) {
+  const t = String(type ?? '').toLowerCase();
+  return t.includes('month') || t.includes('tháng') || t.includes('月');
+}
 
 const LABELS = {
   vi: {
@@ -228,7 +250,11 @@ export default function JdTemplate({
   setWorkingHourDetails,
   jobBenefitRows = [],
   setJobBenefitRows = () => {},
+  compactPreview = false,
 }) {
+  const [jobTypeModalOpen, setJobTypeModalOpen] = useState(false);
+  const pickerLang = lang === 'jp' ? 'ja' : lang;
+  const expYearOptions = JD_TEMPLATE_EXP_YEARS_OPTIONS[lang] || JD_TEMPLATE_EXP_YEARS_OPTIONS.vi;
   const suffix = lang === 'vi' ? '' : lang === 'en' ? 'En' : 'Jp';
   const contentKey = lang === 'vi' ? 'content' : lang === 'en' ? 'contentEn' : 'contentJp';
   const L = LABELS[lang] || LABELS.vi;
@@ -239,6 +265,7 @@ export default function JdTemplate({
     onBlur,
     ref: (node) => {
       if (!node) return;
+      if (document.activeElement === node) return;
       const nextText = String(value ?? '');
       if (node.textContent !== nextText) {
         node.textContent = nextText;
@@ -343,7 +370,6 @@ export default function JdTemplate({
     5: L.recruitmentType5,
   };
 
-  const recruitmentTypeLabel = formData.recruitmentType ? (recruitmentTypeMap[formData.recruitmentType] || formData.recruitmentType) : null;
   const residenceStatusMap = {
     engineer: { vi: 'Visa kỹ sư / tri thức nhân văn / nghiệp vụ quốc tế', en: 'Engineer / Specialist in Humanities / International Services', jp: '技術・人文知識・国際業務' },
     ssw: { vi: 'Visa kỹ năng đặc định', en: 'Specified Skilled Worker', jp: '特定技能' },
@@ -362,17 +388,112 @@ export default function JdTemplate({
     prspouse: { vi: 'Vợ/chồng thường trú nhân', en: 'Spouse of Permanent Resident', jp: '永住者の配偶者等' },
     no_requirement: { vi: 'Không yêu cầu', en: 'No requirement', jp: '不要' },
   };
-  const getResidenceStatusLabels = () => {
-    const raw = formData.residenceStatuses ?? formData.residenceStatus ?? '';
-    let keys = [];
-    if (Array.isArray(raw)) keys = raw;
-    else if (typeof raw === 'string' && raw.trim().startsWith('[')) {
-      try { const parsed = JSON.parse(raw); if (Array.isArray(parsed)) keys = parsed; } catch { keys = []; }
-    } else if (typeof raw === 'string' && raw.trim()) {
-      keys = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  const RESIDENCE_STATUS_KEYS = [
+    'student', 'engineer', 'ssw', 'labor_skill', 'hsp', 'ict', 'entertainer', 'titp',
+    'dependent', 'spouse', 'prspouse', 'ltr', 'pr', 'short', 'no_requirement', 'other',
+  ];
+
+  const optionTypo = getJdTemplateOptionTypography(compactPreview);
+  const selectClassName = `jd-template-option-control w-full min-w-0 border rounded bg-white text-slate-900 outline-none focus:ring-1 focus:ring-[#0077B6] border-slate-200 ${optionTypo.padClass}`;
+  const optionControlStyle = jdTemplateOptionControlStyle(optionTypo);
+
+  const parseHighlightKeys = () => {
+    const raw = formData.highlights;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.filter(Boolean).map(String);
+    if (typeof raw === 'string' && raw.trim().startsWith('[')) {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.filter(Boolean).map(String) : [];
+      } catch {
+        return [];
+      }
     }
-    return keys.map((k) => residenceStatusMap[k]?.[lang] || k).filter(Boolean);
+    return [];
   };
+
+  const setHighlightKeys = (keys) => {
+    const next = keys.filter(Boolean);
+    setFormData((prev) => ({
+      ...prev,
+      highlights: next.length ? JSON.stringify(next) : '',
+    }));
+  };
+
+  const getResidenceStatusKeys = () => {
+    const raw = formData.residenceStatuses ?? formData.residenceStatus ?? '';
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string' && raw.trim().startsWith('[')) {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    if (typeof raw === 'string' && raw.trim()) {
+      return raw.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    return [];
+  };
+
+  const setResidenceStatusKeys = (keys) => {
+    const next = keys.filter(Boolean);
+    setFormData((prev) => ({
+      ...prev,
+      residenceStatuses: next,
+      residenceStatus: next.length ? JSON.stringify(next) : '',
+      residenceStatusEn: next.length ? JSON.stringify(next) : '',
+      residenceStatusJp: next.length ? JSON.stringify(next) : '',
+    }));
+  };
+
+  const getStoredNumberOfHires = () => normalizeNumberOfHiresStored(
+    formData[getFormKey('numberOfHires')] ?? workingLocations?.[0]?.numberOfHires ?? '',
+  );
+
+  const setNumberOfHiresCanonical = (canonical) => {
+    const v = canonical || '';
+    setFormData((prev) => ({
+      ...prev,
+      numberOfHires: v,
+      numberOfHiresEn: v,
+      numberOfHiresJp: v,
+    }));
+    setWorkingLocations((prev) => {
+      const next = Array.isArray(prev) ? [...prev] : [];
+      if (!next[0]) next[0] = { location: '', country: 'Japan' };
+      next[0] = { ...next[0], numberOfHires: v };
+      return next;
+    });
+  };
+
+  const setExperienceYearsValue = (text) => {
+    const v = String(text ?? '').trim();
+    setRequirements((prev) => {
+      const rest = prev.filter((r) => !(r.type === 'experience' && String(r.status || '').toLowerCase() === 'required'));
+      if (!v) return rest;
+      const existing = prev.find((r) => r.type === 'experience' && String(r.status || '').toLowerCase() === 'required') || {};
+      return [...rest, { ...existing, type: 'experience', status: 'required', [contentKey]: v }];
+    });
+  };
+
+  const highlightOptionLabel = (opt) => {
+    if (lang === 'en') return opt.en;
+    if (lang === 'jp') return opt.jp;
+    return opt.vi;
+  };
+
+  const residenceOptions = RESIDENCE_STATUS_KEYS.map((rsKey) => ({
+    value: rsKey,
+    label: residenceStatusMap[rsKey]?.[lang] || rsKey,
+  }));
+
+  const highlightOptions = JOB_HIGHLIGHT_OPTIONS.map((opt) => ({
+    value: opt.key,
+    label: highlightOptionLabel(opt),
+  }));
+
   const categoryName = (() => {
     const c = formData.categoryId ? categories.find((cat) => cat.id === parseInt(formData.categoryId)) : null;
     if (!c) return null;
@@ -420,36 +541,6 @@ export default function JdTemplate({
       .filter(({ text }) => text && text !== L.preferredConditionsPlaceholder)
       .map(({ text }) => text);
     return parts.length ? parts.join('\n') : L.preferredConditionsPlaceholder;
-  })();
-
-  const highlightsDisplay = (() => {
-    if (!formData.highlights) return L.highlightsPlaceholder;
-    let keys = [];
-    if (typeof formData.highlights === 'string' && formData.highlights.trim().startsWith('[')) {
-      try {
-        const parsed = JSON.parse(formData.highlights);
-        if (Array.isArray(parsed)) keys = parsed;
-      } catch {
-        keys = [];
-      }
-    }
-    if (keys.length > 0) {
-      const labels = keys.map((key) => {
-        const opt = JOB_HIGHLIGHT_OPTIONS.find((o) => o.key === key);
-        if (!opt) return key;
-        if (lang === 'en') return opt.en;
-        if (lang === 'jp') return opt.jp;
-        return opt.vi;
-      });
-      const parts = labels.map((s) => String(s ?? '').trim()).filter(Boolean);
-      return parts.length > 0 ? parts.join(' / ') : L.highlightsPlaceholder;
-    }
-    // Fallback: treat as plain text (cũ), sẽ không đa ngôn ngữ nhưng vẫn hiển thị
-    const parts = String(formData.highlights)
-      .split(/\n+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    return parts.length > 0 ? parts.join(' / ') : L.highlightsPlaceholder;
   })();
 
   const updateRequirementsByType = (type, text) => {
@@ -506,8 +597,29 @@ export default function JdTemplate({
     });
   };
 
-  const salaryYear = salaryRanges.find((sr) => (sr.type || '').toLowerCase().includes('year') || (sr.type || '').toLowerCase().includes('năm'));
-  const salaryMonth = salaryRanges.find((sr) => (sr.type || '').toLowerCase().includes('month') || (sr.type || '').toLowerCase().includes('tháng'));
+  const salaryYear = salaryRanges.find((sr) => isYearlySalaryType(sr.type));
+  const salaryMonth = salaryRanges.find((sr) => isMonthlySalaryType(sr.type));
+
+  const upsertSalaryRangeValue = (kind, text) => {
+    if (typeof setSalaryRanges !== 'function') return;
+    const v = String(text ?? '').trim();
+    setSalaryRanges((prev) => {
+      const next = Array.isArray(prev) ? [...prev] : [];
+      const match = kind === 'year' ? isYearlySalaryType : isMonthlySalaryType;
+      let idx = next.findIndex((sr) => match(sr.type));
+      if (idx < 0) {
+        next.push({
+          type: kind === 'year' ? 'yearly' : 'monthly',
+          salaryRange: '',
+          salaryRangeEn: '',
+          salaryRangeJp: '',
+        });
+        idx = next.length - 1;
+      }
+      next[idx] = { ...next[idx], [salaryRangeKey]: v };
+      return next;
+    });
+  };
 
   const serviceNameKey = lang === 'vi' ? 'serviceName' : lang === 'en' ? 'serviceNameEn' : 'serviceNameJp';
   const servicesDisplay = (recruitingCompany.services || [])
@@ -536,25 +648,35 @@ export default function JdTemplate({
   ];
 
   return (
-    <div className="rounded border bg-white shadow-sm w-full" style={{ borderColor: JD_BORDER_COLOR, fontSize: '11px' }}>
+    <>
+    <div
+      className={`rounded border bg-white shadow-sm w-full ${compactPreview ? 'jd-template-compact' : ''}`}
+      style={{
+        borderColor: JD_BORDER_COLOR,
+        ...(compactPreview ? {} : { fontSize: '11px' }),
+      }}
+    >
       <div
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 px-3 py-2.5 border-b"
+        className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 ${compactPreview ? 'px-2 py-1.5' : 'gap-3 sm:gap-4 px-3 py-2.5'} border-b`}
         style={{ borderColor: JD_BORDER_COLOR, backgroundColor: '#ffffff' }}
       >
-        {/* Logo: màn nhỏ đủ lớn (xếp dọc); màn sm+ vẫn rõ, không bị ép nhỏ bởi cột chữ */}
         <div className="flex justify-center sm:justify-start flex-shrink-0">
           <img
             src={logoImage}
             alt="Logo"
-            className="w-auto object-contain select-none
-              h-10 max-w-[min(160px,84vw)]
-              sm:h-8 sm:max-w-[130px]
-              md:h-10 md:max-w-[150px]"
+            className={`w-auto object-contain select-none ${
+              compactPreview
+                ? 'h-7 max-w-[110px]'
+                : `h-10 max-w-[min(160px,84vw)] sm:h-8 sm:max-w-[130px] md:h-10 md:max-w-[150px]`
+            }`}
           />
         </div>
         <div
-          className="w-full sm:flex-1 sm:min-w-0 text-center sm:text-right leading-snug break-words
-            max-sm:text-[9px] text-[10px] md:text-[11px] lg:text-xs"
+          className={`w-full sm:flex-1 sm:min-w-0 text-center sm:text-right leading-snug break-words ${
+            compactPreview
+              ? 'text-[8px]'
+              : 'max-sm:text-[9px] text-[10px] md:text-[11px] lg:text-xs'
+          }`}
           style={{ color: '#374151' }}
         >
           <p className="font-semibold mb-1 opacity-95" style={{ lineHeight: 1.35 }}>
@@ -573,7 +695,10 @@ export default function JdTemplate({
           </div>
         </div>
       </div>
-      <div className="px-3 py-2 font-bold text-sm border-b" style={{ color: '#111827', borderColor: JD_BORDER_COLOR }}>
+      <div
+        className={`px-3 py-2 font-bold border-b ${compactPreview ? 'text-[10px]' : 'text-sm'}`}
+        style={{ color: '#111827', borderColor: JD_BORDER_COLOR }}
+      >
         {L.sectionRecruitment}
       </div>
       <div className="divide-y" style={{ borderColor: JD_BORDER_COLOR }}>
@@ -590,6 +715,61 @@ export default function JdTemplate({
                   <span key="job-title" {...jdEditable('title')} />
                 ) : lbl === L.jobCode ? (
                   <span key="job-code" {...jdEditable('jobCode')} />
+                ) : lbl === L.field ? (
+                  <select
+                    className={selectClassName}
+                    style={optionControlStyle}
+                    value={formData.businessSectorKey || ''}
+                    onChange={(e) => {
+                      setFormData((prev) => ({ ...prev, businessSectorKey: e.target.value }));
+                    }}
+                  >
+                    <option value="">—</option>
+                    {BUSINESS_SECTOR_OPTIONS.map((opt) => (
+                      <option key={opt.key || opt.vi} value={opt.key || opt.vi}>
+                        {lang === 'en' ? opt.en : lang === 'jp' ? opt.ja : opt.vi}
+                      </option>
+                    ))}
+                  </select>
+                ) : lbl === L.jobType ? (
+                  <JdTemplatePickerButton
+                    className={selectClassName}
+                    typography={optionTypo}
+                    label={categoryName || ''}
+                    placeholder="—"
+                    onClick={() => setJobTypeModalOpen(true)}
+                  />
+                ) : lbl === L.expYears ? (
+                  <select
+                    className={selectClassName}
+                    style={optionControlStyle}
+                    value={expYearsVal || ''}
+                    onChange={(e) => setExperienceYearsValue(e.target.value)}
+                  >
+                    <option value="">—</option>
+                    {expYearOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                    {expYearsVal && !expYearOptions.some((o) => o.value === expYearsVal) ? (
+                      <option value={expYearsVal}>{expYearsVal}</option>
+                    ) : null}
+                  </select>
+                ) : lbl === L.numberOfHires ? (
+                  <select
+                    className={selectClassName}
+                    style={optionControlStyle}
+                    value={getStoredNumberOfHires()}
+                    onChange={(e) => setNumberOfHiresCanonical(e.target.value)}
+                  >
+                    <option value="">—</option>
+                    {NUMBER_OF_HIRES_OPTION_VALUES.map((v) => (
+                      <option key={v} value={v}>
+                        {getNumberOfHiresDisplayLabel(v, lang)}
+                      </option>
+                    ))}
+                  </select>
                 ) : (
                   <span
                     {...customEditable(
@@ -612,29 +792,38 @@ export default function JdTemplate({
                   {L.recruitmentForm}
                 </div>
                 <div className="flex-1 min-w-[60px] px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
-                  <span
-                    {...customEditable(
-                      'basic:recruitmentFormDisplay',
-                      recruitmentTypeLabel || '',
-                      (e) => {
-                        const v = (e.currentTarget.textContent || '').trim();
-                        setFormData((prev) => ({ ...prev, recruitmentFormDisplay: v }));
-                      }
-                    )}
-                  />
+                  <select
+                    className={selectClassName}
+                    style={optionControlStyle}
+                    value={formData.recruitmentType ? String(formData.recruitmentType) : ''}
+                    onChange={(e) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        recruitmentType: e.target.value ? parseInt(e.target.value, 10) : '',
+                      }));
+                    }}
+                  >
+                    <option value="">—</option>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <option key={n} value={String(n)}>
+                        {recruitmentTypeMap[n]}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626', borderLeft: `1.25px solid ${JD_BORDER_COLOR}` }}>
                   {L.residenceStatus}
                 </div>
-                <div className="flex-1 min-w-[60px] px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
-                  {(() => {
-                    const labels = getResidenceStatusLabels();
-                    return labels.length ? (
-                      <span className="whitespace-pre-line">{labels.join('\n')}</span>
-                    ) : (
-                      <span />
-                    );
-                  })()}
+                <div className="flex-1 min-w-[60px] px-2 py-1.5 text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
+                  <JdTemplateMultiDropdown
+                    className={selectClassName}
+                    typography={optionTypo}
+                    values={getResidenceStatusKeys()}
+                    onChange={setResidenceStatusKeys}
+                    options={residenceOptions}
+                    placeholder="—"
+                    emptyLabel={lang === 'en' ? 'Select' : lang === 'jp' ? '選択' : 'Chọn'}
+                  />
                 </div>
               </div>
             )}
@@ -645,16 +834,15 @@ export default function JdTemplate({
           <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
             {L.highlights}
           </div>
-          <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white', whiteSpace: 'normal' }}>
-            <span
-              {...customEditable(
-                'highlights',
-                highlightsDisplay,
-                (e) => {
-                  const v = (e.currentTarget.textContent || '').trim();
-                  setFormData((prev) => ({ ...prev, highlights: v }));
-                }
-              )}
+          <div className="flex-1 px-2 py-1.5 text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
+            <JdTemplateMultiDropdown
+              className={selectClassName}
+              typography={optionTypo}
+              values={parseHighlightKeys()}
+              onChange={setHighlightKeys}
+              options={highlightOptions}
+              placeholder="—"
+              emptyLabel={lang === 'en' ? 'Select highlights' : lang === 'jp' ? '選択' : 'Chọn điểm nổi bật'}
             />
           </div>
         </div>
@@ -738,40 +926,32 @@ export default function JdTemplate({
           <div className="flex-shrink-0 w-28 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
             {L.annualIncome}
           </div>
-          <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
+          <div className="flex-1 min-w-0 px-3 py-2 flex items-stretch text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
             <span
               {...customEditable(
                 'salary-year',
                 salaryYear?.[salaryRangeKey] || '',
                 (e) => {
-                  const v = (e.currentTarget.textContent || '').trim();
-                  setSalaryRanges((prev) => {
-                    const next = Array.isArray(prev) ? [...prev] : [];
-                    if (!next[0]) next[0] = { type: salaryYear?.type || 'year', salaryRange: '', salaryRangeEn: '', salaryRangeJp: '' };
-                    next[0] = { ...(next[0] || {}), [salaryRangeKey]: v };
-                    return next;
-                  });
-                }
+                  upsertSalaryRangeValue('year', e.currentTarget.textContent);
+                },
+                'outline-none block w-full min-h-[1.2em]',
+                { minWidth: '3rem' }
               )}
             />
           </div>
           <div className="flex-shrink-0 w-24 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626', borderLeft: `1.25px solid ${JD_BORDER_COLOR}` }}>
             {L.monthlySalary}
           </div>
-          <div className="flex-1 min-w-[80px] px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
+          <div className="flex-1 min-w-[80px] px-3 py-2 flex items-stretch text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
             <span
               {...customEditable(
                 'salary-month',
                 salaryMonth?.[salaryRangeKey] || '',
                 (e) => {
-                  const v = (e.currentTarget.textContent || '').trim();
-                  setSalaryRanges((prev) => {
-                    const next = Array.isArray(prev) ? [...prev] : [];
-                    if (!next[1]) next[1] = { type: salaryMonth?.type || 'month', salaryRange: '', salaryRangeEn: '', salaryRangeJp: '' };
-                    next[1] = { ...(next[1] || {}), [salaryRangeKey]: v };
-                    return next;
-                  });
-                }
+                  upsertSalaryRangeValue('month', e.currentTarget.textContent);
+                },
+                'outline-none block w-full min-h-[1.2em]',
+                { minWidth: '3rem' }
               )}
             />
           </div>
@@ -1008,7 +1188,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div className="mt-3">
-          <div className="w-full px-3 py-2 text-sm font-bold text-white" style={{ backgroundColor: '#4b5563' }}>
+          <div className={`w-full px-3 py-2 font-bold text-white ${compactPreview ? 'text-[10px]' : 'text-sm'}`} style={{ backgroundColor: '#4b5563' }}>
             {L.sectionCompany}
           </div>
           <div className="grid grid-cols-2 border-t" style={{ borderColor: '#e5e7eb' }}>
@@ -1082,5 +1262,19 @@ export default function JdTemplate({
         </div>
       </div>
     </div>
+    <JobCategoryPickerModal
+      open={jobTypeModalOpen}
+      onClose={() => setJobTypeModalOpen(false)}
+      language={pickerLang}
+      useAdminAPI={false}
+      initialLeafId={formData.categoryId}
+      onConfirm={({ id }) => {
+        setFormData((prev) => ({
+          ...prev,
+          categoryId: id != null && id !== '' ? String(id) : '',
+        }));
+      }}
+    />
+    </>
   );
 }

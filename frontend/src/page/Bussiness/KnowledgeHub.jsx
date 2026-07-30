@@ -1,12 +1,44 @@
 import React, { useState } from 'react'
-import { Search, ChevronRight, Download, FileText, Eye, Share2, Filter, BookOpen, Users, Rocket, Shield, Zap, MessageSquare, Clock } from 'lucide-react'
+import {
+  Search, ChevronRight, FileText, Eye, Share2, Filter, BookOpen, Users, Rocket, Shield, Zap,
+  MessageSquare, Clock,
+} from 'lucide-react'
 
-const scrollbarStyle = `
-  .knowledge-scrollbar::-webkit-scrollbar { width: 6px; }
+const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
+const BRAND = '#0077B6'
+const BRAND_LIGHT = '#e8f4fa'
+const BRAND_BORDER = '#cce5f0'
+
+const hubStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .knowledge-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
   .knowledge-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .knowledge-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
   .knowledge-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   .knowledge-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+  .business-homepage-shell { --hp-zoom: 1; }
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    .business-homepage-shell { --hp-zoom: 0.9; }
+  }
+  @media (min-width: 1280px) and (max-width: 1535px) {
+    .business-homepage-shell { --hp-zoom: 0.86; }
+  }
+  @media (min-width: 1024px) and (max-height: 760px) {
+    .business-homepage-shell { --hp-zoom: 0.78; }
+  }
+  @media (min-width: 1536px) and (min-height: 861px) {
+    .business-homepage-shell { --hp-zoom: 0.94; }
+  }
+  .business-homepage-ui { zoom: var(--hp-zoom); }
+  @supports not (zoom: 1) {
+    .business-homepage-ui {
+      transform: scale(var(--hp-zoom));
+      transform-origin: top left;
+      width: calc(100% / var(--hp-zoom));
+    }
+  }
 `
 
 const categories = [
@@ -21,7 +53,8 @@ const categories = [
 const featuredPost = {
   id: 1,
   title: '10 bước xây dựng quy trình tuyển dụng hiệu quả',
-  description: 'Hướng dẫn chi tiết từng bước quy định doanh nghiệp để xây trình tuyển dụng, tiết kiệm thời gian và nâng cao chất lượng ứng viên',
+  description:
+    'Hướng dẫn chi tiết từng bước quy định doanh nghiệp để xây trình tuyển dụng, tiết kiệm thời gian và nâng cao chất lượng ứng viên',
   date: '15/05/2024',
   views: 2,
   shares: 3.4,
@@ -37,28 +70,45 @@ const posts = [
 ]
 
 const recommendations = [
-  { id: 1, icon: Zap, title: 'Tài liêu nổi bật cho bạn', desc: 'Dựa trên bạn đọc như cách quản lý của bạn' },
-  { id: 2, icon: FileText, title: 'Mẫu JD chuẩn theo ý trí', desc: 'Tuyển dụng' },
-  { id: 3, icon: BookOpen, title: 'Khuông năng lực nhân sự', desc: 'Quản trị nhân sự' },
+  { id: 1, icon: Zap, title: 'Tài liệu nổi bật cho bạn', desc: 'Dựa trên lịch sử đọc và vai trò của bạn' },
+  { id: 2, icon: FileText, title: 'Mẫu JD chuẩn theo vị trí', desc: 'Tuyển dụng' },
+  { id: 3, icon: BookOpen, title: 'Khung năng lực nhân sự', desc: 'Quản trị nhân sự' },
   { id: 4, icon: FileText, title: 'Template định giá ứng viên', desc: 'Tuyển dụng' },
-  { id: 5, icon: Users, title: 'Bộ câu hỏi phỏng vấn nâng lực', desc: 'Kỹ năng nghề nghiệp' },
+  { id: 5, icon: Users, title: 'Bộ câu hỏi phỏng vấn năng lực', desc: 'Kỹ năng nghề nghiệp' },
 ]
 
 const latestMaterials = [
-  { time: '15/05', title: 'Xu hương tuyển dụng IT 2024', type: 'MẪU' },
+  { time: '15/05', title: 'Xu hướng tuyển dụng IT 2024', type: 'MẪU' },
   { time: '14/05', title: 'Checklist onboarding nhân viên mới', type: 'MẪU' },
-  { time: '13/05', title: 'Chinh sách làm việc hybrid hiệu quả', type: 'MẦU' },
+  { time: '13/05', title: 'Chính sách làm việc hybrid hiệu quả', type: 'MẪU' },
   { time: '12/05', title: 'Hướng dẫn sử dụng EVP', type: 'MẪU' },
   { time: '10/05', title: 'Bộ KPI cho từng vị trí phòng ban', type: 'MẪU' },
 ]
 
 const templates = [
-  { id: 1, icon: FileText, label: 'Mẫu JD', name: 'Mẫu JD theo vị trí', desc: '23 mẫu', action: 'Xem ngay', primary: false },
-  { id: 2, icon: FileText, label: 'Mẫu Excel', name: 'Bảng đánh giá ứng viên', desc: 'Excel • 15 KB', action: 'Tải về', primary: false },
-  { id: 3, icon: FileText, label: 'Mẫu quy trình', name: 'Quy trình tuyển dụng chuẩn', desc: 'PDF • 2.4 MB', action: 'Xem ngay', primary: false },
-  { id: 4, icon: FileText, label: 'Mẫu slide', name: 'Bộ slide onboarding nhân viên mới', desc: 'PPTX • 5.6 MB', action: 'Tải về', primary: false },
-  { id: 5, icon: FileText, label: 'Mẫu văn bản', name: 'Hợp đồng lao động mẫu', desc: 'DOCX • 48 KB', action: 'Tải về', primary: false },
+  { id: 1, icon: FileText, label: 'Mẫu JD', name: 'Mẫu JD theo vị trí', desc: '23 mẫu', action: 'Xem ngay' },
+  { id: 2, icon: FileText, label: 'Mẫu Excel', name: 'Bảng đánh giá ứng viên', desc: 'Excel · 15 KB', action: 'Tải về' },
+  { id: 3, icon: FileText, label: 'Mẫu quy trình', name: 'Quy trình tuyển dụng chuẩn', desc: 'PDF · 2.4 MB', action: 'Xem ngay' },
+  { id: 4, icon: FileText, label: 'Mẫu slide', name: 'Bộ slide onboarding nhân viên mới', desc: 'PPTX · 5.6 MB', action: 'Tải về' },
+  { id: 5, icon: FileText, label: 'Mẫu văn bản', name: 'Hợp đồng lao động mẫu', desc: 'DOCX · 48 KB', action: 'Tải về' },
 ]
+
+function SectionHeader({ title, actionLabel }) {
+  return (
+    <div className="mb-2.5 flex items-center justify-between border-b border-slate-100 pb-2.5">
+      <h2 className="text-xs font-bold text-slate-900 sm:text-sm">{title}</h2>
+      {actionLabel ? (
+        <button
+          type="button"
+          className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[#0077B6] transition-colors hover:text-[#006399] sm:text-[11px]"
+        >
+          {actionLabel}
+          <ChevronRight className="h-3 w-3" />
+        </button>
+      ) : null}
+    </div>
+  )
+}
 
 const KnowledgeHub = () => {
   const [selectedCategory, setSelectedCategory] = useState(1)
@@ -66,215 +116,256 @@ const KnowledgeHub = () => {
 
   return (
     <>
-      <style>{scrollbarStyle}</style>
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
-
-        {/* Search & Filter */}
-        <div style={{ padding: 12, borderBottom: '1px solid #e2e8f0', background: '#ffffff', display: 'grid', gridTemplateColumns: '1fr 120px', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0', padding: '8px 12px' }}>
-            <Search style={{ width: 14, height: 14, color: '#94a3b8' }} />
-            <input 
-              type="text" 
-              placeholder="Tìm kiếm bài viết, hướng dẫn, mẫu tài liệu..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ flex: 1, border: 'none', background: 'transparent', fontSize: 10, outline: 'none' }} 
-            />
+      <style>{hubStyles}</style>
+      <div
+        className="business-homepage-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#f4f6f8]"
+        style={{ fontFamily: PAGE_FONT }}
+      >
+        <div className="business-homepage-ui flex min-h-0 flex-1 flex-col overflow-hidden">
+          {/* Header + search */}
+          <div className="shrink-0 border-b border-slate-200/90 bg-white px-3 py-2.5 sm:px-4">
+            <div className="mb-2.5 flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h1 className="text-sm font-bold text-slate-900 sm:text-base">Knowledge Hub</h1>
+                <p className="text-[10px] text-slate-500 sm:text-[11px]">Bài viết, hướng dẫn và mẫu tài liệu HR</p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 focus-within:border-[#0077B6]/40 focus-within:ring-2 focus-within:ring-[#0077B6]/15">
+                <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm bài viết, hướng dẫn, mẫu tài liệu..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="min-w-0 flex-1 border-none bg-transparent text-[11px] text-slate-800 outline-none placeholder:text-slate-400 sm:text-xs"
+                />
+              </div>
+              <button
+                type="button"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[10px] font-semibold text-slate-600 transition-colors hover:border-[#cce5f0] hover:bg-[#e8f4fa]/50 sm:text-[11px]"
+              >
+                <Filter className="h-3 w-3" />
+                Tất cả chủ đề
+              </button>
+            </div>
           </div>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 6, cursor: 'pointer', fontSize: 10, color: '#64748b', fontWeight: 500 }}>
-            <Filter style={{ width: 12, height: 12 }} />
-            Tất cả chủ đề
-          </button>
-        </div>
 
-        {/* Main Content */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 12, padding: 12, alignItems: 'start' }}>
-          
-          {/* Left Column */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* Categories */}
-            <div style={{ overflowX: 'auto' }}>
-              <div style={{ display: 'flex', gap: 12 }}>
-                {categories.map((cat) => {
-                  const Icon = cat.icon
-                  return (
-                    <button 
-                      key={cat.id}
-                      onClick={() => setSelectedCategory(cat.id)}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 4,
-                        padding: 10,
-                        borderRadius: 8,
-                        border: selectedCategory === cat.id ? '2px solid #3b82f6' : '1px solid #e2e8f0',
-                        background: selectedCategory === cat.id ? '#eff6ff' : '#f8fafc',
-                        cursor: 'pointer',
-                        minWidth: 100,
-                        flex: 1,
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      <Icon style={{ width: 18, height: 18, color: selectedCategory === cat.id ? '#3b82f6' : '#64748b' }} />
-                      <div style={{ fontSize: 9, fontWeight: 600, color: '#1e293b', textAlign: 'center', lineHeight: 1.2 }}>{cat.name}</div>
-                      <div style={{ fontSize: 8, color: '#64748b', fontWeight: 500 }}>{cat.count} bài viết</div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Featured Post */}
-            <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 16, borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0', background: '#ffffff' }}>
-              <div style={{ position: 'relative', overflow: 'hidden' }}>
-                <img src={featuredPost.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <div style={{ position: 'absolute', top: 8, left: 8, background: '#7c3aed', color: 'white', fontSize: 8, fontWeight: 700, padding: '4px 8px', borderRadius: 4 }}>
-                  NỔI BẬT
-                </div>
-              </div>
-              <div style={{ padding: 12, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <div>
-                  <h3 style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', marginBottom: 6, lineHeight: 1.3 }}>{featuredPost.title}</h3>
-                  <p style={{ fontSize: 9, color: '#64748b', lineHeight: 1.4, marginBottom: 8 }}>{featuredPost.description}</p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 8, color: '#94a3b8' }}>
-                  <span>{featuredPost.date}</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Eye style={{ width: 10, height: 10 }} /> {featuredPost.views} phút đọc
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Share2 style={{ width: 10, height: 10 }} /> 3.4 lượt chia sẻ
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Posts List */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid #e2e8f0' }}>
-                <h2 style={{ fontSize: 11, fontWeight: 700, color: '#1e293b' }}>Bài viết nổi bật</h2>
-                <button style={{ fontSize: 9, fontWeight: 600, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}>
-                  Xem tất cả <ChevronRight style={{ width: 9, height: 9 }} />
-                </button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {posts.map((post) => (
-                  <div key={post.id} style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: 10, padding: 10, borderRadius: 6, border: '1px solid #e2e8f0', background: '#ffffff', cursor: 'pointer' }}>
-                    <div style={{ borderRadius: 4, overflow: 'hidden' }}>
-                      <img src={post.image} alt="" style={{ width: '100%', height: '70px', objectFit: 'cover' }} />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                          <span style={{ fontSize: 8, fontWeight: 600, background: '#e0e7ff', color: '#4f46e5', padding: '2px 6px', borderRadius: 3 }}>
-                            {post.category}
+          <div className="knowledge-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <div className="grid w-full min-h-0 grid-cols-1 items-start gap-3 px-3 py-3 sm:px-4 sm:py-4 xl:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] xl:gap-4">
+              {/* Main column */}
+              <div className="flex min-w-0 flex-col gap-3">
+                {/* Categories */}
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 sm:gap-2.5">
+                    {categories.map((cat) => {
+                      const Icon = cat.icon
+                      const active = selectedCategory === cat.id
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setSelectedCategory(cat.id)}
+                          className={`flex min-w-0 flex-col items-center gap-1 rounded-xl border px-1.5 py-2.5 transition-colors sm:px-2 sm:py-3 ${
+                            active
+                              ? 'border-[#0077B6] bg-[#e8f4fa] shadow-sm shadow-[#0077B6]/10'
+                              : 'border-slate-200/90 bg-white hover:border-[#cce5f0] hover:bg-slate-50/80'
+                          }`}
+                        >
+                          <Icon
+                            className="h-4 w-4 sm:h-[18px] sm:w-[18px]"
+                            style={{ color: active ? BRAND : '#64748b' }}
+                          />
+                          <span className="text-center text-[9px] font-semibold leading-tight text-slate-800 sm:text-[10px]">
+                            {cat.name}
                           </span>
-                          <span style={{ fontSize: 8, color: '#94a3b8' }}>{post.date}</span>
-                        </div>
-                        <h4 style={{ fontSize: 10, fontWeight: 600, color: '#1e293b', lineHeight: 1.3 }}>{post.title}</h4>
-                      </div>
-                      <div style={{ display: 'flex', gap: 8, fontSize: 8, color: '#94a3b8' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Eye style={{ width: 9, height: 9 }} /> {post.views} phút
-                        </span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Share2 style={{ width: 9, height: 9 }} /> {post.shares} lượt chia sẻ
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                          <span className="text-[8px] font-medium text-slate-500 sm:text-[9px]">{cat.count} bài</span>
+                        </button>
+                      )
+                    })}
+                </div>
 
-            {/* Documents & Templates */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid #e2e8f0' }}>
-                <h2 style={{ fontSize: 11, fontWeight: 700, color: '#1e293b' }}>Tài liệu & Mẫu biểu hữu ích</h2>
-                <button style={{ fontSize: 9, fontWeight: 600, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}>
-                  Xem tất cả mẫu biểu <ChevronRight style={{ width: 9, height: 9 }} />
-                </button>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
-                {templates.map((tpl) => {
-                  const TplIcon = tpl.icon
-                  return (
-                    <div key={tpl.id} style={{ display: 'flex', flexDirection: 'column', padding: 10, borderRadius: 6, border: '1px solid #e2e8f0', background: '#ffffff' }}>
-                      <TplIcon style={{ width: 16, height: 16, color: '#3b82f6', marginBottom: 8 }} />
-                      <div style={{ fontSize: 8, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 2 }}>{tpl.label}</div>
-                      <div style={{ fontSize: 10, fontWeight: 600, color: '#1e293b', lineHeight: 1.3, marginBottom: 6, flex: 1 }}>{tpl.name}</div>
-                      <div style={{ fontSize: 8, color: '#94a3b8', marginBottom: 8 }}>{tpl.desc}</div>
-                      <button style={{ width: '100%', padding: '6px', fontSize: 9, fontWeight: 600, color: tpl.primary ? '#ffffff' : '#3b82f6', background: tpl.primary ? '#3b82f6' : '#ffffff', border: tpl.primary ? 'none' : '1px solid #e2e8f0', borderRadius: 4, cursor: 'pointer' }}>
-                        {tpl.action}
-                      </button>
+                {/* Featured */}
+                <article className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,280px)_1fr]">
+                    <div className="relative aspect-[16/10] sm:aspect-auto sm:min-h-[160px]">
+                      <img src={featuredPost.image} alt="" className="h-full w-full object-cover" />
+                      <span
+                        className="absolute left-2 top-2 rounded-md px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white sm:text-[9px]"
+                        style={{ background: BRAND }}
+                      >
+                        Nổi bật
+                      </span>
                     </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Sidebar */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ borderRadius: 8, border: '1px solid #e2e8f0', background: '#ffffff', padding: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid #e2e8f0' }}>
-                <Zap style={{ width: 12, height: 12, color: '#f59e0b' }} />
-                <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b' }}>Tái liêu nổi bật cho bạn</h3>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {recommendations.map((rec, i) => {
-                  const RecIcon = rec.icon
-                  return (
-                    <button key={i} style={{ textAlign: 'left', padding: 8, borderRadius: 4, border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', gap: 8 }}>
-                      <RecIcon style={{ width: 12, height: 12, color: '#3b82f6', flexShrink: 0, marginTop: 2 }} />
+                    <div className="flex flex-col justify-between gap-3 p-3 sm:p-4">
                       <div>
-                        <div style={{ fontSize: 9, fontWeight: 600, color: '#1e293b' }}>{rec.title}</div>
-                        <div style={{ fontSize: 8, color: '#64748b' }}>{rec.desc}</div>
+                        <span className="inline-flex rounded-full bg-[#e8f4fa] px-2 py-0.5 text-[9px] font-semibold text-[#0077B6]">
+                          {featuredPost.category}
+                        </span>
+                        <h3 className="mt-2 text-xs font-bold leading-snug text-slate-900 sm:text-sm">{featuredPost.title}</h3>
+                        <p className="mt-1.5 text-[10px] leading-relaxed text-slate-600 sm:text-[11px]">{featuredPost.description}</p>
                       </div>
-                    </button>
-                  )
-                })}
-              </div>
-              <button style={{ width: '100%', marginTop: 10, padding: '6px', fontSize: 9, fontWeight: 600, color: '#3b82f6', background: '#eff6ff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
-                Xem ngay
-              </button>
-            </div>
-
-            {/* Latest Materials */}
-            <div style={{ borderRadius: 8, border: '1px solid #e2e8f0', background: '#ffffff', padding: 12 }}>
-              <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Clock style={{ width: 12, height: 12 }} />
-                Tài liêu mới cập nhật
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {latestMaterials.map((mat, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: 8 }}>
-                    <div>
-                      <div style={{ color: '#94a3b8', marginBottom: 2 }}>{mat.time}</div>
-                      <div style={{ color: '#1e293b', fontWeight: 500 }}>{mat.title}</div>
+                      <div className="flex flex-wrap items-center gap-3 text-[9px] text-slate-400 sm:text-[10px]">
+                        <span>{featuredPost.date}</span>
+                        <span className="inline-flex items-center gap-1">
+                          <Eye className="h-3 w-3" />
+                          {featuredPost.views} phút đọc
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Share2 className="h-3 w-3" />
+                          {featuredPost.shares} lượt chia sẻ
+                        </span>
+                      </div>
                     </div>
-                    <span style={{ fontSize: 7, fontWeight: 600, color: '#3b82f6', background: '#eff6ff', padding: '2px 4px', borderRadius: 2, whiteSpace: 'nowrap' }}>
-                      {mat.type}
-                    </span>
                   </div>
-                ))}
-              </div>
-              <button style={{ width: '100%', marginTop: 10, padding: '6px', fontSize: 9, fontWeight: 600, color: '#3b82f6', background: 'none', border: '1px solid #3b82f6', borderRadius: 4, cursor: 'pointer' }}>
-                Xem tất cả
-              </button>
-            </div>
+                </article>
 
-            {/* Feedback */}
-            <div style={{ borderRadius: 8, border: '1px solid #e2e8f0', background: '#eff6ff', padding: 12, textAlign: 'center' }}>
-              <div style={{ marginBottom: 8 }}>
-                <MessageSquare style={{ width: 24, height: 24, margin: '0 auto', color: '#3b82f6' }} />
+                {/* Posts */}
+                <section className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
+                  <SectionHeader title="Bài viết nổi bật" actionLabel="Xem tất cả" />
+                  <ul className="flex flex-col gap-2">
+                    {posts.map((post) => (
+                      <li key={post.id}>
+                        <button
+                          type="button"
+                          className="grid w-full grid-cols-[88px_1fr] gap-2.5 rounded-lg border border-slate-100 bg-slate-50/40 p-2 text-left transition-colors hover:border-[#cce5f0] hover:bg-[#e8f4fa]/30 sm:grid-cols-[100px_1fr] sm:gap-3 sm:p-2.5"
+                        >
+                          <div className="overflow-hidden rounded-md">
+                            <img src={post.image} alt="" className="h-[70px] w-full object-cover" />
+                          </div>
+                          <div className="flex min-w-0 flex-col justify-between gap-1">
+                            <div>
+                              <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                                <span className="rounded-full bg-[#e8f4fa] px-1.5 py-0.5 text-[8px] font-semibold text-[#0077B6] sm:text-[9px]">
+                                  {post.category}
+                                </span>
+                                <span className="text-[8px] text-slate-400 sm:text-[9px]">{post.date}</span>
+                              </div>
+                              <h4 className="text-[10px] font-semibold leading-snug text-slate-800 sm:text-[11px]">{post.title}</h4>
+                            </div>
+                            <div className="flex gap-3 text-[8px] text-slate-400 sm:text-[9px]">
+                              <span className="inline-flex items-center gap-0.5">
+                                <Eye className="h-2.5 w-2.5" />
+                                {post.views} phút
+                              </span>
+                              <span className="inline-flex items-center gap-0.5">
+                                <Share2 className="h-2.5 w-2.5" />
+                                {post.shares} chia sẻ
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+
+                {/* Templates */}
+                <section className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
+                  <SectionHeader title="Tài liệu & mẫu biểu hữu ích" actionLabel="Xem tất cả mẫu" />
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 sm:gap-2.5">
+                    {templates.map((tpl) => {
+                      const TplIcon = tpl.icon
+                      return (
+                        <div
+                          key={tpl.id}
+                          className="flex flex-col rounded-lg border border-slate-100 bg-slate-50/50 p-2.5 sm:p-3"
+                        >
+                          <TplIcon className="mb-2 h-4 w-4 text-[#0077B6]" />
+                          <span className="text-[8px] font-semibold uppercase tracking-wide text-slate-400">{tpl.label}</span>
+                          <p className="mt-0.5 flex-1 text-[10px] font-semibold leading-snug text-slate-800 sm:text-[11px]">{tpl.name}</p>
+                          <p className="mt-1 text-[8px] text-slate-500 sm:text-[9px]">{tpl.desc}</p>
+                          <button
+                            type="button"
+                            className="mt-2 w-full rounded-md border border-slate-200 bg-white py-1.5 text-[9px] font-semibold text-[#0077B6] transition-colors hover:border-[#0077B6]/30 hover:bg-[#e8f4fa]/60 sm:text-[10px]"
+                          >
+                            {tpl.action}
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
               </div>
-              <h3 style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>Góp ý & Yêu cầu tài liêu</h3>
-              <p style={{ fontSize: 8, color: '#64748b', marginBottom: 8 }}>Bạn cần tài liệu nào hãy cho chúng tôi biết để cải thiện dịch vụ</p>
-              <button style={{ width: '100%', padding: '6px 12px', fontSize: 9, fontWeight: 600, color: 'white', background: '#3b82f6', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
-                Góp ý & Yêu cầu
-              </button>
+
+              {/* Sidebar */}
+              <aside className="flex min-w-0 flex-col gap-3">
+                <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
+                  <div className="mb-2.5 flex items-center gap-1.5 border-b border-slate-100 pb-2.5">
+                    <Zap className="h-3.5 w-3.5 text-amber-500" />
+                    <h3 className="text-[11px] font-bold text-slate-900 sm:text-xs">Gợi ý cho bạn</h3>
+                  </div>
+                  <ul className="flex flex-col gap-1.5">
+                    {recommendations.map((rec) => {
+                      const RecIcon = rec.icon
+                      return (
+                        <li key={rec.id}>
+                          <button
+                            type="button"
+                            className="flex w-full gap-2 rounded-lg border border-slate-100 bg-slate-50/60 p-2 text-left transition-colors hover:border-[#cce5f0] hover:bg-[#e8f4fa]/40"
+                          >
+                            <RecIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0077B6]" />
+                            <span className="min-w-0">
+                              <span className="block text-[10px] font-semibold text-slate-800 sm:text-[11px]">{rec.title}</span>
+                              <span className="block text-[9px] text-slate-500">{rec.desc}</span>
+                            </span>
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                  <button
+                    type="button"
+                    className="mt-2.5 w-full rounded-lg py-2 text-[10px] font-semibold text-[#0077B6] transition-colors hover:bg-[#e8f4fa]/80 sm:text-[11px]"
+                    style={{ background: BRAND_LIGHT }}
+                  >
+                    Xem thêm gợi ý
+                  </button>
+                </div>
+
+                <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
+                  <h3 className="mb-2.5 flex items-center gap-1.5 border-b border-slate-100 pb-2.5 text-[11px] font-bold text-slate-900 sm:text-xs">
+                    <Clock className="h-3.5 w-3.5 text-slate-500" />
+                    Tài liệu mới cập nhật
+                  </h3>
+                  <ul className="flex flex-col gap-2">
+                    {latestMaterials.map((mat) => (
+                      <li key={`${mat.time}-${mat.title}`} className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[9px] text-slate-400">{mat.time}</p>
+                          <p className="text-[10px] font-medium leading-snug text-slate-800 sm:text-[11px]">{mat.title}</p>
+                        </div>
+                        <span className="shrink-0 rounded bg-[#e8f4fa] px-1.5 py-0.5 text-[7px] font-bold text-[#0077B6] sm:text-[8px]">
+                          {mat.type}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    type="button"
+                    className="mt-2.5 w-full rounded-lg border border-[#0077B6]/35 py-2 text-[10px] font-semibold text-[#0077B6] transition-colors hover:bg-[#e8f4fa]/50 sm:text-[11px]"
+                  >
+                    Xem tất cả
+                  </button>
+                </div>
+
+                <div
+                  className="rounded-xl border p-3 text-center sm:p-4"
+                  style={{ borderColor: BRAND_BORDER, background: `${BRAND_LIGHT}99` }}
+                >
+                  <MessageSquare className="mx-auto mb-2 h-6 w-6 text-[#0077B6]" />
+                  <h3 className="text-[11px] font-bold text-slate-900 sm:text-xs">Góp ý & yêu cầu tài liệu</h3>
+                  <p className="mt-1 text-[9px] leading-relaxed text-slate-600 sm:text-[10px]">
+                    Bạn cần tài liệu nào? Gửi góp ý để chúng tôi bổ sung nội dung phù hợp.
+                  </p>
+                  <button
+                    type="button"
+                    className="mt-3 w-full rounded-lg py-2 text-[10px] font-semibold text-white shadow-sm transition-colors hover:bg-[#006399] sm:text-[11px]"
+                    style={{ background: BRAND, boxShadow: '0 1px 2px rgba(0,119,182,0.2)' }}
+                  >
+                    Gửi góp ý
+                  </button>
+                </div>
+              </aside>
             </div>
           </div>
         </div>

@@ -1,31 +1,31 @@
 import React, { useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Search, Users, Briefcase, FilePlus2, X, ChevronRight } from 'lucide-react'
+import {
+  Search, Users, Briefcase, FilePlus2, X, ChevronRight, CheckCircle2,
+} from 'lucide-react'
+
+const BRAND = '#0077B6'
 
 const NEXT_STEP_OPTIONS = [
   {
     num: '①',
     label: 'Tìm ứng viên bằng Scout Credit',
     icon: Search,
-    btnClass: 'bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-500',
   },
   {
     num: '②',
     label: 'Nhờ WS Scout Performance',
     icon: Users,
-    btnClass: 'bg-emerald-600 hover:bg-emerald-700 focus-visible:ring-emerald-500',
   },
   {
     num: '③',
     label: 'Đăng lên Sàn HR Partner',
     icon: Briefcase,
-    btnClass: 'bg-orange-500 hover:bg-orange-600 focus-visible:ring-orange-500',
   },
   {
     num: '④',
     label: 'Tạo Landing Page tuyển dụng',
     icon: FilePlus2,
-    btnClass: 'bg-violet-600 hover:bg-violet-700 focus-visible:ring-violet-500',
   },
 ]
 
@@ -43,7 +43,7 @@ export default function JobCreatedNextStepsModal({ open, jobId, onClose, onSelec
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10050] flex items-center justify-center p-4 sm:p-6"
+      className="fixed inset-0 z-[10050] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="job-created-next-steps-title"
@@ -51,53 +51,75 @@ export default function JobCreatedNextStepsModal({ open, jobId, onClose, onSelec
       <button
         type="button"
         aria-label="Đóng"
-        className="absolute inset-0 bg-slate-900/50"
+        className="absolute inset-0 bg-slate-900/45"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
+      <div className="relative w-full max-w-[340px] rounded-2xl border border-slate-200 bg-white shadow-xl">
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-3 top-3 w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+          className="absolute right-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
           aria-label="Đóng hộp thoại"
         >
-          <X className="w-4 h-4" />
+          <X className="h-4 w-4" strokeWidth={2} />
         </button>
 
-        <div className="px-5 pt-6 pb-5 sm:px-6 sm:pt-7 sm:pb-6">
-          <p className="text-center text-base sm:text-lg font-bold text-slate-800 pr-8">
-            🎉 JD đã được tạo thành công.
-          </p>
-          <p
-            id="job-created-next-steps-title"
-            className="text-center text-sm text-slate-600 mt-2 mb-5"
-          >
-            Tiếp theo bạn muốn làm gì?
-          </p>
+        <div className="px-5 pb-5 pt-6">
+          <div className="flex flex-col items-center text-center pr-6">
+            <div
+              className="mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-[#0077B6]/20 bg-[#0077B6]/5"
+              aria-hidden
+            >
+              <CheckCircle2 className="h-5 w-5" style={{ color: BRAND }} strokeWidth={2} />
+            </div>
+            <h2 className="text-[13px] font-bold leading-snug text-slate-900">
+              JD đã được tạo thành công
+            </h2>
+            <p
+              id="job-created-next-steps-title"
+              className="mt-1.5 text-[11px] font-medium leading-relaxed text-slate-600"
+            >
+              Tiếp theo bạn muốn làm gì?
+            </p>
+          </div>
 
-          <div className="flex flex-col gap-2.5">
+          <ul className="mt-4 flex flex-col gap-1.5">
             {NEXT_STEP_OPTIONS.map((opt) => {
               const Icon = opt.icon
               return (
-                <button
-                  key={opt.num}
-                  type="button"
-                  onClick={() => onSelect?.(opt.num, jobId)}
-                  className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-white text-sm font-semibold shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${opt.btnClass}`}
-                >
-                  <span className="shrink-0 text-xs font-bold opacity-90 tabular-nums">{opt.num}</span>
-                  <Icon className="w-4 h-4 shrink-0 opacity-95" aria-hidden />
-                  <span className="flex-1 min-w-0 leading-snug">{opt.label}</span>
-                  <ChevronRight className="w-4 h-4 shrink-0 opacity-90" aria-hidden />
-                </button>
+                <li key={opt.num}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect?.(opt.num, jobId)}
+                    className="group w-full flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-left transition-colors hover:border-[#0077B6]/35 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0077B6]/40 focus-visible:ring-offset-1"
+                  >
+                    <span className="shrink-0 text-[10px] font-bold tabular-nums text-slate-400 w-4">
+                      {opt.num}
+                    </span>
+                    <span
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-100 bg-slate-50 text-[#0077B6] group-hover:bg-[#0077B6]/5 group-hover:border-[#0077B6]/15"
+                      aria-hidden
+                    >
+                      <Icon className="h-3.5 w-3.5" strokeWidth={2} />
+                    </span>
+                    <span className="min-w-0 flex-1 text-[11px] font-semibold leading-snug text-slate-800">
+                      {opt.label}
+                    </span>
+                    <ChevronRight
+                      className="h-3.5 w-3.5 shrink-0 text-slate-300 group-hover:text-[#0077B6]"
+                      aria-hidden
+                    />
+                  </button>
+                </li>
               )
             })}
-          </div>
+          </ul>
 
           <button
             type="button"
             onClick={onClose}
-            className="mt-4 w-full text-center text-xs font-medium text-slate-500 hover:text-slate-700 py-2"
+            className="mt-4 w-full text-center text-[11px] font-semibold py-1 transition-colors hover:opacity-80"
+            style={{ color: BRAND }}
           >
             Ở lại trang quản lý JD
           </button>
@@ -106,6 +128,30 @@ export default function JobCreatedNextStepsModal({ open, jobId, onClose, onSelec
     </div>,
     document.body,
   )
+}
+
+export function navigateJobCreatedNextStep(navigate, stepNum, jobId) {
+  const id = jobId != null && jobId !== '' ? String(jobId) : ''
+  switch (stepNum) {
+    case '①':
+      navigate(id ? `/business/scout?jobId=${encodeURIComponent(id)}` : '/business/scout')
+      break
+    case '②':
+      navigate(id
+        ? `/business/messages?tab=ws&jobId=${encodeURIComponent(id)}`
+        : '/business/messages?tab=ws')
+      break
+    case '③':
+      navigate(id
+        ? `/business/candidate-sharing?create=1&jobId=${encodeURIComponent(id)}`
+        : '/business/candidate-sharing?create=1')
+      break
+    case '④':
+      navigate('/business/saiyo', { state: id ? { openLandingCreate: true, jobId: id } : { openLandingCreate: true } })
+      break
+    default:
+      break
+  }
 }
 
 export { NEXT_STEP_OPTIONS }

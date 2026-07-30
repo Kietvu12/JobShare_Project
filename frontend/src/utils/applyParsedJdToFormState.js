@@ -259,6 +259,7 @@ export function createEmptyJdFormState() {
       transferAbilityEn: '',
       transferAbilityJp: '',
       highlights: '',
+      status: 0,
     },
     recruitingCompany: {
       companyName: '',
@@ -721,7 +722,13 @@ export function applyMultilingualJdOutputToFormState(jdOutput, prevState = {}) {
 export function applyJdFormStatePatch(setters, patch, { mergeArrays = true } = {}) {
   if (!patch) return;
   if (patch.languageTab && setters.setLanguageTab) setters.setLanguageTab(patch.languageTab);
-  if (patch.formData && setters.setFormData) setters.setFormData(patch.formData);
+  if (patch.formData && setters.setFormData) {
+    setters.setFormData((prev) => ({
+      ...prev,
+      ...patch.formData,
+      status: patch.formData.status ?? prev?.status ?? 0,
+    }));
+  }
   if (patch.recruitingCompany && setters.setRecruitingCompany) setters.setRecruitingCompany(patch.recruitingCompany);
   if (patch.highlightKeys && setters.setHighlightKeys) setters.setHighlightKeys(patch.highlightKeys);
   if (patch.workingLocations && setters.setWorkingLocations) setters.setWorkingLocations(patch.workingLocations);

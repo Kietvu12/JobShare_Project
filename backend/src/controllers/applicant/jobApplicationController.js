@@ -10,6 +10,8 @@ import {
 import { STATUS_WAITING_WS, STATUS_DUPLICATE, STATUSES_ENDED, STATUSES_ACTIVE_BLOCK_DUPLICATE } from '../../constants/jobApplicationStatus.js';
 import { canCVBeNominated, CV_STATUS_DUPLICATE, isCvPromotedInactive } from '../../constants/cvStatus.js';
 import { nominationEmailService } from '../../services/nominationEmailService.js';
+import { sendBusinessNewApplicationWithCv } from '../../services/businessApplicationEmailService.js';
+import { collaboratorNotificationService } from '../../services/collaboratorNotificationService.js';
 
 const mapOrderFieldApplicant = (fieldName) => {
   const fieldMap = {
@@ -312,6 +314,36 @@ export const applicantJobApplicationController = {
         });
       } catch (adminNotifyErr) {
         console.error('[Applicant createMyJobApplication] Error sending admin new-nomination email:', adminNotifyErr);
+      }
+
+      try {
+        const businessId = jobApplication.job?.businessId || job?.businessId;
+        if (businessId) {
+          await collaboratorNotificationService.notifyBusinessNominationCreated({
+            businessId,
+            candidateName: jobApplication.cv?.name || null,
+            jobCode: jobApplication.job?.jobCode || job.jobCode || String(jobApplication.id),
+            jobId: jobApplication.jobId || job.id || null,
+            jobApplicationId: jobApplication.id,
+            ctvName: null,
+          });
+        }
+      } catch (notificationError) {
+        console.error('[Applicant createMyJobApplication] Error creating business notification:', notificationError);
+      }
+
+      try {
+        await sendBusinessNewApplicationWithCv({
+          jobApplicationId: jobApplication.id,
+          jobId: jobApplication.jobId || job?.id,
+          businessId: jobApplication.job?.businessId || job?.businessId,
+          candidateName: jobApplication.cv?.name || null,
+          jobTitleVi: jobApplication.job?.title || job.title || null,
+          jobTitleEn: jobApplication.job?.titleEn || job.titleEn || null,
+          jobTitleJp: jobApplication.job?.titleJp || job.titleJp || null,
+        });
+      } catch (bizMailErr) {
+        console.error('[Applicant createMyJobApplication] Error sending business application email:', bizMailErr);
       }
 
       return res.status(201).json({

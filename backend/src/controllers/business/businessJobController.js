@@ -24,6 +24,7 @@ import {
   JobRecruitingCompanyBusinessSector,
 } from '../../models/index.js';
 import { bumpJobListCacheVersion } from '../../services/jobListCache.js';
+import { attachMarketplaceDirectRecruitmentFlags } from '../../services/jobListQueryService.js';
 import { jobController } from '../admin/jobController.js';
 
 function normalizeQueryParam(value) {
@@ -311,9 +312,12 @@ export const businessJobController = {
         });
       }
 
+      const jobJson = typeof job.toJSON === 'function' ? job.toJSON() : { ...job };
+      await attachMarketplaceDirectRecruitmentFlags([jobJson]);
+
       res.json({
         success: true,
-        data: { job: typeof job.toJSON === 'function' ? job.toJSON() : job },
+        data: { job: jobJson },
       });
     } catch (error) {
       next(error);

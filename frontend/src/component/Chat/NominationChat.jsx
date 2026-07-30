@@ -143,6 +143,8 @@ const NominationChat = ({
   mobileHeaderName = '',
   mobileHeaderAvatar = '',
   onOpenInfoPanel,
+  /** Nhúng trong panel cố định chiều cao (Sàn CTV) — không đẩy scroll trang */
+  embeddedPanel = false,
 }) => {
   const { language } = useLanguage();
   const t = translations[language] || translations.vi;
@@ -374,7 +376,12 @@ const NominationChat = ({
   }, [currentStatus, showStatusMessageForm]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    const el = messagesContainerRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+      return;
+    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'nearest' });
   };
 
   const handleMessagesScroll = () => {
@@ -946,8 +953,16 @@ const NominationChat = ({
   const statusLabel = getJobApplicationStatusLabelByLanguage(statusFormStatus, language);
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border shadow-sm sm:rounded-lg" style={{ backgroundColor: 'white', borderColor: CARD_BORDER }}>
+    <div
+      className={`flex h-full min-h-0 flex-col overflow-hidden ${
+        embeddedPanel
+          ? 'rounded-none border-0 shadow-none'
+          : 'rounded-2xl border shadow-sm sm:rounded-lg'
+      }`}
+      style={{ backgroundColor: 'white', borderColor: embeddedPanel ? 'transparent' : CARD_BORDER }}
+    >
       {/* Header */}
+      {!embeddedPanel && (
       <div className="border-b px-3 py-2 sm:p-4" style={{ borderColor: CARD_BORDER, backgroundColor: CARD_HEADER_BG }}>
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
@@ -1019,6 +1034,7 @@ const NominationChat = ({
           </div>
         </div>
       </div>
+      )}
 
       {/* Yêu cầu thanh toán (CTV — sau khi đã vào công ty) */}
       {userType === 'ctv' && Number(currentStatus) >= STATUS_JOINED && Number(currentStatus) !== STATUS_PAID && (
@@ -1282,7 +1298,12 @@ const NominationChat = ({
       )}
 
       {/* Messages: 2 block nền trái/phải + thẻ màu */}
-      <div className="mx-0 my-0 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border sm:mx-3 sm:my-2 sm:rounded-xl" style={{ borderColor: '#cbd5e1' }}>
+      <div
+        className={`mx-0 my-0 flex min-h-0 flex-1 flex-col overflow-hidden ${
+          embeddedPanel ? 'rounded-none border-0' : 'rounded-2xl border sm:mx-3 sm:my-2 sm:rounded-xl'
+        }`}
+        style={{ borderColor: embeddedPanel ? 'transparent' : '#cbd5e1' }}
+      >
         <div className="relative flex-1 min-h-0 flex">
           <div className="absolute inset-0 flex pointer-events-none" aria-hidden>
             <div className="w-1/2" style={{ backgroundColor: CHAT_BG_LEFT }} />
@@ -1291,7 +1312,7 @@ const NominationChat = ({
           <div
             ref={messagesContainerRef}
             onScroll={handleMessagesScroll}
-            className="relative z-[1] min-h-[220px] flex-1 space-y-3 overflow-y-auto p-3 sm:min-h-[200px]"
+            className={`relative z-[1] min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3 ${embeddedPanel ? '' : 'min-h-[220px] sm:min-h-[200px]'}`}
           >
             {loading ? (
               <div className="flex items-center justify-center min-h-[160px]">

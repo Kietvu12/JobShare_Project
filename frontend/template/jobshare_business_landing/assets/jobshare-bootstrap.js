@@ -1,4 +1,4 @@
-/* JobShare — khởi tạo navbar & animation khi nhúng iframe */
+/* i-web template — khởi tạo navbar & animation khi nhúng iframe */
 (function () {
   function init() {
     var header = document.querySelector('header');

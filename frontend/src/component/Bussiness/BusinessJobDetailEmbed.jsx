@@ -1,10 +1,5 @@
 import React from 'react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import JobDetail from '../../page/Bussiness/JobDetail';
-
-function EmbeddedJobDetailRoute() {
-  return <JobDetail embedded />;
-}
 
 export default function BusinessJobDetailEmbed({ jobId }) {
   if (!jobId) {
@@ -19,12 +14,8 @@ export default function BusinessJobDetailEmbed({ jobId }) {
   }
 
   return (
-    <MemoryRouter initialEntries={[`/business/jobs/${jobId}`]}>
-      <div className="h-full min-h-0 overflow-hidden">
-        <Routes>
-          <Route path="/business/jobs/:jobId" element={<EmbeddedJobDetailRoute />} />
-        </Routes>
-      </div>
-    </MemoryRouter>
+    <div className="h-full min-h-0 overflow-hidden">
+      <JobDetail embedded jobId={jobId} />
+    </div>
   );
 }

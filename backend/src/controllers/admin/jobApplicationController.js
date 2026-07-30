@@ -22,6 +22,7 @@ import { canCVBeNominated, CV_STATUS_DUPLICATE } from '../../constants/cvStatus.
 import { collaboratorNotificationService } from '../../services/collaboratorNotificationService.js';
 import { nominationEmailService } from '../../services/nominationEmailService.js';
 import { createNominationIntroMessages } from '../../services/nominationIntroMessageService.js';
+import { sendBusinessNewApplicationWithCv } from '../../services/businessApplicationEmailService.js';
 
 // Helper function to map model field names to database column names
 const mapOrderField = (fieldName) => {
@@ -859,6 +860,36 @@ export const jobApplicationController = {
         });
       } catch (adminNotifyErr) {
         console.error('[Admin createJobApplication] Error sending admin new-nomination email:', adminNotifyErr);
+      }
+
+      try {
+        const businessId = jobApplication.job?.businessId;
+        if (businessId) {
+          await collaboratorNotificationService.notifyBusinessNominationCreated({
+            businessId,
+            candidateName: jobApplication.cv?.name || null,
+            jobCode: jobApplication.job?.jobCode || String(jobApplication.id),
+            jobId: jobApplication.jobId || null,
+            jobApplicationId: jobApplication.id,
+            ctvName: jobApplication.collaborator?.name || (req.admin?.name ? `Admin (${req.admin.name})` : null),
+          });
+        }
+      } catch (bizNotifErr) {
+        console.error('[Admin createJobApplication] Error creating business notification:', bizNotifErr);
+      }
+
+      try {
+        await sendBusinessNewApplicationWithCv({
+          jobApplicationId: jobApplication.id,
+          jobId: jobApplication.jobId,
+          businessId: jobApplication.job?.businessId,
+          candidateName: jobApplication.cv?.name || null,
+          jobTitleVi: jobApplication.job?.title || null,
+          jobTitleEn: jobApplication.job?.titleEn || jobApplication.job?.title_en || null,
+          jobTitleJp: jobApplication.job?.titleJp || jobApplication.job?.title_jp || null,
+        });
+      } catch (bizMailErr) {
+        console.error('[Admin createJobApplication] Error sending business application email:', bizMailErr);
       }
 
       // Log action

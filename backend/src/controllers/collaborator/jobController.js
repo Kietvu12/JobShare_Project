@@ -34,7 +34,7 @@ import {
   buildJobDownloadApiUrl,
 } from '../../utils/jobFileDownload.js';
 import { getRequestPublicBaseUrl } from '../../utils/requestPublicBaseUrl.js';
-import { executeJobListQuery, executeJobListInIdsQuery, MAX_JOB_LIST_LIMIT, localizeJobPlainForLanguage } from '../../services/jobListQueryService.js';
+import { attachMarketplaceDirectRecruitmentFlags, executeJobListQuery, executeJobListInIdsQuery, MAX_JOB_LIST_LIMIT, localizeJobPlainForLanguage } from '../../services/jobListQueryService.js';
 import { findJobByIdOrSlug } from '../../utils/resolveJobByIdOrSlug.js';
 
 /**
@@ -397,6 +397,7 @@ export const jobController = {
       const lang = langRaw === 'en' ? 'en' : langRaw === 'jp' ? 'jp' : 'vi';
       const jobData = job.toJSON();
       jobData.isFavorite = false;
+      await attachMarketplaceDirectRecruitmentFlags([jobData]);
       const { attachCampaignCommission } = await import('../../utils/campaignCommissionHelper.js');
       const jobWithComputedCommission = attachCampaignCommission(localizeJobPlainForLanguage(jobData, lang), false, 1);
 

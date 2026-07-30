@@ -66,11 +66,16 @@ export const businessCandidateSharingController = {
 
   submitListing: async (req, res, next) => {
     try {
-      const listing = await submitListingForApproval({
+      const result = await submitListingForApproval({
         businessId: req.business.id,
         listingId: req.params.id,
       });
-      res.json({ success: true, data: { listing }, message: 'Đã gửi yêu cầu duyệt cho WS' });
+      const { wsSessionId, ...listing } = result;
+      res.json({
+        success: true,
+        data: { listing, wsSessionId: wsSessionId || null },
+        message: 'Đã gửi yêu cầu duyệt cho WS',
+      });
     } catch (e) {
       next(e);
     }
@@ -149,6 +154,7 @@ export const adminCandidateSharingController = {
         adminId: req.admin.id,
         adminNote: req.body.adminNote,
         autoPublish: req.body.autoPublish !== false,
+        platformFeePercent: req.body.platformFeePercent,
       });
       res.json({ success: true, data: { listing }, message: 'Đã duyệt và publish lên sàn CTV' });
     } catch (e) {

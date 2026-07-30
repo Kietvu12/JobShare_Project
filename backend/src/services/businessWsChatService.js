@@ -9,7 +9,9 @@ import {
   BusinessScoutUnlock,
   BusinessWsChatMessage,
   BusinessWsChatSession,
+  BusinessCtvMarketplaceListing,
   CVStorage,
+  Job,
   JobCategory,
 } from '../models/index.js';
 import {
@@ -42,6 +44,8 @@ export const WS_CHAT_MESSAGE_TYPES = {
   CREDIT_DECISION: 'credit_decision',
   APPROACH_STATUS_UPDATE: 'approach_status_update',
   SAIYO_BRANDING_REQUEST: 'saiyo_branding_request',
+  LISTING_REQUEST: 'listing_request',
+  LISTING_DECISION: 'listing_decision',
 };
 
 function buildBusinessWsChatSessionTitle(business) {
@@ -79,7 +83,10 @@ export async function hasWsChatMessageForRequest({ sessionId, messageType, reque
     attributes: ['id', 'requestPayload'],
     transaction,
   });
-  return rows.some((row) => Number(row.requestPayload?.requestId) === Number(requestId));
+  return rows.some((row) => {
+    const p = row.requestPayload || {};
+    return Number(p.requestId) === Number(requestId) || Number(p.listingId) === Number(requestId);
+  });
 }
 
 function formatCvAttachment(cv) {
@@ -114,6 +121,33 @@ function formatMessageRow(row) {
       ? { id: json.business.id, companyName: json.business.companyName, contactName: json.business.contactName }
       : null,
   };
+}
+
+async function updateListingRequestMessageStatus({
+  sessionId,
+  listingId,
+  status,
+  adminNote = null,
+  platformFeePercent = null,
+  transaction = null,
+}) {
+  const rows = await BusinessWsChatMessage.findAll({
+    where: { sessionId, messageType: WS_CHAT_MESSAGE_TYPES.LISTING_REQUEST },
+    attributes: ['id', 'requestPayload'],
+    transaction,
+  });
+  const message = rows.find((row) => Number(row.requestPayload?.listingId) === Number(listingId));
+  if (!message?.requestPayload) return null;
+
+  const payload = {
+    ...(message.requestPayload || {}),
+    status,
+    listingId: listingId || message.requestPayload.listingId,
+  };
+  if (adminNote) payload.adminNote = adminNote;
+  if (platformFeePercent != null) payload.platformFeePercent = platformFeePercent;
+  await message.update({ requestPayload: payload }, { transaction });
+  return message;
 }
 
 async function updateCreditRequestMessageStatus({
@@ -480,6 +514,235 @@ export async function createWsChatCreditRequestMessage({
   }
 
   return { message, session };
+}
+
+async function notifyAdminsListingRequestCreated({ listing, business, job, sessionId }) {
+  const companyName = business?.companyName || 'Doanh nghiệp';
+  const jobTitle = job?.title || job?.jobCode || `#${listing.jobId}`;
+  const content = `${companyName} gửi yêu cầu đăng job "${jobTitle}" lên Sàn CTV — duyệt trong tin nhắn WS.`;
+  const adminUrl = sessionId
+    ? `/admin/public-ctv-chat?tab=business&sessionId=${sessionId}`
+    : `/admin/candidate-sharing?listingId=${listing.id}`;
+
+  const admins = await Admin.findAll({
+    where: { isActive: true, status: 1, role: { [Op.in]: [1, 2] } },
+    attributes: ['id'],
+  });
+  for (const admin of admins) {
+    await collaboratorNotificationService.createAndEmit({
+      collaboratorId: null,
+      adminId: admin.id,
+      title: 'Job Sàn CTV chờ duyệt',
+      content,
+      jobId: listing.jobId,
+      url: adminUrl,
+    });
+  }
+}
+
+export async function createWsChatListingRequestMessage({
+  businessId,
+  listing,
+  job,
+  transaction = null,
+}) {
+  const business = await Business.findByPk(businessId, {
+    attributes: ['id', 'companyName', 'contactName'],
+    transaction,
+  });
+  const session = await ensureWsChatSessionForBusiness({ businessId, business, transaction });
+
+  const listingId = listing?.id ?? listing?.listingId;
+  const already = await hasWsChatMessageForRequest({
+    sessionId: session.id,
+    messageType: WS_CHAT_MESSAGE_TYPES.LISTING_REQUEST,
+    requestId: listingId,
+    transaction,
+  });
+  if (already) return { message: null, session };
+
+  const jobTitle = job?.title || job?.titleEn || job?.titleJp || `Job #${job?.id || listing.jobId}`;
+  const jobCode = job?.jobCode || job?.job_code || null;
+  const platformFeePercent = Number(listing.platformFeePercent ?? listing.platform_fee_percent ?? 20);
+  const content = `Yêu cầu đăng job lên Sàn CTV: ${jobTitle}${jobCode ? ` (${jobCode})` : ''}`;
+
+  const message = await BusinessWsChatMessage.create(
+    {
+      sessionId: session.id,
+      senderType: WS_CHAT_SENDER_TYPES.BUSINESS,
+      businessId,
+      messageType: WS_CHAT_MESSAGE_TYPES.LISTING_REQUEST,
+      requestPayload: {
+        listingId,
+        jobId: listing.jobId,
+        jobTitle,
+        jobCode,
+        referralFeeType: listing.referralFeeType || null,
+        referralFeeValue: listing.referralFeeValue != null ? Number(listing.referralFeeValue) : null,
+        platformFeePercent,
+        status: 'pending',
+      },
+      content,
+      isReadByBusiness: true,
+      isReadByAdmin: false,
+    },
+    { transaction },
+  );
+
+  await touchSessionPreview(session, { content, transaction });
+
+  if (!transaction && message) {
+    await notifyAdminsListingRequestCreated({
+      listing: { id: listingId, jobId: listing.jobId },
+      business,
+      job,
+      sessionId: session.id,
+    });
+  }
+
+  return { message, session };
+}
+
+export async function syncWsChatAfterListingSubmitted({ businessId, listingId }) {
+  try {
+    const listing = await BusinessCtvMarketplaceListing.findOne({
+      where: { id: listingId, businessId },
+      include: [{ model: Job, as: 'job', required: false, attributes: ['id', 'title', 'titleEn', 'titleJp', 'jobCode'] }],
+    });
+    if (!listing) return null;
+    const job = listing.job || (listing.jobId ? await Job.findByPk(listing.jobId, { attributes: ['id', 'title', 'titleEn', 'titleJp', 'jobCode'] }) : null);
+    const { message, session } = await createWsChatListingRequestMessage({
+      businessId,
+      listing,
+      job,
+    });
+    return {
+      sessionId: session?.id || null,
+      message: message ? formatMessageRow(message) : null,
+    };
+  } catch (error) {
+    console.error('[WsChat] syncWsChatAfterListingSubmitted failed:', error?.message || error);
+    return null;
+  }
+}
+
+export async function syncWsChatAfterListingApproval({
+  listingId,
+  businessId,
+  adminId = null,
+  adminNote = null,
+  platformFeePercent = null,
+  jobTitle = null,
+}) {
+  const session = await BusinessWsChatSession.findOne({
+    where: {
+      businessId,
+      sessionType: WS_CHAT_SESSION_TYPES.SCOUT_PERFORMANCE,
+    },
+  });
+  if (!session) return null;
+
+  const feeLabel = platformFeePercent != null ? `${Number(platformFeePercent)}%` : null;
+  await updateListingRequestMessageStatus({
+    sessionId: session.id,
+    listingId,
+    status: 'approved',
+    adminNote: adminNote?.trim() || null,
+    platformFeePercent: platformFeePercent != null ? Number(platformFeePercent) : null,
+  });
+
+  const decisionMessage = await BusinessWsChatMessage.create({
+    sessionId: session.id,
+    senderType: WS_CHAT_SENDER_TYPES.ADMIN,
+    adminId,
+    messageType: WS_CHAT_MESSAGE_TYPES.LISTING_DECISION,
+    content: adminNote?.trim()
+      || `WS đã duyệt và publish job${jobTitle ? ` "${jobTitle}"` : ''} lên Sàn CTV${feeLabel ? ` (phí dịch vụ: ${feeLabel})` : ''}.`,
+    requestPayload: {
+      listingId,
+      status: 'approved',
+      decision: 'accepted',
+      platformFeePercent: platformFeePercent != null ? Number(platformFeePercent) : null,
+      adminNote: adminNote?.trim() || null,
+    },
+    isReadByAdmin: true,
+    isReadByBusiness: false,
+  });
+
+  await touchSessionPreview(session, {
+    content: adminNote?.trim() || 'Đã duyệt đăng job lên Sàn CTV',
+  });
+
+  await collaboratorNotificationService.createAndEmit({
+    businessId: session.businessId,
+    collaboratorId: null,
+    adminId: null,
+    title: 'Job đã được WS duyệt trên Sàn CTV',
+    content: adminNote?.trim() || `Job${jobTitle ? ` "${jobTitle}"` : ''} đã được publish lên Sàn HR Partner.`,
+    jobId: null,
+    url: `/business/messages?tab=ws&wsView=chat&sessionId=${session.id}`,
+  });
+
+  return formatMessageRow(await decisionMessage.reload({
+    include: [{ model: Admin, as: 'admin', required: false, attributes: ['id', 'name', 'email'] }],
+  }));
+}
+
+export async function syncWsChatAfterListingRejection({
+  listingId,
+  businessId,
+  adminId = null,
+  adminNote = null,
+  rejectionReason = null,
+  jobTitle = null,
+}) {
+  const session = await BusinessWsChatSession.findOne({
+    where: {
+      businessId,
+      sessionType: WS_CHAT_SESSION_TYPES.SCOUT_PERFORMANCE,
+    },
+  });
+  if (!session) return null;
+
+  const reason = rejectionReason?.trim() || adminNote?.trim() || null;
+  await updateListingRequestMessageStatus({
+    sessionId: session.id,
+    listingId,
+    status: 'rejected',
+    adminNote: reason,
+  });
+
+  const decisionMessage = await BusinessWsChatMessage.create({
+    sessionId: session.id,
+    senderType: WS_CHAT_SENDER_TYPES.ADMIN,
+    adminId,
+    messageType: WS_CHAT_MESSAGE_TYPES.LISTING_DECISION,
+    content: reason || `WS đã từ chối yêu cầu đăng job${jobTitle ? ` "${jobTitle}"` : ''} lên Sàn CTV.`,
+    requestPayload: {
+      listingId,
+      status: 'rejected',
+      decision: 'rejected',
+      adminNote: reason,
+    },
+    isReadByAdmin: true,
+    isReadByBusiness: false,
+  });
+
+  await touchSessionPreview(session, { content: reason || 'Yêu cầu đăng Sàn CTV bị từ chối' });
+
+  await collaboratorNotificationService.createAndEmit({
+    businessId: session.businessId,
+    collaboratorId: null,
+    adminId: null,
+    title: 'Yêu cầu đăng Sàn CTV bị từ chối',
+    content: reason || `JobShare WS đã từ chối yêu cầu đăng job lên Sàn CTV.`,
+    jobId: null,
+    url: `/business/messages?tab=ws&wsView=chat&sessionId=${session.id}`,
+  });
+
+  return formatMessageRow(await decisionMessage.reload({
+    include: [{ model: Admin, as: 'admin', required: false, attributes: ['id', 'name', 'email'] }],
+  }));
 }
 
 async function notifyAdminsSaiyoBrandingRequestCreated({ business, sessionId, serviceTitle }) {
@@ -1444,6 +1707,108 @@ export async function rejectCreditRequestInChat({
   return { request };
 }
 
+export async function acceptListingRequestInChat({
+  sessionId,
+  adminId,
+  listingId,
+  platformFeePercent,
+  note,
+  autoPublish = true,
+}) {
+  const session = await loadSessionForAdmin(sessionId);
+  const parsedListingId = parseInt(listingId, 10);
+  if (!Number.isFinite(parsedListingId) || parsedListingId <= 0) {
+    const err = new Error('Thiếu mã listing Sàn CTV');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const listingRow = await BusinessCtvMarketplaceListing.findByPk(parsedListingId, {
+    include: [{ model: Job, as: 'job', attributes: ['id', 'title', 'jobCode'] }],
+  });
+  if (!listingRow) {
+    const err = new Error('Không tìm thấy listing');
+    err.statusCode = 404;
+    throw err;
+  }
+  if (Number(listingRow.businessId) !== Number(session.businessId)) {
+    const err = new Error('Listing không thuộc cuộc trò chuyện này');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const { approveAndPublishListing } = await import('./candidateSharingService.js');
+  const listing = await approveAndPublishListing({
+    listingId: parsedListingId,
+    adminId,
+    adminNote: note,
+    autoPublish: autoPublish !== false,
+    platformFeePercent,
+    skipWsSync: true,
+  });
+
+  await syncWsChatAfterListingApproval({
+    listingId: parsedListingId,
+    businessId: session.businessId,
+    adminId,
+    adminNote: note,
+    platformFeePercent: listing.platformFeePercent,
+    jobTitle: listingRow.job?.title || listingRow.job?.jobCode,
+  });
+
+  return { listing };
+}
+
+export async function rejectListingRequestInChat({
+  sessionId,
+  adminId,
+  listingId,
+  note,
+  rejectionReason,
+}) {
+  const session = await loadSessionForAdmin(sessionId);
+  const parsedListingId = parseInt(listingId, 10);
+  if (!Number.isFinite(parsedListingId) || parsedListingId <= 0) {
+    const err = new Error('Thiếu mã listing Sàn CTV');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const listingRow = await BusinessCtvMarketplaceListing.findByPk(parsedListingId, {
+    include: [{ model: Job, as: 'job', attributes: ['id', 'title', 'jobCode'] }],
+  });
+  if (!listingRow) {
+    const err = new Error('Không tìm thấy listing');
+    err.statusCode = 404;
+    throw err;
+  }
+  if (Number(listingRow.businessId) !== Number(session.businessId)) {
+    const err = new Error('Listing không thuộc cuộc trò chuyện này');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const { rejectListing } = await import('./candidateSharingService.js');
+  const listing = await rejectListing({
+    listingId: parsedListingId,
+    adminId,
+    rejectionReason: rejectionReason || note,
+    adminNote: note,
+    skipWsSync: true,
+  });
+
+  await syncWsChatAfterListingRejection({
+    listingId: parsedListingId,
+    businessId: session.businessId,
+    adminId,
+    adminNote: note,
+    rejectionReason: rejectionReason || note,
+    jobTitle: listingRow.job?.title || listingRow.job?.jobCode,
+  });
+
+  return { listing };
+}
+
 export async function listScoutPerformanceCandidatesForWsSession({ sessionId }) {
   const session = await loadSessionForAdmin(sessionId);
   const { listUnlockedCandidatesForBusiness } = await import('./businessScoutService.js');
@@ -1592,6 +1957,8 @@ export default {
   rejectPerformanceRequestInChat,
   acceptCreditRequestInChat,
   rejectCreditRequestInChat,
+  acceptListingRequestInChat,
+  rejectListingRequestInChat,
   listScoutPerformanceCandidatesForWsSession,
   updateScoutPerformanceApproachStatusInWsChat,
   listWsChatSessionsForBusiness,

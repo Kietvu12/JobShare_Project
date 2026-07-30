@@ -8,6 +8,8 @@ import {
   rejectPerformanceRequestInChat,
   acceptCreditRequestInChat,
   rejectCreditRequestInChat,
+  acceptListingRequestInChat,
+  rejectListingRequestInChat,
   getWsChatSessionByPerformanceRequestId,
   listScoutPerformanceCandidatesForWsSession,
   updateScoutPerformanceApproachStatusInWsChat,
@@ -156,6 +158,43 @@ export const adminWsChatController = {
         note: req.body.note,
       });
       res.json({ success: true, data, message: 'Đã từ chối yêu cầu nạp credit' });
+    } catch (error) {
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      next(error);
+    }
+  },
+
+  acceptListingRequest: async (req, res, next) => {
+    try {
+      const data = await acceptListingRequestInChat({
+        sessionId: req.params.id,
+        adminId: getAdminId(req),
+        listingId: req.body.listingId,
+        platformFeePercent: req.body.platformFeePercent,
+        note: req.body.note,
+        autoPublish: req.body.autoPublish,
+      });
+      res.json({ success: true, data, message: 'Đã duyệt và publish job lên Sàn CTV' });
+    } catch (error) {
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      next(error);
+    }
+  },
+
+  rejectListingRequest: async (req, res, next) => {
+    try {
+      const data = await rejectListingRequestInChat({
+        sessionId: req.params.id,
+        adminId: getAdminId(req),
+        listingId: req.body.listingId,
+        note: req.body.note,
+        rejectionReason: req.body.rejectionReason,
+      });
+      res.json({ success: true, data, message: 'Đã từ chối yêu cầu đăng Sàn CTV' });
     } catch (error) {
       if (error.statusCode) {
         return res.status(error.statusCode).json({ success: false, message: error.message });

@@ -138,6 +138,38 @@ function injectBootstrap(html) {
   return html.replace('<script src="./assets/script.js"></script>', `${boot}\n        <script src="./assets/script.js"></script>`);
 }
 
+function applyLocalLinks(html) {
+  let out = html.split(ASSET_PREFIX_OLD).join(ASSET_PREFIX_NEW);
+  out = out.replace(/https:\/\/humanage\.eeasy\.jp\/appointment_iweb[^"'>\s]*/g, '/business/register');
+  out = out.replace(
+    /https:\/\/i-web-ats\.humanage\.co\.jp\/(?:about|service|support|talk_i-web|movie|seminar|document|contact)[^"'>\s]*/g,
+    '#',
+  );
+  out = out.replace(/https:\/\/i-web-ats\.humanage\.co\.jp\/?(?=["'>\s])/g, '/landing/business');
+  out = out.replace(/https:\/\/www\.humanage\.co\.jp[^"'>\s]*/g, '#');
+  out = out.replace(/https:\/\/www\.i-note\.jp[^"'>\s]*/g, '#');
+  return out;
+}
+
+function fixCssImagePaths(outAssetsDir) {
+  const cdn = 'https://i-web-ats.humanage.co.jp/img/';
+  for (const name of ['custom2.css', 'top_modal.css']) {
+    const filePath = path.join(outAssetsDir, name);
+    if (!fs.existsSync(filePath)) continue;
+    let css = fs.readFileSync(filePath, 'utf8');
+    css = css.replace(/url\(\.\.\/img\//g, `url(${cdn}`);
+    fs.writeFileSync(filePath, css, 'utf8');
+  }
+}
+
+function stripBodyTracking(html) {
+  let out = html;
+  out = out.replace(/<script type="text\/javascript" id="" charset="">[\s\S]*?<\/script>/gi, '');
+  out = out.replace(/<div id="batBeacon[^"]*"[\s\S]*?<\/div>/gi, '');
+  out = out.replace(/<iframe[^>]*universe_cookie_sync[^>]*>[\s\S]*?<\/iframe>/gi, '');
+  return out;
+}
+
 function injectAuthButtons(html) {
   const headerBtns = `<li class="contact contact-login"><a href="/business/login" target="_top">Đăng nhập</a></li>
                             <li class="contact contact-register"><a href="/business/register" target="_top" class="_anime -wipe -active">Đăng ký</a></li>`;
@@ -154,61 +186,9 @@ function injectAuthButtons(html) {
     headerBtns,
   );
   out = out.replace(
-    /<li class="contact btn"><a href="[^"]*"[^>]*><span class="_anime -wipe -active">(?:Đăng ký doanh nghiệp|オンライン相談)<\/span><\/a><\/li>/g,
+    /<li class="contact btn"><a href="[^"]*"[^>]*><span class="_anime -wipe -active">オンライン相談<\/span><\/a><\/li>/g,
     footerBtns,
   );
-  return out;
-}
-
-function replaceBrand(html) {
-  let out = html;
-  out = out.split(ASSET_PREFIX_OLD).join(ASSET_PREFIX_NEW);
-
-  const replacements = [
-    [/https:\/\/i-web-ats\.humanage\.co\.jp\/?[^"'>\s]*/g, '/landing/business'],
-    [/https:\/\/www\.humanage\.co\.jp[^"'>\s]*/g, '/'],
-    [/https:\/\/humanage\.eeasy\.jp\/appointment_iweb/g, '/business/register'],
-    [/https:\/\/www\.i-note\.jp\/humanage[^"'>\s]*/g, '#'],
-    [/採用管理システム i-web｜新卒・キャリア採用を一元管理/g, 'JobShare Business｜Nền tảng quản lý tuyển dụng'],
-    [/採用担当者が選ぶ、No\.1採用管理システム－i-web/g, 'Nền tảng tuyển dụng JobShare Business'],
-    [/採用管理システム i-web/g, 'JobShare Business'],
-    [/What's i-web？/g, "What's JobShare Business?"],
-    [/i-webが選ばれる理由/g, 'Lý do chọn JobShare Business'],
-    [/採用管理システム i-webとは/g, 'JobShare Business là gì'],
-    [/i-webひとつで/g, 'JobShare Business'],
-    [/i-webの/g, 'JobShare Business '],
-    [/i-webは/g, 'JobShare Business'],
-    [/i-webに/g, 'JobShare Business'],
-    [/i-webで/g, 'JobShare Business'],
-    [/i-webを/g, 'JobShare Business'],
-    [/i-webが/g, 'JobShare Business'],
-    [/i-web\s/g, 'JobShare Business '],
-    [/i-web/g, 'JobShare Business'],
-    [/I-web/g, 'JobShare Business'],
-    [/HUMANAGE/g, 'JobShare'],
-    [/Humanage,Inc\./g, 'JobShare'],
-    [/ヒューマネージ/g, 'JobShare'],
-    [/alt="応募者と企業をつなぐ採用担当者が選ぶ、No\.1採用管理システム－i-web"/g,
-      'alt="JobShare Business — Nền tảng quản lý tuyển dụng"'],
-    [/src="\.\/assets\/iweb-blue\.png"/g, 'src="/logo.png"'],
-    [/src="\.\/assets\/iweb-blue\(1\)\.png"/g, 'src="/logo.png"'],
-    [/src="\.\/assets\/logo_white\.svg"/g, 'src="/logo.png"'],
-  ];
-
-  for (const [pattern, replacement] of replacements) {
-    out = out.replace(pattern, replacement);
-  }
-
-  out = out.replace(
-    /<p class="main"><img src="\.\/assets\/tit\.png" alt="[^"]*"><\/p>/,
-    `<p class="main jobshare-hero-title"><span class="jobshare-hero-kicker">Nền tảng tuyển dụng thông minh</span><strong class="jobshare-hero-brand">JobShare Business</strong><span class="jobshare-hero-sub">Quản lý JD, ứng viên, CTV &amp; Scout trên một hệ thống</span></p>`,
-  );
-
-  out = out.replace(/JobShare Business取り込まれ/g, 'JobShare Businessに取り込まれ');
-  out = out.replace(/JobShare Business応募者/g, 'JobShare Businessは応募者');
-  out = out.replace(/JobShare Business 管理画面/g, 'JobShare Businessの管理画面');
-  out = out.replace(/JobShare Business 特定モデル/g, 'JobShare Business特定モデル');
-
   return out;
 }
 
@@ -230,8 +210,9 @@ function build() {
 
   fs.rmSync(OUT_DIR, { recursive: true, force: true });
   copyAssetsRecursive(SRC_ASSETS, OUT_ASSETS);
+  fixCssImagePaths(OUT_ASSETS);
 
-  const bootstrapJs = `/* JobShare — khởi tạo navbar & animation khi nhúng iframe */
+  const bootstrapJs = `/* i-web template — khởi tạo navbar & animation khi nhúng iframe */
 (function () {
   function init() {
     var header = document.querySelector('header');
@@ -253,62 +234,25 @@ function build() {
 `;
   fs.writeFileSync(path.join(OUT_ASSETS, 'jobshare-bootstrap.js'), bootstrapJs, 'utf8');
 
-  const overridesCss = `/* JobShare Business — overrides trên template gốc */
+  const overridesCss = `/* i-web template — iframe / auth buttons */
 html, body {
   overflow-x: hidden;
 }
-header.fixed {
-  opacity: 1 !important;
-  pointer-events: auto !important;
-}
+header.fixed,
 header.fixed.-hide {
   opacity: 1 !important;
   pointer-events: auto !important;
-}
-.jobshare-hero-title {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35em;
-  line-height: 1.35;
-  color: #1a1a1a;
-}
-.jobshare-hero-kicker {
-  font-size: clamp(14px, 2vw, 18px);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-.jobshare-hero-brand {
-  font-size: clamp(28px, 5vw, 46px);
-  font-weight: 800;
-  color: #c61414;
-  letter-spacing: -0.02em;
-}
-.jobshare-hero-sub {
-  font-size: clamp(13px, 1.8vw, 16px);
-  font-weight: 500;
-  color: #4b5563;
-  max-width: 32em;
-}
-header h1 a img {
-  height: 36px;
-  width: auto;
-  object-fit: contain;
-}
-footer .left h2 a img {
-  filter: brightness(0) invert(1);
-  height: 32px;
-  width: auto;
 }
 header .right .nav_area nav.subnav ul {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 header .right .nav_area nav.subnav ul li.contact a {
   width: auto;
-  min-width: 108px;
-  padding: 0 18px;
+  min-width: 96px;
+  padding: 0 14px;
   white-space: nowrap;
   line-height: 42px;
   font-size: 13px;
@@ -318,16 +262,10 @@ header .right .nav_area nav ul li.contact-register a {
   color: #fff;
   border-color: #c61414;
 }
-header .right .nav_area nav ul li.contact-register a:hover {
-  background: #a01010;
-  border-color: #a01010;
-  color: #fff;
-}
-footer .row .right .subnav ul {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+header .right .nav_area nav ul li.contact-login a {
+  background: #fff;
+  color: #333;
+  border: 1px solid #ccc;
 }
 footer .row .right .subnav ul li.contact-register a {
   background: #c61414;
@@ -341,12 +279,13 @@ footer .row .right .subnav ul li.contact-register a span {
 
   let html = fs.readFileSync(SRC_HTML, 'utf8');
   html = stripTracking(html);
-  html = replaceBrand(html);
+  html = applyLocalLinks(html);
   html = injectAuthButtons(html);
   html = normalizeAssetRefs(html);
   html = fixEmbeds(html);
   html = fixHeader(html);
   html = rebuildHeadScripts(html);
+  html = stripBodyTracking(html);
   html = injectBootstrap(html);
   html = injectOverrides(html);
 

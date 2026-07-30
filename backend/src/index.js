@@ -7,6 +7,7 @@ import http from 'node:http';
 import { fileURLToPath } from 'url';
 import config from './config/index.js';
 import { sequelize } from './models/index.js';
+import { ensureBusinessJobBuilderThreadSchema } from './services/businessJobBuilderThreadService.js';
 import { getStoredHtml } from './services/cvPdfService.js';
 import { startCvVectorSyncRunner } from './services/cvVectorSyncService.js';
 import { initRealtimeHub } from './services/realtimeHub.js';
@@ -203,6 +204,7 @@ import businessWsChatRoutes from './routes/businessWsChatRoutes.js';
 import businessBillingRoutes from './routes/businessBillingRoutes.js';
 import businessNotificationRoutes from './routes/businessNotificationRoutes.js';
 import businessJobApplicationRoutes from './routes/businessJobApplicationRoutes.js';
+import businessJobBuilderThreadRoutes from './routes/businessJobBuilderThreadRoutes.js';
 import adminCandidateSharingRoutes from './routes/adminCandidateSharingRoutes.js';
 import ctvCandidateSharingRoutes from './routes/ctvCandidateSharingRoutes.js';
 import publicLandingPageRoutes from './routes/publicLandingPageRoutes.js';
@@ -297,6 +299,7 @@ app.use('/api/business/ws-chat', businessWsChatRoutes);
 app.use('/api/business/notifications', businessNotificationRoutes);
 app.use('/api/business/billing', businessBillingRoutes);
 app.use('/api/business/applications', businessJobApplicationRoutes);
+app.use('/api/business/job-builder-threads', businessJobBuilderThreadRoutes);
 
 // OG preview HTML cho crawler chia sẻ link blog (nginx proxy bot → đây)
 app.use('/public/og', publicOgRoutes);
@@ -339,6 +342,9 @@ async function startServer() {
     // Test database connection
     await sequelize.authenticate();
     console.log('✅ Database connection established successfully.');
+
+    await ensureBusinessJobBuilderThreadSchema();
+    console.log('✅ business_job_builder_threads table ready.');
 
     // Sync database (use with caution in production)
     // await sequelize.sync({ alter: true });

@@ -1,13 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import {
   ChevronRight, Plus, Loader2, X, Network, Handshake, Shield, BarChart3,
-  FileText, Settings, Users, History, BookOpen, AlertTriangle, ArrowRight,
+  FileText, Settings, Users, History, BookOpen, AlertTriangle, ArrowRight, Search, Briefcase, Sparkles,
 } from 'lucide-react'
 import apiService from '../../services/api'
 import NominationChat from '../../component/Chat/NominationChat'
 import JobCommissionEditor, { validateCommissionForMarketplace } from '../../component/Bussiness/JobCommissionEditor'
-import { isPersistableJobValue } from '../../utils/jobCommissionUi'
+import {
+  createAndSubmitMarketplaceListing,
+  mapJobValuesForListingApi,
+  savePendingMarketplaceListingDraft,
+} from '../../utils/marketplaceListingFlow'
 import {
   SIMPLE_FEE_MODES,
   parseJobCommissionToSimple,
@@ -15,7 +20,12 @@ import {
 } from '../../utils/businessSimpleCommission'
 import { normalizeJobSalaryCurrency } from '../../utils/jobSalaryCurrency'
 
+const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
+const BRAND = '#0077B6'
+const PIPELINE_STATUSES = new Set([2, 3, 5, 7, 8, 9, 11, 12])
+
 const scrollbarStyle = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
   .ctv-scrollbar::-webkit-scrollbar { width: 4px; }
   .ctv-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .ctv-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
@@ -52,37 +62,69 @@ const scrollbarStyle = `
       width: calc(100% / var(--hp-zoom));
     }
   }
+  .ctv-marketplace-dashboard {
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .ctv-marketplace-table-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 280px;
+  }
+  @media (min-width: 1280px) {
+    .ctv-marketplace-table-panel {
+      min-height: 320px;
+    }
+  }
+  .ctv-marketplace-table-body {
+    flex: 1 1 auto;
+    min-height: 220px;
+    overflow: auto;
+  }
+  .ctv-marketplace-col {
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+  }
 `
 
 const valueCards = [
   {
     icon: Network,
-    color: 'text-violet-600',
-    bg: 'bg-violet-50',
+    color: 'text-[#0077B6]',
+    bg: 'bg-[#e8f4fa]',
     title: 'Mở rộng mạng lưới',
     desc: 'Kết nối hàng nghìn CTV HR Partner trên toàn quốc, mở rộng nguồn ứng viên nhanh chóng.',
     image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=200&fit=crop',
   },
   {
     icon: Handshake,
-    color: 'text-violet-600',
-    bg: 'bg-violet-50',
+    color: 'text-[#0077B6]',
+    bg: 'bg-[#e8f4fa]',
     title: 'Tuyển dụng hiệu quả',
     desc: 'CTV chuyên nghiệp tìm kiếm và tiến cử ứng viên phù hợp, giảm tải cho đội HR.',
     image: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?w=400&h=200&fit=crop',
   },
   {
     icon: Shield,
-    color: 'text-violet-600',
-    bg: 'bg-violet-50',
+    color: 'text-[#0077B6]',
+    bg: 'bg-[#e8f4fa]',
     title: 'Đảm bảo thông tin',
     desc: 'JobShare là trung gian đảm bảo bảo mật thông tin doanh nghiệp và ứng viên.',
     image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400&h=200&fit=crop',
   },
   {
     icon: BarChart3,
-    color: 'text-violet-600',
-    bg: 'bg-violet-50',
+    color: 'text-[#0077B6]',
+    bg: 'bg-[#e8f4fa]',
     title: 'Minh bạch & Tối ưu',
     desc: 'Theo dõi tiến độ, phí thưởng và hiệu quả tuyển dụng minh bạch trên một nền tảng.',
     image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=200&fit=crop',
@@ -113,7 +155,7 @@ const onboardQuickActions = [
 
 const onboardNotifications = [
   { dot: 'bg-emerald-500', text: 'Chào mừng bạn đến với Sàn HR JobShare!', time: 'Vừa xong' },
-  { dot: 'bg-violet-500', text: 'Đăng job đầu tiên để kết nối với CTV HR Partner', time: '1 phút trước' },
+  { dot: 'bg-[#0077B6]', text: 'Đăng job đầu tiên để kết nối với CTV HR Partner', time: '1 phút trước' },
   { dot: 'bg-blue-500', text: 'Thiết lập phí thưởng CTV trước khi đăng tin', time: '2 phút trước' },
   { dot: 'bg-rose-500', text: 'WS sẽ duyệt tin trước khi hiển thị trên sàn', time: '3 phút trước', warn: true },
 ]
@@ -149,8 +191,8 @@ function OnboardingSidebar({ onCreate, onViewDetails, hasMarketplaceData, onNavi
                 onClick={() => handleAction(a)}
                 className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-lg hover:bg-slate-50 transition-colors text-left w-full"
               >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-600" />
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#e8f4fa] flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#0077B6]" />
                 </div>
                 <div className="min-w-0">
                   <div className="text-[11px] sm:text-xs font-semibold text-slate-800 leading-snug">{a.title}</div>
@@ -169,7 +211,7 @@ function OnboardingSidebar({ onCreate, onViewDetails, hasMarketplaceData, onNavi
             Thông báo
             <span className="bg-rose-500 text-white text-[9px] sm:text-[10px] font-bold rounded-full px-1 sm:px-1.5 py-0.5">4</span>
           </h2>
-          <button type="button" className="text-[10px] sm:text-xs font-semibold text-violet-600">Xem tất cả</button>
+          <button type="button" className="text-[10px] sm:text-xs font-semibold text-[#0077B6]">Xem tất cả</button>
         </div>
         <div className="flex flex-col gap-2 sm:gap-2.5">
           {onboardNotifications.map((n) => (
@@ -189,7 +231,7 @@ function OnboardingSidebar({ onCreate, onViewDetails, hasMarketplaceData, onNavi
       <div className="bg-white rounded-lg sm:rounded-xl border border-slate-100 p-2 sm:p-3">
         <div className="flex items-center justify-between mb-1.5 sm:mb-2">
           <h2 className="text-xs sm:text-sm font-bold text-slate-800">Tin tức &amp; Insights</h2>
-          <button type="button" className="text-[10px] sm:text-xs font-semibold text-violet-600">Xem tất cả</button>
+          <button type="button" className="text-[10px] sm:text-xs font-semibold text-[#0077B6]">Xem tất cả</button>
         </div>
         <div className="flex flex-col gap-2 sm:gap-3">
           {onboardNews.map((n) => (
@@ -251,9 +293,9 @@ function OnboardingView({ hasMarketplaceData, onCreate, onViewDetails }) {
           {processSteps.map((step, idx) => (
             <div key={step.num} className="relative flex flex-col gap-1.5 sm:gap-2">
               {idx < processSteps.length - 1 && (
-                <div className="hidden xl:block absolute top-4 left-[calc(100%-8px)] w-full h-px bg-violet-100 z-0" />
+                <div className="hidden xl:block absolute top-4 left-[calc(100%-8px)] w-full h-px bg-[#cce5f0] z-0" />
               )}
-              <span className="inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-violet-600 text-white text-[10px] sm:text-xs font-bold relative z-10">
+              <span className="inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#0077B6] text-white text-[10px] sm:text-xs font-bold relative z-10">
                 {step.num}
               </span>
               <h3 className="text-[11px] sm:text-xs font-bold text-slate-800">{step.title}</h3>
@@ -270,8 +312,8 @@ function OnboardingView({ hasMarketplaceData, onCreate, onViewDetails }) {
             const Icon = f.icon
             return (
               <div key={f.title} className="bg-white rounded-lg sm:rounded-xl border border-slate-100 p-2.5 sm:p-3 flex gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-4 h-4 text-violet-600" />
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#e8f4fa] flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-4 h-4 text-[#0077B6]" />
                 </div>
                 <div>
                   <h3 className="text-[11px] sm:text-xs font-bold text-slate-800">{f.title}</h3>
@@ -283,8 +325,8 @@ function OnboardingView({ hasMarketplaceData, onCreate, onViewDetails }) {
         </div>
       </div>
 
-      <div className="rounded-lg sm:rounded-xl border border-violet-100 bg-violet-50/90 px-3 py-3 sm:px-4 sm:py-4 2xl:px-5 2xl:py-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 shrink-0 xl:mt-auto">
-        <div className="hidden sm:block flex-shrink-0 w-24 h-20 sm:w-28 sm:h-24 rounded-lg overflow-hidden bg-white/80 border border-violet-100">
+      <div className="rounded-lg sm:rounded-xl border border-[#cce5f0]/80 bg-[#e8f4fa]/90 px-3 py-3 sm:px-4 sm:py-4 2xl:px-5 2xl:py-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 shrink-0 xl:mt-auto">
+        <div className="hidden sm:block flex-shrink-0 w-24 h-20 sm:w-28 sm:h-24 rounded-lg overflow-hidden bg-white/80 border border-[#cce5f0]/80">
           <img
             src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=200&fit=crop"
             alt=""
@@ -302,7 +344,7 @@ function OnboardingView({ hasMarketplaceData, onCreate, onViewDetails }) {
         <button
           type="button"
           onClick={handleCta}
-          className="flex-shrink-0 inline-flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white text-xs sm:text-sm font-semibold rounded-lg sm:rounded-xl px-4 py-2.5 sm:px-5 sm:py-3 transition-colors w-full sm:w-auto"
+          className="flex-shrink-0 inline-flex items-center justify-center gap-2 bg-[#0077B6] hover:bg-[#006399] text-white text-xs sm:text-sm font-semibold rounded-lg sm:rounded-xl px-4 py-2.5 sm:px-5 sm:py-3 transition-colors w-full sm:w-auto"
         >
           {hasMarketplaceData ? 'Xem chi tiết' : 'Đăng tin ngay'}
           <ArrowRight className="w-4 h-4" />
@@ -321,40 +363,102 @@ function formatDateShort(value) {
   }
 }
 
+function formatJobPickerLabel(job) {
+  if (!job) return ''
+  const title = job.title || job.titleEn || job.titleJp || `Job #${job.id}`
+  const code = job.jobCode || job.job_code || ''
+  return code ? `${title} (${code})` : title
+}
+
+const businessModalTitleClass = 'text-xs font-bold leading-snug text-slate-900 sm:text-[13px]'
+const businessModalSubtitleClass = 'mt-1 text-[11px] font-medium leading-relaxed text-slate-600 sm:text-xs'
+const businessLabelClass = 'block text-[11px] font-semibold text-slate-700 mb-1.5 sm:text-xs'
+const businessInputClass =
+  'w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[11px] sm:text-xs text-slate-900 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/25'
+const businessBtnSecondaryClass =
+  'w-full sm:w-auto rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50 sm:py-2.5'
+const businessBtnPrimaryClass =
+  'w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-[#0077B6] px-4 py-2 text-xs font-bold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] disabled:opacity-60 sm:py-2.5'
+
 function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
-  const [jobs, setJobs] = useState([])
+  const navigate = useNavigate()
   const [jobId, setJobId] = useState('')
+  const [selectedJob, setSelectedJob] = useState(null)
+  const [jobSearchQuery, setJobSearchQuery] = useState('')
+  const [jobSearchResults, setJobSearchResults] = useState([])
+  const [jobSearchLoading, setJobSearchLoading] = useState(false)
+  const [jobSearchOpen, setJobSearchOpen] = useState(false)
   const [jobCommissionType, setJobCommissionType] = useState('percent')
   const [jobValues, setJobValues] = useState(() => simpleCommissionToPayload(SIMPLE_FEE_MODES.PERCENT_ANNUAL, '').jobValues)
   const [salaryCurrency, setSalaryCurrency] = useState('JPY')
   const [commissionSeedJob, setCommissionSeedJob] = useState(null)
-  const [headcount, setHeadcount] = useState(1)
-  const [requirements, setRequirements] = useState('')
   const [recruitmentDeadline, setRecruitmentDeadline] = useState('')
   const [creating, setCreating] = useState(false)
   const [loadingJobMeta, setLoadingJobMeta] = useState(false)
 
   useEffect(() => {
-    if (!open) return
-    let mounted = true
-    apiService.getBusinessJobs({ page: 1, limit: 50, status: 1 }).then((res) => {
-      if (mounted && res?.success) setJobs(res.data?.jobs || res.data?.items || [])
-    })
-    return () => { mounted = false }
-  }, [open])
+    if (!open) return undefined
+    const onKey = (e) => {
+      if (e.key === 'Escape' && !creating) onClose?.()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose, creating])
 
   useEffect(() => {
     if (!open) return
     setJobId(initialJobId ? String(initialJobId) : '')
+    setSelectedJob(null)
+    setJobSearchQuery('')
+    setJobSearchResults([])
+    setJobSearchOpen(false)
     const emptyPayload = simpleCommissionToPayload(SIMPLE_FEE_MODES.PERCENT_ANNUAL, '')
     setJobCommissionType(emptyPayload.jobCommissionType)
     setJobValues(emptyPayload.jobValues)
     setSalaryCurrency('JPY')
     setCommissionSeedJob(null)
-    setHeadcount(1)
-    setRequirements('')
     setRecruitmentDeadline('')
   }, [open, initialJobId])
+
+  useEffect(() => {
+    if (!open || !initialJobId) return
+    let mounted = true
+    apiService.getBusinessJobById(initialJobId).then((res) => {
+      if (!mounted) return
+      const job = res?.data?.job || res?.data
+      if (job?.id) {
+        setSelectedJob(job)
+        setJobId(String(job.id))
+      }
+    }).catch(() => {})
+    return () => { mounted = false }
+  }, [open, initialJobId])
+
+  useEffect(() => {
+    if (!open || selectedJob) return
+    const q = jobSearchQuery.trim()
+    if (q.length < 1) {
+      setJobSearchResults([])
+      setJobSearchLoading(false)
+      return undefined
+    }
+    setJobSearchLoading(true)
+    let mounted = true
+    const timer = setTimeout(() => {
+      apiService.getBusinessJobs({ page: 1, limit: 20, search: q }).then((res) => {
+        if (!mounted) return
+        setJobSearchResults(res?.data?.jobs || res?.data?.items || [])
+      }).catch(() => {
+        if (mounted) setJobSearchResults([])
+      }).finally(() => {
+        if (mounted) setJobSearchLoading(false)
+      })
+    }, 280)
+    return () => {
+      mounted = false
+      clearTimeout(timer)
+    }
+  }, [open, jobSearchQuery, selectedJob])
 
   useEffect(() => {
     if (!jobId) return
@@ -364,6 +468,7 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
       if (!mounted) return
       const job = res?.data?.job || res?.data
       setCommissionSeedJob(job || null)
+      if (job?.id) setSelectedJob(job)
       const parsed = parseJobCommissionToSimple(job)
       const payload = simpleCommissionToPayload(parsed.feeMode, parsed.amount, {
         viewOnCollaborator: parsed.viewOnCollaborator,
@@ -384,34 +489,55 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
     return () => { mounted = false }
   }, [jobId])
 
-  const handleCreate = async (submitAfter) => {
-    if (!jobId) { alert('Chọn JD'); return }
+  const clearSelectedJob = () => {
+    setJobId('')
+    setSelectedJob(null)
+    setCommissionSeedJob(null)
+    setJobSearchQuery('')
+    setJobSearchResults([])
+    setJobSearchOpen(false)
+  }
+
+  const pickJob = (job) => {
+    if (!job?.id) return
+    setJobId(String(job.id))
+    setSelectedJob(job)
+    setJobSearchQuery('')
+    setJobSearchResults([])
+    setJobSearchOpen(false)
+  }
+
+  const buildListingDraftFromForm = () => ({
+    jobCommissionType,
+    jobValues: mapJobValuesForListingApi(jobValues),
+    recruitmentDeadline: recruitmentDeadline || null,
+  })
+
+  const handleQuickCreate = () => {
+    const commissionError = validateCommissionForMarketplace(jobCommissionType, jobValues)
+    if (commissionError) {
+      alert(commissionError)
+      return
+    }
+    savePendingMarketplaceListingDraft(buildListingDraftFromForm())
+    onClose?.()
+    navigate('/business/jobs?quickMarketplace=1')
+  }
+
+  const handleCreate = async () => {
+    if (!jobId) { alert('Chọn công việc'); return }
     const commissionError = validateCommissionForMarketplace(jobCommissionType, jobValues)
     if (commissionError) { alert(commissionError); return }
     setCreating(true)
     try {
-      const res = await apiService.createBusinessCandidateSharingListing({
-        jobId: Number(jobId),
-        headcount: Number(headcount) || 1,
-        requirements: requirements.trim() || null,
-        recruitmentDeadline: recruitmentDeadline || null,
-        jobCommissionType,
-        jobValues: jobValues.filter(isPersistableJobValue).map((jv) => ({
-          typeId: jv.typeId ? Number(jv.typeId) : null,
-          valueId: jv.valueId ? Number(jv.valueId) : null,
-          value: jv.value != null && String(jv.value).trim() !== '' ? String(jv.value).trim() : null,
-          isRequired: !!jv.isRequired,
-          viewOnCollaborator: jv.viewOnCollaborator || null,
-        })),
-      })
-      if (res?.success && res.data?.listing) {
-        if (submitAfter) {
-          await apiService.submitBusinessCandidateSharingListing(res.data.listing.id)
-        }
-        onCreated()
-        onClose()
-      } else {
-        alert(res?.message || 'Tạo thất bại')
+      const { wsSessionId } = await createAndSubmitMarketplaceListing(
+        Number(jobId),
+        buildListingDraftFromForm(),
+      )
+      onCreated()
+      onClose()
+      if (wsSessionId) {
+        navigate(`/business/messages?tab=ws&wsView=chat&sessionId=${wsSessionId}`)
       }
     } catch (e) {
       console.error(e)
@@ -422,30 +548,127 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
   }
 
   if (!open) return null
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b">
-          <div>
-            <h3 className="text-sm font-bold">Đưa job lên sàn CTV</h3>
-            <p className="text-[10px] text-slate-500 mt-0.5">Chọn JD và thiết lập phí thưởng CTV trước khi gửi duyệt</p>
-          </div>
-          <button type="button" onClick={onClose}><X className="w-4 h-4 text-slate-400" /></button>
-        </div>
-        <div className="p-4 space-y-4 text-sm">
-          <div>
-            <label className="text-xs font-semibold text-slate-600">Chọn JD <span className="text-red-500">*</span></label>
-            <select value={jobId} onChange={(e) => setJobId(e.target.value)} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm">
-              <option value="">-- Chọn việc làm --</option>
-              {jobs.map((j) => <option key={j.id} value={j.id}>{j.title} ({j.jobCode})</option>)}
-            </select>
-          </div>
 
-          {loadingJobMeta && jobId ? (
-            <div className="flex items-center gap-2 text-xs text-slate-500 py-1">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Đang tải thông tin JD...
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[10050] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-listing-modal-title"
+    >
+      <button
+        type="button"
+        aria-label="Đóng"
+        className="absolute inset-0 bg-slate-900/45"
+        onClick={() => !creating && onClose?.()}
+      />
+      <div
+        className="business-homepage-shell relative z-10 flex w-full max-w-3xl max-h-[90vh] min-h-0 justify-center pointer-events-none"
+        style={{ fontFamily: PAGE_FONT }}
+      >
+        <div className="business-homepage-ui pointer-events-auto relative flex w-full max-w-3xl max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl antialiased">
+        <button
+          type="button"
+          onClick={() => !creating && onClose?.()}
+          disabled={creating}
+          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"
+          aria-label="Đóng hộp thoại"
+        >
+          <X className="h-4 w-4" strokeWidth={2} />
+        </button>
+
+        <div className="shrink-0 border-b border-slate-100 px-5 pb-4 pt-5 pr-12">
+          <div className="flex items-start gap-3">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#0077B6]/20 bg-[#0077B6]/5"
+              aria-hidden
+            >
+              <Briefcase className="h-4 w-4 text-[#0077B6]" strokeWidth={2} />
             </div>
-          ) : null}
+            <div className="min-w-0 pt-0.5">
+              <h2 id="create-listing-modal-title" className={businessModalTitleClass}>
+                Tìm công việc
+              </h2>
+              <p className={businessModalSubtitleClass}>
+                Chọn công việc, thiết lập phí thưởng CTV và gửi WS duyệt.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="ctv-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          <section className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 sm:p-4">
+            <div className="relative">
+              <label className={businessLabelClass}>
+                Tìm công việc <span className="text-red-500">*</span>
+              </label>
+              {selectedJob ? (
+                <div className="flex items-center gap-2 rounded-lg border border-[#0077B6]/30 bg-white px-3 py-2.5 shadow-sm">
+                  <span className="flex-1 min-w-0 text-[11px] font-medium text-slate-800 truncate sm:text-xs">
+                    {formatJobPickerLabel(selectedJob)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={clearSelectedJob}
+                    disabled={creating}
+                    className="shrink-0 rounded-md p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-600 disabled:opacity-50"
+                    aria-label="Bỏ chọn JD"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="search"
+                    value={jobSearchQuery}
+                    onChange={(e) => {
+                      setJobSearchQuery(e.target.value)
+                      setJobSearchOpen(true)
+                    }}
+                    onFocus={() => setJobSearchOpen(true)}
+                    placeholder="Nhập mã JD hoặc tiêu đề công việc..."
+                    className={`${businessInputClass} pl-9`}
+                    autoComplete="off"
+                  />
+                  {jobSearchOpen && jobSearchQuery.trim() ? (
+                    <div className="absolute z-10 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg ctv-scrollbar">
+                      {jobSearchLoading ? (
+                        <div className="flex items-center gap-2 px-3 py-2.5 text-[11px] text-slate-500">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0077B6]" />
+                          Đang tìm...
+                        </div>
+                      ) : jobSearchResults.length === 0 ? (
+                        <p className="px-3 py-2.5 text-[11px] text-slate-500">Không tìm thấy JD phù hợp.</p>
+                      ) : (
+                        jobSearchResults.map((j) => (
+                          <button
+                            key={j.id}
+                            type="button"
+                            onClick={() => pickJob(j)}
+                            className="w-full px-3 py-2.5 text-left text-[11px] font-medium text-slate-800 transition-colors hover:bg-[#0077B6]/5 hover:text-[#0077B6] sm:text-xs"
+                          >
+                            {formatJobPickerLabel(j)}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              )}
+              {initialJobId && selectedJob && String(selectedJob.id) === String(initialJobId) ? (
+                <p className="mt-2 text-[10px] font-semibold text-[#0077B6]">JD vừa tạo đã được chọn sẵn.</p>
+              ) : null}
+            </div>
+
+            {loadingJobMeta && jobId ? (
+              <div className="mt-3 flex items-center gap-2 text-[11px] font-medium text-slate-500">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0077B6]" />
+                Đang tải thông tin JD...
+              </div>
+            ) : null}
+          </section>
 
           <JobCommissionEditor
             jobCommissionType={jobCommissionType}
@@ -457,30 +680,62 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
             onSalaryCurrencyChange={setSalaryCurrency}
           />
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-xs font-semibold text-slate-600">Số lượng tuyển</label>
-              <input type="number" min={1} value={headcount} onChange={(e) => setHeadcount(e.target.value)} className="w-full mt-1 border rounded-lg px-2 py-2 text-sm" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-600">Hạn tuyển</label>
-              <input type="date" value={recruitmentDeadline} onChange={(e) => setRecruitmentDeadline(e.target.value)} className="w-full mt-1 border rounded-lg px-2 py-2 text-sm" />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-slate-600">Điều kiện tuyển bổ sung</label>
-            <textarea rows={3} value={requirements} onChange={(e) => setRequirements(e.target.value)} className="w-full mt-1 border rounded-lg px-2 py-2 text-sm" />
+          <section className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 sm:p-4">
+            <label className={businessLabelClass}>Hạn tuyển</label>
+            <input
+              type="date"
+              value={recruitmentDeadline}
+              onChange={(e) => setRecruitmentDeadline(e.target.value)}
+              className={businessInputClass}
+            />
+          </section>
+        </div>
+
+        <div className="shrink-0 flex flex-col gap-2 border-t border-slate-100 bg-slate-50/50 px-5 py-4">
+          <p className="text-[10px] leading-relaxed text-slate-500 sm:text-[11px]">
+            <strong className="font-semibold text-slate-600">Tạo nhanh:</strong>
+            {' '}
+            Tạo JD mới bằng AI rồi tự gửi WS duyệt đưa lên sàn (dùng phí thưởng &amp; hạn tuyển đã nhập bên trên).
+          </p>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={creating}
+            className={businessBtnSecondaryClass}
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            disabled={creating}
+            onClick={handleQuickCreate}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg border border-[#0077B6]/35 bg-[#e8f4fa] px-4 py-2 text-xs font-bold text-[#0077B6] transition-colors hover:bg-[#0077B6]/10 disabled:opacity-60 sm:py-2.5"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Tạo nhanh
+          </button>
+          <button
+            type="button"
+            disabled={creating}
+            onClick={() => handleCreate()}
+            className={businessBtnPrimaryClass}
+          >
+            {creating ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Đang xử lý...
+              </>
+            ) : (
+              'Gửi WS duyệt'
+            )}
+          </button>
           </div>
         </div>
-        <div className="flex justify-end gap-2 p-4 border-t">
-          <button type="button" onClick={onClose} className="text-xs px-3 py-2 border rounded-lg">Hủy</button>
-          <button type="button" disabled={creating} onClick={() => handleCreate(false)} className="text-xs px-3 py-2 border rounded-lg">Lưu nháp</button>
-          <button type="button" disabled={creating} onClick={() => handleCreate(true)} className="text-xs px-3 py-2 rounded-lg bg-blue-600 text-white">
-            {creating ? 'Đang gửi...' : 'Gửi WS duyệt'}
-          </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -501,6 +756,63 @@ const Avatar = ({ id, size = 24, bg = '#e0e7ff', color = '#4f46e5' }) => (
 )
 
 const VALID_TABS = ['jobs', 'nominations', 'candidates', 'costs']
+
+const HOW_IT_WORKS_STEPS = [
+  'Chọn job (phí thưởng lấy từ JD đã cài)',
+  'Gửi đề xuất cho WS duyệt',
+  'Sau khi WS duyệt — job hiện trên sàn cho CTV',
+  'CTV tiến cử ứng viên',
+  'Tuyển thành công → Thanh toán & chia phí',
+]
+
+function MarketplaceHowItWorks() {
+  return (
+    <div className="shrink-0 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
+      <div className="border-b border-slate-100 px-3 py-2">
+        <span className="text-xs font-bold text-slate-900">Cách hoạt động</span>
+      </div>
+      <div className="flex flex-col gap-2 px-3 py-2.5">
+        {HOW_IT_WORKS_STEPS.map((step, i) => (
+          <div key={step} className="flex items-start gap-2">
+            <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#e8f4fa] text-[9px] font-bold text-[#0077B6]">
+              {i + 1}
+            </div>
+            <span className="text-[11px] leading-snug text-slate-600">{step}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ThreeWayChatPanel({ selectedNomination }) {
+  return (
+    <div className="flex h-full min-h-0 max-h-full flex-col overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
+      <div className="shrink-0 border-b border-slate-100 px-3 py-2.5">
+        <h3 className="text-xs font-bold text-slate-900 sm:text-sm">Trao đổi 3 bên</h3>
+        <p className="text-[10px] text-slate-500">Doanh nghiệp · JobShare WS · CTV</p>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {selectedNomination ? (
+          <NominationChat
+            jobApplicationId={selectedNomination.id}
+            userType="business"
+            currentStatus={selectedNomination.status}
+            introCandidateName={selectedNomination.candidateName || '—'}
+            introJobTitle={selectedNomination.jobTitle || '—'}
+            mobileHeaderName={selectedNomination.candidateName || 'Chat 3 bên'}
+            mobileHeaderAvatar={(selectedNomination.candidateName || '?').charAt(0).toUpperCase()}
+            embeddedPanel
+          />
+        ) : (
+          <div className="flex flex-1 items-center justify-center px-4 py-8 text-center text-xs text-slate-400">
+            Chọn một đơn tiến cử ở bảng bên trái để trao đổi với CTV và WS
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 const CandidateSharing = () => {
   const navigate = useNavigate()
@@ -554,7 +866,7 @@ const CandidateSharing = () => {
         apiService.getBusinessCandidateSharingDashboard(),
         apiService.getBusinessCandidateSharingListings({ page: 1, limit: 50 }),
         apiService.getBusinessCandidateSharingNominations(nomParams),
-        apiService.getBusinessCandidateSharingSettlements({ page: 1, limit: 5 }),
+        apiService.getBusinessCandidateSharingSettlements({ page: 1, limit: 50 }),
       ])
       if (dashRes?.success) {
         setStats(dashRes.data?.stats || null)
@@ -602,6 +914,7 @@ const CandidateSharing = () => {
 
   const jobsData = useMemo(() => listings.map((l) => ({
     id: l.id,
+    jobId: l.job?.id,
     title: l.job?.title || '—',
     code: l.job?.jobCode || '—',
     ctvPayment: l.feeLabel,
@@ -660,9 +973,86 @@ const CandidateSharing = () => {
 
   const openCreateModal = () => setShowCreate(true)
 
+  const handleTabChange = useCallback((key) => {
+    setTab(key)
+    const next = new URLSearchParams(searchParams)
+    if (key === 'jobs') next.delete('tab')
+    else next.set('tab', key)
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
+
+  const candidatesData = useMemo(
+    () => nominationsData.filter((n) => PIPELINE_STATUSES.has(Number(n.statusCode))),
+    [nominationsData],
+  )
+
+  const statTabByIndex = ['jobs', 'nominations', 'candidates', 'costs']
+
   const handleCreatedListing = useCallback(async () => {
     await loadData()
   }, [loadData])
+
+  const showChatColumn = tab !== 'costs'
+
+  const tablePanelClass =
+    'ctv-marketplace-table-panel overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm shrink-0'
+  const tableBodyScrollClass = 'ctv-marketplace-table-body ctv-scrollbar overflow-x-auto'
+
+  const renderNominationsTable = (list, emptyMessage) => (
+    <div className={tableBodyScrollClass}>
+      <table className="w-full min-w-[640px] border-collapse text-xs">
+        <thead>
+          <tr className="border-b border-slate-100 bg-slate-50/80 text-[10px] uppercase tracking-wide text-slate-400">
+            {['Ứng viên', 'Vị trí', 'CTV tiến cử', 'Ngày', 'Trạng thái'].map((h) => (
+              <th key={h} className={`px-3 py-2 font-semibold ${h === 'Ngày' || h === 'Trạng thái' ? 'text-center' : 'text-left'}`}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {list.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="px-3 py-16 text-center align-top text-slate-400">
+                {emptyMessage}
+              </td>
+            </tr>
+          ) : list.map((n) => {
+            const sc = statusColor(n.status)
+            const sel = String(selectedNomination?.id) === String(n.nominationId)
+            return (
+              <tr
+                key={n.nominationId}
+                className={`cursor-pointer border-t border-slate-100 transition-colors ${sel ? 'bg-[#e8f4fa]/80' : 'hover:bg-slate-50/80'}`}
+                onClick={() => setSelectedNomination(n.raw)}
+              >
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Avatar id={n.id} size={22} />
+                    <div>
+                      <div className="font-semibold text-slate-800">{n.name}</div>
+                      {n.subName ? <div className="text-[10px] text-slate-400">{n.subName}</div> : null}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-3 py-2">
+                  <div className="font-medium text-slate-800">{n.position}</div>
+                  <div className="text-[10px] text-slate-400">{n.posCode}</div>
+                </td>
+                <td className="px-3 py-2 font-medium text-slate-700">{n.ctv}</td>
+                <td className="px-3 py-2 text-center text-slate-500">{n.date}</td>
+                <td className="px-3 py-2 text-center">
+                  <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ color: sc.color, background: sc.bg }}>
+                    {n.status}
+                  </span>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
 
   const marketplaceShell = (
     <>
@@ -673,247 +1063,206 @@ const CandidateSharing = () => {
         onCreated={handleCreatedListing}
         initialJobId={createJobId}
       />
-      <div className="h-full min-h-0 w-full flex flex-col bg-slate-50" style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: 11 }}>
-        <>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '8px 14px 0', background: '#fff' }}>
-          <button type="button" onClick={() => setShowCreate(true)} style={{ fontSize: 9, fontWeight: 600, color: '#fff', background: '#3b82f6', border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Plus style={{ width: 10, height: 10 }} /> Đưa job lên sàn
+      <div className="business-homepage-shell ctv-marketplace-dashboard bg-[#f4f6f8]" style={{ fontFamily: PAGE_FONT }}>
+        <div className="business-homepage-ui flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-200/90 bg-white px-3 py-2 sm:px-4">
+          <div className="min-w-0">
+            <h1 className="text-sm font-bold leading-tight text-slate-900">Sàn CTV</h1>
+            <p className="hidden text-[10px] text-slate-500 sm:block">Job · tiến cử · chat 3 bên</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[#0077B6] px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:px-3 sm:py-1.5 sm:text-[11px]"
+          >
+            <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Đưa job lên sàn
           </button>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, padding: '7px 14px', background: '#fff', borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
+        <div className="grid shrink-0 grid-cols-2 gap-1.5 border-b border-slate-200/90 bg-white px-2 py-1.5 sm:grid-cols-4 sm:gap-2 sm:px-3 sm:py-2">
           {statCards.map((card, i) => (
-            <div key={i} style={{ padding: '7px 10px', background: '#f8fafc', borderRadius: 7, border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: 8, color: '#64748b', fontWeight: 500, marginBottom: 2 }}>{card.label}</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#1e293b', lineHeight: 1.1, marginBottom: 2 }}>{card.value}</div>
-              {card.change && (
-                <div style={{ fontSize: 8, color: card.changeColor, fontWeight: 600, marginBottom: 3 }}>
-                  {card.changeColor === '#10b981' ? '↑ ' : ''}{card.change}
-                </div>
-              )}
-              <div style={{ fontSize: 8, color: '#3b82f6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}>
-                {card.linkLabel} <ChevronRight style={{ width: 8, height: 8 }} />
+            <button
+              key={card.label}
+              type="button"
+              onClick={() => handleTabChange(statTabByIndex[i] || 'jobs')}
+              className="rounded-md border border-slate-200/80 bg-slate-50/70 px-2 py-1.5 text-left transition-colors hover:border-[#cce5f0] hover:bg-[#e8f4fa]/60 sm:px-2.5"
+            >
+              <div className="truncate text-[9px] font-medium leading-tight text-slate-500 sm:text-[10px]">{card.label}</div>
+              <div className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
+                <span className="text-base font-bold tabular-nums leading-none text-slate-900 sm:text-lg">{card.value}</span>
+                {card.change && (
+                  <span className="text-[9px] font-semibold leading-tight sm:text-[10px]" style={{ color: card.changeColor }}>
+                    {card.changeColor === '#10b981' ? '↑ ' : ''}{card.change}
+                  </span>
+                )}
               </div>
-            </div>
+            </button>
           ))}
         </div>
 
-        {/* Tabs */}
-        <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', flexShrink: 0, padding: '0 14px' }}>
-          <div style={{ display: 'flex', gap: 20 }}>
-            {tabs.map(t => (
-              <button key={t.key} onClick={() => setTab(t.key)} style={{
-                fontSize: 10, fontWeight: tab === t.key ? 700 : 500,
-                color: tab === t.key ? '#3b82f6' : '#64748b',
-                padding: '7px 0', borderBottom: tab === t.key ? '2px solid #3b82f6' : '2px solid transparent',
-                background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-              }}>
+        <div className="shrink-0 border-b border-slate-200/90 bg-white px-2 pb-0.5 sm:px-3">
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide sm:gap-5">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => handleTabChange(t.key)}
+                className={`shrink-0 border-b-2 py-2 text-[11px] font-semibold transition-colors sm:text-xs ${
+                  tab === t.key
+                    ? 'border-[#0077B6] text-[#0077B6]'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
                 {t.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Two-column layout — each col scrolls independently */}
-        <div style={{ flex: 1, overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 420px', gap: 10, padding: '10px 14px' }}>
-
-          {/* LEFT COLUMN — scrollable */}
-          <div className="ctv-scrollbar" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-
-            {/* Jobs Table */}
-            <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #e2e8f0', overflow: 'hidden', flexShrink: 0 }}>
-              <div style={{ padding: '8px 12px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: '#1e293b' }}>Job đang đăng trên sàn</span>
-                  <span style={{ fontSize: 8, fontWeight: 700, color: '#3b82f6', background: '#eff6ff', borderRadius: 20, padding: '1px 6px' }}>{jobsData.length}</span>
-                </div>
-                <span style={{ fontSize: 8, color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 5, padding: '2px 7px', cursor: 'pointer' }}>Trạng thái: Tất cả ▾</span>
-              </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', fontSize: 8, borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                      {['Vị trí tuyển dụng', 'Phí thưởng CTV\n(theo JD)', 'Trạng thái', 'CTV', 'Đơn', 'Hạn tuyển', ''].map((h, i) => (
-                        <th key={i} style={{ padding: '6px 10px', textAlign: i >= 2 ? 'center' : 'left', fontWeight: 600, color: '#64748b', whiteSpace: 'pre-line', fontSize: 8 }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {jobsData.length === 0 ? (
-                      <tr><td colSpan={7} style={{ padding: 16, textAlign: 'center', color: '#94a3b8' }}>Chưa có job trên sàn. Bấm &quot;Đưa job lên sàn&quot; để bắt đầu.</td></tr>
-                    ) : jobsData.map(job => {
-                      const sc = statusColor(job.status)
-                      return (
-                        <tr key={job.id} style={{ borderTop: '1px solid #f1f5f9', background: '#fff' }}>
-                          <td style={{ padding: '6px 10px' }}>
-                            <div style={{ fontWeight: 700, color: '#1e293b', fontSize: 9 }}>{job.title}</div>
-                            <div style={{ fontSize: 7, color: '#94a3b8' }}>({job.code})</div>
-                          </td>
-                          <td style={{ padding: '6px 10px', fontSize: 7, color: '#475569', lineHeight: 1.5, whiteSpace: 'pre-line' }}>{job.ctvPayment}</td>
-                          <td style={{ padding: '6px 10px', textAlign: 'center' }}>
-                            <span style={{ fontSize: 7, fontWeight: 600, color: sc.color, background: sc.bg, borderRadius: 20, padding: '1px 6px', whiteSpace: 'nowrap' }}>{job.status}</span>
-                          </td>
-                          <td style={{ padding: '6px 10px', textAlign: 'center', color: '#475569', fontWeight: 600, fontSize: 9 }}>{job.ctvCount ?? '-'}</td>
-                          <td style={{ padding: '6px 10px', textAlign: 'center', color: '#475569', fontWeight: 600, fontSize: 9 }}>{job.candidateCount ?? '-'}</td>
-                          <td style={{ padding: '6px 10px', textAlign: 'center', color: '#475569', fontSize: 7 }}>{job.deadline}</td>
-                          <td style={{ padding: '6px 10px', textAlign: 'center' }} />
+        <div
+          className={
+            showChatColumn
+              ? 'grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] items-stretch gap-3 overflow-hidden px-3 pb-3 pt-3 sm:gap-3.5 sm:px-4 sm:pb-4 sm:pt-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] xl:grid-rows-1'
+              : 'min-h-0 flex-1 overflow-hidden px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4'
+          }
+        >
+          <div className="ctv-marketplace-col ctv-scrollbar flex min-h-0 flex-col gap-2.5">
+            {tab === 'jobs' && (
+              <>
+                <div className={tablePanelClass}>
+                  <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-2.5">
+                    <span className="text-xs font-bold text-slate-900 sm:text-sm">Job đang đăng trên sàn</span>
+                    <span className="rounded-full bg-[#e8f4fa] px-1.5 py-0.5 text-[10px] font-bold text-[#0077B6]">{jobsData.length}</span>
+                  </div>
+                  <div className={tableBodyScrollClass}>
+                    <table className="w-full min-w-[720px] border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/80 text-[10px] uppercase tracking-wide text-slate-400">
+                          {['Vị trí', 'Phí thưởng CTV', 'Trạng thái', 'CTV', 'Đơn', 'Hạn'].map((h) => (
+                            <th key={h} className={`px-3 py-2 font-semibold ${h === 'Vị trí' || h === 'Phí thưởng CTV' ? 'text-left' : 'text-center'}`}>{h}</th>
+                          ))}
                         </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <div style={{ padding: '6px 12px', borderTop: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: 8, color: '#3b82f6', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}>
-                  Xem tất cả job <ChevronRight style={{ width: 8, height: 8 }} />
-                </span>
-              </div>
-            </div>
-
-            {/* Đơn tiến cử mới */}
-            <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #e2e8f0', overflow: 'hidden', flexShrink: 0 }}>
-              <div style={{ padding: '8px 12px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: '#1e293b' }}>Đơn tiến cử mới</span>
-                <span style={{ fontSize: 8, fontWeight: 700, color: '#3b82f6', background: '#eff6ff', borderRadius: 20, padding: '1px 6px' }}>{nominationsData.length}</span>
-              </div>
-              <table style={{ width: '100%', fontSize: 8, borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                    {['Ứng viên được tiến cử', 'Vị trí', 'CTV tiến cử', 'Ngày tiến cử', 'Trạng thái', 'Thao tác'].map((h, i) => (
-                      <th key={i} style={{ padding: '6px 10px', textAlign: i >= 3 ? 'center' : 'left', fontWeight: 600, color: '#64748b', fontSize: 8 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {nominationsData.length === 0 ? (
-                    <tr><td colSpan={6} style={{ padding: 16, textAlign: 'center', color: '#94a3b8' }}>Chưa có đơn tiến cử</td></tr>
-                  ) : nominationsData.map((n) => {
-                    const sc = statusColor(n.status)
-                    const sel = String(selectedNomination?.id) === String(n.nominationId)
-                    return (
-                      <tr
-                        key={n.nominationId}
-                        style={{ borderTop: '1px solid #f1f5f9', cursor: 'pointer', background: sel ? '#f0f7ff' : '#fff' }}
-                        onClick={() => setSelectedNomination(n.raw)}
-                      >
-                        <td style={{ padding: '6px 10px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <Avatar id={n.id} size={22} />
-                            <div>
-                              <div style={{ fontWeight: 700, color: '#1e293b', fontSize: 9 }}>{n.name}</div>
-                              <div style={{ fontSize: 7, color: '#94a3b8' }}>{n.subName}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td style={{ padding: '6px 10px' }}>
-                          <div style={{ fontWeight: 600, color: '#1e293b', fontSize: 9 }}>{n.position}</div>
-                          <div style={{ fontSize: 7, color: '#94a3b8' }}>({n.posCode})</div>
-                        </td>
-                        <td style={{ padding: '6px 10px' }}>
-                          <div style={{ fontWeight: 600, color: '#1e293b', fontSize: 9 }}>{n.ctv}</div>
-                          <div style={{ fontSize: 7, color: '#f59e0b', fontWeight: 700 }}>{n.rating != null ? `★ ${n.rating}` : ''}</div>
-                        </td>
-                        <td style={{ padding: '6px 10px', textAlign: 'center', color: '#475569', fontSize: 7 }}>{n.date}</td>
-                        <td style={{ padding: '6px 10px', textAlign: 'center' }}>
-                          <span style={{ fontSize: 7, fontWeight: 600, color: sc.color, background: sc.bg, borderRadius: 20, padding: '1px 6px' }}>{n.status}</span>
-                        </td>
-                        <td style={{ padding: '6px 10px', textAlign: 'center' }} />
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-              <div style={{ padding: '6px 12px', borderTop: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: 8, color: '#3b82f6', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}>
-                  Xem tất cả đơn tiến cử <ChevronRight style={{ width: 8, height: 8 }} />
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN — scrollable */}
-          <div className="ctv-scrollbar" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-
-            {/* Trao đổi 3 bên — NominationChat (DN + WS + CTV) */}
-            <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #e2e8f0', overflow: 'hidden', flexShrink: 0, minHeight: 420, display: 'flex', flexDirection: 'column' }}>
-              {selectedNomination ? (
-                <NominationChat
-                  jobApplicationId={selectedNomination.id}
-                  userType="business"
-                  currentStatus={selectedNomination.status}
-                  introCandidateName={selectedNomination.candidateName || '—'}
-                  introJobTitle={selectedNomination.jobTitle || '—'}
-                  mobileHeaderName={selectedNomination.candidateName || 'Chat 3 bên'}
-                  mobileHeaderAvatar={(selectedNomination.candidateName || '?').charAt(0).toUpperCase()}
-                />
-              ) : (
-                <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: 10 }}>
-                  Chọn đơn tiến cử để trao đổi với CTV và WS
+                      </thead>
+                      <tbody>
+                        {jobsData.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-3 py-12 text-center align-top text-slate-400">
+                              Chưa có job trên sàn. Bấm &quot;Đưa job lên sàn&quot; để bắt đầu.
+                            </td>
+                          </tr>
+                        ) : jobsData.map((job) => {
+                          const sc = statusColor(job.status)
+                          const openJobInManagement = () => {
+                            if (!job.jobId) return
+                            navigate(`/business/jobs?jobId=${encodeURIComponent(String(job.jobId))}`)
+                          }
+                          return (
+                            <tr
+                              key={job.id}
+                              role={job.jobId ? 'button' : undefined}
+                              tabIndex={job.jobId ? 0 : undefined}
+                              onClick={job.jobId ? openJobInManagement : undefined}
+                              onKeyDown={job.jobId ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openJobInManagement() } } : undefined}
+                              className={`border-t border-slate-100 hover:bg-slate-50/60 ${job.jobId ? 'cursor-pointer' : ''}`}
+                            >
+                              <td className="px-3 py-2">
+                                <div className="font-semibold text-slate-800">{job.title}</div>
+                                <div className="text-[10px] text-slate-400">{job.code}</div>
+                              </td>
+                              <td className="whitespace-pre-line px-3 py-2 text-[11px] text-slate-600">{job.ctvPayment}</td>
+                              <td className="px-3 py-2 text-center">
+                                <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ color: sc.color, background: sc.bg }}>{job.status}</span>
+                              </td>
+                              <td className="px-3 py-2 text-center font-medium text-slate-700">{job.ctvCount ?? '—'}</td>
+                              <td className="px-3 py-2 text-center font-medium text-slate-700">{job.candidateCount ?? '—'}</td>
+                              <td className="px-3 py-2 text-center text-slate-500">{job.deadline}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              )}
-            </div>
+                <div className={tablePanelClass}>
+                  <div className="shrink-0 border-b border-slate-100 px-3 py-2.5">
+                    <span className="text-xs font-bold text-slate-900">Đơn tiến cử — chọn để chat</span>
+                  </div>
+                  {renderNominationsTable(nominationsData, 'Chưa có đơn tiến cử')}
+                </div>
+              </>
+            )}
 
-            {/* Thanh toán & chia phí */}
-            <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #e2e8f0', overflow: 'hidden', flexShrink: 0 }}>
-              <div style={{ padding: '8px 12px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: '#1e293b' }}>Thanh toán & chia phí</span>
-                <span style={{ fontSize: 8, color: '#3b82f6', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}>
-                  Xem tất cả <ChevronRight style={{ width: 8, height: 8 }} />
-                </span>
+            {tab === 'nominations' && (
+              <div className={tablePanelClass}>
+                <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2.5">
+                  <span className="text-xs font-bold text-slate-900 sm:text-sm">Đơn tiến cử</span>
+                  <span className="rounded-full bg-[#e8f4fa] px-1.5 py-0.5 text-[10px] font-bold text-[#0077B6]">{nominationsData.length}</span>
+                </div>
+                {renderNominationsTable(nominationsData, 'Chưa có đơn tiến cử')}
               </div>
-              <div style={{ padding: '10px 12px' }}>
+            )}
+
+            {tab === 'candidates' && (
+              <div className={tablePanelClass}>
+                <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2.5">
+                  <span className="text-xs font-bold text-slate-900 sm:text-sm">Ứng viên đang xử lý</span>
+                  <span className="rounded-full bg-[#e8f4fa] px-1.5 py-0.5 text-[10px] font-bold text-[#0077B6]">{candidatesData.length}</span>
+                </div>
+                {renderNominationsTable(candidatesData, 'Chưa có ứng viên trong pipeline')}
+              </div>
+            )}
+
+            {tab === 'costs' && (
+              <div className={tablePanelClass}>
+                <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-2.5">
+                  <span className="text-xs font-bold text-slate-900 sm:text-sm">Thanh toán &amp; chia phí</span>
+                  <span className="rounded-full bg-[#e8f4fa] px-1.5 py-0.5 text-[10px] font-bold text-[#0077B6]">{settlements.length}</span>
+                </div>
                 {settlements.length === 0 ? (
-                  <div style={{ fontSize: 9, color: '#94a3b8', textAlign: 'center', padding: 12 }}>Chưa có giao dịch thanh toán</div>
-                ) : settlements.slice(0, 1).map((set) => (
-                  <div key={set.id}>
-                <span style={{ fontSize: 7, fontWeight: 700, color: set.status === 'paid' ? '#059669' : '#d97706', background: set.status === 'paid' ? '#d1fae5' : '#fef3c7', borderRadius: 20, padding: '2px 7px' }}>{set.statusLabel}</span>
-                <div style={{ marginTop: 8, marginBottom: 8 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: '#1e293b' }}>{set.candidateName}</div>
-                  <div style={{ fontSize: 7, color: '#64748b' }}>{set.jobTitle} ({set.jobCode})</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 7, color: '#64748b', fontWeight: 500, marginBottom: 2 }}>Doanh nghiệp trả cho WS</div>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: '#1e293b' }}>{Number(set.totalAmountBusiness || 0).toLocaleString('vi-VN')}đ</div>
-                </div>
+                  <div className={`${tableBodyScrollClass} flex items-start justify-center px-3 py-16 text-center text-xs text-slate-400`}>
+                    Chưa có giao dịch thanh toán
                   </div>
-                ))}
-              </div>
-              <div style={{ padding: '6px 12px', borderTop: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: 8, color: '#3b82f6', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}>
-                  Xem tất cả giao dịch <ChevronRight style={{ width: 8, height: 8 }} />
-                </span>
-              </div>
-            </div>
-
-            {/* Cách hoạt động */}
-            <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #e2e8f0', overflow: 'hidden', flexShrink: 0 }}>
-              <div style={{ padding: '8px 12px', borderBottom: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: '#1e293b' }}>Cách hoạt động</span>
-              </div>
-              <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {[
-                  'Chọn job (phí thưởng lấy từ JD đã cài)',
-                  'Gửi đề xuất cho WS duyệt',
-                  'Sau khi WS duyệt — job hiện trên sàn cho CTV',
-                  'CTV tiến cử ứng viên',
-                  'Tuyển thành công → Thanh toán & chia phí',
-                ].map((step, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
-                    <div style={{ width: 15, height: 15, borderRadius: '50%', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 700, color: '#3b82f6', flexShrink: 0 }}>
-                      {i + 1}
-                    </div>
-                    <span style={{ fontSize: 8, color: '#475569', lineHeight: 1.4 }}>{step}</span>
+                ) : (
+                  <div className={tableBodyScrollClass}>
+                    <table className="w-full border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/80 text-[10px] uppercase tracking-wide text-slate-400">
+                          {['Ứng viên', 'Vị trí', 'Trạng thái', 'Số tiền (DN → WS)', 'Ngày'].map((h) => (
+                            <th key={h} className="px-3 py-2 text-left font-semibold">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {settlements.map((set) => (
+                          <tr key={set.id} className="border-t border-slate-100 hover:bg-slate-50/60">
+                            <td className="px-3 py-2 font-semibold text-slate-800">{set.candidateName || '—'}</td>
+                            <td className="px-3 py-2 text-slate-600">{set.jobTitle} {set.jobCode ? `(${set.jobCode})` : ''}</td>
+                            <td className="px-3 py-2">
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${set.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                {set.statusLabel}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 tabular-nums font-semibold text-slate-800">{Number(set.totalAmountBusiness || 0).toLocaleString('vi-VN')}đ</td>
+                            <td className="px-3 py-2 text-slate-500">{formatDateShort(set.createdAt)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                ))}
+                )}
               </div>
-              <div style={{ padding: '6px 12px', borderTop: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: 8, color: '#3b82f6', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}>
-                  Xem hướng dẫn chi tiết <ChevronRight style={{ width: 8, height: 8 }} />
-                </span>
-              </div>
-            </div>
+            )}
           </div>
+
+          {showChatColumn && (
+            <div className="ctv-marketplace-col ctv-scrollbar flex min-h-0 flex-col gap-2.5">
+              <div className="flex min-h-[min(420px,52vh)] min-h-0 flex-1 flex-col xl:min-h-[360px]">
+                <ThreeWayChatPanel selectedNomination={selectedNomination} />
+              </div>
+              {tab === 'jobs' && <MarketplaceHowItWorks />}
+            </div>
+          )}
         </div>
-        </>
+        </div>
       </div>
     </>
   )
@@ -947,7 +1296,7 @@ const CandidateSharing = () => {
           onCreated={handleCreatedListing}
           initialJobId={createJobId}
         />
-        <div className="business-homepage-shell min-h-0 h-full bg-slate-50 overflow-x-hidden xl:h-full xl:overflow-hidden">
+        <div className="business-homepage-shell min-h-0 h-full overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden" style={{ fontFamily: PAGE_FONT }}>
           <div className="business-homepage-ui w-full min-h-0 p-3 sm:p-4 2xl:p-5 xl:h-full xl:flex xl:flex-col">
             <div className="w-full xl:flex-1 xl:min-h-0 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] gap-3 sm:gap-4 2xl:gap-5 items-stretch">
               <div className="flex flex-col min-w-0 xl:overflow-y-auto xl:min-h-0 xl:h-full xl:pr-1 scrollbar-hide">
@@ -970,7 +1319,11 @@ const CandidateSharing = () => {
     )
   }
 
-  return marketplaceShell
+  return (
+    <div className="h-full min-h-0 max-h-full overflow-hidden">
+      {marketplaceShell}
+    </div>
+  )
 }
 
 export default CandidateSharing

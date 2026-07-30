@@ -7,10 +7,18 @@ import {
   syncSimpleCommissionState,
 } from '../../utils/businessSimpleCommission';
 import {
-  JOB_SALARY_CURRENCY_OPTIONS,
   formatFixedAmountWithCurrency,
   getJobCurrencyShortLabel,
 } from '../../utils/jobSalaryCurrency';
+
+const FEE_MODE_SELECT_OPTIONS = [
+  { value: SIMPLE_FEE_MODES.PERCENT_ANNUAL, label: '% thu nhập năm' },
+  { value: SIMPLE_FEE_MODES.FIXED, label: 'Số tiền cố định' },
+  { value: SIMPLE_FEE_MODES.MONTHLY_SALARY, label: 'Tháng lương' },
+];
+
+const inputClass =
+  'w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[11px] sm:text-xs text-slate-900 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/25';
 
 /**
  * Cài đặt phí giới thiệu nhân sự (tối giản) — doanh nghiệp / đưa job lên sàn CTV.
@@ -21,8 +29,7 @@ export default function JobCommissionEditor({
   jobValues,
   onJobValuesChange,
   salaryCurrency = 'JPY',
-  onSalaryCurrencyChange,
-  /** Khi đổi JD — gọi parseJobCommissionToSimple(job) từ parent */
+  onSalaryCurrencyChange: _onSalaryCurrencyChange,
   commissionSeedJob = null,
 }) {
   const seedKey = commissionSeedJob?.id ?? commissionSeedJob?.jobId ?? null;
@@ -34,14 +41,12 @@ export default function JobCommissionEditor({
 
   const [feeMode, setFeeMode] = useState(initial.feeMode);
   const [amount, setAmount] = useState(initial.amount);
-  const [viewOnCollaborator, setViewOnCollaborator] = useState(initial.viewOnCollaborator || '');
 
   useEffect(() => {
     if (!commissionSeedJob) return;
     const parsed = parseJobCommissionToSimple(commissionSeedJob);
     setFeeMode(parsed.feeMode);
     setAmount(parsed.amount);
-    setViewOnCollaborator(parsed.viewOnCollaborator || '');
     syncSimpleCommissionState(
       parsed.feeMode,
       parsed.amount,
@@ -52,11 +57,11 @@ export default function JobCommissionEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seedKey]);
 
-  const applyPayload = (nextMode, nextAmount, nextView = viewOnCollaborator) => {
+  const applyPayload = (nextMode, nextAmount) => {
     syncSimpleCommissionState(
       nextMode,
       nextAmount,
-      { viewOnCollaborator: nextView },
+      { viewOnCollaborator: '' },
       onCommissionTypeChange,
       onJobValuesChange,
     );
@@ -72,135 +77,75 @@ export default function JobCommissionEditor({
     applyPayload(feeMode, value);
   };
 
-  const modeOptions = [
-    {
-      key: SIMPLE_FEE_MODES.PERCENT_ANNUAL,
-      title: '% thu nhập năm',
-      hint: 'Ví dụ: 30 = 30% thu nhập năm dự kiến của ứng viên',
-    },
-    {
-      key: SIMPLE_FEE_MODES.FIXED,
-      title: 'Số tiền cố định',
-      hint: `Một khoản cố định (${getJobCurrencyShortLabel(salaryCurrency)}), ví dụ phí giới thiệu 500.000 ${getJobCurrencyShortLabel(salaryCurrency)}`,
-    },
-    {
-      key: SIMPLE_FEE_MODES.MONTHLY_SALARY,
-      title: 'Tháng lương',
-      hint: 'Ví dụ: 1 hoặc 1.5 = tương đương 1 hoặc 1,5 tháng lương',
-    },
-  ];
-
-  const amountLabel = feeMode === SIMPLE_FEE_MODES.PERCENT_ANNUAL
-    ? 'Phần trăm (%)'
+  const valuePlaceholder = feeMode === SIMPLE_FEE_MODES.PERCENT_ANNUAL
+    ? 'VD: 30'
     : feeMode === SIMPLE_FEE_MODES.MONTHLY_SALARY
-      ? 'Số tháng lương'
-      : `Số tiền (${getJobCurrencyShortLabel(salaryCurrency)})`;
+      ? 'VD: 1 hoặc 1.5'
+      : 'VD: 500000';
+
+  const valueHint = feeMode === SIMPLE_FEE_MODES.PERCENT_ANNUAL && amount
+    ? `${amount}% thu nhập năm`
+    : feeMode === SIMPLE_FEE_MODES.FIXED && amount
+      ? formatFixedAmountWithCurrency(amount, salaryCurrency)
+      : feeMode === SIMPLE_FEE_MODES.MONTHLY_SALARY && amount
+        ? `≈ ${amount} tháng lương`
+        : null;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 space-y-3">
-      <div>
-        <div className="text-xs font-bold text-slate-800 mb-1">Phí giới thiệu nhân sự</div>
-        <p className="text-[10px] text-slate-500">
-          {DIRECT_REFERRAL_LABEL} — chọn một cách tính phí, không cần thiết lập điều kiện JLPT.
+    <div className="w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50/80 p-3 sm:p-4 space-y-3">
+      <div className="min-w-0">
+        <div className="text-xs font-bold text-slate-800 sm:text-[13px]">Phí giới thiệu nhân sự</div>
+        <p className="text-[10px] text-slate-500 mt-0.5 leading-snug sm:text-[11px]">
+          {DIRECT_REFERRAL_LABEL}
         </p>
       </div>
 
-      {onSalaryCurrencyChange && feeMode === SIMPLE_FEE_MODES.FIXED && (
-        <div className="pb-2 border-b border-slate-200">
-          <label className="block text-xs font-semibold text-slate-700 mb-1">Đơn vị tiền tệ</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full min-w-0">
+        <div className="min-w-0">
+          <label className="block text-[11px] font-semibold text-slate-700 mb-1.5 sm:text-xs">
+            Giá trị phí <span className="text-red-500">*</span>
+          </label>
+          <input
+            type={feeMode === SIMPLE_FEE_MODES.MONTHLY_SALARY ? 'text' : 'number'}
+            step={feeMode === SIMPLE_FEE_MODES.PERCENT_ANNUAL ? '0.01' : feeMode === SIMPLE_FEE_MODES.FIXED ? '1' : '0.1'}
+            min="0"
+            max={feeMode === SIMPLE_FEE_MODES.PERCENT_ANNUAL ? '100' : undefined}
+            value={amount}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (feeMode === SIMPLE_FEE_MODES.PERCENT_ANNUAL && v && parseFloat(v) > 100) {
+                return;
+              }
+              handleAmountChange(v);
+            }}
+            placeholder={valuePlaceholder}
+            className={inputClass}
+          />
+          {feeMode === SIMPLE_FEE_MODES.FIXED ? (
+            <p className="text-[10px] text-slate-400 mt-1">
+              Đơn vị: {getJobCurrencyShortLabel(salaryCurrency)} (theo JD)
+            </p>
+          ) : null}
+          {valueHint ? (
+            <p className="text-[10px] text-slate-500 mt-1">{valueHint}</p>
+          ) : null}
+        </div>
+
+        <div className="min-w-0">
+          <label className="block text-[11px] font-semibold text-slate-700 mb-1.5 sm:text-xs">
+            Kiểu phí <span className="text-red-500">*</span>
+          </label>
           <select
-            value={salaryCurrency || 'JPY'}
-            onChange={(e) => onSalaryCurrencyChange(e.target.value)}
-            className="w-full max-w-xs border rounded-lg px-3 py-2 text-sm bg-white"
+            value={feeMode}
+            onChange={(e) => handleModeChange(e.target.value)}
+            className={inputClass}
           >
-            {JOB_SALARY_CURRENCY_OPTIONS.map((opt) => (
+            {FEE_MODE_SELECT_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
         </div>
-      )}
-
-      <div>
-        <span className="block text-xs font-semibold text-slate-700 mb-2">
-          Cách tính phí <span className="text-red-500">*</span>
-        </span>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {modeOptions.map((opt) => (
-            <button
-              key={opt.key}
-              type="button"
-              onClick={() => handleModeChange(opt.key)}
-              className={`text-left rounded-lg border px-3 py-2.5 transition-colors ${
-                feeMode === opt.key
-                  ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
-            >
-              <span className="block text-xs font-bold text-slate-800">{opt.title}</span>
-              <span className="block text-[10px] text-slate-500 mt-0.5 leading-snug">{opt.hint}</span>
-            </button>
-          ))}
-        </div>
       </div>
-
-      <div>
-        <label className="block text-xs font-semibold text-slate-700 mb-1">
-          {amountLabel} <span className="text-red-500">*</span>
-        </label>
-        <input
-          type={feeMode === SIMPLE_FEE_MODES.MONTHLY_SALARY ? 'text' : 'number'}
-          step={feeMode === SIMPLE_FEE_MODES.PERCENT_ANNUAL ? '0.01' : feeMode === SIMPLE_FEE_MODES.FIXED ? '1' : '0.1'}
-          min="0"
-          max={feeMode === SIMPLE_FEE_MODES.PERCENT_ANNUAL ? '100' : undefined}
-          value={amount}
-          onChange={(e) => {
-            const v = e.target.value;
-            if (feeMode === SIMPLE_FEE_MODES.PERCENT_ANNUAL && v && parseFloat(v) > 100) {
-              return;
-            }
-            handleAmountChange(v);
-          }}
-          placeholder={
-            feeMode === SIMPLE_FEE_MODES.PERCENT_ANNUAL
-              ? 'VD: 30'
-              : feeMode === SIMPLE_FEE_MODES.MONTHLY_SALARY
-                ? 'VD: 1 hoặc 1.5'
-                : `VD: 500000`
-          }
-          className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
-        />
-        {feeMode === SIMPLE_FEE_MODES.PERCENT_ANNUAL && amount && (
-          <p className="text-[10px] text-slate-500 mt-1">{amount}% thu nhập năm</p>
-        )}
-        {feeMode === SIMPLE_FEE_MODES.FIXED && amount && (
-          <p className="text-[10px] text-slate-500 mt-1">
-            {formatFixedAmountWithCurrency(amount, salaryCurrency)}
-          </p>
-        )}
-        {feeMode === SIMPLE_FEE_MODES.MONTHLY_SALARY && amount && (
-          <p className="text-[10px] text-slate-500 mt-1">
-            ≈ {amount} tháng lương (theo mức lương ghi trên JD)
-          </p>
-        )}
-      </div>
-
-      {feeMode === SIMPLE_FEE_MODES.MONTHLY_SALARY && (
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Mức tham chiếu hiển thị cho CTV ({getJobCurrencyShortLabel(salaryCurrency)}, tùy chọn)
-          </label>
-          <input
-            type="text"
-            value={viewOnCollaborator}
-            onChange={(e) => {
-              setViewOnCollaborator(e.target.value);
-              applyPayload(feeMode, amount, e.target.value);
-            }}
-            placeholder="VD: 300000 hoặc 300000 - 400000"
-            className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
-          />
-        </div>
-      )}
 
       {!jobValues.some(isPersistableJobValue) && (
         <p className="text-[10px] text-amber-600">Nhập mức phí để tiếp tục.</p>

@@ -354,7 +354,7 @@ function generateNewJobCode() {
   return `WS-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
-const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
+const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { jobId } = useParams();
@@ -2525,8 +2525,13 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
             .catch((err) => console.warn(`[VectorSync] Job ${savedJobId} sync failed:`, err));
         }
         if (hasJdOriginalUpload) setJdFileJp(null);
-        alert(jobId ? 'Job đã được cập nhật thành công!' : 'Job đã được lưu thành công!');
-        navigate(jobId ? jobDetailPath(jobId) : jobsListPath);
+        const createdId = !jobId && savedJobId ? savedJobId : null;
+        if (isBusinessPortal && createdId && typeof onBusinessJobCreated === 'function') {
+          onBusinessJobCreated(createdId);
+        } else {
+          alert(jobId ? 'Job đã được cập nhật thành công!' : 'Job đã được lưu thành công!');
+          navigate(jobId ? jobDetailPath(jobId) : jobsListPath);
+        }
       } else {
         alert(response.message || (jobId ? 'Có lỗi xảy ra khi cập nhật job' : 'Có lỗi xảy ra khi tạo job'));
       }

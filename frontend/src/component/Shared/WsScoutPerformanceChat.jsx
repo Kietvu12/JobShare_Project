@@ -29,7 +29,7 @@ function formatListTime(value) {
 
 const WsLogo = ({ size = 28 }) => (
   <div style={{
-    width: size, height: size, borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+    width: size, height: size, borderRadius: '50%', background: 'linear-gradient(135deg, #38bdf8, #0077B6)',
     color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: size * 0.32, fontWeight: 700, flexShrink: 0,
   }}>WS</div>
@@ -53,7 +53,7 @@ function CvAttachmentCard({ cv, mode, onOpen, kind = 'recommendation' }) {
     >
       <div style={{ fontSize: 9, fontWeight: 700, color: '#1e293b' }}>{label}</div>
       {sub && <div style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>{sub}</div>}
-      <div style={{ fontSize: 7, color: '#4f46e5', marginTop: 4 }}>{footer}</div>
+      <div style={{ fontSize: 7, color: '#0077B6', marginTop: 4 }}>{footer}</div>
     </button>
   )
 }
@@ -229,6 +229,166 @@ function CreditDecisionEventCard({ message }) {
   )
 }
 
+function formatListingReferralFee(payload) {
+  if (!payload) return '—'
+  const type = payload.referralFeeType
+  const value = Number(payload.referralFeeValue || 0)
+  if (type === 'percent') return `${value}% thu nhập năm đầu`
+  if (type === 'fixed') return `${value.toLocaleString('vi-VN')} (cố định)`
+  if (type === 'monthly') return `${value} tháng lương`
+  return value ? String(value) : '—'
+}
+
+function ListingRequestEventCard({
+  message,
+  mode,
+  onApprove,
+  onReject,
+  actionListingId,
+}) {
+  const payload = message.requestPayload || {}
+  const status = payload.status || 'pending'
+  const statusStyle = CREDIT_STATUS_STYLES[status] || CREDIT_STATUS_STYLES.pending
+  const isPending = status === 'pending'
+  const listingId = payload.listingId
+  const [platformFeePercent, setPlatformFeePercent] = useState(
+    () => String(payload.platformFeePercent ?? 20),
+  )
+  const [adminNote, setAdminNote] = useState('')
+  const [rejectNote, setRejectNote] = useState('')
+  const [showReject, setShowReject] = useState(false)
+
+  return (
+    <div style={{
+      width: '100%', maxWidth: 320, background: '#fff', border: '1.5px solid #bae6fd',
+      borderRadius: 10, padding: '10px 12px', boxShadow: '0 2px 8px rgba(0,119,182,0.12)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#0077B6' }}>Đăng job lên Sàn CTV</div>
+        <span style={{ fontSize: 7, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: statusStyle.color, background: statusStyle.bg }}>
+          {statusStyle.label}
+        </span>
+      </div>
+
+      <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.65, marginBottom: 8 }}>
+        <div><strong>Job:</strong> {payload.jobTitle || '—'}{payload.jobCode ? ` (${payload.jobCode})` : ''}</div>
+        <div><strong>Phí CTV:</strong> {formatListingReferralFee(payload)}</div>
+        {payload.platformFeePercent != null && status !== 'pending' && (
+          <div><strong>Phí dịch vụ WS:</strong> {Number(payload.platformFeePercent)}%</div>
+        )}
+        {payload.adminNote && <div><strong>Phản hồi WS:</strong> {payload.adminNote}</div>}
+      </div>
+
+      {mode === 'admin' && isPending && onApprove && onReject && (
+        <div style={{ borderTop: '1px solid #e0f2fe', paddingTop: 8 }}>
+          {!showReject ? (
+            <>
+              <label style={{ display: 'block', fontSize: 8, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+                Phí sử dụng dịch vụ (%)
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step="0.01"
+                value={platformFeePercent}
+                onChange={(e) => setPlatformFeePercent(e.target.value)}
+                style={{ width: '100%', border: bd, borderRadius: 6, padding: '6px 8px', fontSize: 8, marginBottom: 6, outline: 'none' }}
+              />
+              <input
+                type="text"
+                value={adminNote}
+                onChange={(e) => setAdminNote(e.target.value)}
+                placeholder="Ghi chú cho DN (tuỳ chọn)..."
+                style={{ width: '100%', border: bd, borderRadius: 6, padding: '6px 8px', fontSize: 8, marginBottom: 8, outline: 'none' }}
+              />
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  type="button"
+                  disabled={actionListingId === listingId}
+                  onClick={() => onApprove(listingId, platformFeePercent, adminNote)}
+                  style={{
+                    flex: 1, border: 'none', borderRadius: 6, padding: '6px 8px', fontSize: 8, fontWeight: 700,
+                    background: actionListingId === listingId ? '#7dd3fc' : '#0077B6', color: '#fff', cursor: 'pointer',
+                  }}
+                >
+                  {actionListingId === listingId ? 'Đang duyệt...' : 'Duyệt & publish'}
+                </button>
+                <button
+                  type="button"
+                  disabled={actionListingId === listingId}
+                  onClick={() => setShowReject(true)}
+                  style={{
+                    flex: 1, border: bd, borderRadius: 6, padding: '6px 8px', fontSize: 8, fontWeight: 600,
+                    background: '#fff', color: '#dc2626', cursor: 'pointer',
+                  }}
+                >
+                  Từ chối
+                </button>
+              </div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <textarea
+                value={rejectNote}
+                onChange={(e) => setRejectNote(e.target.value)}
+                rows={2}
+                placeholder="Lý do từ chối (tuỳ chọn)..."
+                style={{ border: bd, borderRadius: 6, padding: '6px 8px', fontSize: 8, resize: 'none', outline: 'none' }}
+              />
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowReject(false); setRejectNote('') }}
+                  style={{ flex: 1, border: bd, borderRadius: 6, padding: '6px 8px', fontSize: 8, background: '#fff', cursor: 'pointer' }}
+                >
+                  Huỷ
+                </button>
+                <button
+                  type="button"
+                  disabled={actionListingId === listingId}
+                  onClick={() => onReject(listingId, rejectNote)}
+                  style={{
+                    flex: 1, border: 'none', borderRadius: 6, padding: '6px 8px', fontSize: 8, fontWeight: 700,
+                    background: '#dc2626', color: '#fff', cursor: 'pointer',
+                  }}
+                >
+                  Xác nhận từ chối
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {mode === 'business' && isPending && (
+        <div style={{ fontSize: 7, color: '#0369a1', background: '#f0f9ff', borderRadius: 6, padding: '6px 8px' }}>
+          WS sẽ xem xét, thiết lập phí dịch vụ và phản hồi trong cuộc trò chuyện này.
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ListingDecisionEventCard({ message }) {
+  const payload = message.requestPayload || {}
+  const accepted = payload.decision === 'accepted' || payload.status === 'approved'
+  return (
+    <div style={{
+      width: '100%', maxWidth: 320, background: accepted ? '#ecfdf5' : '#fef2f2',
+      border: `1.5px solid ${accepted ? '#bbf7d0' : '#fecaca'}`,
+      borderRadius: 10, padding: '10px 12px',
+    }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: accepted ? '#166534' : '#991b1b', marginBottom: 4 }}>
+        {accepted ? 'WS đã duyệt đăng Sàn CTV' : 'WS đã từ chối đăng Sàn CTV'}
+      </div>
+      {message.content && (
+        <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.55 }}>{message.content}</div>
+      )}
+    </div>
+  )
+}
+
 function ApproachStatusUpdateEventCard({ message, mode, onOpenCv }) {
   const payload = message.requestPayload || {}
   const statusLabel = payload.pipelineStatusLabel || payload.pipelineStatus || '—'
@@ -349,7 +509,7 @@ function WsAdminScoutPerformanceCandidatesPanel({
           padding: '10px 12px', borderBottom: bd, display: 'flex', alignItems: 'center', gap: 8,
         }}
         >
-          <Users style={{ width: 14, height: 14, color: '#4f46e5' }} />
+          <Users style={{ width: 14, height: 14, color: '#0077B6' }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#1e293b' }}>Ứng viên Scout Performance</div>
             <div style={{ fontSize: 8, color: '#64748b' }}>Cập nhật trạng thái tiếp cận — DN nhận tin nhắn tự động</div>
@@ -424,7 +584,7 @@ function ScoutPerformanceEventCard({ message, mode, onOpenCv }) {
   const type = message.messageType
 
   const meta = type === 'similar_candidates_request'
-    ? { label: 'Tìm tương tự', color: '#4338ca', bg: '#eef2ff', title: 'Yêu cầu tìm thêm ứng viên tương tự' }
+    ? { label: 'Tìm tương tự', color: '#4338ca', bg: '#e8f4fa', title: 'Yêu cầu tìm thêm ứng viên tương tự' }
     : type === 'performance_opened'
       ? { label: 'Đã mở', color: '#059669', bg: '#d1fae5', title: 'Đã mở hồ sơ Scout Performance' }
       : { label: 'Scout Performance', color: '#64748b', bg: '#f1f5f9', title: message.content || 'Scout Performance' }
@@ -461,15 +621,17 @@ function ScoutPerformanceEventCard({ message, mode, onOpenCv }) {
   )
 }
 
-function ChatBubble({ message, mode, onOpenCv, onApproveCredit, onRejectCredit, creditActionId }) {
+function ChatBubble({ message, mode, onOpenCv, onApproveCredit, onRejectCredit, creditActionId, onApproveListing, onRejectListing, listingActionId }) {
   const isPerformanceEvent = [
     'performance_opened',
     'similar_candidates_request',
     'performance_request',
   ].includes(message.messageType)
   const isCreditRequest = message.messageType === 'credit_request'
+  const isListingRequest = message.messageType === 'listing_request'
   const isSaiyoBrandingRequest = message.messageType === 'saiyo_branding_request'
   const isCreditDecision = message.messageType === 'credit_decision'
+  const isListingDecision = message.messageType === 'listing_decision'
   const isApproachUpdate = message.messageType === 'approach_status_update'
   const isOutgoing = mode === 'admin'
     ? message.senderType === 'admin'
@@ -490,6 +652,29 @@ function ChatBubble({ message, mode, onOpenCv, onApproveCredit, onRejectCredit, 
             onApprove={onApproveCredit}
             onReject={onRejectCredit}
             actionRequestId={creditActionId}
+          />
+          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
+            {formatTime(message.createdAt)}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (isListingRequest) {
+    return (
+      <div style={{
+        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-end' : 'flex-start',
+        flexDirection: mode === 'business' ? 'row-reverse' : 'row', alignItems: 'flex-end',
+      }}>
+        {mode !== 'business' && <WsLogo size={24} />}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+          <ListingRequestEventCard
+            message={message}
+            mode={mode}
+            onApprove={onApproveListing}
+            onReject={onRejectListing}
+            actionListingId={listingActionId}
           />
           <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
             {formatTime(message.createdAt)}
@@ -525,6 +710,23 @@ function ChatBubble({ message, mode, onOpenCv, onApproveCredit, onRejectCredit, 
         {mode === 'business' && <WsLogo size={24} />}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
           <CreditDecisionEventCard message={message} />
+          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'left' : 'right' }}>
+            {formatTime(message.createdAt)}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (isListingDecision) {
+    return (
+      <div style={{
+        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-start' : 'flex-end',
+        flexDirection: mode === 'business' ? 'row' : 'row-reverse', alignItems: 'flex-end',
+      }}>
+        {mode === 'business' && <WsLogo size={24} />}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+          <ListingDecisionEventCard message={message} />
           <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'left' : 'right' }}>
             {formatTime(message.createdAt)}
           </div>
@@ -577,7 +779,7 @@ function ChatBubble({ message, mode, onOpenCv, onApproveCredit, onRejectCredit, 
         {message.content && (
           <div style={{
             padding: '6px 10px', borderRadius: 8, fontSize: 9, lineHeight: 1.45, whiteSpace: 'pre-line',
-            background: isOutgoing ? '#4f46e5' : isSystem ? '#eef2ff' : '#fff',
+            background: isOutgoing ? '#0077B6' : isSystem ? '#e8f4fa' : '#fff',
             color: isOutgoing ? '#fff' : '#1e293b',
             border: isOutgoing ? 'none' : bd,
           }}>
@@ -606,8 +808,8 @@ export function WsSessionListItem({ session, active, onClick, mode = 'business' 
     <div onClick={onClick} style={{
       display: 'flex', alignItems: 'flex-start', gap: 7, padding: '9px 9px',
       cursor: 'pointer', borderBottom: '1px solid #f1f5f9',
-      background: active ? '#eef2ff' : 'transparent',
-      borderLeft: active ? '3px solid #4f46e5' : '3px solid transparent',
+      background: active ? '#e8f4fa' : 'transparent',
+      borderLeft: active ? '3px solid #0077B6' : '3px solid transparent',
     }}>
       <WsLogo size={28} />
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -620,12 +822,12 @@ export function WsSessionListItem({ session, active, onClick, mode = 'business' 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, flexShrink: 0 }}>
         <span style={{ fontSize: 8, color: '#94a3b8' }}>{formatListTime(session.lastMessageAt)}</span>
         {session.unreadCount > 0 && (
-          <span style={{ background: '#4f46e5', color: '#fff', borderRadius: 99, fontSize: 7, fontWeight: 600, padding: '0 4px', minWidth: 14, textAlign: 'center' }}>
+          <span style={{ background: '#0077B6', color: '#fff', borderRadius: 99, fontSize: 7, fontWeight: 600, padding: '0 4px', minWidth: 14, textAlign: 'center' }}>
             {session.unreadCount}
           </span>
         )}
         {mode === 'admin' && session.performanceRequest?.wantsSimilarCandidates && (
-          <span style={{ background: '#eef2ff', color: '#4338ca', borderRadius: 99, fontSize: 7, fontWeight: 700, padding: '2px 6px', whiteSpace: 'nowrap' }}>
+          <span style={{ background: '#e8f4fa', color: '#4338ca', borderRadius: 99, fontSize: 7, fontWeight: 700, padding: '2px 6px', whiteSpace: 'nowrap' }}>
             Tìm tương tự
           </span>
         )}
@@ -709,7 +911,7 @@ export function WsMentionInput({
         {mentions.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 4 }}>
             {mentions.map((m) => (
-              <span key={m.id} style={{ fontSize: 7, background: '#eef2ff', color: '#4338ca', borderRadius: 99, padding: '2px 6px' }}>
+              <span key={m.id} style={{ fontSize: 7, background: '#e8f4fa', color: '#4338ca', borderRadius: 99, padding: '2px 6px' }}>
                 @{m.code || m.name || m.label}
               </span>
             ))}
@@ -751,7 +953,7 @@ export function WsMentionInput({
         type="button"
         disabled={sending || (!value.trim() && mentions.length === 0)}
         onClick={handleSubmit}
-        style={{ width: 28, height: 28, borderRadius: '50%', background: '#4f46e5', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+        style={{ width: 28, height: 28, borderRadius: '50%', background: '#0077B6', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
       >
         <Send {...ICON_SM} color="#fff" />
       </button>
@@ -918,6 +1120,7 @@ export function WsChatThread({
 
   const [input, setInput] = useState('')
   const [creditActionId, setCreditActionId] = useState(null)
+  const [listingActionId, setListingActionId] = useState(null)
   const [perfListOpen, setPerfListOpen] = useState(false)
   const endRef = useRef(null)
 
@@ -968,6 +1171,54 @@ export function WsChatThread({
     }
   }
 
+  const handleApproveListing = async (listingId, platformFeePercent, note) => {
+    if (!activeSessionId || !listingId) return
+    const fee = parseFloat(String(platformFeePercent).replace(',', '.'))
+    if (!Number.isFinite(fee) || fee < 0 || fee > 100) {
+      alert('Phí dịch vụ phải từ 0 đến 100%')
+      return
+    }
+    if (!window.confirm(`Duyệt và publish job lên Sàn CTV với phí dịch vụ ${fee}%?`)) return
+    setListingActionId(listingId)
+    try {
+      const res = await apiService.acceptAdminWsChatListingRequest(activeSessionId, {
+        listingId,
+        platformFeePercent: fee,
+        note: note?.trim() || undefined,
+      })
+      if (res?.success) {
+        await chat.reloadMessages?.()
+      } else {
+        alert(res?.message || 'Không thể duyệt listing')
+      }
+    } catch (e) {
+      alert(e?.message || 'Không thể duyệt listing')
+    } finally {
+      setListingActionId(null)
+    }
+  }
+
+  const handleRejectListing = async (listingId, note) => {
+    if (!activeSessionId || !listingId) return
+    setListingActionId(listingId)
+    try {
+      const res = await apiService.rejectAdminWsChatListingRequest(activeSessionId, {
+        listingId,
+        note: note?.trim() || undefined,
+        rejectionReason: note?.trim() || undefined,
+      })
+      if (res?.success) {
+        await chat.reloadMessages?.()
+      } else {
+        alert(res?.message || 'Không thể từ chối yêu cầu')
+      }
+    } catch (e) {
+      alert(e?.message || 'Không thể từ chối yêu cầu')
+    } finally {
+      setListingActionId(null)
+    }
+  }
+
   const headerTitle = mode === 'admin'
     ? (activeSession?.business?.companyName || 'Doanh nghiệp')
     : 'WS Team – Tuyển dụng'
@@ -1000,7 +1251,7 @@ export function WsChatThread({
                 onClick={() => setPerfListOpen(true)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4, border: bd, borderRadius: 6,
-                  padding: '4px 8px', fontSize: 8, fontWeight: 600, background: '#eef2ff',
+                  padding: '4px 8px', fontSize: 8, fontWeight: 600, background: '#e8f4fa',
                   color: '#4338ca', cursor: 'pointer', whiteSpace: 'nowrap',
                 }}
               >
@@ -1015,7 +1266,7 @@ export function WsChatThread({
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4, border: bd, borderRadius: 6,
                   padding: '4px 8px', fontSize: 8, fontWeight: 600, background: '#fff',
-                  color: '#4f46e5', cursor: 'pointer', whiteSpace: 'nowrap',
+                  color: '#0077B6', cursor: 'pointer', whiteSpace: 'nowrap',
                 }}
               >
                 <Users style={{ width: 10, height: 10 }} />
@@ -1047,6 +1298,9 @@ export function WsChatThread({
             onApproveCredit={mode === 'admin' ? handleApproveCredit : undefined}
             onRejectCredit={mode === 'admin' ? handleRejectCredit : undefined}
             creditActionId={creditActionId}
+            onApproveListing={mode === 'admin' ? handleApproveListing : undefined}
+            onRejectListing={mode === 'admin' ? handleRejectListing : undefined}
+            listingActionId={listingActionId}
           />
         ))}
         <div ref={endRef} />
@@ -1082,7 +1336,7 @@ export function WsChatThread({
                   type="button"
                   disabled={sending || !input.trim()}
                   onClick={() => sendMessage({ content: input }).then(() => setInput(''))}
-                  style={{ width: 28, height: 28, borderRadius: '50%', background: '#4f46e5', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ width: 28, height: 28, borderRadius: '50%', background: '#0077B6', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
                   <Send {...ICON_SM} color="#fff" />
                 </button>

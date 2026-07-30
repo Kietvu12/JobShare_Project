@@ -16,6 +16,8 @@ router.post('/sessions/:id/performance-request/accept', adminWsChatController.ac
 router.post('/sessions/:id/performance-request/reject', adminWsChatController.rejectPerformanceRequest);
 router.post('/sessions/:id/credit-request/accept', adminWsChatController.acceptCreditRequest);
 router.post('/sessions/:id/credit-request/reject', adminWsChatController.rejectCreditRequest);
+router.post('/sessions/:id/listing-request/accept', adminWsChatController.acceptListingRequest);
+router.post('/sessions/:id/listing-request/reject', adminWsChatController.rejectListingRequest);
 router.get('/sessions/:id/scout-performance-candidates', adminWsChatController.listScoutPerformanceCandidates);
 router.patch(
   '/sessions/:id/scout-performance-candidates/:cvId/approach-status',

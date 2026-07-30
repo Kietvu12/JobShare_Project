@@ -1,13 +1,15 @@
 import React, {
   forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState,
 } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Bot, FileText, Languages, Loader2, Plus, Save, Send, Sparkles, User,
+  Bot, FileText, Languages, Loader2, Plus, Save, Send, User,
 } from 'lucide-react';
 import apiService from '../../services/api';
 import useBusinessUser from '../../hooks/useBusinessUser';
 import JdTemplate from '../Admin/AddJob/JdTemplate';
 import BusinessJobDetailEmbed from './BusinessJobDetailEmbed';
+import JobCreatedNextStepsModal, { navigateJobCreatedNextStep } from './JobCreatedNextStepsModal';
 import {
   JD_LANGUAGE_TABS,
   applyTranslatedJd,
@@ -21,21 +23,28 @@ import {
 import {
   createJobBuilderThreadId,
   fileToStoredJd,
+  getCurrentBusinessUserId,
   storedJdToFile,
   upsertJobBuilderThread,
 } from '../../utils/jobBuilderThreadStorage';
 import { JD_PARSE_ACCEPT, formatFileSize, parseJdFile } from '../../utils/parseJdFile';
 import {
-  SIMPLE_FEE_MODES,
-  simpleCommissionToPayload,
-} from '../../utils/businessSimpleCommission';
-import JobCommissionEditor from './JobCommissionEditor';
+  applyJdFormStatePatch,
+  applyParsedJdToFormState,
+  createEmptyJdFormState,
+  normalizeJdDraft,
+} from '../../utils/applyParsedJdToFormState';
 
 export const JD_BUILDER_SESSION_KEY = 'wjs_jd_builder_session_id';
 
+function jdBuilderSessionStorageKey() {
+  const bid = getCurrentBusinessUserId();
+  return bid ? `${JD_BUILDER_SESSION_KEY}:${bid}` : JD_BUILDER_SESSION_KEY;
+}
+
 function readStoredSessionId() {
   try {
-    return sessionStorage.getItem(JD_BUILDER_SESSION_KEY) || '';
+    return sessionStorage.getItem(jdBuilderSessionStorageKey()) || '';
   } catch {
     return '';
   }
@@ -43,8 +52,9 @@ function readStoredSessionId() {
 
 function storeSessionId(id) {
   try {
-    if (id) sessionStorage.setItem(JD_BUILDER_SESSION_KEY, id);
-    else sessionStorage.removeItem(JD_BUILDER_SESSION_KEY);
+    const key = jdBuilderSessionStorageKey();
+    if (id) sessionStorage.setItem(key, id);
+    else sessionStorage.removeItem(key);
   } catch {
     /* ignore */
   }
@@ -64,13 +74,22 @@ function mergeServerMessages(prev, serverMessages) {
   return combined.sort((a, b) => (a.ts || 0) - (b.ts || 0));
 }
 
+const JOB_STATUS_OPTIONS = [
+  { value: '0', label: 'Nháp' },
+  { value: '1', label: 'Đang đăng tuyển' },
+  { value: '2', label: 'Đã đóng' },
+  { value: '3', label: 'Hết hạn' },
+];
+
 const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   embedded = false,
   activeThreadId: activeThreadIdProp = null,
   savedJobId: savedJobIdProp = null,
   onJobSaved,
   onThreadPersist,
+  showNextStepsOnCreate = true,
 }, ref) {
+  const navigate = useNavigate();
   const { companyName, user: businessUser } = useBusinessUser();
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -92,7 +111,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   const [workingHourDetails, setWorkingHourDetails] = useState(emptyState.workingHourDetails);
   const [jobBenefitRows, setJobBenefitRows] = useState(emptyState.jobBenefitRows);
   const [highlightKeys, setHighlightKeys] = useState(emptyState.highlightKeys);
-  const [jobValues, setJobValues] = useState(() => simpleCommissionToPayload(SIMPLE_FEE_MODES.PERCENT_ANNUAL, '').jobValues);
+  const [jobValues, setJobValues] = useState([]);
   const [languageTab, setLanguageTab] = useState('vi');
   const [categories, setCategories] = useState([]);
   const [jdTemplateSyncKey, setJdTemplateSyncKey] = useState(0);
@@ -110,7 +129,6 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   const [sessionId, setSessionId] = useState(() => readStoredSessionId());
   const [messages, setMessages] = useState([]);
   const [quickReplies, setQuickReplies] = useState([]);
-  const [missingFields, setMissingFields] = useState([]);
   const [canFinalize, setCanFinalize] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -119,15 +137,23 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   const [bootLoading, setBootLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [rightTab, setRightTab] = useState('template');
+  const [workspaceMode, setWorkspaceMode] = useState('builder');
+  const [mobileBuilderPane, setMobileBuilderPane] = useState('chat');
   const [activeThreadId, setActiveThreadId] = useState(activeThreadIdProp || null);
   const [savedJobId, setSavedJobId] = useState(savedJobIdProp || null);
   const [jdOriginalFile, setJdOriginalFile] = useState(null);
   const [jdOriginalStored, setJdOriginalStored] = useState(null);
   const [detailRefreshKey, setDetailRefreshKey] = useState(0);
+  const [nextStepsModal, setNextStepsModal] = useState({ open: false, jobId: null });
 
   useEffect(() => { if (activeThreadIdProp) setActiveThreadId(activeThreadIdProp); }, [activeThreadIdProp]);
-  useEffect(() => { if (savedJobIdProp != null) setSavedJobId(savedJobIdProp); }, [savedJobIdProp]);
+  useEffect(() => { setSavedJobId(savedJobIdProp ?? null); }, [savedJobIdProp]);
+
+  useEffect(() => {
+    const sid = readStoredSessionId();
+    setSessionId(sid);
+    sessionStartedRef.current = Boolean(sid);
+  }, [businessUser?.id]);
 
   const getFormSnapshot = useCallback(() => ({
     formData,
@@ -153,43 +179,132 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
 
   const buildThreadPayload = useCallback(async (overrides = {}) => {
     const title = formData.title || formData.titleEn || formData.titleJp || 'JD mới';
-    let storedJd = jdOriginalStored;
-    if (jdOriginalFile && !storedJd) {
-      storedJd = await fileToStoredJd(jdOriginalFile);
-    }
-    return {
+    // Auto-save không kèm file gốc (base64). Chỉ gửi khi overrides có jdOriginalStored.
+    const payload = {
       id: activeThreadId || createJobBuilderThreadId(),
       jobId: savedJobId,
       title,
       messages,
       sessionId,
       formSnapshot: getFormSnapshot(),
-      jdOriginalStored: storedJd,
+      jdOriginalStored: null,
       ...overrides,
     };
-  }, [activeThreadId, savedJobId, formData, messages, sessionId, getFormSnapshot, jdOriginalFile, jdOriginalStored]);
+    if (
+      Object.prototype.hasOwnProperty.call(overrides, 'jdOriginalStored')
+      && overrides.jdOriginalStored === undefined
+      && jdOriginalFile
+    ) {
+      payload.jdOriginalStored = await fileToStoredJd(jdOriginalFile);
+    }
+    return payload;
+  }, [activeThreadId, savedJobId, formData, messages, sessionId, getFormSnapshot, jdOriginalFile]);
 
   const persistThread = useCallback(async (overrides = {}) => {
     const payload = await buildThreadPayload(overrides);
     if (!activeThreadId) setActiveThreadId(payload.id);
-    const saved = upsertJobBuilderThread(payload);
-    onThreadPersist?.(saved);
-    return saved;
+    try {
+      const saved = await upsertJobBuilderThread(payload);
+      if (saved?.id) {
+        const clientId = payload.id && String(payload.id).startsWith('thread-')
+          ? String(payload.id)
+          : (activeThreadId && String(activeThreadId).startsWith('thread-') ? String(activeThreadId) : null);
+        setActiveThreadId(String(saved.id));
+        onThreadPersist?.(clientId ? { ...saved, replaceClientId: clientId } : saved);
+      } else {
+        onThreadPersist?.(payload);
+      }
+      return saved;
+    } catch (err) {
+      console.error('Lưu phiên JD builder thất bại:', err);
+      setError(err?.message || 'Không lưu được phiên chat. Kiểm tra backend đang chạy.');
+      onThreadPersist?.({
+        ...payload,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      throw err;
+    }
   }, [activeThreadId, buildThreadPayload, onThreadPersist]);
+
+  /**
+   * Giống localStorage cũ: có box chat là phải có bản ghi ngay (không đợi tin nhắn).
+   * Trả về thread đã lưu (hoặc stub local nếu API lỗi).
+   */
+  const ensureThreadSaved = useCallback(async (overrides = {}) => {
+    const clientId = overrides.id
+      || (activeThreadId && String(activeThreadId))
+      || createJobBuilderThreadId();
+    if (!activeThreadId || String(activeThreadId) !== String(clientId)) {
+      setActiveThreadId(String(clientId));
+    }
+
+    const title =
+      overrides.title
+      || formDataRef.current?.title
+      || formDataRef.current?.titleEn
+      || formDataRef.current?.titleJp
+      || 'JD mới';
+
+    const optimistic = {
+      id: String(clientId),
+      jobId: overrides.jobId !== undefined ? overrides.jobId : savedJobId,
+      title,
+      messages: overrides.messages ?? messages,
+      sessionId: overrides.sessionId !== undefined ? overrides.sessionId : sessionId,
+      formSnapshot: overrides.formSnapshot !== undefined ? overrides.formSnapshot : getFormSnapshot(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    // Hiện box trên sidebar ngay lập tức
+    onThreadPersist?.(optimistic);
+
+    try {
+      const saved = await upsertJobBuilderThread({
+        id: clientId,
+        jobId: optimistic.jobId ?? null,
+        title: optimistic.title,
+        messages: optimistic.messages || [],
+        sessionId: optimistic.sessionId || null,
+        formSnapshot: optimistic.formSnapshot,
+      });
+      if (saved?.id) {
+        setActiveThreadId(String(saved.id));
+        onThreadPersist?.({
+          ...saved,
+          replaceClientId: String(clientId).startsWith('thread-') ? String(clientId) : undefined,
+        });
+        return saved;
+      }
+      return optimistic;
+    } catch (err) {
+      console.error('ensureThreadSaved failed:', err);
+      setError(err?.message || 'Không lưu được phiên chat. Kiểm tra backend đang chạy.');
+      return optimistic;
+    }
+  }, [activeThreadId, savedJobId, messages, sessionId, getFormSnapshot, onThreadPersist]);
 
   useEffect(() => {
     if (bootLoading) return undefined;
+    // Đã có box (activeThreadId) hoặc đang chat → auto-save như localStorage
+    if (!activeThreadId && messages.length === 0 && !formData.title && !sessionId) {
+      return undefined;
+    }
     const timer = setTimeout(() => {
-      if (messages.length > 0 || formData.title) {
-        persistThread().catch(() => {});
-      }
+      persistThread().catch(() => {});
     }, 800);
     return () => clearTimeout(timer);
-  }, [bootLoading, messages, formData, persistThread]);
+  }, [bootLoading, messages, formData, sessionId, activeThreadId, persistThread]);
 
   const applyFormSnapshot = useCallback((snapshot) => {
     if (!snapshot) return;
-    if (snapshot.formData) setFormData(snapshot.formData);
+    if (snapshot.formData) {
+      setFormData((prev) => ({
+        ...prev,
+        ...snapshot.formData,
+        status: snapshot.formData.status ?? prev?.status ?? 0,
+      }));
+    }
     if (snapshot.recruitingCompany) setRecruitingCompany(snapshot.recruitingCompany);
     if (snapshot.workingLocations) setWorkingLocations(snapshot.workingLocations);
     if (snapshot.workingLocationDetails) setWorkingLocationDetails(snapshot.workingLocationDetails);
@@ -258,13 +373,12 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       });
     }
     setQuickReplies(Array.isArray(data?.quick_replies) ? data.quick_replies : []);
-    setMissingFields(Array.isArray(data?.missing_fields) ? data.missing_fields : []);
     setCanFinalize(Boolean(data?.can_finalize));
     if (data?.draft) applyDraftToPreview(data.draft);
   }, [applyDraftToPreview]);
 
   const startSession = useCallback(async () => {
-    if (sessionStartedRef.current && sessionId) return;
+    if (sessionStartedRef.current && sessionId) return null;
     setError('');
     setLoading(true);
     try {
@@ -274,19 +388,23 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
         initial_brief: 'Xin chào, tôi muốn tạo JD tuyển dụng mới.',
       });
       sessionStartedRef.current = true;
+      let initialMessages = [];
       if (data?.reply) {
-        setMessages([{
+        initialMessages = [{
           id: createMessageId(),
           role: 'assistant',
           kind: 'text',
           content: data.reply,
           ts: Date.now(),
-        }]);
+        }];
+        setMessages(initialMessages);
       }
       applySessionResponse(data);
+      return { data, initialMessages, sessionId: data?.session_id || null };
     } catch (err) {
       setError(err?.message || 'Không thể bắt đầu phiên chat.');
       sessionStartedRef.current = false;
+      return null;
     } finally {
       setLoading(false);
       setBootLoading(false);
@@ -295,8 +413,10 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
 
   const applySessionResponseRef = useRef(applySessionResponse);
   const startSessionRef = useRef(startSession);
+  const ensureThreadSavedRef = useRef(null);
   useEffect(() => { applySessionResponseRef.current = applySessionResponse; }, [applySessionResponse]);
   useEffect(() => { startSessionRef.current = startSession; }, [startSession]);
+  useEffect(() => { ensureThreadSavedRef.current = ensureThreadSaved; }, [ensureThreadSaved]);
 
   const loadThread = useCallback(async (thread) => {
     if (!thread) return;
@@ -307,7 +427,19 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     applyFormSnapshot(thread.formSnapshot);
     setJdOriginalStored(thread.jdOriginalStored || null);
     setJdOriginalFile(storedJdToFile(thread.jdOriginalStored));
-    setRightTab(thread.jobId ? 'detail' : 'template');
+    setWorkspaceMode(thread.jobId ? 'detail' : 'builder');
+
+    if (thread.jobId) {
+      try {
+        const res = await apiService.getBusinessJobById(thread.jobId);
+        const st = res?.data?.job?.status;
+        if (res?.success && st != null) {
+          setFormData((prev) => ({ ...prev, status: st }));
+        }
+      } catch {
+        /* giữ status từ snapshot nếu có */
+      }
+    }
 
     const storedMessages = Array.isArray(thread.messages) ? thread.messages : [];
     if (thread.sessionId) {
@@ -382,6 +514,9 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
         await startSession();
       }
 
+      // Parent (JobManagement) quyết định loadThread / startNewSession → lưu DB.
+      // Không upsert ở đây để tránh tạo phiên rác mỗi lần F5 khi đã có thread.
+
       if (!cancelled) setBootLoading(false);
     };
     boot();
@@ -422,6 +557,8 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     try {
       const data = await apiService.jdBuilderChat({ session_id: sessionId, message });
       applySessionResponse(data);
+      // Lưu phiên sau mỗi tin nhắn
+      persistThread().catch(() => {});
     } catch (err) {
       setError(err?.message || 'Gửi tin nhắn thất bại.');
     } finally {
@@ -449,8 +586,8 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     const fileLabel = file.name || 'JD file';
     const sizeLabel = formatFileSize(file.size);
 
-    setError('');
-    setMessages((prev) => [...prev, {
+    // Có box chat / bắt đầu upload = lưu DB ngay (giống localStorage)
+    const uploadMsg = {
       id: uploadMsgId,
       role: 'user',
       kind: 'file_upload',
@@ -460,8 +597,15 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       status: 'parsing',
       content: `Đã tải lên: ${fileLabel}${sizeLabel ? ` (${sizeLabel})` : ''}`,
       ts: Date.now(),
-    }]);
+    };
+    setError('');
+    setMessages((prev) => [...prev, uploadMsg]);
     setParseLoading(true);
+
+    await ensureThreadSaved({
+      messages: [...messages, uploadMsg],
+      title: formDataRef.current?.title || formDataRef.current?.titleJp || formDataRef.current?.titleEn || fileLabel || 'JD mới',
+    });
 
     try {
       const parsed = await parseJdFile(file, ac.signal);
@@ -475,18 +619,47 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       )));
 
       const titleHint = parsed?.title?.vi || parsed?.title || parsed?.title_vi || '';
-      setMessages((prev) => [...prev, {
+      const successContent = titleHint
+        ? `Đã phân tích JD thành công từ file "${fileLabel}".\nVị trí: ${titleHint}\nBấm Lưu job để lưu JD, chat và file gốc.`
+        : `Đã phân tích JD thành công từ file "${fileLabel}".\nBấm Lưu job để lưu JD, chat và file gốc.`;
+      const successMsg = {
         id: createMessageId(),
         role: 'assistant',
         kind: 'parse_result',
         localOnly: true,
         success: true,
-        content: titleHint
-          ? `Đã phân tích JD thành công từ file "${fileLabel}".\nVị trí: ${titleHint}\nBấm Lưu job để lưu JD, chat và file gốc.`
-          : `Đã phân tích JD thành công từ file "${fileLabel}".\nBấm Lưu job để lưu JD, chat và file gốc.`,
+        content: successContent,
         ts: Date.now(),
-      }]);
-      setRightTab('template');
+      };
+      setMessages((prev) => [...prev, successMsg]);
+      setWorkspaceMode('builder');
+
+      const nextTitle =
+        (typeof titleHint === 'string' && titleHint.trim())
+          || formDataRef.current?.title
+          || formDataRef.current?.titleJp
+          || formDataRef.current?.titleEn
+          || fileLabel
+          || 'JD mới';
+      const snapshot = getFormSnapshot();
+      if (titleHint && typeof titleHint === 'string') {
+        snapshot.formData = {
+          ...(snapshot.formData || {}),
+          titleJp: snapshot.formData?.titleJp || titleHint,
+          title: snapshot.formData?.title || titleHint,
+        };
+      }
+      await ensureThreadSaved({
+        title: nextTitle,
+        messages: [
+          {
+            ...uploadMsg,
+            status: 'done',
+          },
+          successMsg,
+        ],
+        formSnapshot: snapshot,
+      });
     } catch (err) {
       const aborted =
         err?.name === 'AbortError' ||
@@ -497,7 +670,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       setMessages((prev) => prev.map((m) => (
         m.id === uploadMsgId ? { ...m, status: 'error' } : m
       )));
-      setMessages((prev) => [...prev, {
+      const failMsg = {
         id: createMessageId(),
         role: 'assistant',
         kind: 'parse_result',
@@ -505,7 +678,15 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
         success: false,
         content: `Không thể phân tích file "${fileLabel}".\n${err?.message || 'Vui lòng thử lại với file PDF/DOC/DOCX khác.'}`,
         ts: Date.now(),
-      }]);
+      };
+      setMessages((prev) => [...prev, failMsg]);
+      await ensureThreadSaved({
+        messages: [
+          ...messages,
+          { ...uploadMsg, status: 'error' },
+          failMsg,
+        ],
+      }).catch(() => {});
     } finally {
       if (parseAbortRef.current === ac) {
         parseAbortRef.current = null;
@@ -520,7 +701,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     setSaving(true);
     try {
       const snapshot = getFormSnapshot();
-      const requestData = buildBusinessJobPayloadFromFormState(snapshot, { status: 0 });
+      const requestData = buildBusinessJobPayloadFromFormState(snapshot);
       let jdFile = jdOriginalFile;
       if (!jdFile && jdOriginalStored) {
         jdFile = storedJdToFile(jdOriginalStored);
@@ -541,8 +722,11 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
         setSavedJobId(newJobId);
         const thread = await persistThread({ jobId: newJobId });
         onJobSaved?.({ jobId: newJobId, thread, isCreate });
+        if (isCreate && showNextStepsOnCreate) {
+          setNextStepsModal({ open: true, jobId: newJobId });
+        }
         setDetailRefreshKey((k) => k + 1);
-        setRightTab('detail');
+        setWorkspaceMode('detail');
       }
     } catch (err) {
       setError(err?.message || 'Không thể lưu job');
@@ -560,16 +744,13 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     sessionStartedRef.current = false;
     setMessages([]);
     setQuickReplies([]);
-    setMissingFields([]);
     setCanFinalize(false);
     setError('');
-    setActiveThreadId(null);
     setSavedJobId(null);
     setJdOriginalFile(null);
     setJdOriginalStored(null);
     const fresh = createEmptyJdFormState();
-    setFormData(fresh.formData);
-    setRecruitingCompany({
+    const recruiting = {
       ...fresh.recruitingCompany,
       companyName: businessUser?.companyName || companyName || '',
       companyNameEn: businessUser?.companyNameEn || '',
@@ -577,7 +758,9 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       headquarters: businessUser?.address || '',
       headquartersEn: businessUser?.addressEn || '',
       headquartersJp: businessUser?.addressJp || '',
-    });
+    };
+    setFormData(fresh.formData);
+    setRecruitingCompany(recruiting);
     setWorkingLocations(fresh.workingLocations);
     setWorkingLocationDetails(fresh.workingLocationDetails);
     setSalaryRanges(fresh.salaryRanges);
@@ -589,13 +772,54 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     setOvertimeAllowanceDetails(fresh.overtimeAllowanceDetails);
     setJobBenefitRows(fresh.jobBenefitRows);
     setHighlightKeys(fresh.highlightKeys);
-    setJobValues(simpleCommissionToPayload(SIMPLE_FEE_MODES.PERCENT_ANNUAL, '').jobValues);
-    setFormData((prev) => ({ ...prev, jobCommissionType: 'percent' }));
+    setJobValues([]);
     setJdTemplateSyncKey((k) => k + 1);
-    setRightTab('template');
-    await startSession();
+    setWorkspaceMode('builder');
+
+    // Box mới = lưu DB ngay (trước cả AI)
+    const clientId = createJobBuilderThreadId();
+    setActiveThreadId(clientId);
+    const savedThread = await ensureThreadSaved({
+      id: clientId,
+      title: 'JD mới',
+      jobId: null,
+      messages: [],
+      sessionId: null,
+      formSnapshot: {
+        formData: fresh.formData,
+        recruitingCompany: recruiting,
+        workingLocations: fresh.workingLocations,
+        workingLocationDetails: fresh.workingLocationDetails,
+        salaryRanges: fresh.salaryRanges,
+        salaryRangeDetails: fresh.salaryRangeDetails,
+        overtimeAllowances: fresh.overtimeAllowances,
+        overtimeAllowanceDetails: fresh.overtimeAllowanceDetails,
+        requirements: fresh.requirements,
+        workingHours: fresh.workingHours,
+        workingHourDetails: fresh.workingHourDetails,
+        jobBenefitRows: fresh.jobBenefitRows,
+        highlightKeys: fresh.highlightKeys,
+        jobValues: [],
+        languageTab: 'vi',
+      },
+    });
+
+    const started = await startSession();
+    if (started) {
+      if (started.sessionId) {
+        setSessionId(started.sessionId);
+        storeSessionId(started.sessionId);
+      }
+      await ensureThreadSaved({
+        id: savedThread?.id || clientId,
+        title: 'JD mới',
+        jobId: null,
+        messages: started.initialMessages || [],
+        sessionId: started.sessionId || null,
+      });
+    }
     inputRef.current?.focus();
-  }, [businessUser, companyName, startSession]);
+  }, [businessUser, companyName, startSession, ensureThreadSaved]);
 
   useImperativeHandle(ref, () => ({
     startNewSession: handleNewSession,
@@ -667,36 +891,43 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
 
   const showEmptyGreeting = messages.length === 0 && !loading && !parseLoading;
   const compactUi = Boolean(embedded);
+  const isEditingSavedJob = Boolean(savedJobId);
+  const titleCls = compactUi ? 'biz-jd-title' : 'text-xs lg:text-base font-semibold text-slate-800';
+  const bodyCls = compactUi ? 'biz-jd-body' : 'text-[12px] lg:text-[13px] text-slate-800';
+  const mutedCls = compactUi ? 'biz-jd-muted' : 'text-[10px] lg:text-xs text-slate-500';
+  const tabTextCls = compactUi ? 'biz-jd-body font-semibold' : 'text-[9px] lg:text-[10px] font-semibold';
+  const iconCls = compactUi ? 'biz-jd-icon' : 'w-3.5 h-3.5 lg:w-4 lg:h-4';
+  const hitCls = compactUi ? 'biz-jd-icon-hit' : 'w-7 h-7 lg:w-8 lg:h-8';
 
   const renderMessageContent = (msg) => {
     if (msg.kind === 'file_upload') {
       return (
         <div className="flex items-start gap-2">
-          <div className={`${compactUi ? 'w-8 h-8' : 'w-9 h-9'} rounded-lg flex items-center justify-center shrink-0 ${
-            msg.status === 'error' ? 'bg-rose-100 text-rose-600' : 'bg-blue-100 text-blue-600'
+          <div className={`${compactUi ? hitCls : 'w-9 h-9'} rounded-lg flex items-center justify-center shrink-0 border ${
+            msg.status === 'error' ? 'border-rose-200 text-rose-600' : 'border-slate-200 text-[#0077B6]'
           }`}
           >
             {msg.status === 'parsing'
-              ? <Loader2 className={`${compactUi ? 'w-3.5 h-3.5' : 'w-4 h-4'} animate-spin`} />
-              : <FileText className={`${compactUi ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />}
+              ? <Loader2 className={`${iconCls} animate-spin`} />
+              : <FileText className={iconCls} />}
           </div>
           <div className="min-w-0">
-            <p className={`font-medium text-slate-800 ${compactUi ? 'text-[12px]' : ''}`}>{msg.fileName || 'JD file'}</p>
+            <p className={`font-medium text-slate-800 ${compactUi ? bodyCls : ''}`}>{msg.fileName || 'JD file'}</p>
             {msg.fileSize ? (
-              <p className="text-[10px] text-slate-400 mt-0.5">{formatFileSize(msg.fileSize)}</p>
+              <p className={`${compactUi ? mutedCls : 'text-[10px] text-slate-400'} mt-0.5`}>{formatFileSize(msg.fileSize)}</p>
             ) : null}
-            <p className={`${compactUi ? 'text-[11px]' : 'text-[12px]'} text-slate-600 mt-0.5`}>{msg.content}</p>
+            <p className={`${compactUi ? bodyCls : 'text-[12px] text-slate-600'} mt-0.5`}>{msg.content}</p>
             {msg.status === 'parsing' && (
-              <p className="text-[11px] text-blue-600 mt-1 flex items-center gap-1">
-                <Loader2 className="w-3 h-3 animate-spin" />
+              <p className={`${compactUi ? bodyCls : 'text-[11px]'} text-blue-600 mt-1 flex items-center gap-1`}>
+                <Loader2 className={`${iconCls} animate-spin`} />
                 Đang phân tích file...
               </p>
             )}
             {msg.status === 'done' && (
-              <p className="text-[11px] text-emerald-600 mt-1">Phân tích hoàn tất</p>
+              <p className={`${compactUi ? bodyCls : 'text-[11px]'} text-emerald-600 mt-1`}>Phân tích hoàn tất</p>
             )}
             {msg.status === 'error' && (
-              <p className="text-[11px] text-rose-600 mt-1">Phân tích thất bại</p>
+              <p className={`${compactUi ? bodyCls : 'text-[11px]'} text-rose-600 mt-1`}>Phân tích thất bại</p>
             )}
           </div>
         </div>
@@ -709,7 +940,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
           msg.success ? 'bg-emerald-50 border border-emerald-100' : 'bg-rose-50 border border-rose-100'
         }`}
         >
-          <p className={`${compactUi ? 'text-[11px]' : 'text-[13px]'} leading-relaxed whitespace-pre-wrap ${
+          <p className={`${compactUi ? bodyCls : 'text-[13px]'} leading-relaxed whitespace-pre-wrap ${
             msg.success ? 'text-emerald-900' : 'text-rose-900'
           }`}
           >
@@ -723,115 +954,138 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   };
 
   return (
+    <>
+      <JobCreatedNextStepsModal
+        open={nextStepsModal.open}
+        jobId={nextStepsModal.jobId}
+        onClose={() => setNextStepsModal({ open: false, jobId: null })}
+        onSelect={(stepNum, jobId) => {
+          setNextStepsModal({ open: false, jobId: null });
+          navigateJobCreatedNextStep(navigate, stepNum, jobId);
+        }}
+      />
     <div className={`flex flex-col h-full min-h-0 min-w-0 overflow-hidden ${embedded ? 'bg-white' : ''}`}>
       {/* Toolbar */}
       <div className={`shrink-0 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-b border-slate-100 bg-white ${
-        compactUi ? 'px-2 py-1.5' : 'px-2 py-2 lg:px-3 lg:py-2.5 gap-y-1.5 lg:gap-x-3 lg:gap-y-2'
+        compactUi ? 'px-1.5 py-1' : 'px-2 py-2 lg:px-3 lg:py-2.5 gap-y-1.5 lg:gap-x-3 lg:gap-y-2'
       }`}
       >
         <div className="min-w-0 flex-1">
-          <h2 className={`font-semibold text-slate-800 flex items-center gap-1 ${
-            compactUi ? 'text-xs' : 'text-xs lg:text-base lg:gap-1.5'
-          }`}
-          >
-            <Sparkles className={`${compactUi ? 'w-3.5 h-3.5' : 'w-3.5 h-3.5 lg:w-4 lg:h-4'} text-violet-500 shrink-0`} />
-            Tạo JD với AI
+          <h2 className={titleCls}>
+            {isEditingSavedJob ? 'Chỉnh sửa JD với AI' : 'Tạo JD với AI'}
           </h2>
-          <p className={`text-slate-500 truncate ${compactUi ? 'text-[9px]' : 'text-[10px] lg:text-xs'}`}>
-            Chat với AI · xem trước template · lưu JD
+          <p className={`truncate ${mutedCls}`}>
+            {workspaceMode === 'detail'
+              ? 'Xem chi tiết JD đã lưu · Scout · landing'
+              : isEditingSavedJob
+                ? 'Chỉnh sửa nội dung qua chat và template JD'
+                : 'Chat với AI và xem trước template JD'}
           </p>
         </div>
         <div className={`flex flex-wrap items-center justify-end shrink-0 ${compactUi ? 'gap-1' : 'gap-1 lg:gap-2'}`}>
           <div className="inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5">
             <button
               type="button"
-              onClick={() => setRightTab('chat')}
-              className={`px-2 py-0.5 font-semibold rounded-md transition-colors lg:hidden ${
-                compactUi ? 'text-[9px]' : 'text-[9px] lg:text-[10px] lg:px-2.5 lg:py-1'
-              } ${rightTab === 'chat' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              onClick={() => setWorkspaceMode('builder')}
+              className={`px-2 py-0.5 rounded-md transition-colors ${tabTextCls} ${
+                compactUi ? 'px-1 py-0.5' : 'lg:px-2.5 lg:py-1'
+              } ${workspaceMode === 'builder' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
-              Chat
+              {isEditingSavedJob ? 'Chỉnh sửa' : 'Tạo JD'}
             </button>
             <button
               type="button"
-              onClick={() => setRightTab('template')}
-              className={`px-2 py-0.5 font-semibold rounded-md transition-colors ${
-                compactUi ? 'text-[9px]' : 'text-[9px] lg:text-[10px] lg:px-2.5 lg:py-1'
-              } ${rightTab === 'template' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              Template
-            </button>
-            <button
-              type="button"
-              onClick={() => setRightTab('detail')}
-              className={`px-2 py-0.5 font-semibold rounded-md transition-colors ${
-                compactUi ? 'text-[9px]' : 'text-[9px] lg:text-[10px] lg:px-2.5 lg:py-1'
-              } ${rightTab === 'detail' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              onClick={() => setWorkspaceMode('detail')}
+              className={`px-2 py-0.5 rounded-md transition-colors ${tabTextCls} ${
+                compactUi ? 'px-1 py-0.5' : 'lg:px-2.5 lg:py-1'
+              } ${workspaceMode === 'detail' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               Chi tiết job
             </button>
           </div>
-          <button
-            type="button"
-            onClick={handleNewSession}
-            disabled={loading || parseLoading || saving || translatingInputs}
-            className={`font-semibold text-slate-500 hover:text-slate-700 disabled:opacity-50 ${
-              compactUi ? 'text-[9px] px-1 py-0.5' : 'text-[9px] lg:text-[10px] px-1.5 py-0.5 lg:px-2 lg:py-1'
-            }`}
-          >
-            Phiên mới
-          </button>
+          {workspaceMode === 'builder' && (
+            <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 lg:hidden">
+              <button
+                type="button"
+                onClick={() => setMobileBuilderPane('chat')}
+                className={`px-2 py-0.5 rounded-md transition-colors ${tabTextCls} ${
+                  mobileBuilderPane === 'chat' ? 'bg-slate-100 text-slate-800' : 'text-slate-500'
+                }`}
+              >
+                Chat
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileBuilderPane('preview')}
+                className={`px-2 py-0.5 rounded-md transition-colors ${tabTextCls} ${
+                  mobileBuilderPane === 'preview' ? 'bg-slate-100 text-slate-800' : 'text-slate-500'
+                }`}
+              >
+                Template
+              </button>
+            </div>
+          )}
+          <label className={`inline-flex items-center gap-1 shrink-0 ${compactUi ? '' : 'lg:gap-1.5'}`}>
+            <span className={`${mutedCls} font-medium whitespace-nowrap hidden sm:inline`}>Trạng thái</span>
+            <select
+              value={String(formData.status ?? 0)}
+              onChange={(e) => setFormData((prev) => ({ ...prev, status: parseInt(e.target.value, 10) }))}
+              className={`rounded-md border border-slate-200 bg-white text-slate-800 font-medium max-w-[9rem] truncate ${
+                compactUi ? `${bodyCls} py-0.5 pl-1 pr-6` : 'text-[10px] lg:text-xs py-1 pl-1.5 pr-7 lg:py-1.5'
+              }`}
+              aria-label="Trạng thái job"
+            >
+              {JOB_STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
           <button
             type="button"
             disabled={saving || parseLoading}
             onClick={handleSaveJob}
             className={`inline-flex items-center gap-1 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold ${
-              compactUi ? 'text-[10px] py-1 px-2' : 'text-[10px] lg:text-xs py-1.5 px-2 lg:py-2 lg:px-3 lg:rounded-lg'
+              compactUi ? `${bodyCls} text-white py-0.5 px-1.5` : 'text-[10px] lg:text-xs py-1.5 px-2 lg:py-2 lg:px-3 lg:rounded-lg'
             }`}
           >
-            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-            Lưu job
+            {saving ? <Loader2 className={`${iconCls} animate-spin`} /> : <Save className={iconCls} />}
+            {isEditingSavedJob ? 'Cập nhật JD' : 'Lưu job'}
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="shrink-0 mx-3 mt-2 rounded-lg bg-rose-50 border border-rose-100 text-rose-700 text-[11px] px-3 py-2">
+        <div className={`shrink-0 mx-3 mt-2 rounded-lg bg-rose-50 border border-rose-100 text-rose-700 px-3 py-2 ${compactUi ? bodyCls : 'text-[11px]'}`}>
           {error}
         </div>
       )}
 
-      {missingFields.length > 0 && (
-        <div className="shrink-0 mx-3 mt-2 rounded-lg bg-amber-50 border border-amber-100 text-amber-800 text-[10px] px-3 py-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
-          <span className="font-semibold">Còn thiếu:</span>
-          {missingFields.map((f) => (
-            <span key={f}>• {f}</span>
-          ))}
+      {workspaceMode === 'detail' ? (
+        <div className="flex-1 min-h-0 overflow-hidden bg-slate-50">
+          <BusinessJobDetailEmbed key={`${savedJobId || 'new'}-${detailRefreshKey}`} jobId={savedJobId} />
         </div>
-      )}
-
-      {/* Desktop: chat | template/detail — preview rộng hơn chat */}
+      ) : (
       <div className={`flex-1 min-h-0 grid grid-cols-1 gap-0 overflow-hidden ${
         compactUi
           ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]'
           : 'lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]'
       }`}
       >
-        {/* Chat column */}
-        <div className={`flex flex-col min-h-0 min-w-0 border-r border-slate-100 ${
-          rightTab !== 'chat' ? 'hidden lg:flex' : 'flex'
+        {/* Chat column — luôn hiện cùng template trên desktop */}
+        <div className={`flex flex-col min-h-0 min-w-0 overflow-x-hidden border-r border-slate-100 ${
+          mobileBuilderPane === 'preview' ? 'hidden lg:flex' : 'flex'
         }`}
         >
           <div className={`flex-1 min-h-0 overflow-y-auto ${compactUi ? 'px-2.5 py-2.5' : 'px-2 py-3 lg:px-4 lg:py-5'}`}>
             {showEmptyGreeting ? (
               <div className="h-full flex flex-col items-center justify-center text-center px-3 lg:px-4">
-                <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center mb-3 lg:mb-4">
-                  <Sparkles className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
-                </div>
-                <h3 className="text-base lg:text-xl font-semibold text-slate-800 mb-1.5 lg:mb-2">Bắt đầu từ đâu?</h3>
-                <p className="text-xs lg:text-sm text-slate-500 max-w-md leading-relaxed">
-                  Mô tả vị trí cần tuyển, dán JD gốc hoặc trả lời câu hỏi của AI.
-                  JD được cập nhật trực tiếp ở tab Template.
+                <h3 className={`${titleCls} mb-1.5 ${compactUi ? '' : 'lg:mb-2'}`}>
+                  {isEditingSavedJob ? 'Tiếp tục chỉnh sửa' : 'Bắt đầu từ đâu?'}
+                </h3>
+                <p className={`${mutedCls} max-w-md leading-relaxed ${compactUi ? '' : 'text-xs lg:text-sm'}`}>
+                  {isEditingSavedJob
+                    ? 'Mô tả thay đổi cần cập nhật hoặc chỉnh trực tiếp trên template bên cạnh.'
+                    : 'Mô tả vị trí cần tuyển, dán JD gốc hoặc trả lời câu hỏi của AI. JD được cập nhật trực tiếp ở cột template bên cạnh.'}
                 </p>
               </div>
             ) : (
@@ -839,14 +1093,14 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 {messages.map((msg) => {
                   const isUser = msg.role === 'user';
                   const bubblePad = compactUi ? 'px-2.5 py-1.5 rounded-lg' : 'px-3 py-2 lg:px-4 lg:py-2.5 rounded-xl lg:rounded-2xl';
-                  const msgText = compactUi ? 'text-[11px]' : 'text-[12px] lg:text-[13px]';
-                  const avatar = compactUi ? 'w-6 h-6' : 'w-7 h-7 lg:w-8 lg:h-8';
-                  const iconInAvatar = compactUi ? 'w-3 h-3' : 'w-3.5 h-3.5 lg:w-4 lg:h-4';
+                  const msgText = compactUi ? bodyCls : 'text-[12px] lg:text-[13px] text-slate-800';
+                  const avatar = compactUi ? hitCls : 'w-7 h-7 lg:w-8 lg:h-8';
+                  const iconInAvatar = iconCls;
                   return (
                     <div key={msg.id || msg.content} className={`flex gap-1.5 ${compactUi ? '' : 'lg:gap-3'} ${isUser ? 'flex-row-reverse' : ''}`}>
                       <div
-                        className={`${avatar} rounded-full flex items-center justify-center shrink-0 ${
-                          isUser ? 'bg-slate-800 text-white' : 'bg-violet-100 text-violet-600'
+                        className={`${avatar} rounded-full flex items-center justify-center shrink-0 border bg-transparent ${
+                          isUser ? 'border-[#0077B6]/35 text-[#0077B6]' : 'border-slate-200 text-[#0077B6]'
                         }`}
                       >
                         {isUser ? <User className={iconInAvatar} /> : <Bot className={iconInAvatar} />}
@@ -866,8 +1120,8 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                   );
                 })}
                 {loading && (
-                  <div className="flex gap-2 lg:gap-3 items-center text-slate-400 text-[11px] lg:text-[12px] w-full">
-                    <Loader2 className="w-3.5 h-3.5 lg:w-4 lg:h-4 animate-spin" />
+                  <div className={`flex gap-2 items-center w-full ${compactUi ? `${mutedCls}` : 'text-[11px] lg:text-[12px] text-slate-400 lg:gap-3'}`}>
+                    <Loader2 className={`${iconCls} animate-spin`} />
                     AI đang suy nghĩ...
                   </div>
                 )}
@@ -877,14 +1131,16 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
           </div>
 
           {quickReplies.length > 0 && (
-            <div className="shrink-0 px-2 lg:px-4 pb-1.5 lg:pb-2 flex flex-wrap gap-1 lg:gap-1.5 justify-center">
+            <div className={`shrink-0 flex flex-wrap gap-1 justify-center ${compactUi ? 'px-2 pb-1' : 'px-2 lg:px-4 pb-1.5 lg:pb-2 lg:gap-1.5'}`}>
               {quickReplies.map((q) => (
                 <button
                   key={q}
                   type="button"
                   disabled={loading}
                   onClick={() => sendMessage(q)}
-                  className="text-[10px] lg:text-[11px] font-medium px-2 py-1 lg:px-3 lg:py-1.5 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 shadow-sm"
+                  className={`font-medium px-2 py-1 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 shadow-sm ${
+                    compactUi ? bodyCls : 'text-[10px] lg:text-[11px] lg:px-3 lg:py-1.5'
+                  }`}
                 >
                   {q}
                 </button>
@@ -893,7 +1149,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
           )}
 
           {/* ChatGPT-style input pill */}
-          <div className={`shrink-0 ${compactUi ? 'p-2 pt-0.5' : 'p-2 pt-0.5 lg:p-3 lg:pt-1'}`}>
+          <div className={`shrink-0 min-w-0 ${compactUi ? 'px-2 pb-2 pt-0.5' : 'p-2 pt-0.5 lg:p-3 lg:pt-1'}`}>
             <input
               ref={fileInputRef}
               type="file"
@@ -901,18 +1157,20 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
               className="hidden"
               onChange={handleFileInputChange}
             />
-            <div className={`w-full flex items-end gap-1.5 border border-slate-200 bg-white shadow-sm focus-within:border-slate-300 focus-within:shadow-md transition-shadow ${
-              compactUi ? 'rounded-2xl px-2 py-1.5' : 'rounded-2xl lg:rounded-3xl px-2 py-1.5 lg:px-3 lg:py-2 gap-1.5 lg:gap-2'
-            } ${embedded ? '' : 'max-w-2xl mx-auto'}`}
-            >
+            <div className={`w-full min-w-0 ${embedded ? '' : 'max-w-2xl mx-auto'}`}>
+              <div
+                className={`w-full flex items-center gap-1.5 border border-slate-200 bg-white shadow-sm focus-within:border-slate-300 focus-within:shadow-md transition-shadow ${
+                  compactUi ? 'rounded-2xl px-2 py-1' : 'rounded-2xl lg:rounded-3xl px-2 py-1.5 lg:px-3 lg:py-2 gap-1.5 lg:gap-2'
+                }`}
+              >
               <button
                 type="button"
                 onClick={handleFileUploadClick}
                 disabled={parseLoading}
-                className={`${compactUi ? 'w-7 h-7' : 'w-7 h-7 lg:w-8 lg:h-8'} rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 shrink-0 disabled:opacity-40`}
+                className={`${hitCls} rounded-full shrink-0 self-center border border-slate-200 bg-transparent text-[#0077B6] hover:border-[#0077B6]/40 hover:text-[#0077B6] disabled:opacity-40`}
                 title="Tải file JD (PDF, DOC, DOCX)"
               >
-                {parseLoading ? <Loader2 className="w-3.5 h-3.5 lg:w-4 lg:h-4 animate-spin" /> : <Plus className="w-3.5 h-3.5 lg:w-4 lg:h-4" />}
+                {parseLoading ? <Loader2 className={`${iconCls} animate-spin`} /> : <Plus className={iconCls} />}
               </button>
               <textarea
                 ref={inputRef}
@@ -921,8 +1179,8 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 rows={1}
                 placeholder="Mô tả vị trí cần tuyển..."
                 disabled={parseLoading}
-                className={`flex-1 resize-none bg-transparent outline-none text-slate-800 placeholder:text-slate-400 max-h-28 disabled:opacity-50 ${
-                  compactUi ? 'text-[11px] py-1' : 'text-[12px] lg:text-[13px] py-1 lg:py-1.5'
+                className={`flex-1 min-w-0 resize-none bg-transparent outline-none placeholder:text-slate-400 max-h-28 disabled:opacity-50 leading-snug ${
+                  compactUi ? `${bodyCls} text-slate-800 py-1.5` : 'text-[12px] lg:text-[13px] text-slate-800 py-2 lg:py-2.5'
                 }`}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -935,61 +1193,59 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 type="button"
                 disabled={loading || parseLoading || !input.trim() || !sessionId}
                 onClick={() => sendMessage(input)}
-                className="w-7 h-7 lg:w-8 lg:h-8 rounded-full bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-white flex items-center justify-center shrink-0"
+                className={`${hitCls} rounded-full shrink-0 self-center border border-[#0077B6]/35 bg-transparent text-[#0077B6] hover:border-[#0077B6]/55 disabled:opacity-40 disabled:border-slate-200 disabled:text-slate-300`}
               >
-                <Send className="w-3 h-3 lg:w-3.5 lg:h-3.5" />
+                <Send className={iconCls} />
               </button>
+              </div>
+              <p className={`text-center mt-1 lg:mt-1.5 leading-tight px-2 ${compactUi ? mutedCls : 'text-[8px] lg:text-[9px] text-slate-400'}`}>
+                Enter để gửi · Shift+Enter xuống dòng · Nút + để tải JD (PDF/DOC/DOCX)
+              </p>
             </div>
-            <p className="text-center text-[8px] lg:text-[9px] text-slate-400 mt-1 lg:mt-2 leading-tight px-1">
-              Enter để gửi · Shift+Enter xuống dòng · Nút + để tải JD (PDF/DOC/DOCX)
-            </p>
           </div>
         </div>
 
-        {/* Template / job detail column */}
+        {/* Template column */}
         <div className={`flex flex-col min-h-0 min-w-0 bg-slate-50/50 ${
-          rightTab === 'chat' ? 'hidden lg:flex' : 'flex'
+          mobileBuilderPane === 'chat' ? 'hidden lg:flex' : 'flex'
         }`}
         >
-          {rightTab === 'detail' ? (
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <BusinessJobDetailEmbed key={`${savedJobId || 'new'}-${detailRefreshKey}`} jobId={savedJobId} />
-            </div>
-          ) : (
             <>
               <div className={`shrink-0 border-b border-slate-100 bg-white space-y-1.5 ${compactUi ? 'px-2 py-1.5' : 'px-2 py-1.5 lg:px-3 lg:py-2 lg:space-y-2'}`}>
-                <div className="flex items-center justify-between gap-1.5">
-                  <span className={`font-bold text-slate-700 ${compactUi ? 'text-[10px]' : 'text-[10px] lg:text-[11px]'}`}>Xem trước JD</span>
-                  <span className={`text-slate-400 ${compactUi ? 'text-[8px]' : 'text-[8px] lg:text-[9px]'}`}>Cập nhật theo chat</span>
+                <div className="flex items-center gap-1.5">
+                  <span className={titleCls}>{isEditingSavedJob ? 'Template JD' : 'Xem trước JD'}</span>
                 </div>
                 <div
-                  className={`flex flex-wrap items-center ${compactUi ? 'gap-1' : 'gap-1.5 lg:gap-2'}`}
+                  className="flex w-full min-w-0 items-stretch gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5"
                   role="tablist"
                   aria-label={languageTab === 'jp' ? 'フォーム言語' : 'Form language'}
                 >
-                  <div className="flex min-w-0 flex-1 basis-[min(100%,14rem)] gap-1 rounded-lg border border-slate-200 bg-slate-50 p-0.5">
-                    {JD_LANGUAGE_TABS.map((tab) => (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={languageTab === tab.id}
-                        onClick={() => setLanguageTab(tab.id)}
-                        className={`min-w-0 flex-1 px-1.5 py-1 lg:px-2 lg:py-1.5 rounded-md text-[9px] lg:text-[10px] font-semibold transition-colors ${
-                          languageTab === tab.id
-                            ? 'bg-white shadow-sm text-blue-600'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
+                  {JD_LANGUAGE_TABS.map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={languageTab === tab.id}
+                      onClick={() => setLanguageTab(tab.id)}
+                      className={`min-w-0 flex-1 px-1 py-0.5 lg:px-2 lg:py-1.5 rounded-md transition-colors ${tabTextCls} ${
+                        languageTab === tab.id
+                          ? 'bg-white shadow-sm text-[#0077B6]'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                  <span className="w-px shrink-0 self-stretch bg-slate-200 my-0.5" aria-hidden />
                   <button
                     type="button"
                     onClick={handleTranslateCurrentTabInputs}
                     disabled={translatingInputs || parseLoading}
-                    className="shrink-0 px-2 py-1 lg:px-2.5 lg:py-1.5 rounded-md lg:rounded-lg border border-blue-200 bg-blue-50 text-blue-600 text-[9px] lg:text-[10px] font-semibold flex items-center gap-1 lg:gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className={`shrink-0 inline-flex items-center justify-center gap-1 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${tabTextCls} ${
+                      compactUi ? 'px-1.5 py-0.5' : 'px-2 py-0.5 lg:px-2.5 lg:py-1.5'
+                    } text-slate-600 hover:text-slate-900 hover:bg-white/80 [&_svg]:text-[#0077B6] ${
+                      translatingInputs ? 'bg-white shadow-sm text-[#0077B6]' : ''
+                    }`}
                     title={
                       languageTab === 'jp'
                         ? '現在のタブから他の2言語へ入力欄を翻訳'
@@ -999,9 +1255,9 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                     }
                   >
                     {translatingInputs
-                      ? <Loader2 className="w-3 h-3 lg:w-3.5 lg:h-3.5 animate-spin shrink-0" />
-                      : <Languages className="w-3 h-3 lg:w-3.5 lg:h-3.5 shrink-0" />}
-                    <span>
+                      ? <Loader2 className={`${iconCls} shrink-0 animate-spin`} />
+                      : <Languages className={`${iconCls} shrink-0 text-[#0077B6]`} />}
+                    <span className="whitespace-nowrap">
                       {translatingInputs
                         ? (languageTab === 'jp' ? '翻訳中...' : languageTab === 'en' ? 'Translating...' : 'Đang dịch...')
                         : (languageTab === 'jp' ? '翻訳' : languageTab === 'en' ? 'Translate' : 'Dịch')}
@@ -1009,20 +1265,10 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                   </button>
                 </div>
               </div>
-              <div className="shrink-0 px-2 lg:px-3 pt-2 pb-1 border-b border-slate-100 bg-slate-50/80">
-                <JobCommissionEditor
-                  jobCommissionType={formData.jobCommissionType || 'percent'}
-                  onCommissionTypeChange={(v) => setFormData((prev) => ({ ...prev, jobCommissionType: v }))}
-                  jobValues={jobValues}
-                  onJobValuesChange={setJobValues}
-                  commissionSeedJob={savedJobId ? { id: savedJobId, jobCommissionType: formData.jobCommissionType, jobValues } : null}
-                  salaryCurrency={formData.salaryCurrency}
-                  onSalaryCurrencyChange={(v) => setFormData((prev) => ({ ...prev, salaryCurrency: v }))}
-                />
-              </div>
-              <div className={`flex-1 overflow-y-auto min-h-0 min-w-0 bg-white ${compactUi ? '[zoom:0.92]' : ''}`}>
+              <div className={`flex-1 overflow-y-auto min-h-0 min-w-0 bg-white ${compactUi ? 'business-jd-preview-root' : ''}`}>
                 <JdTemplate
                   key={jdTemplateSyncKey}
+                  compactPreview={compactUi}
                   lang={languageTab}
                   formData={formData}
                   setFormData={setFormData}
@@ -1051,10 +1297,11 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 />
               </div>
             </>
-          )}
         </div>
       </div>
+      )}
     </div>
+    </>
   );
 });
 

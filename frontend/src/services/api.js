@@ -913,6 +913,49 @@ const apiService = {
     return handleResponse(response);
   },
 
+  listBusinessJobBuilderThreads: async (params = {}) => {
+    const qs = buildQueryString(params);
+    const response = await fetch(
+      `${API_BASE_URL}/business/job-builder-threads${qs ? `?${qs}` : ''}`,
+      { method: 'GET', headers: getAuthHeaders() },
+    );
+    return handleResponse(response);
+  },
+
+  getBusinessJobBuilderThread: async (id) => {
+    const response = await fetch(
+      `${API_BASE_URL}/business/job-builder-threads/${encodeURIComponent(id)}`,
+      { method: 'GET', headers: getAuthHeaders() },
+    );
+    return handleResponse(response);
+  },
+
+  upsertBusinessJobBuilderThread: async (thread) => {
+    const response = await fetch(`${API_BASE_URL}/business/job-builder-threads/upsert`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(thread),
+    });
+    return handleResponse(response);
+  },
+
+  deleteBusinessJobBuilderThread: async (id) => {
+    const response = await fetch(
+      `${API_BASE_URL}/business/job-builder-threads/${encodeURIComponent(id)}`,
+      { method: 'DELETE', headers: getAuthHeaders() },
+    );
+    return handleResponse(response);
+  },
+
+  importLegacyBusinessJobBuilderThreads: async (threads) => {
+    const response = await fetch(`${API_BASE_URL}/business/job-builder-threads/import-legacy`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ threads }),
+    });
+    return handleResponse(response);
+  },
+
   getBusinessScoutSettings: async () => {
     const response = await fetch(`${API_BASE_URL}/business/scout/settings`, {
       method: 'GET',
@@ -1144,6 +1187,24 @@ const apiService = {
 
   rejectAdminWsChatCreditRequest: async (sessionId, body = {}) => {
     const response = await fetch(`${API_BASE_URL}/admin/ws-chat/sessions/${sessionId}/credit-request/reject`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
+  acceptAdminWsChatListingRequest: async (sessionId, body = {}) => {
+    const response = await fetch(`${API_BASE_URL}/admin/ws-chat/sessions/${sessionId}/listing-request/accept`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
+  rejectAdminWsChatListingRequest: async (sessionId, body = {}) => {
+    const response = await fetch(`${API_BASE_URL}/admin/ws-chat/sessions/${sessionId}/listing-request/reject`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(body),

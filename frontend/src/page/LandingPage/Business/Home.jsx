@@ -8,7 +8,7 @@ const SEO = {
   vi: {
     title: 'JobShare Business | Nền tảng quản lý tuyển dụng doanh nghiệp',
     description:
-      'JobShare Business giúp doanh nghiệp quản lý JD, ứng viên, cộng tác viên và Scout trên một nền tảng. Tuyển dụng kỹ sư tại Nhật Bản hiệu quả hơn.',
+      'JobShare Business — quản lý JD, ứng viên, CTV và Scout trên một nền tảng. Tuyển dụng kỹ sư tại Nhật Bản hiệu quả hơn.',
   },
   en: {
     title: 'JobShare Business | Recruitment management platform',
@@ -48,8 +48,8 @@ export default function BusinessLandingHome() {
       </Helmet>
 
       {/*
-        Scroll bên trong iframe để script navbar/animation của template hoạt động đúng.
-        Không auto-resize iframe theo chiều cao nội dung (scroll parent sẽ làm hỏng header).
+        Template i-web (採用管理システム) — build: node scripts/build-business-landing-template.mjs
+        Scroll trong iframe; không auto-resize theo chiều cao nội dung.
       */}
       <iframe
         title="JobShare Business Landing"

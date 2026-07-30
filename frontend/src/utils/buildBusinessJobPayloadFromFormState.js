@@ -15,16 +15,32 @@ function filterRows(rows, fields = ['content', 'contentEn', 'contentJp']) {
   return (rows || [])
     .filter((row) => fields.some((f) => String(row?.[f] || '').trim()))
     .map((row) => {
-      const out = {};
-      fields.forEach((f) => { out[f] = row[f] || null; });
       if (fields.includes('workingHours')) {
+        const workingHours = row.workingHours || null;
+        const workingHoursEn = row.workingHoursEn || null;
+        const workingHoursJp = row.workingHoursJp || null;
+        const primary = workingHours || workingHoursEn || workingHoursJp;
         return {
-          workingHours: row.workingHours || null,
-          workingHoursEn: row.workingHoursEn || null,
-          workingHoursJp: row.workingHoursJp || null,
+          workingHours: workingHours || primary,
+          workingHoursEn,
+          workingHoursJp,
         };
       }
-      return out;
+      const content = String(row.content ?? '').trim();
+      const contentEn = String(row.contentEn ?? '').trim() || null;
+      const contentJp = String(row.contentJp ?? '').trim() || null;
+      const primary = content || contentEn || contentJp || '';
+      return {
+        content: primary,
+        contentEn,
+        contentJp,
+      };
+    })
+    .filter((row) => {
+      if (fields.includes('workingHours')) {
+        return row.workingHours || row.workingHoursEn || row.workingHoursJp;
+      }
+      return Boolean(row.content || row.contentEn || row.contentJp);
     });
 }
 
@@ -97,14 +113,32 @@ export function buildBusinessJobPayloadFromFormState(snapshot, options = {}) {
     probationDetail: formData.probationDetail || null,
     recruitmentProcess: formData.recruitmentProcess || null,
     highlights: highlightKeys?.length ? JSON.stringify(highlightKeys) : (formData.highlights || null),
-    status: options.status != null ? parseInt(options.status, 10) : 0,
+    status:
+      options?.status != null && options?.status !== ''
+        ? parseInt(options.status, 10)
+        : (formData.status != null && formData.status !== ''
+          ? parseInt(formData.status, 10)
+          : 0),
     isPinned: false,
     isHot: false,
     jobCommissionType: formData.jobCommissionType || 'fixed',
-    workingLocations: (workingLocations || []).map((wl) => ({
-      ...wl,
-      location: wl.location || wl.locationEn || wl.locationJp || null,
-    })),
+    workingLocations: (workingLocations || [])
+      .map((wl) => {
+        const location = String(
+          wl.location || wl.locationEn || wl.locationJp || '',
+        ).trim();
+        return {
+          location,
+          country: wl.country || null,
+          locationEn: wl.locationEn || null,
+          locationJp: wl.locationJp || null,
+          countryEn: wl.countryEn || null,
+          countryJp: wl.countryJp || null,
+          numberOfHires: wl.numberOfHires || null,
+          jpId: wl.jpId || null,
+        };
+      })
+      .filter((wl) => Boolean(wl.location)),
     workingLocationDetails: filterRows(workingLocationDetails),
     salaryRanges: (salaryRanges || []).filter((sr) =>
       sr.salaryRange || sr.salaryRangeEn || sr.salaryRangeJp,
@@ -116,13 +150,21 @@ export function buildBusinessJobPayloadFromFormState(snapshot, options = {}) {
     overtimeAllowanceDetails: filterRows(overtimeAllowanceDetails),
     requirements: (requirements || [])
       .filter((req) => req.content || req.contentEn || req.contentJp)
-      .map((req) => ({
-        content: req.content || null,
-        contentEn: req.contentEn || null,
-        contentJp: req.contentJp || null,
-        type: req.type || null,
-        status: req.status || null,
-      })),
+      .map((req) => {
+        const content = String(req.content ?? '').trim();
+        const contentEn = String(req.contentEn ?? '').trim() || null;
+        const contentJp = String(req.contentJp ?? '').trim() || null;
+        const primary = content || contentEn || contentJp;
+        if (!primary) return null;
+        return {
+          content: content || contentEn || contentJp,
+          contentEn,
+          contentJp,
+          type: req.type || null,
+          status: req.status || null,
+        };
+      })
+      .filter(Boolean),
     workingHours: filterRows(workingHours, ['workingHours', 'workingHoursEn', 'workingHoursJp']),
     workingHourDetails: filterRows(workingHourDetails),
     benefits: filterRows(jobBenefitRows),

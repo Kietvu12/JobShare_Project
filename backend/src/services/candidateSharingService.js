@@ -9,8 +9,6 @@ import {
   CVStorage,
   Job,
   JobApplication,
-  JobPickup,
-  JobPickupId,
   JobValue,
   Type,
   Value,
@@ -20,7 +18,6 @@ import {
   MARKETPLACE_HIRED_STATUSES,
   MARKETPLACE_LISTING_STATUS,
   MARKETPLACE_LISTING_STATUS_LABELS,
-  MARKETPLACE_PICKUP_NAME,
   MARKETPLACE_PIPELINE_STATUSES,
   MARKETPLACE_SETTLEMENT_STATUS,
 } from '../constants/candidateSharing.js';
@@ -187,33 +184,6 @@ async function syncJobCommissionSettings(job, { jobCommissionType, jobValues }, 
   }
 
   return pickPrimaryReferralFee(nextType, jobValues !== undefined ? jobValues : null);
-}
-
-async function ensureMarketplaceJobPickup(jobId, listing, transaction) {
-  let pickupId = listing.jobPickupId ? Number(listing.jobPickupId) : null;
-  if (!pickupId) {
-    let pickup = await JobPickup.findOne({
-      where: { name: MARKETPLACE_PICKUP_NAME },
-      transaction,
-    });
-    if (!pickup) {
-      pickup = await JobPickup.create({
-        name: MARKETPLACE_PICKUP_NAME,
-        nameEn: 'Business CTV Marketplace',
-        nameJp: '企業CTVマーケット',
-      }, { transaction });
-    }
-    pickupId = pickup.id;
-  }
-
-  const existing = await JobPickupId.findOne({
-    where: { jobId, jobPickupId: pickupId },
-    transaction,
-  });
-  if (!existing) {
-    await JobPickupId.create({ jobId, jobPickupId: pickupId }, { transaction });
-  }
-  return pickupId;
 }
 
 async function notifyAdminsNewListing(listing, business, job) {
@@ -456,13 +426,21 @@ export async function submitListingForApproval({ businessId, listingId }) {
     rejectedAt: null,
   });
   const business = listing.business || await Business.findByPk(businessId, { attributes: ['id', 'companyName'] });
-  const job = listing.job || await Job.findByPk(listing.jobId, { attributes: ['id', 'title', 'jobCode'] });
+  const job = listing.job || await Job.findByPk(listing.jobId, { attributes: ['id', 'title', 'titleEn', 'titleJp', 'jobCode'] });
+
+  let wsSessionId = null;
   try {
-    await notifyAdminsNewListing(listing, business, job);
+    const { syncWsChatAfterListingSubmitted } = await import('./businessWsChatService.js');
+    const ws = await syncWsChatAfterListingSubmitted({ businessId, listingId: listing.id });
+    wsSessionId = ws?.sessionId || null;
   } catch (err) {
-    console.error('[candidateSharing] notifyAdminsNewListing:', err?.message || err);
+    console.error('[candidateSharing] syncWsChatAfterListingSubmitted:', err?.message || err);
   }
-  return formatListing(await assertOwnedListing(businessId, listingId));
+
+  return {
+    ...formatListing(await assertOwnedListing(businessId, listingId)),
+    wsSessionId,
+  };
 }
 
 export async function pauseBusinessListing({ businessId, listingId }) {
@@ -620,7 +598,14 @@ export async function listAdminListings({ page = 1, limit = 20, status, search }
   };
 }
 
-export async function approveAndPublishListing({ listingId, adminId, adminNote, autoPublish = true }) {
+export async function approveAndPublishListing({
+  listingId,
+  adminId,
+  adminNote,
+  autoPublish = true,
+  platformFeePercent,
+  skipWsSync = false,
+}) {
   const listing = await BusinessCtvMarketplaceListing.findByPk(listingId, {
     include: [
       { model: Job, as: 'job' },
@@ -639,28 +624,25 @@ export async function approveAndPublishListing({ listingId, adminId, adminNote, 
   }
 
   const now = new Date();
-  const transaction = await sequelize.transaction();
-  try {
-    const nextStatus = autoPublish ? MARKETPLACE_LISTING_STATUS.PUBLISHED : MARKETPLACE_LISTING_STATUS.APPROVED;
-    let jobPickupId = listing.jobPickupId || null;
-    if (autoPublish) {
-      jobPickupId = await ensureMarketplaceJobPickup(listing.jobId, listing, transaction);
-    }
-
-    await listing.update({
-      status: nextStatus,
-      approvedAt: now,
-      publishedAt: autoPublish ? now : null,
-      handledByAdminId: adminId,
-      adminNote: adminNote?.trim() || null,
-      jobPickupId,
-    }, { transaction });
-
-    await transaction.commit();
-  } catch (err) {
-    await transaction.rollback();
+  let feePercent = Number(listing.platformFeePercent ?? DEFAULT_PLATFORM_FEE_PERCENT);
+  if (platformFeePercent != null && platformFeePercent !== '') {
+    feePercent = Number(platformFeePercent);
+  }
+  if (!Number.isFinite(feePercent) || feePercent < 0 || feePercent > 100) {
+    const err = new Error('Phí dịch vụ (%) không hợp lệ (0–100)');
+    err.statusCode = 400;
     throw err;
   }
+
+  const nextStatus = autoPublish ? MARKETPLACE_LISTING_STATUS.PUBLISHED : MARKETPLACE_LISTING_STATUS.APPROVED;
+  await listing.update({
+    status: nextStatus,
+    approvedAt: now,
+    publishedAt: autoPublish ? now : null,
+    handledByAdminId: adminId,
+    adminNote: adminNote?.trim() || null,
+    platformFeePercent: feePercent,
+  });
 
   await syncListingCounters(listing.id);
   await bumpJobListCacheVersion();
@@ -676,12 +658,34 @@ export async function approveAndPublishListing({ listingId, adminId, adminNote, 
     console.error('[candidateSharing] notifyBusinessListingApproved:', err?.message || err);
   }
 
+  if (!skipWsSync) {
+    try {
+      const { syncWsChatAfterListingApproval } = await import('./businessWsChatService.js');
+      await syncWsChatAfterListingApproval({
+        listingId: listing.id,
+        businessId: listing.businessId,
+        adminId,
+        adminNote,
+        platformFeePercent: feePercent,
+        jobTitle: listing.job?.title || listing.job?.jobCode,
+      });
+    } catch (err) {
+      console.error('[candidateSharing] syncWsChatAfterListingApproval:', err?.message || err);
+    }
+  }
+
   return formatListing(await BusinessCtvMarketplaceListing.findByPk(listingId, {
     include: [JOB_COMMISSION_INCLUDE, { model: Business, as: 'business', attributes: ['id', 'companyName'] }],
   }));
 }
 
-export async function rejectListing({ listingId, adminId, rejectionReason, adminNote }) {
+export async function rejectListing({
+  listingId,
+  adminId,
+  rejectionReason,
+  adminNote,
+  skipWsSync = false,
+}) {
   const listing = await BusinessCtvMarketplaceListing.findByPk(listingId);
   if (!listing) {
     const err = new Error('Không tìm thấy listing');
@@ -701,18 +705,36 @@ export async function rejectListing({ listingId, adminId, rejectionReason, admin
     adminNote: adminNote?.trim() || null,
   });
 
+  let jobTitle = null;
   try {
     const full = await BusinessCtvMarketplaceListing.findByPk(listingId, {
       include: [{ model: Job, as: 'job', attributes: ['id', 'title', 'jobCode'] }],
     });
+    jobTitle = full?.job?.title || full?.job?.jobCode || null;
     await collaboratorNotificationService.notifyBusinessListingRejected({
       businessId: listing.businessId,
-      jobTitle: full?.job?.title || full?.job?.jobCode,
+      jobTitle,
       reason: rejectionReason?.trim() || null,
       listingId: listing.id,
     });
   } catch (err) {
     console.error('[candidateSharing] notifyBusinessListingRejected:', err?.message || err);
+  }
+
+  if (!skipWsSync) {
+    try {
+      const { syncWsChatAfterListingRejection } = await import('./businessWsChatService.js');
+      await syncWsChatAfterListingRejection({
+        listingId: listing.id,
+        businessId: listing.businessId,
+        adminId,
+        adminNote,
+        rejectionReason,
+        jobTitle,
+      });
+    } catch (err) {
+      console.error('[candidateSharing] syncWsChatAfterListingRejection:', err?.message || err);
+    }
   }
 
   return formatListing(listing);
@@ -737,20 +759,11 @@ export async function adminPublishListing({ listingId, adminId }) {
     err.statusCode = 404;
     throw err;
   }
-  const transaction = await sequelize.transaction();
-  try {
-    const jobPickupId = await ensureMarketplaceJobPickup(listing.jobId, listing, transaction);
-    await listing.update({
-      status: MARKETPLACE_LISTING_STATUS.PUBLISHED,
-      publishedAt: new Date(),
-      handledByAdminId: adminId || listing.handledByAdminId,
-      jobPickupId,
-    }, { transaction });
-    await transaction.commit();
-  } catch (err) {
-    await transaction.rollback();
-    throw err;
-  }
+  await listing.update({
+    status: MARKETPLACE_LISTING_STATUS.PUBLISHED,
+    publishedAt: new Date(),
+    handledByAdminId: adminId || listing.handledByAdminId,
+  });
   await bumpJobListCacheVersion();
   return formatListing(listing);
 }

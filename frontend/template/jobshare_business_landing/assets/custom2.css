@@ -221,7 +221,7 @@ header.-hide {
   display: block;
   width: 6px;
   height: 12px;
-  background: url(../img/arw_r.png) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_r.png) no-repeat center/contain;
   position: absolute;
   top: 50%;
   right: 20px;
@@ -238,7 +238,7 @@ header.-hide {
   transform: scaleX(1);
 }
 .btn a:hover::after {
-  background-image: url(../img/arw_r_white.png);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/arw_r_white.png);
 }
 .btn.w a {
   border-color: #fff;
@@ -251,14 +251,14 @@ header.-hide {
   color: #fff;
 }
 .btn.w a::after {
-  background-image: url(../img/arw_r_white.png);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/arw_r_white.png);
 }
 .btn.w a:hover {
   background: #fff;
   color: #003caa;
 }
 .btn.w a:hover::after {
-  background-image: url(../img/arw_r_b.png);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/arw_r_b.png);
 }
 .sectionttl {
   font-size: 75px;
@@ -473,7 +473,7 @@ footer .row .left nav ul li a::after {
   display: block;
   width: 12px;
   height: 10px;
-  background: url(../img/ic_link.svg) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/ic_link.svg) no-repeat center/contain;
   margin-left: 5px;
 }
 footer .row .left nav ul li a:hover {
@@ -537,10 +537,10 @@ footer .row .right .subnav ul li.contact a span {
   padding-left: 20px;
 }
 footer .row .right .subnav ul li.contact a::after {
-  background-image: url(../img/arw_r.png);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/arw_r.png);
 }
 footer .row .right .subnav ul li.contact a:hover::after {
-  background-image: url(../img/arw_r_white.png);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/arw_r_white.png);
 }
 footer .row .right .subnav ul li.resource a {
   border: 2px solid #fff;
@@ -555,13 +555,13 @@ footer .row .right .subnav ul li.resource a span::before {
   background: #fff;
 }
 footer .row .right .subnav ul li.resource a::after {
-  background-image: url(../img/arw_r_white.png);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/arw_r_white.png);
 }
 footer .row .right .subnav ul li.resource a:hover span {
   color: #333;
 }
 footer .row .right .subnav ul li.resource a:hover::after {
-  background-image: url(../img/arw_r.png);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/arw_r.png);
 }
 footer .row .right .copy {
   text-align: right;
@@ -1029,7 +1029,7 @@ footer .row .right .copy {
   display: block;
   width: 16px;
   height: 16px;
-  background: url(../img/service/icon_plus.svg) no-repeat center / contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/service/icon_plus.svg) no-repeat center / contain;
   position: absolute;
   top: 50%;
   right: 15px;
@@ -1153,10 +1153,10 @@ footer .row .right .copy {
   margin-right: 20px;
 }
 .function_modal_btns .btn.prev::before {
-  background-image: url(../img/service/modal_arrow_left.png);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/service/modal_arrow_left.png);
 }
 .function_modal_btns .btn.next::before {
-  background-image: url(../img/service/modal_arrow_right.png);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/service/modal_arrow_right.png);
 }
 .function_modal_btns .btn.prev.empty::before, .function_modal_btns .btn.next.empty::before {
   background: none;
@@ -1222,7 +1222,7 @@ footer .row .right .copy {
     bottom: 0;
     width: 20px;
     height: 20px;
-    background: #f5f5f5 url(../img/service/icon_plus.svg) no-repeat center / 12px;
+    background: #f5f5f5 url(https://i-web-ats.humanage.co.jp/img/service/icon_plus.svg) no-repeat center / 12px;
     transform: none;
   }
   .function_list_sec .function_list li .icon {
@@ -1347,7 +1347,7 @@ footer .row .right .copy {
     max-height: 800px;
   }
   #top #mv .bg {
-    background: url(../img/top/bg_mv.jpg) no-repeat center/cover;
+    background: url(https://i-web-ats.humanage.co.jp/img/top/bg_mv.jpg) no-repeat center/cover;
     height: calc(100vh - 74px);
     padding: 20px 0;
     width: 100%;
@@ -1362,7 +1362,7 @@ footer .row .right .copy {
 }
 /* TOP */
 #top #mv {
-  background: url(../img/top/mv_bg.jpg) no-repeat center / cover;
+  background: url(https://i-web-ats.humanage.co.jp/img/top/mv_bg.jpg) no-repeat center / cover;
   height: calc(100vh - 74px);
   /*padding: 100px 0 67px;*/
   padding: 100px 0 20px;
@@ -1468,7 +1468,7 @@ footer .row .right .copy {
   display: block;
   width: 6px;
   height: 12px;
-  background: url(../img/arw_r.png) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_r.png) no-repeat center/contain;
   position: absolute;
   top: 50%;
   right: 0;
@@ -1484,7 +1484,7 @@ footer .row .right .copy {
   display: block;
   width: 1194px;
   height: 150px;
-  background: url(../img/top/bg_clients.svg) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/top/bg_clients.svg) no-repeat center/contain;
   position: absolute;
   top: 5px;
   left: 50%;
@@ -1826,26 +1826,26 @@ footer .row .right .copy {
 }
 #top #reasons .reason_sec.sec1 .inner .row .txt_area::before {
   width: 188px;
-  background: url(../img/top/01.svg) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/top/01.svg) no-repeat center/contain;
 }
 #top #reasons .reason_sec.sec2 .inner .row .txt_area::before {
   width: 236px;
-  background: url(../img/top/02.svg) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/top/02.svg) no-repeat center/contain;
 }
 #top #reasons .reason_sec.sec3 {
   overflow: hidden;
 }
 #top #reasons .reason_sec.sec3 .inner .row .txt_area::before {
   width: 244px;
-  background: url(../img/top/03.svg) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/top/03.svg) no-repeat center/contain;
 }
 #top #reasons .reason_sec.sec4 .inner .row .txt_area::before {
   width: 240px;
-  background: url(../img/top/04.svg) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/top/04.svg) no-repeat center/contain;
 }
 #top #reasons .reason_sec.sec5 .inner .row .txt_area::before {
   width: 240px;
-  background: url(../img/top/05.svg) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/top/05.svg) no-repeat center/contain;
 }
 #top #reasons .reason_sec.sec_last {
   background: #f5f5f5;
@@ -1857,7 +1857,7 @@ footer .row .right .copy {
   display: block;
   width: 100%;
   height: 360px;
-  background: url(../img/top/bg_reason.jpg) no-repeat bottom center/cover;
+  background: url(https://i-web-ats.humanage.co.jp/img/top/bg_reason.jpg) no-repeat bottom center/cover;
   position: absolute;
   bottom: 0;
   left: 0;
@@ -1914,7 +1914,7 @@ footer .row .right .copy {
   display: block;
   width: 30px;
   height: 30px;
-  background: url(../img/arw_r_w.png) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_r_w.png) no-repeat center/contain;
   position: absolute;
   top: 75px;
   right: -15px;
@@ -2028,7 +2028,7 @@ footer .row .right .copy {
   margin: 0 auto;
 }
 #top #seminar .ttl_area {
-  background: url(../img/top/bg_seminar.jpg) no-repeat center/cover;
+  background: url(https://i-web-ats.humanage.co.jp/img/top/bg_seminar.jpg) no-repeat center/cover;
   color: #fff;
   height: 240px;
 }
@@ -2052,7 +2052,7 @@ footer .row .right .copy {
   color: #fff;
 }
 #top #seminar .ttl_area .row .txt_area {
-  background: url(../img/top/mask_seminar.svg) no-repeat center right/840px;
+  background: url(https://i-web-ats.humanage.co.jp/img/top/mask_seminar.svg) no-repeat center right/840px;
   width: 840px;
   height: 100%;
   padding-right: calc((100% - 1140px) / 2);
@@ -2187,7 +2187,7 @@ footer .row .right .copy {
 #top #topics_document .row > div.document .document_slider .swiper-button-prev {
   display: block;
   width: 40px;
-  background: url(../img/arw_slide_l.png) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_slide_l.png) no-repeat center/contain;
   left: 75px;
   filter: drop-shadow(0 5px 5px rgba(0, 60, 170, 0.1));
 }
@@ -2197,7 +2197,7 @@ footer .row .right .copy {
 #top #topics_document .row > div.document .document_slider .swiper-button-next {
   display: block;
   width: 40px;
-  background: url(../img/arw_slide_r.png) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_slide_r.png) no-repeat center/contain;
   right: 75px;
   filter: drop-shadow(0 5px 5px rgba(0, 60, 170, 0.1));
 }
@@ -2243,7 +2243,7 @@ footer .row .right .copy {
   #top #seminar .ttl_area .row .txt_area {
     padding-right: 6%;
     width: 60%;
-    background: url(../img/top/mask_seminar.svg) no-repeat center left/840px;
+    background: url(https://i-web-ats.humanage.co.jp/img/top/mask_seminar.svg) no-repeat center left/840px;
   }
   #top #chlonicle .lists .chlonicle_list li .txt_area {
     font-size: 15px;
@@ -2635,7 +2635,7 @@ footer .row .right .copy {
   }
 }
 #topics #mv .bg {
-  background-image: url(../img/topics/mv_topics.jpg);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/topics/mv_topics.jpg);
 }
 /* ニュース一覧 */
 #topics #topics_list .inner .head {
@@ -2691,7 +2691,7 @@ footer .row .right .copy {
   display: block;
   width: 12px;
   height: 6px;
-  background: url(../img/arw_b.png) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_b.png) no-repeat center/contain;
   position: absolute;
   top: 50%;
   right: 10px;
@@ -2779,7 +2779,7 @@ footer .row .right .copy {
   display: inline-block;
   width: 17px;
   height: 20px;
-  background: url(../img/ic_pdf.svg) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/ic_pdf.svg) no-repeat center/contain;
   margin-left: 2px;
   vertical-align: -3px;
 }
@@ -2788,7 +2788,7 @@ footer .row .right .copy {
   display: inline-block;
   width: 17px;
   height: 20px;
-  background: url(../img/ic_link.svg) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/ic_link.svg) no-repeat center/contain;
   margin-left: 2px;
   vertical-align: -3px;
 }
@@ -2827,10 +2827,10 @@ footer .row .right .copy {
 #topics #topics_list .inner .pager.-topics div.prev {
   width: 10px;
   height: 20px;
-  background: url(../img/arw_l.png) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_l.png) no-repeat center/contain;
 }
 #topics #topics_list .inner .pager.-topics div.prev:hover {
-  background-image: url(../img/arw_l_b.png);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/arw_l_b.png);
   transform: translateX(-5px);
 }
 #topics #topics_list .inner .pager.-topics div.next {
@@ -2839,10 +2839,10 @@ footer .row .right .copy {
 #topics #topics_list .inner .pager.-topics div.next {
   width: 10px;
   height: 20px;
-  background: url(../img/arw_r.png) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_r.png) no-repeat center/contain;
 }
 #topics #topics_list .inner .pager.-topics div.next:hover {
-  background-image: url(../img/arw_r_b.png);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/arw_r_b.png);
   transform: translateX(5px);
 }
 #topics #topics_list .inner .footer_archive {
@@ -3121,7 +3121,7 @@ footer .row .right .copy {
   }
 }
 #contact #mv .bg {
-  background-image: url(../img/contact/mv_contact.jpg);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/contact/mv_contact.jpg);
 }
 #contact #contact_form .inner .intro {
   text-align: center;
@@ -3141,7 +3141,7 @@ footer .row .right .copy {
   }
 }
 #seminar #mv .bg {
-  background-image: url(../img/seminar/mv_seminar.jpg);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/seminar/mv_seminar.jpg);
 }
 #seminar #featured_seminar .inner {
   width: 1200px;
@@ -3203,14 +3203,14 @@ footer .row .right .copy {
   transition: .3s;
 }
 #seminar #featured_seminar .inner .featured_slider .slick-arrow.slick-prev {
-  background: url(../img/arw_slide_l.png) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_slide_l.png) no-repeat center/contain;
   left: 10px;
 }
 #seminar #featured_seminar .inner .featured_slider .slick-arrow.slick-prev:hover {
   transform: translate(-10px, -50%);
 }
 #seminar #featured_seminar .inner .featured_slider .slick-arrow.slick-next {
-  background: url(../img/arw_slide_r.png) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_slide_r.png) no-repeat center/contain;
   right: 10px;
 }
 #seminar #featured_seminar .inner .featured_slider .slick-arrow.slick-next:hover {
@@ -3405,7 +3405,7 @@ footer .row .right .copy {
   display: block;
   width: 12px;
   height: 17px;
-  background: url(../img/arw_r_narrow.png) no-repeat center / contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_r_narrow.png) no-repeat center / contain;
   position: absolute;
   bottom: 30px;
   right: 30px;
@@ -4131,7 +4131,7 @@ footer .row .right .copy {
   display: block;
   width: 12px;
   height: 17px;
-  background: url(../img/arw_r_narrow.png) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_r_narrow.png) no-repeat center/contain;
   position: absolute;
   bottom: 30px;
   right: 30px;
@@ -4332,7 +4332,7 @@ footer .row .right .copy {
   }
 }
 #document_d #mv .bg {
-  background-image: url(../img/document/mv_document.jpg);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/document/mv_document.jpg);
 }
 #document_d #document_detail .inner .title_area .labels {
   display: flex;
@@ -4571,7 +4571,7 @@ footer .row .right .copy {
   display: block;
   width: 12px;
   height: 17px;
-  background: url(../img/arw_r_narrow.png) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_r_narrow.png) no-repeat center/contain;
   position: absolute;
   bottom: 30px;
   right: 30px;
@@ -4814,11 +4814,11 @@ footer .row .right .copy {
 }
 #document .monthlyhr_slider .slick-prev {
   left: 5%;
-  background-image: url(../img/document/prev.png);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/document/prev.png);
 }
 #document .monthlyhr_slider .slick-next {
   right: 5%;
-  background-image: url(../img/document/next.png);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/document/next.png);
 }
 @media (max-width: 1160px) {
   #document #monthlyhr .inner {
@@ -4957,7 +4957,7 @@ footer .row .right .copy {
   display: block;
   width: 12px;
   height: 17px;
-  background: url(../img/arw_r_narrow.png) no-repeat center / contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_r_narrow.png) no-repeat center / contain;
   position: absolute;
   bottom: 30px;
   right: 30px;
@@ -5455,7 +5455,7 @@ footer .row .right .copy {
   display: block;
   width: 6px;
   height: 12px;
-  background: url(../img/arw_r.png) no-repeat center/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_r.png) no-repeat center/contain;
   position: absolute;
   top: 50%;
   right: 20px;
@@ -5867,7 +5867,7 @@ footer .row .right .copy {
   display: block;
   width: 16px;
   height: 16px;
-  background: url(../img/check.png) no-repeat center / contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/check.png) no-repeat center / contain;
   margin-right: 5px;
 }
 #top #reasons .reason_sec .row .txt_area .desc {
@@ -5916,7 +5916,7 @@ footer .row .right .copy {
     padding-top: 72px;
     padding-bottom: 160px;
     min-height: auto;
-    background-image: url(../img/top/mv_bg_sp.jpg);
+    background-image: url(https://i-web-ats.humanage.co.jp/img/top/mv_bg_sp.jpg);
   }
   #top #mv .inner {
     flex-direction: column;
@@ -6202,7 +6202,7 @@ footer .row .right .copy {
   content: "";
   width: 255px;
   height: 17px;
-  background: url(../img/talk_i-web/arrow_focus_modal_prev.svg) no-repeat center left/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/talk_i-web/arrow_focus_modal_prev.svg) no-repeat center left/contain;
   position: absolute;
   top: 50px;
   left: 0;
@@ -6216,7 +6216,7 @@ footer .row .right .copy {
   content: "";
   width: 255px;
   height: 17px;
-  background: url(../img/talk_i-web/arrow_focus_modal_next.svg) no-repeat center right/contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/talk_i-web/arrow_focus_modal_next.svg) no-repeat center right/contain;
   position: absolute;
   top: 50px;
   left: 0;
@@ -6346,7 +6346,7 @@ footer .row .right .copy {
     margin-top: 0;
   }
   .focus_prev:hover {
-    background: url(../img/interview/prev.png) center center no-repeat #fff;
+    background: url(https://i-web-ats.humanage.co.jp/img/interview/prev.png) center center no-repeat #fff;
     border: 1px solid #c5c5c5;
     opacity: 1;
   }
@@ -6358,7 +6358,7 @@ footer .row .right .copy {
     margin-top: 0;
   }
   .focus_next:hover {
-    background: url(../img/interview/next.png) center center no-repeat #fff;
+    background: url(https://i-web-ats.humanage.co.jp/img/interview/next.png) center center no-repeat #fff;
     border: 1px solid #c5c5c5;
     opacity: 1;
   }
@@ -6393,7 +6393,7 @@ footer .row .right .copy {
 }
 /* 動画 */
 #movie #mv .bg {
-  background-image: url(../img/movie/mv_movie.jpg);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/movie/mv_movie.jpg);
 }
 .movie_gide {
   font-family: 'Inter', YuGothic, 'Yu Gothic', sans-serif;
@@ -6550,7 +6550,7 @@ footer .row .right .copy {
   display: block;
   width: 12px;
   height: 17px;
-  background: url(../img/arw_r_narrow.png) no-repeat center / contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_r_narrow.png) no-repeat center / contain;
   position: absolute;
   bottom: 30px;
   right: 30px;
@@ -6589,7 +6589,7 @@ footer .row .right .copy {
   display: block;
   width: 6px;
   height: 12px;
-  background: url(../img/arw_r.png) no-repeat center / contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/arw_r.png) no-repeat center / contain;
   margin-left: 15px;
 }
 .movie_modal {
@@ -7157,7 +7157,7 @@ footer .row .right .copy {
 /* about */
 .about_title {
   height: 460px;
-  background: url(../img/top/mv_bg.jpg) no-repeat center bottom / cover;
+  background: url(https://i-web-ats.humanage.co.jp/img/top/mv_bg.jpg) no-repeat center bottom / cover;
 }
 .about_title .inner {
   flex-direction: column;
@@ -7173,7 +7173,7 @@ footer .row .right .copy {
 .logo_new {
   mask-size: 100% 100%;
   mask-position: center;
-  mask-image: url(../img/top/logo_mask.svg);
+  mask-image: url(https://i-web-ats.humanage.co.jp/img/top/logo_mask.svg);
   width: 600px;
   height: 228px;
   position: absolute;
@@ -7582,10 +7582,10 @@ footer .row .right .copy {
   flex-shrink: 0;
 }
 .about_section4 .box.document .ttl::before {
-  background: #fff url(../img/about/icon_document.png) no-repeat center / 50px;
+  background: #fff url(https://i-web-ats.humanage.co.jp/img/about/icon_document.png) no-repeat center / 50px;
 }
 .about_section4 .box.contact .ttl::before {
-  background: #fff url(../img/about/icon_contact.png) no-repeat 18px 24px / 50px;
+  background: #fff url(https://i-web-ats.humanage.co.jp/img/about/icon_contact.png) no-repeat 18px 24px / 50px;
 }
 .about_title h2 span span {
   font-weight: 400;
@@ -7608,7 +7608,7 @@ footer .row .right .copy {
 }
 @media (max-width: 810px) {
   .about_title {
-    background: url(../img/top/mv_bg_sp.jpg) no-repeat center bottom / cover;
+    background: url(https://i-web-ats.humanage.co.jp/img/top/mv_bg_sp.jpg) no-repeat center bottom / cover;
     padding-bottom: 80px;
     height: 510px;
     margin-top: 0;
@@ -7765,7 +7765,7 @@ footer .row .right .copy {
   display: block;
   width: 16px;
   height: 16px;
-  background: url(../img/service/icon_plus.svg) no-repeat center / contain;
+  background: url(https://i-web-ats.humanage.co.jp/img/service/icon_plus.svg) no-repeat center / contain;
   position: absolute;
   top: 50%;
   right: 15px;
@@ -7885,10 +7885,10 @@ footer .row .right .copy {
   margin-right: 20px;
 }
 .function_modal_btns .btn.prev::before {
-  background-image: url(../img/service/modal_arrow_left.png);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/service/modal_arrow_left.png);
 }
 .function_modal_btns .btn.next::before {
-  background-image: url(../img/service/modal_arrow_right.png);
+  background-image: url(https://i-web-ats.humanage.co.jp/img/service/modal_arrow_right.png);
 }
 .function_modal_btns .btn.prev.empty::before, .function_modal_btns .btn.next.empty::before {
   background: none;
@@ -7954,7 +7954,7 @@ footer .row .right .copy {
     bottom: 0;
     width: 20px;
     height: 20px;
-    background: #f5f5f5 url(../img/service/icon_plus.svg) no-repeat center / 12px;
+    background: #f5f5f5 url(https://i-web-ats.humanage.co.jp/img/service/icon_plus.svg) no-repeat center / 12px;
     transform: none;
   }
   .function_list_sec .function_list li .icon {
