@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import apiService from '../../services/api'
 import TemplateSlidePanel from '../../component/BusinessBranding/TemplateSlidePanel'
+import BrandingAlertModal from '../../component/BusinessBranding/BrandingAlertModal'
 import { isCompanyBuilderContent } from '../../utils/companyLandingPageSchema'
 import { HomepageSidebar } from './Homepage'
 
@@ -470,6 +471,57 @@ const Branding = () => {
   const [landingPages, setLandingPages] = useState([])
   const [showCreate, setShowCreate] = useState(false)
   const [requestLoadingKey, setRequestLoadingKey] = useState(null)
+  const [alertModal, setAlertModal] = useState({
+    open: false,
+    kind: 'notice',
+    title: '',
+    message: '',
+    variant: 'info',
+    confirmLabel: 'OK',
+    cancelLabel: 'Hủy',
+    hideCancel: false,
+    onConfirm: null,
+  })
+
+  const closeAlertModal = () => {
+    setAlertModal((prev) => ({ ...prev, open: false, onConfirm: null }))
+  }
+
+  const openNoticeModal = (title, message, variant = 'info', confirmLabel = 'OK') => {
+    setAlertModal({
+      open: true,
+      kind: 'notice',
+      title,
+      message,
+      variant,
+      confirmLabel,
+      cancelLabel: 'Hủy',
+      hideCancel: false,
+      onConfirm: null,
+    })
+  }
+
+  const openConfirmModal = ({
+    title,
+    message,
+    onConfirm,
+    variant = 'info',
+    confirmLabel = 'OK',
+    cancelLabel = 'Hủy',
+    hideCancel = false,
+  }) => {
+    setAlertModal({
+      open: true,
+      kind: 'confirm',
+      title,
+      message,
+      variant,
+      confirmLabel,
+      cancelLabel,
+      hideCancel,
+      onConfirm,
+    })
+  }
 
   const loadData = useCallback(async () => {
     try {
@@ -528,7 +580,7 @@ const Branding = () => {
   const copyPublicLink = (lp) => {
     const url = `${window.location.origin}${lp.publicPath || `/lp/${lp.slug}`}`
     navigator.clipboard.writeText(url)
-    alert('Đã copy link public')
+    openNoticeModal('Đã copy link', 'Đã copy link public', 'success')
   }
 
   const handleNavigate = useMemo(() => (path) => navigate(path), [navigate])
@@ -538,15 +590,27 @@ const Branding = () => {
     try {
       const res = await apiService.createBusinessSaiyoBrandingServiceRequest({ serviceKey })
       if (res?.success) {
-        const go = window.confirm(
-          `${res.message || 'Đã gửi yêu cầu tới JobShare WS.'}\n\nMở mục Tin nhắn để theo dõi?`
-        )
-        if (go) navigate('/business/messages?tab=ws')
+        openConfirmModal({
+          title: 'Đã gửi yêu cầu',
+          message: `${res.message || 'Đã gửi yêu cầu tới JobShare WS.'}\n\nMở mục Tin nhắn để theo dõi?`,
+          variant: 'success',
+          confirmLabel: 'Mở Tin nhắn',
+          hideCancel: true,
+          onConfirm: () => navigate('/business/messages?tab=ws'),
+        })
       } else {
-        alert(res?.message || 'Không gửi được yêu cầu. Vui lòng thử lại.')
+        openNoticeModal(
+          'Gửi yêu cầu thất bại',
+          res?.message || 'Không gửi được yêu cầu. Vui lòng thử lại.',
+          'error',
+        )
       }
     } catch (e) {
-      alert(e?.message || 'Không gửi được yêu cầu. Vui lòng thử lại.')
+      openNoticeModal(
+        'Gửi yêu cầu thất bại',
+        e?.message || 'Không gửi được yêu cầu. Vui lòng thử lại.',
+        'error',
+      )
     } finally {
       setRequestLoadingKey(null)
     }
@@ -570,6 +634,18 @@ const Branding = () => {
     <>
       <style>{homepageStyles}</style>
       <TemplateSlidePanel open={showCreate} onClose={() => setShowCreate(false)} onCreated={handleCreated} />
+      <BrandingAlertModal
+        open={alertModal.open}
+        kind={alertModal.kind}
+        title={alertModal.title}
+        message={alertModal.message}
+        variant={alertModal.variant}
+        confirmLabel={alertModal.confirmLabel}
+        cancelLabel={alertModal.cancelLabel}
+        hideCancel={alertModal.hideCancel}
+        onConfirm={alertModal.onConfirm}
+        onClose={closeAlertModal}
+      />
 
       <div
         className="business-homepage-shell min-h-0 overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden"

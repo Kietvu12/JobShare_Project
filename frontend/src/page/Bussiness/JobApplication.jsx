@@ -142,7 +142,7 @@ function PieChart({ stats }) {
 
 const StatCard = ({ icon: Icon, label, value, color, bg, accent }) => (
   <div
-    className={`rounded-xl border p-2.5 flex flex-col gap-2 min-w-0 shadow-sm ${
+    className={`rounded-xl border p-2.5 flex flex-col gap-2 min-w-[132px] shrink-0 shadow-sm sm:min-w-0 ${
       accent ? 'border-[#cce5f0]/80 bg-[#e8f4fa]' : 'bg-white border-slate-200/90'
     }`}
   >
@@ -158,6 +158,68 @@ const StatCard = ({ icon: Icon, label, value, color, bg, accent }) => (
     <span className="text-lg font-bold text-slate-800 tabular-nums">{value ?? 0}</span>
   </div>
 )
+
+function ApplicationMobileCard({ app, isSelected, onOpen }) {
+  const stageStyle = getStatusCategoryStyle(app.statusCategory)
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(app)}
+      className={`w-full border-b border-dashed border-slate-200 px-3 py-3 text-left transition-colors last:border-b-0 ${
+        isSelected ? 'bg-[#e8f4fa]/90' : 'bg-white hover:bg-slate-50/80'
+      }`}
+    >
+      <div className="space-y-2">
+        {[
+          { label: 'Ứng viên', value: app.candidateName, sub: app.candidateEmail || '—' },
+          { label: 'JD / Vị trí', value: app.jobTitle, sub: app.jobCode || '—' },
+          { label: 'Nguồn', value: app.sourceLabel, color: app.sourceColor },
+          { label: 'Tiến cử bởi', value: app.nominatedBy || '—' },
+        ].map((row) => (
+          <div key={row.label} className="flex items-start justify-between gap-3">
+            <span className="shrink-0 text-[11px] text-slate-400">{row.label}</span>
+            <div className="min-w-0 text-right">
+              <div
+                className="text-[11px] font-semibold text-slate-800"
+                style={row.color ? { color: row.color } : undefined}
+              >
+                {row.value || '—'}
+              </div>
+              {row.sub ? <div className="text-[10px] text-slate-400">{row.sub}</div> : null}
+            </div>
+          </div>
+        ))}
+
+        <div className="flex items-start justify-between gap-3">
+          <span className="shrink-0 text-[11px] text-slate-400">Trạng thái</span>
+          <span
+            className="rounded-md px-2 py-0.5 text-[10px] font-semibold"
+            style={{ color: stageStyle.color, background: stageStyle.bg }}
+          >
+            {app.statusLabel}
+          </span>
+        </div>
+
+        <div className="flex items-start justify-between gap-3">
+          <span className="shrink-0 text-[11px] text-slate-400">Ngày tiến cử</span>
+          <div className="text-right">
+            <div className="text-[11px] font-medium text-slate-700">{formatApplicationDate(app.appliedAt)}</div>
+            <div className="text-[10px] text-slate-400">{formatRelativeTime(app.appliedAt)}</div>
+          </div>
+        </div>
+
+        {(app.unreadCount > 0) && (
+          <div className="flex items-center justify-end gap-1 pt-1">
+            <span className="rounded-full bg-rose-500 px-1.5 py-px text-[9px] font-bold text-white">
+              {app.unreadCount} tin mới
+            </span>
+            <MessageSquare className="h-3.5 w-3.5 text-[#0077B6]/70" />
+          </div>
+        )}
+      </div>
+    </button>
+  )
+}
 
 const JobApplication = () => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -374,13 +436,11 @@ const JobApplication = () => {
     <>
       <style>{scrollbarHideStyle}</style>
       <div
-        className="business-homepage-shell min-h-0 xl:h-full xl:overflow-hidden bg-[#f4f6f8]"
+        className="business-homepage-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#f4f6f8]"
         style={{ fontFamily: PAGE_FONT }}
       >
-        <div className="business-homepage-ui w-full min-h-0 p-2.5 sm:p-3 xl:h-full xl:flex xl:flex-col">
-          <div className="business-homepage-scroll app-scrollbar-hide flex min-h-0 flex-col xl:h-full xl:overflow-y-auto xl:pr-0.5 max-w-[1440px] w-full mx-auto">
-
-          <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="business-homepage-ui flex min-h-0 flex-1 flex-col p-0 lg:p-3">
+          <div className="mb-0 hidden shrink-0 items-start justify-between gap-3 px-3 pt-3 lg:mb-3 lg:flex lg:px-0 lg:pt-0">
             <div>
               <h1 className="text-sm sm:text-base font-bold text-slate-800 mb-0.5">Quản lý tiến cử</h1>
               <p className="text-[10px] sm:text-xs text-slate-500 leading-snug max-w-xl">
@@ -389,16 +449,24 @@ const JobApplication = () => {
             </div>
           </div>
 
-          <div className="grid gap-2.5" style={{ gridTemplateColumns: drawerOpen ? '1fr' : '1fr 260px' }}>
-            <div className="flex flex-col gap-2.5">
-              <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          <div
+            className="grid min-h-0 flex-1 gap-0 overflow-hidden lg:gap-2.5"
+            style={{ gridTemplateColumns: drawerOpen ? '1fr' : undefined }}
+          >
+            <div
+              className={`flex min-h-0 flex-col gap-0 overflow-hidden lg:gap-2.5 ${
+                drawerOpen ? '' : 'lg:grid lg:grid-cols-[1fr_260px]'
+              }`}
+            >
+              <div className="flex min-h-0 flex-col gap-0 overflow-hidden lg:gap-2.5">
+              <div className="grid shrink-0 gap-2 grid-cols-2 overflow-x-auto px-3 py-2 app-scrollbar-hide sm:grid-cols-3 lg:grid-cols-5 lg:overflow-visible lg:px-0 lg:py-0">
                 {statCards.map((s, i) => (
                   <StatCard key={i} {...s} />
                 ))}
               </div>
 
-              <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm flex flex-col min-h-[480px]">
-                <div className="flex items-center gap-0 border-b border-slate-100 overflow-x-auto px-2 scrollbar-hide">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border-y border-slate-200/90 bg-white shadow-sm lg:rounded-xl lg:border">
+                <div className="flex items-center gap-0 overflow-x-auto border-b border-slate-100 px-2 scrollbar-hide">
                   {tabs.map((tab) => (
                     <button
                       key={tab}
@@ -415,8 +483,8 @@ const JobApplication = () => {
                   ))}
                 </div>
 
-                <div className="flex items-center gap-2 border-b border-slate-100 px-2 py-2 flex-wrap">
-                  <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg flex-1 min-w-[140px] px-2.5 py-1.5 ring-1 ring-slate-100">
+                <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2 lg:px-2">
+                  <div className="flex min-w-[140px] flex-1 items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-2 ring-1 ring-slate-100 lg:py-1.5">
                     <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <input
                       type="text"
@@ -429,7 +497,7 @@ const JobApplication = () => {
                   <select
                     value={jobFilter}
                     onChange={(e) => setJobFilter(e.target.value)}
-                    className="border border-slate-200 rounded-lg text-slate-600 bg-white text-[10px] sm:text-xs px-2 py-1.5 max-w-[160px] focus:ring-1 focus:ring-[#0077B6]/30 focus:border-[#0077B6]/50 outline-none"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] text-slate-600 outline-none focus:border-[#0077B6]/50 focus:ring-1 focus:ring-[#0077B6]/30 sm:w-auto sm:max-w-[160px] sm:py-1.5 sm:text-[10px] lg:text-xs"
                   >
                     <option value="">JD: Tất cả</option>
                     {jobs.map((j) => (
@@ -439,7 +507,7 @@ const JobApplication = () => {
                   <select
                     value={sourceFilter}
                     onChange={(e) => setSourceFilter(e.target.value)}
-                    className="border border-slate-200 rounded-lg text-slate-600 bg-white text-[10px] sm:text-xs px-2 py-1.5 focus:ring-1 focus:ring-[#0077B6]/30 outline-none"
+                    className="w-[calc(50%-4px)] rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] text-slate-600 outline-none focus:ring-1 focus:ring-[#0077B6]/30 sm:w-auto sm:py-1.5 sm:text-[10px] lg:text-xs"
                   >
                     {SOURCE_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>{o.label}</option>
@@ -448,7 +516,7 @@ const JobApplication = () => {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="border border-slate-200 rounded-lg text-slate-600 bg-white text-[10px] sm:text-xs px-2 py-1.5 focus:ring-1 focus:ring-[#0077B6]/30 outline-none"
+                    className="w-[calc(50%-4px)] rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] text-slate-600 outline-none focus:ring-1 focus:ring-[#0077B6]/30 sm:w-auto sm:py-1.5 sm:text-[10px] lg:text-xs"
                   >
                     <option value="">Trạng thái: Tất cả</option>
                     {statusOptions.map((o) => (
@@ -463,7 +531,23 @@ const JobApplication = () => {
                     <span className="text-xs">Đang tải đơn tiến cử...</span>
                   </div>
                 ) : (
-                  <div className="flex-1 overflow-x-auto">
+                  <>
+                    <div className="min-h-0 flex-1 overflow-auto business-homepage-scroll lg:hidden">
+                      {applications.length === 0 ? (
+                        <div className="py-12 text-center text-xs text-slate-400">
+                          Chưa có đơn tiến cử phù hợp
+                        </div>
+                      ) : applications.map((app) => (
+                        <ApplicationMobileCard
+                          key={app.id}
+                          app={app}
+                          isSelected={selectedApp?.id === app.id}
+                          onOpen={openDrawer}
+                        />
+                      ))}
+                    </div>
+
+                    <div className="hidden min-h-0 flex-1 overflow-auto business-homepage-scroll lg:block">
                     <table className="w-full text-left text-[10px] sm:text-xs border-collapse table-fixed">
                       <thead>
                         <tr className="text-[9px] sm:text-[10px] uppercase tracking-wide text-slate-400 border-b border-slate-100 bg-slate-50/80">
@@ -531,13 +615,14 @@ const JobApplication = () => {
                         })}
                       </tbody>
                     </table>
-                  </div>
+                    </div>
+                  </>
                 )}
 
                 {!loading && pagination.totalPages > 0 && (
-                  <div className="flex items-center justify-between border-t border-slate-100 px-3 py-2 bg-slate-50/60">
+                  <div className="flex flex-col gap-2 border-t border-slate-100 bg-slate-50/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-[10px] text-slate-500">
-                      Hiển thị {pageStart} - {pageEnd} trong {pagination.total} tiến cử
+                      {pageStart} - {pageEnd} / {pagination.total} tiến cử
                     </span>
                     <div className="flex items-center gap-1">
                       <button
@@ -563,16 +648,16 @@ const JobApplication = () => {
                   </div>
                 )}
               </div>
-            </div>
+              </div>
 
             {!drawerOpen && (
-              <div className="flex flex-col gap-2.5 app-scrollbar-hide overflow-y-auto">
-                <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm p-3">
+              <div className="hidden min-h-0 flex-col gap-2.5 overflow-hidden lg:flex">
+                <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
                   <h2 className="text-xs font-bold text-[#0077B6] mb-2">Tỷ lệ nguồn ứng viên</h2>
                   <PieChart stats={stats} />
                 </div>
 
-                <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm p-3">
+                <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
                   <h2 className="text-xs font-bold text-[#0077B6] mb-2">Trạng thái tiến cử</h2>
                   <div className="flex flex-col gap-2">
                     {stageData.length === 0 ? (
@@ -591,9 +676,9 @@ const JobApplication = () => {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm p-3">
-                  <h2 className="text-xs font-bold text-[#0077B6] mb-2">Hoạt động gần đây</h2>
-                  <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto business-homepage-scroll">
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
+                  <h2 className="mb-2 shrink-0 text-xs font-bold text-[#0077B6]">Hoạt động gần đây</h2>
+                  <div className="min-h-0 flex-1 overflow-y-auto business-homepage-scroll">
                     {recentNotifications.length === 0 ? (
                       <div className="text-[10px] text-slate-400">Chưa có hoạt động</div>
                     ) : recentNotifications.map((n) => (
@@ -612,7 +697,7 @@ const JobApplication = () => {
                 </div>
               </div>
             )}
-          </div>
+            </div>
           </div>
         </div>
       </div>

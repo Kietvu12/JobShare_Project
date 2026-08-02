@@ -14,11 +14,10 @@ import {
   PieChart,
   ChevronRight,
   ChevronLeft,
+  X,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
-
-const SIDEBAR_FONT =
-  "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif";
+import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont';
 
 /** Màu chủ đạo — active state & biểu đồ */
 const BRAND = {
@@ -48,6 +47,7 @@ const I18N = {
     healthGood: 'Khá tốt',
     collapseSidebar: 'Thu gọn sidebar',
     expandSidebar: 'Mở rộng sidebar',
+    closeMenu: 'Đóng menu',
   },
   en: {
     dashboard: 'Dashboard',
@@ -70,6 +70,7 @@ const I18N = {
     healthGood: 'Good',
     collapseSidebar: 'Collapse sidebar',
     expandSidebar: 'Expand sidebar',
+    closeMenu: 'Close menu',
   },
   ja: {
     dashboard: 'ダッシュボード',
@@ -92,6 +93,7 @@ const I18N = {
     healthGood: '良好',
     collapseSidebar: 'サイドバーを折りたたむ',
     expandSidebar: 'サイドバーを展開',
+    closeMenu: 'メニューを閉じる',
   },
 };
 
@@ -169,7 +171,7 @@ function NavSpacer({ collapsed }) {
   return <div className="my-1.5 h-px bg-slate-200/90" aria-hidden />;
 }
 
-const BusinessSidebar = ({ businessUser }) => {
+const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) => {
   const { pathname } = useLocation();
   const { language } = useLanguage();
   const t = I18N[language] || I18N.vi;
@@ -259,17 +261,19 @@ const BusinessSidebar = ({ businessUser }) => {
   const iconClass = (active) =>
     `h-4 w-4 shrink-0 ${active ? '!text-white' : 'text-current'}`;
 
-  const renderNavItem = (item, { nested = false } = {}) => {
+  const renderNavItem = (item, { nested = false, forceExpanded = false, onNavigate } = {}) => {
     const Icon = item.icon;
     const active = isActive(item);
+    const isCompact = collapsed && !forceExpanded;
 
-    if (collapsed) {
+    if (isCompact) {
       return (
         <Link
           key={item.id}
           to={item.path}
           className={`mx-auto ${navLinkClass(active, true)}`}
           title={t[item.label]}
+          onClick={() => onNavigate?.()}
         >
           <Icon className={iconClass(active)} strokeWidth={active ? 2.25 : 2} />
         </Link>
@@ -277,7 +281,12 @@ const BusinessSidebar = ({ businessUser }) => {
     }
 
     return (
-      <Link key={item.id} to={item.path} className={navLinkClass(active, false, nested)}>
+      <Link
+        key={item.id}
+        to={item.path}
+        className={navLinkClass(active, false, nested)}
+        onClick={() => onNavigate?.()}
+      >
         {!nested && (
           <Icon className={iconClass(active)} strokeWidth={active ? 2.25 : 2} />
         )}
@@ -291,90 +300,38 @@ const BusinessSidebar = ({ businessUser }) => {
     );
   };
 
-  return (
-    <aside
-      className={`relative flex h-screen shrink-0 flex-col border-r border-slate-100 bg-white transition-[width] duration-300 ease-out ${
-        collapsed ? 'w-[56px]' : 'w-[184px]'
-      }`}
-      style={{ fontFamily: SIDEBAR_FONT }}
-    >
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
-        .business-sidebar-scroll::-webkit-scrollbar { display: none; }
-        .business-sidebar-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-        @media (max-height: 840px) {
-          .biz-sidebar-health-footnote { display: none; }
-        }
-      `}</style>
-
-      {/* Header — logo giữa */}
-      <div
-        className={`relative flex shrink-0 items-center justify-center bg-white px-2.5 py-2.5 ${
-          collapsed ? '' : 'min-h-[52px]'
-        }`}
-      >
-        <Link
-          to="/business"
-          className="flex items-center justify-center"
-          title={companyName || 'JobShare'}
-        >
-          <img
-            src="/logo.png"
-            alt="JobShare"
-            className={`object-contain ${collapsed ? 'h-6 w-6' : 'h-7 w-auto max-w-[118px]'}`}
-          />
-        </Link>
-        {!collapsed && (
-          <button
-            type="button"
-            onClick={toggleCollapse}
-            className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-600"
-            aria-label={t.collapseSidebar}
-          >
-            <ChevronLeft className="h-4 w-4" strokeWidth={2} />
-          </button>
-        )}
-        {collapsed && (
-          <button
-            type="button"
-            onClick={toggleCollapse}
-            className="absolute right-0 top-[3.35rem] z-20 flex h-6 w-6 translate-x-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:text-[#0077B6]"
-            aria-label={t.expandSidebar}
-          >
-            <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} />
-          </button>
-        )}
-      </div>
-
-      {/* Navigation */}
-      <nav className="business-sidebar-scroll min-h-0 flex-1 space-y-0 overflow-y-auto px-1.5 py-1.5">
-        {NAV_SECTIONS.map((section, sectionIndex) => (
-          <div key={section.label || `section-${sectionIndex}`}>
-            {sectionIndex > 0 && <NavSpacer collapsed={collapsed} />}
-            {!collapsed && section.label && (
-              <div className="px-2.5 pb-1 pt-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
-                {t[section.label]}
-              </div>
-            )}
-            <div className="space-y-0.5">
-              {section.items.map((item) => renderNavItem(item, { nested: Boolean(section.nested) }))}
+  const renderSidebarSections = ({ forceExpanded = false, onNavigate } = {}) => (
+    NAV_SECTIONS.map((section, sectionIndex) => {
+      const showExpanded = forceExpanded || !collapsed;
+      return (
+        <div key={section.label || `section-${sectionIndex}`}>
+          {sectionIndex > 0 && <NavSpacer collapsed={!showExpanded} />}
+          {showExpanded && section.label && (
+            <div className="px-2.5 pb-1 pt-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+              {t[section.label]}
             </div>
+          )}
+          <div className="space-y-0.5">
+            {section.items.map((item) => renderNavItem(item, {
+              nested: Boolean(section.nested),
+              forceExpanded,
+              onNavigate,
+            }))}
           </div>
-        ))}
-      </nav>
+        </div>
+      );
+    })
+  );
 
-      {/* Recruitment health — dạng mỏng, cố định chiều cao */}
+  const renderHealthBlock = ({ forceExpanded = false } = {}) => {
+    const showExpanded = forceExpanded || !collapsed;
+    return (
       <div
         className={`shrink-0 border-t border-slate-100 bg-white p-2 ${
-          collapsed ? 'flex flex-col items-center' : ''
+          showExpanded ? '' : 'flex flex-col items-center'
         }`}
       >
-        {collapsed ? (
-          <div className="relative flex items-center justify-center py-0.5">
-            <RecruitmentDonut percent={health.score} size={36} strokeWidth={4} />
-            <span className="absolute text-[8px] font-bold text-[#0077B6]">{health.score}</span>
-          </div>
-        ) : (
+        {showExpanded ? (
           <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 shadow-sm">
             <div className="flex items-center gap-2.5">
               <div className="relative flex shrink-0 items-center justify-center">
@@ -396,9 +353,128 @@ const BusinessSidebar = ({ businessUser }) => {
               {t.healthScoreHint}
             </p>
           </div>
+        ) : (
+          <div className="relative flex items-center justify-center py-0.5">
+            <RecruitmentDonut percent={health.score} size={36} strokeWidth={4} />
+            <span className="absolute text-[8px] font-bold text-[#0077B6]">{health.score}</span>
+          </div>
         )}
       </div>
-    </aside>
+    );
+  };
+
+  const handleMobileNavigate = () => {
+    onMobileClose?.();
+  };
+
+  return (
+    <>
+      <style>{`
+        ${BUSINESS_UI_FONT_IMPORT}
+        .business-sidebar-scroll::-webkit-scrollbar { display: none; }
+        .business-sidebar-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        @media (max-height: 840px) {
+          .biz-sidebar-health-footnote { display: none; }
+        }
+      `}</style>
+
+      {/* Desktop sidebar */}
+      <aside
+        className={`relative hidden h-screen shrink-0 flex-col border-r border-slate-100 bg-white transition-[width] duration-300 ease-out lg:flex ${
+          collapsed ? 'w-[56px]' : 'w-[184px]'
+        }`}
+        style={{ fontFamily: BUSINESS_UI_FONT }}
+      >
+        <div
+          className={`relative flex shrink-0 items-center justify-center bg-white px-2.5 py-2.5 ${
+            collapsed ? '' : 'min-h-[52px]'
+          }`}
+        >
+          <Link
+            to="/business"
+            className="flex items-center justify-center"
+            title={companyName || 'JobShare'}
+          >
+            <img
+              src="/logo.png"
+              alt="JobShare"
+              className={`object-contain ${collapsed ? 'h-6 w-6' : 'h-7 w-auto max-w-[118px]'}`}
+            />
+          </Link>
+          {!collapsed && (
+            <button
+              type="button"
+              onClick={toggleCollapse}
+              className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-600"
+              aria-label={t.collapseSidebar}
+            >
+              <ChevronLeft className="h-4 w-4" strokeWidth={2} />
+            </button>
+          )}
+          {collapsed && (
+            <button
+              type="button"
+              onClick={toggleCollapse}
+              className="absolute right-0 top-[3.35rem] z-20 flex h-6 w-6 translate-x-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:text-[#0077B6]"
+              aria-label={t.expandSidebar}
+            >
+              <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} />
+            </button>
+          )}
+        </div>
+
+        <nav className="business-sidebar-scroll min-h-0 flex-1 space-y-0 overflow-y-auto px-1.5 py-1.5">
+          {renderSidebarSections()}
+        </nav>
+
+        {renderHealthBlock()}
+      </aside>
+
+      {/* Mobile drawer */}
+      <div
+        className={`fixed inset-0 z-[100] lg:hidden ${mobileOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}
+        aria-hidden={!mobileOpen}
+      >
+        <button
+          type="button"
+          onClick={onMobileClose}
+          className={`absolute inset-0 bg-slate-900/45 transition-opacity duration-300 ${
+            mobileOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+          aria-label={t.closeMenu}
+        />
+        <aside
+          className={`absolute inset-y-0 left-0 flex w-[min(86vw,280px)] flex-col border-r border-slate-100 bg-white shadow-2xl transition-transform duration-300 ease-out ${
+            mobileOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+          style={{ fontFamily: BUSINESS_UI_FONT }}
+        >
+          <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-3">
+            <Link
+              to="/business"
+              className="flex items-center"
+              onClick={handleMobileNavigate}
+            >
+              <img src="/logo.png" alt="JobShare" className="h-7 w-auto max-w-[118px] object-contain" />
+            </Link>
+            <button
+              type="button"
+              onClick={onMobileClose}
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
+              aria-label={t.closeMenu}
+            >
+              <X className="h-5 w-5" strokeWidth={2} />
+            </button>
+          </div>
+
+          <nav className="business-sidebar-scroll min-h-0 flex-1 space-y-0 overflow-y-auto px-2 py-2">
+            {renderSidebarSections({ forceExpanded: true, onNavigate: handleMobileNavigate })}
+          </nav>
+
+          {renderHealthBlock({ forceExpanded: true })}
+        </aside>
+      </div>
+    </>
   );
 };
 

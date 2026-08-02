@@ -4,7 +4,7 @@ import {
   Search, SlidersHorizontal, ChevronRight, ChevronLeft,
   UserCheck, X, Unlock, Users, Check, BadgeCheck, Loader2, Briefcase,
   Sparkles, FilePlus2, BookOpen, AlertTriangle, ArrowRight, Lock,
-  MessageSquare, Gauge, ArrowUpRight, Coins, UserPlus,
+  MessageSquare, Gauge, ArrowUpRight, Coins, UserPlus, IdCard, Send, Info,
 } from 'lucide-react'
 import apiService from '../../services/api'
 import useBusinessUser from '../../hooks/useBusinessUser'
@@ -15,14 +15,17 @@ import {
 } from '../../utils/businessJobAiMatching'
 import { highlightSearchText } from '../../utils/searchTextHighlight'
 import ScoutCandidateProfilePanel from '../../component/Bussiness/ScoutCandidateProfilePanel'
+import performanceIllustration from '../../assets/Credit/Credit_VN.png'
+import creditIllustration from '../../assets/Performance/Performance_VN.png'
+import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont'
 
 const ICON_SM = { width: 10, height: 10 }
 const ICON_MD = { width: 12, height: 12 }
 
-const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
+const PAGE_FONT = BUSINESS_UI_FONT
 
 const scoutPageStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+  ${BUSINESS_UI_FONT_IMPORT}
   .scout-scrollbar::-webkit-scrollbar { width: 6px; }
   .scout-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .scout-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
@@ -451,6 +454,254 @@ function getPerformanceRequestContextLabel(candidate) {
   return 'hồ sơ ứng viên bạn đang xem'
 }
 
+function ScoutCreditConfirmModal({
+  open,
+  onClose,
+  onConfirm,
+  loading = false,
+  agreed,
+  onAgreedChange,
+  creditCost = 5,
+}) {
+  if (!open) return null
+
+  const features = [
+    {
+      icon: IdCard,
+      title: 'Doanh nghiệp mở thông tin liên hệ',
+      desc: 'Nhận email và số điện thoại của ứng viên ngay lập tức.',
+    },
+    {
+      icon: Send,
+      title: 'Chủ động liên lạc với ứng viên',
+      desc: 'Doanh nghiệp tự liên hệ và trao đổi trực tiếp với ứng viên.',
+    },
+    {
+      icon: Coins,
+      title: 'Chi phí mở hồ sơ',
+      desc: (
+        <>
+          Mỗi lần mở hồ sơ ứng viên là{' '}
+          <span className="font-bold text-[#0077B6]">{creditCost} credits</span>.
+        </>
+      ),
+    },
+  ]
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 sm:p-4"
+      style={{ fontFamily: BUSINESS_UI_FONT }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-[960px] rounded-2xl bg-white shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+          aria-label="Đóng"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="px-6 pt-6 pb-5 sm:px-8 sm:pt-7">
+          <h2 className="pr-10 text-lg font-bold leading-snug text-slate-900 sm:text-xl">
+            Mở hồ sơ bằng{' '}
+            <span className="text-[#0077B6]">Scout Credit</span>
+          </h2>
+
+          <p className="mt-3 text-sm font-medium leading-[1.65] text-slate-700 sm:text-[15px]">
+            Với{' '}
+            <span className="font-bold text-[#0077B6]">Scout Credit</span>, doanh nghiệp sẽ mở thông tin
+            liên hệ (email, số điện thoại) của ứng viên và{' '}
+            <span className="font-bold text-[#0077B6]">chủ động liên lạc</span>.
+          </p>
+
+          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-[1fr_minmax(280px,44%)] sm:gap-6 sm:items-center">
+            <ul className="space-y-4">
+              {features.map(({ icon: Icon, title, desc }) => (
+                <li key={title} className="flex gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0077B6] text-white">
+                    <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
+                  </div>
+                  <div className="min-w-0 pt-0.5">
+                    <p className="text-sm font-bold leading-snug text-slate-900 sm:text-[15px]">{title}</p>
+                    <p className="mt-0.5 text-sm font-medium leading-[1.55] text-slate-600 sm:text-[15px]">{desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="flex items-center justify-center sm:justify-end">
+              <img
+                src={creditIllustration}
+                alt="Scout Credit — doanh nghiệp mở hồ sơ và chủ động liên lạc với ứng viên"
+                className="w-full max-w-[380px] object-contain"
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-start gap-3 rounded-2xl bg-[#e8f4fa] px-5 py-4 sm:px-6 sm:py-[18px]">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0077B6] text-white">
+              <Info className="h-4 w-4" strokeWidth={2.5} />
+            </div>
+            <p className="min-w-0 text-sm font-medium leading-[1.55] text-slate-700 sm:text-[15px]">
+              Workstation sẽ{' '}
+              <span className="font-bold text-[#0077B6]">không can thiệp</span>{' '}
+              vào quá trình liên hệ và tuyển dụng của doanh nghiệp với hồ sơ mở bằng hình thức Scout Credit.
+            </p>
+          </div>
+
+          <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => onAgreedChange?.(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#0077B6] focus:ring-[#0077B6]"
+            />
+            <span className="text-sm font-medium leading-snug text-slate-700 sm:text-[15px]">
+              Tôi đã đọc và hiểu rõ nội dung dịch vụ. Tôi xác nhận đồng ý mở hồ sơ bằng Scout Credit.
+            </span>
+          </label>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-6 py-4 sm:px-8">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={onClose}
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            disabled={loading || !agreed}
+            onClick={onConfirm}
+            className="rounded-lg bg-[#0077B6] px-4 py-2 text-sm font-semibold text-white hover:bg-[#006399] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? 'Đang mở hồ sơ...' : `Xác nhận và mở hồ sơ (${creditCost} credits)`}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ScoutPerformanceConfirmModal({
+  open,
+  onClose,
+  onConfirm,
+  loading = false,
+  agreed,
+  onAgreedChange,
+}) {
+  if (!open) return null
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 sm:p-4"
+      style={{ fontFamily: BUSINESS_UI_FONT }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-[960px] rounded-2xl bg-white shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+          aria-label="Đóng"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="px-6 pt-6 pb-5 sm:px-8 sm:pt-7">
+          <h2 className="pr-10 text-lg font-bold leading-snug text-slate-900 sm:text-xl">
+            Mở hồ sơ bằng{' '}
+            <span className="text-[#E30613]">Scout Performance</span>
+          </h2>
+
+          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-[1fr_minmax(280px,44%)] sm:gap-6 sm:items-center">
+            <div className="space-y-3 text-sm font-medium leading-[1.65] text-slate-700 sm:text-[15px]">
+              <p>
+                Scout Performance là dịch vụ Workstation thay mặt doanh nghiệp tiếp cận ứng viên,
+                xác nhận mức độ quan tâm, trao đổi điều kiện và hỗ trợ kết nối phù hợp.
+              </p>
+              <p>
+                Doanh nghiệp{' '}
+                <span className="font-bold text-slate-900">không cần sử dụng credit</span>{' '}
+                để mở thông tin liên hệ của ứng viên. Sau khi gửi yêu cầu, đội ngũ Workstation
+                sẽ chủ động liên hệ và cập nhật tiến độ qua hệ thống.
+              </p>
+            </div>
+            <div className="flex items-center justify-center sm:justify-end">
+              <img
+                src={performanceIllustration}
+                alt="Scout Performance — Workstation hỗ trợ doanh nghiệp tiếp cận và tuyển dụng ứng viên"
+                className="w-full max-w-[380px] object-contain"
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-center gap-4 rounded-2xl bg-[#FFF8E7] px-5 py-4 sm:px-6 sm:py-[18px]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#E30613] text-lg font-bold text-white">
+              %
+            </div>
+            <div className="min-w-0 text-sm font-medium leading-[1.55] text-slate-800 sm:text-[15px]">
+              <p>
+                Trường hợp tuyển dụng thành công,{' '}
+                <span className="font-bold text-slate-900">
+                  doanh nghiệp thanh toán cho Workstation phí giới thiệu nhân sự
+                </span>
+              </p>
+              <p className="mt-1">
+                tương đương{' '}
+                <span className="text-lg font-bold text-[#E30613] sm:text-xl">20% thu nhập năm</span>{' '}
+                của ứng viên.
+              </p>
+            </div>
+          </div>
+
+          <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => onAgreedChange?.(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#E30613] focus:ring-[#E30613]"
+            />
+            <span className="text-sm font-medium leading-snug text-slate-700 sm:text-[15px]">
+              Tôi đã đọc, hiểu rõ nội dung dịch vụ và đồng ý với điều kiện phí nêu trên.
+            </span>
+          </label>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-6 py-4 sm:px-8">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={onClose}
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            disabled={loading || !agreed}
+            onClick={onConfirm}
+            className="rounded-lg bg-[#E30613] px-4 py-2 text-sm font-semibold text-white hover:bg-[#c90511] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? 'Đang gửi yêu cầu...' : 'Xác nhận và gửi yêu cầu'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ScoutActionModal({
   open,
   kind,
@@ -466,7 +717,7 @@ function ScoutActionModal({
 }) {
   if (!open) return null
 
-  const isConfirm = kind === 'performance-confirm' || kind === 'unlock-confirm' || kind === 'similar-candidates-prompt'
+  const isConfirm = kind === 'similar-candidates-prompt'
   const noticeButtonClass = noticeVariant === 'error'
     ? 'bg-red-600 hover:bg-red-700'
     : 'bg-[#0077B6] hover:bg-[#006399]'
@@ -578,6 +829,8 @@ const Scout = () => {
   const [showPerformanceCta, setShowPerformanceCta] = useState(false)
   const [activeRecommendationId, setActiveRecommendationId] = useState(null)
   const [exploreSubmitting, setExploreSubmitting] = useState(false)
+  const [performanceTermsAgreed, setPerformanceTermsAgreed] = useState(false)
+  const [creditTermsAgreed, setCreditTermsAgreed] = useState(false)
   const [actionModal, setActionModal] = useState({
     open: false,
     kind: null,
@@ -915,6 +1168,8 @@ const Scout = () => {
   }
 
   const closeActionModal = () => {
+    setPerformanceTermsAgreed(false)
+    setCreditTermsAgreed(false)
     setActionModal({
       open: false, kind: null, title: '', message: '', noticeVariant: 'info', requestId: null, sessionId: null,
     })
@@ -933,10 +1188,11 @@ const Scout = () => {
     if (selectedCand.isUnlocked && selectedCand.unlockType !== 'scout_performance') return
     if (selectedCand.unlockType === 'scout_performance') return
 
+    setPerformanceTermsAgreed(false)
     setActionModal({
       open: true,
       kind: 'performance-confirm',
-      title: 'Mở hồ sơ bằng Scout Performance?',
+      title: 'Mở hồ sơ bằng Scout Performance',
       message: '',
       noticeVariant: 'info',
       requestId: null,
@@ -1083,10 +1339,11 @@ const Scout = () => {
       )
       return
     }
+    setCreditTermsAgreed(false)
     setActionModal({
       open: true,
-      kind: 'unlock-confirm',
-      title: 'Mở liên hệ ứng viên',
+      kind: 'credit-confirm',
+      title: 'Mở hồ sơ bằng Scout Credit',
       message: '',
       noticeVariant: 'info',
     })
@@ -1173,8 +1430,31 @@ const Scout = () => {
         </div>
       )}
 
+      <ScoutPerformanceConfirmModal
+        open={actionModal.open && actionModal.kind === 'performance-confirm'}
+        onClose={closeActionModal}
+        onConfirm={submitPerformanceUnlock}
+        loading={performanceRequesting}
+        agreed={performanceTermsAgreed}
+        onAgreedChange={setPerformanceTermsAgreed}
+      />
+
+      <ScoutCreditConfirmModal
+        open={actionModal.open && actionModal.kind === 'credit-confirm'}
+        onClose={closeActionModal}
+        onConfirm={submitUnlock}
+        loading={unlocking}
+        agreed={creditTermsAgreed}
+        onAgreedChange={setCreditTermsAgreed}
+        creditCost={scoutCreditCost}
+      />
+
       <ScoutActionModal
-        open={actionModal.open}
+        open={
+          actionModal.open
+          && actionModal.kind !== 'performance-confirm'
+          && actionModal.kind !== 'credit-confirm'
+        }
         kind={actionModal.kind}
         title={actionModal.title}
         message={actionModal.message}
@@ -1185,46 +1465,18 @@ const Scout = () => {
         onConfirm={
           actionModal.kind === 'similar-candidates-prompt'
             ? confirmSimilarCandidates
-            : actionModal.kind === 'unlock-confirm'
-              ? submitUnlock
-              : actionModal.kind === 'performance-confirm'
-                ? submitPerformanceUnlock
-                : closeActionModal
+            : closeActionModal
         }
         loading={
-          actionModal.kind === 'similar-candidates-prompt' || actionModal.kind === 'performance-confirm'
-            ? performanceRequesting
-            : unlocking
+          actionModal.kind === 'similar-candidates-prompt' ? performanceRequesting : unlocking
         }
         confirmLabel={
           actionModal.kind === 'similar-candidates-prompt'
             ? 'Có'
-            : actionModal.kind === 'unlock-confirm'
-              ? `Dùng ${scoutCreditCost} credit`
-              : actionModal.kind === 'performance-confirm'
-                ? 'Đồng ý mở hồ sơ'
-                : 'Xác nhận'
+            : 'Xác nhận'
         }
         cancelLabel={actionModal.kind === 'similar-candidates-prompt' ? 'Không' : 'Hủy'}
       >
-        {actionModal.kind === 'unlock-confirm' && selectedCand && (
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Dùng <strong>{scoutCreditCost} credit</strong> để mở email, SĐT và thông tin liên hệ đầy đủ
-            {selectedCand.isUnlocked && selectedCand.name ? ` của ${selectedCand.name}` : ''}?
-          </p>
-        )}
-        {actionModal.kind === 'performance-confirm' && selectedCand && (
-          <div className="text-xs text-slate-600 leading-relaxed space-y-2">
-            <p>
-              Mở hồ sơ bằng <strong>Scout Performance</strong>
-              {selectedCand.name ? ` của ${selectedCand.name}` : ''} — <strong>không tốn credit</strong>.
-              Email và SĐT sẽ không hiển thị; JobShare WS hỗ trợ liên hệ khi bạn quan tâm.
-            </p>
-            <p className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-amber-900">
-              Khi giới thiệu việc làm thành công, phí dịch vụ là <strong>20%</strong> (tính trên phí giới thiệu việc làm).
-            </p>
-          </div>
-        )}
       </ScoutActionModal>
     </>
   )
