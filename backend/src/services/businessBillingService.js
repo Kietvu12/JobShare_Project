@@ -7,10 +7,13 @@ import {
   BusinessCtvMarketplaceListing,
   BusinessInvoice,
   BusinessCreditRequest,
+  BusinessWsChatSession,
+  BusinessWsChatMessage,
   CVStorage,
   Job,
   Admin,
 } from '../models/index.js';
+import { WS_CHAT_MESSAGE_TYPES } from './businessWsChatService.js';
 import { SCOUT_PERFORMANCE_REQUEST_STATUS } from '../constants/scoutCredit.js';
 import { MARKETPLACE_LISTING_STATUS } from '../constants/candidateSharing.js';
 import { LANDING_PAGE_STATUS } from '../constants/businessLandingPage.js';
@@ -22,6 +25,7 @@ import {
   BILLING_INVOICE_STATUS,
   BILLING_STATUS_STYLES,
   CREDIT_REQUEST_STATUS,
+  PAYMENT_STATUS_STYLES,
 } from '../constants/businessBilling.js';
 
 function formatDateVi(value) {
@@ -65,6 +69,11 @@ function buildRequestCode(type, id, date) {
     [BILLING_REQUEST_TYPES.SAIYO_BRANDING]: 'SB',
     [BILLING_REQUEST_TYPES.PARTNER_CTV]: 'PC',
     [BILLING_REQUEST_TYPES.CREDIT_TOPUP]: 'CR',
+    [BILLING_REQUEST_TYPES.LANDING_PAGE_PREMIUM]: 'LP',
+    [BILLING_REQUEST_TYPES.RECRUITMENT_ADS]: 'AD',
+    [BILLING_REQUEST_TYPES.SEMINAR_CAMPAIGN]: 'SM',
+    [BILLING_REQUEST_TYPES.COMPANY_PROFILE]: 'CP',
+    [BILLING_REQUEST_TYPES.OTHER_SERVICE]: 'OT',
   };
   const prefix = prefixMap[type] || 'RQ';
   return `${prefix}-${ym}-${String(id).padStart(3, '0')}`;
@@ -77,6 +86,19 @@ function mapPerformanceStatus(status) {
   if (s === SCOUT_PERFORMANCE_REQUEST_STATUS.REJECTED) return BILLING_STATUS_STYLES.closed;
   if (s === SCOUT_PERFORMANCE_REQUEST_STATUS.CANCELLED) return BILLING_STATUS_STYLES.closed;
   return BILLING_STATUS_STYLES.processing;
+}
+
+function mapServiceRequestStatus(status) {
+  const s = String(status || '').trim();
+  if (s === 'approved' || s === 'done') return BILLING_STATUS_STYLES.done;
+  if (s === 'rejected' || s === 'cancelled') return BILLING_STATUS_STYLES.closed;
+  return BILLING_STATUS_STYLES.waiting_ws;
+}
+
+function resolveServiceRequestType(serviceKey) {
+  const key = String(serviceKey || '').trim();
+  if (Object.values(BILLING_REQUEST_TYPES).includes(key)) return key;
+  return BILLING_REQUEST_TYPES.OTHER_SERVICE;
 }
 
 function mapCreditRequestStatus(status) {
@@ -368,6 +390,44 @@ async function collectAllRequests(businessId) {
     });
   }
 
+  const wsSessions = await BusinessWsChatSession.findAll({
+    where: { businessId },
+    attributes: ['id'],
+    raw: true,
+  }).catch(() => []);
+  const sessionIds = wsSessions.map((s) => s.id).filter(Boolean);
+  if (sessionIds.length) {
+    const serviceMsgRows = await BusinessWsChatMessage.findAll({
+      where: {
+        sessionId: sessionIds,
+        messageType: WS_CHAT_MESSAGE_TYPES.SERVICE_REQUEST,
+      },
+      order: [['created_at', 'DESC']],
+      limit: 100,
+    }).catch(() => []);
+
+    for (const row of serviceMsgRows) {
+      const json = row.toJSON ? row.toJSON() : row;
+      const payload = json.requestPayload || json.request_payload || {};
+      const serviceKey = resolveServiceRequestType(payload.serviceKey);
+      const createdAt = payload.requestedAt || json.createdAt || json.created_at;
+      const updatedAt = json.updatedAt || json.updated_at || createdAt;
+      items.push({
+        sourceType: serviceKey,
+        typeLabel: BILLING_REQUEST_TYPE_LABELS[serviceKey] || payload.serviceTitle || 'Yêu cầu dịch vụ',
+        requestCode: payload.requestCode || buildRequestCode(serviceKey, json.id, createdAt),
+        jdLabel: '—',
+        candidateLabel: payload.note ? String(payload.note) : '—',
+        statusStyle: mapServiceRequestStatus(payload.status),
+        wsName: 'JobShare WS',
+        createdAt,
+        updatedAt,
+        rawId: json.id,
+        rawStatus: payload.status || 'pending',
+      });
+    }
+  }
+
   items.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
   return items;
 }
@@ -550,19 +610,136 @@ async function fetchUnpaidInvoices(businessId, limit = 10) {
 
 function formatInvoiceRow(row) {
   const json = row.toJSON ? row.toJSON() : row;
+  const status = String(json.status || BILLING_INVOICE_STATUS.UNPAID).trim();
+  const style = PAYMENT_STATUS_STYLES[status] || PAYMENT_STATUS_STYLES.unpaid;
+  const createdAt = json.createdAt || json.created_at;
   return {
-    id: json.invoiceCode || json.invoice_code,
+    id: json.id,
+    paymentCode: json.invoiceCode || json.invoice_code,
     invoiceCode: json.invoiceCode || json.invoice_code,
+    type: json.paymentType || json.payment_type || inferPaymentType(json.description),
+    related: json.relatedLabel || json.related_label || json.description || '—',
     amount: formatMoneyVnd(json.amount),
     amountValue: Number(json.amount) || 0,
+    deadline: json.dueDate || json.due_date ? formatDateVi(json.dueDate || json.due_date) : '—',
+    dueDate: json.dueDate || json.due_date,
     due: json.dueDate || json.due_date
       ? `Hạn: ${formatDateVi(json.dueDate || json.due_date)}`
       : '—',
-    dueDate: json.dueDate || json.due_date,
-    status: json.status,
-    statusLabel: json.status === BILLING_INVOICE_STATUS.PAID ? 'Đã thanh toán' : 'Chưa thanh toán',
+    status,
+    statusLabel: style.label,
+    statusBg: style.statusBg,
+    statusColor: style.statusColor,
     description: json.description || null,
+    createdAt: formatDateTimeVi(createdAt),
+    createdAtRaw: createdAt,
+    source: json.source || 'Workstation',
+    paidAt: json.paidAt || json.paid_at || null,
   };
+}
+
+function inferPaymentType(description) {
+  const text = String(description || '').toLowerCase();
+  if (text.includes('credit')) return 'Nạp credit';
+  if (text.includes('landing')) return 'Landing Page premium';
+  if (text.includes('quảng cáo') || text.includes('ads')) return 'Phí quảng cáo tuyển dụng';
+  if (text.includes('seminar') || text.includes('campaign')) return 'Seminar / Campaign';
+  if (text.includes('profile')) return 'Thiết kế profile company';
+  return 'Phí giới thiệu';
+}
+
+function sumInvoiceAmount(rows) {
+  return rows.reduce((sum, row) => {
+    const json = row.toJSON ? row.toJSON() : row;
+    return sum + (Number(json.amount) || 0);
+  }, 0);
+}
+
+function isSameMonth(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+}
+
+async function buildPaymentSummary(businessId) {
+  try {
+    const rows = await BusinessInvoice.findAll({
+      where: { businessId },
+      order: [['created_at', 'DESC']],
+    });
+    const unpaid = rows.filter((r) => r.status === BILLING_INVOICE_STATUS.UNPAID);
+    const processing = rows.filter((r) => r.status === BILLING_INVOICE_STATUS.PROCESSING);
+    const paid = rows.filter((r) => r.status === BILLING_INVOICE_STATUS.PAID);
+    const now = new Date();
+    const thisMonthPaid = paid.filter((r) => {
+      const paidAt = r.paidAt || r.paid_at;
+      return paidAt && isSameMonth(new Date(paidAt), now);
+    });
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthPaid = paid.filter((r) => {
+      const paidAt = r.paidAt || r.paid_at;
+      return paidAt && isSameMonth(new Date(paidAt), lastMonth);
+    });
+    const thisMonthAmount = sumInvoiceAmount(thisMonthPaid);
+    const lastMonthAmount = sumInvoiceAmount(lastMonthPaid);
+    const changePercent = lastMonthAmount > 0
+      ? Math.round(((thisMonthAmount - lastMonthAmount) / lastMonthAmount) * 100)
+      : (thisMonthAmount > 0 ? 100 : 0);
+
+    return {
+      unpaid: { count: unpaid.length, amount: sumInvoiceAmount(unpaid), amountLabel: formatMoneyVnd(sumInvoiceAmount(unpaid)) },
+      processing: { count: processing.length, amount: sumInvoiceAmount(processing), amountLabel: formatMoneyVnd(sumInvoiceAmount(processing)) },
+      paid: { count: paid.length, amount: sumInvoiceAmount(paid), amountLabel: formatMoneyVnd(sumInvoiceAmount(paid)) },
+      monthlyCost: {
+        amount: thisMonthAmount,
+        amountLabel: formatMoneyVnd(thisMonthAmount),
+        changePercent,
+        changeDirection: changePercent >= 0 ? 'up' : 'down',
+      },
+    };
+  } catch (err) {
+    if (String(err?.message || '').includes("doesn't exist")) {
+      return {
+        unpaid: { count: 0, amount: 0, amountLabel: '0 VND' },
+        processing: { count: 0, amount: 0, amountLabel: '0 VND' },
+        paid: { count: 0, amount: 0, amountLabel: '0 VND' },
+        monthlyCost: { amount: 0, amountLabel: '0 VND', changePercent: 0, changeDirection: 'up' },
+      };
+    }
+    throw err;
+  }
+}
+
+function countPaymentsByTab(rows) {
+  const counts = { all: rows.length, unpaid: 0, processing: 0, paid: 0, draft: 0 };
+  for (const row of rows) {
+    const status = String(row.status || '').trim();
+    if (status === BILLING_INVOICE_STATUS.UNPAID) counts.unpaid += 1;
+    if (status === BILLING_INVOICE_STATUS.PROCESSING) counts.processing += 1;
+    if (status === BILLING_INVOICE_STATUS.PAID) counts.paid += 1;
+    if (status === BILLING_INVOICE_STATUS.DRAFT) counts.draft += 1;
+  }
+  return counts;
+}
+
+function filterPaymentRows(rows, { tab, search }) {
+  let filtered = rows;
+  if (tab && tab !== 'all') {
+    filtered = filtered.filter((row) => String(row.status || '').trim() === tab);
+  }
+  const q = String(search || '').trim().toLowerCase();
+  if (q) {
+    filtered = filtered.filter((row) => {
+      const json = row.toJSON ? row.toJSON() : row;
+      const haystack = [
+        json.invoiceCode,
+        json.invoice_code,
+        json.description,
+        json.paymentType,
+        json.payment_type,
+      ].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
+  }
+  return filtered;
 }
 
 export async function getBusinessBillingDashboard({ businessId, credit }) {
@@ -590,6 +767,7 @@ export async function getBusinessBillingDashboard({ businessId, credit }) {
   });
 
   const activities = await buildActivities(businessId);
+  const paymentSummary = await buildPaymentSummary(businessId);
 
   return {
     summary: {
@@ -606,6 +784,7 @@ export async function getBusinessBillingDashboard({ businessId, credit }) {
     unpaidInvoices: unpaidInvoices.map(formatInvoiceRow),
     activities,
     requestTabCounts: tabCounts,
+    paymentSummary,
   };
 }
 
@@ -664,35 +843,49 @@ export async function listBusinessBillingRequests({
   };
 }
 
-export async function listBusinessBillingInvoices({ businessId, page = 1, limit = 20, status }) {
+export async function listBusinessBillingInvoices({
+  businessId,
+  page = 1,
+  limit = 20,
+  status,
+  tab,
+  search,
+}) {
   const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
   const safePage = Math.max(parseInt(page, 10) || 1, 1);
-  const offset = (safePage - 1) * safeLimit;
-  const where = { businessId };
-  if (status && String(status).trim()) where.status = String(status).trim();
 
   try {
-    const { count, rows } = await BusinessInvoice.findAndCountAll({
-      where,
-      limit: safeLimit,
-      offset,
-      order: [['due_date', 'ASC'], ['id', 'DESC']],
+    const allRows = await BusinessInvoice.findAll({
+      where: { businessId },
+      order: [['created_at', 'DESC']],
     });
+    const tabCounts = countPaymentsByTab(allRows);
+    const activeTab = tab || status || 'all';
+    const filtered = filterPaymentRows(allRows, { tab: activeTab === 'all' ? undefined : activeTab, search });
+    const total = filtered.length;
+    const offset = (safePage - 1) * safeLimit;
+    const slice = filtered.slice(offset, offset + safeLimit);
 
     return {
-      invoices: rows.map(formatInvoiceRow),
+      payments: slice.map(formatInvoiceRow),
+      invoices: slice.map(formatInvoiceRow),
+      tabCounts,
       pagination: {
-        total: count,
+        total,
         page: safePage,
         limit: safeLimit,
-        totalPages: Math.ceil(count / safeLimit) || 0,
+        totalPages: Math.ceil(total / safeLimit) || 0,
+        from: total === 0 ? 0 : offset + 1,
+        to: Math.min(offset + safeLimit, total),
       },
     };
   } catch (err) {
     if (String(err?.message || '').includes("doesn't exist")) {
       return {
+        payments: [],
         invoices: [],
-        pagination: { total: 0, page: safePage, limit: safeLimit, totalPages: 0 },
+        tabCounts: { all: 0, unpaid: 0, processing: 0, paid: 0, draft: 0 },
+        pagination: { total: 0, page: safePage, limit: safeLimit, totalPages: 0, from: 0, to: 0 },
       };
     }
     throw err;

@@ -17,6 +17,7 @@ import {
 import apiService from '../../services/api'
 import TemplateSlidePanel from '../../component/BusinessBranding/TemplateSlidePanel'
 import BrandingAlertModal from '../../component/BusinessBranding/BrandingAlertModal'
+import BrandingServiceIntakeModal from '../../component/BusinessBranding/BrandingServiceIntakeModal'
 import { isCompanyBuilderContent } from '../../utils/companyLandingPageSchema'
 import { HomepageSidebar } from './Homepage'
 
@@ -114,6 +115,7 @@ const SERVICE_PACKAGES = [
     ],
     suitableFor: 'Doanh nghiệp cần trang tuyển dụng chuẩn employer branding, tối ưu chuyển đổi ứng viên.',
     action: 'landing',
+    deliveryBadge: { type: 'self_service', label: 'Tự phục vụ' },
   },
   {
     id: 'recruitment_ads',
@@ -132,6 +134,7 @@ const SERVICE_PACKAGES = [
     suitableFor: 'Doanh nghiệp muốn mở rộng reach và thu hút ứng viên tiềm năng nhanh.',
     action: 'admin_request',
     serviceKey: 'recruitment_ads',
+    deliveryBadge: { type: 'ws_support', label: 'WS tư vấn' },
   },
   {
     id: 'recruitment_event',
@@ -150,6 +153,7 @@ const SERVICE_PACKAGES = [
     suitableFor: 'Doanh nghiệp tổ chức hội thảo, job fair hoặc buổi giới thiệu công ty.',
     action: 'admin_request',
     serviceKey: 'recruitment_event',
+    deliveryBadge: { type: 'ws_support', label: 'WS tư vấn' },
   },
   {
     id: 'company_profile',
@@ -168,6 +172,7 @@ const SERVICE_PACKAGES = [
     suitableFor: 'Doanh nghiệp cần bộ tài liệu giới thiệu công ty thống nhất trên mọi kênh.',
     action: 'admin_request',
     serviceKey: 'company_profile',
+    deliveryBadge: { type: 'ws_support', label: 'WS tư vấn' },
   },
 ]
 
@@ -194,13 +199,30 @@ function BrandingServiceCard({ card, onUse, loadingKey }) {
       className={`biz-hp-solution-card ${isOnDark ? 'biz-hp-solution-card--dark' : ''} relative grid h-full min-h-[300px] grid-rows-[2rem_4.75rem_minmax(0,1fr)_auto] overflow-hidden rounded-[1.25rem] p-3.5 sm:p-4 ${surface}`}
     >
       <div className="relative z-20 flex items-start justify-between gap-2">
-        <span
-          className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold ${
-            isOnDark ? 'bg-white/20 text-white' : 'bg-white text-slate-800 shadow-sm ring-1 ring-slate-100'
-          }`}
-        >
-          {card.num}
-        </span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span
+            className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold ${
+              isOnDark ? 'bg-white/20 text-white' : 'bg-white text-slate-800 shadow-sm ring-1 ring-slate-100'
+            }`}
+          >
+            {card.num}
+          </span>
+          {card.deliveryBadge ? (
+            <span
+              className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide sm:text-[10px] ${
+                card.deliveryBadge.type === 'self_service'
+                  ? isOnDark
+                    ? 'bg-emerald-400/25 text-emerald-100'
+                    : 'bg-emerald-100 text-emerald-800'
+                  : isOnDark
+                    ? 'bg-white/15 text-white/90'
+                    : 'bg-amber-100 text-amber-800'
+              }`}
+            >
+              {card.deliveryBadge.label}
+            </span>
+          ) : null}
+        </div>
         <button
           type="button"
           disabled={busy}
@@ -306,6 +328,7 @@ function BrandingOverviewMain({ onPackageUse, onConsultation, requestLoadingKey 
 
 function BrandingStatsSection({
   statCards,
+  statsEmpty,
   displayPages,
   activities,
   setShowCreate,
@@ -315,6 +338,25 @@ function BrandingStatsSection({
   return (
     <div className="flex flex-col gap-2">
       <h2 className="text-sm font-bold text-slate-900 sm:text-base">Thống kê &amp; landing page</h2>
+
+      {statsEmpty ? (
+        <div className="rounded-xl border border-dashed border-[#0077B6]/35 bg-[#e8f4fa]/60 px-4 py-4 text-center sm:text-left">
+          <p className="text-xs font-semibold text-slate-800 sm:text-sm">
+            Chưa có dữ liệu thống kê
+          </p>
+          <p className="mt-1 text-[11px] leading-relaxed text-slate-600 sm:text-xs">
+            Xuất bản trang đầu tiên để bắt đầu theo dõi lượt xem, form ứng tuyển và tỷ lệ chuyển đổi.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#006399]"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Tạo &amp; xuất bản trang đầu tiên
+          </button>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {statCards.map((s, i) => {
@@ -438,6 +480,7 @@ function BrandingUnifiedMain({
   onConsultation,
   requestLoadingKey,
   statCards,
+  statsEmpty,
   displayPages,
   activities,
   setShowCreate,
@@ -453,6 +496,7 @@ function BrandingUnifiedMain({
       />
       <BrandingStatsSection
         statCards={statCards}
+        statsEmpty={statsEmpty}
         displayPages={displayPages}
         activities={activities}
         setShowCreate={setShowCreate}
@@ -471,6 +515,7 @@ const Branding = () => {
   const [landingPages, setLandingPages] = useState([])
   const [showCreate, setShowCreate] = useState(false)
   const [requestLoadingKey, setRequestLoadingKey] = useState(null)
+  const [intakeModal, setIntakeModal] = useState({ open: false, serviceKey: null })
   const [alertModal, setAlertModal] = useState({
     open: false,
     kind: 'notice',
@@ -566,6 +611,11 @@ const Branding = () => {
     { icon: TrendingUp, value: `${stats.conversionRate || 0}%`, label: 'Tỷ lệ chuyển đổi', color: '#059669' },
   ]
 
+  const statsEmpty = !loading
+    && (stats.views || 0) === 0
+    && (stats.formSubmissions || 0) === 0
+    && (stats.conversionRate || 0) === 0
+
   const handleCreated = () => {
     loadData()
   }
@@ -585,10 +635,12 @@ const Branding = () => {
 
   const handleNavigate = useMemo(() => (path) => navigate(path), [navigate])
 
-  const sendServiceRequest = async (serviceKey) => {
+  const sendServiceRequest = async (serviceKey, note = null) => {
     setRequestLoadingKey(serviceKey)
     try {
-      const res = await apiService.createBusinessSaiyoBrandingServiceRequest({ serviceKey })
+      const body = { serviceKey }
+      if (note) body.note = note
+      const res = await apiService.createBusinessSaiyoBrandingServiceRequest(body)
       if (res?.success) {
         openConfirmModal({
           title: 'Đã gửi yêu cầu',
@@ -622,8 +674,17 @@ const Branding = () => {
       return
     }
     if (pkg.action === 'admin_request' && pkg.serviceKey) {
+      if (pkg.serviceKey === 'recruitment_ads' || pkg.serviceKey === 'recruitment_event' || pkg.serviceKey === 'company_profile') {
+        setIntakeModal({ open: true, serviceKey: pkg.serviceKey })
+        return
+      }
       sendServiceRequest(pkg.serviceKey)
     }
+  }
+
+  const handleIntakeSubmit = async ({ serviceKey, note }) => {
+    await sendServiceRequest(serviceKey, note)
+    setIntakeModal({ open: false, serviceKey: null })
   }
 
   const handleConsultation = () => {
@@ -634,6 +695,13 @@ const Branding = () => {
     <>
       <style>{homepageStyles}</style>
       <TemplateSlidePanel open={showCreate} onClose={() => setShowCreate(false)} onCreated={handleCreated} />
+      <BrandingServiceIntakeModal
+        open={intakeModal.open}
+        serviceKey={intakeModal.serviceKey}
+        onClose={() => setIntakeModal({ open: false, serviceKey: null })}
+        onSubmit={handleIntakeSubmit}
+        submitting={requestLoadingKey === intakeModal.serviceKey}
+      />
       <BrandingAlertModal
         open={alertModal.open}
         kind={alertModal.kind}
@@ -665,6 +733,7 @@ const Branding = () => {
                   onConsultation={handleConsultation}
                   requestLoadingKey={requestLoadingKey}
                   statCards={statCards}
+                  statsEmpty={statsEmpty}
                   displayPages={landingPages}
                   activities={activities}
                   setShowCreate={setShowCreate}

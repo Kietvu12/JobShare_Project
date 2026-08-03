@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { ImagePlus, X } from 'lucide-react';
 import { JOB_HIGHLIGHT_OPTIONS } from '../../../utils/jobHighlightOptions';
 import { BUSINESS_SECTOR_OPTIONS } from '../../../utils/businessSectorOptions';
 import {
@@ -23,6 +24,8 @@ const HEADER_CONTACT = {
   mail: 'jobshare@work-station.vn',
 };
 const JD_BORDER_COLOR = '#cbd5e1';
+const JD_BUSINESS_NAVY = '#0f2744';
+const JD_BUSINESS_NAVY_MID = '#1e3a5f';
 
 function isYearlySalaryType(type) {
   const t = String(type ?? '').toLowerCase();
@@ -40,6 +43,8 @@ const LABELS = {
     headerWebsite: 'Trang web',
     headerHotline: 'Đường dây nóng',
     headerMail: 'Email',
+    logoUploadHint: 'Thêm logo công ty',
+    headerInfoPlaceholder: 'Website: www.congty.com\nHotline: (+84) ...\nEmail: hr@congty.com',
     sectionRecruitment: 'THÔNG TIN TUYỂN DỤNG',
     companyName: 'Tên công ty',
     jobTitle: 'Tiêu đề việc làm',
@@ -103,6 +108,8 @@ const LABELS = {
     headerWebsite: 'Website',
     headerHotline: 'Hotline',
     headerMail: 'Mail',
+    logoUploadHint: 'Upload company logo',
+    headerInfoPlaceholder: 'Website: www.company.com\nHotline: (+84) ...\nEmail: hr@company.com',
     sectionRecruitment: 'RECRUITMENT INFORMATION',
     companyName: 'Company name',
     jobTitle: 'Job title',
@@ -165,6 +172,8 @@ const LABELS = {
     headerWebsite: 'ウェブサイト',
     headerHotline: 'ホットライン',
     headerMail: 'メール',
+    logoUploadHint: '会社ロゴを追加',
+    headerInfoPlaceholder: 'Website: www.company.com\nHotline: (+84) ...\nEmail: hr@company.com',
     sectionRecruitment: '募集情報',
     companyName: '会社名',
     jobTitle: '求人タイトル',
@@ -251,8 +260,13 @@ export default function JdTemplate({
   jobBenefitRows = [],
   setJobBenefitRows = () => {},
   compactPreview = false,
+  businessBranding = false,
 }) {
   const [jobTypeModalOpen, setJobTypeModalOpen] = useState(false);
+  const logoInputRef = useRef(null);
+  const JD_LABEL_BG = businessBranding ? JD_BUSINESS_NAVY : '#dc2626';
+  const JD_SECTION_BG = businessBranding ? JD_BUSINESS_NAVY_MID : '#4b5563';
+  const focusRingClass = businessBranding ? 'focus:ring-[#1e3a5f]' : 'focus:ring-[#0077B6]';
   const pickerLang = lang === 'jp' ? 'ja' : lang;
   const expYearOptions = JD_TEMPLATE_EXP_YEARS_OPTIONS[lang] || JD_TEMPLATE_EXP_YEARS_OPTIONS.vi;
   const suffix = lang === 'vi' ? '' : lang === 'en' ? 'En' : 'Jp';
@@ -394,7 +408,31 @@ export default function JdTemplate({
   ];
 
   const optionTypo = getJdTemplateOptionTypography(compactPreview);
-  const selectClassName = `jd-template-option-control w-full min-w-0 border rounded bg-white text-slate-900 outline-none focus:ring-1 focus:ring-[#0077B6] border-slate-200 ${optionTypo.padClass}`;
+  const selectClassName = `jd-template-option-control w-full min-w-0 border rounded bg-white text-slate-900 outline-none focus:ring-1 ${focusRingClass} border-slate-200 ${optionTypo.padClass}`;
+
+  const jdHeaderInfoKey = lang === 'vi' ? 'jdHeaderInfo' : lang === 'en' ? 'jdHeaderInfoEn' : 'jdHeaderInfoJp';
+
+  const handleLogoUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setRecruitingCompany((prev) => ({ ...prev, jdLogoUrl: String(reader.result || '') }));
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  };
+
+  const jdHeaderInfoEditable = () => buildEditableProps(
+    `recruit:${jdHeaderInfoKey}`,
+    String(recruitingCompany[jdHeaderInfoKey] ?? '').trim() || L.headerInfoPlaceholder,
+    (e) => {
+      const v = e.currentTarget.textContent || '';
+      setRecruitingCompany((prev) => ({ ...prev, [jdHeaderInfoKey]: v }));
+    },
+    'outline-none block whitespace-pre-wrap text-left sm:text-right',
+    { minHeight: '3em', color: businessBranding ? JD_BUSINESS_NAVY_MID : '#374151', lineHeight: 1.45 },
+  );
   const optionControlStyle = jdTemplateOptionControlStyle(optionTypo);
 
   const parseHighlightKeys = () => {
@@ -658,46 +696,110 @@ export default function JdTemplate({
     >
       <div
         className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 ${compactPreview ? 'px-2 py-1.5' : 'gap-3 sm:gap-4 px-3 py-2.5'} border-b`}
-        style={{ borderColor: JD_BORDER_COLOR, backgroundColor: '#ffffff' }}
+        style={{
+          borderColor: businessBranding ? '#e2e8f0' : JD_BORDER_COLOR,
+          backgroundColor: businessBranding ? '#f8fafc' : '#ffffff',
+        }}
       >
-        <div className="flex justify-center sm:justify-start flex-shrink-0">
-          <img
-            src={logoImage}
-            alt="Logo"
-            className={`w-auto object-contain select-none ${
-              compactPreview
-                ? 'h-7 max-w-[110px]'
-                : `h-10 max-w-[min(160px,84vw)] sm:h-8 sm:max-w-[130px] md:h-10 md:max-w-[150px]`
-            }`}
-          />
-        </div>
-        <div
-          className={`w-full sm:flex-1 sm:min-w-0 text-center sm:text-right leading-snug break-words ${
-            compactPreview
-              ? 'text-[8px]'
-              : 'max-sm:text-[9px] text-[10px] md:text-[11px] lg:text-xs'
-          }`}
-          style={{ color: '#374151' }}
-        >
-          <p className="font-semibold mb-1 opacity-95" style={{ lineHeight: 1.35 }}>
-            {L.headerSlogan}
-          </p>
-          <div className="space-y-0.5 opacity-90" style={{ lineHeight: 1.4 }}>
-            <div>
-              {L.headerWebsite}: {HEADER_CONTACT.website}
+        {businessBranding ? (
+          <>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                className="hidden"
+                onChange={handleLogoUpload}
+              />
+              <button
+                type="button"
+                onClick={() => logoInputRef.current?.click()}
+                className={`group relative flex items-center justify-center overflow-hidden rounded border border-dashed transition-colors hover:border-[#1e3a5f] hover:bg-white ${
+                  compactPreview ? 'h-10 w-[110px]' : 'h-12 w-[130px] sm:h-11 sm:w-[120px]'
+                }`}
+                style={{ borderColor: '#cbd5e1', backgroundColor: '#ffffff' }}
+                title={L.logoUploadHint}
+              >
+                {recruitingCompany?.jdLogoUrl ? (
+                  <img
+                    src={recruitingCompany.jdLogoUrl}
+                    alt="Logo công ty"
+                    className="h-full w-full object-contain p-1"
+                  />
+                ) : (
+                  <span className="flex flex-col items-center gap-0.5 px-1 text-[8px] font-medium text-slate-500">
+                    <ImagePlus className="h-3.5 w-3.5 text-[#1e3a5f]" strokeWidth={2} />
+                    {L.logoUploadHint}
+                  </span>
+                )}
+              </button>
+              {recruitingCompany?.jdLogoUrl ? (
+                <button
+                  type="button"
+                  title="Xóa logo"
+                  onClick={() => setRecruitingCompany((prev) => ({ ...prev, jdLogoUrl: '' }))}
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:text-rose-600"
+                >
+                  <X className="h-3 w-3" strokeWidth={2} />
+                </button>
+              ) : null}
             </div>
-            <div>
-              {L.headerHotline}: {HEADER_CONTACT.hotline}
+            <div
+              className={`w-full sm:flex-1 sm:min-w-0 leading-snug break-words ${
+                compactPreview
+                  ? 'text-[8px]'
+                  : 'max-sm:text-[9px] text-[10px] md:text-[11px] lg:text-xs'
+              }`}
+            >
+              <span {...jdHeaderInfoEditable()} />
             </div>
-            <div>
-              {L.headerMail}: {HEADER_CONTACT.mail}
+          </>
+        ) : (
+          <>
+            <div className="flex justify-center sm:justify-start flex-shrink-0">
+              <img
+                src={logoImage}
+                alt="Logo"
+                className={`w-auto object-contain select-none ${
+                  compactPreview
+                    ? 'h-7 max-w-[110px]'
+                    : `h-10 max-w-[min(160px,84vw)] sm:h-8 sm:max-w-[130px] md:h-10 md:max-w-[150px]`
+                }`}
+              />
             </div>
-          </div>
-        </div>
+            <div
+              className={`w-full sm:flex-1 sm:min-w-0 text-center sm:text-right leading-snug break-words ${
+                compactPreview
+                  ? 'text-[8px]'
+                  : 'max-sm:text-[9px] text-[10px] md:text-[11px] lg:text-xs'
+              }`}
+              style={{ color: '#374151' }}
+            >
+              <p className="font-semibold mb-1 opacity-95" style={{ lineHeight: 1.35 }}>
+                {L.headerSlogan}
+              </p>
+              <div className="space-y-0.5 opacity-90" style={{ lineHeight: 1.4 }}>
+                <div>
+                  {L.headerWebsite}: {HEADER_CONTACT.website}
+                </div>
+                <div>
+                  {L.headerHotline}: {HEADER_CONTACT.hotline}
+                </div>
+                <div>
+                  {L.headerMail}: {HEADER_CONTACT.mail}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
       <div
         className={`px-3 py-2 font-bold border-b ${compactPreview ? 'text-[10px]' : 'text-sm'}`}
-        style={{ color: '#111827', borderColor: JD_BORDER_COLOR }}
+        style={{
+          color: businessBranding ? '#ffffff' : '#111827',
+          borderColor: JD_BORDER_COLOR,
+          backgroundColor: businessBranding ? JD_BUSINESS_NAVY : 'transparent',
+        }}
       >
         {L.sectionRecruitment}
       </div>
@@ -705,7 +807,7 @@ export default function JdTemplate({
         {rows.map(([lbl, val, key], i) => (
           <React.Fragment key={i}>
             <div className="flex" style={{ minHeight: '32px' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
                 {lbl}
               </div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
@@ -788,7 +890,7 @@ export default function JdTemplate({
             {/* Hình thức tuyển dụng + Tư cách lưu trú (ngay dưới Mã tin tuyển dụng) */}
             {lbl === L.jobCode && (
               <div className="flex" style={{ minHeight: '32px' }}>
-                <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+                <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
                   {L.recruitmentForm}
                 </div>
                 <div className="flex-1 min-w-[60px] px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
@@ -811,7 +913,7 @@ export default function JdTemplate({
                     ))}
                   </select>
                 </div>
-                <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626', borderLeft: `1.25px solid ${JD_BORDER_COLOR}` }}>
+                <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG, borderLeft: `1.25px solid ${JD_BORDER_COLOR}` }}>
                   {L.residenceStatus}
                 </div>
                 <div className="flex-1 min-w-[60px] px-2 py-1.5 text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
@@ -831,7 +933,7 @@ export default function JdTemplate({
         ))}
         {/* Điểm nổi bật: 1 hàng ngang, có thể chỉnh sửa trực tiếp */}
         <div className="flex" style={{ minHeight: '32px' }}>
-          <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.highlights}
           </div>
           <div className="flex-1 px-2 py-1.5 text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
@@ -847,7 +949,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.jobDescription}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: `1.25px solid ${JD_BORDER_COLOR}` }}>
@@ -855,7 +957,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.requiredConditions}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: `1.25px solid ${JD_BORDER_COLOR}` }}>
@@ -889,7 +991,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.preferredConditions}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: `1.25px solid ${JD_BORDER_COLOR}` }}>
@@ -923,7 +1025,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div className="flex" style={{ minHeight: '32px' }}>
-          <div className="flex-shrink-0 w-28 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="flex-shrink-0 w-28 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.annualIncome}
           </div>
           <div className="flex-1 min-w-0 px-3 py-2 flex items-stretch text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
@@ -939,7 +1041,7 @@ export default function JdTemplate({
               )}
             />
           </div>
-          <div className="flex-shrink-0 w-24 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626', borderLeft: `1.25px solid ${JD_BORDER_COLOR}` }}>
+          <div className="flex-shrink-0 w-24 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG, borderLeft: `1.25px solid ${JD_BORDER_COLOR}` }}>
             {L.monthlySalary}
           </div>
           <div className="flex-1 min-w-[80px] px-3 py-2 flex items-stretch text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
@@ -957,7 +1059,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.incomeDetails}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: `1.25px solid ${JD_BORDER_COLOR}` }}>
@@ -977,7 +1079,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.bonus}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: `1.25px solid ${JD_BORDER_COLOR}` }}>
@@ -985,7 +1087,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.salaryReview}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: `1.25px solid ${JD_BORDER_COLOR}` }}>
@@ -993,7 +1095,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div className="flex" style={{ minHeight: '32px' }}>
-          <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.transferAbility}
           </div>
           <div className="flex-1 min-w-[60px] px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}>
@@ -1001,7 +1103,7 @@ export default function JdTemplate({
               {...jdEditable('transferAbility', 'outline-none block', { minHeight: '1.2em' }, '')}
             />
           </div>
-          <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626', borderLeft: '1px solid #e5e7eb' }}>
+          <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG, borderLeft: '1px solid #e5e7eb' }}>
             {L.workLocation}
           </div>
           <div className="flex-1 min-w-[80px] px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}>
@@ -1026,7 +1128,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.workLocationDetails}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
@@ -1046,7 +1148,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.workingTime}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
@@ -1066,7 +1168,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div className="flex" style={{ minHeight: '32px' }}>
-          <div className="flex-shrink-0 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626', minWidth: '140px' }}>
+          <div className="flex-shrink-0 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG, minWidth: '140px' }}>
             {L.overtimeHoursPerMonth}
           </div>
           <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}>
@@ -1074,7 +1176,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.overtimeDetails}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
@@ -1094,7 +1196,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.benefits}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
@@ -1144,7 +1246,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div className="flex" style={{ minHeight: '32px' }}>
-          <div className="flex-shrink-0 w-28 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="flex-shrink-0 w-28 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.holidays}
           </div>
           <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}>
@@ -1152,7 +1254,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.holidayDetails}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
@@ -1162,7 +1264,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div className="flex" style={{ minHeight: '32px' }}>
-          <div className="flex-shrink-0 w-28 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="flex-shrink-0 w-28 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.probation}
           </div>
           <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}>
@@ -1170,7 +1272,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.probationDetails}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
@@ -1180,7 +1282,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.recruitmentProcess}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
@@ -1188,20 +1290,20 @@ export default function JdTemplate({
           </div>
         </div>
         <div className="mt-3">
-          <div className={`w-full px-3 py-2 font-bold text-white ${compactPreview ? 'text-[10px]' : 'text-sm'}`} style={{ backgroundColor: '#4b5563' }}>
+          <div className={`w-full px-3 py-2 font-bold text-white ${compactPreview ? 'text-[10px]' : 'text-sm'}`} style={{ backgroundColor: JD_SECTION_BG }}>
             {L.sectionCompany}
           </div>
           <div className="grid grid-cols-2 border-t" style={{ borderColor: '#e5e7eb' }}>
             <div className="flex border-b border-r" style={{ borderColor: '#e5e7eb' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.companyName}</div>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.companyName}</div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}><span {...jdRecruitingEditable('companyName')} /></div>
             </div>
             <div className="flex border-b" style={{ borderColor: '#e5e7eb' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.stockExchangeInfo}</div>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.stockExchangeInfo}</div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}><span {...jdRecruitingEditable('stockExchangeInfo')} /></div>
             </div>
             <div className="flex border-b border-r" style={{ borderColor: '#e5e7eb' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.services}</div>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.services}</div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}>
                 <span
                   {...customEditable(
@@ -1216,7 +1318,7 @@ export default function JdTemplate({
               </div>
             </div>
             <div className="flex border-b" style={{ borderColor: '#e5e7eb' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.businessSectors}</div>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.businessSectors}</div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}>
                 <span
                   {...customEditable(
@@ -1233,28 +1335,28 @@ export default function JdTemplate({
               </div>
             </div>
             <div className="flex border-b border-r" style={{ borderColor: '#e5e7eb' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.revenue}</div>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.revenue}</div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}><span {...jdRecruitingEditable('revenue')} /></div>
             </div>
             <div className="flex border-b" style={{ borderColor: '#e5e7eb' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.investmentCapital}</div>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.investmentCapital}</div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}><span {...jdRecruitingEditable('investmentCapital')} /></div>
             </div>
             <div className="flex border-b border-r" style={{ borderColor: '#e5e7eb' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.numberOfEmployees}</div>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.numberOfEmployees}</div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}><span {...jdRecruitingEditable('numberOfEmployees')} /></div>
             </div>
             <div className="flex border-b" style={{ borderColor: '#e5e7eb' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.established}</div>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.established}</div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}><span {...jdRecruitingEditable('establishedDate')} /></div>
             </div>
           </div>
           <div className="flex border-b" style={{ borderColor: '#e5e7eb' }}>
-            <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.headquarters}</div>
+            <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.headquarters}</div>
             <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}><span {...jdRecruitingEditable('headquarters')} /></div>
           </div>
           <div>
-            <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.companyIntroduction}</div>
+            <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.companyIntroduction}</div>
             <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
               <span {...jdRecruitingEditable('companyIntroduction', 'block whitespace-pre-wrap', { minHeight: '60px' }, L.incomeDetailsPlaceholder)} />
             </div>

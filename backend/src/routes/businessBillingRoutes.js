@@ -12,6 +12,7 @@ router.get('/requests', businessBillingController.getRequests);
 router.get('/invoices', businessBillingController.getInvoices);
 router.get('/credit-requests', businessBillingController.getCreditRequests);
 router.post('/credit-requests', businessBillingController.createCreditRequest);
+router.post('/service-requests', businessBillingController.createServiceRequest);
 router.get('/credit-requests/:id', businessBillingController.getCreditRequestById);
 router.put('/credit-requests/:id', businessBillingController.updateCreditRequest);
 router.delete('/credit-requests/:id', businessBillingController.cancelCreditRequest);

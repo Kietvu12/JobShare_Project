@@ -119,6 +119,12 @@ import KnowledgeHub from './page/Bussiness/KnowledgeHub';
 import ReportInsight from './page/Bussiness/ReportInsight';
 import Message from './page/Bussiness/Message';
 import Billing from './page/Bussiness/Billing';
+import ServiceRequests from './page/Bussiness/ServiceRequests';
+import CreditTopUpRequest from './page/Bussiness/CreditTopUpRequest';
+import LandingPagePremiumRequest from './page/Bussiness/LandingPagePremiumRequest';
+import RecruitmentAdsRequest from './page/Bussiness/RecruitmentAdsRequest';
+import SeminarCampaignRequest from './page/Bussiness/SeminarCampaignRequest';
+import CompanyProfileRequest from './page/Bussiness/CompanyProfileRequest';
 import BusinessRegister from './page/Bussiness/Register';
 import BusinessLogin from './page/Bussiness/Login';
 import BusinessVerifyEmail from './page/Bussiness/VerifyEmail';
@@ -415,8 +421,14 @@ function App() {
             <Route path="partner-ctv" element={<div className="p-6"><h1 className="text-2xl font-bold">Partner CTV</h1></div>} />
             <Route path="knowledge" element={<div className="p-6"><h1 className="text-2xl font-bold">Knowledge Hub</h1></div>} />
             <Route path="insights" element={<div className="p-6"><h1 className="text-2xl font-bold">Reports & Insights</h1></div>} />
+            <Route path="service-requests/credit" element={<CreditTopUpRequest />} />
+            <Route path="service-requests/landing-page" element={<LandingPagePremiumRequest />} />
+            <Route path="service-requests/recruitment-ads" element={<RecruitmentAdsRequest />} />
+            <Route path="service-requests/seminar-campaign" element={<SeminarCampaignRequest />} />
+            <Route path="service-requests/company-profile" element={<CompanyProfileRequest />} />
+            <Route path="service-requests" element={<ServiceRequests />} />
             <Route path="billing" element={<Billing />} />
-            <Route path="service-billing" element={<Billing focusSection="requests" />} />
+            <Route path="service-billing" element={<ServiceRequests />} />
             <Route path="settings" element={<div className="p-6"><h1 className="text-2xl font-bold">Settings</h1></div>} />
           </Route>
 

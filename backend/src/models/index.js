@@ -2228,6 +2228,16 @@ export const JobApplication = sequelize.define(
       primaryKey: true,
       autoIncrement: true
     },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      field: 'created_at'
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      field: 'updated_at'
+    },
     jobId: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,

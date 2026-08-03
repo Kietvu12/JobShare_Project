@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Sparkles,
@@ -12,8 +12,12 @@ import {
   Users2,
   Coins,
   Check,
+  Loader2,
 } from 'lucide-react';
 import useBusinessUser from '../../hooks/useBusinessUser';
+import { useLanguage } from '../../context/LanguageContext';
+import { localizeNotification } from '../../utils/notificationI18n';
+import apiService from '../../services/api';
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif";
 
@@ -26,12 +30,46 @@ const quickActions = [
   { icon: BookOpen, title: 'Xem hướng dẫn', desc: 'Hướng dẫn sử dụng platform', path: '/business/knowledge' },
 ];
 
-const notifications = [
-  { dot: 'bg-[#0077B6]', text: 'Có 3 ứng viên mới phù hợp với Mechanical Engineer', time: '10 phút trước' },
-  { dot: 'bg-[#0077B6]', text: 'Ứng viên T.N.H đã trả lời tin nhắn', time: '1 giờ trước' },
-  { dot: 'bg-slate-400', text: 'Yêu cầu Scout Performance mới', time: '2 giờ trước' },
-  { dot: 'bg-rose-500', text: 'JD "QA Engineer" chưa có ứng viên sau 7 ngày', time: '3 giờ trước', warn: true },
-];
+function getNotificationTimestamp(notification) {
+  return notification?.createdAt || notification?.created_at || null;
+}
+
+function formatNotificationRelativeTime(ts, language = 'vi') {
+  if (!ts) return '';
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return '';
+  const diffMs = Date.now() - d.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  const hours = Math.floor(diffMs / 3600000);
+  const days = Math.floor(diffMs / 86400000);
+
+  if (language === 'en') {
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins} min ago`;
+    if (hours < 24) return `${hours} hr ago`;
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+  }
+  if (language === 'ja') {
+    if (mins < 1) return 'たった今';
+    if (mins < 60) return `${mins}分前`;
+    if (hours < 24) return `${hours}時間前`;
+    return `${days}日前`;
+  }
+  if (mins < 1) return 'Vừa xong';
+  if (mins < 60) return `${mins} phút trước`;
+  if (hours < 24) return `${hours} giờ trước`;
+  return `${days} ngày trước`;
+}
+
+function getNotificationVisual(notification, localized) {
+  const text = `${localized?.title || ''} ${localized?.content || ''}`.toLowerCase();
+  const isWarn = /cảnh báo|chưa có|từ chối|reject|warning|lỗi|hết credit|sắp hết/.test(text);
+  const unread = !notification?.isRead;
+  return {
+    warn: isWarn,
+    dot: unread ? 'bg-[#0077B6]' : 'bg-slate-400',
+  };
+}
 
 const news = [
   {
@@ -53,15 +91,14 @@ const solutionCards = [
     subtitle: 'Tự chủ tìm kiếm ứng viên',
     variant: 'brandLight',
     icon: Coins,
+    painPoint: 'Khó tìm đủ ứng viên phù hợp trong thời gian ngắn',
+    solution: 'Tự tìm kiếm và tiếp cận ứng viên từ kho hồ sơ chất lượng',
     features: [
-      'Tìm kiếm ứng viên từ hàng triệu hồ sơ chất lượng',
-      'Xem thông tin chi tiết hồ sơ ứng viên',
-      'Liên hệ trực tiếp với ứng viên quan tâm',
-      'Lưu trữ và quản lý ứng viên yêu thích',
-      'Thanh toán linh hoạt theo nhu cầu',
+      'Tìm kiếm AI theo kỹ năng & vị trí',
+      'Xem hồ sơ ẩn danh trước khi unlock',
+      'Chủ động chat & tiếp cận ứng viên',
     ],
-    suitableFor:
-      'Doanh nghiệp chủ động tìm ứng viên, cần linh hoạt và kiểm soát chi phí tuyển dụng.',
+    suitableFor: 'Doanh nghiệp chủ động tìm ứng viên',
     path: '/business/scout',
   },
   {
@@ -70,14 +107,14 @@ const solutionCards = [
     subtitle: 'WS hỗ trợ tìm & tiếp cận',
     variant: 'neutral',
     icon: UserPlus,
+    painPoint: 'Bận rộn, thiếu thời gian sàng lọc và tiếp cận ứng viên',
+    solution: 'Workstation tìm kiếm, đánh giá và tiếp cận ứng viên thay bạn',
     features: [
-      'Gửi yêu cầu tìm ứng viên theo JD hoặc tiêu chí',
-      'WS chủ động tiếp cận & đánh giá ứng viên',
-      'Đề xuất danh sách ứng viên phù hợp',
-      'Thay bạn trao đổi và sắp xếp lịch phỏng vấn',
+      'WS chủ động tìm & gửi ứng viên theo JD',
+      'WS trao đổi điều kiện & sắp xếp phỏng vấn',
       'Báo cáo tiến độ minh bạch thường xuyên',
     ],
-    suitableFor: 'Doanh nghiệp bận rộn, thiếu thời gian tìm kiếm ứng viên chất lượng.',
+    suitableFor: 'Doanh nghiệp bận rộn, thiếu thời gian tuyển dụng',
     path: '/business/scout',
   },
   {
@@ -86,15 +123,14 @@ const solutionCards = [
     subtitle: 'Thương hiệu tuyển dụng',
     variant: 'primary',
     icon: Sparkles,
+    painPoint: 'Ứng viên chất lượng không biết đến thương hiệu tuyển dụng của bạn',
+    solution: 'Xây dựng trang tuyển dụng chuyên nghiệp và quảng bá đa kênh',
     features: [
-      'Thiết kế trang tuyển dụng chuyên nghiệp',
-      'Quản lý và đăng tin tuyển dụng đa kênh',
-      'Xây dựng nội dung thương hiệu nhà tuyển dụng',
-      'Quảng bá thương hiệu trên các nền tảng số',
+      'Thiết kế landing page tuyển dụng chuyên nghiệp',
+      'Quản lý & đăng tin tuyển dụng đa kênh',
       'Báo cáo phân tích hiệu quả thương hiệu',
     ],
-    suitableFor:
-      'Doanh nghiệp muốn nâng cao thương hiệu tuyển dụng và thu hút nhân tài chất lượng cao.',
+    suitableFor: 'Doanh nghiệp muốn nâng cao thương hiệu tuyển dụng',
     path: '/business/saiyo',
   },
   {
@@ -103,15 +139,14 @@ const solutionCards = [
     subtitle: 'Mạng lưới mở rộng',
     variant: 'neutral',
     icon: Users2,
+    painPoint: 'Cần tuyển số lượng lớn nhưng kênh tuyển dụng hiện tại quá hẹp',
+    solution: 'Mở rộng kênh qua mạng lưới CTV HR Partner trên toàn quốc',
     features: [
       'Tiếp cận mạng lưới CTV HR Partner rộng khắp',
-      'Đăng job và nhận ứng viên đề cử chất lượng',
-      'Hệ thống chấm điểm và đánh giá CTV minh bạch',
+      'Nhận ứng viên đề cử chất lượng theo job',
       'Thanh toán theo kết quả ứng viên đạt yêu cầu',
-      'Quản lý toàn bộ quy trình dễ dàng trên nền tảng',
     ],
-    suitableFor:
-      'Doanh nghiệp cần tuyển dụng số lượng lớn hoặc mở rộng kênh tuyển dụng nhanh chóng.',
+    suitableFor: 'Doanh nghiệp tuyển số lượng lớn hoặc mở rộng kênh nhanh',
     path: '/business/candidate-sharing',
   },
 ];
@@ -205,7 +240,7 @@ function SolutionCard({ card, onUse }) {
 
   return (
     <article
-      className={`biz-hp-solution-card ${isOnDark ? 'biz-hp-solution-card--dark' : ''} relative grid h-full min-h-[300px] grid-rows-[2rem_4.75rem_minmax(0,1fr)_auto] overflow-hidden rounded-[1.25rem] p-3.5 sm:p-4 ${surface}`}
+      className={`biz-hp-solution-card ${isOnDark ? 'biz-hp-solution-card--dark' : ''} relative grid h-full min-h-[320px] grid-rows-[2rem_auto_minmax(0,1fr)_auto] overflow-hidden rounded-[1.25rem] p-3.5 sm:p-4 ${surface}`}
     >
       <div className="relative z-20 flex items-start justify-between gap-2">
         <span
@@ -229,13 +264,18 @@ function SolutionCard({ card, onUse }) {
         </button>
       </div>
 
-      <div className="relative z-10 mt-2 pr-14">
+      <div className="relative z-10 mt-4 pr-14 sm:mt-5">
         <h3 className="line-clamp-2 text-base font-bold leading-tight sm:text-lg">{card.title}</h3>
-        <p className={`mt-1 line-clamp-2 text-xs leading-snug sm:text-[13px] ${mutedClass}`}>{card.subtitle}</p>
+        <p className={`mt-2 text-xs font-bold leading-snug sm:text-[13px] ${isOnDark ? 'text-white' : 'text-slate-800'}`}>
+          {card.painPoint}
+        </p>
+        <p className={`mt-1.5 text-[11px] leading-snug sm:text-xs ${mutedClass}`}>
+          {card.solution}
+        </p>
       </div>
 
       <div
-        className="pointer-events-none absolute right-0 top-[3.25rem] z-0 translate-x-[18%]"
+        className="pointer-events-none absolute right-0 top-[4.5rem] z-0 translate-x-[18%] sm:top-[5rem]"
         aria-hidden
       >
         <DecoIcon
@@ -246,13 +286,8 @@ function SolutionCard({ card, onUse }) {
         />
       </div>
 
-      <div className="relative z-10 mt-3 flex min-h-0 flex-col">
-        <h4
-          className={`shrink-0 text-xs font-bold sm:text-[13px] ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}
-        >
-          Tính năng nổi bật
-        </h4>
-        <ul className={`mt-2 flex min-h-0 flex-1 flex-col gap-2 text-[11px] leading-snug sm:text-xs ${bodyClass}`}>
+      <div className="relative z-10 mt-5 flex min-h-0 flex-col sm:mt-6">
+        <ul className={`flex min-h-0 flex-1 flex-col gap-2 text-[11px] leading-snug sm:text-xs ${bodyClass}`}>
           {card.features.map((line) => (
             <li key={line} className="flex gap-2">
               <Check
@@ -270,12 +305,9 @@ function SolutionCard({ card, onUse }) {
           isOnDark ? 'border-white/20' : 'border-slate-200/80'
         }`}
       >
-        <h4
-          className={`text-xs font-bold sm:text-[13px] ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}
-        >
-          Phù hợp với
-        </h4>
-        <p className={`mt-1.5 min-h-[2.75rem] text-[11px] leading-snug sm:text-xs ${bodyClass}`}>
+        <p className={`text-[10px] leading-snug sm:text-[11px] ${isOnDark ? 'text-white/90' : 'text-slate-600'}`}>
+          <span className={`font-semibold ${isOnDark ? 'text-white' : 'text-slate-700'}`}>Phù hợp:</span>
+          {' '}
           {card.suitableFor}
         </p>
       </div>
@@ -284,6 +316,62 @@ function SolutionCard({ card, onUse }) {
 }
 
 function HomepageSidebar({ onNavigate }) {
+  const { language } = useLanguage();
+  const [notifList, setNotifList] = useState([]);
+  const [notifUnread, setNotifUnread] = useState(0);
+  const [notifLoading, setNotifLoading] = useState(true);
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      const [res, count] = await Promise.all([
+        apiService.getBusinessNotifications({ page: 1, limit: 4 }),
+        apiService.getBusinessNotificationUnreadCount(),
+      ]);
+      const rows = res?.data?.notifications ?? res?.notifications ?? [];
+      setNotifList(Array.isArray(rows) ? rows.slice(0, 4) : []);
+      setNotifUnread(typeof count === 'number' ? count : 0);
+    } catch {
+      setNotifList([]);
+      setNotifUnread(0);
+    } finally {
+      setNotifLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadNotifications();
+    const onUpdate = () => loadNotifications();
+    window.addEventListener('notifications:updated', onUpdate);
+    window.addEventListener('focus', onUpdate);
+    return () => {
+      window.removeEventListener('notifications:updated', onUpdate);
+      window.removeEventListener('focus', onUpdate);
+    };
+  }, [loadNotifications]);
+
+  const handleNotificationClick = async (notification) => {
+    const id = notification?.id;
+    const url = notification?.url || '';
+    const unread = !notification?.isRead;
+    try {
+      if (unread && id) {
+        await apiService.markBusinessNotificationRead(id);
+        setNotifList((prev) =>
+          (Array.isArray(prev) ? prev : []).map((n) => (
+            String(n.id) === String(id) ? { ...n, isRead: true } : n
+          )),
+        );
+        setNotifUnread((prev) => Math.max(0, prev - 1));
+        window.dispatchEvent(new Event('notifications:updated'));
+      }
+    } catch {
+      // ignore
+    }
+    if (url && typeof url === 'string' && url.startsWith('/')) {
+      onNavigate(url);
+    }
+  };
+
   return (
     <div className="flex min-h-0 flex-col gap-3">
       <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
@@ -316,26 +404,53 @@ function HomepageSidebar({ onNavigate }) {
         <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="flex items-center gap-2 text-xs font-bold text-slate-900">
             Thông báo
-            <span className="rounded-full bg-[#0077B6] px-1.5 py-0.5 text-[9px] font-bold text-white">4</span>
+            {notifUnread > 0 ? (
+              <span className="rounded-full bg-[#0077B6] px-1.5 py-0.5 text-[9px] font-bold text-white">
+                {notifUnread > 99 ? '99+' : notifUnread}
+              </span>
+            ) : null}
           </h2>
-          <button type="button" className="shrink-0 text-[10px] font-semibold text-[#0077B6]">
+          <button
+            type="button"
+            className="shrink-0 text-[10px] font-semibold text-[#0077B6]"
+            onClick={() => window.dispatchEvent(new CustomEvent('business-notifications:open'))}
+          >
             Xem tất cả
           </button>
         </div>
         <div className="flex flex-col divide-y divide-slate-100">
-          {notifications.map((n) => (
-            <div key={n.text} className="flex items-start gap-2.5 py-3 first:pt-0 last:pb-0">
-              {n.warn ? (
-                <AlertTriangle className="mt-1 h-3.5 w-3.5 shrink-0 text-rose-500" />
-              ) : (
-                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.dot}`} />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] leading-relaxed text-slate-700">{n.text}</p>
-                <p className="mt-1.5 text-[10px] leading-none text-slate-400">{n.time}</p>
-              </div>
+          {notifLoading ? (
+            <div className="flex items-center justify-center py-6 text-slate-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
             </div>
-          ))}
+          ) : notifList.length === 0 ? (
+            <p className="py-6 text-center text-[10px] text-slate-400">Không có thông báo.</p>
+          ) : notifList.map((n) => {
+            const localized = localizeNotification(n, language);
+            const visual = getNotificationVisual(n, localized);
+            const displayText = localized.title || localized.content || '—';
+            const timeLabel = formatNotificationRelativeTime(getNotificationTimestamp(n), language);
+            return (
+              <button
+                key={n.id}
+                type="button"
+                onClick={() => handleNotificationClick(n)}
+                className={`flex w-full items-start gap-2.5 py-3 text-left first:pt-0 last:pb-0 transition-colors hover:bg-slate-50/80 ${!n.isRead ? 'bg-[#f8fbfd]/60' : ''}`}
+              >
+                {visual.warn ? (
+                  <AlertTriangle className="mt-1 h-3.5 w-3.5 shrink-0 text-rose-500" />
+                ) : (
+                  <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${visual.dot}`} />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-2 text-[11px] leading-relaxed text-slate-700">{displayText}</p>
+                  {timeLabel ? (
+                    <p className="mt-1.5 text-[10px] leading-none text-slate-400">{timeLabel}</p>
+                  ) : null}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 

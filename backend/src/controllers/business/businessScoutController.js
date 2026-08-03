@@ -4,6 +4,7 @@ import {
   getUnlockedCandidateForBusiness,
   listScoutCandidatesForBusiness,
   listUnlockedCandidatesForBusiness,
+  attachScoutCandidateToJob,
   unlockScoutCandidateForBusiness,
 } from '../../services/businessScoutService.js';
 import { getScoutCreditCost } from '../../services/scoutCreditService.js';
@@ -166,6 +167,34 @@ export const businessScoutController = {
   },
 
   /**
+   * POST /api/business/scout/candidates/:id/attach-job
+   */
+  attachCandidateToJob: async (req, res, next) => {
+    try {
+      const cvId = parseInt(req.params.id, 10);
+      if (Number.isNaN(cvId)) {
+        return res.status(400).json({ success: false, message: 'ID hồ sơ không hợp lệ' });
+      }
+      const { jobId, note } = req.body || {};
+      const data = await attachScoutCandidateToJob({
+        businessId: req.business.id,
+        cvId,
+        jobId,
+        note,
+      });
+      res.json({
+        success: true,
+        message: data.alreadyExists
+          ? 'Ứng viên đã có trong pipeline JD này'
+          : 'Đã thêm ứng viên vào pipeline JD',
+        data,
+      });
+    } catch (error) {
+      return handleServiceError(res, error, next);
+    }
+  },
+
+  /**
    * POST /api/business/scout/candidates/:id/performance-request
    */
   createPerformanceRequest: async (req, res, next) => {
@@ -174,11 +203,14 @@ export const businessScoutController = {
       if (Number.isNaN(cvId)) {
         return res.status(400).json({ success: false, message: 'ID hồ sơ không hợp lệ' });
       }
-      const { message } = req.body || {};
+      const { message, jobId, jobTitle, wantsSimilarCandidates } = req.body || {};
       const request = await createScoutPerformanceRequest({
         businessId: req.business.id,
         cvId,
         message,
+        jobId: jobId != null && jobId !== '' ? parseInt(jobId, 10) : null,
+        jobTitle: jobTitle || null,
+        wantsSimilarCandidates: !!wantsSimilarCandidates,
       });
       res.json({
         success: true,

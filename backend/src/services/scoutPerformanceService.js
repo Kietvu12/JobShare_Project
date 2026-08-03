@@ -208,7 +208,29 @@ async function assertNotAlreadyUnlockedViaCredit(businessId, cvId) {
   return existing;
 }
 
-export async function createScoutPerformanceRequest({ businessId, cvId, message }) {
+function buildPerformanceRequestCode(requestId, date) {
+  const d = date ? new Date(date) : new Date();
+  const ym = `${String(d.getFullYear()).slice(2)}${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return `SP-${ym}-${String(requestId).padStart(3, '0')}`;
+}
+
+function buildPerformanceRequestMessage({ message, jobId, jobTitle }) {
+  const parts = [];
+  if (jobId) {
+    parts.push(`[JD #${jobId}] ${String(jobTitle || '').trim()}`.trim());
+  }
+  if (message?.trim()) parts.push(message.trim());
+  return parts.length ? parts.join('\n\n') : null;
+}
+
+export async function createScoutPerformanceRequest({
+  businessId,
+  cvId,
+  message,
+  jobId,
+  jobTitle,
+  wantsSimilarCandidates = false,
+}) {
   const cv = await CVStorage.findByPk(cvId, {
     include: [{ model: JobCategory, as: 'jobCategory', required: false }],
   });
@@ -240,7 +262,7 @@ export async function createScoutPerformanceRequest({ businessId, cvId, message 
         scoutUnlockId: unlock.id,
         requestedAt: new Date(),
         handledAt: new Date(),
-        message: message?.trim() || null,
+        message: buildPerformanceRequestMessage({ message, jobId, jobTitle }),
         wantsSimilarCandidates: false,
       }, { transaction });
     } else {
@@ -249,7 +271,7 @@ export async function createScoutPerformanceRequest({ businessId, cvId, message 
         scoutUnlockId: unlock.id,
         handledAt: request.handledAt || new Date(),
         requestedAt: request.requestedAt || new Date(),
-        message: message?.trim() || request.message || null,
+        message: buildPerformanceRequestMessage({ message, jobId, jobTitle }) || request.message || null,
       }, { transaction });
     }
 
@@ -290,15 +312,36 @@ export async function createScoutPerformanceRequest({ businessId, cvId, message 
   const { getUnlockedCandidateForBusiness } = await import('./businessScoutService.js');
   const detail = await getUnlockedCandidateForBusiness({ businessId, cvId });
 
+  let wantsSimilar = !!result.request.wantsSimilarCandidates;
+  if (wantsSimilarCandidates && !wantsSimilar) {
+    try {
+      await requestSimilarScoutPerformanceCandidates({
+        businessId,
+        requestId: result.request.id,
+        message: null,
+      });
+      wantsSimilar = true;
+    } catch (similarErr) {
+      console.error('[ScoutPerformance] auto similar candidates failed:', similarErr);
+    }
+  }
+
+  const requestRow = formatRequestRow({
+    ...result.request.toJSON(),
+    business: business?.toJSON?.() || business,
+    cv: cv.toJSON(),
+    wantsSimilarCandidates: wantsSimilar,
+  });
+
   return {
-    ...formatRequestRow({
-      ...result.request.toJSON(),
-      business: business?.toJSON?.() || business,
-      cv: cv.toJSON(),
-    }),
+    ...requestRow,
+    requestCode: buildPerformanceRequestCode(result.request.id, result.request.requestedAt),
+    jobId: jobId ? Number(jobId) : null,
+    jobTitle: jobTitle || null,
     sessionId: session?.id || null,
     candidate: detail.candidate,
-    wantsSimilarCandidates: !!result.request.wantsSimilarCandidates,
+    wantsSimilarCandidates: wantsSimilar,
+    expectedResponseHours: 24,
   };
 }
 

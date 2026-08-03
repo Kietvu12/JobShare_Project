@@ -11,6 +11,7 @@ import {
   updateBusinessCreditRequest,
   cancelBusinessCreditRequest,
 } from '../../services/businessCreditRequestService.js';
+import { createBusinessServiceRequest } from '../../services/businessServiceRequestService.js';
 
 function handleServiceError(res, error, next) {
   if (error.statusCode) {
@@ -68,6 +69,8 @@ export const businessBillingController = {
         page: req.query.page,
         limit: req.query.limit,
         status: req.query.status,
+        tab: req.query.tab,
+        search: req.query.search,
       });
       res.json({ success: true, data });
     } catch (error) {
@@ -150,6 +153,25 @@ export const businessBillingController = {
         success: true,
         message: 'Đã hủy yêu cầu nạp credit',
         data: { request },
+      });
+    } catch (error) {
+      return handleServiceError(res, error, next);
+    }
+  },
+
+  createServiceRequest: async (req, res, next) => {
+    try {
+      const { serviceKey, serviceTitle, note } = req.body || {};
+      const data = await createBusinessServiceRequest({
+        businessId: req.business.id,
+        serviceKey,
+        serviceTitle,
+        note,
+      });
+      res.status(201).json({
+        success: true,
+        message: 'Đã gửi yêu cầu dịch vụ. WS sẽ liên hệ xác nhận trong thời gian sớm nhất.',
+        data,
       });
     } catch (error) {
       return handleServiceError(res, error, next);

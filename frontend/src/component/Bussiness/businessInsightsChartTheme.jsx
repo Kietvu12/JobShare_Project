@@ -26,8 +26,8 @@ export const INSIGHTS_SERIES = [
 
 export const INSIGHTS_DONUT_COLORS = ['#0077B6', '#38bdf8', '#0ea5e9', '#7dd3fc']
 
-export const CHART_MARGIN = { top: 8, right: 12, left: -16, bottom: 0 }
-export const CHART_MARGIN_BAR = { top: 20, right: 12, left: -16, bottom: 0 }
+export const CHART_MARGIN = { top: 8, right: 12, left: 4, bottom: 0 }
+export const CHART_MARGIN_BAR = { top: 20, right: 12, left: 4, bottom: 0 }
 
 export const axisTick = { fontSize: 10, fill: '#94a3b8', fontFamily: 'inherit' }
 export const gridStroke = '#eef2f6'
@@ -171,7 +171,15 @@ export function InsightsTrendAreaChart({ data, height = 200 }) {
           <BusinessChartGradients />
           <CartesianGrid stroke={gridStroke} vertical={false} strokeDasharray="4 4" />
           <XAxis dataKey="date" tick={axisTick} axisLine={false} tickLine={false} dy={4} />
-          <YAxis tick={axisTick} axisLine={false} tickLine={false} width={32} />
+          <YAxis
+            tick={axisTick}
+            axisLine={false}
+            tickLine={false}
+            width={36}
+            domain={[0, 'auto']}
+            allowDecimals={false}
+            tickCount={5}
+          />
           <Tooltip content={<InsightChartTooltip />} cursor={{ stroke: '#cbd5e1', strokeWidth: 1 }} />
           {INSIGHTS_SERIES.map((s) => (
             <Area

@@ -8,6 +8,7 @@ import {
   Users2,
   MessageSquare,
   Receipt,
+  ClipboardList,
   BookOpen,
   PieChart,
 } from 'lucide-react';
@@ -22,9 +23,27 @@ const PAGE_META = [
   { path: '/business/knowledge', end: false, icon: BookOpen, title: { vi: 'Knowledge Hub', en: 'Knowledge Hub', ja: 'ナレッジハブ' } },
   { path: '/business/insights', end: false, icon: PieChart, title: { vi: 'Report & insight', en: 'Report & insight', ja: 'Report & insight' } },
   { path: '/business/messages', end: false, icon: MessageSquare, title: { vi: 'Tin nhắn', en: 'Messages', ja: 'メッセージ' } },
-  { path: '/business/billing', end: false, icon: Receipt, title: { vi: 'Request & Billing', en: 'Request & Billing', ja: 'Request & Billing' } },
+  { path: '/business/service-requests/credit', end: false, icon: ClipboardList, title: { vi: 'Yêu cầu nạp credit', en: 'Credit top-up', ja: 'クレジットチャージ' } },
+  { path: '/business/service-requests/landing-page', end: false, icon: ClipboardList, title: { vi: 'Landing Page premium', en: 'Landing Page premium', ja: 'Landing Page premium' } },
+  { path: '/business/service-requests/recruitment-ads', end: false, icon: ClipboardList, title: { vi: 'Quảng cáo tuyển dụng', en: 'Recruitment ads', ja: '採用広告' } },
+  { path: '/business/service-requests/seminar-campaign', end: false, icon: ClipboardList, title: { vi: 'Seminar & Campaign', en: 'Seminar & Campaign', ja: 'セミナー・キャンペーン' } },
+  { path: '/business/service-requests/company-profile', end: false, icon: ClipboardList, title: { vi: 'Thiết kế profile company', en: 'Company profile', ja: '会社プロフィール' } },
+  { path: '/business/service-requests', end: false, icon: ClipboardList, title: { vi: 'Yêu cầu dịch vụ', en: 'Service requests', ja: 'サービス依頼' } },
+  { path: '/business/billing', end: false, icon: Receipt, title: { vi: 'Thanh toán & Hóa đơn', en: 'Payments & Invoices', ja: '支払い・請求書' } },
   { path: '/business', end: true, icon: LayoutDashboard, title: { vi: 'Dashboard', en: 'Dashboard', ja: 'ダッシュボード' } },
 ];
+
+const VIEWPORT_LOCKED_PREFIXES = [
+  '/business/service-requests',
+  '/business/billing',
+  '/business/messages',
+];
+
+export function isBusinessViewportLockedPage(pathname) {
+  return VIEWPORT_LOCKED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
 
 export function getBusinessPageMeta(pathname, language = 'vi') {
   const lang = ['vi', 'en', 'ja'].includes(language) ? language : 'vi';

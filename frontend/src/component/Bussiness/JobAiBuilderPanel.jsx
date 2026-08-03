@@ -1269,6 +1269,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 <JdTemplate
                   key={jdTemplateSyncKey}
                   compactPreview={compactUi}
+                  businessBranding={embedded}
                   lang={languageTab}
                   formData={formData}
                   setFormData={setFormData}

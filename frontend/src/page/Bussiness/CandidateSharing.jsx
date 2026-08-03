@@ -14,6 +14,12 @@ import {
   savePendingMarketplaceListingDraft,
 } from '../../utils/marketplaceListingFlow'
 import {
+  MARKETPLACE_PLATFORM_FEE_PERCENT,
+  MIN_CTV_RATING_OPTIONS,
+  buildMarketplaceRequirements,
+  computeListingFeeSplitPreview,
+} from '../../utils/marketplaceListingSettings'
+import {
   SIMPLE_FEE_MODES,
   parseJobCommissionToSimple,
   simpleCommissionToPayload,
@@ -135,7 +141,7 @@ const processSteps = [
   { num: '01', title: 'Chọn JD của bạn', desc: 'Chọn job description sẵn có hoặc tạo JD mới trên JobShare.' },
   { num: '02', title: 'Thiết lập phí', desc: 'Cài đặt phí thưởng CTV bạn sẵn sàng trả cho mỗi lần tuyển thành công.' },
   { num: '03', title: 'Đăng lên Sàn HR', desc: 'Gửi duyệt WS — hệ thống tự động kết nối với CTV phù hợp.' },
-  { num: '04', title: 'CTV tiếp cận & ứng tuyển', desc: 'CTV tìm ứng viên, tiến cử và JobShare hỗ trợ quản lý tiến trình.' },
+  { num: '04', title: 'CTV tiếp cận & ứng tuyển', desc: 'CTV tiến cử trên JobShare — email DN chỉ là thông báo, không thay pipeline chính.' },
 ]
 
 const highlightFeatures = [
@@ -393,6 +399,8 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
   const [salaryCurrency, setSalaryCurrency] = useState('JPY')
   const [commissionSeedJob, setCommissionSeedJob] = useState(null)
   const [recruitmentDeadline, setRecruitmentDeadline] = useState('')
+  const [minCtvRating, setMinCtvRating] = useState(0)
+  const [platformBillingAck, setPlatformBillingAck] = useState(false)
   const [creating, setCreating] = useState(false)
   const [loadingJobMeta, setLoadingJobMeta] = useState(false)
 
@@ -418,6 +426,8 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
     setSalaryCurrency('JPY')
     setCommissionSeedJob(null)
     setRecruitmentDeadline('')
+    setMinCtvRating(0)
+    setPlatformBillingAck(false)
   }, [open, initialJobId])
 
   useEffect(() => {
@@ -507,16 +517,31 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
     setJobSearchOpen(false)
   }
 
+  const feeSplitPreview = useMemo(
+    () => computeListingFeeSplitPreview({
+      jobCommissionType,
+      jobValues,
+      platformFeePercent: MARKETPLACE_PLATFORM_FEE_PERCENT,
+    }),
+    [jobCommissionType, jobValues],
+  )
+
   const buildListingDraftFromForm = () => ({
     jobCommissionType,
     jobValues: mapJobValuesForListingApi(jobValues),
     recruitmentDeadline: recruitmentDeadline || null,
+    platformFeePercent: MARKETPLACE_PLATFORM_FEE_PERCENT,
+    requirements: buildMarketplaceRequirements({ minCtvRating: Number(minCtvRating) || 0 }),
   })
 
   const handleQuickCreate = () => {
     const commissionError = validateCommissionForMarketplace(jobCommissionType, jobValues)
     if (commissionError) {
       alert(commissionError)
+      return
+    }
+    if (!platformBillingAck) {
+      alert('Vui lòng xác nhận cam kết xác nhận tuyển thành công trên nền tảng JobShare.')
       return
     }
     savePendingMarketplaceListingDraft(buildListingDraftFromForm())
@@ -528,6 +553,10 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
     if (!jobId) { alert('Chọn công việc'); return }
     const commissionError = validateCommissionForMarketplace(jobCommissionType, jobValues)
     if (commissionError) { alert(commissionError); return }
+    if (!platformBillingAck) {
+      alert('Vui lòng xác nhận cam kết xác nhận tuyển thành công trên nền tảng JobShare.')
+      return
+    }
     setCreating(true)
     try {
       const { wsSessionId } = await createAndSubmitMarketplaceListing(
@@ -587,7 +616,7 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
             </div>
             <div className="min-w-0 pt-0.5">
               <h2 id="create-listing-modal-title" className={businessModalTitleClass}>
-                Tìm công việc
+                Đăng JD lên Sàn HR
               </h2>
               <p className={businessModalSubtitleClass}>
                 Chọn công việc, thiết lập phí thưởng CTV và gửi WS duyệt.
@@ -600,7 +629,7 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
           <section className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 sm:p-4">
             <div className="relative">
               <label className={businessLabelClass}>
-                Tìm công việc <span className="text-red-500">*</span>
+                Chọn JD cần CTV hỗ trợ <span className="text-red-500">*</span>
               </label>
               {selectedJob ? (
                 <div className="flex items-center gap-2 rounded-lg border border-[#0077B6]/30 bg-white px-3 py-2.5 shadow-sm">
@@ -680,6 +709,68 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
             onSalaryCurrencyChange={setSalaryCurrency}
           />
 
+          {feeSplitPreview ? (
+            <section className="rounded-lg border border-[#0077B6]/25 bg-[#e8f4fa]/50 p-3 sm:p-4">
+              <p className="mb-2 text-[11px] font-bold text-slate-800 sm:text-xs">Minh bạch phí thưởng cho CTV</p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div className="rounded-lg border border-slate-200/80 bg-white px-3 py-2">
+                  <p className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">DN trả tối đa</p>
+                  <p className="mt-0.5 text-xs font-bold text-[#0077B6]">{feeSplitPreview.businessPaysLabel}</p>
+                </div>
+                <div className="rounded-lg border border-emerald-200/80 bg-emerald-50/80 px-3 py-2">
+                  <p className="text-[9px] font-semibold uppercase tracking-wide text-emerald-700">CTV nhận</p>
+                  <p className="mt-0.5 text-xs font-bold text-emerald-800">{feeSplitPreview.ctvReceivesLabel}</p>
+                </div>
+                <div className="rounded-lg border border-amber-200/80 bg-amber-50/80 px-3 py-2">
+                  <p className="text-[9px] font-semibold uppercase tracking-wide text-amber-700">Phí nền tảng WS</p>
+                  <p className="mt-0.5 text-xs font-bold text-amber-900">{feeSplitPreview.platformFeeLabel}</p>
+                </div>
+              </div>
+              <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+                CTV thấy hai con số trên sàn trước khi tiến cử — khuyến khích tham gia minh bạch.
+              </p>
+            </section>
+          ) : null}
+
+          <section className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 sm:p-4">
+            <label className={businessLabelClass}>Điểm CTV tối thiểu được tiến cử</label>
+            <select
+              value={minCtvRating}
+              onChange={(e) => setMinCtvRating(Number(e.target.value))}
+              disabled={creating}
+              className={businessInputClass}
+            >
+              {MIN_CTV_RATING_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-[10px] leading-relaxed text-slate-500">
+              Lọc CTV chất lượng thấp khi tiến cử trực tiếp (không qua WS sàng lọc).
+            </p>
+          </section>
+
+          <section className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 space-y-2">
+            <p className="text-[11px] font-bold text-slate-800 sm:text-xs">Quy tắc tiến cử trên Sàn HR</p>
+            <ul className="list-disc space-y-1 pl-4 text-[10px] leading-relaxed text-slate-600 sm:text-[11px]">
+              <li>Email doanh nghiệp chỉ dùng để <strong>thông báo</strong> — hồ sơ phải ghi nhận trong mục Quản lý tiến cử.</li>
+              <li>Doanh nghiệp <strong>xác nhận tuyển thành công trên JobShare</strong> để kích hoạt thanh toán &amp; chia phí.</li>
+              <li>JobShare thu {MARKETPLACE_PLATFORM_FEE_PERCENT}% phí thành công — CTV nhận {100 - MARKETPLACE_PLATFORM_FEE_PERCENT}%.</li>
+            </ul>
+            <label className="flex cursor-pointer items-start gap-2 pt-1">
+              <input
+                type="checkbox"
+                checked={platformBillingAck}
+                onChange={(e) => setPlatformBillingAck(e.target.checked)}
+                disabled={creating}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#0077B6] focus:ring-[#0077B6]/30"
+              />
+              <span className="text-[10px] leading-relaxed text-slate-700 sm:text-[11px]">
+                Tôi cam kết xác nhận tuyển thành công trên nền tảng JobShare và thanh toán qua hệ thống (không tự thỏa thuận ngoài sàn).
+                <span className="text-red-500"> *</span>
+              </span>
+            </label>
+          </section>
+
           <section className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 sm:p-4">
             <label className={businessLabelClass}>Hạn tuyển</label>
             <input
@@ -758,11 +849,11 @@ const Avatar = ({ id, size = 24, bg = '#e0e7ff', color = '#4f46e5' }) => (
 const VALID_TABS = ['jobs', 'nominations', 'candidates', 'costs']
 
 const HOW_IT_WORKS_STEPS = [
-  'Chọn job (phí thưởng lấy từ JD đã cài)',
-  'Gửi đề xuất cho WS duyệt',
-  'Sau khi WS duyệt — job hiện trên sàn cho CTV',
-  'CTV tiến cử ứng viên',
-  'Tuyển thành công → Thanh toán & chia phí',
+  'Chọn job & thiết lập phí thưởng (hiển thị rõ DN trả / CTV nhận 70%)',
+  'Gửi đề xuất cho WS duyệt — cam kết xác nhận tuyển dụng trên nền tảng',
+  'Sau khi WS duyệt — job hiện trên sàn cho CTV đủ điểm',
+  'CTV tiến cử qua JobShare (email chỉ là thông báo)',
+  'Tuyển thành công → DN xác nhận trên sàn → Thanh toán & chia phí',
 ]
 
 function MarketplaceHowItWorks() {
@@ -834,6 +925,7 @@ const CandidateSharing = () => {
   const [nominations, setNominations] = useState([])
   const [settlements, setSettlements] = useState([])
   const [selectedNomination, setSelectedNomination] = useState(null)
+  const [confirmingHireId, setConfirmingHireId] = useState(null)
   const [showCreate, setShowCreate] = useState(() => urlCreate === '1' || !!urlJobId)
   const [createJobId, setCreateJobId] = useState(() => urlJobId || '')
 
@@ -992,20 +1084,46 @@ const CandidateSharing = () => {
     await loadData()
   }, [loadData])
 
+  const HIRE_CONFIRM_ELIGIBLE = new Set([11, 12])
+
+  const handleConfirmHire = useCallback(async (nomination, e) => {
+    e?.stopPropagation?.()
+    if (!nomination?.id || confirmingHireId) return
+    if (!window.confirm(`Xác nhận "${nomination.candidateName || 'ứng viên'}" đã tuyển thành công?\n\nThao tác này kích hoạt quy trình thanh toán & chia phí trên JobShare.`)) {
+      return
+    }
+    setConfirmingHireId(nomination.id)
+    try {
+      const res = await apiService.updateBusinessApplicationStatus(nomination.id, { status: 14 })
+      if (res?.success) {
+        await loadData()
+      } else {
+        alert(res?.message || 'Không thể xác nhận tuyển thành công')
+      }
+    } catch (err) {
+      alert(err?.message || 'Không thể xác nhận tuyển thành công')
+    } finally {
+      setConfirmingHireId(null)
+    }
+  }, [confirmingHireId, loadData])
+
   const showChatColumn = tab !== 'costs'
 
   const tablePanelClass =
     'ctv-marketplace-table-panel overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm shrink-0'
   const tableBodyScrollClass = 'ctv-marketplace-table-body ctv-scrollbar overflow-x-auto'
 
-  const renderNominationsTable = (list, emptyMessage) => (
+  const renderNominationsTable = (list, emptyMessage, { showHireAction = false } = {}) => (
     <div className={tableBodyScrollClass}>
       <table className="w-full min-w-[640px] border-collapse text-xs">
         <thead>
           <tr className="border-b border-slate-100 bg-slate-50/80 text-[10px] uppercase tracking-wide text-slate-400">
-            {['Ứng viên', 'Vị trí', 'CTV tiến cử', 'Ngày', 'Trạng thái'].map((h) => (
-              <th key={h} className={`px-3 py-2 font-semibold ${h === 'Ngày' || h === 'Trạng thái' ? 'text-center' : 'text-left'}`}>
-                {h}
+            {['Ứng viên', 'Vị trí', 'CTV tiến cử', 'Ngày', 'Trạng thái', ...(showHireAction ? [''] : [])].map((h, idx) => (
+              <th
+                key={h || `action-${idx}`}
+                className={`px-3 py-2 font-semibold ${h === 'Ngày' || h === 'Trạng thái' || h === '' ? 'text-center' : 'text-left'}`}
+              >
+                {h === '' ? 'Thao tác' : h}
               </th>
             ))}
           </tr>
@@ -1013,13 +1131,16 @@ const CandidateSharing = () => {
         <tbody>
           {list.length === 0 ? (
             <tr>
-              <td colSpan={5} className="px-3 py-16 text-center align-top text-slate-400">
+              <td colSpan={showHireAction ? 6 : 5} className="px-3 py-16 text-center align-top text-slate-400">
                 {emptyMessage}
               </td>
             </tr>
           ) : list.map((n) => {
             const sc = statusColor(n.status)
             const sel = String(selectedNomination?.id) === String(n.nominationId)
+            const statusCode = Number(n.statusCode)
+            const canConfirmHire = showHireAction && HIRE_CONFIRM_ELIGIBLE.has(statusCode)
+            const hireDone = statusCode === 14 || statusCode === 15
             return (
               <tr
                 key={n.nominationId}
@@ -1046,6 +1167,24 @@ const CandidateSharing = () => {
                     {n.status}
                   </span>
                 </td>
+                {showHireAction ? (
+                  <td className="px-3 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                    {canConfirmHire ? (
+                      <button
+                        type="button"
+                        disabled={confirmingHireId === n.nominationId}
+                        onClick={(e) => handleConfirmHire(n.raw, e)}
+                        className="rounded-md bg-emerald-600 px-2 py-1 text-[10px] font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                      >
+                        {confirmingHireId === n.nominationId ? '...' : 'Xác nhận tuyển'}
+                      </button>
+                    ) : hireDone ? (
+                      <span className="text-[10px] font-medium text-emerald-600">Đã xác nhận</span>
+                    ) : (
+                      <span className="text-[10px] text-slate-300">—</span>
+                    )}
+                  </td>
+                ) : null}
               </tr>
             )
           })}
@@ -1186,7 +1325,7 @@ const CandidateSharing = () => {
                   <div className="shrink-0 border-b border-slate-100 px-3 py-2.5">
                     <span className="text-xs font-bold text-slate-900">Đơn tiến cử — chọn để chat</span>
                   </div>
-                  {renderNominationsTable(nominationsData, 'Chưa có đơn tiến cử')}
+                  {renderNominationsTable(nominationsData, 'Chưa có đơn tiến cử', { showHireAction: true })}
                 </div>
               </>
             )}
@@ -1197,7 +1336,7 @@ const CandidateSharing = () => {
                   <span className="text-xs font-bold text-slate-900 sm:text-sm">Đơn tiến cử</span>
                   <span className="rounded-full bg-[#e8f4fa] px-1.5 py-0.5 text-[10px] font-bold text-[#0077B6]">{nominationsData.length}</span>
                 </div>
-                {renderNominationsTable(nominationsData, 'Chưa có đơn tiến cử')}
+                {renderNominationsTable(nominationsData, 'Chưa có đơn tiến cử', { showHireAction: true })}
               </div>
             )}
 
@@ -1207,7 +1346,7 @@ const CandidateSharing = () => {
                   <span className="text-xs font-bold text-slate-900 sm:text-sm">Ứng viên đang xử lý</span>
                   <span className="rounded-full bg-[#e8f4fa] px-1.5 py-0.5 text-[10px] font-bold text-[#0077B6]">{candidatesData.length}</span>
                 </div>
-                {renderNominationsTable(candidatesData, 'Chưa có ứng viên trong pipeline')}
+                {renderNominationsTable(candidatesData, 'Chưa có ứng viên trong pipeline', { showHireAction: true })}
               </div>
             )}
 

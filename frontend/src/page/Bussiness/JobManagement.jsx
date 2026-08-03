@@ -25,7 +25,10 @@ import useBusinessUser from '../../hooks/useBusinessUser'
 const BUSINESS_JOBS_FONT =
   "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 
-const THREAD_ICON_CLASS = 'border border-slate-200 bg-white text-[#0077B6]'
+const THREAD_ICON_CLASS = 'border border-slate-200 bg-white text-[#1e3a5f]'
+
+const JD_NAVY = '#0f2744'
+const JD_NAVY_MID = '#1e3a5f'
 
 function formatThreadDate(value) {
   if (!value) return ''
@@ -175,7 +178,7 @@ const jobManagementStyles = `
     font-size: var(--jd-fs-title);
     line-height: 1.35;
     font-weight: 600;
-    color: #1e293b;
+    color: ${JD_NAVY};
   }
   .business-jobs-ui .biz-jd-body {
     font-size: var(--jd-fs-body);
@@ -668,7 +671,8 @@ const JobManagement = () => {
           <button
             type="button"
             onClick={handleNewJob}
-            className="shrink-0 inline-flex items-center gap-0.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white biz-jd-body font-medium px-2 py-1.5"
+            className="shrink-0 inline-flex items-center gap-0.5 rounded-md text-white biz-jd-body font-medium px-2 py-1.5"
+            style={{ backgroundColor: JD_NAVY_MID }}
           >
             <Plus className="biz-jd-icon" />
             <span className="sr-only sm:not-sr-only sm:inline">Mới</span>
@@ -677,7 +681,7 @@ const JobManagement = () => {
 
         <div className="flex-1 min-h-0 min-w-0 flex flex-col">
           {marketplaceQuickCreateActive ? (
-            <div className="shrink-0 border-b border-[#0077B6]/20 bg-[#e8f4fa]/80 px-3 py-2 biz-jd-body text-slate-700">
+            <div className="shrink-0 border-b px-3 py-2 biz-jd-body text-slate-700" style={{ borderColor: `${JD_NAVY_MID}33`, backgroundColor: '#f1f5f9' }}>
               {marketplaceSubmitting
                 ? 'Đang gửi WS duyệt đưa job lên sàn CTV...'
                 : 'Tạo & lưu JD bằng chat — sau khi lưu, hệ thống tự gửi WS duyệt đưa job lên sàn (phí thưởng đã cài từ Sàn CTV).'}

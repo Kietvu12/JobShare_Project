@@ -18,6 +18,7 @@ import {
   dispatchNominationMessageNotifications,
   loadJobApplicationForNotify,
 } from '../../services/nominationMessageNotificationService.js';
+import { assertNominationChatContentAllowed } from '../../utils/chatContentModeration.js';
 
 const SENDER_TYPE_BUSINESS = 5;
 
@@ -110,6 +111,19 @@ export const businessMessageController = {
           success: false,
           message: 'ID đơn tiến cử và nội dung hoặc tệp đính kèm là bắt buộc',
         });
+      }
+
+      try {
+        assertNominationChatContentAllowed(trimmedContent);
+      } catch (moderationError) {
+        if (moderationError.statusCode) {
+          return res.status(moderationError.statusCode).json({
+            success: false,
+            message: moderationError.message,
+            code: moderationError.code,
+          });
+        }
+        throw moderationError;
       }
 
       await assertBusinessCanAccessNomination(businessId, jobApplicationId);

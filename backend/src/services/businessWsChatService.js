@@ -44,6 +44,7 @@ export const WS_CHAT_MESSAGE_TYPES = {
   CREDIT_DECISION: 'credit_decision',
   APPROACH_STATUS_UPDATE: 'approach_status_update',
   SAIYO_BRANDING_REQUEST: 'saiyo_branding_request',
+  SERVICE_REQUEST: 'service_request',
   LISTING_REQUEST: 'listing_request',
   LISTING_DECISION: 'listing_decision',
 };
@@ -812,6 +813,67 @@ export async function createWsChatSaiyoBrandingServiceRequestMessage({
   }
 
   return { message, session };
+}
+
+export async function createWsChatBusinessServiceRequestMessage({
+  businessId,
+  serviceKey,
+  serviceTitle,
+  note = null,
+  transaction = null,
+}) {
+  const business = await Business.findByPk(businessId, {
+    attributes: ['id', 'companyName', 'contactName'],
+    transaction,
+  });
+  const session = await ensureWsChatSessionForBusiness({ businessId, business, transaction });
+
+  const title = serviceTitle?.trim() || String(serviceKey || 'Dịch vụ');
+  const content = `Yêu cầu dịch vụ: ${title}`;
+  const requestedAt = new Date().toISOString();
+
+  const message = await BusinessWsChatMessage.create(
+    {
+      sessionId: session.id,
+      senderType: WS_CHAT_SENDER_TYPES.BUSINESS,
+      businessId,
+      messageType: WS_CHAT_MESSAGE_TYPES.SERVICE_REQUEST,
+      requestPayload: {
+        serviceKey,
+        serviceTitle: title,
+        note: note ? String(note).trim() : null,
+        status: 'pending',
+        requestedAt,
+      },
+      content,
+      isReadByBusiness: true,
+      isReadByAdmin: false,
+    },
+    { transaction },
+  );
+
+  const requestCode = `SR-${String(new Date().getFullYear()).slice(2)}${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(message.id).padStart(3, '0')}`;
+  const payload = {
+    ...(message.requestPayload || {}),
+    requestCode,
+  };
+  await message.update({ requestPayload: payload }, { transaction });
+
+  await touchSessionPreview(session, { content, transaction });
+
+  if (!transaction && message) {
+    try {
+      await notifyAdminsSaiyoBrandingRequestCreated({
+        business,
+        sessionId: session.id,
+        serviceTitle: title,
+      });
+    } catch (err) {
+      console.error('[ServiceRequest] admin notify failed:', err?.message || err);
+    }
+  }
+
+  return { message, session, requestCode };
 }
 
 /** Backfill: pending credit requests chưa có tin nhắn chat (yêu cầu tạo trước khi bật sync). */

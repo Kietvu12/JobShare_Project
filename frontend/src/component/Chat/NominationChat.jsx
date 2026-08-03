@@ -472,7 +472,7 @@ const NominationChat = ({
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      alert(t.chatErrorSendMessage);
+      alert(error?.message || t.chatErrorSendMessage);
     } finally {
       setSending(false);
     }
@@ -1556,6 +1556,14 @@ const NominationChat = ({
       </div>
 
       {/* Input */}
+      {['business', 'collaborator', 'applicant'].includes(userType) && (
+        <div
+          className="mx-2 mb-1 rounded-lg border px-3 py-2 text-[11px] leading-snug sm:mx-4"
+          style={{ borderColor: '#fed7aa', backgroundColor: '#fff7ed', color: '#9a3412' }}
+        >
+          {t.chatContactInfoNotice}
+        </div>
+      )}
       <form onSubmit={handleSendMessage} className="border-t px-2 py-1.5 sm:p-4" style={{ borderColor: CARD_BORDER }}>
         {selectedAttachment && (
           <div className="mb-2 flex items-center justify-between rounded-lg border px-3 py-1.5" style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb' }}>

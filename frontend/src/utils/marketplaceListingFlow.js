@@ -52,8 +52,9 @@ export function buildMarketplaceListingBody(jobId, draft) {
   return {
     jobId: Number(jobId),
     headcount: 1,
-    requirements: null,
+    requirements: draft?.requirements ?? null,
     recruitmentDeadline: draft?.recruitmentDeadline || null,
+    platformFeePercent: draft?.platformFeePercent ?? null,
     jobCommissionType: draft.jobCommissionType,
     jobValues: mapJobValuesForListingApi(draft?.jobValues),
   }

@@ -781,6 +781,15 @@ const apiService = {
     return handleResponse(response);
   },
 
+  createBusinessServiceRequest: async (data) => {
+    const response = await fetch(`${API_BASE_URL}/business/billing/service-requests`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
   getBusinessCreditRequestById: async (id) => {
     const response = await fetch(`${API_BASE_URL}/business/billing/credit-requests/${id}`, {
       method: 'GET',
@@ -1018,6 +1027,15 @@ const apiService = {
 
   createBusinessScoutPerformanceRequest: async (cvId, body = {}) => {
     const response = await fetch(`${API_BASE_URL}/business/scout/candidates/${cvId}/performance-request`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
+  attachScoutCandidateToJob: async (cvId, body = {}) => {
+    const response = await fetch(`${API_BASE_URL}/business/scout/candidates/${cvId}/attach-job`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(body),
@@ -1407,6 +1425,27 @@ const apiService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+    return handleResponse(response);
+  },
+
+  getBusinessInsightsReport: async (params = {}) => {
+    const filtered = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
+    );
+    const queryString = new URLSearchParams(filtered).toString();
+    const response = await fetch(
+      `${API_BASE_URL}/business/insights/report${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET', headers: getAuthHeaders() },
+    );
+    return handleResponse(response);
+  },
+
+  getBusinessRecruitmentHealth: async () => {
+    const response = await fetchDedupedJson(
+      `${API_BASE_URL}/business/insights/recruitment-health`,
+      { method: 'GET', headers: getAuthHeaders() },
+      `${API_BASE_URL}/business/insights/recruitment-health`,
+    );
     return handleResponse(response);
   },
 

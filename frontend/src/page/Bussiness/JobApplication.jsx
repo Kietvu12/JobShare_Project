@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import {
   Users, TrendingUp, Award, CheckCircle2, GitBranch,
   Search, ChevronRight, ChevronLeft,
-  MessageSquare, Loader2, X, Bell, User,
+  MessageSquare, Loader2, X, Bell, User, LayoutGrid, List,
 } from 'lucide-react'
 import apiService from '../../services/api'
 import NominationChat from '../../component/Chat/NominationChat'
@@ -75,6 +75,104 @@ const SOURCE_OPTIONS = [
   { value: 'landing', label: 'Branding LP' },
   { value: 'other', label: 'Khác' },
 ]
+
+const KANBAN_COLUMNS = [
+  { id: 'new', label: 'Mới', defaultStatus: 2, statuses: [2] },
+  { id: 'screening', label: 'Sàng lọc', defaultStatus: 3, statuses: [3] },
+  { id: 'shortlist', label: 'Shortlist', defaultStatus: 5, statuses: [5] },
+  { id: 'interview', label: 'Phỏng vấn', defaultStatus: 8, statuses: [7, 8, 9] },
+  { id: 'offer', label: 'Offer', defaultStatus: 11, statuses: [11, 12] },
+  { id: 'hired', label: 'Đã tuyển', defaultStatus: 14, statuses: [14, 15] },
+]
+
+function getKanbanColumnId(status) {
+  const n = Number(status)
+  const col = KANBAN_COLUMNS.find((c) => c.statuses.includes(n))
+  return col?.id || 'new'
+}
+
+function KanbanCard({ app, onOpen, onDragStart }) {
+  const stageStyle = getStatusCategoryStyle(app.statusCategory)
+  return (
+    <div
+      draggable
+      onDragStart={(e) => onDragStart(e, app)}
+      onClick={() => onOpen(app)}
+      className="cursor-pointer rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing"
+    >
+      <div className="text-[11px] font-semibold text-slate-800 truncate">{app.candidateName}</div>
+      <div className="mt-0.5 text-[10px] text-slate-500 truncate">{app.jobTitle}</div>
+      <div className="mt-2 flex items-center justify-between gap-1">
+        <span className="text-[9px] font-semibold truncate" style={{ color: app.sourceColor }}>
+          {app.sourceLabel}
+        </span>
+        <span
+          className="shrink-0 rounded px-1 py-0.5 text-[8px] font-semibold"
+          style={{ color: stageStyle.color, background: stageStyle.bg }}
+        >
+          {app.statusLabel}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function ApplicationsKanban({ applications, onOpen, onStatusChange, updatingId }) {
+  const [dragApp, setDragApp] = useState(null)
+
+  const grouped = useMemo(() => {
+    const map = Object.fromEntries(KANBAN_COLUMNS.map((c) => [c.id, []]))
+    applications.forEach((app) => {
+      const colId = getKanbanColumnId(app.status)
+      if (map[colId]) map[colId].push(app)
+      else map.new.push(app)
+    })
+    return map
+  }, [applications])
+
+  const handleDrop = (column) => async (e) => {
+    e.preventDefault()
+    if (!dragApp || Number(dragApp.status) === column.defaultStatus) {
+      setDragApp(null)
+      return
+    }
+    await onStatusChange(dragApp, column.defaultStatus)
+    setDragApp(null)
+  }
+
+  return (
+    <div className="flex min-h-0 flex-1 gap-2 overflow-x-auto p-3 business-homepage-scroll">
+      {KANBAN_COLUMNS.map((col) => (
+        <div
+          key={col.id}
+          className="flex w-[168px] shrink-0 flex-col rounded-xl bg-slate-50/80 ring-1 ring-slate-100"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleDrop(col)}
+        >
+          <div className="flex items-center justify-between border-b border-slate-100 px-2.5 py-2">
+            <span className="text-[10px] font-bold text-slate-700">{col.label}</span>
+            <span className="rounded-full bg-white px-1.5 py-0.5 text-[9px] font-bold text-slate-500 tabular-nums">
+              {grouped[col.id]?.length || 0}
+            </span>
+          </div>
+          <div className="flex min-h-[120px] flex-col gap-2 overflow-y-auto p-2 business-homepage-scroll">
+            {(grouped[col.id] || []).map((app) => (
+              <KanbanCard
+                key={app.id}
+                app={app}
+                onOpen={onOpen}
+                onDragStart={(_, a) => setDragApp(a)}
+              />
+            ))}
+            {updatingId && grouped[col.id]?.some((a) => a.id === updatingId) && (
+              <div className="text-center text-[9px] text-slate-400 py-1">Đang cập nhật...</div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 function PieChart({ stats }) {
   const slices = stats?.bySource || []
@@ -239,6 +337,8 @@ const JobApplication = () => {
   const [sourceFilter, setSourceFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage] = useState(1)
+  const [viewMode, setViewMode] = useState('table')
+  const [kanbanUpdatingId, setKanbanUpdatingId] = useState(null)
 
   const [selectedApp, setSelectedApp] = useState(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -308,8 +408,8 @@ const JobApplication = () => {
       setLoading(true)
       const tab = TAB_API_MAP[activeTabLabel] || 'all'
       const params = {
-        page,
-        limit: 20,
+        page: viewMode === 'kanban' ? 1 : page,
+        limit: viewMode === 'kanban' ? 100 : 20,
         tab,
         sortBy: 'appliedAt',
         sortOrder: 'DESC',
@@ -331,7 +431,26 @@ const JobApplication = () => {
     } finally {
       setLoading(false)
     }
-  }, [activeTabLabel, page, searchDebounced, jobFilter, sourceFilter, statusFilter])
+  }, [activeTabLabel, page, searchDebounced, jobFilter, sourceFilter, statusFilter, viewMode])
+
+  const handleKanbanStatusChange = useCallback(async (app, newStatus) => {
+    setKanbanUpdatingId(app.id)
+    try {
+      const res = await apiService.updateBusinessApplicationStatus(app.id, { status: newStatus })
+      if (res?.success) {
+        setApplications((prev) => prev.map((a) => (
+          a.id === app.id
+            ? { ...a, status: newStatus, statusLabel: statusOptions.find((o) => Number(o.value) === newStatus)?.label || a.statusLabel }
+            : a
+        )))
+        loadStats()
+      }
+    } catch {
+      // ignore
+    } finally {
+      setKanbanUpdatingId(null)
+    }
+  }, [statusOptions, loadStats])
 
   useEffect(() => {
     loadJobs()
@@ -523,6 +642,24 @@ const JobApplication = () => {
                       <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
                   </select>
+                  <div className="flex rounded-lg border border-slate-200 p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('table')}
+                      className={`rounded-md p-1.5 ${viewMode === 'table' ? 'bg-[#e8f4fa] text-[#0077B6]' : 'text-slate-400'}`}
+                      title="Danh sách"
+                    >
+                      <List className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('kanban')}
+                      className={`rounded-md p-1.5 ${viewMode === 'kanban' ? 'bg-[#e8f4fa] text-[#0077B6]' : 'text-slate-400'}`}
+                      title="Kanban pipeline"
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 {loading ? (
@@ -530,6 +667,17 @@ const JobApplication = () => {
                     <Loader2 className="w-4 h-4 animate-spin text-[#0077B6]" />
                     <span className="text-xs">Đang tải đơn tiến cử...</span>
                   </div>
+                ) : viewMode === 'kanban' ? (
+                  applications.length === 0 ? (
+                    <div className="py-12 text-center text-xs text-slate-400">Chưa có đơn tiến cử phù hợp</div>
+                  ) : (
+                    <ApplicationsKanban
+                      applications={applications}
+                      onOpen={openDrawer}
+                      onStatusChange={handleKanbanStatusChange}
+                      updatingId={kanbanUpdatingId}
+                    />
+                  )
                 ) : (
                   <>
                     <div className="min-h-0 flex-1 overflow-auto business-homepage-scroll lg:hidden">
@@ -619,7 +767,7 @@ const JobApplication = () => {
                   </>
                 )}
 
-                {!loading && pagination.totalPages > 0 && (
+                {!loading && viewMode === 'table' && pagination.totalPages > 0 && (
                   <div className="flex flex-col gap-2 border-t border-slate-100 bg-slate-50/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-[10px] text-slate-500">
                       {pageStart} - {pageEnd} / {pagination.total} tiến cử

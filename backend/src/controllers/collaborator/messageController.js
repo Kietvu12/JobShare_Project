@@ -16,6 +16,7 @@ import {
   dispatchNominationMessageNotifications,
   loadJobApplicationForNotify,
 } from '../../services/nominationMessageNotificationService.js';
+import { assertNominationChatContentAllowed } from '../../utils/chatContentModeration.js';
 
 /**
  * Message Controller (CTV)
@@ -202,6 +203,21 @@ export const messageController = {
           success: false,
           message: 'Loại người gửi không hợp lệ (2: Collaborator, 3: System)'
         });
+      }
+
+      if (senderTypeNum === 2 && trimmedContent) {
+        try {
+          assertNominationChatContentAllowed(trimmedContent);
+        } catch (moderationError) {
+          if (moderationError.statusCode) {
+            return res.status(moderationError.statusCode).json({
+              success: false,
+              message: moderationError.message,
+              code: moderationError.code,
+            });
+          }
+          throw moderationError;
+        }
       }
 
       // Validate adminId if provided

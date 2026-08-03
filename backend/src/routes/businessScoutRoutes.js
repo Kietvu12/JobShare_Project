@@ -16,6 +16,7 @@ router.post('/performance-requests/:id/view', businessScoutController.markPerfor
 router.post('/performance-requests/:id/explore', businessScoutController.setPerformanceExploreStatus);
 router.get('/candidates', businessScoutController.listCandidates);
 router.get('/candidates/:id', businessScoutController.getCandidate);
+router.post('/candidates/:id/attach-job', businessScoutController.attachCandidateToJob);
 router.post('/candidates/:id/performance-request', businessScoutController.createPerformanceRequest);
 router.post('/candidates/:id/unlock', businessScoutController.unlockCandidate);
 

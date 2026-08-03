@@ -4,6 +4,8 @@ import {
   BusinessSavedCandidate,
   CVStorage,
   JobCategory,
+  Job,
+  JobApplication,
 } from '../models/index.js';
 import {
   SCOUT_LISTING_STATUS,
@@ -155,8 +157,18 @@ function buildLockedScoutPayload(cvJson, { search } = {}) {
   const payload = {
     id: cvJson.id,
     anonymousName: ANONYMOUS_LABEL,
+    desiredPosition: cvJson.desiredPosition || cvJson.jobCategory?.name || null,
+    desiredWorkLocation: cvJson.desiredWorkLocation || null,
+    desiredIncome: cvJson.desiredIncome ?? null,
+    experienceYears: cvJson.experienceYears ?? null,
+    jlptLevel: cvJson.jlptLevel ?? null,
+    jpConversationLevel: cvJson.jpConversationLevel ?? null,
+    enConversationLevel: cvJson.enConversationLevel ?? null,
+    jpResidenceStatus: cvJson.jpResidenceStatus ?? null,
     scoutPublicSummary: prText,
     technicalSkills: skills,
+    jobCategoryId: cvJson.jobCategoryId ?? null,
+    jobCategory: cvJson.jobCategory || null,
     isUnlocked: false,
   };
 
@@ -430,13 +442,27 @@ async function getUnlockedCvIdSet(businessId, cvIds) {
   return new Set(rows.map((r) => Number(r.cvId)));
 }
 
-function buildListWhere({ search }) {
+async function getAllUnlockedCvIdsForBusiness(businessId) {
+  if (!businessId) return [];
+  const rows = await BusinessScoutUnlock.findAll({
+    where: { businessId },
+    attributes: ['cvId'],
+    raw: true,
+  });
+  return [...new Set(rows.map((r) => Number(r.cvId)).filter(Boolean))];
+}
+
+function buildListWhere({ search, excludeCvIds }) {
   const where = {
     scoutStatus: SCOUT_LISTING_STATUS.LISTED,
     status: 1,
     isDuplicate: false,
     duplicateWithCvId: null,
   };
+
+  if (excludeCvIds?.length) {
+    where.id = { [Op.notIn]: excludeCvIds };
+  }
 
   if (search && String(search).trim()) {
     const q = String(search).trim();
@@ -475,8 +501,10 @@ export async function listScoutCandidatesForBusiness({
   const sortField = allowedSort.includes(sortBy) ? sortBy : 'scoutListedAt';
   const direction = String(sortOrder).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
+  const unlockedCvIds = await getAllUnlockedCvIdsForBusiness(businessId);
+
   const { count, rows } = await CVStorage.findAndCountAll({
-    where: buildListWhere({ search }),
+    where: buildListWhere({ search, excludeCvIds: unlockedCvIds }),
     include: [
       {
         model: JobCategory,
@@ -570,6 +598,69 @@ export async function getScoutCandidateForBusiness({ businessId, cvId, search })
   };
 }
 
+export async function attachScoutCandidateToJob({ businessId, cvId, jobId, note }) {
+  const safeCvId = parseInt(cvId, 10);
+  const safeJobId = parseInt(jobId, 10);
+  if (!Number.isFinite(safeCvId) || !Number.isFinite(safeJobId)) {
+    const err = new Error('ID hồ sơ hoặc JD không hợp lệ');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const unlock = await BusinessScoutUnlock.findOne({ where: { businessId, cvId: safeCvId } });
+  if (!unlock) {
+    const err = new Error('Cần mở hồ sơ ứng viên trước khi thêm vào JD');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const job = await Job.findOne({ where: { id: safeJobId, businessId } });
+  if (!job) {
+    const err = new Error('Không tìm thấy JD thuộc doanh nghiệp');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const cv = await CVStorage.findByPk(safeCvId);
+  if (!cv) {
+    const err = new Error('Không tìm thấy hồ sơ ứng viên');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const existing = await JobApplication.findOne({
+    where: { jobId: safeJobId, cvId: safeCvId },
+  });
+  if (existing) {
+    return {
+      application: existing.toJSON(),
+      alreadyExists: true,
+      job: { id: job.id, title: job.title, jobCode: job.jobCode || null },
+    };
+  }
+
+  const application = await JobApplication.create({
+    jobId: safeJobId,
+    cvId: safeCvId,
+    cvCode: cv.code || null,
+    title: cv.name || cv.desiredPosition || 'Ứng viên Scout',
+    status: 5,
+    appliedAt: new Date(),
+    memo: note?.trim() || `Thêm từ Scout (${unlock.unlockType || 'scout_credit'})`,
+  });
+
+  await BusinessSavedCandidate.update(
+    { pipelineStatus: 'processing' },
+    { where: { businessId, cvId: safeCvId } },
+  );
+
+  return {
+    application: application.toJSON(),
+    alreadyExists: false,
+    job: { id: job.id, title: job.title, jobCode: job.jobCode || null },
+  };
+}
+
 export async function unlockScoutCandidateForBusiness({ businessId, cvId }) {
   const result = await unlockScoutCvForBusiness({ businessId, cvId });
   const detail = await getScoutCandidateForBusiness({ businessId, cvId });
@@ -585,5 +676,6 @@ export default {
   getScoutCandidateForBusiness,
   getUnlockedCandidateForBusiness,
   unlockScoutCandidateForBusiness,
+  attachScoutCandidateToJob,
   buildPublicScoutPayload,
 };

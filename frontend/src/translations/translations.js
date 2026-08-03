@@ -1656,6 +1656,8 @@ export const translations = {
     chatErrorInvalidAmount: 'Vui lòng nhập số tiền hợp lệ',
     chatErrorUpdateFailed: 'Cập nhật thất bại',
     chatErrorSendMessage: 'Có lỗi xảy ra khi gửi tin nhắn',
+    chatContactInfoNotice:
+      'Vì lý do bảo mật, không gửi email, số điện thoại, số tài khoản hoặc thông tin liên hệ trực tiếp. Mọi trao đổi và thanh toán được xử lý qua JobShare.',
     chatErrorInterviewRequired: 'Vui lòng nhập đầy đủ ngày và giờ phỏng vấn',
     chatErrorCreateSchedule: 'Có lỗi xảy ra khi tạo lịch',
     chatErrorUpdateApplication: 'Có lỗi xảy ra khi cập nhật đơn ứng tuyển',
@@ -3656,6 +3658,8 @@ export const translations = {
     chatErrorInvalidAmount: 'Please enter a valid amount',
     chatErrorUpdateFailed: 'Update failed',
     chatErrorSendMessage: 'Failed to send message',
+    chatContactInfoNotice:
+      'For security, do not share email, phone numbers, bank accounts, or direct contact details. All communication and payments are handled through JobShare.',
     chatErrorInterviewRequired: 'Please enter date and time for interview',
     chatErrorCreateSchedule: 'Failed to create schedule',
     chatErrorUpdateApplication: 'Failed to update application',
@@ -5669,6 +5673,8 @@ export const translations = {
     chatErrorInvalidAmount: '有効な金額を入力してください',
     chatErrorUpdateFailed: '更新に失敗しました',
     chatErrorSendMessage: 'メッセージの送信に失敗しました',
+    chatContactInfoNotice:
+      'セキュリティのため、メール・電話番号・口座番号などの直接連絡先は送信できません。やり取りと支払いはJobShare上で行ってください。',
     chatErrorInterviewRequired: '面接の日時を入力してください',
     chatErrorCreateSchedule: 'スケジュールの作成に失敗しました',
     chatErrorUpdateApplication: '応募の更新に失敗しました',

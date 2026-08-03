@@ -126,12 +126,15 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
     const timer = setInterval(refreshNotifCount, 45000);
     const onFocus = () => refreshNotifCount();
     const onExternalUpdate = () => refreshNotifCount();
+    const onOpenPanel = () => setNotifOpen(true);
     window.addEventListener('focus', onFocus);
     window.addEventListener('notifications:updated', onExternalUpdate);
+    window.addEventListener('business-notifications:open', onOpenPanel);
     return () => {
       clearInterval(timer);
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('notifications:updated', onExternalUpdate);
+      window.removeEventListener('business-notifications:open', onOpenPanel);
     };
   }, []);
 

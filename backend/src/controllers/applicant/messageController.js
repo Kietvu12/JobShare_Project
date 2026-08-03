@@ -10,6 +10,7 @@ import {
   dispatchNominationMessageNotifications,
   loadJobApplicationForNotify,
 } from '../../services/nominationMessageNotificationService.js';
+import { assertNominationChatContentAllowed } from '../../utils/chatContentModeration.js';
 
 /**
  * Tin nhắn đơn tiến cử — ứng viên chat với Admin (đơn có applicant_id, không qua CTV)
@@ -89,6 +90,21 @@ export const applicantMessageController = {
           success: false,
           message: 'Nội dung hoặc tệp đính kèm là bắt buộc',
         });
+      }
+
+      if (trimmedContent) {
+        try {
+          assertNominationChatContentAllowed(trimmedContent);
+        } catch (moderationError) {
+          if (moderationError.statusCode) {
+            return res.status(moderationError.statusCode).json({
+              success: false,
+              message: moderationError.message,
+              code: moderationError.code,
+            });
+          }
+          throw moderationError;
+        }
       }
 
       if (senderTypeNum !== 4) {

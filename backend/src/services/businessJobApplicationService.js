@@ -63,7 +63,7 @@ async function getOwnedJobIds(businessId) {
   return rows.map((r) => Number(r.id));
 }
 
-async function loadSourceMaps(businessId, jobIds) {
+export async function loadSourceMaps(businessId, jobIds) {
   const safeJobIds = jobIds.length ? jobIds : [-1];
   const [listings, unlocks, perfRequests] = await Promise.all([
     BusinessCtvMarketplaceListing.findAll({

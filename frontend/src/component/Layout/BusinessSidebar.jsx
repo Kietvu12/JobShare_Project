@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -10,6 +10,7 @@ import {
   Users2,
   MessageSquare,
   Receipt,
+  ClipboardList,
   BookOpen,
   PieChart,
   ChevronRight,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont';
+import apiService from '../../services/api';
 
 /** Màu chủ đạo — active state & biểu đồ */
 const BRAND = {
@@ -38,13 +40,21 @@ const I18N = {
     saiyo: 'Saiyo Branding',
     partnerCTV: 'Sàn CTV',
     messages: 'Tin nhắn',
-    requestBilling: 'Request & Billing',
+    requestBilling: 'Yêu cầu & Thanh toán',
+    serviceRequests: 'Yêu cầu dịch vụ',
+    paymentManagement: 'Thanh toán & Hóa đơn',
     knowledgeHub: 'Knowledge Hub',
     insights: 'Report & insight',
     settings: 'Cài đặt',
     recruitmentHealth: 'Recruitment Health',
     healthScoreHint: 'Chỉ số tổng hợp tuyển dụng',
+    healthExcellent: 'Tốt',
     healthGood: 'Khá tốt',
+    healthAverage: 'Trung bình',
+    healthNeedsImprovement: 'Cần cải thiện',
+    healthNoData: 'Chưa có dữ liệu',
+    healthLoading: 'Đang tính...',
+    healthDays: (n) => `${n} ngày`,
     collapseSidebar: 'Thu gọn sidebar',
     expandSidebar: 'Mở rộng sidebar',
     closeMenu: 'Đóng menu',
@@ -61,13 +71,21 @@ const I18N = {
     saiyo: 'Saiyo Branding',
     partnerCTV: 'CTV Marketplace',
     messages: 'Messages',
-    requestBilling: 'Request & Billing',
+    requestBilling: 'Requests & Billing',
+    serviceRequests: 'Service requests',
+    paymentManagement: 'Payment management',
     knowledgeHub: 'Knowledge Hub',
     insights: 'Report & insight',
     settings: 'Settings',
     recruitmentHealth: 'Recruitment Health',
     healthScoreHint: 'Overall hiring health score',
+    healthExcellent: 'Excellent',
     healthGood: 'Good',
+    healthAverage: 'Average',
+    healthNeedsImprovement: 'Needs improvement',
+    healthNoData: 'No data yet',
+    healthLoading: 'Calculating...',
+    healthDays: (n) => `${n} days`,
     collapseSidebar: 'Collapse sidebar',
     expandSidebar: 'Expand sidebar',
     closeMenu: 'Close menu',
@@ -84,23 +102,39 @@ const I18N = {
     saiyo: 'Saiyo ブランディング',
     partnerCTV: 'CTVマーケット',
     messages: 'メッセージ',
-    requestBilling: 'Request & Billing',
+    requestBilling: 'リクエスト・請求',
+    serviceRequests: 'サービス依頼',
+    paymentManagement: '支払い管理',
     knowledgeHub: 'ナレッジハブ',
     insights: 'Report & insight',
     settings: '設定',
     recruitmentHealth: 'Recruitment Health',
     healthScoreHint: '採用健全性スコア',
-    healthGood: '良好',
+    healthExcellent: '良好',
+    healthGood: 'やや良好',
+    healthAverage: '普通',
+    healthNeedsImprovement: '要改善',
+    healthNoData: 'データなし',
+    healthLoading: '計算中...',
+    healthDays: (n) => `${n}日`,
     collapseSidebar: 'サイドバーを折りたたむ',
     expandSidebar: 'サイドバーを展開',
     closeMenu: 'メニューを閉じる',
   },
 };
 
-/** Mock — thay bằng API sau */
-const MOCK_RECRUITMENT_HEALTH = {
-  score: 72,
-  summaryValue: '18 ngày',
+const HEALTH_RATING_KEYS = {
+  excellent: 'healthExcellent',
+  good: 'healthGood',
+  average: 'healthAverage',
+  needsImprovement: 'healthNeedsImprovement',
+  noData: 'healthNoData',
+};
+
+const DEFAULT_RECRUITMENT_HEALTH = {
+  score: 0,
+  avgDays: 0,
+  rating: 'noData',
 };
 
 const NAV_SECTIONS = [
@@ -126,7 +160,14 @@ const NAV_SECTIONS = [
   {
     items: [
       { id: 'messages', icon: MessageSquare, path: '/business/messages', label: 'messages' },
-      { id: 'billing', icon: Receipt, path: '/business/billing', label: 'requestBilling' },
+    ],
+  },
+  {
+    label: 'requestBilling',
+    nested: true,
+    items: [
+      { id: 'service-requests', icon: ClipboardList, path: '/business/service-requests', label: 'serviceRequests' },
+      { id: 'billing', icon: Receipt, path: '/business/billing', label: 'paymentManagement' },
     ],
   },
 ];
@@ -183,6 +224,31 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
       return false;
     }
   });
+  const [health, setHealth] = useState(DEFAULT_RECRUITMENT_HEALTH);
+  const [healthLoading, setHealthLoading] = useState(true);
+
+  const loadRecruitmentHealth = useCallback(async () => {
+    try {
+      const res = await apiService.getBusinessRecruitmentHealth();
+      const data = res?.data || {};
+      setHealth({
+        score: Number(data.score) || 0,
+        avgDays: Number(data.avgDays) || 0,
+        rating: data.rating || 'noData',
+      });
+    } catch {
+      setHealth(DEFAULT_RECRUITMENT_HEALTH);
+    } finally {
+      setHealthLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRecruitmentHealth();
+    const onFocus = () => loadRecruitmentHealth();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [loadRecruitmentHealth, pathname]);
 
   useEffect(() => {
     try {
@@ -199,7 +265,9 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
     return pathname === item.path || pathname.startsWith(`${item.path}/`);
   };
 
-  const health = MOCK_RECRUITMENT_HEALTH;
+  const healthRatingLabel = t[HEALTH_RATING_KEYS[health.rating] || 'healthNoData'] || t.healthNoData;
+  const healthSummaryDays = health.avgDays > 0 ? t.healthDays(health.avgDays) : '—';
+  const healthScore = healthLoading ? 0 : health.score;
 
   const toggleCollapse = () => setCollapsed((v) => !v);
 
@@ -335,17 +403,21 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
           <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 shadow-sm">
             <div className="flex items-center gap-2.5">
               <div className="relative flex shrink-0 items-center justify-center">
-                <RecruitmentDonut percent={health.score} size={44} strokeWidth={5} />
-                <span className="absolute text-[10px] font-bold leading-none text-slate-800">{health.score}</span>
+                <RecruitmentDonut percent={healthScore} size={44} strokeWidth={5} />
+                <span className="absolute text-[10px] font-bold leading-none text-slate-800">
+                  {healthLoading ? '…' : healthScore}
+                </span>
               </div>
               <div className="min-w-0 flex-1 leading-snug">
                 <div className="text-[8px] font-semibold uppercase tracking-wide text-slate-400">
                   {t.recruitmentHealth}
                 </div>
                 <div className="text-[11px] font-bold text-slate-800">
-                  {health.score}% · {health.summaryValue}
+                  {healthLoading ? t.healthLoading : `${healthScore}% · ${healthSummaryDays}`}
                 </div>
-                <div className="text-[9px] text-[#0077B6]">{t.healthGood}</div>
+                <div className="text-[9px] text-[#0077B6]">
+                  {healthLoading ? '…' : healthRatingLabel}
+                </div>
               </div>
             </div>
 
@@ -355,8 +427,10 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
           </div>
         ) : (
           <div className="relative flex items-center justify-center py-0.5">
-            <RecruitmentDonut percent={health.score} size={36} strokeWidth={4} />
-            <span className="absolute text-[8px] font-bold text-[#0077B6]">{health.score}</span>
+            <RecruitmentDonut percent={healthScore} size={36} strokeWidth={4} />
+            <span className="absolute text-[8px] font-bold text-[#0077B6]">
+              {healthLoading ? '…' : healthScore}
+            </span>
           </div>
         )}
       </div>
