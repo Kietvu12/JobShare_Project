@@ -4,7 +4,8 @@ import ResizableCvTable from './ResizableCvTable';
 import { cvLayoutKey } from './cvLayoutKey';
 import { SupplementTplText } from './CvTemplateSupplementText.jsx';
 import { CV_LINK } from './cvSupplementLinks.js';
-import { formatShokumuPeriodRangeJa } from '../../utils/cvJpDateDisplay.js';
+import { formatShokumuPeriodRangeJa, parseCvDateParts } from '../../utils/cvJpDateDisplay.js';
+import CvTemplateAvatarFrame from './CvTemplateAvatarFrame.jsx';
 
 /** Chuẩn hóa birthDate từ form/API (YYYY-MM-DD, ISO datetime, gạch dọc, thiếu số 0) → { y, mo, d }. */
 function parseIsoBirthParts(s) {
@@ -175,7 +176,7 @@ const CvTemplateCommon = ({
   const birthYearRef = useRef(null);
   const birthMonthRef = useRef(null);
   const birthDayRef = useRef(null);
-  const visaExpiryParts = parseIsoBirthParts(formData.visaExpirationDate) || { y: '', mo: '', d: '' };
+  const visaExpiryParts = parseCvDateParts(formData.visaExpirationDate);
   const visaYearRef = useRef(null);
   const visaMonthRef = useRef(null);
   const visaDayRef = useRef(null);
@@ -383,9 +384,19 @@ const CvTemplateCommon = ({
                   <td className="align-top border-0 border-none bg-transparent align-middle pl-2 pt-1.5" style={{ border: 'none', background: 'transparent', width: '25%' }}>
                     <div className="flex flex-col items-center gap-2">
                       {currentAvatarPreview ? (
-                        <div style={{ height: '7.5rem', width: '5.625rem', overflow: 'hidden' }}>
-                          <img src={currentAvatarPreview} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', aspectRatio: '3/4', display: 'block' }} />
-                        </div>
+                        <CvTemplateAvatarFrame
+                          src={currentAvatarPreview}
+                          frame={layout.avatarFrame}
+                          onFrameChange={(nextFrame) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              cvTableLayout: { ...(prev.cvTableLayout || {}), avatarFrame: nextFrame },
+                            }))
+                          }
+                          width="5.625rem"
+                          height="7.5rem"
+                          interactive={!pdfExportMode}
+                        />
                       ) : null}
                       {!pdfExportMode && (
                       <label className="inline-flex items-center justify-center rounded border border-slate-300 bg-white px-2 py-1 text-[10px] text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer cv-pdf-hide">
@@ -680,6 +691,9 @@ const CvTemplateCommon = ({
               const eduCount = Math.max(1, (formData.educations || []).length);
               const workCount = Math.max(1, (formData.workExperiences || []).length);
               const certCount = Math.max(1, (formData.certificates || []).length);
+              const canRemoveEducation = (formData.educations?.length || 0) > 1;
+              const canRemoveWork = (formData.workExperiences?.length || 0) > 1;
+              const canRemoveCertificate = (formData.certificates?.length || 0) > 1;
               return (
                 <ResizableCvTable
                   className="w-full border-collapse mt-4"
@@ -714,11 +728,11 @@ const CvTemplateCommon = ({
                             className="relative"
                           >
                             <td className="border p-1.5 text-center text-xs relative" style={{ borderColor: '#1f2937' }}>
-                              {hoveredEducationIndex === i && handleRemoveEducation ? (
+                              {hoveredEducationIndex === i && canRemoveEducation && handleRemoveEducation ? (
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveEducation(i)}
-                                  className="absolute -right-2 -top-2 z-10 rounded-full bg-white p-1 text-rose-500 shadow border border-rose-200 hover:text-rose-700 hover:bg-rose-50"
+                                  className="absolute -right-2 -top-2 z-10 rounded-full bg-white p-1 text-rose-500 shadow border border-rose-200 hover:text-rose-700 hover:bg-rose-50 cv-pdf-hide"
                                   title="Xóa học vấn"
                                   aria-label="Xóa học vấn"
                                 >
@@ -745,7 +759,10 @@ const CvTemplateCommon = ({
                               </span>
                             </td>
                           </tr>
-                          <tr>
+                          <tr
+                            onMouseEnter={() => setHoveredEducationIndex(i)}
+                            onMouseLeave={() => setHoveredEducationIndex(null)}
+                          >
                             <td className="border p-1.5 text-center text-xs" style={{ borderColor: '#1f2937' }}><span {...cvEditableArray('educations', i, 'endYear', 'block', {}, undefined, sm(`tpl-common-edu-${i}-endYear`, `education-${i}-endYear`))} /></td>
                             <td className="border p-1.5 text-center text-xs" style={{ borderColor: '#1f2937' }}><span {...cvEditableArray('educations', i, 'endMonth', 'block', {}, undefined, sm(`tpl-common-edu-${i}-endMonth`, `education-${i}-endMonth`))} /></td>
                             <td className="border p-1.5 text-xs min-w-0 max-w-0" style={{ borderColor: '#1f2937', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
@@ -795,11 +812,11 @@ const CvTemplateCommon = ({
                             className="relative"
                           >
                             <td className="border p-1.5 text-center text-xs relative" style={{ borderColor: '#1f2937' }}>
-                              {hoveredWorkIndex === i && handleRemoveWorkExperienceAt ? (
+                              {hoveredWorkIndex === i && canRemoveWork && handleRemoveWorkExperienceAt ? (
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveWorkExperienceAt(i)}
-                                  className="absolute -right-2 -top-2 z-10 rounded-full bg-white p-1 text-rose-500 shadow border border-rose-200 hover:text-rose-700 hover:bg-rose-50"
+                                  className="absolute -right-2 -top-2 z-10 rounded-full bg-white p-1 text-rose-500 shadow border border-rose-200 hover:text-rose-700 hover:bg-rose-50 cv-pdf-hide"
                                   title="Xóa 職歴"
                                   aria-label="Xóa 職歴"
                                 >
@@ -818,7 +835,10 @@ const CvTemplateCommon = ({
                               </span>
                             </td>
                           </tr>
-                          <tr>
+                          <tr
+                            onMouseEnter={() => setHoveredWorkIndex(i)}
+                            onMouseLeave={() => setHoveredWorkIndex(null)}
+                          >
                             <td className="border p-1.5 text-center text-xs" style={{ borderColor: '#1f2937' }}>
                               <span {...cvEditableArray('workExperiences', i, 'endYear', 'block', {}, emp.endYear || '', sm(`tpl-common-rireki-wexp-${i}-endYear`, `employment-${i}-endYear`))} />
                             </td>
@@ -874,11 +894,11 @@ const CvTemplateCommon = ({
                           className="relative"
                         >
                           <td className="border p-1.5 text-center text-xs relative" style={{ borderColor: '#1f2937' }}>
-                            {hoveredCertificateIndex === i && typeof handleRemoveCertificate === 'function' ? (
+                            {hoveredCertificateIndex === i && canRemoveCertificate && typeof handleRemoveCertificate === 'function' ? (
                               <button
                                 type="button"
                                 onClick={() => handleRemoveCertificate(i)}
-                                className="absolute -right-2 -top-2 z-10 rounded-full bg-white p-1 text-rose-500 shadow border border-rose-200 hover:text-rose-700 hover:bg-rose-50"
+                                className="absolute -right-2 -top-2 z-10 rounded-full bg-white p-1 text-rose-500 shadow border border-rose-200 hover:text-rose-700 hover:bg-rose-50 cv-pdf-hide"
                                 title="Xóa chứng chỉ"
                                 aria-label="Xóa chứng chỉ"
                               >
@@ -1354,6 +1374,7 @@ const CvTemplateCommon = ({
             {(() => {
               const list = formData.workExperiences || [];
               const blockCount = Math.max(1, list.length);
+              const canRemoveShokumuWork = list.length > 1;
               return (
                 <ResizableCvTable
                   className="w-full border-collapse border"
@@ -1414,11 +1435,11 @@ const CvTemplateCommon = ({
                             onMouseLeave={() => setHoveredWorkIndex(null)}
                           >
                             <td className="px-2 py-1.5 align-top border-0 whitespace-nowrap relative cv-pdf-shokumu-period" style={{ borderColor: '#1f2937', width: '68%' }} data-cv-shokumu-period data-cv-period-display={periodDisplay}>
-                              {hoveredWorkIndex === idx && typeof handleRemoveWorkExperienceAt === 'function' ? (
+                              {hoveredWorkIndex === idx && canRemoveShokumuWork && typeof handleRemoveWorkExperienceAt === 'function' ? (
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveWorkExperienceAt(idx)}
-                                  className="absolute right-1 top-1 z-10 rounded-full bg-white p-1 text-rose-500 shadow border border-rose-200 hover:text-rose-700 hover:bg-rose-50"
+                                  className="absolute right-1 top-1 z-10 rounded-full bg-white p-1 text-rose-500 shadow border border-rose-200 hover:text-rose-700 hover:bg-rose-50 cv-pdf-hide"
                                   title="Xóa 職務経歴"
                                   aria-label="Xóa 職務経歴"
                                 >
@@ -1459,14 +1480,15 @@ const CvTemplateCommon = ({
                                 />
                                 <span>月～</span>
                                 {emp.endCurrent ? (
-                                  <span className="inline-flex items-center gap-1">
-                                    <button
-                                      type="button"
-                                      onClick={toggleEndCurrent}
-                                      className="rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 hover:bg-slate-50 hover:text-slate-800"
-                                    >
-                                      現在
-                                    </button>
+                                  <span
+                                    className="inline-flex items-center justify-center rounded border border-slate-300 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-700"
+                                    {...(!pdfExportMode ? {
+                                      role: 'button',
+                                      tabIndex: 0,
+                                      onClick: toggleEndCurrent,
+                                    } : {})}
+                                  >
+                                    現在
                                   </span>
                                 ) : (
                                   <>
@@ -1488,7 +1510,7 @@ const CvTemplateCommon = ({
                                       className="inline-block w-[2.2em] min-w-0 px-0 text-center tabular-nums bg-transparent border-0 outline-none"
                                     />
                                     <span>月</span>
-                                    <button type="button" onClick={toggleEndCurrent} className="ml-1 rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 hover:bg-slate-50 hover:text-slate-800">現在</button>
+                                    <button type="button" onClick={toggleEndCurrent} className="ml-1 rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 hover:bg-slate-50 hover:text-slate-800 cv-pdf-hide">現在</button>
                                   </>
                                 )}
                               </span>
@@ -1570,11 +1592,11 @@ const CvTemplateCommon = ({
                     className="relative"
                   >
                     <td className="border p-1.5 align-top relative" style={{ width: '60%', borderColor: '#1f2937' }}>
-                      {hoveredCertificateIndex === i && typeof handleRemoveCertificate === 'function' ? (
+                      {hoveredCertificateIndex === i && (formData.certificates?.length || 0) > 1 && typeof handleRemoveCertificate === 'function' ? (
                         <button
                           type="button"
                           onClick={() => handleRemoveCertificate(i)}
-                          className="absolute -right-2 -top-2 z-10 rounded-full bg-white p-1 text-rose-500 shadow border border-rose-200 hover:text-rose-700 hover:bg-rose-50"
+                          className="absolute -right-2 -top-2 z-10 rounded-full bg-white p-1 text-rose-500 shadow border border-rose-200 hover:text-rose-700 hover:bg-rose-50 cv-pdf-hide"
                           title="Xóa 資格"
                           aria-label="Xóa 資格"
                         >

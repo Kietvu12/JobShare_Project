@@ -11,10 +11,12 @@ import {
   formatShokumuPeriodRangeJa,
   formatCvDocumentHeaderJa,
   formatCvAnyDateJa,
+  parseCvDateParts,
 } from '../../utils/cvJpDateDisplay.js';
 import CvTemplateItTechnicalCertTable from './CvTemplateItTechnicalCertTable.jsx';
 import { withEducationYearsCalculated, calculateEducationYearsFromDates } from '../../utils/cvEducationUtils.js';
 import CvTemplateDateTriplet from './CvTemplateDateTriplet.jsx';
+import CvTemplateAvatarFrame from './CvTemplateAvatarFrame.jsx';
 import {
   displayEditableScalarText,
   readContentEditableText,
@@ -124,11 +126,7 @@ const CvTemplateTechnical = ({
     const m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
     return m ? { y: m[1], mo: String(parseInt(m[2], 10)).padStart(2, '0'), d: String(parseInt(m[3], 10)).padStart(2, '0') } : { y: '', mo: '', d: '' };
   })();
-  const visaExpiryParts = (() => {
-    const raw = String(formData.visaExpirationDate || '').trim();
-    const m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-    return m ? { y: m[1], mo: String(parseInt(m[2], 10)).padStart(2, '0'), d: String(parseInt(m[3], 10)).padStart(2, '0') } : { y: '', mo: '', d: '' };
-  })();
+  const visaExpiryParts = parseCvDateParts(formData.visaExpirationDate);
   const birthYearRef = React.useRef(null);
   const birthMonthRef = React.useRef(null);
   const birthDayRef = React.useRef(null);
@@ -217,6 +215,10 @@ const CvTemplateTechnical = ({
     const isFocused = focusedInlineField === fieldKey;
     const stored = String(storedValue ?? '').replace(/\r\n?/g, '\n');
     const showText = displayEditableScalarText(stored, options.emptyPlaceholder ?? '　');
+    const blurDisplayText =
+      options.displayText != null
+        ? displayEditableScalarText(String(options.displayText), options.emptyPlaceholder ?? '　')
+        : showText;
 
     return {
       contentEditable: true,
@@ -232,15 +234,15 @@ const CvTemplateTechnical = ({
       onContextMenu: options.onContextMenu,
       ref: (node) => {
         if (!node || isFocused || document.activeElement === node) return;
-        const next = showText;
+        const next = blurDisplayText;
         if (node.textContent !== next) node.textContent = next;
       },
       onFocus: (e) => {
         setFocusedInlineField(fieldKey);
         const el = e.currentTarget;
-        const t = stored.trimEnd() ? stored : '';
+        const t = stored.trim() ? stored : '';
         requestAnimationFrame(() => {
-          if (el && document.activeElement === el) el.textContent = t || showText;
+          if (el && document.activeElement === el) el.textContent = t;
         });
       },
       onInput: (e) => {
@@ -282,6 +284,11 @@ const CvTemplateTechnical = ({
       children: (!isFocused && useMarks) ? markedContent : undefined,
     };
   }, [focusedInlineField, formData.adminSupplementMarks, makeInlineEditable, supplementMarking?.onFieldContextMenu]);
+
+  const addressCombinedDisplay = [
+    formData.postalCode ? `〒${formData.postalCode}` : '',
+    formData.address || '',
+  ].filter(Boolean).join(' ');
 
   const LANGUAGE_LEVEL_FIELDS = ['jpConversationLevel', 'enConversationLevel', 'otherConversationLevel'];
   const LANGUAGE_LEVEL_OPTIONS = [
@@ -454,9 +461,20 @@ const CvTemplateTechnical = ({
                   <td rowSpan={5} className="border p-1.5 align-middle text-center" style={{ borderColor: '#1f2937', verticalAlign: 'middle' }}>
                     <div className="flex flex-col items-center gap-1.5">
                       {currentAvatarPreview ? (
-                        <div style={{ height: '5.5rem', width: '4.125rem', overflow: 'hidden', margin: '0 auto' }}>
-                          <img src={currentAvatarPreview} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', aspectRatio: '3/4', display: 'block' }} />
-                        </div>
+                        <CvTemplateAvatarFrame
+                          src={currentAvatarPreview}
+                          frame={layout.avatarFrame}
+                          onFrameChange={(nextFrame) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              cvTableLayout: { ...(prev.cvTableLayout || {}), avatarFrame: nextFrame },
+                            }))
+                          }
+                          width="4.125rem"
+                          height="5.5rem"
+                          interactive={!pdfExportMode}
+                          className="mx-auto"
+                        />
                       ) : (
                         <span className="text-gray-500 text-xs">&lt;顔写真&gt;</span>
                       )}
@@ -513,14 +531,18 @@ const CvTemplateTechnical = ({
                   </td>
                   <td className="border p-1 bg-white min-w-0 text-center" style={{ borderColor: '#1f2937' }}>
                     <span
-                      {...cvEditable('address', 'block text-center')}
-                      children={undefined}
-                    >
-                      {renderMarked([
-                        formData.postalCode ? `〒${formData.postalCode}` : '',
-                        formData.address || ''
-                      ].filter(Boolean).join(' ') || '　', 'tpl-tech-genju', 'address', ['postalCode'])}
-                    </span>
+                      {...makeMarkedInlineEditable(
+                        'genju-address',
+                        formData.address || '',
+                        (v) => setFormData((prev) => ({ ...prev, address: v || '' })),
+                        renderMarked(addressCombinedDisplay || '　', 'tpl-tech-genju', 'address', ['postalCode']),
+                        {
+                          className: 'block text-center',
+                          displayText: addressCombinedDisplay,
+                          onContextMenu: (e) => supplementMarking?.onFieldContextMenu?.(e, 'address'),
+                        }
+                      )}
+                    />
                   </td>
                   <td className="border px-0.5 py-1 font-normal text-center leading-tight text-[10px] whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-label-addressOrigin" text="出身地" supplementMarking={supplementMarking} linkedFieldKeys={['addressOrigin']} className="select-text inline" />
@@ -1109,10 +1131,19 @@ const CvTemplateTechnical = ({
                       setWorkField('endMonth', '');
                       setWorkField('period', '現在');
                     };
+                    const periodDisplay = formatShokumuPeriodRangeJa(
+                      [row.startYear, row.startMonth].filter(Boolean).join('/'),
+                      row.endCurrent ? '現在' : [row.endYear, row.endMonth].filter(Boolean).join('/'),
+                    );
                     return (
                       <React.Fragment key={`shokureki-${i}`}>
                         <tr>
-                          <td className="border p-1.5 bg-white text-center align-middle min-w-0 overflow-hidden" style={cellWrapStyle}>
+                          <td
+                            className="border p-1.5 bg-white text-center align-middle min-w-0 overflow-hidden"
+                            style={cellWrapStyle}
+                            data-cv-shokumu-period
+                            data-cv-period-display={periodDisplay}
+                          >
                             <div className="flex flex-row flex-wrap items-center justify-center gap-x-0.5 gap-y-0.5 text-xs leading-tight mx-auto max-w-full">
                               <div className="inline-flex items-center shrink-0 gap-0.5">
                                 <input
@@ -1136,9 +1167,16 @@ const CvTemplateTechnical = ({
                               </div>
                               <span className="leading-none shrink-0">～</span>
                               {row.endCurrent ? (
-                                <button type="button" onClick={() => { setWorkField('endCurrent', false); setWorkField('period', ''); }} className="inline-flex items-center justify-center rounded border border-slate-300 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-100">
+                                <span
+                                  className="inline-flex items-center justify-center rounded border border-slate-300 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-700"
+                                  {...(!pdfExportMode ? {
+                                    role: 'button',
+                                    tabIndex: 0,
+                                    onClick: () => { setWorkField('endCurrent', false); setWorkField('period', ''); },
+                                  } : {})}
+                                >
                                   現在
-                                </button>
+                                </span>
                               ) : (
                                 <>
                                   <div className="inline-flex items-center shrink-0 gap-0.5">
@@ -1161,7 +1199,7 @@ const CvTemplateTechnical = ({
                                     />
                                     <span>月</span>
                                   </div>
-                                  <button type="button" onClick={setEndCurrent} className="rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 hover:bg-slate-50 hover:text-slate-800">現在</button>
+                                  <button type="button" onClick={setEndCurrent} className="rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 hover:bg-slate-50 hover:text-slate-800 cv-pdf-hide">現在</button>
                                 </>
                               )}
                             </div>
@@ -1406,6 +1444,10 @@ const CvTemplateTechnical = ({
                         const emp = list[i] || {};
                         const showDescription = String(emp.description || '').trim() !== String(emp.business_purpose || '').trim();
                         const showDelete = hoveredWorkIndex === i;
+                        const shokumuPeriodDisplay = formatShokumuPeriodRangeJa(
+                          [emp.startYear, emp.startMonth].filter(Boolean).join('/'),
+                          emp.endCurrent ? '現在' : [emp.endYear, emp.endMonth].filter(Boolean).join('/'),
+                        );
                         return (
                           <React.Fragment key={`tech-work-${i}`}>
                             <tr onMouseEnter={() => setHoveredWorkIndex(i)} onMouseLeave={() => setHoveredWorkIndex(null)}>
@@ -1439,7 +1481,12 @@ const CvTemplateTechnical = ({
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-1.5 align-middle text-center min-w-0 overflow-hidden" style={bodyCenterStyle(false)}>
+                              <td
+                                className="p-1.5 align-middle text-center min-w-0 overflow-hidden"
+                                style={bodyCenterStyle(false)}
+                                data-cv-shokumu-period
+                                data-cv-period-display={shokumuPeriodDisplay}
+                              >
                                 {(() => {
                                   const commitShokumuStart = () => {
                                     const y = String(shokumuStartYearRefs.current[i]?.value || '').replace(/\D/g, '').slice(0, 4);
@@ -1482,9 +1529,16 @@ const CvTemplateTechnical = ({
                                       </div>
                                       <span className="leading-none shrink-0">～</span>
                                       {emp.endCurrent ? (
-                                        <button type="button" onClick={() => setWorkEndCurrent(i, false)} className="inline-flex items-center justify-center rounded border border-slate-300 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-100">
+                                        <span
+                                          className="inline-flex items-center justify-center rounded border border-slate-300 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-700"
+                                          {...(!pdfExportMode ? {
+                                            role: 'button',
+                                            tabIndex: 0,
+                                            onClick: () => setWorkEndCurrent(i, false),
+                                          } : {})}
+                                        >
                                           現在
-                                        </button>
+                                        </span>
                                       ) : (
                                         <>
                                           <div className="inline-flex items-center shrink-0 gap-0.5">
@@ -1507,7 +1561,7 @@ const CvTemplateTechnical = ({
                                             />
                                             <span>月</span>
                                           </div>
-                                          <button type="button" onClick={() => setWorkEndCurrent(i, true)} className="rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 hover:bg-slate-50 hover:text-slate-800">現在</button>
+                                          <button type="button" onClick={() => setWorkEndCurrent(i, true)} className="rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 hover:bg-slate-50 hover:text-slate-800 cv-pdf-hide">現在</button>
                                         </>
                                       )}
                                     </div>

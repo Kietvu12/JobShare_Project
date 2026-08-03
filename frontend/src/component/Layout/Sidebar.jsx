@@ -15,6 +15,7 @@ import {
 import { useLanguage } from '../../context/LanguageContext';
 import { translations } from '../../translations/translations';
 import apiService from '../../services/api';
+import jsLogoWhite from '../../assets/JS_logo_White.png';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -130,12 +131,12 @@ const Sidebar = () => {
       >
         <Link
           to="/agent"
-          className="flex items-center cursor-pointer overflow-hidden rounded-lg bg-white/10 p-1.5 ring-1 ring-white/20"
+          className="flex items-center cursor-pointer overflow-hidden"
         >
           <img
-            src="/landing/jobshare-logo.png"
+            src={jsLogoWhite}
             alt="JobShare"
-            className={`object-contain ${isExpanded ? 'max-h-9 w-auto' : 'h-8 w-auto max-w-full'}`}
+            className={`object-contain ${isExpanded ? 'max-h-12 w-auto' : 'h-8 w-auto max-w-full'}`}
           />
         </Link>
       </div>

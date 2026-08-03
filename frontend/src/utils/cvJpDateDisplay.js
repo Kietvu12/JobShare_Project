@@ -112,6 +112,36 @@ export function formatCvDocumentHeaderJa(raw) {
   return d || s;
 }
 
+/** ISO / スラッシュ / 和文 → `YYYY-MM-DD`（在留期限・生年月日などの保存用） */
+export function normalizeCvDateToStorage(raw) {
+  const s = String(raw ?? '').trim();
+  if (!s) return '';
+  const fromBirthHelper = normalizeBirthDateToStorage(s);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(fromBirthHelper)) return fromBirthHelper;
+  const head = s.split('T')[0].split(' ')[0].replace(/\//g, '-');
+  const iso = head.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (iso) {
+    return `${iso[1]}-${String(parseInt(iso[2], 10)).padStart(2, '0')}-${String(parseInt(iso[3], 10)).padStart(2, '0')}`;
+  }
+  const jpLoose = s.match(/^(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日?/);
+  if (jpLoose) {
+    return `${jpLoose[1]}-${String(parseInt(jpLoose[2], 10)).padStart(2, '0')}-${String(parseInt(jpLoose[3], 10)).padStart(2, '0')}`;
+  }
+  const slash = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+  if (slash) {
+    return `${slash[1]}-${String(parseInt(slash[2], 10)).padStart(2, '0')}-${String(parseInt(slash[3], 10)).padStart(2, '0')}`;
+  }
+  return '';
+}
+
+/** Chuỗi ngày CV → { y, mo, d } cho ô năm/tháng/ngày trên template */
+export function parseCvDateParts(raw) {
+  const iso = normalizeCvDateToStorage(raw);
+  if (!iso) return { y: '', mo: '', d: '' };
+  const [y, mo, d] = iso.split('-');
+  return { y, mo, d };
+}
+
 /** 在留期限・備考など: ISO / スラッシュ / 既に和文は整形して表示 */
 export function formatCvAnyDateJa(raw) {
   const s = String(raw || '').trim();

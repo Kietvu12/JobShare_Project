@@ -14,6 +14,7 @@ import {
   appendFullCvFieldsToFormData,
   CV_AI_PARSE_URL,
   resolveCurrentLocationAndDesiredFromCv,
+  isValidJobCategoryId,
 } from '../../utils/mergeResumeDataFromAi.js';
 import { isValidCvPhone, normalizeCvPhone } from '../../utils/cvPhoneUtils.js';
 
@@ -702,6 +703,10 @@ export default function QuickCreateCandidateDrawer({
 
   const mergeParsedAiDataIntoForm = (parsedData) => {
     const { merged, visible } = mapQuickCreateAiData(parsedData);
+    const safeCategoryId = isValidJobCategoryId(visible.jobCategoryId) ? visible.jobCategoryId : '';
+    if (!isValidJobCategoryId(merged.jobCategoryId)) {
+      merged.jobCategoryId = '';
+    }
     parsedFormDataRef.current = merged;
     setForm((prev) => ({
       ...prev,
@@ -716,7 +721,8 @@ export default function QuickCreateCandidateDrawer({
       currentLocationCountry: visible.currentLocationCountry || prev.currentLocationCountry,
       desiredLocation: visible.desiredLocation || prev.desiredLocation,
       desiredStartDate: visible.desiredStartDate || prev.desiredStartDate,
-      jobCategoryLabel: visible.jobCategoryLabel || prev.jobCategoryLabel,
+      jobCategoryId: safeCategoryId,
+      jobCategoryLabel: safeCategoryId ? (visible.jobCategoryLabel || prev.jobCategoryLabel) : '',
     }));
     setFlowStep('manual');
     return merged;

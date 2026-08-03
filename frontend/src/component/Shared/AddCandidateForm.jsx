@@ -5,7 +5,7 @@ import CvTemplateCommon from './CvTemplateCommon';
 import CvTemplateIt from './CvTemplateIt';
 import CvTemplateTechnical from './CvTemplateTechnical';
 import CvPdfCaptureLayer from './CvPdfCaptureLayer.jsx';
-import { formatCvBirthDateJa, normalizeBirthDateToStorage } from '../../utils/cvJpDateDisplay.js';
+import { formatCvBirthDateJa, normalizeBirthDateToStorage, normalizeCvDateToStorage } from '../../utils/cvJpDateDisplay.js';
 import 'react-datepicker/dist/react-datepicker.css';
 import apiService from '../../services/api';
 import {
@@ -623,13 +623,11 @@ const AddCandidateForm = ({
         }
         const calculatedAge = birthDate ? calculateAge(new Date(birthDate)) : (cv.ages || cv.age || '');
         
-        let visaExpirationDate = cv.visaExpirationDate || '';
-        if (visaExpirationDate && !visaExpirationDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          const parsedDate = new Date(visaExpirationDate);
+        let visaExpirationDate = normalizeCvDateToStorage(cv.visaExpirationDate || '');
+        if (!visaExpirationDate && cv.visaExpirationDate) {
+          const parsedDate = new Date(cv.visaExpirationDate);
           if (!isNaN(parsedDate.getTime())) {
             visaExpirationDate = `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, '0')}-${String(parsedDate.getDate()).padStart(2, '0')}`;
-          } else {
-            visaExpirationDate = '';
           }
         }
         
@@ -3167,6 +3165,9 @@ const AddCandidateForm = ({
           handleInsertEducationAt={handleInsertEducationAt}
           handleInsertWorkExperienceAt={handleInsertWorkExperienceAt}
           handleInsertCertificateAt={handleInsertCertificateAt}
+          handleRemoveEducation={removeEducation}
+          handleRemoveWorkExperienceAt={handleDeleteWorkExperienceAt}
+          handleRemoveCertificate={removeCertificate}
           avatarPreview={avatarPreview}
           onAvatarFileSelect={applyAvatarFromFile}
           onCvTableLayoutCommit={onCvTableLayoutCommit}
@@ -5798,6 +5799,9 @@ const AddCandidateForm = ({
                     handleInsertEducationAt={handleInsertEducationAt}
                     handleInsertWorkExperienceAt={handleInsertWorkExperienceAt}
                     handleInsertCertificateAt={handleInsertCertificateAt}
+                    handleRemoveEducation={removeEducation}
+                    handleRemoveWorkExperienceAt={handleDeleteWorkExperienceAt}
+                    handleRemoveCertificate={removeCertificate}
                     handleBackendPreviewWithOptions={handleBackendPreviewWithOptions}
                     avatarPreview={avatarPreview}
                     onAvatarFileSelect={applyAvatarFromFile}

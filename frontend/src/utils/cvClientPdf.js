@@ -77,7 +77,6 @@ function isCvPdfActionButton(btn) {
   const text = (btn.textContent || '').replace(/\s+/g, ' ').trim();
   const meta = `${text} ${btn.getAttribute('aria-label') || ''} ${btn.getAttribute('title') || ''}`;
   if (CV_PDF_ACTION_BUTTON_RE.test(meta)) return true;
-  if (text === '現在') return true;
   if (/\brose-500\b|\brose-600\b|\btext-rose-/.test(btn.className)) return true;
   if (btn.querySelector('svg[class*="lucide-trash"], svg[class*="lucide-plus"]')) return true;
 
@@ -738,7 +737,14 @@ function normalizeShokumuPeriodCaptureText(raw) {
 
 function readShokumuPeriodCellText(cell) {
   const scratch = cell.cloneNode(true);
-  scratch.querySelectorAll('button').forEach((btn) => btn.remove());
+  scratch.querySelectorAll('button').forEach((btn) => {
+    const label = (btn.textContent || '').replace(/\s+/g, ' ').trim();
+    if (label === '現在') {
+      btn.replaceWith(document.createTextNode('現在'));
+    } else {
+      btn.remove();
+    }
+  });
   return normalizeShokumuPeriodCaptureText(scratch.innerText || '');
 }
 
