@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import apiService from '../../services/api';
 import {
   getCvDisplayStatusStyle,
@@ -46,9 +46,8 @@ import {
 } from 'lucide-react';
 import BulkImportCandidatesModal from './BulkImportCandidatesModal';
 import QuickCreateCandidateDrawer from './QuickCreateCandidateDrawer';
-import { shouldRestoreCandidatesListState } from '../../utils/routerNavigationHistory';
+import { shouldRestoreCandidatesListState, CANDIDATES_LIST_STORAGE_PREFIX } from '../../utils/routerNavigationHistory';
 
-const CANDIDATES_LIST_STORAGE_PREFIX = 'wsj_candidates_list_v1';
 const SHOW_SCOUT_UI = false;
 
 const readCandidatesListSession = (variant) => {
@@ -67,6 +66,7 @@ const readCandidatesListSession = (variant) => {
  */
 const CandidatesPageContent = ({ variant = 'admin' }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { language } = useLanguage();
   const t = translations[language] || translations.vi;
   const isAdmin = variant === 'admin';
@@ -153,6 +153,29 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
   const [collaboratorOptions, setCollaboratorOptions] = useState([]);
   const [collaboratorOptionsLoading, setCollaboratorOptionsLoading] = useState(false);
   const [collaboratorAssignSaving, setCollaboratorAssignSaving] = useState(false);
+
+  const resetCandidatesListState = useCallback(() => {
+    setSearchQuery('');
+    setSelectedStatuses([]);
+    setSortColumn('createdAt');
+    setSortDirection('desc');
+    setCurrentPage(1);
+    setSelectedRows(new Set());
+    setBulkNewStatus('');
+    setFailedHistorySearchQuery('');
+    setFailedHistoryPage(1);
+    try {
+      sessionStorage.removeItem(listSessionKey);
+    } catch {
+      // ignore
+    }
+  }, [listSessionKey]);
+
+  useEffect(() => {
+    if (!location.state?.resetCandidatesList) return;
+    resetCandidatesListState();
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.state?.resetCandidatesList, location.pathname, navigate, resetCandidatesListState]);
 
   useEffect(() => {
     if (restoreListState) return;
@@ -413,20 +436,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
   };
 
   const handleReset = () => {
-    setSearchQuery('');
-    setSelectedStatuses([]);
-    setSortColumn('createdAt');
-    setSortDirection('desc');
-    setCurrentPage(1);
-    setSelectedRows(new Set());
-    setBulkNewStatus('');
-    setFailedHistorySearchQuery('');
-    setFailedHistoryPage(1);
-    try {
-      sessionStorage.removeItem(listSessionKey);
-    } catch {
-      // ignore
-    }
+    resetCandidatesListState();
     loadCandidates();
   };
 
