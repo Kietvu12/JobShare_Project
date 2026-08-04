@@ -1,76 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Coins, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ChevronRight, Coins, Loader2, X } from 'lucide-react';
 import apiService from '../../services/api';
-import ServiceRequestDetailLayout, {
-  ServiceRequestDetailBody,
-  ServiceRequestDetailHeader,
-  ServiceRequestSubmitRow,
-  SR_PAGE_FONT,
-} from '../../component/Bussiness/ServiceRequestDetailLayout';
+import ServiceRequestAccountSidebar from '../../component/Bussiness/ServiceRequestAccountSidebar';
+import CreditPackageCard from '../../component/Bussiness/CreditPackageCard';
 import {
   BUSINESS_CREDIT_PACKAGES,
   formatCreditAmount,
   formatYenAmount,
   getCreditPackageByKey,
 } from '../../utils/businessCreditPackages';
+import { BRAND, BUSINESS_HOMEPAGE_SHELL_STYLES, CARD, PAGE_FONT } from '../../utils/businessHomepageShell';
 
-function CreditPackageCard({ pkg, selected, onSelect }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(pkg.key)}
-      className={`relative flex h-full min-h-0 flex-col items-center justify-between rounded-lg border bg-white px-2 py-3 text-center transition-all ${
-        selected
-          ? 'border-[#0077B6] ring-2 ring-[#0077B6]/15'
-          : 'border-slate-200 hover:border-slate-300'
-      }`}
-    >
-      {pkg.discountLabel ? (
-        <span
-          className="absolute right-3 top-3 rounded-full px-2 py-0.5 text-[11px] font-bold text-white sm:text-xs"
-          style={{ background: pkg.accent }}
-        >
-          {pkg.discountLabel}
-        </span>
-      ) : null}
-
-      <div className="flex w-full flex-col items-center">
-        <span className="text-xs font-bold" style={{ color: pkg.accent }}>
-          {pkg.name}
-        </span>
-        <span className="mt-1 text-[10px] font-medium text-slate-800">
-          {formatCreditAmount(pkg.credits)}
-        </span>
-        <span className="mt-1 text-sm font-bold leading-none text-slate-900">
-          {formatYenAmount(pkg.priceYen)}
-        </span>
-        {pkg.originalPriceYen ? (
-          <span className="mt-0.5 text-[10px] text-slate-400 line-through">
-            {formatYenAmount(pkg.originalPriceYen)}
-          </span>
-        ) : (
-          <span className="mt-0.5 text-[10px] text-transparent" aria-hidden>—</span>
-        )}
-        <span className="mt-1 text-[10px] text-slate-500">
-          (~{pkg.profileOpens} lần mở hồ sơ)
-        </span>
-      </div>
-
-      <div className="mt-2 flex w-full justify-center">
-        <div
-          className="flex h-8 w-8 items-center justify-center rounded-md"
-          style={{ background: pkg.iconBg }}
-        >
-          <Coins className="h-4 w-4" style={{ color: pkg.accent }} strokeWidth={2} />
-        </div>
-      </div>
-    </button>
-  );
-}
-
-const INTRO = [
-  'Credit dùng để mở hồ sơ ứng viên trên Scout Credit. Chọn gói phù hợp với nhu cầu tuyển dụng của doanh nghiệp.',
-  'Sau khi gửi yêu cầu, Workstation sẽ liên hệ xác nhận số lượng và hướng dẫn thanh toán.',
+const INTRO_LINES = [
+  'Credit được nạp để giúp doanh nghiệp có thể tự do mở hồ sơ ứng viên tại dịch vụ Scout\u00A0Credit.',
+  'Để nạp credit, doanh nghiệp gửi yêu cầu và chọn gói phù hợp.',
+  'Yêu cầu nạp sẽ được gửi về bộ phận Admin của Workstation JobShare.',
+  'Chúng tôi sẽ liên hệ lại ngay để làm thủ tục thanh toán phí nạp credit.',
 ];
 
 export default function CreditTopUpRequest() {
@@ -132,49 +78,95 @@ export default function CreditTopUpRequest() {
   if (loading && !dashboard) {
     return (
       <div
-        className="flex h-full min-h-0 items-center justify-center bg-[#f4f6f8] text-sm text-slate-500"
-        style={{ fontFamily: SR_PAGE_FONT }}
+        className="flex h-full min-h-0 items-center justify-center bg-[#f4f6f8] text-[11px] text-slate-500"
+        style={{ fontFamily: PAGE_FONT }}
       >
-        <Loader2 className="h-5 w-5 animate-spin text-[#0077B6]" />
-        Đang tải...
+        <Loader2 className="h-4 w-4 animate-spin text-[#0077B6]" />
+        <span className="ml-2">Đang tải...</span>
       </div>
     );
   }
 
   return (
-    <ServiceRequestDetailLayout
-      dashboard={dashboard}
-      successMsg={successMsg}
-      onDismissSuccess={() => setSuccessMsg('')}
-    >
-      <ServiceRequestDetailHeader
-        icon={Coins}
-        iconBg="#e8f4fa"
-        iconColor="#0077B6"
-        title="Yêu cầu nạp credit"
-        description={INTRO}
-      />
+    <>
+      <style>{BUSINESS_HOMEPAGE_SHELL_STYLES}</style>
+      <div
+        className="business-homepage-shell flex h-full min-h-0 flex-col overflow-y-auto bg-[#f4f6f8] lg:overflow-hidden"
+        style={{ fontFamily: PAGE_FONT }}
+      >
+        <div className="business-homepage-ui flex min-h-0 flex-1 flex-col overflow-y-auto p-2 sm:p-2.5 lg:overflow-hidden">
+          <nav className="mb-2 flex shrink-0 flex-wrap items-center gap-1 text-[10px] text-slate-500 sm:text-[11px]">
+            <Link to="/business/service-requests" className="font-medium text-[#0077B6] hover:underline">
+              Yêu cầu dịch vụ
+            </Link>
+            <ChevronRight className="h-3 w-3 shrink-0 text-slate-400" />
+            <span className="font-semibold text-slate-700">Nạp credit</span>
+          </nav>
 
-      <ServiceRequestDetailBody>
-        <p className="shrink-0 text-xs font-bold text-slate-800">Thông tin các gói credit</p>
-        <div className="grid min-h-0 flex-1 grid-cols-3 items-stretch gap-2">
-          {BUSINESS_CREDIT_PACKAGES.map((pkg) => (
-            <CreditPackageCard
-              key={pkg.key}
-              pkg={pkg}
-              selected={selectedKey === pkg.key}
-              onSelect={setSelectedKey}
-            />
-          ))}
+          {successMsg ? (
+            <div className="mb-2 flex shrink-0 items-start justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-medium text-emerald-800">
+              <span>{successMsg}</span>
+              <button type="button" onClick={() => setSuccessMsg('')} className="border-0 bg-transparent p-0">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : null}
+
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_260px] lg:overflow-hidden xl:grid-cols-[minmax(0,1fr)_280px]">
+            <div className={`${CARD} flex flex-col p-3.5 sm:p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto business-homepage-scroll`}>
+              <div className="shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#e8f4fa]">
+                    <Coins className="h-3.5 w-3.5 text-[#0077B6]" strokeWidth={2} />
+                  </div>
+                  <h1 className="text-base font-bold text-slate-900 sm:text-[17px]">Yêu cầu nạp credit</h1>
+                </div>
+                <div className="mt-1.5 space-y-1">
+                  {INTRO_LINES.map((line) => (
+                    <p key={line} className="text-[10px] leading-snug text-slate-600 sm:text-[11px]">{line}</p>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-3.5 flex flex-col gap-2 sm:gap-2.5 lg:min-h-0 lg:flex-1">
+                <p className="shrink-0 text-[11px] font-bold text-slate-900 sm:text-xs">Thông tin các gói credit</p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-2.5 xl:grid-cols-3 xl:gap-3">
+                  {BUSINESS_CREDIT_PACKAGES.map((pkg) => (
+                    <CreditPackageCard
+                      key={pkg.key}
+                      pkg={pkg}
+                      selected={selectedKey === pkg.key}
+                      onSelect={setSelectedKey}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-3.5 flex shrink-0 flex-col gap-2 border-t border-slate-100 pt-3 sm:mt-auto sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:pt-3.5">
+                <p className="min-w-0 flex-1 text-[9px] leading-snug text-slate-500 sm:text-[10px]">
+                  Lưu ý: Credit có hiệu lực ngay sau khi nạp và không có thời hạn sử dụng.
+                </p>
+                <div className="flex w-full shrink-0 flex-col items-stretch gap-1 sm:ml-auto sm:w-auto sm:items-end">
+                  {error ? (
+                    <p className="text-[9px] text-rose-600 sm:max-w-xs sm:text-right sm:text-[10px]">{error}</p>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={submitting}
+                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-[10px] font-bold text-white disabled:opacity-60 sm:w-auto sm:text-[11px]"
+                    style={{ background: BRAND }}
+                  >
+                    {submitting ? 'Đang gửi…' : 'Gửi yêu cầu →'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <ServiceRequestAccountSidebar dashboard={dashboard} />
+          </div>
         </div>
-      </ServiceRequestDetailBody>
-
-      <ServiceRequestSubmitRow
-        error={error}
-        submitting={submitting}
-        onSubmit={handleSubmit}
-        notice="Lưu ý: Credit có hiệu lực ngay sau khi nạp và không có thời hạn sử dụng."
-      />
-    </ServiceRequestDetailLayout>
+      </div>
+    </>
   );
 }

@@ -146,6 +146,110 @@ function pickFields(source, fields) {
   return out;
 }
 
+function flattenWorkExperienceList(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return flattenWorkExperienceList(parsed);
+    } catch {
+      return [];
+    }
+  }
+  if (raw && typeof raw === 'object') {
+    const shokumu = Array.isArray(raw.shokumu_job_history) ? raw.shokumu_job_history : [];
+    const rirekisho = Array.isArray(raw.rirekisho_work_history) ? raw.rirekisho_work_history : [];
+    if (shokumu.length || rirekisho.length) return [...shokumu, ...rirekisho];
+  }
+  return [];
+}
+
+function bucketApproximateAge(age) {
+  const n = Number(age);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  if (n < 25) return 'Dưới 25 tuổi';
+  if (n < 30) return '25–29 tuổi';
+  if (n < 35) return '30–34 tuổi';
+  if (n < 40) return '35–39 tuổi';
+  if (n < 45) return '40–44 tuổi';
+  if (n < 50) return '45–49 tuổi';
+  return '50 tuổi trở lên';
+}
+
+/** Tier 2 — khoảng tuổi gần đúng, không gửi ngày sinh chính xác */
+function formatApproximateAgeRange(cvJson) {
+  const raw = cvJson?.ages != null && String(cvJson.ages).trim() ? String(cvJson.ages).trim() : '';
+  if (raw) {
+    const digitsOnly = raw.replace(/\s/g, '');
+    const exactAge = parseInt(digitsOnly, 10);
+    if (Number.isFinite(exactAge) && String(exactAge) === digitsOnly) {
+      return bucketApproximateAge(exactAge);
+    }
+    return raw;
+  }
+  if (!cvJson?.birthDate) return null;
+  const birth = new Date(cvJson.birthDate);
+  if (Number.isNaN(birth.getTime())) return null;
+  const age = Math.floor((Date.now() - birth.getTime()) / (365.25 * 24 * 3600 * 1000));
+  return bucketApproximateAge(age);
+}
+
+/** Tier 1 — quốc gia cư trú hiện tại (không gửi địa chỉ chi tiết) */
+function formatCurrentLocationRegion(cvJson) {
+  const residence = cvJson?.currentResidence;
+  if (residence == null || residence === '') return null;
+  const map = {
+    1: 'Nhật Bản',
+    2: 'Việt Nam',
+    3: 'Khác',
+    '1': 'Nhật Bản',
+    '2': 'Việt Nam',
+    '3': 'Khác',
+  };
+  return map[residence] || null;
+}
+
+function formatWorkPeriodSimple(work) {
+  if (work?.period && String(work.period).trim()) return String(work.period).trim();
+  const from = work?.start_date || work?.startDate || work?.from || '';
+  const to = work?.end_date || work?.endDate || work?.to || '';
+  if (from || to) return [from, to].filter(Boolean).join(' – ');
+  return '—';
+}
+
+/** Tier 2 — ẩn tên công ty, chỉ loại hình / quy mô + vị trí + thời gian */
+function anonymizeWorkExperiencesForTier2(raw) {
+  const list = flattenWorkExperienceList(raw);
+  return list
+    .map((work) => {
+      const roleCandidate = work?.department_role
+        || (typeof work?.description === 'string' ? work.description.split(/[\n。]/)[0] : null);
+      const role = roleCandidate && String(roleCandidate).trim()
+        ? String(roleCandidate).trim().slice(0, 200)
+        : '—';
+
+      const typeParts = [
+        work?.business_purpose,
+        work?.scale_role,
+        work?.business_objective,
+      ]
+        .map((v) => (v && String(v).trim()) || '')
+        .filter(Boolean);
+
+      const companyTypeLabel = typeParts.length
+        ? typeParts.join(' · ')
+        : 'Loại hình doanh nghiệp (ẩn danh)';
+
+      return {
+        role,
+        companyTypeLabel,
+        period: formatWorkPeriodSimple(work),
+        isAnonymized: true,
+      };
+    })
+    .filter((work) => work.role !== '—' || work.period !== '—' || work.companyTypeLabel);
+}
+
 function buildLockedScoutPayload(cvJson, { search } = {}) {
   const skills = parseSkills(cvJson);
   const prText =
@@ -159,6 +263,7 @@ function buildLockedScoutPayload(cvJson, { search } = {}) {
     anonymousName: ANONYMOUS_LABEL,
     desiredPosition: cvJson.desiredPosition || cvJson.jobCategory?.name || null,
     desiredWorkLocation: cvJson.desiredWorkLocation || null,
+    currentLocationRegion: formatCurrentLocationRegion(cvJson),
     desiredIncome: cvJson.desiredIncome ?? null,
     experienceYears: cvJson.experienceYears ?? null,
     jlptLevel: cvJson.jlptLevel ?? null,
@@ -170,6 +275,11 @@ function buildLockedScoutPayload(cvJson, { search } = {}) {
     jobCategoryId: cvJson.jobCategoryId ?? null,
     jobCategory: cvJson.jobCategory || null,
     isUnlocked: false,
+    educations: parseJsonField(cvJson.educations),
+    certificates: parseJsonField(cvJson.certificates),
+    workExperiences: anonymizeWorkExperiencesForTier2(parseJsonField(cvJson.workExperiences)),
+    approximateAgeRange: formatApproximateAgeRange(cvJson),
+    nyushaTime: cvJson.nyushaTime || null,
   };
 
   const snippets = extractSearchSnippets(cvJson, search);

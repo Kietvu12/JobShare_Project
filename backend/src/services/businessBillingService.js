@@ -13,20 +13,106 @@ import {
   Job,
   Admin,
 } from '../models/index.js';
-import { WS_CHAT_MESSAGE_TYPES } from './businessWsChatService.js';
 import { SCOUT_PERFORMANCE_REQUEST_STATUS } from '../constants/scoutCredit.js';
 import { MARKETPLACE_LISTING_STATUS } from '../constants/candidateSharing.js';
 import { LANDING_PAGE_STATUS } from '../constants/businessLandingPage.js';
+import * as billingConstants from '../constants/businessBilling.js';
 import { CREDIT_HISTORY_TYPES } from './businessCreditService.js';
-import {
+
+const {
   BILLING_REQUEST_TABS,
   BILLING_REQUEST_TYPES,
   BILLING_REQUEST_TYPE_LABELS,
   BILLING_INVOICE_STATUS,
   BILLING_STATUS_STYLES,
   CREDIT_REQUEST_STATUS,
-  PAYMENT_STATUS_STYLES,
-} from '../constants/businessBilling.js';
+} = billingConstants;
+
+/** Fallback khi staging chưa deploy constants mới (tránh crash lúc import). */
+const PAYMENT_STATUS_STYLES = billingConstants.PAYMENT_STATUS_STYLES ?? {
+  unpaid: { label: 'Chưa thanh toán', statusBg: '#fee2e2', statusColor: '#dc2626', tab: 'unpaid' },
+  processing: { label: 'Đang xử lý', statusBg: '#ffedd5', statusColor: '#ea580c', tab: 'processing' },
+  paid: { label: 'Đã thanh toán', statusBg: '#dcfce7', statusColor: '#16a34a', tab: 'paid' },
+  draft: { label: 'Draft', statusBg: '#f1f5f9', statusColor: '#64748b', tab: 'draft' },
+  cancelled: { label: 'Đã hủy', statusBg: '#f1f5f9', statusColor: '#64748b', tab: 'closed' },
+};
+
+/** WS chat message types hiển thị trên billing (tránh import businessWsChatService). */
+const BILLING_WS_SERVICE_MESSAGE_TYPES = ['service_request', 'saiyo_branding_request'];
+
+function normalizeBusinessId(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : value;
+}
+
+function mapWsServiceMessageToBillingItem(row) {
+  const json = row.toJSON ? row.toJSON() : row;
+  const payload = json.requestPayload || json.request_payload || {};
+  const msgType = String(json.messageType || json.message_type || '').trim();
+  const isSaiyoBranding = msgType === 'saiyo_branding_request';
+  const serviceKey = isSaiyoBranding
+    ? BILLING_REQUEST_TYPES.SAIYO_BRANDING
+    : resolveServiceRequestType(payload.serviceKey);
+  const createdAt = payload.requestedAt || json.createdAt || json.created_at;
+  const updatedAt = json.updatedAt || json.updated_at || createdAt;
+
+  return {
+    sourceType: serviceKey,
+    typeLabel: payload.serviceTitle || BILLING_REQUEST_TYPE_LABELS[serviceKey] || 'Yêu cầu dịch vụ',
+    requestCode: payload.requestCode || buildRequestCode(serviceKey, json.id, createdAt),
+    jdLabel: '—',
+    candidateLabel: summarizeServiceRequestNote(payload.note, payload.serviceTitle),
+    statusStyle: mapServiceRequestStatus(payload.status),
+    wsName: 'JobShare WS',
+    createdAt,
+    updatedAt,
+    rawId: json.id,
+    rawStatus: payload.status || 'pending',
+  };
+}
+
+async function fetchBillingServiceRequestMessages(businessId) {
+  const bizId = normalizeBusinessId(businessId);
+  if (!bizId) return [];
+
+  const baseQuery = {
+    messageType: { [Op.in]: BILLING_WS_SERVICE_MESSAGE_TYPES },
+    order: [['createdAt', 'DESC']],
+    limit: 100,
+  };
+
+  let rows = await BusinessWsChatMessage.findAll({
+    ...baseQuery,
+    where: {
+      businessId: bizId,
+      messageType: { [Op.in]: BILLING_WS_SERVICE_MESSAGE_TYPES },
+    },
+  }).catch((err) => {
+    console.error('[Billing] service requests by businessId failed:', err?.message || err);
+    return null;
+  });
+
+  if (rows?.length) return rows;
+
+  rows = await BusinessWsChatMessage.findAll({
+    ...baseQuery,
+    where: {
+      messageType: { [Op.in]: BILLING_WS_SERVICE_MESSAGE_TYPES },
+    },
+    include: [{
+      model: BusinessWsChatSession,
+      as: 'session',
+      required: true,
+      attributes: [],
+      where: { businessId: bizId },
+    }],
+  }).catch((err) => {
+    console.error('[Billing] service requests by session join failed:', err?.message || err);
+    return [];
+  });
+
+  return rows || [];
+}
 
 function formatDateVi(value) {
   if (!value) return '—';
@@ -99,6 +185,23 @@ function resolveServiceRequestType(serviceKey) {
   const key = String(serviceKey || '').trim();
   if (Object.values(BILLING_REQUEST_TYPES).includes(key)) return key;
   return BILLING_REQUEST_TYPES.OTHER_SERVICE;
+}
+
+function summarizeServiceRequestNote(note, serviceTitle) {
+  if (!note) return serviceTitle || '—';
+  const raw = String(note).trim();
+  const lines = raw.split('\n').map((line) => line.trim()).filter(Boolean);
+  for (const line of lines) {
+    if (/^---.+---$/.test(line)) continue;
+    const colonIdx = line.indexOf(':');
+    if (colonIdx > 0) {
+      const value = line.slice(colonIdx + 1).trim();
+      if (value) return value.length > 140 ? `${value.slice(0, 137)}…` : value;
+    }
+  }
+  const first = lines.find((line) => !/^---.+---$/.test(line));
+  if (!first) return serviceTitle || '—';
+  return first.length > 140 ? `${first.slice(0, 137)}…` : first;
 }
 
 function mapCreditRequestStatus(status) {
@@ -390,42 +493,9 @@ async function collectAllRequests(businessId) {
     });
   }
 
-  const wsSessions = await BusinessWsChatSession.findAll({
-    where: { businessId },
-    attributes: ['id'],
-    raw: true,
-  }).catch(() => []);
-  const sessionIds = wsSessions.map((s) => s.id).filter(Boolean);
-  if (sessionIds.length) {
-    const serviceMsgRows = await BusinessWsChatMessage.findAll({
-      where: {
-        sessionId: sessionIds,
-        messageType: WS_CHAT_MESSAGE_TYPES.SERVICE_REQUEST,
-      },
-      order: [['created_at', 'DESC']],
-      limit: 100,
-    }).catch(() => []);
-
-    for (const row of serviceMsgRows) {
-      const json = row.toJSON ? row.toJSON() : row;
-      const payload = json.requestPayload || json.request_payload || {};
-      const serviceKey = resolveServiceRequestType(payload.serviceKey);
-      const createdAt = payload.requestedAt || json.createdAt || json.created_at;
-      const updatedAt = json.updatedAt || json.updated_at || createdAt;
-      items.push({
-        sourceType: serviceKey,
-        typeLabel: BILLING_REQUEST_TYPE_LABELS[serviceKey] || payload.serviceTitle || 'Yêu cầu dịch vụ',
-        requestCode: payload.requestCode || buildRequestCode(serviceKey, json.id, createdAt),
-        jdLabel: '—',
-        candidateLabel: payload.note ? String(payload.note) : '—',
-        statusStyle: mapServiceRequestStatus(payload.status),
-        wsName: 'JobShare WS',
-        createdAt,
-        updatedAt,
-        rawId: json.id,
-        rawStatus: payload.status || 'pending',
-      });
-    }
+  const serviceMsgRows = await fetchBillingServiceRequestMessages(businessId);
+  for (const row of serviceMsgRows) {
+    items.push(mapWsServiceMessageToBillingItem(row));
   }
 
   items.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
@@ -753,7 +823,7 @@ export async function getBusinessBillingDashboard({ businessId, credit }) {
   const services = await buildServices(businessId);
   const activeServicesCount = services.filter((s) => s.status === 'Đang hoạt động' || s.status === 'Đang xử lý').length;
 
-  const recentRequests = allRequests.slice(0, 5).map((item) => {
+  const recentRequests = allRequests.slice(0, 8).map((item) => {
     const row = formatRequestRow(item);
     return {
       id: row.requestCode,

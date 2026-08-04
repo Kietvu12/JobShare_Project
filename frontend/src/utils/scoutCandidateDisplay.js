@@ -3,6 +3,7 @@ import {
   formatProjectPeriodJa,
   formatWorkExperiencePeriodJa,
 } from './cvJapanesePeriod.js';
+import { getJlptDisplay } from './cvFixedCertDisplay.js';
 
 const RESIDENCE_STATUS_LABELS = {
   '1': '技術・人文知識・国際業務',
@@ -193,26 +194,113 @@ export function getScoutUnlockSourceMeta(unlockType) {
   return SCOUT_UNLOCK_SOURCE_LABELS[unlockType] || SCOUT_UNLOCK_SOURCE_LABELS.scout_credit;
 }
 
+const SCOUT_CONVERSATION_LEVEL_LABELS = {
+  1: 'Native',
+  2: 'Business',
+  3: 'Hội thoại',
+};
+
+export function getScoutMatchBadgeClass(score) {
+  if (score == null || !Number.isFinite(Number(score))) {
+    return 'text-slate-500 bg-slate-100';
+  }
+  const s = Math.round(Number(score));
+  if (s >= 80) return 'text-emerald-800 bg-emerald-100';
+  if (s >= 50) return 'text-amber-800 bg-amber-100';
+  return 'text-slate-600 bg-slate-100';
+}
+
+export function formatScoutExperienceSeniority(years) {
+  const n = Number(years);
+  if (!Number.isFinite(n) || n <= 0) return '—';
+  let level = 'Junior';
+  if (n >= 6) level = 'Senior';
+  else if (n >= 3) level = 'Mid';
+  return `${level} · ${n} năm`;
+}
+
 export function formatScoutExperienceYears(years) {
   const n = Number(years);
   if (!Number.isFinite(n) || n <= 0) return '—';
   return `${n} năm`;
 }
 
+export function formatScoutConversationLevel(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  return SCOUT_CONVERSATION_LEVEL_LABELS[n] || '';
+}
+
+export function formatScoutLanguageSummary(candidate) {
+  const parts = [];
+  const jlpt = getJlptDisplay(candidate?.jlptLevel);
+  if (jlpt) parts.push(jlpt);
+  const jpConv = formatScoutConversationLevel(candidate?.jpConversationLevel);
+  if (jpConv) parts.push(`JP ${jpConv}`);
+  const enConv = formatScoutConversationLevel(candidate?.enConversationLevel);
+  if (enConv) parts.push(`EN ${enConv}`);
+  return parts.length ? parts.join(' · ') : '—';
+}
+
+export function formatScoutDesiredSalary(candidate) {
+  const raw = candidate?.desiredIncome;
+  if (raw == null || raw === '') return '—';
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return '—';
+    if (/万|円|¥|vnd|đ|triệu/i.test(trimmed)) return trimmed;
+    const n = Number(trimmed.replace(/[^\d.-]/g, ''));
+    if (Number.isFinite(n) && n > 0) return formatScoutIncome(n);
+    return trimmed;
+  }
+  const n = Number(raw);
+  if (Number.isFinite(n) && n > 0) return formatScoutIncome(n);
+  return '—';
+}
+
+export function formatScoutListLocation(candidate) {
+  return candidate?.currentLocationRegion
+    || candidate?.desiredWorkLocation
+    || candidate?.desiredLocation
+    || '—';
+}
+
+const SCOUT_SKILL_TAG_MAX_LEN = 32;
+
+function truncateScoutSkillTag(tag) {
+  const text = String(tag).trim();
+  if (text.length <= SCOUT_SKILL_TAG_MAX_LEN) return text;
+  return `${text.slice(0, SCOUT_SKILL_TAG_MAX_LEN - 1)}…`;
+}
+
+function splitScoutSkillString(value) {
+  return String(value)
+    .split(/[,;|/\n\r、・•·]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export function getScoutSkillTags(candidate) {
   const raw = candidate?.technicalSkills;
-  if (Array.isArray(raw)) return raw.filter(Boolean).map(String);
+  if (Array.isArray(raw)) {
+    return raw.filter(Boolean).map(String).map(truncateScoutSkillTag);
+  }
   if (typeof raw === 'string' && raw.trim()) {
     const trimmed = raw.trim();
     if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
       try {
         const parsed = JSON.parse(trimmed);
-        if (Array.isArray(parsed)) return parsed.filter(Boolean).map(String);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(Boolean).map(String).map(truncateScoutSkillTag);
+        }
       } catch {
         // fall through
       }
     }
-    return trimmed.split(/[,;|/]/).map((s) => s.trim()).filter(Boolean);
+    const parts = splitScoutSkillString(trimmed);
+    if (parts.length === 0) return [];
+    if (parts.length === 1) return [truncateScoutSkillTag(parts[0])];
+    return parts.map(truncateScoutSkillTag);
   }
   return [];
 }
@@ -238,4 +326,35 @@ export function formatScoutAgeGender(candidate) {
     }
   }
   return [gender !== '—' ? gender : null, agePart].filter(Boolean).join(', ') || '—';
+}
+
+export function getScoutApproximateAgeLabel(candidate) {
+  if (candidate?.approximateAgeRange) return String(candidate.approximateAgeRange);
+  return null;
+}
+
+export function getScoutAvailabilityLabel(candidate) {
+  const raw = candidate?.nyushaTime || candidate?.desiredStartDate;
+  if (raw == null || raw === '') return null;
+  return String(raw).trim();
+}
+
+export function normalizeScoutWorkExperiencesTier2(raw) {
+  const list = toArray(raw);
+  return list
+    .map((work) => ({
+      role: work?.role || work?.department_role || '—',
+      companyTypeLabel: work?.companyTypeLabel || work?.business_purpose || work?.scale_role || '—',
+      period: work?.period || '—',
+      isAnonymized: Boolean(work?.isAnonymized ?? true),
+    }))
+    .filter((work) => work.role !== '—' || work.period !== '—' || work.companyTypeLabel !== '—');
+}
+
+export function isScoutWorkExperienceAnonymized(work) {
+  return Boolean(work?.isAnonymized);
+}
+
+export function formatScoutJlptSummary(candidate) {
+  return formatScoutLanguageSummary(candidate);
 }

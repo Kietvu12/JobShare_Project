@@ -7,6 +7,7 @@ import {
   getScoutDisplayName,
   getScoutPipelineMeta,
 } from '../../utils/scoutCandidateDisplay'
+import { parseServiceRequestNote } from '../../utils/serviceRequestNoteDisplay'
 
 const ICON_SM = { width: 10, height: 10 }
 const bd = '1px solid #e2e8f0'
@@ -83,6 +84,81 @@ const CREDIT_STATUS_STYLES = {
   cancelled: { label: 'Đã hủy', color: '#64748b', bg: '#f1f5f9' },
 }
 
+const SERVICE_REQUEST_STATUS_STYLES = {
+  pending: { label: 'Chờ WS', color: '#2563eb', bg: '#dbeafe' },
+  approved: { label: 'Hoàn thành', color: '#16a34a', bg: '#dcfce7' },
+  done: { label: 'Hoàn thành', color: '#16a34a', bg: '#dcfce7' },
+  rejected: { label: 'Từ chối', color: '#dc2626', bg: '#fee2e2' },
+  cancelled: { label: 'Đã hủy', color: '#64748b', bg: '#f1f5f9' },
+}
+
+function StructuredServiceNoteBody({ note }) {
+  const { sectionTitle, fields, freeText } = parseServiceRequestNote(note)
+  if (!sectionTitle && !fields.length && !freeText) return null
+
+  return (
+    <div style={{
+      marginTop: 8, padding: '8px 9px', background: '#f8fafc', borderRadius: 8,
+      border: '1px solid #e2e8f0',
+    }}>
+      {sectionTitle ? (
+        <div style={{
+          fontSize: 8, fontWeight: 700, color: '#0077B6', marginBottom: 6,
+          paddingBottom: 5, borderBottom: '1px solid #e2e8f0',
+        }}>
+          {sectionTitle}
+        </div>
+      ) : null}
+      {fields.map((field) => (
+        <div key={`${field.label}-${field.value}`} style={{ marginBottom: 5 }}>
+          {field.label ? (
+            <div style={{ fontSize: 7, fontWeight: 600, color: '#64748b', marginBottom: 1 }}>{field.label}</div>
+          ) : null}
+          <div style={{
+            fontSize: 8, color: '#1e293b', lineHeight: 1.55, whiteSpace: field.multiline ? 'pre-wrap' : 'normal',
+          }}>
+            {field.value || '—'}
+          </div>
+        </div>
+      ))}
+      {freeText ? (
+        <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.55, whiteSpace: 'pre-wrap', marginTop: fields.length ? 4 : 0 }}>
+          {freeText}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function ServiceRequestEventCard({ message }) {
+  const payload = message.requestPayload || {}
+  const title = payload.serviceTitle || 'Yêu cầu dịch vụ'
+  const status = payload.status || 'pending'
+  const statusStyle = SERVICE_REQUEST_STATUS_STYLES[status] || SERVICE_REQUEST_STATUS_STYLES.pending
+
+  return (
+    <div style={{
+      width: '100%', maxWidth: 320, background: '#fff', border: '1.5px solid #bae6fd',
+      borderRadius: 10, padding: '10px 12px', boxShadow: '0 2px 8px rgba(0,119,182,0.1)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#0077B6' }}>Yêu cầu dịch vụ</div>
+        <span style={{
+          fontSize: 7, fontWeight: 600, padding: '2px 6px', borderRadius: 99,
+          color: statusStyle.color, background: statusStyle.bg,
+        }}>
+          {statusStyle.label}
+        </span>
+      </div>
+      <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.65 }}>
+        {payload.requestCode ? <div style={{ marginBottom: 4 }}><strong>Mã yêu cầu:</strong> {payload.requestCode}</div> : null}
+        <div><strong>Dịch vụ:</strong> {title}</div>
+      </div>
+      {payload.note ? <StructuredServiceNoteBody note={payload.note} /> : null}
+    </div>
+  )
+}
+
 function SaiyoBrandingRequestEventCard({ message }) {
   const payload = message.requestPayload || {}
   const title = payload.serviceTitle || 'Dịch vụ Saiyo Branding'
@@ -92,7 +168,7 @@ function SaiyoBrandingRequestEventCard({ message }) {
       width: '100%', maxWidth: 320, background: '#fff', border: '1.5px solid #ddd6fe',
       borderRadius: 10, padding: '10px 12px', boxShadow: '0 2px 8px rgba(139,92,246,0.12)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
         <div style={{ fontSize: 10, fontWeight: 700, color: '#5b21b6' }}>Yêu cầu Saiyo Branding</div>
         <span style={{ fontSize: 7, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: '#7c3aed', background: '#ede9fe' }}>
           Chờ WS
@@ -100,8 +176,8 @@ function SaiyoBrandingRequestEventCard({ message }) {
       </div>
       <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.65 }}>
         <div><strong>Dịch vụ:</strong> {title}</div>
-        {payload.note && <div><strong>Ghi chú DN:</strong> {payload.note}</div>}
       </div>
+      {payload.note ? <StructuredServiceNoteBody note={payload.note} /> : null}
     </div>
   )
 }
@@ -629,6 +705,7 @@ function ChatBubble({ message, mode, onOpenCv, onApproveCredit, onRejectCredit, 
   ].includes(message.messageType)
   const isCreditRequest = message.messageType === 'credit_request'
   const isListingRequest = message.messageType === 'listing_request'
+  const isServiceRequest = message.messageType === 'service_request'
   const isSaiyoBrandingRequest = message.messageType === 'saiyo_branding_request'
   const isCreditDecision = message.messageType === 'credit_decision'
   const isListingDecision = message.messageType === 'listing_decision'
@@ -676,6 +753,23 @@ function ChatBubble({ message, mode, onOpenCv, onApproveCredit, onRejectCredit, 
             onReject={onRejectListing}
             actionListingId={listingActionId}
           />
+          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
+            {formatTime(message.createdAt)}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (isServiceRequest) {
+    return (
+      <div style={{
+        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-end' : 'flex-start',
+        flexDirection: mode === 'business' ? 'row-reverse' : 'row', alignItems: 'flex-end',
+      }}>
+        {mode !== 'business' && <WsLogo size={24} />}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+          <ServiceRequestEventCard message={message} />
           <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
             {formatTime(message.createdAt)}
           </div>

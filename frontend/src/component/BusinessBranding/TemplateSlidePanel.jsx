@@ -5,6 +5,8 @@ import { getRegisteredLandingPageTemplates, getTemplatePages, isHtmlTemplate } f
 import { buildCompanyContentFromTemplate } from '../../utils/companyLandingPageSchema';
 import apiService from '../../services/api';
 import { wjsDebug } from '../../utils/wjsBuilderDebug';
+import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont';
+import TemplateLivePreview from './TemplateLivePreview';
 
 export default function TemplateSlidePanel({ open, onClose, onCreated }) {
   const [creatingKey, setCreatingKey] = useState(null);
@@ -76,19 +78,29 @@ export default function TemplateSlidePanel({ open, onClose, onCreated }) {
 
   return (
     <>
+      <style>{BUSINESS_UI_FONT_IMPORT}</style>
       <div
         className={`fixed inset-0 z-40 bg-black/30 transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         onClick={handleClose}
         aria-hidden={!open}
       />
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-[min(100vw,520px)] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 left-0 z-50 h-full bg-white shadow-2xl flex flex-col transition-[transform,width] duration-300 ease-out ${
+          previewTemplate ? 'w-[min(100vw,680px)]' : 'w-[min(100vw,520px)]'
+        } ${open ? 'translate-x-0' : '-translate-x-full'}`}
+        style={{ fontFamily: BUSINESS_UI_FONT }}
         aria-hidden={!open}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">Chọn template</h2>
-            <p className="text-[11px] text-slate-500 mt-0.5">Xem trước ảnh lớn hoặc chọn để mở trình chỉnh sửa</p>
+          <div className="min-w-0 pr-2">
+            <h2 className="text-sm font-bold text-slate-900 truncate">
+              {previewTemplate ? previewTemplate.name : 'Chọn template'}
+            </h2>
+            <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">
+              {previewTemplate
+                ? previewTemplate.description
+                : 'Xem trước toàn trang hoặc chọn để mở trình chỉnh sửa'}
+            </p>
           </div>
           <button type="button" onClick={handleClose} className="p-1.5 rounded-lg hover:bg-slate-100">
             <X className="w-4 h-4 text-slate-500" />
@@ -98,27 +110,13 @@ export default function TemplateSlidePanel({ open, onClose, onCreated }) {
         {previewTemplate ? (
           <div className="flex flex-1 flex-col min-h-0">
             <div className="flex-1 overflow-y-auto p-4">
-              <div
-                className="aspect-[16/10] w-full overflow-hidden rounded-xl border border-slate-200 shadow-sm"
-                style={{ background: `${previewTemplate.previewColor}18` }}
-              >
-                <img
-                  src={previewTemplate.previewImage || `/template/${previewTemplate.folder}/images/mainimg1.jpg`}
-                  alt={previewTemplate.name}
-                  className="h-full w-full object-cover object-top"
-                  onError={(e) => { e.target.style.display = 'none'; }}
-                />
-              </div>
-              <div className="mt-4">
-                <h3 className="text-sm font-bold text-slate-900">{previewTemplate.name}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-slate-600">{previewTemplate.description}</p>
-                {isHtmlTemplate(previewTemplate.key) && (
-                  <p className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-emerald-700">
-                    <FileText className="w-3.5 h-3.5" />
-                    {getTemplatePages(previewTemplate.key).length} trang HTML gốc
-                  </p>
-                )}
-              </div>
+              <TemplateLivePreview templateKey={previewTemplate.key} />
+              {isHtmlTemplate(previewTemplate.key) && (
+                <p className="mt-3 flex items-center gap-1 text-[10px] font-semibold text-emerald-700">
+                  <FileText className="w-3.5 h-3.5" />
+                  {getTemplatePages(previewTemplate.key).length} trang HTML gốc
+                </p>
+              )}
             </div>
             <div className="shrink-0 flex gap-2 border-t border-slate-100 p-4">
               <button

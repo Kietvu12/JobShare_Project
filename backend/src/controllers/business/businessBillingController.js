@@ -11,7 +11,7 @@ import {
   updateBusinessCreditRequest,
   cancelBusinessCreditRequest,
 } from '../../services/businessCreditRequestService.js';
-import { createBusinessServiceRequest } from '../../services/businessServiceRequestService.js';
+import { createBusinessServiceRequest } from '../../services/businessWsChatService.js';
 
 function handleServiceError(res, error, next) {
   if (error.statusCode) {
@@ -161,7 +161,10 @@ export const businessBillingController = {
 
   createServiceRequest: async (req, res, next) => {
     try {
-      const { serviceKey, serviceTitle, note } = req.body || {};
+      const body = req.body || {};
+      const serviceKey = body.serviceKey ?? body.service_key;
+      const serviceTitle = body.serviceTitle ?? body.service_title;
+      const note = body.note;
       const data = await createBusinessServiceRequest({
         businessId: req.business.id,
         serviceKey,

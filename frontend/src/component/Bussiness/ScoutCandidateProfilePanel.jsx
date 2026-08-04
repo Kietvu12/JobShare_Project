@@ -5,60 +5,33 @@ import {
   normalizeScoutCertificates,
   normalizeScoutEducations,
   normalizeScoutWorkExperiences,
+  normalizeScoutWorkExperiencesTier2,
   getScoutResidenceStatusLabel,
   formatScoutGender,
   formatScoutYesNo,
   formatScoutDate,
   formatScoutIncome,
+  formatScoutExperienceYears,
+  getScoutSkillTags,
+  getScoutPrSummary,
+  getScoutApproximateAgeLabel,
+  getScoutAvailabilityLabel,
+  formatScoutJlptSummary,
+  isScoutWorkExperienceAnonymized,
 } from '../../utils/scoutCandidateDisplay'
 
 const ICON_SM = { width: 10, height: 10 }
 const ANONYMOUS_AVATAR = 'https://api.dicebear.com/7.x/shapes/svg?seed=scout-anonymous'
 
-function formatExperienceYears(years) {
-  const n = Number(years)
-  if (!Number.isFinite(n) || n <= 0) return '—'
-  return `${n} năm`
-}
-
-function getSkillTags(candidate) {
-  const raw = candidate?.technicalSkills
-  if (Array.isArray(raw)) return raw.filter(Boolean).map(String)
-  if (typeof raw === 'string' && raw.trim()) {
-    const trimmed = raw.trim()
-    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
-      try {
-        const parsed = JSON.parse(trimmed)
-        if (Array.isArray(parsed)) return parsed.filter(Boolean).map(String)
-      } catch {
-        // fall through
-      }
-    }
-    return trimmed.split(/[,;|/]/).map((s) => s.trim()).filter(Boolean)
-  }
-  return []
-}
-
-function getDisplayName(candidate) {
+function getDisplayName(candidate, isUnlocked) {
   if (!candidate) return 'Ứng viên ẩn danh'
-  if (candidate.isUnlocked && candidate.name) return candidate.name
-  if (candidate.name) return candidate.name
+  if (isUnlocked && candidate.name) return candidate.name
   return candidate.anonymousName || 'Ứng viên ẩn danh'
 }
 
-function getPrSummary(candidate) {
-  return (
-    candidate?.scoutPublicSummary ||
-    candidate?.careerSummary ||
-    candidate?.strengths ||
-    ''
-  )
-}
-
 function AvatarCircle({ candidate, size = 36, unlocked }) {
-  const name = getDisplayName(candidate)
   const isUnlocked = unlocked ?? candidate?.isUnlocked
-  const seed = isUnlocked ? name : `anon-${candidate?.id || 'x'}`
+  const seed = isUnlocked ? (candidate?.name || 'user') : `anon-${candidate?.id || 'x'}`
   const src = isUnlocked && candidate?.avatarPhotoPath
     ? candidate.avatarPhotoPath
     : `${ANONYMOUS_AVATAR}&seed=${encodeURIComponent(String(seed))}`
@@ -75,8 +48,34 @@ function AvatarCircle({ candidate, size = 36, unlocked }) {
   )
 }
 
+function ScoutDetailGrid({ children }) {
+  return (
+    <div className="scout-detail-body text-slate-500" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+      {children}
+    </div>
+  )
+}
+
+function ScoutDetailField({ label, value, hl }) {
+  if (value == null || value === '' || value === '—') return null
+  return (
+    <div>
+      <div style={{ color: '#94a3b8', marginBottom: 1 }}>{label}</div>
+      <div style={{ fontWeight: 600, color: '#1e293b' }}>{hl(value)}</div>
+    </div>
+  )
+}
+
+function ScoutSectionTitle({ children }) {
+  return (
+    <div className="scout-detail-title text-slate-800" style={{ marginBottom: 6, marginTop: 10 }}>
+      {children}
+    </div>
+  )
+}
+
 /**
- * Panel chi tiết ứng viên — cùng bố cục với Scout.jsx (cột phải sau khi mở hồ sơ).
+ * Panel chi tiết ứng viên Scout — Tier 1 (list) + Tier 2 (preview ẩn danh) + Tier 3 (sau unlock).
  */
 export default function ScoutCandidateProfilePanel({
   candidate,
@@ -98,23 +97,26 @@ export default function ScoutCandidateProfilePanel({
     [highlightQuery],
   )
 
-  const sectionTitleStyle = { fontSize: 9, fontWeight: 700, color: '#1e293b', marginBottom: 6, marginTop: 10 }
-  const labelStyle = { fontSize: 8, color: '#94a3b8' }
-  const valueStyle = { fontSize: 9, fontWeight: 600, color: '#1e293b', wordBreak: 'break-word' }
-
   if (!candidate) {
     return (
-      <div className={`bg-white rounded-xl border border-slate-100 text-center ${className}`} style={{ padding: 20, fontSize: 10, color: '#94a3b8' }}>
+      <div className={`scout-detail-body rounded-xl border border-slate-100 bg-white text-center text-slate-400 ${className}`} style={{ padding: 20 }}>
         Chưa có dữ liệu hồ sơ
       </div>
     )
   }
 
+  const skills = getScoutSkillTags(candidate)
+  const prSummary = getScoutPrSummary(candidate)
   const educations = normalizeScoutEducations(candidate.educations)
-  const workExperiences = normalizeScoutWorkExperiences(candidate.workExperiences)
   const certificates = normalizeScoutCertificates(candidate.certificates)
-  const skills = getSkillTags(candidate)
-  const prSummary = getPrSummary(candidate)
+  const approximateAge = getScoutApproximateAgeLabel(candidate)
+  const availability = getScoutAvailabilityLabel(candidate)
+  const residenceLabel = getScoutResidenceStatusLabel(candidate.jpResidenceStatus)
+  const position = candidate.desiredPosition || candidate.jobCategory?.name || '—'
+
+  const workExperiences = isUnlocked
+    ? normalizeScoutWorkExperiences(candidate.workExperiences)
+    : normalizeScoutWorkExperiencesTier2(candidate.workExperiences)
 
   const contactRows = [
     ['Email', candidate.email],
@@ -131,7 +133,7 @@ export default function ScoutCandidateProfilePanel({
   })
 
   const visaRows = [
-    ['Tư cách lưu trú', getScoutResidenceStatusLabel(candidate.jpResidenceStatus)],
+    ['Tư cách lưu trú', residenceLabel],
     ['Ngày hết hạn visa', formatScoutDate(candidate.visaExpirationDate)],
     ['Nơi cư trú hiện tại', candidate.currentResidence],
     ['Quốc gia khác', candidate.otherCountry],
@@ -139,7 +141,7 @@ export default function ScoutCandidateProfilePanel({
   ].filter(([, v]) => v && v !== '—')
 
   return (
-    <div className={`bg-white rounded-xl border border-slate-100 ${className}`} style={{ padding: 10 }}>
+    <div className={`rounded-xl border border-slate-100 bg-white ${className}`} style={{ padding: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #e2e8f0' }}>
         <div style={{ position: 'relative', flexShrink: 0 }}>
           <AvatarCircle candidate={candidate} size={40} unlocked={isUnlocked} />
@@ -150,15 +152,13 @@ export default function ScoutCandidateProfilePanel({
           )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#1e293b' }}>{hl(getDisplayName(candidate))}</div>
-          {isUnlocked && (
-            <div style={{ fontSize: 9, color: '#64748b' }}>
-              {hl(candidate.desiredPosition || candidate.jobCategory?.name || '—')}
-              {candidate.code ? (
-                <span style={{ color: '#94a3b8' }}> · {candidate.code}</span>
-              ) : null}
-            </div>
-          )}
+          <div className="scout-detail-title text-slate-800">{hl(getDisplayName(candidate, isUnlocked))}</div>
+          <div className="scout-detail-body text-slate-500">
+            {hl(position)}
+            {isUnlocked && candidate.code ? (
+              <span style={{ color: '#94a3b8' }}> · {candidate.code}</span>
+            ) : null}
+          </div>
         </div>
         {onClose && (
           <button
@@ -172,39 +172,73 @@ export default function ScoutCandidateProfilePanel({
         )}
       </div>
 
-      <div style={{ fontSize: 8, color: '#64748b', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-        {isUnlocked ? (
-          <>
-            <div>
-              <div style={{ color: '#94a3b8', marginBottom: 1 }}>Kinh nghiệm</div>
-              <div style={{ fontWeight: 600, color: '#1e293b' }}>{hl(formatExperienceYears(candidate.experienceYears))}</div>
-            </div>
-            <div>
-              <div style={{ color: '#94a3b8', marginBottom: 1 }}>Địa điểm</div>
-              <div style={{ fontWeight: 600, color: '#1e293b' }}>{hl(candidate.desiredWorkLocation || '—')}</div>
-            </div>
-            <div>
-              <div style={{ color: '#94a3b8', marginBottom: 1 }}>Mức lương mong muốn</div>
-              <div style={{ fontWeight: 600, color: '#1e293b' }}>{hl(candidate.desiredIncome || '—')}</div>
-            </div>
-            <div>
-              <div style={{ color: '#94a3b8', marginBottom: 1 }}>JLPT / Ngoại ngữ</div>
-              <div style={{ fontWeight: 600, color: '#1e293b' }}>
-                {hl([candidate.jlptLevel, candidate.jpConversationLevel, candidate.enConversationLevel].filter(Boolean).join(' · ') || '—')}
+      {/* Tier 1 — lặp lại thông tin từ list card */}
+      <ScoutDetailGrid>
+        <ScoutDetailField label="Kinh nghiệm" value={formatScoutExperienceYears(candidate.experienceYears)} hl={hl} />
+        <ScoutDetailField label="Địa điểm mong muốn" value={candidate.desiredWorkLocation} hl={hl} />
+        <ScoutDetailField label="Mức lương mong muốn" value={formatScoutIncome(candidate.desiredIncome)} hl={hl} />
+        <ScoutDetailField label="JLPT / Ngoại ngữ" value={formatScoutJlptSummary(candidate)} hl={hl} />
+      </ScoutDetailGrid>
+
+      {/* Tier 2 — preview ẩn danh trước unlock */}
+      {!isUnlocked && (
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e2e8f0' }}>
+          <ScoutSectionTitle>Thông tin preview (ẩn danh)</ScoutSectionTitle>
+          <ScoutDetailGrid>
+            <ScoutDetailField label="Độ tuổi (khoảng)" value={approximateAge} hl={hl} />
+            <ScoutDetailField label="Sẵn sàng nhập công ty" value={availability} hl={hl} />
+            <ScoutDetailField label="Tư cách lưu trú" value={residenceLabel !== '—' ? residenceLabel : null} hl={hl} />
+          </ScoutDetailGrid>
+
+          {educations.length > 0 && (
+            <>
+              <ScoutSectionTitle>Học vấn</ScoutSectionTitle>
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {educations.map((edu, i) => (
+                  <li key={i} className="scout-detail-body text-slate-600" style={{ paddingLeft: 8, borderLeft: '2px solid #e2e8f0' }}>
+                    <span style={{ fontWeight: 600, color: '#1e293b' }}>{hl(edu.period)}</span>
+                    {' — '}
+                    {hl(edu.content)}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {certificates.length > 0 && (
+            <>
+              <ScoutSectionTitle>Chứng chỉ</ScoutSectionTitle>
+              <div className="flex flex-wrap gap-1">
+                {certificates.map((cert, i) => (
+                  <span key={i} className="scout-detail-body rounded-lg bg-blue-50 px-2 py-0.5 text-blue-700">
+                    {hl(`${cert.name}${cert.year ? ` (${cert.year})` : ''}`)}
+                  </span>
+                ))}
               </div>
-            </div>
-          </>
-        ) : (
-          <div style={{ gridColumn: '1 / -1', fontSize: 8, color: '#64748b' }}>
-            Chỉ hiển thị PR và kỹ năng. Mở bằng credit để xem đầy đủ thông tin.
-          </div>
-        )}
-      </div>
+            </>
+          )}
+
+          {workExperiences.length > 0 && (
+            <>
+              <ScoutSectionTitle>Kinh nghiệm làm việc (ẩn danh)</ScoutSectionTitle>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {workExperiences.map((work, i) => (
+                  <div key={i} style={{ padding: 6, borderRadius: 6, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                    <div className="scout-detail-title text-slate-800">{hl(work.role)}</div>
+                    <div className="scout-detail-body text-slate-600" style={{ marginTop: 2 }}>{hl(work.companyTypeLabel)}</div>
+                    <div className="scout-detail-caption text-slate-500" style={{ marginTop: 2 }}>{hl(work.period)}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {prSummary && (
         <div style={{ marginTop: 8, padding: 8, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: 8, color: '#94a3b8', marginBottom: 4 }}>PR / Giới thiệu</div>
-          <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
+          <div className="scout-detail-caption text-slate-400" style={{ marginBottom: 4 }}>PR / Giới thiệu</div>
+          <div className="scout-detail-body text-slate-600" style={{ lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
             {hl(prSummary)}
           </div>
         </div>
@@ -212,10 +246,10 @@ export default function ScoutCandidateProfilePanel({
 
       {skills.length > 0 && (
         <div style={{ marginTop: 8 }}>
-          <div style={{ fontSize: 8, color: '#94a3b8', marginBottom: 4 }}>Kỹ năng</div>
+          <div className="scout-detail-caption text-slate-400" style={{ marginBottom: 4 }}>Kỹ năng</div>
           <div className="flex flex-wrap gap-1">
             {skills.map((skill) => (
-              <span key={skill} style={{ fontSize: 7, fontWeight: 500, color: '#3b82f6', background: '#eff6ff', borderRadius: 10, padding: '2px 6px' }}>
+              <span key={skill} className="scout-detail-body rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-600">
                 {hl(skill)}
               </span>
             ))}
@@ -225,116 +259,105 @@ export default function ScoutCandidateProfilePanel({
 
       {highlightQuery && Array.isArray(candidate.searchSnippets) && candidate.searchSnippets.length > 0 && (
         <div style={{ marginTop: 8, padding: 8, background: '#fffbeb', borderRadius: 8, border: '1px solid #fde68a' }}>
-          <div style={{ fontSize: 8, color: '#92400e', marginBottom: 4, fontWeight: 600 }}>Khớp từ khóa</div>
+          <div className="scout-detail-caption font-semibold text-amber-800" style={{ marginBottom: 4 }}>Khớp từ khóa</div>
           {candidate.searchSnippets.map((snippet) => (
-            <div key={snippet} style={{ fontSize: 8, color: '#475569', lineHeight: 1.45 }}>
+            <div key={snippet} className="scout-detail-body text-slate-600" style={{ lineHeight: 1.45 }}>
               {hl(snippet)}
             </div>
           ))}
         </div>
       )}
 
+      {/* Tier 3 — sau unlock */}
       {isUnlocked && (
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: 9, fontWeight: 700, color: accessLabelColor, marginBottom: 6 }}>
+          <div className="scout-detail-title" style={{ color: accessLabelColor, marginBottom: 6 }}>
             {accessLabel}
           </div>
 
           {contactRows.length > 0 && (
             <>
-              <div style={sectionTitleStyle}>Liên hệ & cá nhân</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              <ScoutSectionTitle>Liên hệ & cá nhân</ScoutSectionTitle>
+              <ScoutDetailGrid>
                 {contactRows.map(([label, value]) => (
-                  <div key={label}>
-                    <div style={labelStyle}>{label}</div>
-                    <div style={valueStyle}>{hl(value)}</div>
-                  </div>
+                  <ScoutDetailField key={label} label={label} value={value} hl={hl} />
                 ))}
-              </div>
+              </ScoutDetailGrid>
             </>
           )}
 
           {visaRows.length > 0 && (
             <>
-              <div style={sectionTitleStyle}>Visa & cư trú</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              <ScoutSectionTitle>Visa & cư trú</ScoutSectionTitle>
+              <ScoutDetailGrid>
                 {visaRows.map(([label, value]) => (
-                  <div key={label}>
-                    <div style={labelStyle}>{label}</div>
-                    <div style={valueStyle}>{hl(value)}</div>
+                  <ScoutDetailField key={label} label={label} value={value} hl={hl} />
+                ))}
+              </ScoutDetailGrid>
+            </>
+          )}
+
+          {(candidate.currentIncome != null || candidate.desiredIncome != null) && (
+            <>
+              <ScoutSectionTitle>Lương</ScoutSectionTitle>
+              <ScoutDetailGrid>
+                <ScoutDetailField label="Lương hiện tại" value={formatScoutIncome(candidate.currentIncome)} hl={hl} />
+                <ScoutDetailField label="Lương mong muốn" value={formatScoutIncome(candidate.desiredIncome)} hl={hl} />
+              </ScoutDetailGrid>
+            </>
+          )}
+
+          {isUnlocked && educations.length > 0 && (
+            <>
+              <ScoutSectionTitle>Học vấn</ScoutSectionTitle>
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {educations.map((edu, i) => (
+                  <li key={i} className="scout-detail-body text-slate-600" style={{ paddingLeft: 8, borderLeft: '2px solid #e2e8f0' }}>
+                    <span style={{ fontWeight: 600, color: '#1e293b' }}>{hl(edu.period)}</span>
+                    {' — '}
+                    {hl(edu.content)}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {workExperiences.length > 0 && !isScoutWorkExperienceAnonymized(workExperiences[0]) && (
+            <>
+              <ScoutSectionTitle>Lịch sử công việc</ScoutSectionTitle>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {workExperiences.map((work, i) => (
+                  <div key={i} style={{ padding: 6, borderRadius: 6, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                    <div className="scout-detail-title text-slate-800">{hl(work.companyName)}</div>
+                    <div className="scout-detail-caption text-slate-500" style={{ marginTop: 2 }}>{hl(work.period)}</div>
+                    <div className="scout-detail-body text-slate-600" style={{ marginTop: 4, lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
+                      {hl(work.description)}
+                    </div>
+                    {work.projects?.length > 0 && (
+                      <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {work.projects.map((project, pIdx) => (
+                          <div key={pIdx} className="scout-detail-body text-slate-600" style={{ padding: 4, borderRadius: 4, background: 'white', border: '1px solid #e2e8f0' }}>
+                            <div style={{ fontWeight: 600, color: '#1e293b' }}>{hl(project.name)}</div>
+                            {hl([project.role, project.period, project.tools].filter(Boolean).join(' · '))}
+                            {project.description ? (
+                              <div style={{ marginTop: 2, lineHeight: 1.35 }}>{hl(project.description)}</div>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             </>
           )}
 
-          {(candidate.currentIncome != null || candidate.desiredIncome != null) && (
+          {certificates.length > 0 && isUnlocked && (
             <>
-              <div style={sectionTitleStyle}>Lương</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                <div>
-                  <div style={labelStyle}>Lương hiện tại</div>
-                  <div style={valueStyle}>{hl(formatScoutIncome(candidate.currentIncome))}</div>
-                </div>
-                <div>
-                  <div style={labelStyle}>Lương mong muốn</div>
-                  <div style={valueStyle}>{hl(formatScoutIncome(candidate.desiredIncome))}</div>
-                </div>
-              </div>
-            </>
-          )}
-
-          <div style={sectionTitleStyle}>Học vấn</div>
-          {educations.length === 0 ? (
-            <div style={{ fontSize: 8, color: '#94a3b8' }}>Chưa có thông tin học vấn</div>
-          ) : (
-            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {educations.map((edu, i) => (
-                <li key={i} style={{ fontSize: 8, color: '#475569', paddingLeft: 8, borderLeft: '2px solid #e2e8f0' }}>
-                  <span style={{ fontWeight: 600, color: '#1e293b' }}>{hl(edu.period)}</span>
-                  {' — '}
-                  {hl(edu.content)}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div style={sectionTitleStyle}>Lịch sử công việc</div>
-          {workExperiences.length === 0 ? (
-            <div style={{ fontSize: 8, color: '#94a3b8' }}>Chưa có kinh nghiệm làm việc</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {workExperiences.map((work, i) => (
-                <div key={i} style={{ padding: 6, borderRadius: 6, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: '#1e293b' }}>{hl(work.companyName)}</div>
-                  <div style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>{hl(work.period)}</div>
-                  <div style={{ fontSize: 8, color: '#475569', marginTop: 4, lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
-                    {hl(work.description)}
-                  </div>
-                  {work.projects?.length > 0 && (
-                    <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      {work.projects.map((project, pIdx) => (
-                        <div key={pIdx} style={{ fontSize: 8, color: '#475569', padding: 4, borderRadius: 4, background: 'white', border: '1px solid #e2e8f0' }}>
-                          <div style={{ fontWeight: 600, color: '#1e293b' }}>{hl(project.name)}</div>
-                          {hl([project.role, project.period, project.tools].filter(Boolean).join(' · '))}
-                          {project.description ? (
-                            <div style={{ marginTop: 2, lineHeight: 1.35 }}>{hl(project.description)}</div>
-                          ) : null}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {certificates.length > 0 && (
-            <>
-              <div style={sectionTitleStyle}>Chứng chỉ</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              <ScoutSectionTitle>Chứng chỉ</ScoutSectionTitle>
+              <div className="flex flex-wrap gap-1">
                 {certificates.map((cert, i) => (
-                  <span key={i} style={{ fontSize: 8, padding: '2px 6px', borderRadius: 8, background: '#eff6ff', color: '#1d4ed8' }}>
+                  <span key={i} className="scout-detail-body rounded-lg bg-blue-50 px-2 py-0.5 text-blue-700">
                     {hl(`${cert.name}${cert.year ? ` (${cert.year})` : ''}`)}
                   </span>
                 ))}
@@ -344,23 +367,23 @@ export default function ScoutCandidateProfilePanel({
 
           {candidate.motivation && (
             <>
-              <div style={sectionTitleStyle}>Động lực</div>
-              <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>{hl(candidate.motivation)}</div>
+              <ScoutSectionTitle>Động lực</ScoutSectionTitle>
+              <div className="scout-detail-body text-slate-600" style={{ lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>{hl(candidate.motivation)}</div>
             </>
           )}
         </div>
       )}
 
       {showLockedHint && !isUnlocked && (
-        <div className="bg-indigo-50 rounded-lg" style={{ padding: 8, marginTop: 8, border: '1px solid #e0e7ff' }}>
-          <div style={{ fontSize: 8, color: '#4f46e5', lineHeight: 1.3 }}>
-            Bạn chỉ thấy PR và kỹ năng. Dùng credit để xem email, SĐT và thông tin cá nhân đầy đủ.
+        <div className="rounded-lg bg-indigo-50" style={{ padding: 8, marginTop: 8, border: '1px solid #e0e7ff' }}>
+          <div className="scout-detail-body text-indigo-600" style={{ lineHeight: 1.35 }}>
+            Hồ sơ đang ẩn danh. Mở bằng credit để xem tên thật, email, SĐT, địa chỉ và tên công ty cụ thể.
           </div>
         </div>
       )}
 
       {footerNote && (
-        <div style={{ marginTop: 8, padding: 8, fontSize: 8, color: '#64748b', background: '#fffbeb', borderRadius: 8, border: '1px solid #fde68a', lineHeight: 1.4 }}>
+        <div className="scout-detail-body text-slate-500" style={{ marginTop: 8, padding: 8, background: '#fffbeb', borderRadius: 8, border: '1px solid #fde68a', lineHeight: 1.4 }}>
           {footerNote}
         </div>
       )}

@@ -8,6 +8,7 @@ router.use(authenticateBusiness);
 
 router.get('/sessions', businessWsChatController.listSessions);
 router.post('/sync-credit-requests', businessWsChatController.syncCreditRequests);
+router.post('/service-requests', businessWsChatController.createServiceRequest);
 router.get('/sessions/by-performance-request/:requestId', businessWsChatController.getSessionByPerformanceRequest);
 router.get('/sessions/:id', businessWsChatController.getSession);
 router.get('/sessions/:id/messages', businessWsChatController.listMessages);

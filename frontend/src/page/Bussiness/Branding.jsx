@@ -18,6 +18,8 @@ import apiService from '../../services/api'
 import TemplateSlidePanel from '../../component/BusinessBranding/TemplateSlidePanel'
 import BrandingAlertModal from '../../component/BusinessBranding/BrandingAlertModal'
 import BrandingServiceIntakeModal from '../../component/BusinessBranding/BrandingServiceIntakeModal'
+import { getBillingServiceKeyFromIntake } from '../../utils/serviceRequestNoteDisplay'
+import { getServiceByKey } from '../../utils/businessServiceRequestCatalog'
 import { isCompanyBuilderContent } from '../../utils/companyLandingPageSchema'
 import { HomepageSidebar } from './Homepage'
 
@@ -638,9 +640,20 @@ const Branding = () => {
   const sendServiceRequest = async (serviceKey, note = null) => {
     setRequestLoadingKey(serviceKey)
     try {
-      const body = { serviceKey }
-      if (note) body.note = note
-      const res = await apiService.createBusinessSaiyoBrandingServiceRequest(body)
+      const billingKey = getBillingServiceKeyFromIntake(serviceKey)
+      let res
+      if (billingKey) {
+        const catalog = getServiceByKey(billingKey)
+        res = await apiService.createBusinessServiceRequest({
+          serviceKey: billingKey,
+          serviceTitle: catalog?.title,
+          note,
+        })
+      } else {
+        const body = { serviceKey }
+        if (note) body.note = note
+        res = await apiService.createBusinessSaiyoBrandingServiceRequest(body)
+      }
       if (res?.success) {
         openConfirmModal({
           title: 'Đã gửi yêu cầu',

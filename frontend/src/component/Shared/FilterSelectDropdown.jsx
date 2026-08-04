@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, Search } from 'lucide-react';
 
 const PANEL_VIEWPORT_MARGIN = 8;
 const PANEL_MIN_WIDTH = 200;
@@ -31,15 +31,31 @@ export default function FilterSelectDropdown({
   disabled = false,
   className = '',
   maxPanelHeight = 176,
+  searchable = false,
+  searchPlaceholder = 'Tìm kiếm...',
+  optionSize = 'compact',
 }) {
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const triggerRef = useRef(null);
   const panelRef = useRef(null);
+  const searchRef = useRef(null);
   const [panelStyle, setPanelStyle] = useState(null);
 
   const normalizedValue = value == null ? '' : String(value);
   const selectedOption = options.find((opt) => String(opt.value) === normalizedValue);
   const displayLabel = selectedOption?.label || placeholder;
+
+  const filteredOptions = useMemo(() => {
+    if (!searchable) return options;
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((opt) => String(opt.label || '').toLowerCase().includes(q));
+  }, [options, searchable, searchQuery]);
+
+  const optionTextClass = optionSize === 'comfortable'
+    ? 'text-sm leading-snug'
+    : 'text-[9px] leading-snug';
 
   const updatePanelPosition = () => {
     const el = triggerRef.current;
@@ -68,8 +84,14 @@ export default function FilterSelectDropdown({
   };
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) {
+      setSearchQuery('');
+      return undefined;
+    }
     updatePanelPosition();
+    if (searchable) {
+      window.requestAnimationFrame(() => searchRef.current?.focus());
+    }
     const onScroll = () => updatePanelPosition();
     const onResize = () => updatePanelPosition();
     const onDoc = (e) => {
@@ -90,11 +112,12 @@ export default function FilterSelectDropdown({
       document.removeEventListener('mousedown', onDoc);
       document.removeEventListener('keydown', onKey);
     };
-  }, [open]);
+  }, [open, searchable]);
 
   const handleSelect = (nextValue) => {
     onChange(nextValue);
     setOpen(false);
+    setSearchQuery('');
   };
 
   return (
@@ -125,9 +148,30 @@ export default function FilterSelectDropdown({
           ref={panelRef}
           role="listbox"
           style={panelStyle}
-          className="overflow-y-auto overflow-x-hidden rounded-md border border-gray-200 bg-white py-1 shadow-lg"
+          className="flex flex-col overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg"
         >
-          {options.map((opt) => {
+          {searchable ? (
+            <div className="sticky top-0 z-10 border-b border-gray-100 bg-white p-2">
+              <div className="flex items-center gap-2 rounded-md border border-gray-200 px-2 py-1.5">
+                <Search className="h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden />
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={searchPlaceholder}
+                  className={`min-w-0 flex-1 bg-transparent outline-none ${optionSize === 'comfortable' ? 'text-sm' : 'text-[9px]'}`}
+                  onKeyDown={(e) => e.stopPropagation()}
+                />
+              </div>
+            </div>
+          ) : null}
+          <div className="overflow-y-auto overflow-x-hidden py-1" style={{ maxHeight: searchable ? panelStyle.maxHeight - 52 : panelStyle.maxHeight }}>
+          {filteredOptions.length === 0 ? (
+            <div className={`px-3 py-2 text-gray-400 ${optionTextClass}`}>
+              Không tìm thấy kết quả
+            </div>
+          ) : filteredOptions.map((opt) => {
             const optValue = String(opt.value);
             const selected = optValue === normalizedValue;
             return (
@@ -138,7 +182,7 @@ export default function FilterSelectDropdown({
                 aria-selected={selected}
                 title={opt.label}
                 onClick={() => handleSelect(opt.value)}
-                className={`flex w-full items-start gap-1.5 px-2 py-1.5 text-left text-[9px] leading-snug transition-colors ${
+                className={`flex w-full items-start gap-1.5 px-2 py-1.5 text-left ${optionTextClass} transition-colors ${
                   selected
                     ? 'bg-[#eff6ff] text-[#1d4ed8] font-medium'
                     : 'text-gray-800 hover:bg-gray-50'
@@ -153,6 +197,7 @@ export default function FilterSelectDropdown({
               </button>
             );
           })}
+          </div>
         </div>,
         document.body,
       )}

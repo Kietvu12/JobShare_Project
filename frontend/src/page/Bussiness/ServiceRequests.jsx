@@ -1,24 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  Loader2,
-  Info,
-  X,
-} from 'lucide-react';
+import { Loader2, Info, X } from 'lucide-react';
 import apiService from '../../services/api';
 import ServiceRequestModal from '../../component/Bussiness/ServiceRequestModal';
 import ServiceRequestAccountSidebar from '../../component/Bussiness/ServiceRequestAccountSidebar';
 import { BUSINESS_SERVICE_REQUEST_CATALOG, getServiceByKey } from '../../utils/businessServiceRequestCatalog';
-
-const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif";
-const CARD = 'rounded-xl border border-slate-200 bg-white p-3 shadow-sm';
-
-const pageStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
-  .service-req-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
-  .service-req-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-  .service-req-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
-`;
+import { BUSINESS_HOMEPAGE_SHELL_STYLES, CARD, PAGE_FONT } from '../../utils/businessHomepageShell';
 
 export default function ServiceRequests() {
   const navigate = useNavigate();
@@ -83,91 +70,91 @@ export default function ServiceRequests() {
   if (loading && !dashboard) {
     return (
       <div
-        className="flex h-full min-h-0 items-center justify-center bg-[#f4f6f8] text-xs text-slate-500"
+        className="flex h-full min-h-0 items-center justify-center bg-[#f4f6f8] text-[11px] text-slate-500"
         style={{ fontFamily: PAGE_FONT }}
       >
         <Loader2 className="h-4 w-4 animate-spin text-[#0077B6]" />
-        Đang tải...
+        <span className="ml-2">Đang tải...</span>
       </div>
     );
   }
 
   return (
-    <div
-      className="flex h-full min-h-0 flex-col overflow-hidden bg-[#f4f6f8]"
-      style={{ fontFamily: PAGE_FONT }}
-    >
-      <style>{pageStyles}</style>
+    <>
+      <style>{BUSINESS_HOMEPAGE_SHELL_STYLES}</style>
+      <div
+        className="business-homepage-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#f4f6f8]"
+        style={{ fontFamily: PAGE_FONT }}
+      >
+        <ServiceRequestModal
+          open={modalOpen}
+          service={activeService}
+          onClose={() => { setModalOpen(false); setActiveService(null); }}
+          onSuccess={handleSuccess}
+          currentCredit={dashboard?.summary?.credit}
+        />
 
-      <ServiceRequestModal
-        open={modalOpen}
-        service={activeService}
-        onClose={() => { setModalOpen(false); setActiveService(null); }}
-        onSuccess={handleSuccess}
-        currentCredit={dashboard?.summary?.credit}
-      />
+        <div className="business-homepage-ui flex min-h-0 flex-1 flex-col overflow-hidden p-2 sm:p-2.5">
+          {successMsg ? (
+            <div className="mb-2 flex shrink-0 items-start justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-medium text-emerald-800">
+              <span>{successMsg}</span>
+              <button type="button" onClick={() => setSuccessMsg('')} className="border-0 bg-transparent p-0">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : null}
 
-      <div className="service-req-scroll flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 sm:p-4 text-[11px] lg:overflow-hidden">
-        {successMsg ? (
-          <div className={`${CARD} flex shrink-0 items-start justify-between gap-2 border-emerald-200 bg-emerald-50 text-xs text-emerald-800`}>
-            <span>{successMsg}</span>
-            <button type="button" onClick={() => setSuccessMsg('')} className="border-0 bg-transparent p-0">
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        ) : null}
+          <header className="mb-1.5 shrink-0">
+            <h1 className="text-base font-bold text-slate-900 sm:text-[17px]">Yêu cầu dịch vụ</h1>
+            <p className="mt-0.5 text-[10px] leading-snug text-slate-500 sm:text-[11px]">
+              Chọn dịch vụ bạn cần và gửi yêu cầu tới JobShare. Chúng tôi sẽ liên hệ và hỗ trợ bạn trong thời gian sớm nhất.
+            </p>
+          </header>
 
-        <header className="shrink-0">
-          <h1 className="text-lg font-bold text-slate-900 sm:text-xl">Yêu cầu dịch vụ</h1>
-          <p className="mt-1 text-[11px] leading-relaxed text-slate-500 sm:text-xs">
-            Chọn dịch vụ bạn cần và gửi yêu cầu tới JobShare. Chúng tôi sẽ liên hệ và hỗ trợ bạn trong thời gian sớm nhất.
-          </p>
-        </header>
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_260px] xl:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden lg:overflow-hidden">
+              <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 lg:grid-rows-2">
+                {BUSINESS_SERVICE_REQUEST_CATALOG.map((service) => {
+                  const Icon = service.icon;
+                  return (
+                    <article key={service.key} className={`${CARD} flex h-full min-h-0 flex-col p-2.5 transition-shadow hover:shadow-md sm:p-3`}>
+                      <div className="flex flex-1 flex-col justify-center">
+                        <div
+                          className="mb-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                          style={{ background: service.iconBg }}
+                        >
+                          <Icon className="h-3.5 w-3.5" style={{ color: service.iconColor }} strokeWidth={2} />
+                        </div>
+                        <h2 className="text-[11px] font-bold leading-snug text-slate-900 sm:text-xs">{service.title}</h2>
+                        <p className="mt-1 text-[9px] leading-snug text-slate-500 sm:text-[10px]">
+                          {service.shortDesc}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openService(service)}
+                        className="mt-2 shrink-0 w-full rounded-lg border border-[#0077B6]/30 bg-white py-1.5 text-[10px] font-semibold text-[#0077B6] transition-colors hover:bg-[#e8f4fa] sm:text-[11px]"
+                      >
+                        Xem chi tiết
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-stretch lg:overflow-hidden">
-          <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:overflow-hidden">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:grid-cols-3 lg:grid-rows-2">
-              {BUSINESS_SERVICE_REQUEST_CATALOG.map((service) => {
-                const Icon = service.icon;
-                return (
-                  <article
-                    key={service.key}
-                    className={`${CARD} flex flex-col lg:h-full lg:min-h-0`}
-                  >
-                    <div
-                      className="mb-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                      style={{ background: service.iconBg }}
-                    >
-                      <Icon className="h-4 w-4" style={{ color: service.iconColor }} strokeWidth={2} />
-                    </div>
-                    <h2 className="shrink-0 text-xs font-bold text-slate-900">{service.title}</h2>
-                    <p className="mt-1 shrink-0 text-[10px] leading-relaxed text-slate-500">
-                      {service.shortDesc}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => openService(service)}
-                      className="mt-3 w-full rounded-lg border border-[#0077B6]/30 bg-white py-2 text-[10px] font-semibold text-[#0077B6] transition-colors hover:bg-[#e8f4fa] lg:mt-auto lg:pt-3"
-                    >
-                      Xem chi tiết
-                    </button>
-                  </article>
-                );
-              })}
+              <div className={`${CARD} flex shrink-0 items-start gap-2 border-[#0077B6]/15 bg-[#e8f4fa]/60 p-2.5 sm:p-3`}>
+                <Info className="mt-0.5 h-3 w-3 shrink-0 text-[#0077B6]" />
+                <p className="text-[9px] leading-snug text-slate-600 sm:text-[10px]">
+                  <span className="font-semibold text-slate-800">Lưu ý:</span>{' '}
+                  Thời gian xử lý yêu cầu: 1–2 ngày làm việc. JobShare sẽ liên hệ xác nhận và tư vấn chi tiết sau khi tiếp nhận yêu cầu của bạn.
+                </p>
+              </div>
             </div>
 
-            <div className="flex shrink-0 items-start gap-2 rounded-xl border border-[#0077B6]/15 bg-[#e8f4fa]/60 px-3 py-2.5 text-[10px] leading-relaxed text-slate-600">
-              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0077B6]" />
-              <p>
-                <span className="font-semibold text-slate-800">Lưu ý:</span>{' '}
-                Thời gian xử lý yêu cầu: 1–2 ngày làm việc. JobShare sẽ liên hệ xác nhận và tư vấn chi tiết sau khi tiếp nhận yêu cầu của bạn.
-              </p>
-            </div>
+            <ServiceRequestAccountSidebar dashboard={dashboard} />
           </div>
-
-          <ServiceRequestAccountSidebar dashboard={dashboard} />
         </div>
       </div>
-    </div>
+    </>
   );
 }

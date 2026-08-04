@@ -876,6 +876,48 @@ export async function createWsChatBusinessServiceRequestMessage({
   return { message, session, requestCode };
 }
 
+const ALLOWED_SERVICE_REQUEST_KEYS = new Set([
+  'landing_page_premium',
+  'recruitment_ads',
+  'seminar_campaign',
+  'company_profile',
+  'other_service',
+]);
+
+const SERVICE_REQUEST_TITLE_MAP = {
+  landing_page_premium: 'Yêu cầu Landing Page premium',
+  recruitment_ads: 'Yêu cầu chạy quảng cáo tuyển dụng',
+  seminar_campaign: 'Yêu cầu tổ chức Seminar / Campaign tuyển dụng',
+  company_profile: 'Yêu cầu thiết kế profile company',
+  other_service: 'Yêu cầu dịch vụ khác',
+};
+
+export async function createBusinessServiceRequest({ businessId, serviceKey, serviceTitle, note }) {
+  const key = String(serviceKey || '').trim();
+  if (!ALLOWED_SERVICE_REQUEST_KEYS.has(key)) {
+    const err = new Error(`Loại dịch vụ không hợp lệ (${key || 'trống'})`);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const title = String(serviceTitle || SERVICE_REQUEST_TITLE_MAP[key] || key).trim();
+  const { message, session, requestCode } = await createWsChatBusinessServiceRequestMessage({
+    businessId,
+    serviceKey: key,
+    serviceTitle: title,
+    note,
+  });
+
+  return {
+    requestCode,
+    serviceKey: key,
+    serviceTitle: title,
+    note: note ? String(note).trim() : null,
+    sessionId: session?.id || null,
+    messageId: message?.id || null,
+  };
+}
+
 /** Backfill: pending credit requests chưa có tin nhắn chat (yêu cầu tạo trước khi bật sync). */
 export async function ensurePendingCreditRequestsInWsChat({ businessId }) {
   if (!businessId) return;

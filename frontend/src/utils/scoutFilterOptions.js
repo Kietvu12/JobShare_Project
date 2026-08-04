@@ -2,6 +2,7 @@ import {
   EXPERIENCE_YEARS_OPTIONS,
   JAPANESE_LEVEL_FILTER_OPTIONS,
 } from './requirementPresetOptions';
+import { candidateMatchesWorkLocationFilter } from './workLocationFilter.js';
 
 export { EXPERIENCE_YEARS_OPTIONS, JAPANESE_LEVEL_FILTER_OPTIONS };
 
@@ -59,9 +60,10 @@ export function passesExperienceYearsFilter(experienceYears, filterValue) {
 }
 
 export function passesScoutCandidateFilters(candidate, filters) {
-  if (filters.location) {
-    const loc = (candidate.desiredWorkLocation || '').toLowerCase();
-    if (!loc.includes(filters.location.toLowerCase())) return false;
+  if (!candidateMatchesWorkLocationFilter(candidate, filters.locations)) return false;
+  if (filters.jobCategoryId) {
+    const catId = String(candidate.jobCategoryId ?? candidate.jobCategory?.id ?? '');
+    if (catId !== String(filters.jobCategoryId)) return false;
   }
   if (!passesExperienceYearsFilter(candidate.experienceYears, filters.experience)) return false;
   if (!passesJapaneseLevelFilter(candidate.jlptLevel, filters.japaneseLevel)) return false;
@@ -78,7 +80,9 @@ export function passesScoutCandidateFilters(candidate, filters) {
 
 export function getDefaultScoutFilters() {
   return {
-    location: '',
+    locations: [],
+    jobCategoryId: '',
+    jobCategoryLabel: '',
     experience: '',
     japaneseLevel: '',
     visa: '',
@@ -88,5 +92,10 @@ export function getDefaultScoutFilters() {
 }
 
 export function hasActiveScoutFilters(filters) {
-  return Object.values(filters || {}).some((v) => v !== '' && v != null);
+  if (!filters) return false;
+  if (Array.isArray(filters.locations) && filters.locations.length > 0) return true;
+  return Object.entries(filters).some(([key, value]) => {
+    if (key === 'locations') return false;
+    return value !== '' && value != null;
+  });
 }

@@ -430,6 +430,17 @@ async function fetchJobDetailByIdOrSlug(scopePath, jobIdOrSlug, fetchOptions = {
 /**
  * API Service - Centralized API calls
  */
+const RECRUITMENT_HEALTH_UNSUPPORTED_KEY = 'business_recruitment_health_api_unsupported';
+
+const DEFAULT_RECRUITMENT_HEALTH_API_RESPONSE = {
+  success: true,
+  data: {
+    score: 0,
+    avgDays: 0,
+    rating: 'noData',
+  },
+};
+
 const apiService = {
   normalizeCvLanguageLevels: (cv = {}) => ({
     ...cv,
@@ -782,12 +793,26 @@ const apiService = {
   },
 
   createBusinessServiceRequest: async (data) => {
-    const response = await fetch(`${API_BASE_URL}/business/billing/service-requests`, {
-      method: 'POST',
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return handleResponse(response);
+    const headers = { ...getAuthHeaders(), 'Content-Type': 'application/json' };
+    const body = JSON.stringify(data);
+    const base = resolveApiBaseUrl();
+    // ws-chat trước: staging thường có route này sớm hơn billing/service-requests
+    const endpoints = [
+      `${base}/business/ws-chat/service-requests`,
+      `${base}/business/billing/service-requests`,
+    ];
+
+    let lastError = null;
+    for (const url of endpoints) {
+      const response = await fetch(url, { method: 'POST', headers, body });
+      try {
+        return await handleResponse(response);
+      } catch (error) {
+        lastError = error;
+        if (error?.status !== 404) throw error;
+      }
+    }
+    throw lastError || new Error('Không thể gửi yêu cầu dịch vụ');
   },
 
   getBusinessCreditRequestById: async (id) => {
@@ -1441,12 +1466,39 @@ const apiService = {
   },
 
   getBusinessRecruitmentHealth: async () => {
-    const response = await fetchDedupedJson(
-      `${API_BASE_URL}/business/insights/recruitment-health`,
-      { method: 'GET', headers: getAuthHeaders() },
-      `${API_BASE_URL}/business/insights/recruitment-health`,
-    );
-    return handleResponse(response);
+    try {
+      if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(RECRUITMENT_HEALTH_UNSUPPORTED_KEY) === '1') {
+        return DEFAULT_RECRUITMENT_HEALTH_API_RESPONSE;
+      }
+
+      const url = `${API_BASE_URL}/business/insights/recruitment-health`;
+      const response = await fetchDedupedJson(
+        url,
+        { method: 'GET', headers: getAuthHeaders() },
+        url,
+      );
+
+      if (response.status === 404) {
+        try {
+          sessionStorage.setItem(RECRUITMENT_HEALTH_UNSUPPORTED_KEY, '1');
+        } catch {
+          /* ignore */
+        }
+        return DEFAULT_RECRUITMENT_HEALTH_API_RESPONSE;
+      }
+
+      return handleResponse(response);
+    } catch (err) {
+      if (err?.status === 404) {
+        try {
+          sessionStorage.setItem(RECRUITMENT_HEALTH_UNSUPPORTED_KEY, '1');
+        } catch {
+          /* ignore */
+        }
+        return DEFAULT_RECRUITMENT_HEALTH_API_RESPONSE;
+      }
+      throw err;
+    }
   },
 
   getBusinessCandidateSharingDashboard: async () => {
@@ -4600,10 +4652,11 @@ const apiService = {
     return handleResponse(response);
   },
 
-  streamBusinessNotifications: async () => {
+  streamBusinessNotifications: async (options = {}) => {
     return fetch(`${API_BASE_URL}/business/notifications/stream`, {
       method: 'GET',
       headers: getAuthHeaders(),
+      signal: options.signal,
     });
   },
 

@@ -188,7 +188,7 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
 
     const runStream = async () => {
       try {
-        const response = await apiService.streamBusinessNotifications();
+        const response = await apiService.streamBusinessNotifications({ signal: controller.signal });
         if (!response.ok || !response.body) return;
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -216,8 +216,11 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
             }
           });
         }
-      } catch {
-        // stream reconnects on next mount / focus via polling
+      } catch (err) {
+        if (cancelled || err?.name === 'AbortError') return;
+        // ERR_INCOMPLETE_CHUNKED_ENCODING / backend restart — thử lại sau vài giây
+        await new Promise((r) => setTimeout(r, 5000));
+        if (!cancelled) runStream();
       }
     };
 
