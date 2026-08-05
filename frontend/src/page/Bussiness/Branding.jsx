@@ -381,21 +381,26 @@ function BrandingStatsSection({
         })}
       </div>
 
-      <div className="grid gap-2 lg:grid-cols-[220px_1fr]">
-        <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm h-fit">
-          <div className="flex flex-col items-center text-center">
-            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-[#e8f4fa] text-xl">📄</div>
-            <h2 className="mb-1.5 text-xs font-bold text-slate-800">Trang giới thiệu DN</h2>
-            <p className="mb-3 text-[10px] leading-snug text-slate-500">Template, đa trang, motion, SEO</p>
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="flex w-full items-center justify-center gap-1 rounded-lg bg-[#0077B6] py-2 px-3 text-xs font-semibold text-white transition-colors hover:bg-[#006399]"
+      <div className="grid gap-2 lg:grid-cols-[220px_1fr] lg:items-stretch">
+        <div className="flex min-h-[280px] flex-col rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm sm:min-h-[320px] lg:h-full">
+          <div className="flex flex-1 flex-col items-center justify-center text-center">
+            <div
+              className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg"
+              style={{ background: 'rgba(0,119,182,0.12)' }}
             >
-              <Plus className="h-3.5 w-3.5" />
-              Tạo
-            </button>
+              <Building2 className="h-5 w-5" style={{ color: BRAND }} strokeWidth={2} />
+            </div>
+            <h2 className="mb-1.5 text-xs font-bold text-slate-800">Trang giới thiệu DN</h2>
+            <p className="text-[10px] leading-snug text-slate-500">Template, đa trang, motion, SEO</p>
           </div>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="mt-4 flex w-full shrink-0 items-center justify-center gap-1 rounded-lg bg-[#0077B6] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#006399]"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Tạo
+          </button>
         </div>
 
         <div className="min-w-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
