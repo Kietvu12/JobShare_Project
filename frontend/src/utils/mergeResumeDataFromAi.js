@@ -1230,6 +1230,7 @@ export function appendFullCvFieldsToFormData(fd, data = {}) {
   append('strengths', data.strengths || '');
   append('motivation', data.motivation || '');
   append('hobbiesSpecialSkills', data.hobbiesSpecialSkills || '');
+  append('notes', data.notes || data.remarks || data.memo || '');
   append('currentSalary', data.currentSalary || '');
   append('desiredSalary', data.desiredSalary || '');
   append('desiredPosition', data.desiredPosition || '');

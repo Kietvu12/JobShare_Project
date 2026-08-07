@@ -26,7 +26,10 @@ export const CV_TEMPLATE_DIR_MAP = {
   cv_technical: 'Technical',
 };
 
-export function resolveCvTemplatesForSave({ isAdmin, isApplicantProfile, cvTemplate }) {
+export function resolveCvTemplatesForSave({ isAdmin, isApplicantProfile, cvTemplate, activeCvTemplates }) {
+  if (Array.isArray(activeCvTemplates) && activeCvTemplates.length) {
+    return activeCvTemplates.filter((tpl) => CV_TEMPLATE_DIR_MAP[tpl]);
+  }
   if (isApplicantProfile) {
     const tpl = cvTemplate || 'common';
     return CV_TEMPLATE_DIR_MAP[tpl] ? [tpl] : ['common'];

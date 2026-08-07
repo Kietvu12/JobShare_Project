@@ -89,6 +89,8 @@ const CvTemplateTechnical = ({
   pdfExportMode = false,
   pdfSectionRefs = null,
   pdfCaptureParts = null,
+  hideInternalTabs = false,
+  forcedDocumentPart = null,
 }) => {
   const layout = formData.cvTableLayout || {};
   const currentAvatarPreview = formData.avatarPreview || avatarPreview;
@@ -368,14 +370,16 @@ const CvTemplateTechnical = ({
       return { ...prev, educations: list };
     });
   };
-  const captureParts = pdfCaptureParts || ['rirekisho', 'shokumu'];
-  const useCapturePartsVisibility = pdfExportMode || pdfCaptureParts != null;
+  const captureParts = forcedDocumentPart
+    ? [forcedDocumentPart]
+    : (pdfCaptureParts || ['rirekisho', 'shokumu']);
+  const useCapturePartsVisibility = pdfExportMode || pdfCaptureParts != null || forcedDocumentPart != null;
   const showRirekisho = useCapturePartsVisibility ? captureParts.includes('rirekisho') : activeTab === 'rirekisho';
   const showShokumu = useCapturePartsVisibility ? captureParts.includes('shokumu') : activeTab === 'shokumu';
   return (
     <div style={{ fontFamily: '"MS PMincho", "MS Mincho", "Yu Mincho", "Hiragino Mincho ProN", serif' }}>
       {/* Tab buttons */}
-      {!pdfExportMode && (
+      {!pdfExportMode && !hideInternalTabs && !forcedDocumentPart && (
       <div className="flex border-b mb-2 -mt-0.5 font-bold" style={{ borderColor: '#e5e7eb' }}>
         <button
           type="button"
@@ -1102,34 +1106,35 @@ const CvTemplateTechnical = ({
                         });
                       }
                     };
+                    const patchWork = (patch) => {
+                      if (typeof updateEmploymentPair === 'function') updateEmploymentPair(i, patch);
+                      else if (typeof updateEmployment === 'function') updateEmployment(i, patch);
+                      else {
+                        setFormData((prev) => {
+                          const next = [...(prev.workExperiences || [])];
+                          if (!next[i]) next[i] = {};
+                          next[i] = { ...next[i], ...patch };
+                          return { ...prev, workExperiences: next };
+                        });
+                      }
+                    };
                     const commitStart = () => {
                       const y = String(startYearRefs.current[i]?.value || '').replace(/\D/g, '').slice(0, 4);
                       const m = String(startMonthRefs.current[i]?.value || '').replace(/\D/g, '').slice(0, 2);
                       if (!y && !m) return;
-                      setWorkField('startYear', y);
-                      setWorkField('startMonth', m);
-                      setWorkField('period', `${y}/${m}`);
+                      patchWork({ startYear: y, startMonth: m });
                     };
                     const commitEnd = () => {
                       const y = String(endYearRefs.current[i]?.value || '').replace(/\D/g, '').slice(0, 4);
                       const m = String(endMonthRefs.current[i]?.value || '').replace(/\D/g, '').slice(0, 2);
                       if (!y && !m) {
-                        setWorkField('endCurrent', true);
-                        setWorkField('endYear', '');
-                        setWorkField('endMonth', '');
-                        setWorkField('period', '現在');
+                        patchWork({ endCurrent: true, endYear: '', endMonth: '' });
                         return;
                       }
-                      setWorkField('endCurrent', false);
-                      setWorkField('endYear', y);
-                      setWorkField('endMonth', m);
-                      setWorkField('period', `${y}/${m}`);
+                      patchWork({ endCurrent: false, endYear: y, endMonth: m });
                     };
                     const setEndCurrent = () => {
-                      setWorkField('endCurrent', true);
-                      setWorkField('endYear', '');
-                      setWorkField('endMonth', '');
-                      setWorkField('period', '現在');
+                      patchWork({ endCurrent: true, endYear: '', endMonth: '' });
                     };
                     const periodDisplay = formatShokumuPeriodRangeJa(
                       [row.startYear, row.startMonth].filter(Boolean).join('/'),
@@ -1172,7 +1177,7 @@ const CvTemplateTechnical = ({
                                   {...(!pdfExportMode ? {
                                     role: 'button',
                                     tabIndex: 0,
-                                    onClick: () => { setWorkField('endCurrent', false); setWorkField('period', ''); },
+                                    onClick: () => patchWork({ endCurrent: false }),
                                   } : {})}
                                 >
                                   現在
@@ -1387,30 +1392,34 @@ const CvTemplateTechnical = ({
                   });
                 }
               };
-              const setWorkPeriodEnd = (index, year, month) => {
-                const y = String(year || '').trim();
-                const m = String(month || '').trim();
-                setWorkField(index, 'endYear', y);
-                setWorkField(index, 'endMonth', m);
-                setWorkField(index, 'endCurrent', !y && !m);
-                if (!y && !m) setWorkField(index, 'period', '現在');
-                else if (y && m) setWorkField(index, 'period', `${y}/${m}`);
-              };
-              const setWorkEndCurrent = (index, isCurrent) => {
-                if (isCurrent) {
-                  setFormData((prev) => {
-                    const next = [...(prev.workExperiences || [])];
-                    if (!next[index]) next[index] = {};
-                    next[index] = { ...next[index], endCurrent: true, endYear: '', endMonth: '', period: '現在' };
-                    return { ...prev, workExperiences: next };
-                  });
+              const patchWork = (index, patch) => {
+                if (typeof updateEmploymentPair === 'function') {
+                  updateEmploymentPair(index, patch);
+                } else if (typeof updateEmployment === 'function') {
+                  updateEmployment(index, patch);
                 } else {
                   setFormData((prev) => {
                     const next = [...(prev.workExperiences || [])];
                     if (!next[index]) next[index] = {};
-                    next[index] = { ...next[index], endCurrent: false, endYear: '', endMonth: '', period: '' };
+                    next[index] = { ...next[index], ...patch };
                     return { ...prev, workExperiences: next };
                   });
+                }
+              };
+              const setWorkPeriodEnd = (index, year, month) => {
+                const y = String(year || '').trim();
+                const m = String(month || '').trim();
+                if (!y && !m) {
+                  patchWork(index, { endCurrent: true, endYear: '', endMonth: '' });
+                  return;
+                }
+                patchWork(index, { endCurrent: false, endYear: y, endMonth: m });
+              };
+              const setWorkEndCurrent = (index, isCurrent) => {
+                if (isCurrent) {
+                  patchWork(index, { endCurrent: true, endYear: '', endMonth: '' });
+                } else {
+                  patchWork(index, { endCurrent: false, endYear: '', endMonth: '' });
                 }
               };
               const addWorkRow = () => {
@@ -1492,9 +1501,7 @@ const CvTemplateTechnical = ({
                                     const y = String(shokumuStartYearRefs.current[i]?.value || '').replace(/\D/g, '').slice(0, 4);
                                     const m = String(shokumuStartMonthRefs.current[i]?.value || '').replace(/\D/g, '').slice(0, 2);
                                     if (!y && !m) return;
-                                    setWorkField(i, 'startYear', y);
-                                    setWorkField(i, 'startMonth', m);
-                                    setWorkField(i, 'period', `${y}/${m}`);
+                                    patchWork(i, { startYear: y, startMonth: m });
                                   };
                                   const commitShokumuEnd = () => {
                                     const y = String(shokumuEndYearRefs.current[i]?.value || '').replace(/\D/g, '').slice(0, 4);

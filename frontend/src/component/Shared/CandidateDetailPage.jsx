@@ -169,6 +169,12 @@ const LABELS_VI = {
   desiredStartDate: 'Ngày bắt đầu mong muốn',
   cvFile: 'File CV',
   otherDocs: 'Tài liệu khác',
+  candidateMemo: 'Memo ứng viên',
+  noCandidateMemo: 'Chưa có ghi chú.',
+  editMemo: 'Chỉnh sửa memo',
+  saveMemo: 'Lưu',
+  cancelMemo: 'Hủy',
+  memoSaveError: 'Không thể lưu memo.',
   download: 'Download',
   loadingFiles: 'Loading file list...',
   /** Khi DB có đường dẫn CV nhưng API cv-file-list trả originals/templates rỗng (vd. S3 ListBucket denied) */
@@ -283,6 +289,9 @@ const CandidateDetailPage = ({
   const [quickEditOpen, setQuickEditOpen] = useState(false);
   const [quickEditInitialCvFile, setQuickEditInitialCvFile] = useState(null);
   const [showMissingInfoPopup, setShowMissingInfoPopup] = useState(false);
+  const [memoEditing, setMemoEditing] = useState(false);
+  const [memoDraft, setMemoDraft] = useState('');
+  const [memoSaving, setMemoSaving] = useState(false);
 
   const getMissingInfoLabel = (fieldKey, fallback) => getAiMatchingMissingFieldLabel(fieldKey, language, t) || fallback;
   const uiText = (vi, en, ja) => (language === 'en' ? en : language === 'ja' ? ja : vi);
@@ -342,6 +351,8 @@ const CandidateDetailPage = ({
 
   useEffect(() => {
     loadCandidateDetail();
+    setMemoEditing(false);
+    setMemoDraft('');
   }, [candidateId]);
 
   useEffect(() => {
@@ -489,6 +500,40 @@ const CandidateDetailPage = ({
 
   const closeQuickEditDrawer = () => {
     setQuickEditOpen(false);
+  };
+
+  const startMemoEdit = () => {
+    setMemoDraft(String(candidate?.notes || candidate?.remarks || '').trim());
+    setMemoEditing(true);
+  };
+
+  const cancelMemoEdit = () => {
+    setMemoEditing(false);
+    setMemoDraft('');
+  };
+
+  const saveMemoEdit = async () => {
+    if (!candidate?.id || memoSaving) return;
+    try {
+      setMemoSaving(true);
+      const formData = new FormData();
+      formData.append('notes', memoDraft.trim());
+      const response = await apiService.updateCVStorage(candidate.id, formData, {
+        userType: isAdmin ? 'admin' : isApplicant ? 'applicant' : 'collaborator',
+        ...(isApplicant ? { asApplicant: true } : {}),
+      });
+      if (response.success) {
+        setCandidate((prev) => (prev ? { ...prev, notes: memoDraft.trim() } : prev));
+        setMemoEditing(false);
+        setMemoDraft('');
+      } else {
+        alert(response.message || lbl('memoSaveError') || uiText('Không thể lưu memo.', 'Could not save memo.', 'メモを保存できません。'));
+      }
+    } catch (err) {
+      alert(err?.message || lbl('memoSaveError') || uiText('Không thể lưu memo.', 'Could not save memo.', 'メモを保存できません。'));
+    } finally {
+      setMemoSaving(false);
+    }
   };
 
   const toggleMissingInfoPopup = () => {
@@ -1261,6 +1306,80 @@ const CandidateDetailPage = ({
   const locLabel = t.desiredWorkLocation || t.desiredLocation || lbl('desiredLocation');
   const desireLoc = candidate.desiredWorkLocation || candidate.desiredLocation || '—';
   const desireStart = candidate.nyushaTime || candidate.desiredStartDate || '—';
+  const candidateMemo = String(candidate.notes || candidate.remarks || '').trim();
+  const memoTitle = t.candidateMemo || lbl('candidateMemo') || uiText('Memo ứng viên', 'Candidate memo', '候補者メモ');
+  const memoEmptyText = t.noCandidateMemo || lbl('noCandidateMemo') || uiText('Chưa có ghi chú.', 'No memo yet.', 'メモはありません。');
+  const memoEditTitle = lbl('editMemo') || uiText('Chỉnh sửa memo', 'Edit memo', 'メモを編集');
+  const memoSaveLabel = lbl('saveMemo') || uiText('Lưu', 'Save', '保存');
+  const memoCancelLabel = lbl('cancelMemo') || uiText('Hủy', 'Cancel', 'キャンセル');
+  const memoPlaceholder = uiText(
+    'Ghi chú nội bộ về ứng viên...',
+    'Internal notes about this candidate...',
+    '候補者に関する社内メモ...',
+  );
+
+  const renderMemoEditButton = (sizeClass = 'w-7 h-7') => (
+    showEdit && !memoEditing ? (
+      <button
+        type="button"
+        onClick={startMemoEdit}
+        title={memoEditTitle}
+        aria-label={memoEditTitle}
+        className={`inline-flex shrink-0 items-center justify-center rounded-full border text-gray-500 transition-colors hover:border-blue-200 hover:text-blue-600 bg-white/90 ${sizeClass}`}
+        style={{ borderColor: '#e5e7eb' }}
+      >
+        <Pencil className="w-3.5 h-3.5" />
+      </button>
+    ) : null
+  );
+
+  const renderMemoContent = (textSizeClass = 'text-xs sm:text-sm') => {
+    if (memoEditing) {
+      return (
+        <div className="space-y-2">
+          <textarea
+            value={memoDraft}
+            onChange={(e) => setMemoDraft(e.target.value)}
+            rows={4}
+            placeholder={memoPlaceholder}
+            className={`w-full resize-y rounded-lg border px-3 py-2 ${textSizeClass}`}
+            style={{ borderColor: '#d1d5db', color: '#111827' }}
+            disabled={memoSaving}
+          />
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={saveMemoEdit}
+              disabled={memoSaving}
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              style={{ backgroundColor: '#2563eb' }}
+            >
+              {memoSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              {memoSaveLabel}
+            </button>
+            <button
+              type="button"
+              onClick={cancelMemoEdit}
+              disabled={memoSaving}
+              className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+              style={{ borderColor: '#d1d5db', color: '#374151', backgroundColor: 'white' }}
+            >
+              {memoCancelLabel}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <p
+        className={`whitespace-pre-wrap break-words ${textSizeClass}`}
+        style={{ color: candidateMemo ? '#111827' : '#9ca3af' }}
+      >
+        {candidateMemo || memoEmptyText}
+      </p>
+    );
+  };
 
   const cvStorageStyle = getCvDisplayStatusStyle(candidate);
   const cvStorageLabel = getCvDisplayStatusLabel(candidate, language);
@@ -1281,6 +1400,9 @@ const CandidateDetailPage = ({
     desiredStartDate: candidate.desiredStartDate || candidate.nyushaTime || '',
     jpResidenceStatus: candidate.jpResidenceStatus || candidate.jp_residence_status || candidate.residenceStatus || candidate.residence_status || candidate.visaStatus || '',
     technicalSkills: candidate.technicalSkills || candidate.technical_skills || '',
+    notes: candidate.notes || '',
+    remarks: candidate.notes || '',
+    memo: candidate.notes || '',
     workExperiences: Array.isArray(candidate.workExperiences)
       ? candidate.workExperiences
       : [],
@@ -2433,15 +2555,30 @@ const CandidateDetailPage = ({
                 </button>
               )}
             </div>
-            <div className="p-4">
-              {candidate.otherDocuments ? (
-                <div className="flex items-center gap-2 text-sm">
-                  <FileText className="w-4 h-4 shrink-0" style={{ color: '#6b7280' }} />
-                  <span style={{ color: '#111827' }}>{candidate.otherDocuments}</span>
+            <div className="p-4 space-y-4">
+              <div>
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#6b7280' }}>
+                    {memoTitle}
+                  </p>
+                  {renderMemoEditButton('w-6 h-6')}
                 </div>
-              ) : (
+                {renderMemoContent('text-sm')}
+              </div>
+              {candidate.otherDocuments ? (
+                <div>
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#6b7280' }}>
+                    {t.otherDocuments || lbl('otherDocs')}
+                  </p>
+                  <div className="flex items-center gap-2 text-sm">
+                    <FileText className="w-4 h-4 shrink-0" style={{ color: '#6b7280' }} />
+                    <span style={{ color: '#111827' }}>{candidate.otherDocuments}</span>
+                  </div>
+                </div>
+              ) : null}
+              {!candidateMemo && !candidate.otherDocuments ? (
                 <p className="text-xs" style={{ color: '#9ca3af' }}>{t.noOtherDocsOrNotes || 'No other documents or notes yet.'}</p>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

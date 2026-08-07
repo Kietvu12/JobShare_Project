@@ -326,14 +326,34 @@ WS JobShare`;
 
 /** Mail admin khi có tin nhắn mới trên đơn tiến cử (từ CTV / DN / ứng viên) — trilingue. */
 function resolveMessageSenderLabels(senderType, senderLabel) {
-  const map = {
+  const roleLabels = {
     2: { ja: 'CTV', en: 'Collaborator', vi: 'CTV' },
     4: { ja: '応募者', en: 'Applicant', vi: 'Ứng viên' },
     5: { ja: '企業', en: 'Business', vi: 'Doanh nghiệp' },
   };
-  if (map[senderType]) return map[senderType];
-  const fallback = String(senderLabel || '').trim() || '—';
-  return { ja: fallback, en: fallback, vi: fallback };
+  const name = String(senderLabel || '').trim();
+  const role = roleLabels[senderType];
+  if (name) {
+    const genericNames = new Set([
+      role?.ja,
+      role?.en,
+      role?.vi,
+      'CTV',
+      'Collaborator',
+      'Người gửi',
+      'Ứng viên',
+      'Applicant',
+      'Doanh nghiệp',
+      'Business',
+      '応募者',
+      '企業',
+    ].filter(Boolean));
+    if (!genericNames.has(name)) {
+      return { ja: name, en: name, vi: name };
+    }
+  }
+  if (role) return role;
+  return { ja: name || '—', en: name || '—', vi: name || '—' };
 }
 
 function buildAdminNewNominationMessageEmail({

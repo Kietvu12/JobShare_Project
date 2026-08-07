@@ -17,6 +17,13 @@ import {
   isValidJobCategoryId,
 } from '../../utils/mergeResumeDataFromAi.js';
 import { isValidCvPhone, normalizeCvPhone } from '../../utils/cvPhoneUtils.js';
+import CvTemplatePickerCards from './CvTemplatePickerCards.jsx';
+import {
+  isCvTemplateId,
+  mergeCvTemplateMeta,
+  CV_TEMPLATE_PREVIEW_MIN,
+  getCvTemplateLabel,
+} from '../../utils/cvTemplateMeta.js';
 
 const jlptOptions = [
   { value: '', labelKey: 'addCandidateSelectJlpt', fallback: 'Chọn JLPT' },
@@ -187,10 +194,16 @@ export default function QuickCreateCandidateDrawer({
     desiredLocation: '',
     desiredStartDate: '',
     jpResidenceStatus: '',
+    memo: '',
   });
   const [cvFile, setCvFile] = useState(null);
   const [existingCvFileName, setExistingCvFileName] = useState('');
   const [shokumuFile, setShokumuFile] = useState(null);
+  const [selectedCvTemplate, setSelectedCvTemplate] = useState('common');
+  const [templatePreviewOpen, setTemplatePreviewOpen] = useState(false);
+  const [templatePreviewLoading, setTemplatePreviewLoading] = useState(false);
+  const [templatePreviewHtml, setTemplatePreviewHtml] = useState('');
+  const [previewTemplateId, setPreviewTemplateId] = useState(null);
   const [aiParseLoading, setAiParseLoading] = useState(false);
   const [aiParseError, setAiParseError] = useState(null);
   const [parseElapsedSec, setParseElapsedSec] = useState(0);
@@ -424,6 +437,7 @@ export default function QuickCreateCandidateDrawer({
       ...resolveCurrentLocationAndDesiredFromCv(initialCandidate),
       desiredStartDate: initialCandidate.desiredStartDate ?? prev.desiredStartDate,
       jpResidenceStatus: initialCandidate.jpResidenceStatus ?? prev.jpResidenceStatus,
+      memo: initialCandidate.notes || initialCandidate.remarks || initialCandidate.memo || prev.memo,
     }));
   }, [open, isEditMode, initialCandidate]);
 
@@ -465,9 +479,15 @@ export default function QuickCreateCandidateDrawer({
       desiredLocation: '',
       desiredStartDate: '',
       jpResidenceStatus: '',
+      memo: '',
     });
     setCvFile(null);
     setShokumuFile(null);
+    setSelectedCvTemplate('common');
+    setTemplatePreviewOpen(false);
+    setTemplatePreviewLoading(false);
+    setTemplatePreviewHtml('');
+    setPreviewTemplateId(null);
     setExistingCvFileName('');
     setErrors({});
     setSaving(false);
@@ -513,6 +533,60 @@ export default function QuickCreateCandidateDrawer({
     });
   }, [open, isEditMode, initialCandidate]);
 
+  const closeTemplatePreviewModal = useCallback(() => {
+    setTemplatePreviewOpen(false);
+    setTemplatePreviewHtml('');
+    setPreviewTemplateId(null);
+  }, []);
+
+  const openTemplatePreview = useCallback(async (templateId) => {
+    if (!isCvTemplateId(templateId)) return;
+    try {
+      setPreviewTemplateId(templateId);
+      setTemplatePreviewLoading(true);
+      setTemplatePreviewOpen(true);
+      setTemplatePreviewHtml('');
+
+      const payload = {
+        ...CV_TEMPLATE_PREVIEW_MIN,
+        cvTemplate: templateId,
+        tab: 'all',
+      };
+
+      const htmlRes = isAdminVariant
+        ? await apiService.previewAdminCVTemplate(payload)
+        : await apiService.previewCTVCVTemplate(payload);
+
+      if (!htmlRes.ok) {
+        notify.error(
+          htmlRes.status === 401 || htmlRes.status === 403
+            ? (language === 'en' ? 'Session expired or no permission.' : language === 'ja' ? 'セッションが切れたか、権限がありません。' : 'Phiên đăng nhập hết hạn hoặc không có quyền xem trước.')
+            : (language === 'en' ? `Preview failed (HTTP ${htmlRes.status}).` : language === 'ja' ? `プレビュー失敗 (HTTP ${htmlRes.status})。` : `Xem trước thất bại (HTTP ${htmlRes.status}).`)
+        );
+        closeTemplatePreviewModal();
+        return;
+      }
+
+      setTemplatePreviewHtml(htmlRes.html || '');
+    } catch (error) {
+      console.error('Template preview error:', error);
+      notify.error(language === 'en' ? 'Failed to load template preview.' : language === 'ja' ? 'テンプレートプレビューの読み込みに失敗しました。' : 'Không tải được preview template.');
+      closeTemplatePreviewModal();
+    } finally {
+      setTemplatePreviewLoading(false);
+    }
+  }, [isAdminVariant, language, notify, closeTemplatePreviewModal]);
+
+  const templatePreviewTitle = useMemo(() => {
+    if (!previewTemplateId) {
+      return language === 'en' ? 'Template preview' : language === 'ja' ? 'テンプレートプレビュー' : 'Xem preview template';
+    }
+    const label = getCvTemplateLabel(previewTemplateId, language);
+    if (language === 'en') return `Preview: ${label}`;
+    if (language === 'ja') return `プレビュー: ${label}`;
+    return `Preview: ${label}`;
+  }, [previewTemplateId, language]);
+
   if (!open) return null;
 
   const handleClose = () => {
@@ -543,6 +617,15 @@ export default function QuickCreateCandidateDrawer({
     // Only name, email, and CV are required in quick create.
     if (!isEditMode) {
       // Removed from quick-create step: currentSalary, desiredSalary, desiredPosition, desiredStartDate.
+    }
+    if (!isEditMode) {
+      if (!isCvTemplateId(selectedCvTemplate)) {
+        next.cvTemplate = language === 'en'
+          ? 'Please select a CV template'
+          : language === 'ja'
+            ? 'CVテンプレートを選択してください'
+            : 'Vui lòng chọn loại template CV';
+      }
     }
     if (!cvFile && !existingCvFileName) {
       next.cvFile = cvRequiredMessage();
@@ -585,6 +668,7 @@ export default function QuickCreateCandidateDrawer({
     if (errs.experienceYears) labels.push(t.experienceYears || 'Số năm kinh nghiệm');
     if (errs.cvFile) labels.push(t.addCandidateCvLabel || t.cvFile || 'File CV');
     if (errs.shokumuFile) labels.push(t.addCandidateShokumuLabel || 'Shokumu');
+    if (errs.cvTemplate) labels.push(language === 'en' ? 'CV template' : language === 'ja' ? 'CVテンプレート' : 'Loại template CV');
     return labels;
   };
 
@@ -619,6 +703,9 @@ export default function QuickCreateCandidateDrawer({
       desiredLocation: form.desiredLocation || '',
       desiredStartDate: form.desiredStartDate || '',
       jpResidenceStatus: form.jpResidenceStatus || '',
+      memo: form.memo || '',
+      notes: form.memo || '',
+      remarks: form.memo || '',
     };
     const data = {
       ...parsed,
@@ -647,6 +734,11 @@ export default function QuickCreateCandidateDrawer({
     fd.append('quickCreate', '1');
     fd.append('variant', variant || 'collaborator');
     fd.append('skipPdfGeneration', '1');
+    if (isCvTemplateId(selectedCvTemplate)) {
+      fd.append('cvTemplate', selectedCvTemplate);
+      const layout = mergeCvTemplateMeta({}, { primary: selectedCvTemplate, active: [selectedCvTemplate] });
+      fd.append('cvTableLayout', JSON.stringify(layout));
+    }
     appendFullCvFieldsToFormData(fd, buildSubmitCvData());
     const jpStatus = form.jpResidenceStatus || '';
     if (jpStatus) {
@@ -984,6 +1076,30 @@ export default function QuickCreateCandidateDrawer({
   const activeValidationErrors = getActiveErrors(errors);
   const cvMissingOnManualStep = !isEditMode && !cvFile && !existingCvFileName;
 
+  const memoFieldLabel = language === 'en' ? 'Candidate memo' : language === 'ja' ? '候補者メモ' : 'Memo ứng viên';
+  const memoFieldPlaceholder = language === 'en'
+    ? 'Internal notes about this candidate...'
+    : language === 'ja'
+      ? '候補者に関するメモ...'
+      : 'Ghi chú nội bộ về ứng viên...';
+
+  const renderMemoField = () => (
+    <div className="rounded-xl border border-gray-200 bg-white p-3 sm:p-4">
+      <label className="block text-xs font-semibold text-gray-700 mb-1.5" htmlFor="quick-create-candidate-memo">
+        {memoFieldLabel}
+        <span className="ml-1 font-normal text-gray-500">({language === 'en' ? 'optional' : language === 'ja' ? '任意' : 'tuỳ chọn'})</span>
+      </label>
+      <textarea
+        id="quick-create-candidate-memo"
+        value={form.memo}
+        onChange={(e) => setForm((prev) => ({ ...prev, memo: e.target.value }))}
+        rows={3}
+        placeholder={memoFieldPlaceholder}
+        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm resize-y outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+      />
+    </div>
+  );
+
   const renderAdminDuplicatePanel = () => {
     if (!adminDuplicateResult) return null;
     const { dupRef, ownerLines, savedCvId } = adminDuplicateResult;
@@ -1050,7 +1166,7 @@ export default function QuickCreateCandidateDrawer({
               {savedCvId ? (
                 <button
                   type="button"
-                  onClick={() => navigate(`${isAdminVariant ? '/admin' : '/agent'}/candidates/${savedCvId}/edit?view=upload`)}
+                  onClick={() => navigate(`${isAdminVariant ? '/admin' : '/agent'}/candidates/${savedCvId}/edit?view=upload&template=${encodeURIComponent(selectedCvTemplate || 'common')}`)}
                   className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
                 >
                   {adminDuplicateTexts.viewCreated}
@@ -1125,6 +1241,34 @@ export default function QuickCreateCandidateDrawer({
             ) : isUploadStep ? (
               <div className="space-y-4">
                 {renderCollaboratorSearchBox()}
+                {!isEditMode ? (
+                  <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 sm:p-4 space-y-2">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">
+                        {language === 'en' ? 'Choose CV template' : language === 'ja' ? 'CVテンプレートを選択' : 'Chọn loại template CV'}
+                        <span className="text-red-500"> *</span>
+                      </h3>
+                      <p className="mt-0.5 text-[11px] text-gray-500">
+                        {language === 'en'
+                          ? 'Preview images will be updated when QA provides assets.'
+                          : language === 'ja'
+                            ? 'プレビュー画像はQA提供後に更新されます。'
+                            : 'Ảnh preview sẽ được cập nhật khi QA gửi file mẫu.'}
+                      </p>
+                    </div>
+                    <CvTemplatePickerCards
+                      value={selectedCvTemplate}
+                      onChange={(tpl) => {
+                        setSelectedCvTemplate(tpl);
+                        clearFieldError('cvTemplate');
+                      }}
+                      language={language}
+                      onPreview={openTemplatePreview}
+                      previewLoadingId={templatePreviewLoading ? previewTemplateId : null}
+                    />
+                    {errors.cvTemplate ? <p className="text-xs text-red-600">{errors.cvTemplate}</p> : null}
+                  </div>
+                ) : null}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold mb-1 text-gray-700">
@@ -1147,6 +1291,8 @@ export default function QuickCreateCandidateDrawer({
                     {shokumuFile ? <div className="mt-2 flex items-center gap-2 text-xs text-gray-700 bg-white rounded-lg px-2 py-1.5 border border-gray-100"><span className="flex-1 truncate" title={shokumuFile.name}>{shokumuFile.name}</span><span className="text-gray-400 shrink-0">{(shokumuFile.size / 1024).toFixed(0)} KB</span><button type="button" onClick={removeShokumuFile} className="p-1 rounded-md hover:bg-red-50 text-red-600 shrink-0 border border-transparent hover:border-red-100" aria-label={t.addCandidateRemoveShokumuFile || 'Xóa file Shokumu'}><X className="w-4 h-4" strokeWidth={2.5} /></button></div> : null}
                   </div>
                 </div>
+
+                {renderMemoField()}
 
                 {aiParseError ? (
                   <div
@@ -1191,6 +1337,8 @@ export default function QuickCreateCandidateDrawer({
                 </div>
 
                 {renderCollaboratorSearchBox()}
+
+                {renderMemoField()}
 
                 {activeValidationErrors.length > 0 ? (
                   <div className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs text-amber-900 space-y-1.5">
@@ -1325,6 +1473,51 @@ export default function QuickCreateCandidateDrawer({
           }));
         }}
       />
+
+      {templatePreviewOpen ? (
+        <div
+          className="fixed inset-0 z-[130] flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}
+          onClick={closeTemplatePreviewModal}
+          role="presentation"
+        >
+          <div
+            className="relative flex max-h-[95vh] w-full max-w-[960px] flex-col overflow-hidden rounded-xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="quick-create-template-preview-title"
+          >
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b px-4 py-3 border-gray-200">
+              <span id="quick-create-template-preview-title" className="truncate text-sm font-semibold text-gray-900 sm:text-base">
+                {templatePreviewTitle}
+              </span>
+              <button
+                type="button"
+                onClick={closeTemplatePreviewModal}
+                className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                aria-label={t.close || t.cancel || 'Đóng'}
+              >
+                <X className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+            {templatePreviewLoading ? (
+              <div className="flex flex-col items-center justify-center gap-3 p-16">
+                <Loader2 className="h-10 w-10 animate-spin text-blue-600" aria-hidden />
+                <p className="text-sm text-gray-600">
+                  {language === 'en' ? 'Loading preview…' : language === 'ja' ? 'プレビューを読み込み中…' : 'Đang tải preview…'}
+                </p>
+              </div>
+            ) : (
+              <iframe
+                title={templatePreviewTitle}
+                srcDoc={templatePreviewHtml}
+                className="min-h-[75vh] w-full flex-1 border-0 bg-white"
+              />
+            )}
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

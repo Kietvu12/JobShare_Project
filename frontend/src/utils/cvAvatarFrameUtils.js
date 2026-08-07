@@ -1,31 +1,39 @@
-/** @typedef {{ scale: number, x: number, y: number }} AvatarFrame */
+/** @typedef {{ widthRem: number, heightRem: number }} AvatarFrame */
 
-export const DEFAULT_AVATAR_FRAME = /** @type {AvatarFrame} */ ({ scale: 1, x: 0, y: 0 });
+export const AVATAR_FRAME_MIN_REM = 2;
+export const AVATAR_FRAME_MAX_REM = 12;
 
-export const AVATAR_FRAME_MIN_SCALE = 1;
-export const AVATAR_FRAME_MAX_SCALE = 4;
+/** @param {string|number|null|undefined} value */
+export function parseRemValue(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  const match = String(value || '').trim().match(/^([\d.]+)\s*rem$/i);
+  return match ? parseFloat(match[1]) : null;
+}
 
-export function normalizeAvatarFrame(raw) {
-  if (!raw || typeof raw !== 'object') return { ...DEFAULT_AVATAR_FRAME };
-  const scale = Number(raw.scale);
-  const x = Number(raw.x);
-  const y = Number(raw.y);
+export function clampFrameRem(value, min = AVATAR_FRAME_MIN_REM, max = AVATAR_FRAME_MAX_REM) {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(max, Math.max(min, value));
+}
+
+/**
+ * @param {Partial<AvatarFrame>|null|undefined} raw
+ * @param {{ widthRem: number, heightRem: number }} defaults
+ */
+export function normalizeAvatarFrame(raw, defaults) {
+  const baseW = defaults?.widthRem ?? 4.125;
+  const baseH = defaults?.heightRem ?? 5.5;
+  const widthRem = Number(raw?.widthRem);
+  const heightRem = Number(raw?.heightRem);
   return {
-    scale: clampAvatarScale(Number.isFinite(scale) ? scale : 1),
-    x: Number.isFinite(x) ? x : 0,
-    y: Number.isFinite(y) ? y : 0,
+    widthRem: clampFrameRem(Number.isFinite(widthRem) ? widthRem : baseW),
+    heightRem: clampFrameRem(Number.isFinite(heightRem) ? heightRem : baseH),
   };
 }
 
-export function clampAvatarScale(scale) {
-  return Math.min(AVATAR_FRAME_MAX_SCALE, Math.max(AVATAR_FRAME_MIN_SCALE, scale));
-}
-
-/** Kích thước ảnh (px) để phủ kín khung — tương đương object-fit: cover. */
-export function getCoverBaseSize(naturalW, naturalH, frameW, frameH) {
-  if (!naturalW || !naturalH || !frameW || !frameH) {
-    return { w: frameW || 0, h: frameH || 0 };
-  }
-  const ratio = Math.max(frameW / naturalW, frameH / naturalH);
-  return { w: naturalW * ratio, h: naturalH * ratio };
+/** @param {{ widthRem: number, heightRem: number }} frame */
+export function buildAvatarFrameStyle(frame) {
+  return {
+    width: `${frame.widthRem}rem`,
+    height: `${frame.heightRem}rem`,
+  };
 }

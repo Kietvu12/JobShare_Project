@@ -1,14 +1,14 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  DEFAULT_AVATAR_FRAME,
-  clampAvatarScale,
-  getCoverBaseSize,
+  buildAvatarFrameStyle,
+  clampFrameRem,
   normalizeAvatarFrame,
+  parseRemValue,
 } from '../../utils/cvAvatarFrameUtils.js';
 
 /**
- * Khung ảnh chân dung trên CV template — kéo để di chuyển, cuộn chuột / kéo góc để phóng to.
- * Transform lưu trong formData.cvTableLayout.avatarFrame.
+ * Khung ảnh chân dung trên CV — kéo góc để đổi kích thước vùng hiển thị (khung), ảnh cover bên trong.
+ * Lưu trong formData.cvTableLayout.avatarFrame: { widthRem, heightRem }.
  */
 export default function CvTemplateAvatarFrame({
   src,
@@ -20,34 +20,18 @@ export default function CvTemplateAvatarFrame({
   className = '',
   style = {},
 }) {
-  const containerRef = useRef(null);
-  const [naturalSize, setNaturalSize] = useState(null);
-  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
-  const [dragMode, setDragMode] = useState(null);
+  const defaultFrame = useMemo(
+    () => ({
+      widthRem: parseRemValue(width) ?? 4.125,
+      heightRem: parseRemValue(height) ?? 5.5,
+    }),
+    [width, height]
+  );
+  const currentFrame = normalizeAvatarFrame(frame, defaultFrame);
+  const [resizing, setResizing] = useState(false);
   const dragStartRef = useRef(null);
-  const prevSrcRef = useRef(src);
   const onFrameChangeRef = useRef(onFrameChange);
   onFrameChangeRef.current = onFrameChange;
-  const currentFrame = normalizeAvatarFrame(frame);
-
-  useEffect(() => {
-    if (src !== prevSrcRef.current) {
-      prevSrcRef.current = src;
-      onFrameChangeRef.current?.({ ...DEFAULT_AVATAR_FRAME });
-    }
-  }, [src]);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return undefined;
-    const ro = new ResizeObserver((entries) => {
-      const rect = entries[0]?.contentRect;
-      if (!rect) return;
-      setContainerSize({ w: rect.width, h: rect.height });
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
   const commitFrame = useCallback(
     (patch) => {
@@ -58,22 +42,19 @@ export default function CvTemplateAvatarFrame({
   );
 
   useEffect(() => {
-    if (!dragMode) return undefined;
+    if (!resizing) return undefined;
     const onMove = (e) => {
       const start = dragStartRef.current;
       if (!start) return;
-      if (dragMode === 'pan') {
-        commitFrame({
-          x: start.frameX + (e.clientX - start.x),
-          y: start.frameY + (e.clientY - start.y),
-        });
-      } else if (dragMode === 'resize') {
-        const delta = (e.clientX - start.x + e.clientY - start.y) / 80;
-        commitFrame({ scale: clampAvatarScale(start.scale + delta) });
-      }
+      const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      const deltaRem = (e.clientX - start.x + e.clientY - start.y) / (2 * remPx);
+      const aspect = start.widthRem / Math.max(start.heightRem, 0.01);
+      const nextWidth = clampFrameRem(start.widthRem + deltaRem);
+      const nextHeight = clampFrameRem(nextWidth / aspect);
+      commitFrame({ widthRem: nextWidth, heightRem: nextHeight });
     };
     const onUp = () => {
-      setDragMode(null);
+      setResizing(false);
       dragStartRef.current = null;
     };
     window.addEventListener('mousemove', onMove);
@@ -82,57 +63,26 @@ export default function CvTemplateAvatarFrame({
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
-  }, [dragMode, commitFrame]);
-
-  const onPanStart = (e) => {
-    if (!interactive || e.button !== 0) return;
-    e.preventDefault();
-    setDragMode('pan');
-    dragStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      frameX: currentFrame.x,
-      frameY: currentFrame.y,
-    };
-  };
+  }, [resizing, commitFrame]);
 
   const onResizeStart = (e) => {
     if (!interactive || e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
-    setDragMode('resize');
+    setResizing(true);
     dragStartRef.current = {
       x: e.clientX,
       y: e.clientY,
-      scale: currentFrame.scale,
+      widthRem: currentFrame.widthRem,
+      heightRem: currentFrame.heightRem,
     };
   };
 
-  const onWheel = (e) => {
-    if (!interactive) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const delta = -e.deltaY * 0.002;
-    commitFrame({ scale: clampAvatarScale(currentFrame.scale * (1 + delta)) });
-  };
-
-  const coverBase = getCoverBaseSize(
-    naturalSize?.w,
-    naturalSize?.h,
-    containerSize.w,
-    containerSize.h
-  );
-  const displayW = coverBase.w * currentFrame.scale;
-  const displayH = coverBase.h * currentFrame.scale;
-  const hasLayout = naturalSize && containerSize.w > 0 && containerSize.h > 0;
-
   return (
     <div
-      ref={containerRef}
       className={`relative overflow-hidden bg-white ${className}`.trim()}
-      style={{ width, height, ...style }}
-      title={interactive ? 'Kéo để di chuyển · Cuộn chuột hoặc kéo góc để phóng to' : undefined}
-      onWheel={interactive ? onWheel : undefined}
+      style={{ ...buildAvatarFrameStyle(currentFrame), ...style }}
+      title={interactive ? 'Kéo góc để chỉnh kích thước khung ảnh' : undefined}
     >
       {src ? (
         <>
@@ -140,38 +90,21 @@ export default function CvTemplateAvatarFrame({
             src={src}
             alt="avatar"
             draggable={false}
-            onLoad={(e) => {
-              setNaturalSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight });
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+              userSelect: 'none',
+              pointerEvents: 'none',
             }}
-            onMouseDown={interactive ? onPanStart : undefined}
-            style={
-              hasLayout
-                ? {
-                    position: 'absolute',
-                    left: '50%',
-                    top: '50%',
-                    width: `${displayW}px`,
-                    height: `${displayH}px`,
-                    transform: `translate(calc(-50% + ${currentFrame.x}px), calc(-50% + ${currentFrame.y}px))`,
-                    maxWidth: 'none',
-                    display: 'block',
-                    cursor: interactive ? (dragMode === 'pan' ? 'grabbing' : 'grab') : 'default',
-                    userSelect: 'none',
-                  }
-                : {
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    display: 'block',
-                  }
-            }
           />
-          {interactive && hasLayout ? (
+          {interactive ? (
             <div
               role="presentation"
               className="absolute bottom-0 right-0 z-10 h-3 w-3 cursor-nwse-resize border border-white bg-slate-600/80 shadow-sm cv-pdf-hide"
               onMouseDown={onResizeStart}
-              title="Kéo để phóng to / thu nhỏ"
+              title="Kéo góc để chỉnh kích thước khung"
             />
           ) : null}
         </>

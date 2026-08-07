@@ -103,6 +103,8 @@ const CvTemplateCommon = ({
   pdfExportMode = false,
   pdfSectionRefs = null,
   pdfCaptureParts = null,
+  hideInternalTabs = false,
+  forcedDocumentPart = null,
 }) => {
   const currentAvatarPreview = formData.avatarPreview || avatarPreview;
   const handleTemplateAvatarUpload = (e) => {
@@ -264,15 +266,17 @@ const CvTemplateCommon = ({
     setFormData((prev) => ({ ...prev, visaExpirationDate: result.normalized }));
   };
 
-  const captureParts = pdfCaptureParts || ['rirekisho', 'shokumu'];
-  const useCapturePartsVisibility = pdfExportMode || pdfCaptureParts != null;
+  const captureParts = forcedDocumentPart
+    ? [forcedDocumentPart]
+    : (pdfCaptureParts || ['rirekisho', 'shokumu']);
+  const useCapturePartsVisibility = pdfExportMode || pdfCaptureParts != null || forcedDocumentPart != null;
   const showRirekisho = useCapturePartsVisibility ? captureParts.includes('rirekisho') : cvFormatTab === 'rirekisho';
   const showShokumu = useCapturePartsVisibility ? captureParts.includes('shokumu') : cvFormatTab === 'shokumu';
 
   return (
     <>
       {/* Tab buttons */}
-      {!pdfExportMode && (
+      {!pdfExportMode && !hideInternalTabs && !forcedDocumentPart && (
       <div className="flex border-b mb-2 -mt-0.5" style={{ borderColor: '#e5e7eb' }}>
         <button
           type="button"
@@ -1400,32 +1404,44 @@ const CvTemplateCommon = ({
                           return { ...prev, workExperiences: next };
                         });
                       };
+                      const patchWorkPeriod = (patch) => {
+                        if (typeof setFormData !== 'function') return;
+                        setFormData((prev) => {
+                          const next = [...(prev.workExperiences || [])];
+                          if (!next[idx]) next[idx] = {};
+                          const cur = next[idx];
+                          const merged = { ...cur, ...patch };
+                          const start = [merged.startYear, merged.startMonth].filter(Boolean).join('/') || merged.start_date || '';
+                          const end = merged.endCurrent
+                            ? '現在'
+                            : ([merged.endYear, merged.endMonth].filter(Boolean).join('/') || merged.end_date || '');
+                          next[idx] = {
+                            ...merged,
+                            start_date: start,
+                            end_date: merged.endCurrent ? '現在' : end,
+                            period: formatShokumuPeriodRangeJa(start, merged.endCurrent ? '現在' : end),
+                          };
+                          return { ...prev, workExperiences: next };
+                        });
+                      };
                       const commitStartPeriod = () => {
                         const y = String(startYearRefs.current[idx]?.value || '').replace(/\D/g, '').slice(0, 4);
                         const m = String(startMonthRefs.current[idx]?.value || '').replace(/\D/g, '').slice(0, 2);
                         if (!y && !m) return;
-                        setWorkPeriodField('startYear', y);
-                        setWorkPeriodField('startMonth', m);
-                        setWorkPeriodField('period', `${y}/${m}`);
+                        patchWorkPeriod({ startYear: y, startMonth: m });
                       };
                       const commitEndPeriod = () => {
                         const y = String(endYearRefs.current[idx]?.value || '').replace(/\D/g, '').slice(0, 4);
                         const m = String(endMonthRefs.current[idx]?.value || '').replace(/\D/g, '').slice(0, 2);
                         if (!y && !m) return;
-                        setWorkPeriodField('endCurrent', false);
-                        setWorkPeriodField('endYear', y);
-                        setWorkPeriodField('endMonth', m);
-                        setWorkPeriodField('period', `${y}/${m}`);
+                        patchWorkPeriod({ endCurrent: false, endYear: y, endMonth: m });
                       };
                       const toggleEndCurrent = () => {
                         if (emp.endCurrent) {
-                          setWorkPeriodField('endCurrent', false);
+                          patchWorkPeriod({ endCurrent: false });
                           return;
                         }
-                        setWorkPeriodField('endCurrent', true);
-                        setWorkPeriodField('endYear', '');
-                        setWorkPeriodField('endMonth', '');
-                        setWorkPeriodField('period', '現在');
+                        patchWorkPeriod({ endCurrent: true, endYear: '', endMonth: '' });
                       };
                       return (
                         <React.Fragment key={idx}>
@@ -1451,14 +1467,7 @@ const CvTemplateCommon = ({
                                   ref={(el) => { startYearRefs.current[idx] = el; }}
                                   value={emp.startYear || ''}
                                   onChange={(e) => setWorkPeriodField('startYear', e.target.value.replace(/\D/g, '').slice(0, 4))}
-                                  onBlur={() => {
-                                    const y = String(startYearRef.current?.value || '').replace(/\D/g, '').slice(0, 4);
-                                    const m = String(startMonthRef.current?.value || '').replace(/\D/g, '').slice(0, 2);
-                                    if (!y && !m) return;
-                                    setWorkPeriodField('startYear', y);
-                                    setWorkPeriodField('startMonth', m);
-                                    setWorkPeriodField('period', `${y}/${m}`);
-                                  }}
+                                  onBlur={commitStartPeriod}
                                   inputMode="numeric"
                                   className="inline-block w-[3.2em] min-w-0 px-0 text-center tabular-nums bg-transparent border-0 outline-none"
                                 />
@@ -1467,14 +1476,7 @@ const CvTemplateCommon = ({
                                   ref={(el) => { startMonthRefs.current[idx] = el; }}
                                   value={emp.startMonth || ''}
                                   onChange={(e) => setWorkPeriodField('startMonth', e.target.value.replace(/\D/g, '').slice(0, 2))}
-                                  onBlur={() => {
-                                    const y = String(startYearRef.current?.value || '').replace(/\D/g, '').slice(0, 4);
-                                    const m = String(startMonthRef.current?.value || '').replace(/\D/g, '').slice(0, 2);
-                                    if (!y && !m) return;
-                                    setWorkPeriodField('startYear', y);
-                                    setWorkPeriodField('startMonth', m);
-                                    setWorkPeriodField('period', `${y}/${m}`);
-                                  }}
+                                  onBlur={commitStartPeriod}
                                   inputMode="numeric"
                                   className="inline-block w-[2.2em] min-w-0 px-0 text-center tabular-nums bg-transparent border-0 outline-none"
                                 />

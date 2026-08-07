@@ -39,6 +39,8 @@ import {
   Download,
   ListTree,
   Loader2,
+  LayoutTemplate,
+  Check,
 } from 'lucide-react';
 import JobCategoryPickerModal from './JobCategoryPickerModal.jsx';
 import { downloadBlobAsFile } from '../../utils/safeFileDownload.js';
@@ -68,6 +70,16 @@ import {
 import { withEducationYearsCalculated, calculateEducationYearsFromDates } from '../../utils/cvEducationUtils.js';
 import { isValidCvPhone, normalizeCvPhone } from '../../utils/cvPhoneUtils.js';
 import { TECHNICAL_TOOLS_ALL } from '../../constants/technicalToolsGrid.js';
+import {
+  readCvTemplateMeta,
+  mergeCvTemplateMeta,
+  getCvTabLabel,
+  getCvTemplateLabel,
+  hasShokumuSourceData,
+  getShokumuEmptyWarning,
+  isCvTemplateId,
+  CV_TEMPLATE_OPTIONS,
+} from '../../utils/cvTemplateMeta.js';
 
 const mapPassportToBool = (v) => (v === '有' ? 1 : v === '無' ? 0 : undefined);
 
@@ -353,16 +365,22 @@ const AddCandidateForm = ({
   const [cvTemplate, setCvTemplate] = useState(() =>
     applicantLockedCvTemplate && ['common', 'cv_it', 'cv_technical'].includes(applicantLockedCvTemplate)
       ? applicantLockedCvTemplate
-      : 'common'
+      : 'upload'
   );
   const cvTemplateRef = useRef(cvTemplate);
   cvTemplateRef.current = cvTemplate;
-  const [uploadCvCollapsed, setUploadCvCollapsed] = useState(false);
-  const [cvTemplateTab, setCvTemplateTab] = useState(() =>
-    applicantLockedCvTemplate && ['common', 'cv_it', 'cv_technical'].includes(applicantLockedCvTemplate)
+  const [primaryCvTemplate, setPrimaryCvTemplate] = useState(() =>
+    applicantLockedCvTemplate && isCvTemplateId(applicantLockedCvTemplate)
       ? applicantLockedCvTemplate
       : 'common'
   );
+  const [activeCvTemplates, setActiveCvTemplates] = useState(() =>
+    applicantLockedCvTemplate && isCvTemplateId(applicantLockedCvTemplate)
+      ? [applicantLockedCvTemplate]
+      : ['common']
+  );
+  const [cvDocumentPart, setCvDocumentPart] = useState('rirekisho');
+  const [uploadCvCollapsed, setUploadCvCollapsed] = useState(false);
   const [cvFormatTab, setCvFormatTab] = useState('rirekisho'); // 'rirekisho' | 'shokumu' (chỉ dùng khi cvTemplate === 'common')
   const [cvTechnicalTab, setCvTechnicalTab] = useState('rirekisho'); // 'rirekisho' | 'shokumu' (chỉ dùng khi cvTemplate === 'cv_technical')
   const [cvItTab, setCvItTab] = useState('rirekisho'); // 'rirekisho' | 'shokumu' (chỉ dùng khi cvTemplate === 'cv_it')
@@ -377,6 +395,8 @@ const AddCandidateForm = ({
   const [collaboratorDisplayName, setCollaboratorDisplayName] = useState('');
   const collaboratorSearchDebounceRef = useRef(null);
   const collaboratorDropdownRef = useRef(null);
+  const [cvTemplatePickerOpen, setCvTemplatePickerOpen] = useState(false);
+  const cvTemplatePickerRef = useRef(null);
   /** Gọi API parse — gán mỗi render để luôn dùng mergeResumeData / notify mới nhất */
   const runCvAiParseRef = useRef(async () => {});
   const manualUpdateSectionRef = useRef(null);
@@ -433,7 +453,9 @@ const AddCandidateForm = ({
     ) {
       return;
     }
-    setCvTemplate(applicantLockedCvTemplate);
+    setPrimaryCvTemplate(applicantLockedCvTemplate);
+    setActiveCvTemplates([applicantLockedCvTemplate]);
+    setCvTemplate((prev) => (prev === 'upload' ? prev : applicantLockedCvTemplate));
   }, [applicantLockedCvTemplate]);
 
   useEffect(() => {
@@ -451,10 +473,23 @@ const AddCandidateForm = ({
   }, [candidateId]);
 
   useEffect(() => {
-    const view = new URLSearchParams(search).get('view');
+    const params = new URLSearchParams(search);
+    const view = params.get('view');
+    const templateFromUrl = params.get('template');
     if (view === 'upload') {
       setCvTemplate('upload');
       setMobileCvTab('preview');
+    }
+    if (isCvTemplateId(templateFromUrl)) {
+      setPrimaryCvTemplate(templateFromUrl);
+      setActiveCvTemplates([templateFromUrl]);
+      if (view !== 'upload') {
+        setCvTemplate(templateFromUrl);
+        setCvDocumentPart('rirekisho');
+        setCvFormatTab('rirekisho');
+        setCvItTab('rirekisho');
+        setCvTechnicalTab('rirekisho');
+      }
     }
   }, [search]);
 
@@ -492,6 +527,17 @@ const AddCandidateForm = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [collaboratorDropdownOpen]);
+
+  useEffect(() => {
+    if (!cvTemplatePickerOpen) return;
+    const handleClickOutside = (e) => {
+      if (cvTemplatePickerRef.current && !cvTemplatePickerRef.current.contains(e.target)) {
+        setCvTemplatePickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [cvTemplatePickerOpen]);
 
   // Object URL cho PDF đầu tiên (embed trong template) - revoke khi unmount hoặc đổi file
   useEffect(() => {
@@ -714,6 +760,21 @@ const AddCandidateForm = ({
             return [];
           })(),
         });
+        const loadedLayout = (() => {
+          const v = cv.cvTableLayout;
+          if (v == null) return {};
+          if (typeof v === 'object') return v;
+          try {
+            return typeof v === 'string' && v.trim() ? JSON.parse(v) : {};
+          } catch {
+            return {};
+          }
+        })();
+        const templateMeta = readCvTemplateMeta(loadedLayout);
+        if (!applicantLockedCvTemplate) {
+          setPrimaryCvTemplate(templateMeta.primary);
+          setActiveCvTemplates(templateMeta.active);
+        }
         // Hiển thị tên CTV khi load (ô CTV tìm theo tên)
         if (cv.collaboratorId && cv.collaborator) {
           setCollaboratorDisplayName(cv.collaborator.name || cv.collaborator.email || cv.collaborator.code || `ID ${cv.collaboratorId}`);
@@ -2478,26 +2539,40 @@ const AddCandidateForm = ({
   /** Chèn 1 block 2 dòng cho template Shokumu (giữ tương thích). */
   const handleInsertWorkExperienceBlockAt = (blockIndex) => handleInsertWorkExperienceAt(blockIndex);
 
+  const recalcEmploymentRow = (item) => {
+    const startYear = item.startYear || item.year || '';
+    const startMonth = item.startMonth || item.month || '';
+    const endYear = item.endYear || item.end_year || '';
+    const endMonth = item.endMonth || item.end_month || '';
+    const start = [startYear, startMonth].filter(Boolean).join('/');
+    const end = item.endCurrent
+      ? '現在'
+      : [endYear, endMonth].filter(Boolean).join('/');
+    return {
+      ...item,
+      start_date: start,
+      end_date: item.endCurrent ? '現在' : end,
+      period: formatShokumuPeriodRangeJa(start, item.endCurrent ? '現在' : end),
+      year: startYear,
+      month: startMonth,
+    };
+  };
+
+  /** @param {number} index @param {string|Record<string, unknown>} field @param {unknown} [value] */
   const updateEmployment = (index, field, value) => {
-    const updated = [...(formData.workExperiences || [])];
-    if (!updated[index]) updated[index] = createEmptyWorkExperience();
-    updated[index] = { ...updated[index], [field]: value };
-    if (field === 'startYear' || field === 'startMonth' || field === 'endYear' || field === 'endMonth' || field === 'endCurrent') {
-      const startYear = updated[index].startYear || updated[index].year || '';
-      const startMonth = updated[index].startMonth || updated[index].month || '';
-      const endYear = updated[index].endYear || updated[index].end_year || '';
-      const endMonth = updated[index].endMonth || updated[index].end_month || '';
-      const start = [startYear, startMonth].filter(Boolean).join('/');
-      const end = updated[index].endCurrent
-        ? '現在'
-        : [endYear, endMonth].filter(Boolean).join('/');
-      updated[index].start_date = start;
-      updated[index].end_date = updated[index].endCurrent ? '現在' : end;
-      updated[index].period = formatShokumuPeriodRangeJa(start, end);
-      updated[index].year = startYear;
-      updated[index].month = startMonth;
-    }
-    setFormData(prev => ({ ...prev, workExperiences: updated }));
+    setFormData((prev) => {
+      const updated = [...(prev.workExperiences || [])];
+      if (!updated[index]) updated[index] = createEmptyWorkExperience();
+      const patch = typeof field === 'object' && field !== null && value === undefined
+        ? field
+        : { [field]: value };
+      updated[index] = { ...updated[index], ...patch };
+      const dateFields = ['startYear', 'startMonth', 'endYear', 'endMonth', 'endCurrent', 'period'];
+      if (dateFields.some((key) => Object.prototype.hasOwnProperty.call(patch, key))) {
+        updated[index] = recalcEmploymentRow(updated[index]);
+      }
+      return { ...prev, workExperiences: updated };
+    });
   };
 
   const updateProject = (workIndex, projectIndex, field, value) => {
@@ -2884,8 +2959,13 @@ const AddCandidateForm = ({
     if (isAdmin && collaboratorIdStr) {
       submitFormData.append('collaboratorId', collaboratorIdStr);
     }
-    submitFormData.append('cvTemplate', cvTemplate || 'common');
-    submitFormData.append('cvTableLayout', JSON.stringify(fd.cvTableLayout || {}));
+    const templateForSave = cvTemplate === 'upload' ? primaryCvTemplate : cvTemplate;
+    submitFormData.append('cvTemplate', templateForSave || 'common');
+    const layoutWithMeta = mergeCvTemplateMeta(fd.cvTableLayout || {}, {
+      primary: primaryCvTemplate,
+      active: activeCvTemplates,
+    });
+    submitFormData.append('cvTableLayout', JSON.stringify(layoutWithMeta));
     if (isAdmin) {
       submitFormData.append('adminSupplementMarks', JSON.stringify(fd.adminSupplementMarks || []));
     }
@@ -2916,7 +2996,12 @@ const AddCandidateForm = ({
       submitFormData.append('avatarBase64', resolvedAvatarDataUrl);
     }
 
-    const templateKeys = resolveCvTemplatesForSave({ isAdmin, isApplicantProfile, cvTemplate });
+    const templateKeys = resolveCvTemplatesForSave({
+      isAdmin,
+      isApplicantProfile,
+      cvTemplate: templateForSave,
+      activeCvTemplates,
+    });
     if (cvPdfCaptureRef.current) {
       if (resolvedAvatarDataUrl) {
         flushSync(() => {
@@ -3132,6 +3217,176 @@ const AddCandidateForm = ({
       marks: formData.adminSupplementMarks || [],
       ...(isAdmin ? { onFieldContextMenu: supplementMarking.handleFieldContextMenu } : {}),
     },
+  };
+
+  const visibleCvTemplates = useMemo(() => {
+    if (applicantLockedCvTemplate && isCvTemplateId(applicantLockedCvTemplate)) {
+      return [applicantLockedCvTemplate];
+    }
+    return activeCvTemplates.length ? activeCvTemplates : [primaryCvTemplate];
+  }, [applicantLockedCvTemplate, activeCvTemplates, primaryCvTemplate]);
+
+  const cvPreviewTabs = useMemo(() => {
+    const uploadLabel = t.addCandidateUploadProfile || t.addCandidateUploadCv || 'Upload hồ sơ';
+    const tabs = [{ key: 'upload', label: uploadLabel }];
+    visibleCvTemplates.forEach((tpl) => {
+      tabs.push({
+        key: `${tpl}:rirekisho`,
+        templateId: tpl,
+        part: 'rirekisho',
+        label: getCvTabLabel(tpl, 'rirekisho', language),
+      });
+      tabs.push({
+        key: `${tpl}:shokumu`,
+        templateId: tpl,
+        part: 'shokumu',
+        label: getCvTabLabel(tpl, 'shokumu', language),
+      });
+    });
+    return tabs;
+  }, [visibleCvTemplates, language, t]);
+
+  const currentCvPreviewTabKey = cvTemplate === 'upload'
+    ? 'upload'
+    : `${cvTemplate}:${cvDocumentPart}`;
+
+  const handleCvPreviewTabClick = useCallback((tab) => {
+    if (tab.key === 'upload') {
+      setCvTemplate('upload');
+      return;
+    }
+    setCvTemplate(tab.templateId);
+    setCvDocumentPart(tab.part);
+    if (tab.templateId === 'common') setCvFormatTab(tab.part);
+    if (tab.templateId === 'cv_it') setCvItTab(tab.part);
+    if (tab.templateId === 'cv_technical') setCvTechnicalTab(tab.part);
+  }, []);
+
+  const shokumuHasContent = useMemo(
+    () => hasShokumuSourceData({ formData, cvFiles, existingOriginals }),
+    [formData, cvFiles, existingOriginals]
+  );
+
+  const displayedCvTemplateId = cvTemplate === 'upload' ? primaryCvTemplate : cvTemplate;
+  const switchTemplateLabel = language === 'en'
+    ? 'Change template'
+    : language === 'ja'
+      ? 'テンプレート変更'
+      : 'Đổi template';
+
+  const handleSwitchCvTemplate = useCallback((tplId) => {
+    if (!isCvTemplateId(tplId)) return;
+    setPrimaryCvTemplate(tplId);
+    setActiveCvTemplates([tplId]);
+    setCvTemplate(tplId);
+    const part = cvDocumentPart === 'shokumu' ? 'shokumu' : 'rirekisho';
+    setCvDocumentPart(part);
+    setCvFormatTab(part);
+    setCvItTab(part);
+    setCvTechnicalTab(part);
+    setMobileCvTab('preview');
+  }, [cvDocumentPart]);
+
+  const renderShokumuEmptyBanner = () => (
+    <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 flex items-start gap-2">
+      <span className="mt-0.5 text-sm font-bold text-red-600 shrink-0" aria-hidden>!</span>
+      <p className="text-xs font-medium text-red-700 leading-relaxed">{getShokumuEmptyWarning(language)}</p>
+    </div>
+  );
+
+  const renderActiveCvTemplatePreview = () => {
+    if (cvDocumentPart === 'shokumu' && !shokumuHasContent) {
+      return renderShokumuEmptyBanner();
+    }
+    const sharedTemplateProps = {
+      hideInternalTabs: true,
+      forcedDocumentPart: cvDocumentPart,
+    };
+    if (cvTemplate === 'common') {
+      return (
+        <CvTemplateCommon
+          formData={formData}
+          setFormData={setFormData}
+          cvFormatTab={cvFormatTab}
+          setCvFormatTab={setCvFormatTab}
+          cvEditable={cvEditable}
+          cvEditableArray={cvEditableArray}
+          cvEditableWithDefault={cvEditableWithDefault}
+          getDefaultCvDate={getDefaultCvDate}
+          handleAddEducation={handleAddEducation}
+          handleAddWorkExperience={handleAddWorkExperience}
+          handleAddCertificate={handleAddCertificate}
+          handleInsertEducationAt={handleInsertEducationAt}
+          handleInsertWorkExperienceAt={handleInsertWorkExperienceAt}
+          handleInsertCertificateAt={handleInsertCertificateAt}
+          handleRemoveEducation={removeEducation}
+          handleRemoveWorkExperienceAt={handleDeleteWorkExperienceAt}
+          handleRemoveCertificate={removeCertificate}
+          handleBackendPreviewWithOptions={handleBackendPreviewWithOptions}
+          avatarPreview={avatarPreview}
+          onAvatarFileSelect={applyAvatarFromFile}
+          onCvTableLayoutCommit={onCvTableLayoutCommit}
+          {...supplementTemplateProps}
+          {...sharedTemplateProps}
+        />
+      );
+    }
+    if (cvTemplate === 'cv_it') {
+      return (
+        <CvTemplateIt
+          formData={formData}
+          setFormData={setFormData}
+          activeTab={cvItTab}
+          setActiveTab={setCvItTab}
+          cvEditable={cvEditable}
+          cvEditableBirthDate={cvEditableBirthDate}
+          cvEditableArray={cvEditableArray}
+          cvEditableWithDefault={cvEditableWithDefault}
+          getDefaultCvDate={getDefaultCvDate}
+          updateEmployment={updateEmployment}
+          updateProject={updateProject}
+          updateEmploymentPair={updateEmploymentPair}
+          toggleShokumuCheckbox={toggleShokumuCheckbox}
+          handleAddWorkExperience={handleAddWorkExperience}
+          handleAddShokumuTable={handleAddShokumuTable}
+          handleAddProjectToWorkExperience={handleAddProjectToWorkExperience}
+          handleRemoveProjectFromWorkExperience={handleRemoveProjectFromWorkExperience}
+          handleInsertWorkExperienceAt={handleInsertWorkExperienceAt}
+          handleInsertWorkExperienceBlockAt={handleInsertWorkExperienceBlockAt}
+          handleDeleteWorkExperienceAt={handleDeleteWorkExperienceAt}
+          handleBackendPreviewWithOptions={handleBackendPreviewWithOptions}
+          avatarPreview={avatarPreview}
+          onCvTableLayoutCommit={onCvTableLayoutCommit}
+          {...supplementTemplateProps}
+          {...sharedTemplateProps}
+        />
+      );
+    }
+    return (
+      <CvTemplateTechnical
+        formData={formData}
+        setFormData={setFormData}
+        activeTab={cvTechnicalTab}
+        setActiveTab={setCvTechnicalTab}
+        cvEditable={cvEditable}
+        cvEditableBirthDate={cvEditableBirthDate}
+        cvEditableArray={cvEditableArray}
+        cvEditableWithDefault={cvEditableWithDefault}
+        getDefaultCvDate={getDefaultCvDate}
+        updateEmployment={updateEmployment}
+        updateEmploymentPair={updateEmploymentPair}
+        toggleShokumuCheckbox={toggleShokumuCheckbox}
+        handleAddWorkExperience={handleAddWorkExperience}
+        handleInsertWorkExperienceAt={handleInsertWorkExperienceAt}
+        handleInsertWorkExperienceBlockAt={handleInsertWorkExperienceBlockAt}
+        handleBackendPreviewWithOptions={handleBackendPreviewWithOptions}
+        avatarPreview={avatarPreview}
+        onAvatarFileSelect={applyAvatarFromFile}
+        onCvTableLayoutCommit={onCvTableLayoutCommit}
+        {...supplementTemplateProps}
+        {...sharedTemplateProps}
+      />
+    );
   };
 
   const resolveVisibleCvPdfSection = useCallback((tpl, part) => {
@@ -3935,6 +4190,25 @@ const AddCandidateForm = ({
 
         {/* Left Column */}
         <div className="space-y-3">
+          {candidateId && !isApplicantProfile && (
+            <div className="rounded-lg p-4 border space-y-4" style={{ backgroundColor: 'white', borderColor: '#e5e7eb' }}>
+              <div>
+                <h2 className="text-sm font-bold mb-2 flex items-center gap-2" style={{ color: '#111827' }}>
+                  <FileText className="w-4 h-4" style={{ color: '#2563eb' }} />
+                  {language === 'en' ? 'Candidate memo' : language === 'ja' ? '候補者メモ' : 'Memo ứng viên'}
+                </h2>
+                <textarea
+                  name="remarks"
+                  value={formData.remarks}
+                  onChange={handleInputChange}
+                  rows={4}
+                  placeholder={language === 'en' ? 'Internal notes about this candidate...' : language === 'ja' ? '候補者に関するメモ...' : 'Ghi chú nội bộ về ứng viên...'}
+                  className="w-full px-3 py-2 border rounded-lg text-xs resize-y"
+                  style={{ borderColor: '#d1d5db', outline: 'none' }}
+                />
+              </div>
+            </div>
+          )}
           {/* Block 2: Thông tin cơ bản ứng viên */}
           <div className="rounded-lg p-4 border" style={{ backgroundColor: 'white', borderColor: '#e5e7eb' }}>
             <h2 className="text-sm font-bold mb-4 flex items-center gap-2 pb-3 border-b" style={{ color: '#111827', borderColor: '#e5e7eb' }}>
@@ -5593,81 +5867,113 @@ const AddCandidateForm = ({
             style={{ backgroundColor: 'white', borderColor: '#e5e7eb' }}
           >
               <div className="cv-preview-scroll overflow-y-auto flex-1 min-h-0 min-w-0 bg-white">
-                {/* Chọn template: Template chung | CV_It | CV kĩ thuật — ẩn khi ứng viên đã chọn 1 mẫu ở trang profile */}
-                {!(
-                  isApplicantProfile &&
-                  applicantLockedCvTemplate &&
-                  ['common', 'cv_it', 'cv_technical'].includes(applicantLockedCvTemplate)
-                ) ? (
-                  <nav className="mb-2 flex flex-wrap items-stretch gap-1 border-b border-gray-200 sticky top-0 z-20 bg-white py-1" role="tablist">
+                <nav className="mb-2 flex flex-wrap items-stretch gap-1 border-b border-gray-200 sticky top-0 z-20 bg-white py-1" role="tablist">
+                  {cvPreviewTabs.map((tab) => (
                     <button
+                      key={tab.key}
                       type="button"
                       role="tab"
-                      aria-selected={cvTemplate === 'upload'}
-                      onClick={() => setCvTemplate('upload')}
+                      aria-selected={currentCvPreviewTabKey === tab.key}
+                      onClick={() => handleCvPreviewTabClick(tab)}
                       className={`relative px-3 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px rounded-none bg-transparent whitespace-nowrap ${
-                        cvTemplate === 'upload'
+                        currentCvPreviewTabKey === tab.key
                           ? 'border-blue-600 text-blue-700'
                           : 'border-transparent text-gray-500 hover:text-gray-800'
                       }`}
                     >
-                      {t.addCandidateUploadCv || 'Upload CV'}
+                      {tab.label}
                     </button>
+                  ))}
+                  <div className="ml-auto flex flex-wrap items-center gap-1.5 py-1 pr-2 max-sm:w-full max-sm:justify-end">
+                    {!applicantLockedCvTemplate ? (
+                      <div ref={cvTemplatePickerRef} className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setCvTemplatePickerOpen((open) => !open)}
+                          className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors hover:border-blue-300 hover:bg-blue-50 shrink-0"
+                          style={{ borderColor: '#d1d5db', color: '#374151', backgroundColor: 'white' }}
+                          aria-expanded={cvTemplatePickerOpen}
+                          aria-haspopup="listbox"
+                        >
+                          <LayoutTemplate className="h-3.5 w-3.5 shrink-0" style={{ color: '#2563eb' }} />
+                          <span className="hidden sm:inline">{switchTemplateLabel}</span>
+                          <span className="sm:hidden">{getCvTemplateLabel(displayedCvTemplateId, language)}</span>
+                          <span className="hidden sm:inline text-gray-500">·</span>
+                          <span className="hidden sm:inline max-w-[120px] truncate text-blue-700">
+                            {getCvTemplateLabel(displayedCvTemplateId, language)}
+                          </span>
+                          <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${cvTemplatePickerOpen ? 'rotate-180' : ''}`} style={{ color: '#9ca3af' }} />
+                        </button>
+                        {cvTemplatePickerOpen ? (
+                          <div
+                            className="absolute right-0 top-full z-30 mt-1 w-56 overflow-hidden rounded-lg border bg-white py-1 shadow-lg"
+                            style={{ borderColor: '#e5e7eb' }}
+                            role="listbox"
+                            aria-label={switchTemplateLabel}
+                          >
+                            {CV_TEMPLATE_OPTIONS.map((opt) => {
+                              const selected = displayedCvTemplateId === opt.id;
+                              const optLabel = language === 'en' ? opt.labelEn : language === 'ja' ? opt.labelJa : opt.labelVi;
+                              return (
+                                <button
+                                  key={opt.id}
+                                  type="button"
+                                  role="option"
+                                  aria-selected={selected}
+                                  onClick={() => {
+                                    handleSwitchCvTemplate(opt.id);
+                                    setCvTemplatePickerOpen(false);
+                                  }}
+                                  className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-blue-50 ${
+                                    selected ? 'bg-blue-50/70 font-semibold text-blue-700' : 'text-gray-800'
+                                  }`}
+                                >
+                                  <span>{optLabel}</span>
+                                  {selected ? <Check className="h-3.5 w-3.5 shrink-0" aria-hidden /> : null}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <button
                       type="button"
-                      role="tab"
-                      aria-selected={cvTemplate === 'common'}
-                      onClick={() => setCvTemplate('common')}
-                      className={`relative px-3 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px rounded-none bg-transparent whitespace-nowrap ${
-                        cvTemplate === 'common'
-                          ? 'border-blue-600 text-blue-700'
-                          : 'border-transparent text-gray-500 hover:text-gray-800'
-                      }`}
+                      onClick={handleCancel}
+                      onMouseEnter={() => setHoveredCancelButton(true)}
+                      onMouseLeave={() => setHoveredCancelButton(false)}
+                      className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors border shrink-0"
+                      style={{
+                        backgroundColor: hoveredCancelButton ? '#e5e7eb' : '#f9fafb',
+                        borderColor: '#d1d5db',
+                        color: '#374151',
+                      }}
                     >
-                      {t.addCandidateTemplateCommon || 'Template chung'}
+                      <X className="w-3.5 h-3.5 flex-shrink-0" />
+                      {t.cancelButton || 'Hủy'}
                     </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={cvTemplate === 'cv_it'}
-                      onClick={() => setCvTemplate('cv_it')}
-                      className={`relative px-3 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px rounded-none bg-transparent whitespace-nowrap ${
-                        cvTemplate === 'cv_it'
-                          ? 'border-blue-600 text-blue-700'
-                          : 'border-transparent text-gray-500 hover:text-gray-800'
-                      }`}
-                    >
-                      {t.addCandidateTemplateCvIt || 'CV IT'}
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={cvTemplate === 'cv_technical'}
-                      onClick={() => setCvTemplate('cv_technical')}
-                      className={`relative px-3 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px rounded-none bg-transparent whitespace-nowrap ${
-                        cvTemplate === 'cv_technical'
-                          ? 'border-blue-600 text-blue-700'
-                          : 'border-transparent text-gray-500 hover:text-gray-800'
-                      }`}
-                    >
-                      {t.addCandidateTemplateCvTech || 'CV kĩ thuật'}
-                    </button>
-                    <div className="ml-auto flex flex-wrap items-center gap-1.5 py-1 pr-2 max-sm:w-full max-sm:justify-end">
+                    {isApplicantProfile ? (
                       <button
                         type="button"
-                        onClick={handleCancel}
-                        onMouseEnter={() => setHoveredCancelButton(true)}
-                        onMouseLeave={() => setHoveredCancelButton(false)}
-                        className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors border shrink-0"
+                        onClick={handleSubmit}
+                        onMouseEnter={() => setHoveredSaveButton(true)}
+                        onMouseLeave={() => setHoveredSaveButton(false)}
+                        disabled={isBusy}
+                        className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors shrink-0 whitespace-nowrap"
                         style={{
-                          backgroundColor: hoveredCancelButton ? '#e5e7eb' : '#f9fafb',
-                          borderColor: '#d1d5db',
-                          color: '#374151',
+                          backgroundColor: hoveredSaveButton ? '#c91828' : '#ED212F',
+                          color: 'white',
+                          opacity: isBusy ? 0.8 : 1,
                         }}
                       >
-                        <X className="w-3.5 h-3.5 flex-shrink-0" />
-                        {t.cancelButton || 'Hủy'}
+                        <Save className="w-3.5 h-3.5 flex-shrink-0" />
+                        {saving
+                          ? (language === 'ja' ? '保存中...' : language === 'en' ? 'Saving...' : 'Đang lưu...')
+                          : candidateId
+                            ? (language === 'ja' ? 'プロフィールを更新' : language === 'en' ? 'Update profile' : 'Cập nhật hồ sơ')
+                            : (language === 'ja' ? 'プロフィールを保存' : language === 'en' ? 'Save profile' : 'Lưu hồ sơ')}
                       </button>
+                    ) : (
                       <button
                         type="submit"
                         form="add-candidate-main-form"
@@ -5686,59 +5992,9 @@ const AddCandidateForm = ({
                           ? (candidateId ? (t.addCandidateUpdating || 'Đang cập nhật...') : (t.addCandidateSaving || 'Đang lưu...'))
                           : (jobId && !isAdmin ? (t.addCandidateNominate || 'Tiến cử ứng viên') : (candidateId ? (t.addCandidateUpdate || 'Cập nhật ứng viên') : (t.addCandidateSave || 'Lưu ứng viên')))}
                       </button>
-                    </div>
-                  </nav>
-                ) : (
-                  <div className="mb-2 flex flex-wrap items-center justify-end gap-1.5 border-b border-gray-200 sticky top-0 z-20 bg-white px-2 py-2">
-                    <button
-                      type="button"
-                      onClick={handleCancel}
-                      onMouseEnter={() => setHoveredCancelButton(true)}
-                      onMouseLeave={() => setHoveredCancelButton(false)}
-                      className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors border shrink-0"
-                      style={{
-                        backgroundColor: hoveredCancelButton ? '#e5e7eb' : '#f9fafb',
-                        borderColor: '#d1d5db',
-                        color: '#374151',
-                      }}
-                    >
-                      <X className="w-3.5 h-3.5 flex-shrink-0" />
-                      {t.cancelButton || 'Hủy'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSubmit}
-                      onMouseEnter={() => setHoveredSaveButton(true)}
-                      onMouseLeave={() => setHoveredSaveButton(false)}
-                      disabled={isBusy}
-                      className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors shrink-0 whitespace-nowrap"
-                      style={{
-                        backgroundColor: hoveredSaveButton ? '#c91828' : '#ED212F',
-                        color: 'white',
-                        opacity: isBusy ? 0.8 : 1,
-                      }}
-                    >
-                      <Save className="w-3.5 h-3.5 flex-shrink-0" />
-                      {saving
-                        ? (language === 'ja'
-                            ? '保存中...'
-                            : language === 'en'
-                              ? 'Saving...'
-                              : 'Đang lưu...')
-                        : candidateId
-                          ? (language === 'ja'
-                              ? 'プロフィールを更新'
-                              : language === 'en'
-                                ? 'Update profile'
-                                : 'Cập nhật hồ sơ')
-                          : (language === 'ja'
-                              ? 'プロフィールを保存'
-                              : language === 'en'
-                                ? 'Save profile'
-                                : 'Lưu hồ sơ')}
-                    </button>
+                    )}
                   </div>
-                )}
+                </nav>
 
                 <div className="cv-form-a4-preview-shell add-candidate-cv-content-shell">
                   {cvTemplate === 'upload' ? (
@@ -5746,7 +6002,7 @@ const AddCandidateForm = ({
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-2" style={{ borderColor: '#e5e7eb' }}>
                         <h2 className="text-sm font-bold flex items-center gap-2" style={{ color: '#111827' }}>
                           <FileText className="w-4 h-4" style={{ color: '#2563eb' }} />
-                          {supplementHeading('addCandidate-upload-cv', t.addCandidateUploadCv || 'Upload CV')}
+                          {supplementHeading('addCandidate-upload-cv', t.addCandidateUploadProfile || t.addCandidateUploadCv || 'Upload hồ sơ')}
                         </h2>
                         <span className="text-[11px]" style={{ color: '#6b7280' }}>
                           {t.addCandidateAutoParseCv || 'Chọn file CV gốc để lưu/parse dữ liệu.'}
@@ -5783,82 +6039,9 @@ const AddCandidateForm = ({
                         {parseSuccess && (<div className="rounded-lg p-3 border flex items-center gap-2" style={{ backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }}><span className="text-xs" style={{ color: '#16a34a' }}>✓</span><p className="flex-1 text-xs font-medium" style={{ color: '#166534' }}>{parseSuccess}</p></div>)}
                       </div>
                     </div>
-                  ) : cvTemplate === 'common' ? (
-                  <CvTemplateCommon
-                    formData={formData}
-                    setFormData={setFormData}
-                    cvFormatTab={cvFormatTab}
-                    setCvFormatTab={setCvFormatTab}
-                    cvEditable={cvEditable}
-                    cvEditableArray={cvEditableArray}
-                    cvEditableWithDefault={cvEditableWithDefault}
-                    getDefaultCvDate={getDefaultCvDate}
-                    handleAddEducation={handleAddEducation}
-                    handleAddWorkExperience={handleAddWorkExperience}
-                    handleAddCertificate={handleAddCertificate}
-                    handleInsertEducationAt={handleInsertEducationAt}
-                    handleInsertWorkExperienceAt={handleInsertWorkExperienceAt}
-                    handleInsertCertificateAt={handleInsertCertificateAt}
-                    handleRemoveEducation={removeEducation}
-                    handleRemoveWorkExperienceAt={handleDeleteWorkExperienceAt}
-                    handleRemoveCertificate={removeCertificate}
-                    handleBackendPreviewWithOptions={handleBackendPreviewWithOptions}
-                    avatarPreview={avatarPreview}
-                    onAvatarFileSelect={applyAvatarFromFile}
-                    onCvTableLayoutCommit={onCvTableLayoutCommit}
-                    {...supplementTemplateProps}
-                  />
-                ) : cvTemplate === 'cv_it' ? (
-                  <CvTemplateIt
-                    formData={formData}
-                    setFormData={setFormData}
-                    activeTab={cvItTab}
-                    setActiveTab={setCvItTab}
-                    cvEditable={cvEditable}
-                    cvEditableBirthDate={cvEditableBirthDate}
-                    cvEditableArray={cvEditableArray}
-                    cvEditableWithDefault={cvEditableWithDefault}
-                    getDefaultCvDate={getDefaultCvDate}
-                    updateEmployment={updateEmployment}
-                    updateProject={updateProject}
-                    updateEmploymentPair={updateEmploymentPair}
-                    toggleShokumuCheckbox={toggleShokumuCheckbox}
-                    handleAddWorkExperience={handleAddWorkExperience}
-                    handleAddShokumuTable={handleAddShokumuTable}
-                    handleAddProjectToWorkExperience={handleAddProjectToWorkExperience}
-                    handleRemoveProjectFromWorkExperience={handleRemoveProjectFromWorkExperience}
-                    handleInsertWorkExperienceAt={handleInsertWorkExperienceAt}
-                    handleInsertWorkExperienceBlockAt={handleInsertWorkExperienceBlockAt}
-                    handleDeleteWorkExperienceAt={handleDeleteWorkExperienceAt}
-                    handleBackendPreviewWithOptions={handleBackendPreviewWithOptions}
-                    avatarPreview={avatarPreview}
-                    onCvTableLayoutCommit={onCvTableLayoutCommit}
-                    {...supplementTemplateProps}
-                  />
-                ) : (
-                  <CvTemplateTechnical
-                    formData={formData}
-                    setFormData={setFormData}
-                    activeTab={cvTechnicalTab}
-                    setActiveTab={setCvTechnicalTab}
-                    cvEditable={cvEditable}
-                    cvEditableBirthDate={cvEditableBirthDate}
-                    cvEditableArray={cvEditableArray}
-                    cvEditableWithDefault={cvEditableWithDefault}
-                    getDefaultCvDate={getDefaultCvDate}
-                    updateEmployment={updateEmployment}
-                    updateEmploymentPair={updateEmploymentPair}
-                    toggleShokumuCheckbox={toggleShokumuCheckbox}
-                    handleAddWorkExperience={handleAddWorkExperience}
-                    handleInsertWorkExperienceAt={handleInsertWorkExperienceAt}
-                    handleInsertWorkExperienceBlockAt={handleInsertWorkExperienceBlockAt}
-                    handleBackendPreviewWithOptions={handleBackendPreviewWithOptions}
-                    avatarPreview={avatarPreview}
-                    onAvatarFileSelect={applyAvatarFromFile}
-                    onCvTableLayoutCommit={onCvTableLayoutCommit}
-                    {...supplementTemplateProps}
-                  />
-                )}
+                  ) : (
+                    renderActiveCvTemplatePreview()
+                  )}
                 </div>
               </div>
           </div>
