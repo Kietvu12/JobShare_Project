@@ -587,6 +587,11 @@ export default function QuickCreateCandidateDrawer({
     return `Preview: ${label}`;
   }, [previewTemplateId, language]);
 
+  const flowStepLabels = useMemo(() => ({
+    upload: language === 'en' ? 'Upload CV & template' : language === 'ja' ? 'CV・テンプレート' : 'Tải CV & chọn template',
+    manual: language === 'en' ? 'Memo & profile' : language === 'ja' ? 'メモ・情報' : 'Memo & thông tin',
+  }), [language]);
+
   if (!open) return null;
 
   const handleClose = () => {
@@ -972,6 +977,11 @@ export default function QuickCreateCandidateDrawer({
   };
 
   const startAiFlow = async () => {
+    const result = validateStepOne();
+    if (!result.valid) {
+      notify.warning(buildValidationNotifyMessage(result.errors));
+      return null;
+    }
     const mapped = await runAiParse();
     if (mapped) {
       setShowSupplementStep(true);
@@ -980,7 +990,43 @@ export default function QuickCreateCandidateDrawer({
     return mapped;
   };
 
+  const validateStepOne = () => {
+    const next = {};
+    if (!cvFile && !existingCvFileName) {
+      next.cvFile = cvRequiredMessage();
+    } else if (cvFile) {
+      if (!isSupportedCvOriginalFile(cvFile)) {
+        next.cvFile =
+          t.invalidOriginalFile || 'Vui lòng chọn file PDF, Word, Excel, PowerPoint, ảnh (JPG/PNG/...), TXT, RTF hoặc ODT/ODS';
+      } else if (cvFile.size > maxCvBytes) {
+        next.cvFile = t.fileTooLarge || 'File CV tối đa 40MB';
+      }
+    }
+    if (shokumuFile) {
+      if (!isSupportedCvOriginalFile(shokumuFile)) {
+        next.shokumuFile =
+          t.invalidOriginalFile || 'Vui lòng chọn file PDF, Word, Excel, PowerPoint, ảnh (JPG/PNG/...), TXT, RTF hoặc ODT/ODS';
+      } else if (shokumuFile.size > maxCvBytes) {
+        next.shokumuFile = t.fileTooLargeShokumu || 'File Shokumu tối đa 40MB';
+      }
+    }
+    if (!isEditMode && !isCvTemplateId(selectedCvTemplate)) {
+      next.cvTemplate = language === 'en'
+        ? 'Please select a CV template'
+        : language === 'ja'
+          ? 'CVテンプレートを選択してください'
+          : 'Vui lòng chọn loại template CV';
+    }
+    setErrors(next);
+    return { valid: Object.keys(next).length === 0, errors: next };
+  };
+
   const handleManualFlow = () => {
+    const result = validateStepOne();
+    if (!result.valid) {
+      notify.warning(buildValidationNotifyMessage(result.errors));
+      return;
+    }
     setShowSupplementStep(true);
     setFlowStep('manual');
   };
@@ -1072,9 +1118,47 @@ export default function QuickCreateCandidateDrawer({
   };
 
   const isUploadStep = flowStep === 'upload';
-  const shouldShowSupplementStep = showSupplementStep || flowStep === 'manual';
+  const isManualStep = flowStep === 'manual';
+  const shouldShowSupplementStep = showSupplementStep || isManualStep;
   const activeValidationErrors = getActiveErrors(errors);
   const cvMissingOnManualStep = !isEditMode && !cvFile && !existingCvFileName;
+
+  const renderStepIndicator = () => {
+    if (isEditMode || adminDuplicateResult) return null;
+    const steps = ['upload', 'manual'];
+    const currentIdx = steps.indexOf(flowStep);
+    return (
+      <div className="flex items-center gap-1 sm:gap-2">
+        {steps.map((step, idx) => {
+          const isActive = idx === currentIdx;
+          const isDone = idx < currentIdx;
+          return (
+            <React.Fragment key={step}>
+              {idx > 0 ? (
+                <div className={`hidden h-px w-4 sm:block sm:w-8 ${isDone || isActive ? 'bg-blue-300' : 'bg-gray-200'}`} />
+              ) : null}
+              <div className={`flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold sm:px-3 sm:text-xs ${
+                isActive
+                  ? 'bg-blue-600 text-white'
+                  : isDone
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'bg-gray-100 text-gray-500'
+              }`}
+              >
+                <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] ${
+                  isActive ? 'bg-white/20 text-white' : isDone ? 'bg-blue-100 text-blue-700' : 'bg-white text-gray-500'
+                }`}
+                >
+                  {idx + 1}
+                </span>
+                <span className="truncate">{flowStepLabels[step]}</span>
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
+    );
+  };
 
   const memoFieldLabel = language === 'en' ? 'Candidate memo' : language === 'ja' ? '候補者メモ' : 'Memo ứng viên';
   const memoFieldPlaceholder = language === 'en'
@@ -1236,18 +1320,53 @@ export default function QuickCreateCandidateDrawer({
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 space-y-4">
+            {!adminDuplicateResult ? renderStepIndicator() : null}
             {adminDuplicateResult ? (
               renderAdminDuplicatePanel()
             ) : isUploadStep ? (
               <div className="space-y-4">
                 {renderCollaboratorSearchBox()}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">{flowStepLabels.upload}</h3>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    {language === 'en'
+                      ? 'Upload the CV file and choose a template to continue.'
+                      : language === 'ja'
+                        ? 'CVファイルをアップロードし、テンプレートを選択してください。'
+                        : 'Tải file CV và chọn template để tiếp tục.'}
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold mb-1 text-gray-700">
+                      {t.addCandidateCvLabel || 'CV'}<span className="text-red-500"> *</span>
+                    </label>
+                    <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 px-4 py-8 text-sm text-gray-600 cursor-pointer hover:bg-gray-50">
+                      <Upload className="w-4 h-4" />
+                      <span className="text-center">{cvFile ? (t.addCandidateChangeCvFile || 'Đổi file CV') : (t.addCandidateUploadCvFile || 'Tải lên file CV')}</span>
+                      <input ref={cvFileInputRef} type="file" accept={CV_ORIGINAL_ACCEPT} className="hidden" onChange={handleCvFileChange} />
+                    </label>
+                    {cvFile ? <div className="mt-2 flex items-center gap-2 text-xs text-gray-700 bg-white rounded-lg px-2 py-1.5 border border-gray-100"><span className="flex-1 truncate" title={cvFile.name}>{cvFile.name}</span><span className="text-gray-400 shrink-0">{(cvFile.size / 1024).toFixed(0)} KB</span><button type="button" onClick={removeCvFile} className="p-1 rounded-md hover:bg-red-50 text-red-600 shrink-0 border border-transparent hover:border-red-100" aria-label={t.addCandidateRemoveCvFile || 'Xóa file CV'}><X className="w-4 h-4" strokeWidth={2.5} /></button></div> : existingCvFileName ? <div className="mt-2 flex items-center gap-2 text-xs text-gray-700 bg-blue-50 rounded-lg px-2 py-1.5 border border-blue-100"><span className="flex-1 truncate" title={existingCvFileName}>{existingCvFileName}</span><span className="text-blue-600 shrink-0">Đã có</span></div> : null}
+                    {errors.cvFile ? <p className="mt-1.5 text-xs text-red-600">{errors.cvFile}</p> : null}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1 text-gray-700">{t.addCandidateShokumuLabel || 'Shokumu'}</label>
+                    <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 px-4 py-8 text-sm text-gray-600 cursor-pointer hover:bg-gray-50">
+                      <Upload className="w-4 h-4" />
+                      <span className="text-center">{shokumuFile ? (t.addCandidateChangeShokumuFile || 'Đổi file Shokumu') : (t.addCandidateUploadShokumuFile || 'Tải lên file Shokumu (tuỳ chọn)')}</span>
+                      <input ref={shokumuFileInputRef} type="file" accept={CV_ORIGINAL_ACCEPT} className="hidden" onChange={handleShokumuFileChange} />
+                    </label>
+                    {shokumuFile ? <div className="mt-2 flex items-center gap-2 text-xs text-gray-700 bg-white rounded-lg px-2 py-1.5 border border-gray-100"><span className="flex-1 truncate" title={shokumuFile.name}>{shokumuFile.name}</span><span className="text-gray-400 shrink-0">{(shokumuFile.size / 1024).toFixed(0)} KB</span><button type="button" onClick={removeShokumuFile} className="p-1 rounded-md hover:bg-red-50 text-red-600 shrink-0 border border-transparent hover:border-red-100" aria-label={t.addCandidateRemoveShokumuFile || 'Xóa file Shokumu'}><X className="w-4 h-4" strokeWidth={2.5} /></button></div> : null}
+                    {errors.shokumuFile ? <p className="mt-1.5 text-xs text-red-600">{errors.shokumuFile}</p> : null}
+                  </div>
+                </div>
                 {!isEditMode ? (
                   <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 sm:p-4 space-y-2">
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-900">
+                      <h4 className="text-sm font-semibold text-gray-900">
                         {language === 'en' ? 'Choose CV template' : language === 'ja' ? 'CVテンプレートを選択' : 'Chọn loại template CV'}
                         <span className="text-red-500"> *</span>
-                      </h3>
+                      </h4>
                       <p className="mt-0.5 text-[11px] text-gray-500">
                         {language === 'en'
                           ? 'Preview images will be updated when QA provides assets.'
@@ -1269,71 +1388,27 @@ export default function QuickCreateCandidateDrawer({
                     {errors.cvTemplate ? <p className="text-xs text-red-600">{errors.cvTemplate}</p> : null}
                   </div>
                 ) : null}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold mb-1 text-gray-700">
-                      {t.addCandidateCvLabel || 'CV'}<span className="text-red-500"> *</span>
-                    </label>
-                    <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 px-4 py-8 text-sm text-gray-600 cursor-pointer hover:bg-gray-50">
-                      <Upload className="w-4 h-4" />
-                      <span className="text-center">{cvFile ? (t.addCandidateChangeCvFile || 'Đổi file CV') : (t.addCandidateUploadCvFile || 'Tải lên file CV')}</span>
-                      <input ref={cvFileInputRef} type="file" accept={CV_ORIGINAL_ACCEPT} className="hidden" onChange={handleCvFileChange} />
-                    </label>
-                    {cvFile ? <div className="mt-2 flex items-center gap-2 text-xs text-gray-700 bg-white rounded-lg px-2 py-1.5 border border-gray-100"><span className="flex-1 truncate" title={cvFile.name}>{cvFile.name}</span><span className="text-gray-400 shrink-0">{(cvFile.size / 1024).toFixed(0)} KB</span><button type="button" onClick={removeCvFile} className="p-1 rounded-md hover:bg-red-50 text-red-600 shrink-0 border border-transparent hover:border-red-100" aria-label={t.addCandidateRemoveCvFile || 'Xóa file CV'}><X className="w-4 h-4" strokeWidth={2.5} /></button></div> : existingCvFileName ? <div className="mt-2 flex items-center gap-2 text-xs text-gray-700 bg-blue-50 rounded-lg px-2 py-1.5 border border-blue-100"><span className="flex-1 truncate" title={existingCvFileName}>{existingCvFileName}</span><span className="text-blue-600 shrink-0">Đã có</span></div> : null}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold mb-1 text-gray-700">{t.addCandidateShokumuLabel || 'Shokumu'}</label>
-                    <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 px-4 py-8 text-sm text-gray-600 cursor-pointer hover:bg-gray-50">
-                      <Upload className="w-4 h-4" />
-                      <span className="text-center">{shokumuFile ? (t.addCandidateChangeShokumuFile || 'Đổi file Shokumu') : (t.addCandidateUploadShokumuFile || 'Tải lên file Shokumu (tuỳ chọn)')}</span>
-                      <input ref={shokumuFileInputRef} type="file" accept={CV_ORIGINAL_ACCEPT} className="hidden" onChange={handleShokumuFileChange} />
-                    </label>
-                    {shokumuFile ? <div className="mt-2 flex items-center gap-2 text-xs text-gray-700 bg-white rounded-lg px-2 py-1.5 border border-gray-100"><span className="flex-1 truncate" title={shokumuFile.name}>{shokumuFile.name}</span><span className="text-gray-400 shrink-0">{(shokumuFile.size / 1024).toFixed(0)} KB</span><button type="button" onClick={removeShokumuFile} className="p-1 rounded-md hover:bg-red-50 text-red-600 shrink-0 border border-transparent hover:border-red-100" aria-label={t.addCandidateRemoveShokumuFile || 'Xóa file Shokumu'}><X className="w-4 h-4" strokeWidth={2.5} /></button></div> : null}
-                  </div>
-                </div>
-
-                {renderMemoField()}
-
                 {aiParseError ? (
                   <div
                     className="rounded-lg p-3 border flex items-start gap-2"
                     style={{ backgroundColor: '#fef2f2', borderColor: '#fecaca' }}
                   >
-                    <span className="mt-0.5 text-xs" style={{ color: '#dc2626' }} aria-hidden="true">
-                      ⚠️
-                    </span>
-                    <p className="flex-1 text-xs font-medium" style={{ color: '#991b1b' }}>
-                      {aiParseError}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setAiParseError(null)}
-                      className="text-xs shrink-0"
-                      style={{ color: '#dc2626' }}
-                      aria-label={language === 'en' ? 'Dismiss' : language === 'ja' ? '閉じる' : 'Đóng'}
-                    >
-                      ✕
-                    </button>
+                    <span className="mt-0.5 text-xs" style={{ color: '#dc2626' }} aria-hidden="true">⚠️</span>
+                    <p className="flex-1 text-xs font-medium" style={{ color: '#991b1b' }}>{aiParseError}</p>
+                    <button type="button" onClick={() => setAiParseError(null)} className="text-xs shrink-0" style={{ color: '#dc2626' }} aria-label={language === 'en' ? 'Dismiss' : language === 'ja' ? '閉じる' : 'Đóng'}>✕</button>
                   </div>
                 ) : null}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <button type="button" onClick={startAiFlow} disabled={!cvFile || aiParseLoading} className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
-                    {aiParseLoading ? (t.addCandidateParsingCv || 'Đang phân tích...') : (t.addCandidateAiParseButton || 'Phân tích AI')}
-                  </button>
-                  <button type="button" onClick={handleManualFlow} className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                    {language === 'en' ? 'Enter manually' : language === 'ja' ? '手動で入力' : 'Nhập thông tin thủ công'}
-                  </button>
-                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit} noValidate className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-900">{language === 'en' ? 'Manual information' : language === 'ja' ? '手動入力' : 'Nhập thông tin thủ công'}</h3>
+                    <h3 className="text-sm font-semibold text-gray-900">{flowStepLabels.manual}</h3>
                     <p className="text-xs text-gray-500 mt-1">{language === 'en' ? 'Review or complete the candidate profile before saving.' : language === 'ja' ? '保存前に候補者情報を確認・補完してください。' : 'Xem lại hoặc bổ sung thông tin ứng viên trước khi lưu.'}</p>
                   </div>
-                  <button type="button" onClick={handleBackToUpload} className="text-xs font-semibold text-blue-600 hover:underline">{language === 'en' ? 'Back' : language === 'ja' ? '戻る' : 'Quay lại'}</button>
+                  {!isEditMode ? (
+                    <button type="button" onClick={handleBackToUpload} className="text-xs font-semibold text-blue-600 hover:underline">{language === 'en' ? 'Back' : language === 'ja' ? '戻る' : 'Quay lại'}</button>
+                  ) : null}
                 </div>
 
                 {renderCollaboratorSearchBox()}
@@ -1453,7 +1528,19 @@ export default function QuickCreateCandidateDrawer({
             )}
           </div>
 
-          {!isUploadStep && !adminDuplicateResult ? <div className="border-t px-4 py-3 sm:px-5 sm:py-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 shrink-0 bg-white" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}><button type="button" onClick={handleClose} className="px-4 py-2 rounded-lg border text-sm font-medium text-gray-700">{t.cancel || 'Hủy'}</button><button type="button" onClick={handleSubmit} disabled={saving} className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-semibold disabled:opacity-60">{saving ? (t.saving || 'Đang tạo...') : (t.addCandidateSave || 'Tạo hồ sơ')}</button></div> : null}
+          {!adminDuplicateResult && isUploadStep ? (
+            <div className="border-t px-4 py-3 sm:px-5 sm:py-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 shrink-0 bg-white" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+              <button type="button" onClick={handleClose} className="px-4 py-2 rounded-lg border text-sm font-medium text-gray-700">{t.cancel || 'Hủy'}</button>
+              <button type="button" onClick={handleManualFlow} className="px-4 py-2 rounded-lg border text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                {language === 'en' ? 'Enter manually' : language === 'ja' ? '手動で入力' : 'Nhập thủ công'}
+              </button>
+              <button type="button" onClick={startAiFlow} disabled={!cvFile || aiParseLoading} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-50">
+                {aiParseLoading ? (t.addCandidateParsingCv || 'Đang phân tích...') : (t.addCandidateAiParseButton || 'Phân tích AI')}
+              </button>
+            </div>
+          ) : null}
+
+          {isManualStep && !adminDuplicateResult ? <div className="border-t px-4 py-3 sm:px-5 sm:py-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 shrink-0 bg-white" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}><button type="button" onClick={handleClose} className="px-4 py-2 rounded-lg border text-sm font-medium text-gray-700">{t.cancel || 'Hủy'}</button><button type="button" onClick={handleSubmit} disabled={saving} className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-semibold disabled:opacity-60">{saving ? (t.saving || 'Đang tạo...') : (t.addCandidateSave || 'Tạo hồ sơ')}</button></div> : null}
         </div>
       </div>
         </>
