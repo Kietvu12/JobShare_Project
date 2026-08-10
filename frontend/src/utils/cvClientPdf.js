@@ -168,6 +168,7 @@ function enhanceTextInputForPdfCapture(input) {
   const type = (input.type || 'text').toLowerCase();
   if (type === 'file' || type === 'checkbox' || type === 'radio' || type === 'hidden') return null;
   if (input.closest('.cv-pdf-hide')) return null;
+  if (input.closest('[data-cv-shokumu-period]')) return null;
 
   const value = String(input.value || '').trim();
   const marker = document.createElement('span');
@@ -460,10 +461,20 @@ function suppressScrollbarsForCapture(root, restoreFns) {
       word-break: keep-all !important;
       overflow-wrap: normal !important;
     }
-    [data-cv-pdf-capture-root] td:not(.whitespace-nowrap):not([data-cv-shokumu-period]),
+    [data-cv-pdf-capture-root] td:not(.whitespace-nowrap):not([data-cv-shokumu-period]):not([data-cv-tools-name-cell]),
     [data-cv-pdf-capture-root] th:not(.whitespace-nowrap) {
-      word-break: break-word !important;
+      word-break: keep-all !important;
       overflow-wrap: break-word !important;
+    }
+    [data-cv-pdf-capture-root] [data-cv-layout-key$="::tools_v2"] td,
+    [data-cv-pdf-capture-root] [data-cv-tools-name-cell],
+    [data-cv-pdf-capture-root] [data-cv-pdf-tools-flat] {
+      white-space: nowrap !important;
+      word-break: keep-all !important;
+      overflow-wrap: normal !important;
+    }
+    [data-cv-pdf-capture-root] [data-cv-shokumu-period] {
+      min-width: 10.5rem !important;
     }
     [data-cv-pdf-capture-root] td.whitespace-nowrap,
     [data-cv-pdf-capture-root] [data-cv-shokumu-period],
@@ -756,6 +767,12 @@ function flattenShokumuPeriodCellsForPdfCapture(root, restoreFns) {
   if (!(root instanceof HTMLElement)) return;
 
   root.querySelectorAll('[data-cv-shokumu-period]').forEach((cell) => {
+    cell.querySelectorAll('.cv-pdf-date-inline, .flex').forEach((wrap) => {
+      if (wrap instanceof HTMLElement) {
+        wrap.classList.add('cv-pdf-date-inline');
+      }
+    });
+
     const preset = (cell.getAttribute('data-cv-period-display') || '').trim();
     const text = preset || readShokumuPeriodCellText(cell);
     if (!text) return;
@@ -782,6 +799,42 @@ function flattenShokumuPeriodCellsForPdfCapture(root, restoreFns) {
     restoreFns.push(() => {
       cell.innerHTML = prevHtml;
       cell.style.whiteSpace = prevWhiteSpace;
+    });
+  });
+}
+
+/** 使用可能ツール: bỏ layout checkbox flex — chỉ giữ tên tool (■/□) một dòng khi capture PDF. */
+function flattenToolsTableCellsForPdfCapture(root, restoreFns) {
+  if (!(root instanceof HTMLElement)) return;
+
+  root.querySelectorAll('[data-cv-tools-name-cell], [data-cv-layout-key$="::tools_v2"] td').forEach((cell) => {
+    const label = cell.querySelector('label');
+    if (!label) return;
+
+    const checkbox = label.querySelector('input[type="checkbox"]');
+    const scratch = label.cloneNode(true);
+    scratch.querySelectorAll('input, button, svg').forEach((node) => node.remove());
+    const toolName = String(scratch.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!toolName) return;
+
+    const flat = document.createElement('span');
+    flat.dataset.cvPdfToolsFlat = '1';
+    flat.textContent = checkbox?.checked ? `■ ${toolName}` : `□ ${toolName}`;
+    Object.assign(flat.style, {
+      display: 'inline-block',
+      whiteSpace: 'nowrap',
+      wordBreak: 'keep-all',
+      overflowWrap: 'normal',
+      fontSize: '11px',
+      lineHeight: '1.4',
+      color: '#1f2937',
+    });
+
+    const prevHtml = cell.innerHTML;
+    cell.innerHTML = '';
+    cell.appendChild(flat);
+    restoreFns.push(() => {
+      cell.innerHTML = prevHtml;
     });
   });
 }
@@ -924,7 +977,8 @@ function flattenCvPdfTableCellsForCapture(root, restoreFns) {
       fontStyle: 'normal',
       color: '#1f2937',
       whiteSpace: 'pre-wrap',
-      wordBreak: 'break-word',
+      wordBreak: 'keep-all',
+      overflowWrap: 'break-word',
       textAlign,
       padding: '0',
       margin: '0',
@@ -1016,6 +1070,8 @@ function preparePdfCaptureUi(root) {
   });
 
   flattenShokumuPeriodCellsForPdfCapture(root, restoreFns);
+
+  flattenToolsTableCellsForPdfCapture(root, restoreFns);
 
   root.querySelectorAll('input[type="checkbox"]').forEach((input) => {
     const restore = enhanceCheckboxForPdfCapture(input);
@@ -1329,10 +1385,17 @@ function mountCaptureClone(element) {
     }
     [data-cv-pdf-capture-sandbox] td.whitespace-nowrap,
     [data-cv-pdf-capture-sandbox] [data-cv-shokumu-period],
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-period-flat] {
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-period-flat],
+    [data-cv-pdf-capture-sandbox] [data-cv-tools-name-cell],
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-tools-flat] {
       word-break: keep-all !important;
       overflow-wrap: normal !important;
       white-space: nowrap !important;
+    }
+    [data-cv-pdf-capture-sandbox] [data-cv-layout-key$="::tools_v2"] td {
+      white-space: nowrap !important;
+      word-break: keep-all !important;
+      overflow-wrap: normal !important;
     }
     [data-cv-pdf-capture-sandbox] .cv-resizable-table-wrap {
       overflow: visible !important;

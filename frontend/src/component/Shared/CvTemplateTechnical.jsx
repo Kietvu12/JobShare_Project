@@ -336,8 +336,8 @@ const CvTemplateTechnical = ({
     }));
   };
   const eduTextCellClass = 'block w-full max-w-full break-words whitespace-pre-wrap';
-  const eduTextCellStyle = { display: 'block', width: '100%', maxWidth: '100%', wordBreak: 'break-word', overflowWrap: 'anywhere' };
-  const eduWrapTdStyle = { borderColor: '#1f2937', wordBreak: 'break-word', overflowWrap: 'anywhere' };
+  const eduTextCellStyle = { display: 'block', width: '100%', maxWidth: '100%', wordBreak: 'keep-all', overflowWrap: 'break-word' };
+  const eduWrapTdStyle = { borderColor: '#1f2937', wordBreak: 'keep-all', overflowWrap: 'break-word' };
   const syncEducationContent = (edu) => edu;
   const normalizeEduPart = (value, maxLen) => String(value || '').replace(/\D/g, '').slice(0, maxLen);
   const moveCaretToEnd = (el) => {
@@ -895,8 +895,8 @@ const CvTemplateTechnical = ({
                     }
                     const checked = (type === 'learned' ? learned : experienced).includes(toolName);
                     return (
-                      <td key={`${fieldPrefix}-name-${ri}-${ci}`} className="border p-1 bg-white text-left" style={{ ...rowStyle, borderRight: '2px dotted #1f2937' }}>
-                        <label className="flex items-center gap-1 text-xs cursor-pointer min-w-0">
+                      <td key={`${fieldPrefix}-name-${ri}-${ci}`} className="border p-1 bg-white text-left" style={{ ...rowStyle, borderRight: '2px dotted #1f2937' }} data-cv-tools-name-cell="1">
+                        <label className="flex items-center gap-1 text-xs cursor-pointer min-w-0 whitespace-nowrap">
                           <input
                             type="checkbox"
                             className="rounded shrink-0"
@@ -1073,7 +1073,7 @@ const CvTemplateTechnical = ({
             <ResizableCvTable
               className="w-full border-collapse mt-3"
               style={{ fontSize: '11px', color: '#1f2937', borderColor: '#1f2937' }}
-              colPercents={colSaved('rirekisho', 'employment_v3', [20, 22, 33, 25])}
+              colPercents={colSaved('rirekisho', 'employment_v3', [28, 18, 30, 24])}
               layoutKey={cvLayoutKey(CV_TPL, 'rirekisho', 'employment_v3')}
               onLayoutCommit={onCvTableLayoutCommit}
             >
@@ -1087,8 +1087,8 @@ const CvTemplateTechnical = ({
                 {(() => {
                   const list = formData.workExperiences || [];
                   const workCount = Math.max(1, formData.workHistoryCount ?? list.length);
-                  const cellEditStyle = { outline: 'none', minHeight: '1em', display: 'block', width: '100%', cursor: 'text', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere' };
-                  const cellWrapStyle = { borderColor: '#1f2937', wordBreak: 'break-word', overflowWrap: 'anywhere' };
+                  const cellEditStyle = { outline: 'none', minHeight: '1em', display: 'block', width: '100%', cursor: 'text', whiteSpace: 'pre-wrap', wordBreak: 'keep-all', overflowWrap: 'break-word' };
+                  const cellWrapStyle = { borderColor: '#1f2937', wordBreak: 'keep-all', overflowWrap: 'break-word' };
                   return Array.from({ length: workCount }).map((_, i) => {
                     const row = list[i] || {};
                     const companyNameDisplay = (row.company_name || '').replace(/\s*入社\s*$|\s*退社\s*$/g, '').trim();
@@ -1145,11 +1145,11 @@ const CvTemplateTechnical = ({
                         <tr>
                           <td
                             className="border p-1.5 bg-white text-center align-middle min-w-0 overflow-hidden"
-                            style={cellWrapStyle}
+                            style={{ ...cellWrapStyle, minWidth: '10.5rem' }}
                             data-cv-shokumu-period
                             data-cv-period-display={periodDisplay}
                           >
-                            <div className="flex flex-row flex-wrap items-center justify-center gap-x-0.5 gap-y-0.5 text-xs leading-tight mx-auto max-w-full">
+                            <div className="cv-pdf-date-inline flex flex-row flex-nowrap items-center justify-center gap-x-0.5 text-xs leading-tight mx-auto max-w-full">
                               <div className="inline-flex items-center shrink-0 gap-0.5">
                                 <input
                                   ref={(el) => { if (!startYearRefs.current) startYearRefs.current = []; startYearRefs.current[i] = el; }}
@@ -1301,12 +1301,12 @@ const CvTemplateTechnical = ({
                   </td>
                 </tr>
                 <tr data-cv-table-footer-row>
-                  <td colSpan={4} className="border p-2 bg-white align-top min-w-0 break-words" style={{ borderColor: '#1f2937', fontSize: '10px', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                  <td colSpan={4} className="border p-2 bg-white align-top min-w-0 break-words" style={{ borderColor: '#1f2937', fontSize: '10px', wordBreak: 'keep-all', overflowWrap: 'break-word' }}>
                     <div className="space-y-1">
-                      <div className="break-words">・現年収: <span {...cvEditable('currentSalary', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap', { wordBreak: 'break-word', overflowWrap: 'anywhere' })} /></div>
-                      <div className="break-words">・希望年収: <span {...cvEditable('desiredSalary', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap', { wordBreak: 'break-word', overflowWrap: 'anywhere' })} /></div>
-                      <div className="break-words">・希望職種: <span {...cvEditable('desiredPosition', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap', { wordBreak: 'break-word', overflowWrap: 'anywhere' })} /></div>
-                      <div className="break-words">・希望勤務地: <span {...cvEditable('desiredLocation', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap', { wordBreak: 'break-word', overflowWrap: 'anywhere' })} /></div>
+                      <div className="break-words">・現年収: <span {...cvEditable('currentSalary', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap', { wordBreak: 'keep-all', overflowWrap: 'break-word' })} /></div>
+                      <div className="break-words">・希望年収: <span {...cvEditable('desiredSalary', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap', { wordBreak: 'keep-all', overflowWrap: 'break-word' })} /></div>
+                      <div className="break-words">・希望職種: <span {...cvEditable('desiredPosition', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap', { wordBreak: 'keep-all', overflowWrap: 'break-word' })} /></div>
+                      <div className="break-words">・希望勤務地: <span {...cvEditable('desiredLocation', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap', { wordBreak: 'keep-all', overflowWrap: 'break-word' })} /></div>
                       <div>・在留資格の種類: 技術・人文知識・国際業務</div>
                       <div>・在留期間: {formatCvAnyDateJa(formData.visaExpirationDate) || '年月日'}</div>
                       <div>・在留カードに記載の就労制限:「在留資格に基づく就労活動のみ可」</div>
@@ -1492,7 +1492,7 @@ const CvTemplateTechnical = ({
                             <tr>
                               <td
                                 className="p-1.5 align-middle text-center min-w-0 overflow-hidden"
-                                style={bodyCenterStyle(false)}
+                                style={{ ...bodyCenterStyle(false), minWidth: '10.5rem' }}
                                 data-cv-shokumu-period
                                 data-cv-period-display={shokumuPeriodDisplay}
                               >
@@ -1513,7 +1513,7 @@ const CvTemplateTechnical = ({
                                     setWorkPeriodEnd(i, y, m);
                                   };
                                   return (
-                                    <div className="flex flex-row flex-wrap items-center justify-center gap-x-0.5 gap-y-0.5 text-xs leading-tight mx-auto max-w-full">
+                                    <div className="cv-pdf-date-inline flex flex-row flex-nowrap items-center justify-center gap-x-0.5 text-xs leading-tight mx-auto max-w-full">
                                       <div className="inline-flex items-center shrink-0 gap-0.5">
                                         <input
                                           ref={(el) => { if (!shokumuStartYearRefs.current) shokumuStartYearRefs.current = []; shokumuStartYearRefs.current[i] = el; }}
@@ -1577,10 +1577,10 @@ const CvTemplateTechnical = ({
                               </td>
                               <td colSpan={2} className="p-2 align-top" style={bodyStyle(false)}>
                                 <div className="space-y-2 text-xs">
-                                  <div><span className="font-normal">【事業内容】</span> <span {...makeInlineEditable(`shokumu-business-${i}`, emp.business_purpose || '', (v) => setWorkField(i, 'business_purpose', v), { className: 'inline-block min-w-0 outline-none whitespace-pre-wrap break-words' })} /></div>
-                                  {showDescription ? <div><span className="font-normal">【担当業務】</span> <span {...makeInlineEditable(`shokumu-desc-${i}`, emp.description || '', (v) => setWorkField(i, 'description', v), { className: 'inline-block min-w-0 outline-none whitespace-pre-wrap break-words' })} /></div> : null}
-                                  <div><span className="font-normal">【規模・役割】</span> <span {...makeInlineEditable(`shokumu-scale-${i}`, emp.scale_role || '', (v) => setWorkField(i, 'scale_role', v), { className: 'inline-block min-w-0 outline-none whitespace-pre-wrap break-words' })} /></div>
-                                  <div><span className="font-normal">【退職理由】</span> <span {...makeInlineEditable(`shokumu-reason-${i}`, emp.reason_for_leaving || '', (v) => setWorkField(i, 'reason_for_leaving', v), { className: 'inline-block min-w-0 outline-none whitespace-pre-wrap break-words' })} /></div>
+                                  <div><span className="font-normal">【事業内容】</span> <span {...makeInlineEditable(`shokumu-business-${i}`, emp.business_purpose || '', (v) => setWorkField(i, 'business_purpose', v), { className: 'inline-block min-w-0 outline-none whitespace-pre-wrap', style: { wordBreak: 'keep-all', overflowWrap: 'break-word' } })} /></div>
+                                  {showDescription ? <div><span className="font-normal">【担当業務】</span> <span {...makeInlineEditable(`shokumu-desc-${i}`, emp.description || '', (v) => setWorkField(i, 'description', v), { className: 'inline-block min-w-0 outline-none whitespace-pre-wrap', style: { wordBreak: 'keep-all', overflowWrap: 'break-word' } })} /></div> : null}
+                                  <div><span className="font-normal">【規模・役割】</span> <span {...makeInlineEditable(`shokumu-scale-${i}`, emp.scale_role || '', (v) => setWorkField(i, 'scale_role', v), { className: 'inline-block min-w-0 outline-none whitespace-pre-wrap', style: { wordBreak: 'keep-all', overflowWrap: 'break-word' } })} /></div>
+                                  <div><span className="font-normal">【退職理由】</span> <span {...makeInlineEditable(`shokumu-reason-${i}`, emp.reason_for_leaving || '', (v) => setWorkField(i, 'reason_for_leaving', v), { className: 'inline-block min-w-0 outline-none whitespace-pre-wrap', style: { wordBreak: 'keep-all', overflowWrap: 'break-word' } })} /></div>
                                 </div>
                               </td>
                               <td className="p-1.5 align-top whitespace-pre-wrap" style={bodyStyle(true)}>
