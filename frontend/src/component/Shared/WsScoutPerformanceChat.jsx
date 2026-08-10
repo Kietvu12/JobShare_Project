@@ -1224,7 +1224,7 @@ export function WsChatThread({
 
   const openCv = (cvId) => {
     if (!cvId) return
-    navigate(`/business/scout?cvId=${cvId}`)
+    window.open(`/business/scout/candidates/${cvId}`, '_blank', 'noopener,noreferrer')
   }
 
   const handleApproveCredit = async (requestId) => {
@@ -1377,9 +1377,14 @@ export function WsChatThread({
       )}
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {!activeSessionId && (
+        {!activeSessionId && mode === 'admin' && (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#94a3b8' }}>
             Chọn một cuộc trò chuyện để bắt đầu
+          </div>
+        )}
+        {!activeSessionId && mode === 'business' && !loadingMessages && messages.length === 0 && (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#94a3b8', textAlign: 'center', padding: '0 16px' }}>
+            Nhắn tin cho WS Team — chúng tôi sẽ phản hồi sớm nhất có thể.
           </div>
         )}
         {loadingMessages && <div style={{ fontSize: 8, color: '#94a3b8' }}>Đang tải tin nhắn...</div>}
@@ -1400,7 +1405,7 @@ export function WsChatThread({
         <div ref={endRef} />
       </div>
 
-      {activeSessionId && (
+      {(activeSessionId || mode === 'business') && (
         <div style={{ background: '#fff', borderTop: bd, padding: '8px 10px' }}>
           {mode === 'admin' && (
             <div style={{ fontSize: 8, color: '#64748b', marginBottom: 6 }}>
@@ -1422,15 +1427,16 @@ export function WsChatThread({
                 <input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && !sending && input.trim() && sendMessage({ content: input }).then(() => setInput(''))}
-                  placeholder="Nhập tin nhắn..."
-                  style={{ flex: 1, border: bd, borderRadius: 99, padding: '6px 12px', fontSize: 9, background: '#f8fafc', outline: 'none' }}
+                  onKeyDown={(e) => e.key === 'Enter' && !sending && activeSessionId && input.trim() && sendMessage({ content: input }).then(() => setInput(''))}
+                  placeholder={activeSessionId ? 'Nhập tin nhắn...' : 'Đang kết nối với WS...'}
+                  disabled={!activeSessionId || sending}
+                  style={{ flex: 1, border: bd, borderRadius: 99, padding: '6px 12px', fontSize: 9, background: '#f8fafc', outline: 'none', opacity: activeSessionId ? 1 : 0.7 }}
                 />
                 <button
                   type="button"
-                  disabled={sending || !input.trim()}
+                  disabled={sending || !activeSessionId || !input.trim()}
                   onClick={() => sendMessage({ content: input }).then(() => setInput(''))}
-                  style={{ width: 28, height: 28, borderRadius: '50%', background: '#0077B6', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ width: 28, height: 28, borderRadius: '50%', background: '#0077B6', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: activeSessionId ? 1 : 0.5 }}
                 >
                   <Send {...ICON_SM} color="#fff" />
                 </button>

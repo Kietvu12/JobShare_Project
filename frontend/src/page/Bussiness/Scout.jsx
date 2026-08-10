@@ -5,37 +5,35 @@ import {
   UserCheck, X, Unlock, Users, Check, Loader2, Briefcase,
   Sparkles, FilePlus2, BookOpen, AlertTriangle, ArrowRight, Lock,
   MessageSquare, Gauge, ArrowUpRight, Coins, UserPlus, IdCard, Send, Info,
-  MapPin, DollarSign, CheckSquare, RotateCw, Plus, Building2,
+  RotateCw,
 } from 'lucide-react'
-import FilterBlock from '../../component/Shared/FilterBlock'
-import FilterSelectDropdown from '../../component/Shared/FilterSelectDropdown'
+import ScoutCandidateFilterFields, { SCOUT_FILTER_INPUT_CLASS } from '../../component/Bussiness/ScoutCandidateFilterFields.jsx'
 import WorkLocationFilterModal from '../../component/Shared/WorkLocationFilterModal'
 import JobCategoryPickerModal from '../../component/Shared/JobCategoryPickerModal'
+import FilterBlock from '../../component/Shared/FilterBlock'
+import FilterSelectDropdown from '../../component/Shared/FilterSelectDropdown'
 import {
-  EXPERIENCE_YEARS_OPTIONS,
-  JAPANESE_LEVEL_FILTER_OPTIONS,
-  SCOUT_VISA_FILTER_OPTIONS,
   getDefaultScoutFilters,
-  getLocalizedOptionLabel,
   hasActiveScoutFilters,
   passesScoutCandidateFilters,
 } from '../../utils/scoutFilterOptions'
 import apiService from '../../services/api'
 import useBusinessUser from '../../hooks/useBusinessUser'
 import { HomepageSidebar } from './Homepage'
+import BusinessQuickActionsPanel, { DEFAULT_BUSINESS_QUICK_ACTIONS } from '../../component/Bussiness/BusinessQuickActionsPanel.jsx'
 import {
   buildScoreMapFromMatches,
   fetchAllBusinessScoutCandidates,
   fetchJobScoutAiMatches,
 } from '../../utils/businessJobAiMatching'
 import { highlightSearchText } from '../../utils/searchTextHighlight'
-import ScoutCandidateProfilePanel from '../../component/Bussiness/ScoutCandidateProfilePanel'
+import ScoutCandidateHoverTip from '../../component/Bussiness/ScoutCandidateHoverTip'
+import { getScoutCandidateDetailUrl } from '../../utils/scoutCandidateDetailUrl'
 import CreditTopUpModal from '../../component/Bussiness/CreditTopUpModal'
 import performanceIllustration from '../../assets/Performance/Performance_VN.png'
 import creditIllustration from '../../assets/Credit/Credit_VN.png'
 import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont'
 import { getScoutSkillTags, getScoutMatchBadgeClass, formatScoutExperienceSeniority, formatScoutDesiredSalary, formatScoutListLocation, formatScoutLanguageSummary } from '../../utils/scoutCandidateDisplay'
-import { getWorkLocationsDisplayText } from '../../utils/workLocationFilter'
 
 const ICON_SM = { width: 10, height: 10 }
 const ICON_MD = { width: 12, height: 12 }
@@ -186,7 +184,7 @@ const scoutPageStyles = `
     overflow: hidden;
     background: #f4f6f8;
   }
-  .scout-workspace-grid {
+  .scout-workspace-body {
     flex: 1;
     min-height: 0;
     display: grid;
@@ -195,20 +193,21 @@ const scoutPageStyles = `
     overflow: hidden;
   }
   @media (min-width: 1280px) {
-    .scout-workspace-grid {
-      grid-template-columns: 196px 272px minmax(0, 1fr) 204px;
+    .scout-workspace-body {
+      grid-template-columns: minmax(0, 1fr) 204px;
     }
   }
+  .scout-workspace-content {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+  }
   @media (min-width: 1024px) and (max-width: 1279px) {
-    .scout-workspace-grid {
-      grid-template-columns: 180px minmax(0, 1fr);
-    }
-    .scout-workspace-detail,
     .scout-workspace-aside { display: none; }
   }
 `
-
-const SCOUT_FILTER_INPUT_CLASS = 'w-full px-2 py-1 text-[9px] border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
 
 const SCOUT_PERFORMANCE_FEE_TIERS = [
   { level: 'Junior', range: '0 – 2 năm KN', fee: '15%', note: 'Vị trí entry / associate' },
@@ -264,14 +263,6 @@ const scoutSolutionCards = [
     slaLine: 'WS phản hồi ứng viên đầu tiên trong 48h',
     footerNote: 'Không tốn credit mở hồ sơ · Phí 20% khi giới thiệu việc làm thành công',
   },
-]
-
-const scoutQuickActions = [
-  { icon: Sparkles, title: 'Tạo JD mới (AI)', desc: 'Tạo JD miễn phí bằng AI', path: '/business/jobs' },
-  { icon: Search, title: 'Tìm ứng viên (Scout Credit)', desc: 'Tìm trong kho ứng viên', action: 'explore' },
-  { icon: MessageSquare, title: 'Gửi yêu cầu WS (Performance)', desc: 'Nhờ WS hỗ trợ tìm kiếm', action: 'explore' },
-  { icon: Users, title: 'Dùng Scout Performance', desc: 'Mở hồ sơ & chat WS', action: 'explore' },
-  { icon: BookOpen, title: 'Xem hướng dẫn sử dụng', desc: 'Tài liệu hướng dẫn Scout', path: '/business/knowledge' },
 ]
 
 const scoutNotifications = [
@@ -348,39 +339,14 @@ function ScoutSolutionCard({ card, onStart, animationDelay = 0 }) {
   )
 }
 
-function ScoutOnboardingSidebar({ onExplore, onNavigate }) {
+function ScoutOnboardingSidebar({ onNavigate }) {
   const handleAction = (item) => {
-    if (item.action === 'explore') onExplore()
-    else if (item.path) onNavigate(item.path)
+    if (item.path) onNavigate(item.path)
   }
 
   return (
     <div className="flex min-h-0 flex-col gap-3 xl:h-full xl:overflow-y-auto xl:pr-0.5 business-homepage-scroll scrollbar-hide">
-      <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
-        <h2 className="text-xs font-bold text-slate-900">Thao tác nhanh</h2>
-        <div className="mt-2.5 flex flex-col gap-1">
-          {scoutQuickActions.map((a) => {
-            const Icon = a.icon
-            return (
-              <button
-                key={a.title}
-                type="button"
-                onClick={() => handleAction(a)}
-                className="flex w-full items-center gap-2 rounded-lg p-2 text-left transition-colors hover:bg-[#e8f4fa]"
-              >
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#e8f4fa] text-[#0077B6]">
-                  <Icon className="h-3.5 w-3.5" strokeWidth={2} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[11px] font-semibold leading-snug text-slate-800">{a.title}</div>
-                  <div className="truncate text-[10px] text-slate-500">{a.desc}</div>
-                </div>
-                <ArrowUpRight className="h-3 w-3 shrink-0 text-slate-300" />
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      <BusinessQuickActionsPanel actions={DEFAULT_BUSINESS_QUICK_ACTIONS} onActionClick={handleAction} />
 
       <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
         <div className="mb-3 flex items-center justify-between gap-2">
@@ -719,166 +685,60 @@ function ScoutFilterPanel({
     })),
   ], [jobs])
 
-  const japaneseLevelOptions = useMemo(() => [
-    { value: '', label: 'Chọn trình độ tiếng Nhật' },
-    ...JAPANESE_LEVEL_FILTER_OPTIONS.map((opt) => ({
-      value: opt.value,
-      label: getLocalizedOptionLabel(opt, 'vi'),
-    })),
-  ], [])
-
-  const experienceOptions = useMemo(() => [
-    { value: '', label: 'Tất cả kinh nghiệm' },
-    ...EXPERIENCE_YEARS_OPTIONS.map((opt) => ({
-      value: opt.value,
-      label: getLocalizedOptionLabel(opt, 'vi'),
-    })),
-  ], [])
-
-  const locationDisplay = useMemo(
-    () => getWorkLocationsDisplayText(scoutFilters.locations, 'vi'),
-    [scoutFilters.locations],
+  const leadingBlock = (
+    <FilterBlock icon={Briefcase} label="Gắn JD (AI gợi ý)" compact>
+      <FilterSelectDropdown
+        value={selectedJobId || ''}
+        onChange={onJobChange}
+        options={jobOptions}
+        placeholder="Tất cả ứng viên Scout"
+        searchable
+        searchPlaceholder="Tìm theo tên JD..."
+        disabled={jobsLoading}
+        className={SCOUT_FILTER_INPUT_CLASS}
+        maxPanelHeight={220}
+      />
+    </FilterBlock>
   )
 
-  const visaOptions = useMemo(() => [
-    { value: '', label: 'Tất cả tư cách lưu trú' },
-    ...SCOUT_VISA_FILTER_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label })),
-  ], [])
-
   return (
-    <aside className="scout-workspace-filters flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-gray-100 px-2 py-2">
-        <h2 className="text-[10px] font-bold text-gray-900">Bộ lọc tìm kiếm</h2>
-        {hasActiveFilters ? (
-          <button type="button" onClick={onClear} className="text-[9px] font-semibold text-[#0077B6] hover:underline">
-            Xóa điều kiện
+    <section className="scout-workspace-filters shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-3 py-2.5">
+        <h2 className="text-xs font-bold text-gray-900">Bộ lọc tìm kiếm</h2>
+        <div className="flex items-center gap-2">
+          {hasActiveFilters ? (
+            <button type="button" onClick={onClear} className="text-[9px] font-semibold text-[#0077B6] hover:underline">
+              Xóa điều kiện
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onApply}
+            disabled={listLoading}
+            className="inline-flex h-7 items-center justify-center gap-1 rounded px-2.5 shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ backgroundColor: '#facc15' }}
+          >
+            {listLoading ? (
+              <RotateCw className="h-3 w-3 animate-spin text-gray-800" />
+            ) : (
+              <Search className="h-3 w-3 text-gray-800" />
+            )}
+            <span className="text-[9px] font-semibold text-gray-800">
+              {`Tìm ${Number(displayCount || 0).toLocaleString('vi-VN')} hồ sơ`}
+            </span>
           </button>
-        ) : null}
+        </div>
       </div>
-      <div className="scout-scrollbar custom-scrollbar min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2">
-        <FilterBlock icon={Briefcase} label="Gắn JD (AI gợi ý)" compact>
-          <FilterSelectDropdown
-            value={selectedJobId || ''}
-            onChange={onJobChange}
-            options={jobOptions}
-            placeholder="Tất cả ứng viên Scout"
-            searchable
-            searchPlaceholder="Tìm theo tên JD..."
-            disabled={jobsLoading}
-            className={SCOUT_FILTER_INPUT_CLASS}
-            maxPanelHeight={220}
-          />
-        </FilterBlock>
-
-        <FilterBlock icon={CheckSquare} label="Điều kiện" compact>
-          <div className="space-y-1.5">
-            <label className="block text-[9px] font-medium text-gray-700">Trình độ tiếng Nhật</label>
-            <FilterSelectDropdown
-              value={scoutFilters.japaneseLevel || ''}
-              onChange={(next) => setScoutFilters((prev) => ({ ...prev, japaneseLevel: next }))}
-              options={japaneseLevelOptions}
-              placeholder="Chọn trình độ tiếng Nhật"
-              className={SCOUT_FILTER_INPUT_CLASS}
-            />
-          </div>
-        </FilterBlock>
-
-        <FilterBlock icon={UserCheck} label="Số năm kinh nghiệm" compact>
-          <FilterSelectDropdown
-            value={scoutFilters.experience || ''}
-            onChange={(next) => setScoutFilters((prev) => ({ ...prev, experience: next }))}
-            options={experienceOptions}
-            placeholder="Tất cả kinh nghiệm"
-            className={SCOUT_FILTER_INPUT_CLASS}
-          />
-        </FilterBlock>
-
-        <FilterBlock icon={MapPin} label="Địa điểm hiện tại" compact>
-          <div className="flex items-center gap-1">
-            <input
-              type="text"
-              readOnly
-              value={locationDisplay}
-              placeholder="Chọn khu vực (Việt Nam / Nhật Bản...)"
-              onClick={() => setShowLocationModal(true)}
-              className={`flex-1 cursor-pointer bg-gray-50 ${SCOUT_FILTER_INPUT_CLASS}`}
-            />
-            <button
-              type="button"
-              onClick={() => setShowLocationModal(true)}
-              className="flex-shrink-0 rounded border border-gray-300 px-1.5 py-1 transition-colors hover:bg-gray-50"
-            >
-              <Plus className="h-3 w-3 text-gray-600" />
-            </button>
-          </div>
-        </FilterBlock>
-
-        <FilterBlock icon={Building2} label="Ngành nghề" compact>
-          <div className="flex items-center gap-1">
-            <input
-              type="text"
-              readOnly
-              value={scoutFilters.jobCategoryLabel || ''}
-              placeholder="Chọn ngành nghề"
-              onClick={() => setShowJobCategoryModal(true)}
-              className={`flex-1 cursor-pointer bg-gray-50 ${SCOUT_FILTER_INPUT_CLASS}`}
-            />
-            <button
-              type="button"
-              onClick={() => setShowJobCategoryModal(true)}
-              className="flex-shrink-0 rounded border border-gray-300 px-1.5 py-1 transition-colors hover:bg-gray-50"
-            >
-              <Plus className="h-3 w-3 text-gray-600" />
-            </button>
-          </div>
-        </FilterBlock>
-
-        <FilterBlock icon={IdCard} label="Tình trạng visa" compact>
-          <FilterSelectDropdown
-            value={scoutFilters.visa || ''}
-            onChange={(next) => setScoutFilters((prev) => ({ ...prev, visa: next }))}
-            options={visaOptions}
-            placeholder="Tất cả tư cách lưu trú"
-            className={SCOUT_FILTER_INPUT_CLASS}
-            maxPanelHeight={220}
-          />
-        </FilterBlock>
-
-        <FilterBlock icon={DollarSign} label="Mức lương mong muốn (VNĐ)" compact>
-          <div className="flex items-center gap-1 min-w-0 flex-wrap">
-            <input
-              type="number"
-              value={scoutFilters.salaryMin}
-              onChange={(e) => setScoutFilters((prev) => ({
-                ...prev,
-                salaryMin: e.target.value ? Number(e.target.value) : '',
-              }))}
-              placeholder="Từ"
-              className={`flex-1 min-w-[60px] ${SCOUT_FILTER_INPUT_CLASS}`}
-            />
-            <span className="text-gray-500 flex-shrink-0 text-[9px]">~</span>
-            <input
-              type="number"
-              value={scoutFilters.salaryMax}
-              onChange={(e) => setScoutFilters((prev) => ({
-                ...prev,
-                salaryMax: e.target.value ? Number(e.target.value) : '',
-              }))}
-              placeholder="Đến"
-              className={`flex-1 min-w-[60px] ${SCOUT_FILTER_INPUT_CLASS}`}
-            />
-          </div>
-        </FilterBlock>
-
-        <FilterBlock icon={Search} label="Từ khóa" compact>
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Nhập từ khóa: React Developer, Sales..."
-            className={SCOUT_FILTER_INPUT_CLASS}
-          />
-        </FilterBlock>
+      <div className="scout-scrollbar custom-scrollbar max-h-[42vh] overflow-y-auto p-3 xl:max-h-none">
+        <ScoutCandidateFilterFields
+          leadingBlock={leadingBlock}
+          scoutFilters={scoutFilters}
+          setScoutFilters={setScoutFilters}
+          searchInput={searchInput}
+          setSearchInput={setSearchInput}
+          onOpenLocationModal={() => setShowLocationModal(true)}
+          onOpenJobCategoryModal={() => setShowJobCategoryModal(true)}
+        />
       </div>
       <WorkLocationFilterModal
         open={showLocationModal}
@@ -902,78 +762,48 @@ function ScoutFilterPanel({
           setShowJobCategoryModal(false)
         }}
       />
-      <div className="shrink-0 border-t border-gray-200 bg-white p-2">
-        <div className="flex flex-col gap-1">
-          <button
-            type="button"
-            onClick={onClear}
-            className="w-full rounded py-1.5 px-2 text-[9px] font-medium text-gray-700 transition-colors hover:bg-gray-200"
-            style={{ backgroundColor: '#f3f4f6' }}
-          >
-            Xóa điều kiện
-          </button>
-          <button
-            type="button"
-            onClick={onApply}
-            disabled={listLoading}
-            className="flex h-8 w-full items-center justify-center gap-1 rounded shadow-md transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ backgroundColor: '#facc15' }}
-          >
-            {listLoading ? (
-              <RotateCw className="h-3 w-3 animate-spin text-gray-800" />
-            ) : (
-              <Search className="h-3 w-3 text-gray-800" />
-            )}
-            <span className="text-[9px] font-semibold text-gray-800">
-              {`Tìm ${Number(displayCount || 0).toLocaleString('vi-VN')} hồ sơ`}
-            </span>
-          </button>
-        </div>
-      </div>
-    </aside>
+    </section>
   )
 }
 
 function ScoutCandidateListItem({
   candidate,
-  selected,
   matchScore,
   highlightQuery,
-  onSelect,
+  onOpenDetail,
   hl,
 }) {
   const showNew = isCandidateNew(candidate)
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(candidate.id)}
-      className={`flex w-full items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left transition ${
-        selected
-          ? 'border-[#0077B6] bg-[#e8f4fa]/60 shadow-sm'
-          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80'
-      }`}
-    >
-      <AvatarCircle candidate={candidate} size={44} />
-      <div className="min-w-0 flex-1">
-        <ScoutCandidateRowBody
-          candidate={candidate}
-          matchScore={matchScore}
-          hl={hl}
-          showNew={showNew}
-        />
-        {highlightQuery && Array.isArray(candidate.searchSnippets) && candidate.searchSnippets.length > 0 && (
-          <div className="scout-cand-caption mt-1.5 line-clamp-1 rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-amber-900">
-            {candidate.searchSnippets.map((snippet) => (
-              <span key={snippet}>{hl(snippet)} </span>
-            ))}
-          </div>
-        )}
-      </div>
-      {!candidate.isUnlocked ? (
-        <Lock className="mt-1 h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} aria-hidden />
-      ) : null}
-    </button>
+    <div className="group relative">
+      <button
+        type="button"
+        onClick={() => onOpenDetail(candidate.id)}
+        className="flex w-full items-start gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left transition hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-sm"
+      >
+        <AvatarCircle candidate={candidate} size={44} />
+        <div className="min-w-0 flex-1">
+          <ScoutCandidateRowBody
+            candidate={candidate}
+            matchScore={matchScore}
+            hl={hl}
+            showNew={showNew}
+          />
+          {highlightQuery && Array.isArray(candidate.searchSnippets) && candidate.searchSnippets.length > 0 && (
+            <div className="scout-cand-caption mt-1.5 line-clamp-1 rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-amber-900">
+              {candidate.searchSnippets.map((snippet) => (
+                <span key={snippet}>{hl(snippet)} </span>
+              ))}
+            </div>
+          )}
+        </div>
+        {!candidate.isUnlocked ? (
+          <Lock className="mt-1 h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} aria-hidden />
+        ) : null}
+      </button>
+      <ScoutCandidateHoverTip candidate={candidate} hl={hl} />
+    </div>
   )
 }
 
@@ -1611,6 +1441,7 @@ const Scout = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedJobId = searchParams.get('jobId') || ''
   const performanceRequestId = searchParams.get('performanceRequestId') || ''
+  const cvIdParam = searchParams.get('cvId') || ''
   const { credit: userCredit, user } = useBusinessUser()
   const [candidates, setCandidates] = useState([])
   const [loading, setLoading] = useState(true)
@@ -1619,13 +1450,8 @@ const Scout = () => {
   const [page, setPage] = useState(1)
   const [limit] = useState(20)
   const [pagination, setPagination] = useState({ total: 0, totalPages: 0 })
-  const [selectedId, setSelectedId] = useState(null)
-  const [selectedDetail, setSelectedDetail] = useState(null)
-  const [detailLoading, setDetailLoading] = useState(false)
   const [credit, setCredit] = useState(userCredit || 0)
   const [scoutCreditCost, setScoutCreditCost] = useState(5)
-  const [unlocking, setUnlocking] = useState(false)
-  const [performanceRequesting, setPerformanceRequesting] = useState(false)
   const [error, setError] = useState('')
   const [jobs, setJobs] = useState([])
   const [jobsLoading, setJobsLoading] = useState(false)
@@ -1634,27 +1460,9 @@ const Scout = () => {
   const [aiMatchedTotal, setAiMatchedTotal] = useState(0)
   const [allScoutCandidates, setAllScoutCandidates] = useState([])
   const [performanceDetail, setPerformanceDetail] = useState(null)
-  const [performanceDetailLoading, setPerformanceDetailLoading] = useState(false)
   const [showPerformanceCta, setShowPerformanceCta] = useState(false)
-  const [activeRecommendationId, setActiveRecommendationId] = useState(null)
   const [exploreSubmitting, setExploreSubmitting] = useState(false)
-  const [performanceTermsAgreed, setPerformanceTermsAgreed] = useState(false)
-  const [performanceWantsSimilar, setPerformanceWantsSimilar] = useState(false)
-  const [performanceRequirementNote, setPerformanceRequirementNote] = useState('')
-  const [performanceSuccess, setPerformanceSuccess] = useState(null)
-  const [attachJobOpen, setAttachJobOpen] = useState(false)
-  const [attachJobLoading, setAttachJobLoading] = useState(false)
   const [creditTopUpOpen, setCreditTopUpOpen] = useState(false)
-  const [creditTermsAgreed, setCreditTermsAgreed] = useState(false)
-  const [actionModal, setActionModal] = useState({
-    open: false,
-    kind: null,
-    title: '',
-    message: '',
-    noticeVariant: 'info',
-    requestId: null,
-    sessionId: null,
-  })
   const [activityLoading, setActivityLoading] = useState(true)
   const [forceDashboard, setForceDashboard] = useState(false)
   const [previewCandidates, setPreviewCandidates] = useState([])
@@ -1730,6 +1538,20 @@ const Scout = () => {
   }, [performanceRequestId, selectedJobId])
 
   useEffect(() => {
+    if (!cvIdParam) return
+    const url = getScoutCandidateDetailUrl(cvIdParam, {
+      jobId: selectedJobId,
+      performanceRequestId,
+    })
+    window.open(url, '_blank', 'noopener,noreferrer')
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('cvId')
+      return next
+    })
+  }, [cvIdParam, selectedJobId, performanceRequestId, setSearchParams])
+
+  useEffect(() => {
     if (performanceRequestId || selectedJobId) return
     setForceDashboard(false)
   }, [location.key, performanceRequestId, selectedJobId])
@@ -1802,7 +1624,6 @@ const Scout = () => {
       return
     }
     try {
-      setPerformanceDetailLoading(true)
       const res = await apiService.getBusinessScoutPerformanceRequestById(requestId)
       if (res?.success && res.data?.request) {
         const req = res.data.request
@@ -1811,32 +1632,15 @@ const Scout = () => {
         if (viewRes?.data?.showBetterOptionsPrompt) {
           setShowPerformanceCta(true)
         }
-        const firstRec = req.recommendations?.[0]?.candidate
-        if (firstRec?.id) {
-          setActiveRecommendationId(firstRec.id)
-          setSelectedId(firstRec.id)
-        } else if (req.cvId) {
-          setSelectedId(req.cvId)
-        }
       }
     } catch (e) {
       console.error(e)
-    } finally {
-      setPerformanceDetailLoading(false)
     }
   }, [])
 
   useEffect(() => {
     loadPerformanceDetail(performanceRequestId)
   }, [performanceRequestId, loadPerformanceDetail])
-
-  const activeRecommendationCandidate = useMemo(() => {
-    if (!performanceDetail?.recommendations?.length) return null
-    const rec = performanceDetail.recommendations.find(
-      (r) => Number(r.cvId) === Number(activeRecommendationId),
-    ) || performanceDetail.recommendations[0]
-    return rec?.candidate || null
-  }, [performanceDetail, activeRecommendationId])
 
   const loadList = useCallback(async () => {
     if (selectedJobId || showOnboarding) {
@@ -1862,15 +1666,6 @@ const Scout = () => {
         }
         if (typeof res.data.credit === 'number') {
           setCredit(res.data.credit)
-        }
-        if (list.length > 0) {
-          setSelectedId((prev) => {
-            if (prev && list.some((c) => c.id === prev)) return prev
-            return list[0].id
-          })
-        } else {
-          setSelectedId(null)
-          setSelectedDetail(null)
         }
       } else {
         setCandidates([])
@@ -1965,20 +1760,6 @@ const Scout = () => {
   }, [selectedJobId, hasActiveFilters, displayedCandidates.length, pagination, limit])
 
   useEffect(() => {
-    if (!selectedJobId && !hasActiveFilters) return
-    const list = pagedCandidates
-    if (list.length > 0) {
-      setSelectedId((prev) => {
-        if (prev && list.some((c) => c.id === prev)) return prev
-        return list[0].id
-      })
-    } else {
-      setSelectedId(null)
-      setSelectedDetail(null)
-    }
-  }, [selectedJobId, hasActiveFilters, pagedCandidates])
-
-  useEffect(() => {
     setPage(1)
   }, [scoutFilters.locations, scoutFilters.jobCategoryId, scoutFilters.experience, scoutFilters.japaneseLevel, scoutFilters.visa, scoutFilters.salaryMin, scoutFilters.salaryMax])
 
@@ -1989,44 +1770,6 @@ const Scout = () => {
     }, 350)
     return () => clearTimeout(timer)
   }, [searchInput])
-
-  useEffect(() => {
-    if (!selectedId) {
-      setSelectedDetail(null)
-      return
-    }
-    let mounted = true
-    const loadDetail = async () => {
-      try {
-        setDetailLoading(true)
-        const res = await apiService.getBusinessScoutCandidateById(selectedId, {
-          search: searchQuery || undefined,
-        })
-        if (!mounted) return
-        if (res?.success && res.data?.candidate) {
-          setSelectedDetail(res.data.candidate)
-          if (typeof res.data.scoutCreditCost === 'number') {
-            setScoutCreditCost(res.data.scoutCreditCost)
-          }
-          if (typeof res.data.credit === 'number') {
-            setCredit(res.data.credit)
-          }
-        }
-      } catch (e) {
-        console.error(e)
-      } finally {
-        if (mounted) setDetailLoading(false)
-      }
-    }
-    loadDetail()
-    return () => { mounted = false }
-  }, [selectedId, searchQuery])
-
-  const selectedCand = useMemo(() => {
-    if (selectedDetail) return selectedDetail
-    const pool = selectedJobId ? pagedCandidates : candidates
-    return pool.find((c) => c.id === selectedId) || null
-  }, [selectedDetail, candidates, pagedCandidates, selectedId, selectedJobId])
 
   const selectedJob = useMemo(
     () => jobs.find((j) => String(j.id) === String(selectedJobId)) || null,
@@ -2042,170 +1785,14 @@ const Scout = () => {
     }
   }
 
-  const removeCandidateFromScoutList = (cvId, fullCandidate) => {
-    const filterOut = (prev) => prev.filter((c) => c.id !== cvId)
-    setCandidates(filterOut)
-    setAllScoutCandidates(filterOut)
-    setFilterAllCandidates(filterOut)
-    setPreviewCandidates(filterOut)
-    setPagination((prev) => ({
-      ...prev,
-      total: Math.max(0, (prev.total || 0) - 1),
-    }))
-    if (fullCandidate) {
-      setSelectedDetail({ ...fullCandidate, isUnlocked: true })
-    }
-  }
-
-  const closeActionModal = () => {
-    setPerformanceTermsAgreed(false)
-    setPerformanceWantsSimilar(false)
-    setPerformanceRequirementNote('')
-    setCreditTermsAgreed(false)
-    setActionModal({
-      open: false, kind: null, title: '', message: '', noticeVariant: 'info', requestId: null, sessionId: null,
+  const openCandidateDetail = useCallback((cvId) => {
+    const url = getScoutCandidateDetailUrl(cvId, {
+      jobId: selectedJobId,
+      performanceRequestId,
+      search: searchQuery,
     })
-  }
-
-  const goToWsChat = (sessionId) => {
-    if (sessionId) navigate(`/business/messages?tab=ws&sessionId=${sessionId}`)
-  }
-
-  const openNoticeModal = (title, message, noticeVariant = 'info') => {
-    setActionModal({ open: true, kind: 'notice', title, message, noticeVariant, requestId: null, sessionId: null })
-  }
-
-  const handlePerformanceRequestClick = () => {
-    if (!selectedCand?.id) return
-    if (selectedCand.isUnlocked && selectedCand.unlockType !== 'scout_performance') return
-    if (selectedCand.unlockType === 'scout_performance') return
-
-    setPerformanceTermsAgreed(false)
-    setPerformanceWantsSimilar(false)
-    setPerformanceRequirementNote('')
-    setActionModal({
-      open: true,
-      kind: 'performance-confirm',
-      title: 'Mở hồ sơ bằng Scout Performance',
-      message: '',
-      noticeVariant: 'info',
-      requestId: null,
-      sessionId: null,
-    })
-  }
-
-  const submitPerformanceUnlock = async (payload = {}) => {
-    if (!selectedCand?.id) return
-    if (selectedCand.isUnlocked && selectedCand.unlockType !== 'scout_performance') return
-    if (selectedCand.unlockType === 'scout_performance') return
-
-    setPerformanceRequesting(true)
-    try {
-      const res = await apiService.createBusinessScoutPerformanceRequest(selectedCand.id, {
-        jobId: payload.jobId || selectedJobId || undefined,
-        jobTitle: payload.jobTitle || selectedJob?.title || undefined,
-        wantsSimilarCandidates: payload.wantsSimilarCandidates ?? performanceWantsSimilar,
-        message: payload.message || performanceRequirementNote || undefined,
-      })
-      if (res?.success) {
-        const req = res.data?.request
-        const candidate = req?.candidate
-        if (candidate) {
-          removeCandidateFromScoutList(selectedCand.id, {
-            ...candidate,
-            isUnlocked: true,
-            unlockType: 'scout_performance',
-            hideContact: true,
-            isPerformancePartial: true,
-            performanceRequest: {
-              id: req?.id,
-              status: req?.status || 'approved',
-              wantsSimilarCandidates: !!req?.wantsSimilarCandidates,
-            },
-          })
-        }
-        closeActionModal()
-        setPerformanceSuccess({
-          requestCode: req?.requestCode,
-          sessionId: req?.sessionId,
-          requestId: req?.id,
-          wantsSimilarCandidates: !!req?.wantsSimilarCandidates,
-        })
-      } else {
-        openNoticeModal('Gửi yêu cầu thất bại', res?.message || 'Không thể gửi yêu cầu Scout Performance.', 'error')
-      }
-    } catch (e) {
-      console.error(e)
-      openNoticeModal('Gửi yêu cầu thất bại', 'Không thể gửi yêu cầu Scout Performance. Vui lòng thử lại.', 'error')
-    } finally {
-      setPerformanceRequesting(false)
-    }
-  }
-
-  const handleAttachToJob = async ({ jobId, note }) => {
-    if (!selectedCand?.id || !jobId) return
-    setAttachJobLoading(true)
-    try {
-      const res = await apiService.attachScoutCandidateToJob(selectedCand.id, { jobId, note })
-      if (res?.success) {
-        setAttachJobOpen(false)
-        openNoticeModal(
-          res.data?.alreadyExists ? 'Đã có trong pipeline' : 'Đã thêm vào pipeline',
-          res.message || `Ứng viên đã được thêm vào JD "${res.data?.job?.title || ''}". Theo dõi tại Quản lý tiến cử.`,
-          'success',
-        )
-      } else {
-        openNoticeModal('Thêm vào JD thất bại', res?.message || 'Không thể thêm ứng viên vào pipeline.', 'error')
-      }
-    } catch (e) {
-      console.error(e)
-      openNoticeModal('Thêm vào JD thất bại', 'Không thể thêm ứng viên vào pipeline.', 'error')
-    } finally {
-      setAttachJobLoading(false)
-    }
-  }
-
-  const skipSimilarCandidates = () => {
-    const sessionId = actionModal.sessionId
-    closeActionModal()
-    goToWsChat(sessionId)
-  }
-
-  const confirmSimilarCandidates = async () => {
-    const { requestId, sessionId } = actionModal
-    if (!requestId) {
-      closeActionModal()
-      return
-    }
-    setPerformanceRequesting(true)
-    try {
-      const res = await apiService.requestSimilarScoutPerformanceCandidates(requestId, {})
-      closeActionModal()
-      if (res?.success) {
-        setCandidates((prev) => prev.map((c) => (
-          c.id === selectedCand?.id
-            ? {
-              ...c,
-              performanceRequest: {
-                ...(c.performanceRequest || {}),
-                id: requestId,
-                status: 'approved',
-                wantsSimilarCandidates: true,
-              },
-            }
-            : c
-        )))
-        goToWsChat(sessionId || res.data?.request?.sessionId)
-      } else {
-        openNoticeModal('Gửi yêu cầu thất bại', res?.message || 'Không thể gửi yêu cầu tìm ứng viên tương tự.', 'error')
-      }
-    } catch (e) {
-      console.error(e)
-      openNoticeModal('Gửi yêu cầu thất bại', 'Không thể gửi yêu cầu tìm ứng viên tương tự.', 'error')
-    } finally {
-      setPerformanceRequesting(false)
-    }
-  }
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }, [selectedJobId, performanceRequestId, searchQuery])
 
   const handlePerformanceExplore = async (action) => {
     if (!performanceDetail?.id) return
@@ -2215,68 +1802,11 @@ const Scout = () => {
       if (res?.success) {
         setShowPerformanceCta(false)
         setPerformanceDetail((prev) => prev ? { ...prev, businessExploreStatus: action } : prev)
-        if (action === 'interested') {
-          openNoticeModal(
-            'Cảm ơn bạn',
-            res.message || 'JobShare WS sẽ liên hệ hỗ trợ thêm về các ứng viên gợi ý.',
-            'success',
-          )
-        }
       }
     } catch (e) {
       console.error(e)
     } finally {
       setExploreSubmitting(false)
-    }
-  }
-
-  const displayCandidate = activeRecommendationCandidate || selectedDetail || selectedCand
-
-  const isPerformancePartialUnlock = displayCandidate?.unlockType === 'scout_performance'
-    || displayCandidate?.hideContact
-    || displayCandidate?.isPerformancePartial
-    || selectedCand?.unlockType === 'scout_performance'
-
-  const handleUnlockClick = () => {
-    if (isPerformancePartialUnlock) return
-    if (!selectedCand?.id || selectedCand.isUnlocked) return
-    if (credit < scoutCreditCost) {
-      setCreditTopUpOpen(true)
-      return
-    }
-    setCreditTermsAgreed(false)
-    setActionModal({
-      open: true,
-      kind: 'credit-confirm',
-      title: 'Mở hồ sơ bằng Scout Credit',
-      message: '',
-      noticeVariant: 'info',
-    })
-  }
-
-  const submitUnlock = async () => {
-    if (!selectedCand?.id || selectedCand.isUnlocked) return
-    setUnlocking(true)
-    try {
-      const res = await apiService.unlockBusinessScoutCandidate(selectedCand.id)
-      if (res?.success && res.data?.candidate) {
-        removeCandidateFromScoutList(selectedCand.id, res.data.candidate)
-        if (typeof res.data.credit === 'number') {
-          setCredit(res.data.credit)
-          if (user) {
-            localStorage.setItem('user', JSON.stringify({ ...user, credit: res.data.credit }))
-          }
-        }
-        closeActionModal()
-        openNoticeModal('Đã mở hồ sơ', res.message || 'Bạn có thể xem email, SĐT và thông tin liên hệ đầy đủ.', 'success')
-      } else {
-        openNoticeModal('Mở hồ sơ thất bại', res?.message || 'Không thể mở liên hệ ứng viên.', 'error')
-      }
-    } catch (e) {
-      console.error(e)
-      openNoticeModal('Mở hồ sơ thất bại', 'Không thể mở liên hệ ứng viên. Vui lòng thử lại.', 'error')
-    } finally {
-      setUnlocking(false)
     }
   }
 
@@ -2346,48 +1876,6 @@ const Scout = () => {
         </div>
       )}
 
-      <ScoutPerformanceConfirmModal
-        open={actionModal.open && actionModal.kind === 'performance-confirm'}
-        onClose={closeActionModal}
-        onConfirm={submitPerformanceUnlock}
-        loading={performanceRequesting}
-        agreed={performanceTermsAgreed}
-        onAgreedChange={setPerformanceTermsAgreed}
-        jobs={jobs}
-        initialJobId={selectedJobId}
-        wantsSimilar={performanceWantsSimilar}
-        onWantsSimilarChange={setPerformanceWantsSimilar}
-        requirementNote={performanceRequirementNote}
-        onRequirementNoteChange={setPerformanceRequirementNote}
-      />
-
-      <ScoutPerformanceSuccessModal
-        open={!!performanceSuccess}
-        requestCode={performanceSuccess?.requestCode}
-        sessionId={performanceSuccess?.sessionId}
-        requestId={performanceSuccess?.requestId}
-        wantsSimilarCandidates={performanceSuccess?.wantsSimilarCandidates}
-        onClose={() => setPerformanceSuccess(null)}
-        onGoApplications={() => {
-          setPerformanceSuccess(null)
-          navigate('/business/applications')
-        }}
-        onGoChat={() => {
-          const sid = performanceSuccess?.sessionId
-          setPerformanceSuccess(null)
-          goToWsChat(sid)
-        }}
-      />
-
-      <ScoutAttachJobModal
-        open={attachJobOpen}
-        onClose={() => setAttachJobOpen(false)}
-        jobs={jobs}
-        loading={attachJobLoading}
-        onSubmit={handleAttachToJob}
-        candidateName={selectedCand?.name || getDisplayName(selectedCand)}
-      />
-
       <CreditTopUpModal
         open={creditTopUpOpen}
         onClose={() => setCreditTopUpOpen(false)}
@@ -2404,46 +1892,6 @@ const Scout = () => {
           }).catch(() => {})
         }}
       />
-
-      <ScoutCreditConfirmModal
-        open={actionModal.open && actionModal.kind === 'credit-confirm'}
-        onClose={closeActionModal}
-        onConfirm={submitUnlock}
-        loading={unlocking}
-        agreed={creditTermsAgreed}
-        onAgreedChange={setCreditTermsAgreed}
-        creditCost={scoutCreditCost}
-      />
-
-      <ScoutActionModal
-        open={
-          actionModal.open
-          && actionModal.kind !== 'performance-confirm'
-          && actionModal.kind !== 'credit-confirm'
-        }
-        kind={actionModal.kind}
-        title={actionModal.title}
-        message={actionModal.message}
-        noticeVariant={actionModal.noticeVariant}
-        onClose={
-          actionModal.kind === 'similar-candidates-prompt' ? skipSimilarCandidates : closeActionModal
-        }
-        onConfirm={
-          actionModal.kind === 'similar-candidates-prompt'
-            ? confirmSimilarCandidates
-            : closeActionModal
-        }
-        loading={
-          actionModal.kind === 'similar-candidates-prompt' ? performanceRequesting : unlocking
-        }
-        confirmLabel={
-          actionModal.kind === 'similar-candidates-prompt'
-            ? 'Có'
-            : 'Xác nhận'
-        }
-        cancelLabel={actionModal.kind === 'similar-candidates-prompt' ? 'Không' : 'Hủy'}
-      >
-      </ScoutActionModal>
     </>
   )
 
@@ -2475,7 +1923,7 @@ const Scout = () => {
                   onExplore={enterScoutDashboard}
                 />
               </div>
-              <ScoutOnboardingSidebar onExplore={enterScoutDashboard} onNavigate={navigate} />
+              <ScoutOnboardingSidebar onNavigate={navigate} />
             </div>
           </div>
         </div>
@@ -2488,24 +1936,25 @@ const Scout = () => {
       <style>{scoutPageStyles}</style>
       <div className="business-homepage-shell scout-workspace-shell flex h-full min-h-0 flex-col overflow-hidden" style={{ fontFamily: PAGE_FONT }}>
         <div className="business-homepage-ui flex min-h-0 flex-1 flex-col overflow-hidden p-2 lg:p-3">
-          <div className="scout-workspace-grid min-h-0 flex-1">
-            <ScoutFilterPanel
-              selectedJobId={selectedJobId}
-              jobs={jobs}
-              jobsLoading={jobsLoading}
-              onJobChange={handleJobChange}
-              scoutFilters={scoutFilters}
-              setScoutFilters={setScoutFilters}
-              searchInput={searchInput}
-              setSearchInput={setSearchInput}
-              onApply={handleApplyFilters}
-              onClear={handleClearFilters}
-              hasActiveFilters={hasActiveFilters}
-              displayCount={totalItems}
-              listLoading={listLoading}
-            />
+          <div className="scout-workspace-body min-h-0 flex-1">
+            <div className="scout-workspace-content min-h-0">
+              <ScoutFilterPanel
+                selectedJobId={selectedJobId}
+                jobs={jobs}
+                jobsLoading={jobsLoading}
+                onJobChange={handleJobChange}
+                scoutFilters={scoutFilters}
+                setScoutFilters={setScoutFilters}
+                searchInput={searchInput}
+                setSearchInput={setSearchInput}
+                onApply={handleApplyFilters}
+                onClear={handleClearFilters}
+                hasActiveFilters={hasActiveFilters}
+                displayCount={totalItems}
+                listLoading={listLoading}
+              />
 
-            <div className="scout-candidates-list-ui flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
+              <div className="scout-candidates-list-ui flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
               <div className="border-b border-slate-100 px-3 py-2">
                 <p className="scout-cand-caption text-slate-500">
                   Credit: <span className="font-semibold text-slate-600">{credit.toLocaleString('vi-VN')}</span>
@@ -2533,6 +1982,35 @@ const Scout = () => {
                 {error ? <p className="scout-cand-caption mt-1 text-rose-600">{error}</p> : null}
               </div>
 
+              {performanceDetail?.recommendations?.length > 0 && (
+                <div className="border-b border-blue-100 bg-[#e8f4fa] px-3 py-2">
+                  <p className="scout-cand-caption font-semibold text-[#006399]">
+                    Gợi ý từ JobShare WS ({performanceDetail.recommendations.length})
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {performanceDetail.recommendations.map((rec) => {
+                      const c = rec.candidate
+                      if (!c) return null
+                      const url = getScoutCandidateDetailUrl(c.id, {
+                        performanceRequestId,
+                        jobId: selectedJobId,
+                        search: searchQuery,
+                      })
+                      return (
+                        <button
+                          key={rec.id}
+                          type="button"
+                          onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
+                          className="scout-cand-caption rounded-md border border-[#cce5f0] bg-white px-2 py-1 text-left text-slate-700 hover:border-[#0077B6]"
+                        >
+                          {c.name || c.code || `CV #${c.id}`}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="candidate-scrollbar min-h-0 flex-1 overflow-y-auto px-2 py-2">
                 {listLoading ? (
                   <div className="scout-cand-meta flex items-center justify-center gap-2 py-10 text-slate-500">
@@ -2549,10 +2027,9 @@ const Scout = () => {
                       <ScoutCandidateListItem
                         key={c.id}
                         candidate={c}
-                        selected={selectedId === c.id}
                         matchScore={selectedJobId ? scoreByCvId[String(c.id)] : null}
                         highlightQuery={highlightQuery}
-                        onSelect={setSelectedId}
+                        onOpenDetail={openCandidateDetail}
                         hl={hl}
                       />
                     ))}
@@ -2596,212 +2073,8 @@ const Scout = () => {
                   </button>
                 </div>
               )}
-            </div>
-
-          <div className="scout-workspace-detail scout-detail-ui flex min-h-0 flex-col gap-2 overflow-y-auto scout-scrollbar">
-            {!displayCandidate ? (
-              <div className="scout-detail-body rounded-xl border border-slate-100 bg-white px-5 py-8 text-center text-slate-400">
-                Chọn ứng viên để xem chi tiết
               </div>
-            ) : (
-              <>
-                {(detailLoading || performanceDetailLoading) && (
-                  <div className="scout-detail-caption mb-1.5 px-1 text-slate-500">Đang tải chi tiết...</div>
-                )}
-
-                {performanceDetail?.recommendations?.length > 0 && (
-                  <div className="rounded-xl border border-blue-100 bg-[#e8f4fa] p-3">
-                    <div className="scout-detail-title mb-2 text-[#006399]">
-                      Gợi ý từ JobShare WS ({performanceDetail.recommendations.length})
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      {performanceDetail.recommendations.map((rec) => {
-                        const c = rec.candidate
-                        if (!c) return null
-                        const active = Number(activeRecommendationId) === Number(c.id)
-                        return (
-                          <button
-                            key={rec.id}
-                            type="button"
-                            onClick={() => { setActiveRecommendationId(c.id); setSelectedId(c.id) }}
-                            className={`scout-detail-body rounded-md px-2.5 py-2 text-left ${
-                              active
-                                ? 'border border-[#0077B6] bg-white'
-                                : 'border border-[#e8f4fa] bg-[#f8fafc] hover:bg-white'
-                            }`}
-                          >
-                            <div className="font-bold text-slate-800">{c.name || c.code || `CV #${c.id}`}</div>
-                            <div className="text-slate-500">{c.desiredPosition || '—'}</div>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                <ScoutCandidateProfilePanel
-                  candidate={displayCandidate}
-                  highlightQuery={highlightQuery}
-                  onClose={() => setSelectedId(null)}
-                  className="scout-detail-ui"
-                  showLockedHint={!displayCandidate.isUnlocked}
-                  hideContact={isPerformancePartialUnlock}
-                  accessLabel={isPerformancePartialUnlock ? 'Scout Performance — hồ sơ gợi ý' : 'Hồ sơ đã mở — thông tin đầy đủ'}
-                  accessLabelColor={isPerformancePartialUnlock ? '#0077B6' : '#047857'}
-                  footerNote={isPerformancePartialUnlock
-                    ? 'Email và SĐT không hiển thị. JobShare WS sẽ hỗ trợ liên hệ khi bạn quan tâm. Phí dịch vụ 20% khi giới thiệu việc làm thành công.'
-                    : null}
-                />
-
-                {!displayCandidate.isUnlocked && !isPerformancePartialUnlock && (
-                  <>
-                    <ScoutUnlockCompareTable />
-
-                    <div className="scout-detail-ui rounded-xl border border-slate-100 bg-white p-3">
-                      <div className="mb-2 flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f3e8ff] text-[#0077B6]">
-                          <Unlock {...ICON_MD} color="#0077B6" aria-hidden />
-                        </div>
-                        <div>
-                          <div className="scout-detail-title text-slate-800">Mở liên hệ bằng Credit</div>
-                          <div className="scout-detail-caption text-slate-500">Credit hiện có: {credit}</div>
-                        </div>
-                      </div>
-
-                      <div className="mb-2 flex items-baseline gap-1 border-b border-slate-200 pb-2">
-                        <div className="scout-detail-title text-lg text-slate-800">{scoutCreditCost}</div>
-                        <div className="scout-detail-body font-semibold text-slate-500">credit</div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleUnlockClick}
-                        disabled={unlocking || credit < scoutCreditCost}
-                        className="scout-detail-body mb-1.5 w-full rounded-md py-2 font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#94c5e0] bg-[#0077B6] hover:bg-[#006399]"
-                      >
-                        {unlocking ? 'Đang mở...' : 'Mở liên hệ ứng viên'}
-                      </button>
-
-                      <div className="scout-detail-caption text-center text-slate-400">
-                        Sau khi mở sẽ hiển thị email, SĐT và thông tin liên hệ
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {displayCandidate.isUnlocked && isPerformancePartialUnlock && (
-                  <div className="bg-white rounded-xl border border-blue-100" style={{ padding: 10, background: '#e8f4fa' }}>
-                    <div className="scout-detail-title flex items-center gap-1.5 text-[#0077B6]">
-                      <Check {...ICON_MD} color="#0077B6" aria-hidden />
-                      Hồ sơ gợi ý Scout Performance (không hiển thị email/SĐT)
-                    </div>
-                  </div>
-                )}
-
-                {displayCandidate.isUnlocked && !isPerformancePartialUnlock && (
-                  <div className="bg-white rounded-xl border border-emerald-100" style={{ padding: 10, background: '#ecfdf5' }}>
-                    <div className="scout-detail-title mb-2 flex items-center gap-1.5 text-[#047857]">
-                      <Check {...ICON_MD} color="#047857" aria-hidden />
-                      Đã mở hồ sơ bằng Scout Credit
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setAttachJobOpen(true)}
-                        className="scout-detail-body w-full rounded-lg bg-[#0077B6] py-2 font-semibold text-white hover:bg-[#006399]"
-                      >
-                        Thêm vào pipeline JD
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => navigate('/business/applications')}
-                        className="scout-detail-body w-full rounded-lg border border-slate-200 py-2 font-semibold text-slate-700 hover:bg-slate-50"
-                      >
-                        Xem Quản lý tiến cử
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {!isPerformancePartialUnlock && selectedCand?.performanceRequest?.wantsSimilarCandidates && (
-                  <div className="rounded-xl border border-[#cce5f0]/80 bg-[#e8f4fa]" style={{ padding: 10 }}>
-                    <div className="scout-detail-title mb-1 text-[#0077B6]">
-                      Đã yêu cầu tìm ứng viên tương tự
-                    </div>
-                    <div className="scout-detail-body leading-snug text-[#0077B6]">
-                      JobShare WS đang tìm và gửi gợi ý qua Tin nhắn → WS.
-                    </div>
-                  </div>
-                )}
-
-                {!performanceDetail && !isPerformancePartialUnlock && (
-                <div className="scout-detail-ui rounded-xl border border-slate-100 bg-white p-3">
-                  <div className="mb-2 flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8f4fa] text-[#0077B6]">
-                      <Users {...ICON_MD} color="#0077B6" aria-hidden />
-                    </div>
-                    <div>
-                      <div className="scout-detail-title text-slate-800">Scout Performance</div>
-                      <div className="scout-detail-caption text-slate-500">Nhờ WS tiếp cận thay bạn</div>
-                    </div>
-                  </div>
-
-                  <p className="scout-detail-body mb-2 leading-relaxed text-slate-500">
-                    Không tốn credit. Workstation sẽ tiếp cận ứng viên, xác nhận mức độ quan tâm và hỗ trợ kết nối.
-                    Email/SĐT không hiển thị — WS liên hệ thay bạn. Phí 20% khi giới thiệu việc làm thành công.
-                  </p>
-
-                  <button
-                    type="button"
-                    className="scout-detail-body mb-1.5 w-full rounded-md py-2 font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-400 bg-[#0077B6] hover:bg-[#006399]"
-                    disabled={
-                      performanceRequesting
-                      || (selectedCand?.isUnlocked && selectedCand?.unlockType !== 'scout_performance')
-                      || selectedCand?.unlockType === 'scout_performance'
-                    }
-                    onClick={handlePerformanceRequestClick}
-                  >
-                    {performanceRequesting
-                      ? 'Đang gửi yêu cầu...'
-                      : selectedCand?.unlockType === 'scout_performance'
-                        ? 'Đã gửi yêu cầu WS'
-                        : 'Nhờ WS tiếp cận ứng viên'}
-                  </button>
-
-                  <div className="flex flex-col gap-1">
-                    {[
-                      'Không tốn credit mở hồ sơ',
-                      'WS tiếp cận & trao đổi thay bạn',
-                      'Phí 20% khi giới thiệu việc làm thành công',
-                      'Có thể nhờ WS tìm thêm ứng viên tương tự',
-                    ].map((item) => (
-                      <div key={item} className="scout-detail-caption flex items-center gap-1 text-emerald-600">
-                        <Check {...ICON_SM} color="#10b981" aria-hidden />
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                )}
-
-                <div style={{ textAlign: 'center', paddingTop: 8, borderTop: '1px solid #e2e8f0', marginTop: 'auto' }}>
-                  {displayCandidate?.isUnlocked && !isPerformancePartialUnlock ? (
-                    <button
-                      type="button"
-                      onClick={() => setAttachJobOpen(true)}
-                      style={{ fontSize: 9, fontWeight: 600, color: '#0077B6', background: 'none', border: 'none', cursor: 'pointer' }}
-                    >
-                      + Thêm vào JD khác
-                    </button>
-                  ) : (
-                    <button type="button" disabled style={{ fontSize: 9, fontWeight: 600, color: '#94a3b8', background: 'none', border: 'none', cursor: 'not-allowed' }}>
-                      Lưu ứng viên (sắp ra mắt)
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+            </div>
 
             <div className="scout-workspace-aside min-h-0 overflow-y-auto scout-scrollbar">
               <HomepageSidebar onNavigate={navigate} />
@@ -2816,3 +2089,16 @@ const Scout = () => {
 }
 
 export default Scout
+
+export {
+  ScoutUnlockCompareTable,
+  ScoutCreditConfirmModal,
+  ScoutPerformanceConfirmModal,
+  ScoutPerformanceSuccessModal,
+  ScoutAttachJobModal,
+  ScoutActionModal,
+  getDisplayName as getScoutDisplayName,
+}
+
+export const SCOUT_DETAIL_ICON_SM = ICON_SM
+export const SCOUT_DETAIL_ICON_MD = ICON_MD

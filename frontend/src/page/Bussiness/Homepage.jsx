@@ -2,11 +2,7 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Sparkles,
-  Search,
   UserPlus,
-  FilePlus2,
-  Briefcase,
-  BookOpen,
   AlertTriangle,
   ArrowUpRight,
   Users2,
@@ -18,17 +14,10 @@ import useBusinessUser from '../../hooks/useBusinessUser';
 import { useLanguage } from '../../context/LanguageContext';
 import { localizeNotification } from '../../utils/notificationI18n';
 import apiService from '../../services/api';
+import BusinessQuickActionsPanel, { DEFAULT_BUSINESS_QUICK_ACTIONS } from '../../component/Bussiness/BusinessQuickActionsPanel.jsx';
+import BusinessServiceCardTag, { getBusinessServiceTag } from '../../component/Bussiness/BusinessServiceCardTag.jsx';
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif";
-
-const quickActions = [
-  { icon: Sparkles, title: 'Tạo JD mới (AI)', desc: 'Tạo JD miễn phí bằng AI', path: '/business/jobs' },
-  { icon: Search, title: 'Tìm ứng viên (Scout)', desc: 'Tìm kiếm trong kho ứng viên', path: '/business/scout' },
-  { icon: UserPlus, title: 'Dùng Scout Performance', desc: 'Yêu cầu WS hỗ trợ giới thiệu', path: '/business/scout' },
-  { icon: FilePlus2, title: 'Tạo Landing Page', desc: 'Tạo trang tuyển dụng miễn phí', path: '/business/saiyo' },
-  { icon: Briefcase, title: 'Đăng job lên Sàn CTV', desc: 'Kết nối CTV HR Partner', path: '/business/candidate-sharing' },
-  { icon: BookOpen, title: 'Xem hướng dẫn', desc: 'Hướng dẫn sử dụng platform', path: '/business/knowledge' },
-];
 
 function getNotificationTimestamp(notification) {
   return notification?.createdAt || notification?.created_at || null;
@@ -87,7 +76,8 @@ const news = [
 const solutionCards = [
   {
     num: '01',
-    title: 'Scout Credit',
+    tagId: 'direct-scout',
+    title: 'Scout Trực Tiếp',
     subtitle: 'Tự chủ tìm kiếm ứng viên',
     variant: 'brandLight',
     icon: Coins,
@@ -103,7 +93,8 @@ const solutionCards = [
   },
   {
     num: '02',
-    title: 'Scout Performance',
+    tagId: 'managed-scout',
+    title: 'Scout Ủy Thác',
     subtitle: 'WS hỗ trợ tìm & tiếp cận',
     variant: 'neutral',
     icon: UserPlus,
@@ -119,7 +110,8 @@ const solutionCards = [
   },
   {
     num: '03',
-    title: 'Saiyo Branding',
+    tagId: 'employer-branding',
+    title: 'Thương hiệu Tuyển dụng',
     subtitle: 'Thương hiệu tuyển dụng',
     variant: 'primary',
     icon: Sparkles,
@@ -135,7 +127,8 @@ const solutionCards = [
   },
   {
     num: '04',
-    title: 'Sàn CTV (HR Partner)',
+    tagId: 'hr-partner-network',
+    title: 'Mạng lưới Đối tác Tuyển dụng',
     subtitle: 'Mạng lưới mở rộng',
     variant: 'neutral',
     icon: Users2,
@@ -152,9 +145,9 @@ const solutionCards = [
 ];
 
 const CARD_SURFACE = {
-  brandLight: 'bg-[#e8f4fa] border border-[#cce5f0]/80 text-slate-900',
-  neutral: 'bg-white border border-slate-200/90 text-slate-900',
-  primary: 'bg-[#0077B6] border border-[#0077B6] text-white shadow-sm shadow-[#0077B6]/15',
+  brandLight: 'bg-[#e8f4fa] text-slate-900',
+  neutral: 'bg-white text-slate-900',
+  primary: 'bg-[#0077B6] text-white shadow-sm shadow-[#0077B6]/15',
 };
 
 const homepageStyles = `
@@ -234,13 +227,16 @@ function SolutionCard({ card, onUse }) {
   const isOnDark = card.variant === 'primary';
   const surface = CARD_SURFACE[card.variant] || CARD_SURFACE.neutral;
   const DecoIcon = card.icon;
+  const serviceTag = getBusinessServiceTag(card.tagId);
+  const frameColor = serviceTag?.frameColor || '#cbd5e1';
 
   const bodyClass = isOnDark ? 'text-white/95' : 'text-slate-600';
   const mutedClass = isOnDark ? 'text-white/85' : 'text-slate-500';
 
   return (
     <article
-      className={`biz-hp-solution-card ${isOnDark ? 'biz-hp-solution-card--dark' : ''} relative grid h-full min-h-[320px] grid-rows-[2rem_auto_minmax(0,1fr)_auto] overflow-hidden rounded-[1.25rem] p-3.5 sm:p-4 ${surface}`}
+      className={`biz-hp-solution-card ${isOnDark ? 'biz-hp-solution-card--dark' : ''} relative grid h-full min-h-[320px] grid-rows-[2rem_auto_minmax(0,1fr)_auto] overflow-hidden rounded-[1.25rem] border-2 p-3.5 sm:p-4 ${surface}`}
+      style={{ borderColor: frameColor }}
     >
       <div className="relative z-20 flex items-start justify-between gap-2">
         <span
@@ -301,15 +297,15 @@ function SolutionCard({ card, onUse }) {
       </div>
 
       <div
-        className={`relative z-10 mt-3 shrink-0 border-t pt-3 ${
-          isOnDark ? 'border-white/20' : 'border-slate-200/80'
-        }`}
+        className="relative z-10 mt-3 shrink-0 border-t pt-3"
+        style={{ borderColor: `${frameColor}66` }}
       >
         <p className={`text-[10px] leading-snug sm:text-[11px] ${isOnDark ? 'text-white/90' : 'text-slate-600'}`}>
           <span className={`font-semibold ${isOnDark ? 'text-white' : 'text-slate-700'}`}>Phù hợp:</span>
           {' '}
           {card.suitableFor}
         </p>
+        <BusinessServiceCardTag tag={serviceTag} isOnDark={isOnDark} className="mt-2.5" />
       </div>
     </article>
   );
@@ -374,31 +370,12 @@ function HomepageSidebar({ onNavigate }) {
 
   return (
     <div className="flex min-h-0 flex-col gap-3">
-      <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
-        <h2 className="text-xs font-bold text-slate-900">Thao tác nhanh</h2>
-        <div className="mt-2.5 flex flex-col gap-1">
-          {quickActions.map((a) => {
-            const Icon = a.icon;
-            return (
-              <button
-                key={a.title}
-                type="button"
-                onClick={() => onNavigate(a.path)}
-                className="flex w-full items-center gap-2 rounded-lg p-2 text-left transition-colors hover:bg-[#e8f4fa]"
-              >
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#e8f4fa] text-[#0077B6]">
-                  <Icon className="h-3.5 w-3.5" strokeWidth={2} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[11px] font-semibold leading-snug text-slate-800">{a.title}</div>
-                  <div className="truncate text-[10px] text-slate-500">{a.desc}</div>
-                </div>
-                <ArrowUpRight className="h-3 w-3 shrink-0 text-slate-300" />
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <BusinessQuickActionsPanel
+        actions={DEFAULT_BUSINESS_QUICK_ACTIONS}
+        onActionClick={(a) => {
+          if (a.path) onNavigate(a.path);
+        }}
+      />
 
       <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
         <div className="mb-3 flex items-center justify-between gap-2">

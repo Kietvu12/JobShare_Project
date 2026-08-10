@@ -116,8 +116,23 @@ const SERVICE_PACKAGES = [
       'Báo cáo lượt xem & ứng tuyển',
     ],
     suitableFor: 'Doanh nghiệp cần trang tuyển dụng chuẩn employer branding, tối ưu chuyển đổi ứng viên.',
-    action: 'landing',
     deliveryBadge: { type: 'self_service', label: 'Tự phục vụ' },
+    ctas: [
+      {
+        label: 'Tạo thử landing page có sẵn',
+        tag: 'Free',
+        tagTone: 'free',
+        variant: 'white',
+        action: 'landing_free',
+      },
+      {
+        label: 'Gửi yêu cầu tạo Landing Page chuyên biệt',
+        tag: 'Pro',
+        tagTone: 'pro',
+        variant: 'yellow',
+        action: 'landing_pro',
+      },
+    ],
   },
   {
     id: 'recruitment_ads',
@@ -134,9 +149,21 @@ const SERVICE_PACKAGES = [
       'Hỗ trợ triển khai A-Z',
     ],
     suitableFor: 'Doanh nghiệp muốn mở rộng reach và thu hút ứng viên tiềm năng nhanh.',
-    action: 'admin_request',
     serviceKey: 'recruitment_ads',
     deliveryBadge: { type: 'ws_support', label: 'WS tư vấn' },
+    ctas: [
+      {
+        label: 'Xem tài liệu giới thiệu dịch vụ',
+        variant: 'white',
+        action: 'view_docs',
+        docsPath: '/business/service-requests/recruitment-ads',
+      },
+      {
+        label: 'Gửi yêu cầu dịch vụ',
+        variant: 'yellow',
+        action: 'request_service',
+      },
+    ],
   },
   {
     id: 'recruitment_event',
@@ -153,14 +180,26 @@ const SERVICE_PACKAGES = [
       'Báo cáo hiệu quả sau sự kiện',
     ],
     suitableFor: 'Doanh nghiệp tổ chức hội thảo, job fair hoặc buổi giới thiệu công ty.',
-    action: 'admin_request',
     serviceKey: 'recruitment_event',
     deliveryBadge: { type: 'ws_support', label: 'WS tư vấn' },
+    ctas: [
+      {
+        label: 'Xem tài liệu giới thiệu dịch vụ',
+        variant: 'white',
+        action: 'view_docs',
+        docsPath: '/business/service-requests/seminar-campaign',
+      },
+      {
+        label: 'Gửi yêu cầu dịch vụ',
+        variant: 'yellow',
+        action: 'request_service',
+      },
+    ],
   },
   {
     id: 'company_profile',
     num: '04',
-    title: 'Company profile',
+    title: 'Thiết kế Company Profile',
     subtitle: 'Hồ sơ năng lực chuẩn thương hiệu',
     variant: 'neutral',
     icon: Building2,
@@ -172,11 +211,60 @@ const SERVICE_PACKAGES = [
       'Bàn giao file & hướng dẫn sử dụng',
     ],
     suitableFor: 'Doanh nghiệp cần bộ tài liệu giới thiệu công ty thống nhất trên mọi kênh.',
-    action: 'admin_request',
     serviceKey: 'company_profile',
     deliveryBadge: { type: 'ws_support', label: 'WS tư vấn' },
+    ctas: [
+      {
+        label: 'Xem tài liệu giới thiệu dịch vụ',
+        variant: 'white',
+        action: 'view_docs',
+        docsPath: '/business/service-requests/company-profile',
+      },
+      {
+        label: 'Gửi yêu cầu dịch vụ',
+        variant: 'yellow',
+        action: 'request_service',
+      },
+    ],
   },
 ]
+
+const CTA_TAG_STYLE = {
+  free: 'bg-emerald-100 text-emerald-700',
+  pro: 'bg-violet-100 text-violet-700',
+}
+
+function ServiceCardCtaButton({ cta, isOnDark, disabled, onClick }) {
+  const isYellow = cta.variant === 'yellow'
+  const whiteClass = isOnDark
+    ? 'bg-white text-[#0077B6] hover:bg-white/90'
+    : 'border border-slate-200 bg-white text-slate-800 hover:border-[#0077B6]/25 hover:bg-slate-50'
+  const yellowClass = isOnDark
+    ? 'border border-[#fde68a]/80 bg-[#fef9c3] text-slate-900 hover:bg-[#fde68a]'
+    : 'border border-[#fde68a] bg-[#fef9c3] text-slate-800 hover:bg-[#fde68a]'
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`flex h-12 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[10px] font-semibold leading-tight transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:text-[11px] ${
+        isYellow ? yellowClass : whiteClass
+      }`}
+    >
+      <span className="min-w-0 flex-1 line-clamp-2">{cta.label}</span>
+      {cta.tag ? (
+        <span
+          className={`inline-flex h-5 min-w-[2rem] shrink-0 items-center justify-center rounded px-1.5 text-[8px] font-bold uppercase tracking-wide ${
+            CTA_TAG_STYLE[cta.tagTone] || 'bg-slate-100 text-slate-600'
+          }`}
+        >
+          {cta.tag}
+        </span>
+      ) : null}
+    </button>
+  )
+}
 
 function formatDate(value) {
   if (!value) return '—'
@@ -187,11 +275,12 @@ function formatDate(value) {
   }
 }
 
-function BrandingServiceCard({ card, onUse, loadingKey }) {
+function BrandingServiceCard({ card, onCta, loadingKey }) {
   const isOnDark = card.variant === 'primary'
   const surface = CARD_SURFACE[card.variant] || CARD_SURFACE.neutral
   const DecoIcon = card.icon
   const busy = Boolean(loadingKey && (loadingKey === card.serviceKey || loadingKey === card.id))
+  const primaryCta = card.ctas?.[0]
 
   const bodyClass = isOnDark ? 'text-white/95' : 'text-slate-600'
   const mutedClass = isOnDark ? 'text-white/85' : 'text-slate-500'
@@ -228,13 +317,13 @@ function BrandingServiceCard({ card, onUse, loadingKey }) {
         <button
           type="button"
           disabled={busy}
-          onClick={() => onUse(card)}
+          onClick={() => primaryCta && onCta(card, primaryCta)}
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors disabled:opacity-60 ${
             isOnDark
               ? 'bg-white/15 text-white hover:bg-white/25'
               : 'bg-white text-slate-600 shadow-sm ring-1 ring-slate-100 hover:text-[#0077B6]'
           }`}
-          aria-label={`Sử dụng ${card.title}`}
+          aria-label={primaryCta ? primaryCta.label : `Sử dụng ${card.title}`}
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpRight className="h-4 w-4" strokeWidth={2} />}
         </button>
@@ -269,24 +358,23 @@ function BrandingServiceCard({ card, onUse, loadingKey }) {
       <div className={`relative z-10 mt-3 shrink-0 border-t pt-3 ${isOnDark ? 'border-white/20' : 'border-slate-200/80'}`}>
         <h4 className={`text-xs font-bold sm:text-[13px] ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}>Phù hợp với</h4>
         <p className={`mt-1.5 min-h-[2.75rem] text-[11px] leading-snug sm:text-xs ${bodyClass}`}>{card.suitableFor}</p>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => onUse(card)}
-          className={`mt-2.5 w-full rounded-lg py-2 text-xs font-semibold transition-colors disabled:opacity-60 ${
-            isOnDark
-              ? 'bg-white/20 text-white hover:bg-white/30'
-              : 'bg-[#0077B6] text-white hover:bg-[#006399] shadow-sm shadow-[#0077B6]/15'
-          }`}
-        >
-          {busy ? 'Đang gửi...' : 'Sử dụng ngay'}
-        </button>
+        <div className="mt-2.5 grid grid-cols-1 gap-1.5">
+          {(card.ctas || []).map((cta) => (
+            <ServiceCardCtaButton
+              key={cta.action}
+              cta={cta}
+              isOnDark={isOnDark}
+              disabled={busy}
+              onClick={() => onCta(card, cta)}
+            />
+          ))}
+        </div>
       </div>
     </article>
   )
 }
 
-function BrandingOverviewMain({ onPackageUse, onConsultation, requestLoadingKey }) {
+function BrandingOverviewMain({ onCardCta, onConsultation, requestLoadingKey }) {
   return (
     <div className="flex flex-col gap-2">
       <header className="shrink-0">
@@ -303,7 +391,7 @@ function BrandingOverviewMain({ onPackageUse, onConsultation, requestLoadingKey 
             className="biz-hp-solution-card-wrap"
             style={{ animationDelay: `${0.06 + index * 0.1}s` }}
           >
-            <BrandingServiceCard card={card} onUse={onPackageUse} loadingKey={requestLoadingKey} />
+            <BrandingServiceCard card={card} onCta={onCardCta} loadingKey={requestLoadingKey} />
           </div>
         ))}
       </div>
@@ -483,7 +571,7 @@ function BrandingStatsSection({
 }
 
 function BrandingUnifiedMain({
-  onPackageUse,
+  onCardCta,
   onConsultation,
   requestLoadingKey,
   statCards,
@@ -497,7 +585,7 @@ function BrandingUnifiedMain({
   return (
     <div className="flex min-h-0 flex-col gap-4 pb-2">
       <BrandingOverviewMain
-        onPackageUse={onPackageUse}
+        onCardCta={onCardCta}
         onConsultation={onConsultation}
         requestLoadingKey={requestLoadingKey}
       />
@@ -686,12 +774,20 @@ const Branding = () => {
     }
   }
 
-  const handlePackageUse = (pkg) => {
-    if (pkg.action === 'landing') {
+  const handleCardCta = (pkg, cta) => {
+    if (cta.action === 'landing_free') {
       setShowCreate(true)
       return
     }
-    if (pkg.action === 'admin_request' && pkg.serviceKey) {
+    if (cta.action === 'landing_pro') {
+      navigate('/business/service-requests/landing-page')
+      return
+    }
+    if (cta.action === 'view_docs' && cta.docsPath) {
+      navigate(cta.docsPath)
+      return
+    }
+    if (cta.action === 'request_service' && pkg.serviceKey) {
       if (pkg.serviceKey === 'recruitment_ads' || pkg.serviceKey === 'recruitment_event' || pkg.serviceKey === 'company_profile') {
         setIntakeModal({ open: true, serviceKey: pkg.serviceKey })
         return
@@ -747,7 +843,7 @@ const Branding = () => {
             <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:h-full xl:grid-cols-[minmax(0,1fr)_minmax(196px,228px)] xl:gap-3 xl:overflow-hidden">
               <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col xl:h-full xl:overflow-y-auto xl:pr-0.5">
                 <BrandingUnifiedMain
-                  onPackageUse={handlePackageUse}
+                  onCardCta={handleCardCta}
                   onConsultation={handleConsultation}
                   requestLoadingKey={requestLoadingKey}
                   statCards={statCards}

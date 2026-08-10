@@ -993,29 +993,45 @@ export async function listWsChatSessionsForBusiness({
     ];
   }
 
-  const { count, rows } = await BusinessWsChatSession.findAndCountAll({
+  const sessionInclude = [
+    {
+      model: BusinessScoutPerformanceRequest,
+      as: 'performanceRequest',
+      required: false,
+      attributes: ['id', 'status', 'cvId', 'message', 'wantsSimilarCandidates'],
+      include: [
+        {
+          model: CVStorage,
+          as: 'cv',
+          required: false,
+          attributes: ['id', 'code', 'desiredPosition'],
+          include: [{ model: JobCategory, as: 'jobCategory', required: false, attributes: ['id', 'name'] }],
+        },
+      ],
+    },
+  ];
+
+  let { count, rows } = await BusinessWsChatSession.findAndCountAll({
     where,
     limit: safeLimit,
     offset,
     order: [['last_message_at', 'DESC'], ['id', 'DESC']],
-    include: [
-      {
-        model: BusinessScoutPerformanceRequest,
-        as: 'performanceRequest',
-        required: false,
-        attributes: ['id', 'status', 'cvId', 'message', 'wantsSimilarCandidates'],
-        include: [
-          {
-            model: CVStorage,
-            as: 'cv',
-            required: false,
-            attributes: ['id', 'code', 'desiredPosition'],
-            include: [{ model: JobCategory, as: 'jobCategory', required: false, attributes: ['id', 'name'] }],
-          },
-        ],
-      },
-    ],
+    include: sessionInclude,
   });
+
+  if (count === 0 && safePage === 1 && !(search && String(search).trim())) {
+    const business = await Business.findByPk(businessId, {
+      attributes: ['id', 'companyName', 'contactName'],
+    });
+    await ensureWsChatSessionForBusiness({ businessId, business });
+    ({ count, rows } = await BusinessWsChatSession.findAndCountAll({
+      where,
+      limit: safeLimit,
+      offset,
+      order: [['last_message_at', 'DESC'], ['id', 'DESC']],
+      include: sessionInclude,
+    }));
+  }
 
   const sessionIds = rows.map((r) => r.id);
   let unreadBySession = {};

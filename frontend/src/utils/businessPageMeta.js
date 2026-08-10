@@ -37,6 +37,7 @@ const VIEWPORT_LOCKED_PREFIXES = [
   '/business/service-requests',
   '/business/billing',
   '/business/messages',
+  '/business/scout',
 ];
 
 export function isBusinessViewportLockedPage(pathname) {

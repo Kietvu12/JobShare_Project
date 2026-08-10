@@ -103,7 +103,9 @@ import JdBuilderChatPage from './page/Bussiness/JdBuilderChatPage';
 import JobDetail from './page/Bussiness/JobDetail';
 import JobApplication from './page/Bussiness/JobApplication';
 import Candidate from './page/Bussiness/Candidate';
+import BusinessUnlockedCandidateDetail from './page/Bussiness/BusinessUnlockedCandidateDetail';
 import Scout from './page/Bussiness/Scout';
+import ScoutCandidateDetail from './page/Bussiness/ScoutCandidateDetail';
 import AdminScoutPerformancePage from './page/Admin/ScoutPerformancePage';
 import AdminWsChatPage from './page/Admin/AdminWsChatPage';
 import AdminCreditRequestsPage from './page/Admin/AdminCreditRequestsPage';
@@ -405,8 +407,10 @@ function App() {
             <Route path="jobs/:jobId" element={<JobDetail />} />
             <Route path="applications" element={<JobApplication />} />
             <Route path="candidates" element={<Candidate />} />
+            <Route path="candidates/:candidateId" element={<BusinessUnlockedCandidateDetail />} />
             <Route path="candidate-sharing" element={<CandidateSharing />} />
             <Route path="scout" element={<Scout />} />
+            <Route path="scout/candidates/:cvId" element={<ScoutCandidateDetail />} />
             <Route path="saiyo" element={<Branding />} />
             <Route path="saiyo/pages/:pageId/edit" element={<BusinessLandingPageEditor />} />
             <Route path="knowledge" element={<KnowledgeHub />} />

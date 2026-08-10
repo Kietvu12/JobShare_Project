@@ -25,6 +25,7 @@ import {
   simpleCommissionToPayload,
 } from '../../utils/businessSimpleCommission'
 import { normalizeJobSalaryCurrency } from '../../utils/jobSalaryCurrency'
+import BusinessQuickActionsPanel, { DEFAULT_BUSINESS_QUICK_ACTIONS } from '../../component/Bussiness/BusinessQuickActionsPanel.jsx'
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 const BRAND = '#0077B6'
@@ -151,14 +152,6 @@ const highlightFeatures = [
   { icon: Shield, title: 'Bảo vệ & minh bạch', desc: 'Thanh toán qua JobShare, hợp đồng và lịch sử giao dịch rõ ràng.' },
 ]
 
-const onboardQuickActions = [
-  { icon: Plus, title: 'Đăng tin tuyển dụng', desc: 'Đưa JD lên Sàn HR', action: 'create' },
-  { icon: FileText, title: 'Quản lý tin tuyển dụng', desc: 'Theo dõi job trên sàn', action: 'create', viewWhenListed: true },
-  { icon: Users, title: 'Kết nối CTV', desc: 'Xem CTV quan tâm job', action: 'dashboard' },
-  { icon: History, title: 'Lịch sử giao dịch', desc: 'Thanh toán & chia phí', path: '/business/candidate-sharing?tab=costs' },
-  { icon: BookOpen, title: 'Hướng dẫn sử dụng', desc: 'Tài liệu hướng dẫn Sàn HR', path: '/business/knowledge' },
-]
-
 const onboardNotifications = [
   { dot: 'bg-emerald-500', text: 'Chào mừng bạn đến với Sàn HR JobShare!', time: 'Vừa xong' },
   { dot: 'bg-[#0077B6]', text: 'Đăng job đầu tiên để kết nối với CTV HR Partner', time: '1 phút trước' },
@@ -172,80 +165,55 @@ const onboardNews = [
   { title: 'Quy trình duyệt tin và tiến cử ứng viên trên Sàn HR', date: '15/05/2024', img: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=200&h=150&fit=crop' },
 ]
 
-function OnboardingSidebar({ onCreate, onViewDetails, hasMarketplaceData, onNavigate }) {
+function OnboardingSidebar({ onNavigate }) {
   const handleAction = (item) => {
-    if (item.action === 'create') {
-      if (hasMarketplaceData && item.viewWhenListed) onViewDetails()
-      else onCreate()
-      return
-    }
-    if (item.action === 'dashboard') onViewDetails()
-    else if (item.path) onNavigate(item.path)
+    if (item.path) onNavigate(item.path)
   }
 
   return (
-    <div className="flex flex-col gap-2 sm:gap-3 2xl:gap-4 min-w-0 xl:h-full xl:min-h-0 xl:overflow-y-auto xl:pr-1 scrollbar-hide">
-      <div className="bg-white rounded-lg sm:rounded-xl border border-slate-100 p-2 sm:p-3">
-        <h2 className="text-xs sm:text-sm font-bold text-slate-800 mb-1.5 sm:mb-2">Thao tác nhanh</h2>
-        <div className="flex flex-col gap-0.5">
-          {onboardQuickActions.map((a) => {
-            const Icon = a.icon
-            return (
-              <button
-                key={a.title}
-                type="button"
-                onClick={() => handleAction(a)}
-                className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-lg hover:bg-slate-50 transition-colors text-left w-full"
-              >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#e8f4fa] flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#0077B6]" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] sm:text-xs font-semibold text-slate-800 leading-snug">{a.title}</div>
-                  <div className="text-[10px] sm:text-[11px] text-slate-400 truncate">{a.desc}</div>
-                </div>
-                <span className="ml-auto text-slate-300 flex-shrink-0 text-xs sm:text-sm">›</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+    <div className="flex min-h-0 flex-col gap-3 xl:h-full xl:min-h-0 xl:overflow-y-auto xl:pr-0.5 business-homepage-scroll scrollbar-hide">
+      <BusinessQuickActionsPanel
+        actions={DEFAULT_BUSINESS_QUICK_ACTIONS}
+        onActionClick={handleAction}
+      />
 
-      <div className="bg-white rounded-lg sm:rounded-xl border border-slate-100 p-2 sm:p-3">
-        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-          <h2 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1 sm:gap-1.5">
+      <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="flex items-center gap-2 text-xs font-bold text-slate-900">
             Thông báo
-            <span className="bg-rose-500 text-white text-[9px] sm:text-[10px] font-bold rounded-full px-1 sm:px-1.5 py-0.5">4</span>
+            <span className="rounded-full bg-[#0077B6] px-1.5 py-0.5 text-[9px] font-bold text-white">4</span>
           </h2>
-          <button type="button" className="text-[10px] sm:text-xs font-semibold text-[#0077B6]">Xem tất cả</button>
+          <button type="button" className="shrink-0 text-[10px] font-semibold text-[#0077B6]">Xem tất cả</button>
         </div>
-        <div className="flex flex-col gap-2 sm:gap-2.5">
+        <div className="flex flex-col divide-y divide-slate-100">
           {onboardNotifications.map((n) => (
-            <div key={n.text} className="flex items-start gap-1.5 sm:gap-2">
-              {n.warn
-                ? <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 mt-0.5 flex-shrink-0" />
-                : <span className={`w-2 h-2 rounded-full ${n.dot} mt-1 flex-shrink-0`} />}
-              <div className="min-w-0">
-                <p className="text-[11px] sm:text-xs text-slate-700 leading-snug">{n.text}</p>
-                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">{n.time}</p>
+            <div key={n.text} className="flex items-start gap-2.5 py-3 first:pt-0 last:pb-0">
+              {n.warn ? (
+                <AlertTriangle className="mt-1 h-3.5 w-3.5 shrink-0 text-rose-500" />
+              ) : (
+                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.dot}`} />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] leading-relaxed text-slate-700">{n.text}</p>
+                <p className="mt-1.5 text-[10px] leading-none text-slate-400">{n.time}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="bg-white rounded-lg sm:rounded-xl border border-slate-100 p-2 sm:p-3">
-        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-          <h2 className="text-xs sm:text-sm font-bold text-slate-800">Tin tức &amp; Insights</h2>
-          <button type="button" className="text-[10px] sm:text-xs font-semibold text-[#0077B6]">Xem tất cả</button>
+      <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-xs font-bold text-slate-900">Tin tức &amp; Insights</h2>
+          <button type="button" className="shrink-0 text-[10px] font-semibold text-[#0077B6]">Xem tất cả</button>
         </div>
-        <div className="flex flex-col gap-2 sm:gap-3">
+        <div className="flex flex-col gap-3">
           {onboardNews.map((n) => (
-            <div key={n.title} className="flex gap-2 sm:gap-3">
-              <img src={n.img} alt={n.title} className="w-12 h-9 sm:w-14 sm:h-10 rounded-md sm:rounded-lg object-cover flex-shrink-0" />
+            <div key={n.title} className="flex gap-2.5">
+              <img src={n.img} alt="" className="h-10 w-14 shrink-0 rounded-md object-cover" />
               <div className="min-w-0">
-                <p className="text-[11px] sm:text-xs font-medium text-slate-700 leading-snug line-clamp-2">{n.title}</p>
-                <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">{n.date}</p>
+                <p className="line-clamp-2 text-[11px] font-medium leading-relaxed text-slate-800">{n.title}</p>
+                <p className="mt-1.5 text-[10px] text-slate-400">{n.date}</p>
               </div>
             </div>
           ))}
@@ -1445,12 +1413,7 @@ const CandidateSharing = () => {
                   onViewDetails={enterMarketplaceDashboard}
                 />
               </div>
-              <OnboardingSidebar
-                onCreate={openCreateModal}
-                onViewDetails={enterMarketplaceDashboard}
-                hasMarketplaceData={hasListings}
-                onNavigate={navigate}
-              />
+              <OnboardingSidebar onNavigate={navigate} />
             </div>
           </div>
         </div>

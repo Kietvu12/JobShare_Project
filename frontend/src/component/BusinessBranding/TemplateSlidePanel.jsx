@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Eye, Loader2, X, FileText } from 'lucide-react';
 import { LANDING_PAGE_TEMPLATES } from '../../constants/landingPageTemplates';
 import { getRegisteredLandingPageTemplates, getTemplatePages, isHtmlTemplate } from '../../constants/templatePageRegistry';
@@ -76,34 +77,47 @@ export default function TemplateSlidePanel({ open, onClose, onCreated }) {
     onClose();
   };
 
-  return (
+  if (!open) return null;
+
+  return createPortal(
     <>
       <style>{BUSINESS_UI_FONT_IMPORT}</style>
       <div
-        className={`fixed inset-0 z-40 bg-black/30 transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
-        onClick={handleClose}
-        aria-hidden={!open}
-      />
-      <aside
-        className={`fixed top-0 left-0 z-50 h-full bg-white shadow-2xl flex flex-col transition-[transform,width] duration-300 ease-out ${
-          previewTemplate ? 'w-[min(100vw,680px)]' : 'w-[min(100vw,520px)]'
-        } ${open ? 'translate-x-0' : '-translate-x-full'}`}
+        className="fixed inset-0 z-[10030] flex items-center justify-center p-4"
         style={{ fontFamily: BUSINESS_UI_FONT }}
-        aria-hidden={!open}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="template-picker-title"
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+        <button
+          type="button"
+          aria-label="Đóng"
+          className="absolute inset-0 bg-slate-900/45"
+          onClick={handleClose}
+        />
+        <div
+          className={`relative flex max-h-[min(90vh,720px)] w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl ${
+            previewTemplate ? 'max-w-[680px]' : 'max-w-[520px]'
+          }`}
+        >
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 pr-12">
           <div className="min-w-0 pr-2">
-            <h2 className="text-sm font-bold text-slate-900 truncate">
+            <h2 id="template-picker-title" className="truncate text-sm font-bold text-slate-900">
               {previewTemplate ? previewTemplate.name : 'Chọn template'}
             </h2>
-            <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">
+            <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-500">
               {previewTemplate
                 ? previewTemplate.description
                 : 'Xem trước toàn trang hoặc chọn để mở trình chỉnh sửa'}
             </p>
           </div>
-          <button type="button" onClick={handleClose} className="p-1.5 rounded-lg hover:bg-slate-100">
-            <X className="w-4 h-4 text-slate-500" />
+          <button
+            type="button"
+            onClick={handleClose}
+            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+            aria-label="Đóng hộp thoại"
+          >
+            <X className="h-4 w-4" />
           </button>
         </div>
 
@@ -204,7 +218,9 @@ export default function TemplateSlidePanel({ open, onClose, onCreated }) {
             })}
           </div>
         )}
-      </aside>
-    </>
+        </div>
+      </div>
+    </>,
+    document.body,
   );
 }
