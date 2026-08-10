@@ -31,7 +31,7 @@ const BusinessAddJobPage = () => {
         onClose={() => {
           const id = nextStepsModal.jobId;
           setNextStepsModal({ open: false, jobId: null });
-          navigate(id ? `/business/jobs?jobId=${encodeURIComponent(String(id))}` : '/business/jobs');
+          navigate(id ? `/business/jobs/${encodeURIComponent(String(id))}/edit` : '/business/jobs');
         }}
         onSelect={(stepNum, jobId) => {
           setNextStepsModal({ open: false, jobId: null });

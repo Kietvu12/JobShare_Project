@@ -10,6 +10,7 @@ import useBusinessUser from '../../hooks/useBusinessUser'
 import { highlightSearchText } from '../../utils/searchTextHighlight'
 import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont'
 import {
+  ScoutUnlockOptionCard,
   ScoutUnlockCompareTable,
   ScoutCreditConfirmModal,
   ScoutPerformanceConfirmModal,
@@ -486,64 +487,50 @@ export default function ScoutCandidateDetail() {
                 || (!performanceDetail && !isPerformancePartialUnlock)) ? (
                 <div className="grid w-full grid-cols-1 items-stretch gap-3 md:grid-cols-2">
                   {!candidate.isUnlocked && !isPerformancePartialUnlock ? (
-                    <div className="scout-detail-ui flex h-full min-h-0 flex-col rounded-xl border border-slate-100 bg-white p-3 sm:p-4">
-                      <div className="mb-2 flex shrink-0 items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f3e8ff] text-[#0077B6]">
-                          <Unlock {...SCOUT_DETAIL_ICON_MD} color="#0077B6" aria-hidden />
-                        </div>
-                        <div>
-                          <div className="scout-detail-title text-slate-800">Mở liên hệ bằng Credit</div>
-                          <div className="scout-detail-caption text-slate-500">Credit hiện có: {credit}</div>
-                        </div>
-                      </div>
-                      <div className="mb-2 flex min-h-[7.5rem] flex-1 flex-col">
-                        <p className="scout-detail-body leading-relaxed text-slate-500">
-                          Dùng credit để mở ngay email, SĐT và thông tin liên hệ.
-                        </p>
-                        <div className="mt-auto flex items-baseline gap-1 border-t border-slate-200 pt-2">
+                    <ScoutUnlockOptionCard
+                      icon={Unlock}
+                      iconWrapClass="bg-[#f3e8ff]"
+                      title="Mở liên hệ bằng Credit"
+                      subtitle={`Credit hiện có: ${credit}`}
+                      description="Dùng credit để mở ngay email, SĐT và thông tin liên hệ."
+                      footer={(
+                        <div className="flex items-baseline gap-1">
                           <div className="scout-detail-title text-lg text-slate-800">{scoutCreditCost}</div>
                           <div className="scout-detail-body font-semibold text-slate-500">credit</div>
                         </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleUnlockClick}
-                        disabled={unlocking || credit < scoutCreditCost}
-                        className="scout-detail-body mb-1.5 w-full shrink-0 rounded-md py-2 font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#94c5e0] bg-[#0077B6] hover:bg-[#006399]"
-                      >
-                        {unlocking ? 'Đang mở...' : 'Mở liên hệ ứng viên'}
-                      </button>
-                    </div>
+                      )}
+                      buttonLabel="Mở liên hệ ứng viên"
+                      loadingLabel="Đang mở..."
+                      onClick={handleUnlockClick}
+                      disabled={credit < scoutCreditCost}
+                      loading={unlocking}
+                    />
                   ) : null}
 
                   {!performanceDetail && !isPerformancePartialUnlock ? (
-                    <div className="scout-detail-ui flex h-full min-h-0 flex-col rounded-xl border border-slate-100 bg-white p-3 sm:p-4">
-                      <div className="mb-2 flex shrink-0 items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8f4fa] text-[#0077B6]">
-                          <Users {...SCOUT_DETAIL_ICON_MD} color="#0077B6" aria-hidden />
-                        </div>
-                        <div>
-                          <div className="scout-detail-title text-slate-800">Scout Performance</div>
-                          <div className="scout-detail-caption text-slate-500">Nhờ WS tiếp cận thay bạn</div>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        className="scout-detail-body mt-auto w-full shrink-0 rounded-md py-2 font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-400 bg-[#0077B6] hover:bg-[#006399]"
-                        disabled={
-                          performanceRequesting
-                          || (candidate?.isUnlocked && candidate?.unlockType !== 'scout_performance')
-                          || candidate?.unlockType === 'scout_performance'
-                        }
-                        onClick={handlePerformanceRequestClick}
-                      >
-                        {performanceRequesting
-                          ? 'Đang gửi yêu cầu...'
-                          : candidate?.unlockType === 'scout_performance'
-                            ? 'Đã gửi yêu cầu WS'
-                            : 'Nhờ WS tiếp cận ứng viên'}
-                      </button>
-                    </div>
+                    <ScoutUnlockOptionCard
+                      icon={Users}
+                      title="Scout Performance"
+                      subtitle="Nhờ WS tiếp cận thay bạn"
+                      description="WS chủ động tiếp cận ứng viên, xác nhận mức độ quan tâm và hỗ trợ kết nối phù hợp."
+                      footer={(
+                        <p className="scout-detail-caption font-semibold text-slate-500">
+                          Không tốn credit · Phí 20% khi tuyển thành công
+                        </p>
+                      )}
+                      buttonLabel={
+                        candidate?.unlockType === 'scout_performance'
+                          ? 'Đã gửi yêu cầu WS'
+                          : 'Nhờ WS tiếp cận ứng viên'
+                      }
+                      loadingLabel="Đang gửi yêu cầu..."
+                      onClick={handlePerformanceRequestClick}
+                      disabled={
+                        (candidate?.isUnlocked && candidate?.unlockType !== 'scout_performance')
+                        || candidate?.unlockType === 'scout_performance'
+                      }
+                      loading={performanceRequesting}
+                    />
                   ) : null}
                 </div>
               ) : null}

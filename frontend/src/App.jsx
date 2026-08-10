@@ -98,6 +98,7 @@ import LandingJobShareViewPage from './page/LandingPage/LandingJobShareViewPage'
 import BusinessHomepage from './page/Bussiness/Homepage';
 import BusinessLayoutWrapper from './component/Layout/BusinessLayoutWrapper';
 import JobManagement from './page/Bussiness/JobManagement';
+import JobAiBuilderPage from './page/Bussiness/JobAiBuilderPage';
 import BusinessAddJobPage from './page/Bussiness/BusinessAddJobPage';
 import JdBuilderChatPage from './page/Bussiness/JdBuilderChatPage';
 import JobDetail from './page/Bussiness/JobDetail';
@@ -401,8 +402,9 @@ function App() {
           >
             <Route index element={<BusinessHomepage />} />
             <Route path="jobs" element={<JobManagement />} />
-            <Route path="jobs/create" element={<BusinessAddJobPage />} />
-            <Route path="jobs/:jobId/edit" element={<BusinessAddJobPage />} />
+            <Route path="jobs/create" element={<JobAiBuilderPage mode="create" />} />
+            <Route path="jobs/manual-create" element={<BusinessAddJobPage />} />
+            <Route path="jobs/:jobId/edit" element={<JobAiBuilderPage mode="edit" />} />
             <Route path="jobs/ai-builder" element={<JdBuilderChatPage />} />
             <Route path="jobs/:jobId" element={<JobDetail />} />
             <Route path="applications" element={<JobApplication />} />

@@ -4,7 +4,7 @@ import {
   ChevronRight, ChevronDown, Globe, MoreHorizontal, MapPin, Clock,
   Award, Hash, Calendar, Users, Target, Sparkles, BarChart3, TrendingUp,
   Info, DollarSign, ArrowRight, User, Search, Star, Building2, FileText,
-  Unlock, UserPlus, Loader2, Trash2,
+  Unlock, UserPlus, Loader2, Trash2, Pencil,
 } from 'lucide-react'
 import apiService from '../../services/api'
 import {
@@ -84,9 +84,10 @@ const JOB_DETAIL_SHELL_STYLE = `
 
 function getJobStatusMeta(status) {
   const n = Number(status)
-  if (n === 1) return { label: 'Đang hoạt động', color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' }
-  if (n === 0) return { label: 'Tạm dừng', color: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' }
-  if (n === 2 || n === 3) return { label: 'Đã đóng', color: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' }
+  if (n === 1) return { label: 'Đang tuyển', color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' }
+  if (n === 0) return { label: 'Nháp', color: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' }
+  if (n === 4) return { label: 'Tạm dừng', color: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' }
+  if (n === 2 || n === 3) return { label: 'Đã đóng', color: 'bg-slate-100 text-slate-500', dot: 'bg-slate-400' }
   return { label: 'Không xác định', color: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' }
 }
 
@@ -423,7 +424,7 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
       <style>{s}{JOB_DETAIL_SHELL_STYLE}</style>
       <div className="business-jobs-shell h-full min-h-0 overflow-hidden">
         <div className="business-jobs-ui h-full min-h-0 overflow-y-auto hide-sb bg-[#f9f9f9]">
-          <div className="max-w-5xl mx-auto p-2 lg:p-3 space-y-2">
+          <div className="w-full p-2 lg:p-3 space-y-2">
           <div className="flex items-center gap-1 biz-jd-muted">
             <button type="button" onClick={() => navigate('/business/jobs')} className="hover:text-[#0077B6]">Quản lý JD</button>
             <ChevronRight className="biz-jd-icon" />
@@ -444,6 +445,15 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
                 </span>
               ) : null}
               <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/business/jobs/${job.id}/edit`)}
+                  className="flex items-center gap-1 border border-slate-200 rounded-lg hover:bg-slate-50 font-medium text-slate-700 transition-colors"
+                  style={{ fontSize: 10, padding: '6px 10px' }}
+                >
+                  <Pencil style={{ width: 11, height: 11 }} />
+                  Sửa JD
+                </button>
                 <button className="flex items-center gap-1 border border-slate-200 rounded-lg hover:bg-slate-50 font-medium text-slate-700 transition-colors" style={{ fontSize: 10, padding: '6px 10px' }}>
                   <Globe style={{ width: 11, height: 11 }} />
                   Tạo Landing Page

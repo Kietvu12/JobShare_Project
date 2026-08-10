@@ -595,6 +595,55 @@ function ScoutOnboardingView({ previewCandidates, previewScoreByCvId, scoutCredi
 
 const ANONYMOUS_AVATAR = 'https://api.dicebear.com/7.x/shapes/svg?seed=scout-anonymous'
 
+function ScoutUnlockOptionCard({
+  icon: Icon,
+  iconWrapClass = 'bg-[#e8f4fa]',
+  iconColor = '#0077B6',
+  title,
+  subtitle,
+  description,
+  footer,
+  buttonLabel,
+  loadingLabel,
+  onClick,
+  disabled = false,
+  loading = false,
+}) {
+  return (
+    <div className="scout-detail-ui flex h-full min-h-[11.5rem] flex-col rounded-xl border border-slate-100 bg-white p-3 sm:p-4">
+      <div className="flex shrink-0 items-start gap-2">
+        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${iconWrapClass}`}>
+          <Icon {...ICON_MD} color={iconColor} aria-hidden />
+        </div>
+        <div className="min-w-0 pt-0.5">
+          <div className="scout-detail-title text-slate-800">{title}</div>
+          {subtitle ? (
+            <div className="scout-detail-caption mt-0.5 text-slate-500">{subtitle}</div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-3 flex min-h-0 flex-1 flex-col">
+        {description ? (
+          <p className="scout-detail-body leading-relaxed text-slate-500">{description}</p>
+        ) : null}
+        {footer ? (
+          <div className="mt-auto border-t border-slate-200 pt-2">{footer}</div>
+        ) : null}
+      </div>
+
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled || loading}
+        className="scout-detail-body mt-3 w-full shrink-0 rounded-md py-2 font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#94c5e0] bg-[#0077B6] hover:bg-[#006399] disabled:opacity-100"
+      >
+        {loading ? loadingLabel : buttonLabel}
+      </button>
+    </div>
+  )
+}
+
 function ScoutUnlockCompareTable() {
   return (
     <div className="scout-detail-ui mb-2 overflow-hidden rounded-lg border border-slate-200">
@@ -910,7 +959,7 @@ function ScoutCreditConfirmModal({
             </ul>
             <div className="flex items-center justify-center sm:justify-end">
               <img
-                src={creditIllustration}
+                src={performanceIllustration}
                 alt="Scout Credit — doanh nghiệp mở hồ sơ và chủ động liên lạc với ứng viên"
                 className="w-full max-w-[380px] object-contain"
               />
@@ -978,7 +1027,7 @@ function ScoutPerformanceConfirmModal({
   requirementNote = '',
   onRequirementNoteChange,
 }) {
-  const [step, setStep] = useState('jd')
+  const [step, setStep] = useState('confirm')
   const [selectedJobId, setSelectedJobId] = useState(initialJobId || '')
   const skipJdStep = !!initialJobId
 
@@ -989,13 +1038,13 @@ function ScoutPerformanceConfirmModal({
 
   useEffect(() => {
     if (!open) {
-      setStep(skipJdStep ? 'confirm' : 'jd')
+      setStep('confirm')
       setSelectedJobId(initialJobId || '')
       return
     }
-    setStep(skipJdStep ? 'confirm' : 'jd')
+    setStep('confirm')
     setSelectedJobId(initialJobId || '')
-  }, [open, initialJobId, skipJdStep])
+  }, [open, initialJobId])
 
   if (!open) return null
 
@@ -1009,6 +1058,14 @@ function ScoutPerformanceConfirmModal({
       wantsSimilarCandidates: !!wantsSimilar,
       message: requirementNote?.trim() || undefined,
     })
+  }
+
+  const handleConfirmStepContinue = () => {
+    if (skipJdStep) {
+      handleConfirm()
+      return
+    }
+    setStep('jd')
   }
 
   return (
@@ -1032,9 +1089,84 @@ function ScoutPerformanceConfirmModal({
 
         <div className="px-6 pt-6 pb-5 sm:px-8 sm:pt-7">
           <h2 className="pr-10 text-lg font-bold leading-snug text-slate-900 sm:text-xl">
-            {step === 'jd' ? 'Chọn JD cho WS hearing' : 'Xác nhận '}
-            {step === 'confirm' && <span className="text-[#E30613]">Scout Performance</span>}
+            {step === 'jd' ? (
+              'Chọn JD cho WS hearing'
+            ) : (
+              <>
+                Xác nhận{' '}
+                <span className="text-[#E30613]">Scout Performance</span>
+              </>
+            )}
           </h2>
+
+          {step === 'confirm' && (
+            <>
+              {skipJdStep && selectedJob ? (
+                <div className="mt-3 rounded-lg bg-[#e8f4fa] px-4 py-2.5 text-sm text-[#006399]">
+                  JD: <strong>{selectedJob.title || selectedJob.titleEn}</strong>
+                </div>
+              ) : null}
+
+              <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-[1fr_minmax(280px,44%)] sm:gap-6 sm:items-start">
+                <div className="space-y-3 text-sm font-medium leading-[1.65] text-slate-700 sm:text-[15px]">
+                  <p>
+                    Scout Performance là dịch vụ Workstation thay mặt doanh nghiệp tiếp cận ứng viên,
+                    xác nhận mức độ quan tâm và hỗ trợ kết nối phù hợp.
+                  </p>
+                  <p>
+                    Doanh nghiệp <span className="font-bold text-slate-900">không cần sử dụng credit</span>.
+                    WS sẽ chủ động liên hệ và cập nhật tiến độ qua hệ thống.
+                  </p>
+                </div>
+                <div className="flex items-center justify-center sm:justify-end">
+                  <img
+                    src={creditIllustration}
+                    alt="Scout Performance"
+                    className="w-full max-w-[380px] object-contain"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-5 overflow-hidden rounded-xl border border-slate-200">
+                <div className="bg-slate-50 px-4 py-2 text-xs font-bold text-slate-600">
+                  Bảng phí tham khảo (khi tuyển thành công)
+                </div>
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-slate-500">
+                      <th className="px-4 py-2 font-semibold">Cấp bậc</th>
+                      <th className="px-4 py-2 font-semibold">Kinh nghiệm</th>
+                      <th className="px-4 py-2 font-semibold">Phí giới thiệu</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {SCOUT_PERFORMANCE_FEE_TIERS.map((tier, idx) => (
+                      <tr key={tier.level} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
+                        <td className="px-4 py-2 font-semibold text-slate-800">{tier.level}</td>
+                        <td className="px-4 py-2 text-slate-600">{tier.range}</td>
+                        <td className="px-4 py-2 font-bold text-[#E30613]">{tier.fee}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500">
+                  Phí tính trên thu nhập năm ứng viên. Hợp đồng B2B — liên hệ WS để chốt mức phí cụ thể.
+                </p>
+              </div>
+
+              <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => onAgreedChange?.(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#E30613] focus:ring-[#E30613]"
+                />
+                <span className="text-sm font-medium leading-snug text-slate-700 sm:text-[15px]">
+                  Tôi đã đọc, hiểu rõ nội dung dịch vụ và đồng ý với điều kiện phí nêu trên.
+                </span>
+              </label>
+            </>
+          )}
 
           {step === 'jd' && (
             <div className="mt-5 space-y-4">
@@ -1079,95 +1211,20 @@ function ScoutPerformanceConfirmModal({
               </label>
             </div>
           )}
-
-          {step === 'confirm' && (
-            <>
-              {selectedJob && (
-                <div className="mt-3 rounded-lg bg-[#e8f4fa] px-4 py-2.5 text-sm text-[#006399]">
-                  JD: <strong>{selectedJob.title || selectedJob.titleEn}</strong>
-                </div>
-              )}
-
-              <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-[1fr_minmax(280px,44%)] sm:gap-6 sm:items-start">
-                <div className="space-y-3 text-sm font-medium leading-[1.65] text-slate-700 sm:text-[15px]">
-                  <p>
-                    Scout Performance là dịch vụ Workstation thay mặt doanh nghiệp tiếp cận ứng viên,
-                    xác nhận mức độ quan tâm và hỗ trợ kết nối phù hợp.
-                  </p>
-                  <p>
-                    Doanh nghiệp <span className="font-bold text-slate-900">không cần sử dụng credit</span>.
-                    WS sẽ chủ động liên hệ và cập nhật tiến độ qua hệ thống.
-                  </p>
-                </div>
-                <div className="flex items-center justify-center sm:justify-end">
-                  <img
-                    src={performanceIllustration}
-                    alt="Scout Performance"
-                    className="w-full max-w-[380px] object-contain"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-5 overflow-hidden rounded-xl border border-slate-200">
-                <div className="bg-slate-50 px-4 py-2 text-xs font-bold text-slate-600">
-                  Bảng phí tham khảo (khi tuyển thành công)
-                </div>
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-slate-500">
-                      <th className="px-4 py-2 font-semibold">Cấp bậc</th>
-                      <th className="px-4 py-2 font-semibold">Kinh nghiệm</th>
-                      <th className="px-4 py-2 font-semibold">Phí giới thiệu</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {SCOUT_PERFORMANCE_FEE_TIERS.map((tier, idx) => (
-                      <tr key={tier.level} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
-                        <td className="px-4 py-2 font-semibold text-slate-800">{tier.level}</td>
-                        <td className="px-4 py-2 text-slate-600">{tier.range}</td>
-                        <td className="px-4 py-2 font-bold text-[#E30613]">{tier.fee}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500">
-                  Phí tính trên thu nhập năm ứng viên. Hợp đồng B2B — liên hệ WS để chốt mức phí cụ thể.
-                </p>
-              </div>
-
-              {wantsSimilar && (
-                <div className="mt-4 rounded-lg border border-[#cce5f0] bg-[#e8f4fa] px-4 py-2.5 text-sm text-[#006399]">
-                  ✓ Bạn đã chọn tìm thêm ứng viên tương tự (headhunt)
-                </div>
-              )}
-
-              <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                <input
-                  type="checkbox"
-                  checked={agreed}
-                  onChange={(e) => onAgreedChange?.(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#E30613] focus:ring-[#E30613]"
-                />
-                <span className="text-sm font-medium leading-snug text-slate-700 sm:text-[15px]">
-                  Tôi đã đọc, hiểu rõ nội dung dịch vụ và đồng ý với điều kiện phí nêu trên.
-                </span>
-              </label>
-            </>
-          )}
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-6 py-4 sm:px-8">
           <div>
-            {step === 'confirm' && !skipJdStep && (
+            {step === 'jd' ? (
               <button
                 type="button"
                 disabled={loading}
-                onClick={() => setStep('jd')}
+                onClick={() => setStep('confirm')}
                 className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
               >
                 Quay lại
               </button>
-            )}
+            ) : null}
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -1178,19 +1235,23 @@ function ScoutPerformanceConfirmModal({
             >
               Hủy
             </button>
-            {step === 'jd' ? (
+            {step === 'confirm' ? (
               <button
                 type="button"
-                disabled={!canProceedJd}
-                onClick={() => setStep('confirm')}
+                disabled={loading || !agreed}
+                onClick={handleConfirmStepContinue}
                 className="rounded-lg bg-[#0077B6] px-4 py-2 text-sm font-semibold text-white hover:bg-[#006399] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Tiếp tục
+                {loading
+                  ? 'Đang gửi yêu cầu...'
+                  : skipJdStep
+                    ? 'Xác nhận và gửi yêu cầu'
+                    : 'Tiếp tục'}
               </button>
             ) : (
               <button
                 type="button"
-                disabled={loading || !agreed}
+                disabled={loading || !canProceedJd}
                 onClick={handleConfirm}
                 className="rounded-lg bg-[#E30613] px-4 py-2 text-sm font-semibold text-white hover:bg-[#c90511] disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -2091,6 +2152,7 @@ const Scout = () => {
 export default Scout
 
 export {
+  ScoutUnlockOptionCard,
   ScoutUnlockCompareTable,
   ScoutCreditConfirmModal,
   ScoutPerformanceConfirmModal,

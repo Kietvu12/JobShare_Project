@@ -8,7 +8,6 @@ import {
 import apiService from '../../services/api';
 import useBusinessUser from '../../hooks/useBusinessUser';
 import JdTemplate from '../Admin/AddJob/JdTemplate';
-import BusinessJobDetailEmbed from './BusinessJobDetailEmbed';
 import JobCreatedNextStepsModal, { navigateJobCreatedNextStep } from './JobCreatedNextStepsModal';
 import {
   JD_LANGUAGE_TABS,
@@ -83,6 +82,8 @@ const JOB_STATUS_OPTIONS = [
 
 const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   embedded = false,
+  hideToolbarTitle = false,
+  skipAutoBoot = false,
   activeThreadId: activeThreadIdProp = null,
   savedJobId: savedJobIdProp = null,
   onJobSaved,
@@ -137,13 +138,11 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   const [bootLoading, setBootLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [workspaceMode, setWorkspaceMode] = useState('builder');
   const [mobileBuilderPane, setMobileBuilderPane] = useState('chat');
   const [activeThreadId, setActiveThreadId] = useState(activeThreadIdProp || null);
   const [savedJobId, setSavedJobId] = useState(savedJobIdProp || null);
   const [jdOriginalFile, setJdOriginalFile] = useState(null);
   const [jdOriginalStored, setJdOriginalStored] = useState(null);
-  const [detailRefreshKey, setDetailRefreshKey] = useState(0);
   const [nextStepsModal, setNextStepsModal] = useState({ open: false, jobId: null });
 
   useEffect(() => { if (activeThreadIdProp) setActiveThreadId(activeThreadIdProp); }, [activeThreadIdProp]);
@@ -420,49 +419,51 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
 
   const loadThread = useCallback(async (thread) => {
     if (!thread) return;
+    setBootLoading(true);
     setError('');
-    setBootLoading(false);
-    setActiveThreadId(thread.id);
-    setSavedJobId(thread.jobId || null);
-    applyFormSnapshot(thread.formSnapshot);
-    setJdOriginalStored(thread.jdOriginalStored || null);
-    setJdOriginalFile(storedJdToFile(thread.jdOriginalStored));
-    setWorkspaceMode(thread.jobId ? 'detail' : 'builder');
-
-    if (thread.jobId) {
-      try {
-        const res = await apiService.getBusinessJobById(thread.jobId);
-        const st = res?.data?.job?.status;
-        if (res?.success && st != null) {
-          setFormData((prev) => ({ ...prev, status: st }));
+    try {
+      setActiveThreadId(thread.id);
+      setSavedJobId(thread.jobId || null);
+      applyFormSnapshot(thread.formSnapshot);
+      setJdOriginalStored(thread.jdOriginalStored || null);
+      setJdOriginalFile(storedJdToFile(thread.jdOriginalStored));
+      if (thread.jobId) {
+        try {
+          const res = await apiService.getBusinessJobById(thread.jobId);
+          const st = res?.data?.job?.status;
+          if (res?.success && st != null) {
+            setFormData((prev) => ({ ...prev, status: st }));
+          }
+        } catch {
+          /* giữ status từ snapshot nếu có */
         }
-      } catch {
-        /* giữ status từ snapshot nếu có */
       }
-    }
 
-    const storedMessages = Array.isArray(thread.messages) ? thread.messages : [];
-    if (thread.sessionId) {
-      setSessionId(thread.sessionId);
-      storeSessionId(thread.sessionId);
-      sessionStartedRef.current = true;
-      try {
-        const data = await apiService.jdBuilderGetSession(thread.sessionId);
-        applySessionResponseRef.current(data);
-        setMessages(mergeServerMessages(storedMessages, data?.messages));
-      } catch {
+      const storedMessages = Array.isArray(thread.messages) ? thread.messages : [];
+      if (thread.sessionId) {
+        setSessionId(thread.sessionId);
+        storeSessionId(thread.sessionId);
+        sessionStartedRef.current = true;
+        try {
+          const data = await apiService.jdBuilderGetSession(thread.sessionId);
+          applySessionResponseRef.current(data);
+          setMessages(mergeServerMessages(storedMessages, data?.messages));
+        } catch {
+          storeSessionId('');
+          setSessionId('');
+          sessionStartedRef.current = false;
+          setMessages(storedMessages);
+          if (storedMessages.length === 0) await startSessionRef.current();
+        }
+      } else {
+        setMessages(storedMessages);
         storeSessionId('');
         setSessionId('');
         sessionStartedRef.current = false;
-        setMessages(storedMessages);
         if (storedMessages.length === 0) await startSessionRef.current();
       }
-    } else {
-      setMessages(storedMessages);
-      storeSessionId('');
-      setSessionId('');
-      sessionStartedRef.current = false;
-      if (storedMessages.length === 0) await startSessionRef.current();
+    } finally {
+      setBootLoading(false);
     }
   }, [applyFormSnapshot]);
 
@@ -493,8 +494,8 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
         /* optional */
       }
 
-      if (embedded) {
-        if (!cancelled) setBootLoading(false);
+      if (embedded || skipAutoBoot) {
+        if (!cancelled && !skipAutoBoot) setBootLoading(false);
         return;
       }
 
@@ -632,7 +633,6 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
         ts: Date.now(),
       };
       setMessages((prev) => [...prev, successMsg]);
-      setWorkspaceMode('builder');
 
       const nextTitle =
         (typeof titleHint === 'string' && titleHint.trim())
@@ -725,8 +725,6 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
         if (isCreate && showNextStepsOnCreate) {
           setNextStepsModal({ open: true, jobId: newJobId });
         }
-        setDetailRefreshKey((k) => k + 1);
-        setWorkspaceMode('detail');
       }
     } catch (err) {
       setError(err?.message || 'Không thể lưu job');
@@ -774,7 +772,6 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     setHighlightKeys(fresh.highlightKeys);
     setJobValues([]);
     setJdTemplateSyncKey((k) => k + 1);
-    setWorkspaceMode('builder');
 
     // Box mới = lưu DB ngay (trước cả AI)
     const clientId = createJobBuilderThreadId();
@@ -819,6 +816,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       });
     }
     inputRef.current?.focus();
+    setBootLoading(false);
   }, [businessUser, companyName, startSession, ensureThreadSaved]);
 
   useImperativeHandle(ref, () => ({
@@ -967,64 +965,55 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     <div className={`flex flex-col h-full min-h-0 min-w-0 overflow-hidden ${embedded ? 'bg-white' : ''}`}>
       {/* Toolbar */}
       <div className={`shrink-0 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-b border-slate-100 bg-white ${
-        compactUi ? 'px-1.5 py-1' : 'px-2 py-2 lg:px-3 lg:py-2.5 gap-y-1.5 lg:gap-x-3 lg:gap-y-2'
+        compactUi ? 'px-1.5 py-1' : 'px-3 py-2 lg:px-4 lg:py-2.5 gap-y-1.5 lg:gap-x-3 lg:gap-y-2'
       }`}
       >
-        <div className="min-w-0 flex-1">
-          <h2 className={titleCls}>
-            {isEditingSavedJob ? 'Chỉnh sửa JD với AI' : 'Tạo JD với AI'}
-          </h2>
-          <p className={`truncate ${mutedCls}`}>
-            {workspaceMode === 'detail'
-              ? 'Xem chi tiết JD đã lưu · Scout · landing'
-              : isEditingSavedJob
+        {!hideToolbarTitle ? (
+          <div className="min-w-0 flex-1">
+            <h2 className={titleCls}>
+              {isEditingSavedJob ? 'Chỉnh sửa JD với AI' : 'Tạo JD với AI'}
+            </h2>
+            <p className={`truncate ${mutedCls}`}>
+              {isEditingSavedJob
                 ? 'Chỉnh sửa nội dung qua chat và template JD'
                 : 'Chat với AI và xem trước template JD'}
-          </p>
-        </div>
-        <div className={`flex flex-wrap items-center justify-end shrink-0 ${compactUi ? 'gap-1' : 'gap-1 lg:gap-2'}`}>
-          <div className="inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5">
+            </p>
+          </div>
+        ) : (
+          <div className="min-w-0 flex-1" />
+        )}
+        <div className={`flex flex-wrap items-center justify-end shrink-0 ${compactUi ? 'gap-1' : 'gap-1.5 lg:gap-2'}`}>
+          {isEditingSavedJob && savedJobId ? (
             <button
               type="button"
-              onClick={() => setWorkspaceMode('builder')}
-              className={`px-2 py-0.5 rounded-md transition-colors ${tabTextCls} ${
-                compactUi ? 'px-1 py-0.5' : 'lg:px-2.5 lg:py-1'
-              } ${workspaceMode === 'builder' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              onClick={() => navigate(`/business/jobs/${savedJobId}`)}
+              className={`inline-flex items-center rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-semibold ${
+                compactUi ? `${bodyCls} py-0.5 px-1.5` : 'text-xs py-1.5 px-2.5 lg:py-2 lg:px-3'
+              }`}
             >
-              {isEditingSavedJob ? 'Chỉnh sửa' : 'Tạo JD'}
+              Xem chi tiết job
+            </button>
+          ) : null}
+          <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileBuilderPane('chat')}
+              className={`px-2 py-0.5 rounded-md transition-colors ${tabTextCls} ${
+                mobileBuilderPane === 'chat' ? 'bg-slate-100 text-slate-800' : 'text-slate-500'
+              }`}
+            >
+              Chat
             </button>
             <button
               type="button"
-              onClick={() => setWorkspaceMode('detail')}
+              onClick={() => setMobileBuilderPane('preview')}
               className={`px-2 py-0.5 rounded-md transition-colors ${tabTextCls} ${
-                compactUi ? 'px-1 py-0.5' : 'lg:px-2.5 lg:py-1'
-              } ${workspaceMode === 'detail' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                mobileBuilderPane === 'preview' ? 'bg-slate-100 text-slate-800' : 'text-slate-500'
+              }`}
             >
-              Chi tiết job
+              Template
             </button>
           </div>
-          {workspaceMode === 'builder' && (
-            <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 lg:hidden">
-              <button
-                type="button"
-                onClick={() => setMobileBuilderPane('chat')}
-                className={`px-2 py-0.5 rounded-md transition-colors ${tabTextCls} ${
-                  mobileBuilderPane === 'chat' ? 'bg-slate-100 text-slate-800' : 'text-slate-500'
-                }`}
-              >
-                Chat
-              </button>
-              <button
-                type="button"
-                onClick={() => setMobileBuilderPane('preview')}
-                className={`px-2 py-0.5 rounded-md transition-colors ${tabTextCls} ${
-                  mobileBuilderPane === 'preview' ? 'bg-slate-100 text-slate-800' : 'text-slate-500'
-                }`}
-              >
-                Template
-              </button>
-            </div>
-          )}
           <label className={`inline-flex items-center gap-1 shrink-0 ${compactUi ? '' : 'lg:gap-1.5'}`}>
             <span className={`${mutedCls} font-medium whitespace-nowrap hidden sm:inline`}>Trạng thái</span>
             <select
@@ -1060,19 +1049,14 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
         </div>
       )}
 
-      {workspaceMode === 'detail' ? (
-        <div className="flex-1 min-h-0 overflow-hidden bg-slate-50">
-          <BusinessJobDetailEmbed key={`${savedJobId || 'new'}-${detailRefreshKey}`} jobId={savedJobId} />
-        </div>
-      ) : (
       <div className={`flex-1 min-h-0 grid grid-cols-1 gap-0 overflow-hidden ${
         compactUi
           ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]'
-          : 'lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]'
+          : 'lg:grid-cols-[minmax(320px,2fr)_minmax(0,3fr)]'
       }`}
       >
-        {/* Chat column — luôn hiện cùng template trên desktop */}
-        <div className={`flex flex-col min-h-0 min-w-0 overflow-x-hidden border-r border-slate-100 ${
+        {/* Chat column */}
+        <div className={`flex h-full min-h-0 flex-col min-w-0 overflow-hidden border-r border-slate-100 ${
           mobileBuilderPane === 'preview' ? 'hidden lg:flex' : 'flex'
         }`}
         >
@@ -1159,7 +1143,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
             />
             <div className={`w-full min-w-0 ${embedded ? '' : 'max-w-2xl mx-auto'}`}>
               <div
-                className={`w-full flex items-center gap-1.5 border border-slate-200 bg-white shadow-sm focus-within:border-slate-300 focus-within:shadow-md transition-shadow ${
+                className={`w-full flex items-end gap-1.5 border border-slate-200 bg-white shadow-sm focus-within:border-slate-300 focus-within:shadow-md transition-shadow ${
                   compactUi ? 'rounded-2xl px-2 py-1' : 'rounded-2xl lg:rounded-3xl px-2 py-1.5 lg:px-3 lg:py-2 gap-1.5 lg:gap-2'
                 }`}
               >
@@ -1167,7 +1151,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 type="button"
                 onClick={handleFileUploadClick}
                 disabled={parseLoading}
-                className={`${hitCls} rounded-full shrink-0 self-center border border-slate-200 bg-transparent text-[#0077B6] hover:border-[#0077B6]/40 hover:text-[#0077B6] disabled:opacity-40`}
+                className={`${hitCls} inline-flex items-center justify-center rounded-full shrink-0 mb-0.5 border border-slate-200 bg-transparent text-[#0077B6] hover:border-[#0077B6]/40 hover:text-[#0077B6] disabled:opacity-40 [&_svg]:block`}
                 title="Tải file JD (PDF, DOC, DOCX)"
               >
                 {parseLoading ? <Loader2 className={`${iconCls} animate-spin`} /> : <Plus className={iconCls} />}
@@ -1179,8 +1163,8 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 rows={1}
                 placeholder="Mô tả vị trí cần tuyển..."
                 disabled={parseLoading}
-                className={`flex-1 min-w-0 resize-none bg-transparent outline-none placeholder:text-slate-400 max-h-28 disabled:opacity-50 leading-snug ${
-                  compactUi ? `${bodyCls} text-slate-800 py-1.5` : 'text-[12px] lg:text-[13px] text-slate-800 py-2 lg:py-2.5'
+                className={`flex-1 min-w-0 resize-none bg-transparent outline-none placeholder:text-slate-400 max-h-28 disabled:opacity-50 leading-normal ${
+                  compactUi ? `${bodyCls} text-slate-800 py-1.5` : 'text-[12px] lg:text-[13px] text-slate-800 py-1.5 lg:py-2'
                 }`}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -1193,7 +1177,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 type="button"
                 disabled={loading || parseLoading || !input.trim() || !sessionId}
                 onClick={() => sendMessage(input)}
-                className={`${hitCls} rounded-full shrink-0 self-center border border-[#0077B6]/35 bg-transparent text-[#0077B6] hover:border-[#0077B6]/55 disabled:opacity-40 disabled:border-slate-200 disabled:text-slate-300`}
+                className={`${hitCls} inline-flex items-center justify-center rounded-full shrink-0 mb-0.5 border border-[#0077B6]/35 bg-transparent text-[#0077B6] hover:border-[#0077B6]/55 disabled:opacity-40 disabled:border-slate-200 disabled:text-slate-300 [&_svg]:block`}
               >
                 <Send className={iconCls} />
               </button>
@@ -1206,7 +1190,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
         </div>
 
         {/* Template column */}
-        <div className={`flex flex-col min-h-0 min-w-0 bg-slate-50/50 ${
+        <div className={`flex h-full min-h-0 flex-col min-w-0 bg-slate-50/50 ${
           mobileBuilderPane === 'chat' ? 'hidden lg:flex' : 'flex'
         }`}
         >
@@ -1269,7 +1253,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 <JdTemplate
                   key={jdTemplateSyncKey}
                   compactPreview={compactUi}
-                  businessBranding={embedded}
+                  businessBranding
                   lang={languageTab}
                   formData={formData}
                   setFormData={setFormData}
@@ -1300,7 +1284,6 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
             </>
         </div>
       </div>
-      )}
     </div>
     </>
   );

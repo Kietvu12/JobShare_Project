@@ -1,703 +1,900 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  Plus, Search, Trash2, MoreHorizontal,
-  MessageSquare, PanelLeft, X,
+  Plus, Search, MoreHorizontal, LayoutList, LayoutGrid,
+  Briefcase, MapPin, Clock,
+  Copy, Pause, XCircle, Eye, Pencil, Loader2, ChevronDown, RotateCcw,
+  Star, ChevronLeft, ChevronRight,
 } from 'lucide-react'
-import JobAiBuilderPanel from '../../component/Bussiness/JobAiBuilderPanel'
-import DeleteJobBuilderThreadModal from '../../component/Bussiness/DeleteJobBuilderThreadModal'
+import FilterSelectDropdown from '../../component/Shared/FilterSelectDropdown'
+import apiService from '../../services/api'
+import useBusinessUser from '../../hooks/useBusinessUser'
 import {
-  deleteJobBuilderThread,
-  ensureJobBuilderThreadForJob,
-  getJobBuilderThread,
-  getJobBuilderThreadByJobId,
   importLegacyJobBuilderThreadsFromLocalStorage,
   listJobBuilderThreads,
 } from '../../utils/jobBuilderThreadStorage'
-import {
-  clearPendingMarketplaceListingDraft,
-  createAndSubmitMarketplaceListing,
-  peekPendingMarketplaceListingDraft,
-} from '../../utils/marketplaceListingFlow'
-import apiService from '../../services/api'
-import useBusinessUser from '../../hooks/useBusinessUser'
 
 const BUSINESS_JOBS_FONT =
   "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 
-const THREAD_ICON_CLASS = 'border border-slate-200 bg-white text-[#1e3a5f]'
-
 const JD_NAVY = '#0f2744'
 const JD_NAVY_MID = '#1e3a5f'
 
-function formatThreadDate(value) {
-  if (!value) return ''
+const STATUS_TABS = [
+  { id: 'all', label: 'Tất cả' },
+  { id: 'recruiting', label: 'Đang tuyển', statuses: [1] },
+  { id: 'draft', label: 'Nháp', statuses: [0] },
+  { id: 'paused', label: 'Tạm dừng', statuses: [] },
+  { id: 'closed', label: 'Đã đóng', statuses: [2, 3] },
+]
+
+const SORT_OPTIONS = [
+  { value: 'updated', label: 'Mới cập nhật' },
+  { value: 'created', label: 'Mới tạo' },
+  { value: 'title', label: 'Tên JD' },
+]
+
+const STATUS_FILTER_OPTIONS = [
+  { value: 'all', label: 'Tất cả trạng thái' },
+  { value: 'recruiting', label: 'Đang tuyển' },
+  { value: 'draft', label: 'Nháp' },
+  { value: 'paused', label: 'Tạm dừng' },
+  { value: 'closed', label: 'Đã đóng' },
+]
+
+const DATE_FILTER_OPTIONS = [
+  { value: '', label: 'Tất cả thời gian' },
+  { value: '7d', label: '7 ngày qua' },
+  { value: '30d', label: '30 ngày qua' },
+  { value: '90d', label: '90 ngày qua' },
+]
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50]
+
+const ROW_ICON_VARIANTS = [
+  { bg: 'bg-sky-100', text: 'text-sky-600' },
+  { bg: 'bg-violet-100', text: 'text-violet-600' },
+  { bg: 'bg-emerald-100', text: 'text-emerald-600' },
+  { bg: 'bg-amber-100', text: 'text-amber-600' },
+  { bg: 'bg-rose-100', text: 'text-rose-600' },
+]
+
+const INTERVIEW_STATUSES = new Set([7, 8, 9])
+const HIRED_STATUSES = new Set([14, 15])
+
+const EMPTY_JOB_STATS = { candidates: 0, referrals: 0, interviews: 0, hired: 0 }
+
+const FILTER_SELECT_CLASS =
+  'w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-700 outline-none focus:border-[#0077B6]/40'
+
+function buildJobStatsMap(applications = []) {
+  const map = {}
+  applications.forEach((app) => {
+    const jobId = String(app?.jobId ?? app?.job_id ?? '')
+    if (!jobId) return
+    if (!map[jobId]) {
+      map[jobId] = { candidateIds: new Set(), referrals: 0, interviews: 0, hired: 0 }
+    }
+    const bucket = map[jobId]
+    bucket.referrals += 1
+    const cvId = app?.cvId ?? app?.cv_id ?? app?.cvStorageId
+    if (cvId != null) bucket.candidateIds.add(String(cvId))
+    const status = Number(app?.status)
+    if (INTERVIEW_STATUSES.has(status)) bucket.interviews += 1
+    if (HIRED_STATUSES.has(status)) bucket.hired += 1
+  })
+  const result = {}
+  Object.entries(map).forEach(([jobId, bucket]) => {
+    result[jobId] = {
+      candidates: bucket.candidateIds.size,
+      referrals: bucket.referrals,
+      interviews: bucket.interviews,
+      hired: bucket.hired,
+    }
+  })
+  return result
+}
+
+function getJobStats(job, statsMap) {
+  const fromApps = statsMap[String(job.id)] || EMPTY_JOB_STATS
+  const referrals = Math.max(fromApps.referrals, Number(job.applicationCount) || 0)
+  return {
+    candidates: fromApps.candidates,
+    referrals,
+    interviews: fromApps.interviews,
+    hired: fromApps.hired,
+  }
+}
+
+function getRowIconVariant(jobId) {
+  const n = Number(jobId) || 0
+  return ROW_ICON_VARIANTS[n % ROW_ICON_VARIANTS.length]
+}
+
+function JobMetricColumn({ value, label }) {
+  return (
+    <div className="flex min-w-[56px] flex-col items-center text-center">
+      <span className="text-base font-bold leading-none text-[#0077B6] lg:text-lg">{value}</span>
+      <span className="mt-1 text-[10px] font-medium text-slate-500">{label}</span>
+    </div>
+  )
+}
+
+function JobListPagination({
+  page,
+  pageSize,
+  totalItems,
+  onPageChange,
+  onPageSizeChange,
+}) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
+  const safePage = Math.min(page, totalPages)
+  const start = totalItems === 0 ? 0 : (safePage - 1) * pageSize + 1
+  const end = Math.min(safePage * pageSize, totalItems)
+
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1)
+    if (safePage <= 3) return [1, 2, 3, 4, 5]
+    if (safePage >= totalPages - 2) {
+      return Array.from({ length: 5 }, (_, i) => totalPages - 4 + i)
+    }
+    return [safePage - 2, safePage - 1, safePage, safePage + 1, safePage + 2]
+  }, [safePage, totalPages])
+
+  if (totalItems === 0) return null
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-slate-200/90 bg-white px-3 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:px-4">
+      <p className="text-xs text-slate-500">
+        Hiển thị <strong className="text-slate-700">{start} – {end}</strong> trên{' '}
+        <strong className="text-slate-700">{totalItems}</strong> kết quả
+      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            disabled={safePage <= 1}
+            onClick={() => onPageChange(safePage - 1)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:opacity-40"
+            aria-label="Trang trước"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          {pageNumbers.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => onPageChange(p)}
+              className={`inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-semibold ${
+                p === safePage
+                  ? 'bg-[#0077B6] text-white'
+                  : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+          <button
+            type="button"
+            disabled={safePage >= totalPages}
+            onClick={() => onPageChange(safePage + 1)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:opacity-40"
+            aria-label="Trang sau"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="relative">
+          <select
+            value={pageSize}
+            onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            className="appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-2.5 pr-8 text-xs font-medium text-slate-700 outline-none"
+          >
+            {PAGE_SIZE_OPTIONS.map((size) => (
+              <option key={size} value={size}>Hiển thị {size}</option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function getJobCategoryId(job) {
+  return String(job?.jobCategoryId ?? job?.job_category_id ?? job?.category?.id ?? '')
+}
+
+function getJobCategoryName(job) {
+  const cat = job?.category || job?.jobCategory
+  return cat?.name || cat?.nameEn || cat?.nameJp || ''
+}
+
+function jobMatchesDateFilter(job, dateFilter) {
+  if (!dateFilter) return true
+  const updated = new Date(job?.updatedAt || job?.updated_at || 0)
+  if (Number.isNaN(updated.getTime())) return false
+  const days = dateFilter === '7d' ? 7 : dateFilter === '30d' ? 30 : 90
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000
+  return updated.getTime() >= cutoff
+}
+
+function JobFilterField({ label, children }) {
+  return (
+    <label className="block min-w-0">
+      <span className="mb-1 block text-[11px] font-semibold text-slate-600">{label}</span>
+      {children}
+    </label>
+  )
+}
+
+function getJobStatusMeta(status) {
+  const n = Number(status)
+  if (n === 1) return { label: 'Đang tuyển', color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' }
+  if (n === 0) return { label: 'Nháp', color: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' }
+  if (n === 4) return { label: 'Tạm dừng', color: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' }
+  if (n === 2 || n === 3) return { label: 'Đã đóng', color: 'bg-rose-100 text-rose-700', dot: 'bg-rose-500' }
+  return { label: 'Không xác định', color: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' }
+}
+
+function formatDate(value) {
+  if (!value) return '—'
   const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return ''
-  const now = new Date()
-  const diffDays = Math.max(0, Math.floor((now - d) / (1000 * 60 * 60 * 24)))
-  if (diffDays === 0) return 'Hôm nay'
-  if (diffDays === 1) return 'Hôm qua'
-  if (diffDays < 7) return `${diffDays} ngày trước`
+  if (Number.isNaN(d.getTime())) return '—'
   return d.toLocaleDateString('vi-VN')
 }
 
-function getThreadTitle(thread) {
-  return thread?.title || 'JD mới'
+function formatSalary(job) {
+  const min = job?.salaryMin ?? job?.salary_min
+  const max = job?.salaryMax ?? job?.salary_max
+  const unit = job?.salaryUnit || job?.salary_unit || 'JPY'
+  if (min == null && max == null) return 'Thỏa thuận'
+  if (min != null && max != null) return `${Number(min).toLocaleString('vi-VN')} – ${Number(max).toLocaleString('vi-VN')} ${unit}`
+  if (min != null) return `Từ ${Number(min).toLocaleString('vi-VN')} ${unit}`
+  return `Đến ${Number(max).toLocaleString('vi-VN')} ${unit}`
 }
 
-const jobManagementStyles = `
+function getJobLocation(job) {
+  return job?.interviewLocation
+    || job?.interview_location
+    || job?.workLocation
+    || job?.work_location
+    || job?.location
+    || '—'
+}
+
+function getRecruitmentLabel(job) {
+  const map = { 1: 'Chính thức', 2: 'Hợp đồng', 3: 'Phái cử', 4: 'Bán thời gian', 5: 'Uỷ thác' }
+  const t = Number(job?.recruitmentType ?? job?.recruitment_type)
+  return map[t] || 'Chính thức'
+}
+
+function getJobTitle(job) {
+  return job?.title || job?.titleEn || job?.titleJp || `JD #${job?.id}`
+}
+
+function getJobCode(job) {
+  return job?.jobCode || job?.job_code || job?.jobNumber || job?.job_number || `JD-${job?.id}`
+}
+
+const jobListStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
-  .business-jobs-shell {
-    --jobs-zoom: clamp(0.42, 0.40 + 0.009vw, 0.70);
-    --jobs-jd-zoom: clamp(0.50, 0.48 + 0.005vw, 0.64);
+  .business-jobs-list-shell {
     height: 100%;
     min-height: 0;
     font-family: ${BUSINESS_JOBS_FONT};
-  }
-  @media (min-width: 1024px) and (max-width: 1535px) {
-    .business-jobs-shell {
-      --jobs-zoom: clamp(0.38, 0.36 + 0.007vw, 0.54);
-      --jobs-jd-zoom: clamp(0.46, 0.44 + 0.004vw, 0.56);
-    }
-  }
-  @media (min-width: 1536px) {
-    .business-jobs-shell {
-      --jobs-zoom: clamp(0.52, 0.48 + 0.01vw, 0.78);
-      --jobs-jd-zoom: clamp(0.58, 0.54 + 0.006vw, 0.72);
-    }
-  }
-  @media (max-width: 1023px) {
-    .business-jobs-shell {
-      --jobs-zoom: clamp(0.40, 0.38 + 0.018vw, 0.58);
-    }
-  }
-  @media (max-height: 900px) and (min-width: 1024px) {
-    .business-jobs-shell {
-      --jobs-zoom: clamp(0.36, 0.34 + 0.006vw, 0.50);
-      --jobs-jd-zoom: clamp(0.44, 0.42 + 0.003vw, 0.52);
-    }
-  }
-  @media (max-height: 820px) and (min-width: 1024px) {
-    .business-jobs-shell {
-      --jobs-zoom: clamp(0.32, 0.30 + 0.005vw, 0.44);
-      --jobs-jd-zoom: clamp(0.40, 0.38 + 0.002vw, 0.48);
-    }
-  }
-  .business-jobs-ui .business-jd-preview-root {
-    --jobs-jd-extra: 0.62;
-    zoom: calc(var(--jobs-jd-zoom) * var(--jobs-jd-extra));
-    scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
-  }
-  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar {
-    width: 3px;
-    height: 3px;
-  }
-  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 999px;
-  }
-  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-  }
-  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-button,
-  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-corner {
-    display: none;
-    width: 0;
-    height: 0;
-  }
-  .business-jobs-ui .business-jd-preview-root .jd-template-compact {
-    font-size: var(--jd-fs-body);
-    line-height: 1.35;
-  }
-  .business-jobs-ui .business-jd-preview-root .jd-template-compact .jd-template-option-control,
-  .business-jobs-ui .business-jd-preview-root .jd-template-compact .jd-template-option-control option {
-    font-size: var(--jd-fs-body);
-    line-height: 1.35;
-  }
-  .business-jobs-ui .business-jd-preview-root .jd-template-compact.text-xs,
-  .business-jobs-ui .business-jd-preview-root .jd-template-compact .text-xs {
-    font-size: var(--jd-fs-body);
-    line-height: 1.35;
-  }
-  .business-jobs-ui .business-jd-preview-root .jd-template-compact .text-sm,
-  .business-jobs-ui .business-jd-preview-root .jd-template-compact .text-\\[10px\\] {
-    font-size: var(--jd-fs-title);
-    line-height: 1.35;
-  }
-  .business-jobs-ui .business-jd-preview-root .jd-template-compact .px-3 {
-    padding-left: 6px;
-    padding-right: 6px;
-  }
-  .business-jobs-ui .business-jd-preview-root .jd-template-compact .py-2 {
-    padding-top: 4px;
-    padding-bottom: 4px;
-  }
-  .business-jobs-ui .business-jd-preview-root .jd-template-compact .py-2\\.5 {
-    padding-top: 5px;
-    padding-bottom: 5px;
-  }
-  .business-jobs-ui .business-jd-preview-root .jd-template-compact .w-36 {
-    width: 6.25rem;
-  }
-  .business-jobs-ui .business-jd-preview-root .jd-template-compact .w-28 {
-    width: 5rem;
-  }
-  .business-jobs-ui .business-jd-preview-root .jd-template-compact .w-24 {
-    width: 4.25rem;
-  }
-  .business-jobs-ui .business-jd-preview-root .jd-template-compact .min-h-\\[60px\\] {
-    min-height: 2.25rem;
-  }
-  @supports not (zoom: 1) {
-    .business-jobs-ui .business-jd-preview-root {
-      transform: scale(calc(var(--jobs-jd-zoom) * var(--jobs-jd-extra, 0.62)));
-      transform-origin: top left;
-    }
-  }
-  .business-jobs-ui {
-    zoom: var(--jobs-zoom);
-    height: 100%;
-    min-height: 0;
-    --jd-fs-title: 10px;
-    --jd-fs-body: 9px;
-    --jd-icon: 14px;
-    --jd-icon-hit: 24px;
-  }
-  @media (min-width: 1280px) {
-    .business-jobs-ui {
-      --jd-fs-title: 11px;
-      --jd-fs-body: 10px;
-    }
-  }
-  .business-jobs-ui .biz-jd-title {
-    font-size: var(--jd-fs-title);
-    line-height: 1.35;
-    font-weight: 600;
-    color: ${JD_NAVY};
-  }
-  .business-jobs-ui .biz-jd-body {
-    font-size: var(--jd-fs-body);
-    line-height: 1.45;
-    color: #334155;
-  }
-  .business-jobs-ui .biz-jd-muted {
-    font-size: var(--jd-fs-body);
-    line-height: 1.45;
-    color: #64748b;
-  }
-  .business-jobs-ui .biz-jd-label {
-    font-size: var(--jd-fs-body);
-    line-height: 1.35;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #94a3b8;
-  }
-  .business-jobs-ui .biz-jd-icon {
-    width: var(--jd-icon);
-    height: var(--jd-icon);
-    flex-shrink: 0;
-  }
-  .business-jobs-ui .biz-jd-icon-hit {
-    width: var(--jd-icon-hit);
-    height: var(--jd-icon-hit);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  .business-jobs-ui .biz-jd-icon-hit > svg {
-    width: var(--jd-icon);
-    height: var(--jd-icon);
-  }
-  @supports not (zoom: 1) {
-    .business-jobs-ui {
-      transform: scale(var(--jobs-zoom));
-      transform-origin: top left;
-      width: calc(100% / var(--jobs-zoom));
-      height: calc(100% / var(--jobs-zoom));
-    }
+    background: #f4f6f8;
   }
 `
+
+function JobRowMenu({ job, onClose, onAction }) {
+  const items = [
+    { id: 'view', label: 'Xem chi tiết', icon: Eye },
+    { id: 'edit', label: 'Sửa JD', icon: Pencil },
+    { id: 'duplicate', label: 'Sao chép JD', icon: Copy },
+    { id: 'pause', label: 'Tạm dừng', icon: Pause, hidden: Number(job.status) !== 1 },
+    { id: 'close', label: 'Đóng JD', icon: XCircle, hidden: Number(job.status) === 2 || Number(job.status) === 3 },
+  ].filter((item) => !item.hidden)
+
+  return (
+    <>
+      <button type="button" className="fixed inset-0 z-30 cursor-default" aria-label="Đóng menu" onClick={onClose} />
+      <div className="absolute right-0 top-full z-40 mt-1 min-w-[160px] overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+        {items.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onAction(id)}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+          >
+            <Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+            {label}
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+
+function JobListRow({ job, stats, onOpen, onMenuAction }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const statusMeta = getJobStatusMeta(job.status)
+  const title = getJobTitle(job)
+  const iconVariant = getRowIconVariant(job.id)
+  const metrics = stats || EMPTY_JOB_STATS
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(job.id)}
+      onKeyDown={(e) => e.key === 'Enter' && onOpen(job.id)}
+      className="group relative flex cursor-pointer flex-col gap-3 rounded-xl border border-slate-200/90 bg-white px-3 py-3 transition hover:border-[#0077B6]/25 hover:bg-[#f8fbfd] sm:px-4 lg:flex-row lg:items-center"
+    >
+      <div className="flex min-w-0 flex-1 items-start gap-3 lg:items-center lg:gap-4">
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${iconVariant.bg} ${iconVariant.text}`}>
+          <Briefcase className="h-5 w-5" />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="truncate text-sm font-bold text-slate-900 lg:text-[15px]">{title}</h3>
+            <Star className="h-3.5 w-3.5 shrink-0 text-amber-400" aria-hidden />
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusMeta.color}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dot}`} />
+              {statusMeta.label}
+            </span>
+          </div>
+          <p className="mt-0.5 text-[11px] font-medium text-slate-500">{getJobCode(job)}</p>
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
+            <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3 shrink-0" />{getJobLocation(job)}</span>
+            <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3 shrink-0" />{getRecruitmentLabel(job)}</span>
+            <span>{formatSalary(job)}</span>
+          </div>
+        </div>
+
+        <div className="relative shrink-0 lg:hidden" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            aria-label="Thao tác"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+          {menuOpen ? (
+            <JobRowMenu
+              job={job}
+              onClose={() => setMenuOpen(false)}
+              onAction={(action) => {
+                setMenuOpen(false)
+                onMenuAction(action, job)
+              }}
+            />
+          ) : null}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2 border-t border-slate-100 pt-3 lg:flex lg:shrink-0 lg:items-center lg:gap-4 lg:border-0 lg:pt-0 xl:gap-5">
+        <JobMetricColumn value={metrics.candidates} label="Ứng viên" />
+        <JobMetricColumn value={metrics.referrals} label="Tiến cử" />
+        <JobMetricColumn value={metrics.interviews} label="Phỏng vấn" />
+        <JobMetricColumn value={metrics.hired} label="Tuyển thành công" />
+      </div>
+
+      <div className="hidden shrink-0 flex-col items-end gap-2 lg:flex">
+        <p className="whitespace-nowrap text-[10px] text-slate-400">
+          Cập nhật: {formatDate(job.updatedAt || job.updated_at)}
+        </p>
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            aria-label="Thao tác"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+          {menuOpen ? (
+            <JobRowMenu
+              job={job}
+              onClose={() => setMenuOpen(false)}
+              onAction={(action) => {
+                setMenuOpen(false)
+                onMenuAction(action, job)
+              }}
+            />
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DraftThreadRow({ thread, onOpen }) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(thread.id)}
+      onKeyDown={(e) => e.key === 'Enter' && onOpen(thread.id)}
+      className="flex cursor-pointer items-start gap-3 rounded-xl border border-dashed border-amber-200 bg-amber-50/50 px-3 py-3 transition hover:border-amber-300 sm:px-4"
+    >
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-amber-600">
+        <Briefcase className="h-5 w-5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="truncate text-sm font-bold text-slate-900">{thread.title || 'JD mới'}</h3>
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Nháp chat</span>
+        </div>
+        <p className="mt-1 text-[11px] text-slate-500">Phiên chat chưa lưu thành JD · Bấm để tiếp tục tạo</p>
+        <p className="mt-1 text-[10px] text-slate-400">Cập nhật: {formatDate(thread.updatedAt)}</p>
+      </div>
+    </div>
+  )
+}
 
 const JobManagement = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { user: businessUser } = useBusinessUser()
-  const urlJobId = searchParams.get('jobId')
-  const quickMarketplaceParam = searchParams.get('quickMarketplace') === '1'
-  const builderRef = useRef(null)
-  const initializedRef = useRef(false)
-  const lastOpenedJobIdRef = useRef(null)
-  const lastBusinessUserIdRef = useRef(businessUser?.id)
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [threads, setThreads] = useState([])
-  const [threadsLoading, setThreadsLoading] = useState(true)
-  const [activeThreadId, setActiveThreadId] = useState(null)
-  const [savedJobId, setSavedJobId] = useState(null)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [deleteThreadModal, setDeleteThreadModal] = useState({ open: false, thread: null })
-  const [deletingThread, setDeletingThread] = useState(false)
-  const [marketplaceQuickCreateActive, setMarketplaceQuickCreateActive] = useState(
-    () => Boolean(peekPendingMarketplaceListingDraft()),
-  )
-  const [marketplaceSubmitting, setMarketplaceSubmitting] = useState(false)
+  const [jobs, setJobs] = useState([])
+  const [draftThreads, setDraftThreads] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('search') || '')
+  const [statusTab, setStatusTab] = useState(searchParams.get('tab') || 'all')
+  const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || '')
+  const [locationFilter, setLocationFilter] = useState(searchParams.get('location') || '')
+  const [dateFilter, setDateFilter] = useState(searchParams.get('date') || '')
+  const [sortBy, setSortBy] = useState('updated')
+  const [viewMode, setViewMode] = useState('list')
+  const [jobStatsMap, setJobStatsMap] = useState({})
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const searchTimerRef = useRef(null)
 
-  const refreshThreads = useCallback(async () => {
+  const loadApplicationStats = useCallback(async () => {
     try {
-      const list = await listJobBuilderThreads()
-      setThreads(list)
-      return list
+      const all = []
+      let currentPage = 1
+      let totalPages = 1
+      do {
+        const res = await apiService.getBusinessApplications({ page: currentPage, limit: 100 })
+        if (!res?.success) break
+        all.push(...(res.data?.applications || []))
+        totalPages = res.data?.pagination?.totalPages || 0
+        currentPage += 1
+      } while (currentPage <= totalPages)
+      setJobStatsMap(buildJobStatsMap(all))
+    } catch {
+      setJobStatsMap({})
+    }
+  }, [])
+
+  const loadJobs = useCallback(async (search = '') => {
+    setLoading(true)
+    try {
+      const all = []
+      let page = 1
+      let totalPages = 1
+      do {
+        const res = await apiService.getBusinessJobs({
+          page,
+          limit: 50,
+          search: search || undefined,
+        })
+        if (!res?.success) break
+        all.push(...(res.data?.jobs || []))
+        totalPages = res.data?.pagination?.totalPages || 0
+        page += 1
+      } while (page <= totalPages)
+      setJobs(all)
     } catch (err) {
-      console.error('Không tải được danh sách phiên JD:', err)
-      return []
+      console.error(err)
+      setJobs([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const loadDraftThreads = useCallback(async () => {
+    try {
+      await importLegacyJobBuilderThreadsFromLocalStorage()
+      const threads = await listJobBuilderThreads()
+      setDraftThreads(threads.filter((t) => !t.jobId))
+    } catch {
+      setDraftThreads([])
     }
   }, [])
 
   useEffect(() => {
-    if (!businessUser?.id) return undefined
-    let cancelled = false
-    ;(async () => {
-      setThreadsLoading(true)
-      try {
-        await importLegacyJobBuilderThreadsFromLocalStorage()
-        if (!cancelled) await refreshThreads()
-      } catch {
-        if (!cancelled) await refreshThreads()
-      } finally {
-        if (!cancelled) setThreadsLoading(false)
-      }
-    })()
-    return () => { cancelled = true }
-  }, [businessUser?.id, refreshThreads])
+    if (!businessUser?.id) return
+    loadDraftThreads()
+    loadApplicationStats()
+  }, [businessUser?.id, loadDraftThreads, loadApplicationStats])
 
   useEffect(() => {
-    const id = businessUser?.id
-    if (!id) return
-    if (lastBusinessUserIdRef.current === id) return
-    const prev = lastBusinessUserIdRef.current
-    lastBusinessUserIdRef.current = id
-    // Lần đầu login: init effect lo loadThread / startNewSession
-    if (prev == null) return
-    // Đổi tài khoản: reset workspace + tạo box mới (lưu DB ngay)
-    refreshThreads()
-    setActiveThreadId(null)
-    setSavedJobId(null)
-    lastOpenedJobIdRef.current = null
-    builderRef.current?.startNewSession?.()
-  }, [businessUser?.id, refreshThreads])
-
-  const openJobById = useCallback(async (jobId) => {
-    const id = jobId != null && jobId !== '' ? String(jobId) : ''
-    if (!id) return
-    if (lastOpenedJobIdRef.current === id && activeThreadId) {
-      const existing = await getJobBuilderThreadByJobId(id)
-      if (existing?.id === activeThreadId) return
-    }
-    lastOpenedJobIdRef.current = id
-
-    let thread = await getJobBuilderThreadByJobId(id)
-    if (!thread) {
-      let title = ''
-      try {
-        const res = await apiService.getBusinessJobById(id)
-        const job = res?.data?.job || res?.data
-        title = job?.title || job?.titleEn || job?.titleJp || ''
-      } catch {
-        /* title mặc định trong ensure */
-      }
-      thread = await ensureJobBuilderThreadForJob(id, { title: title || undefined })
-    }
-    if (!thread) return
-
-    setActiveThreadId(thread.id)
-    setSavedJobId(thread.jobId || null)
-    await refreshThreads()
-    builderRef.current?.loadThread?.(thread)
-    setSidebarOpen(false)
-  }, [activeThreadId, refreshThreads])
-
-  useEffect(() => {
-    if (initializedRef.current || threadsLoading) return undefined
-    const timer = setTimeout(() => {
-      if (initializedRef.current) return
-      initializedRef.current = true
-
-      if (quickMarketplaceParam && peekPendingMarketplaceListingDraft()) {
-        const next = new URLSearchParams(searchParams)
-        next.delete('quickMarketplace')
-        setSearchParams(next, { replace: true })
-        lastOpenedJobIdRef.current = null
-        setActiveThreadId(null)
-        setSavedJobId(null)
-        setMarketplaceQuickCreateActive(true)
-        builderRef.current?.startNewSession?.()
-        return
-      }
-
-      if (urlJobId) {
-        openJobById(urlJobId)
-        return
-      }
-      listJobBuilderThreads().then(async (list) => {
-        if (list.length > 0) {
-          setActiveThreadId(list[0].id)
-          setSavedJobId(list[0].jobId || null)
-          const full = await getJobBuilderThread(list[0].id)
-          builderRef.current?.loadThread?.(full || list[0])
-        } else {
-          builderRef.current?.startNewSession?.()
-        }
-      })
-    }, 0)
-    return () => clearTimeout(timer)
-  }, [urlJobId, openJobById, quickMarketplaceParam, searchParams, setSearchParams, threadsLoading])
-
-  useEffect(() => {
-    if (!initializedRef.current || !urlJobId) return
-    openJobById(urlJobId)
-  }, [urlJobId, openJobById])
-
-  const filteredThreads = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-    if (!q) return threads
-    return threads.filter((thread) => getThreadTitle(thread).toLowerCase().includes(q))
-  }, [threads, searchQuery])
-
-  const handleNewJob = () => {
-    lastOpenedJobIdRef.current = null
-    if (searchParams.get('jobId')) {
-      const next = new URLSearchParams(searchParams)
-      next.delete('jobId')
+    if (!businessUser?.id) return
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    searchTimerRef.current = setTimeout(() => {
+      loadJobs(searchInput.trim())
+      const next = new URLSearchParams()
+      if (statusTab !== 'all') next.set('tab', statusTab)
+      if (searchInput.trim()) next.set('search', searchInput.trim())
+      if (categoryFilter) next.set('category', categoryFilter)
+      if (locationFilter) next.set('location', locationFilter)
+      if (dateFilter) next.set('date', dateFilter)
       setSearchParams(next, { replace: true })
+    }, 350)
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
     }
-    setActiveThreadId(null)
-    setSavedJobId(null)
-    builderRef.current?.startNewSession?.()
+  }, [searchInput, businessUser?.id, loadJobs, setSearchParams, statusTab, categoryFilter, locationFilter, dateFilter])
+
+  const categoryOptions = useMemo(() => {
+    const map = new Map()
+    jobs.forEach((job) => {
+      const id = getJobCategoryId(job)
+      if (!id) return
+      const label = getJobCategoryName(job) || `Ngành #${id}`
+      map.set(id, label)
+    })
+    return [
+      { value: '', label: 'Tất cả ngành nghề' },
+      ...Array.from(map.entries())
+        .sort((a, b) => a[1].localeCompare(b[1], 'vi'))
+        .map(([value, label]) => ({ value, label })),
+    ]
+  }, [jobs])
+
+  const locationOptions = useMemo(() => {
+    const set = new Set()
+    jobs.forEach((job) => {
+      const loc = getJobLocation(job)
+      if (loc && loc !== '—') set.add(loc)
+    })
+    return [
+      { value: '', label: 'Tất cả địa điểm' },
+      ...Array.from(set)
+        .sort((a, b) => a.localeCompare(b, 'vi'))
+        .map((loc) => ({ value: loc, label: loc })),
+    ]
+  }, [jobs])
+
+  const tabCounts = useMemo(() => {
+    const counts = { all: jobs.length, recruiting: 0, draft: 0, paused: 0, closed: 0 }
+    jobs.forEach((job) => {
+      const s = Number(job.status)
+      if (s === 1) counts.recruiting += 1
+      if (s === 0) counts.draft += 1
+      if (s === 2 || s === 3) counts.closed += 1
+    })
+    counts.draft += draftThreads.length
+    return counts
+  }, [jobs, draftThreads])
+
+  const filteredJobs = useMemo(() => {
+    const tab = STATUS_TABS.find((t) => t.id === statusTab)
+    let list = jobs
+    if (tab?.statuses?.length) {
+      list = list.filter((job) => tab.statuses.includes(Number(job.status)))
+    } else if (statusTab === 'paused') {
+      list = []
+    }
+    if (categoryFilter) {
+      list = list.filter((job) => getJobCategoryId(job) === String(categoryFilter))
+    }
+    if (locationFilter) {
+      list = list.filter((job) => getJobLocation(job) === locationFilter)
+    }
+    if (dateFilter) {
+      list = list.filter((job) => jobMatchesDateFilter(job, dateFilter))
+    }
+    return [...list].sort((a, b) => {
+      if (sortBy === 'title') {
+        return getJobTitle(a).localeCompare(getJobTitle(b), 'vi')
+      }
+      if (sortBy === 'created') {
+        return new Date(b.createdAt || b.created_at || 0) - new Date(a.createdAt || a.created_at || 0)
+      }
+      return new Date(b.updatedAt || b.updated_at || 0) - new Date(a.updatedAt || a.updated_at || 0)
+    })
+  }, [jobs, sortBy, statusTab, categoryFilter, locationFilter, dateFilter])
+
+  const showDraftThreads = statusTab === 'all' || statusTab === 'draft'
+
+  const listItems = useMemo(() => {
+    const items = []
+    if (showDraftThreads) {
+      draftThreads.forEach((thread) => items.push({ type: 'draft', thread }))
+    }
+    filteredJobs.forEach((job) => items.push({ type: 'job', job }))
+    return items
+  }, [showDraftThreads, draftThreads, filteredJobs])
+
+  const totalListItems = listItems.length
+  const totalPages = Math.max(1, Math.ceil(totalListItems / pageSize))
+  const safePage = Math.min(page, totalPages)
+
+  const pagedListItems = useMemo(() => {
+    const start = (safePage - 1) * pageSize
+    return listItems.slice(start, start + pageSize)
+  }, [listItems, pageSize, safePage])
+
+  useEffect(() => {
+    setPage(1)
+  }, [searchInput, statusTab, categoryFilter, locationFilter, dateFilter, sortBy, pageSize])
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages)
+  }, [page, totalPages])
+
+  const handleStatusTab = (tabId) => {
+    setStatusTab(tabId)
   }
 
-  const handleSelectThread = async (thread) => {
-    setActiveThreadId(thread.id)
-    setSavedJobId(thread.jobId || null)
-    setSidebarOpen(false)
-    const full = await getJobBuilderThread(thread.id)
-    builderRef.current?.loadThread?.(full || thread)
+  const handleStatusFilterChange = (value) => {
+    setStatusTab(value || 'all')
   }
 
-  const handleThreadPersist = useCallback((thread) => {
-    if (!thread?.id) {
-      refreshThreads().catch(() => {})
+  const openJobDetail = (jobId) => {
+    navigate(`/business/jobs/${jobId}`)
+  }
+
+  const openDraftThread = (threadId) => {
+    navigate(`/business/jobs/create?threadId=${encodeURIComponent(threadId)}`)
+  }
+
+  const handleMenuAction = async (action, job) => {
+    if (action === 'view') {
+      openJobDetail(job.id)
       return
     }
-    const nextId = String(thread.id)
-    setActiveThreadId(nextId)
-    setThreads((prev) => {
-      const replaceId = thread.replaceClientId ? String(thread.replaceClientId) : null
-      const rest = prev.filter((t) => {
-        const tid = String(t.id)
-        if (tid === nextId) return false
-        if (replaceId && tid === replaceId) return false
-        return true
-      })
-      const { replaceClientId: _rc, ...clean } = thread
-      return [{ ...clean, id: nextId }, ...rest]
-    })
-    refreshThreads().catch(() => {})
-  }, [refreshThreads])
-
-  const handleJobSaved = useCallback(async ({ jobId, thread, isCreate }) => {
-    setSavedJobId(jobId)
-    setActiveThreadId(thread?.id || null)
-    refreshThreads()
-
-    const pending = peekPendingMarketplaceListingDraft()
-    if (!pending || !isCreate) return
-
-    setMarketplaceSubmitting(true)
-    try {
-      const { wsSessionId } = await createAndSubmitMarketplaceListing(jobId, pending)
-      clearPendingMarketplaceListingDraft()
-      setMarketplaceQuickCreateActive(false)
-      if (wsSessionId) {
-        navigate(`/business/messages?tab=ws&wsView=chat&sessionId=${wsSessionId}`)
-      } else {
-        navigate('/business/candidate-sharing?tab=jobs')
-      }
-    } catch (err) {
-      window.alert(
-        err?.message
-          || 'JD đã lưu nhưng không gửi được yêu cầu lên sàn. Bạn có thể thử lại tại Sàn CTV.',
-      )
-      navigate(`/business/candidate-sharing?create=1&jobId=${encodeURIComponent(jobId)}`)
-    } finally {
-      setMarketplaceSubmitting(false)
+    if (action === 'edit') {
+      navigate(`/business/jobs/${job.id}/edit`)
+      return
     }
-  }, [navigate, refreshThreads])
-
-  const closeDeleteThreadModal = useCallback(() => {
-    setDeleteThreadModal({ open: false, thread: null })
-  }, [])
-
-  const handleDeleteThreadClick = useCallback((thread, e) => {
-    e?.stopPropagation?.()
-    setDeleteThreadModal({ open: true, thread })
-  }, [])
-
-  const confirmDeleteThread = useCallback(async () => {
-    const thread = deleteThreadModal.thread
-    if (!thread || deletingThread) return
-
-    setDeletingThread(true)
-    try {
-      if (thread.jobId) {
-        const res = await apiService.deleteBusinessJob(thread.jobId)
-        if (!res?.success) {
-          window.alert(res?.message || 'Không thể xóa JD. Phiên chat chưa bị xóa.')
-          return
-        }
+    if (action === 'pause') {
+      try {
+        const res = await apiService.updateBusinessJob(job.id, { status: 0 })
+        if (res?.success) loadJobs(searchInput.trim())
+        else window.alert(res?.message || 'Không thể tạm dừng JD')
+      } catch {
+        window.alert('Không thể tạm dừng JD')
       }
-      await deleteJobBuilderThread(thread.id)
-      await refreshThreads()
-      closeDeleteThreadModal()
-
-      if (activeThreadId === thread.id) {
-        const remaining = await listJobBuilderThreads()
-        if (remaining.length > 0) {
-          setActiveThreadId(remaining[0].id)
-          setSavedJobId(remaining[0].jobId || null)
-          const full = await getJobBuilderThread(remaining[0].id)
-          builderRef.current?.loadThread?.(full || remaining[0])
-        } else {
-          setActiveThreadId(null)
-          setSavedJobId(null)
-          builderRef.current?.startNewSession?.()
-        }
-      }
-    } catch (err) {
-      window.alert(err?.message || 'Không thể xóa JD. Phiên chat chưa bị xóa.')
-    } finally {
-      setDeletingThread(false)
+      return
     }
-  }, [activeThreadId, closeDeleteThreadModal, deleteThreadModal.thread, deletingThread, refreshThreads])
+    if (action === 'close') {
+      if (!window.confirm(`Đóng JD "${getJobTitle(job)}"?`)) return
+      try {
+        const res = await apiService.updateBusinessJob(job.id, { status: 2 })
+        if (res?.success) loadJobs(searchInput.trim())
+        else window.alert(res?.message || 'Không thể đóng JD')
+      } catch {
+        window.alert('Không thể đóng JD')
+      }
+    }
+  }
 
-  const activeThreadTitle = useMemo(() => {
-    const t = threads.find((th) => th.id === activeThreadId)
-    return t ? getThreadTitle(t) : 'JD mới'
-  }, [threads, activeThreadId])
+  const clearFilters = () => {
+    setSearchInput('')
+    setStatusTab('all')
+    setCategoryFilter('')
+    setLocationFilter('')
+    setDateFilter('')
+    setPage(1)
+    setSearchParams({}, { replace: true })
+    loadJobs('')
+  }
 
-  const sidebarInner = (
-    <>
-      <div className="p-1.5 lg:p-2 shrink-0 flex items-center gap-1.5 lg:gap-2">
-        <button
-          type="button"
-          onClick={handleNewJob}
-          className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 biz-jd-body font-medium px-2 py-1 transition-colors shadow-sm min-w-0"
-        >
-          <Plus className="biz-jd-icon shrink-0" />
-          Tạo JD mới
-        </button>
-        <button
-          type="button"
-          onClick={() => setSidebarOpen(false)}
-          className="lg:hidden shrink-0 biz-jd-icon-hit rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-          aria-label="Đóng danh sách phiên"
-        >
-          <X className="biz-jd-icon" />
-        </button>
-      </div>
-
-      <div className="px-1.5 lg:px-2 pb-1.5 lg:pb-2 shrink-0">
-        <div className="flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-2 py-1.5">
-          <Search className="biz-jd-icon text-slate-400 shrink-0" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm phiên chat..."
-            className="flex-1 min-w-0 bg-transparent outline-none biz-jd-body text-slate-700 placeholder:text-slate-400"
-          />
-        </div>
-      </div>
-
-      <div className="flex-1 min-h-0 overflow-y-auto px-1.5 lg:px-2 pb-1.5 lg:pb-2">
-        <p className="biz-jd-label px-1.5 lg:px-2 py-1 lg:py-1.5">
-          Phiên chat ({filteredThreads.length})
-        </p>
-
-        {filteredThreads.length === 0 ? (
-          <div className="text-center py-8 px-3">
-            <MessageSquare className="biz-jd-icon mx-auto mb-2 text-slate-300" />
-            <p className="biz-jd-muted leading-relaxed whitespace-pre-line">
-              {searchQuery
-                ? 'Không tìm thấy phiên chat phù hợp'
-                : 'Chưa có phiên chat nào.\nBấm "Tạo JD mới" để bắt đầu.'}
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-0.5">
-            {filteredThreads.map((thread, index) => {
-              const isActive = activeThreadId === thread.id
-              const colorClass = THREAD_ICON_CLASS
-              const isSaved = Boolean(thread.jobId)
-              return (
-                <div
-                  key={thread.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleSelectThread(thread)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSelectThread(thread)}
-                  className={`group relative flex items-start gap-1.5 lg:gap-2 rounded-lg lg:rounded-xl px-2 py-2 lg:px-2.5 lg:py-2.5 text-left transition-colors cursor-pointer ${
-                    isActive
-                      ? 'bg-white shadow-sm border border-slate-200'
-                      : 'hover:bg-white/80 border border-transparent'
-                  }`}
-                >
-                  <div className={`biz-jd-icon-hit rounded-lg shrink-0 ${colorClass}`}>
-                    <MessageSquare className="biz-jd-icon" />
-                  </div>
-                  <div className="flex-1 min-w-0 pr-7 lg:pr-8">
-                    <p className="biz-jd-body font-medium text-slate-800 truncate leading-snug">
-                      {getThreadTitle(thread)}
-                    </p>
-                    <div className="flex items-center gap-1 mt-0.5 flex-wrap biz-jd-muted">
-                      <span className={isSaved ? 'text-emerald-600' : 'text-amber-600'}>
-                        {isSaved ? 'Đã lưu' : 'Nháp'}
-                      </span>
-                      {formatThreadDate(thread.updatedAt) ? (
-                        <span>
-                          · {formatThreadDate(thread.updatedAt)}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex lg:hidden items-center">
-                    <button
-                      type="button"
-                      title="Xóa phiên"
-                      onClick={(e) => handleDeleteThreadClick(thread, e)}
-                      className="biz-jd-icon-hit rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                    >
-                      <Trash2 className="biz-jd-icon" />
-                    </button>
-                  </div>
-                  <div className="absolute right-1.5 top-1/2 -translate-y-1/2 hidden lg:group-hover:flex items-center gap-0.5">
-                    <button
-                      type="button"
-                      title="Xóa phiên"
-                      onClick={(e) => handleDeleteThreadClick(thread, e)}
-                      className="biz-jd-icon-hit rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                    >
-                      <Trash2 className="biz-jd-icon" />
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      <div className="shrink-0 border-t border-slate-200 p-1.5 lg:p-2 bg-white/80">
-        <button
-          type="button"
-          onClick={() => {
-            navigate('/business/jobs/create')
-            setSidebarOpen(false)
-          }}
-          className="w-full flex items-center justify-center gap-1 biz-jd-body font-semibold text-slate-500 hover:text-slate-700 py-1.5 lg:py-2 rounded-lg hover:bg-slate-100 transition-colors"
-        >
-          <MoreHorizontal className="biz-jd-icon" />
-          Tạo JD thủ công
-        </button>
-      </div>
-    </>
+  const hasActiveFilters = Boolean(
+    searchInput.trim()
+    || statusTab !== 'all'
+    || categoryFilter
+    || locationFilter
+    || dateFilter,
   )
 
   return (
     <>
-      <style>{jobManagementStyles}</style>
-      <DeleteJobBuilderThreadModal
-        open={deleteThreadModal.open}
-        threadTitle={deleteThreadModal.thread ? getThreadTitle(deleteThreadModal.thread) : ''}
-        linkedJobId={deleteThreadModal.thread?.jobId}
-        onClose={closeDeleteThreadModal}
-        onConfirm={confirmDeleteThread}
-        confirming={deletingThread}
-      />
-      <div className="business-jobs-shell h-full min-h-0 overflow-hidden">
-        <div className="business-jobs-ui h-full min-h-0 flex overflow-hidden bg-white relative">
-      {sidebarOpen && (
-        <button
-          type="button"
-          aria-label="Đóng overlay"
-          className="lg:hidden fixed inset-0 z-40 bg-slate-900/40"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      <style>{jobListStyles}</style>
+      <div className="business-jobs-list-shell flex h-full min-h-0 flex-col overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto p-3 lg:p-4">
+          <div className="w-full space-y-3 px-1 lg:px-2">
+            <header className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h1 className="text-lg font-bold text-slate-900 lg:text-xl">Quản lý JD</h1>
+                <p className="mt-1 text-xs text-slate-500 lg:text-sm">
+                  Quản lý các vị trí tuyển dụng và theo dõi tình trạng tuyển dụng
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/business/jobs/create')}
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-white shadow-sm hover:opacity-95 lg:text-sm"
+                style={{ backgroundColor: JD_NAVY_MID }}
+              >
+                <Plus className="h-4 w-4" />
+                Tạo JD mới
+              </button>
+            </header>
 
-      <aside
-        className={`
-          z-50 flex flex-col border-r border-slate-200 bg-[#f9f9f9] min-h-0
-          w-[min(100%,20rem)] max-w-[85vw] sm:max-w-[20rem]
-          fixed inset-y-0 left-0 shadow-xl
-          transition-transform duration-200 ease-out
-          lg:static lg:z-auto lg:w-[168px] xl:w-[180px] 2xl:w-[192px] lg:shrink-0 lg:shadow-none lg:max-w-none
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `}
-      >
-        {sidebarInner}
-      </aside>
+            <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm lg:p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="relative flex flex-1 items-center rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                  <input
+                    type="text"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    placeholder="Tìm kiếm theo tên vị trí, mã JD, từ khóa..."
+                    className="min-w-0 flex-1 bg-transparent pr-8 text-xs text-slate-800 outline-none placeholder:text-slate-400 lg:text-sm"
+                  />
+                  <Search className="pointer-events-none absolute right-3 h-4 w-4 text-slate-400" />
+                </div>
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  disabled={!hasActiveFilters}
+                  className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Xóa bộ lọc
+                </button>
+              </div>
 
-      <main className="flex-1 min-w-0 min-h-0 flex flex-col bg-white w-full">
-        <div className="lg:hidden shrink-0 flex items-center gap-1.5 border-b border-slate-200 px-2 py-1.5 bg-white">
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(true)}
-            className="shrink-0 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 biz-jd-body font-medium text-slate-700"
-          >
-            <PanelLeft className="biz-jd-icon" />
-            Phiên
-          </button>
-          <p className="flex-1 min-w-0 biz-jd-title truncate">
-            {activeThreadTitle}
-          </p>
-          <button
-            type="button"
-            onClick={handleNewJob}
-            className="shrink-0 inline-flex items-center gap-0.5 rounded-md text-white biz-jd-body font-medium px-2 py-1.5"
-            style={{ backgroundColor: JD_NAVY_MID }}
-          >
-            <Plus className="biz-jd-icon" />
-            <span className="sr-only sm:not-sr-only sm:inline">Mới</span>
-          </button>
-        </div>
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <JobFilterField label="Trạng thái">
+                  <FilterSelectDropdown
+                    value={statusTab}
+                    onChange={handleStatusFilterChange}
+                    options={STATUS_FILTER_OPTIONS}
+                    placeholder="Tất cả trạng thái"
+                    className={FILTER_SELECT_CLASS}
+                    maxPanelHeight={220}
+                  />
+                </JobFilterField>
+                <JobFilterField label="Ngành nghề">
+                  <FilterSelectDropdown
+                    value={categoryFilter}
+                    onChange={setCategoryFilter}
+                    options={categoryOptions}
+                    placeholder="Tất cả ngành nghề"
+                    searchable
+                    searchPlaceholder="Tìm ngành nghề..."
+                    className={FILTER_SELECT_CLASS}
+                    maxPanelHeight={240}
+                  />
+                </JobFilterField>
+                <JobFilterField label="Địa điểm làm việc">
+                  <FilterSelectDropdown
+                    value={locationFilter}
+                    onChange={setLocationFilter}
+                    options={locationOptions}
+                    placeholder="Tất cả địa điểm"
+                    searchable
+                    searchPlaceholder="Tìm địa điểm..."
+                    className={FILTER_SELECT_CLASS}
+                    maxPanelHeight={240}
+                  />
+                </JobFilterField>
+                <JobFilterField label="Ngày cập nhật">
+                  <FilterSelectDropdown
+                    value={dateFilter}
+                    onChange={setDateFilter}
+                    options={DATE_FILTER_OPTIONS}
+                    placeholder="Tất cả thời gian"
+                    className={FILTER_SELECT_CLASS}
+                    maxPanelHeight={200}
+                  />
+                </JobFilterField>
+              </div>
 
-        <div className="flex-1 min-h-0 min-w-0 flex flex-col">
-          {marketplaceQuickCreateActive ? (
-            <div className="shrink-0 border-b px-3 py-2 biz-jd-body text-slate-700" style={{ borderColor: `${JD_NAVY_MID}33`, backgroundColor: '#f1f5f9' }}>
-              {marketplaceSubmitting
-                ? 'Đang gửi WS duyệt đưa job lên sàn CTV...'
-                : 'Tạo & lưu JD bằng chat — sau khi lưu, hệ thống tự gửi WS duyệt đưa job lên sàn (phí thưởng đã cài từ Sàn CTV).'}
+              <div className="mt-3 flex flex-wrap items-end justify-between gap-3 border-t border-slate-100 pt-3">
+                <div className="flex flex-wrap gap-4">
+                  {STATUS_TABS.map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => handleStatusTab(tab.id)}
+                      className={`border-b-2 pb-2 text-[11px] font-semibold transition lg:text-xs ${
+                        statusTab === tab.id
+                          ? 'border-[#0077B6] text-[#0077B6]'
+                          : 'border-transparent text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      {tab.label} ({tabCounts[tab.id] ?? 0})
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex items-center gap-2">
+                    <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">Sắp xếp:</span>
+                    <div className="relative">
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-2.5 pr-7 text-[11px] font-medium text-slate-700 outline-none"
+                      >
+                        {SORT_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                    </div>
+                  </div>
+                  <div className="flex rounded-lg border border-slate-200 p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('list')}
+                      className={`rounded-md p-1.5 ${viewMode === 'list' ? 'bg-[#0077B6] text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                      aria-label="Danh sách"
+                    >
+                      <LayoutList className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('grid')}
+                      className={`rounded-md p-1.5 ${viewMode === 'grid' ? 'bg-[#0077B6] text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                      aria-label="Lưới"
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-          ) : null}
-          <JobAiBuilderPanel
-            ref={builderRef}
-            embedded
-            activeThreadId={activeThreadId}
-            savedJobId={savedJobId}
-            onThreadPersist={handleThreadPersist}
-            onJobSaved={handleJobSaved}
-            showNextStepsOnCreate={!marketplaceQuickCreateActive}
-          />
-        </div>
-      </main>
+
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-6 w-6 animate-spin text-[#0077B6]" />
+              </div>
+            ) : totalListItems === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-white py-16 text-center">
+                <Briefcase className="mx-auto h-10 w-10 text-slate-300" />
+                <p className="mt-3 text-sm font-medium text-slate-600">Chưa có JD nào</p>
+                <p className="mt-1 text-xs text-slate-400">Bấm &quot;Tạo JD mới&quot; để bắt đầu với AI Assistant</p>
+                <button
+                  type="button"
+                  onClick={() => navigate('/business/jobs/create')}
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-white"
+                  style={{ backgroundColor: JD_NAVY_MID }}
+                >
+                  <Plus className="h-4 w-4" />
+                  Tạo JD mới
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className={viewMode === 'grid' ? 'grid grid-cols-1 gap-2 md:grid-cols-2' : 'flex flex-col gap-2'}>
+                  {pagedListItems.map((item) => (
+                    item.type === 'draft' ? (
+                      <DraftThreadRow key={item.thread.id} thread={item.thread} onOpen={openDraftThread} />
+                    ) : (
+                      <JobListRow
+                        key={item.job.id}
+                        job={item.job}
+                        stats={getJobStats(item.job, jobStatsMap)}
+                        onOpen={openJobDetail}
+                        onMenuAction={handleMenuAction}
+                      />
+                    )
+                  ))}
+                </div>
+                <JobListPagination
+                  page={safePage}
+                  pageSize={pageSize}
+                  totalItems={totalListItems}
+                  onPageChange={setPage}
+                  onPageSizeChange={(size) => {
+                    setPageSize(size)
+                    setPage(1)
+                  }}
+                />
+              </>
+            )}
+          </div>
         </div>
       </div>
     </>

@@ -6,7 +6,7 @@ const JdBuilderChatPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    navigate('/business/jobs', { replace: true });
+    navigate('/business/jobs/create', { replace: true });
   }, [navigate]);
 
   return null;

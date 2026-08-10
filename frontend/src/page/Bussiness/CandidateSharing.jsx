@@ -1260,7 +1260,7 @@ const CandidateSharing = () => {
                           const sc = statusColor(job.status)
                           const openJobInManagement = () => {
                             if (!job.jobId) return
-                            navigate(`/business/jobs?jobId=${encodeURIComponent(String(job.jobId))}`)
+                            navigate(`/business/jobs/${encodeURIComponent(String(job.jobId))}`)
                           }
                           return (
                             <tr
