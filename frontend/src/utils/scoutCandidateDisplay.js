@@ -200,6 +200,12 @@ const SCOUT_CONVERSATION_LEVEL_LABELS = {
   3: 'Hội thoại',
 };
 
+export function isScoutEmptyDisplayValue(value) {
+  if (value == null) return true;
+  const text = String(value).trim();
+  return !text || text === '—' || text === '-' || text === '–';
+}
+
 export function getScoutMatchBadgeClass(score) {
   if (score == null || !Number.isFinite(Number(score))) {
     return 'text-slate-500 bg-slate-100';
@@ -303,6 +309,24 @@ export function getScoutSkillTags(candidate) {
     return parts.map(truncateScoutSkillTag);
   }
   return [];
+}
+
+/** Trích kỹ năng 1 dòng cho card danh sách Scout — không dùng PR/CV thô dài. */
+export function getScoutListSkillExcerpt(candidate, maxLen = 96) {
+  const tags = getScoutSkillTags(candidate);
+  if (tags.length) {
+    const text = tags.slice(0, 4).join(' · ');
+    if (text.length <= maxLen) return text;
+    return `${text.slice(0, maxLen - 1).trim()}…`;
+  }
+  const raw = candidate?.technicalSkills;
+  if (typeof raw === 'string' && raw.trim()) {
+    const first = splitScoutSkillString(raw.trim())[0];
+    if (first) {
+      return first.length > maxLen ? `${first.slice(0, maxLen - 1).trim()}…` : first;
+    }
+  }
+  return '';
 }
 
 export function getScoutDisplayName(candidate) {

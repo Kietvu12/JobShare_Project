@@ -17,8 +17,11 @@ import {
   getScoutApproximateAgeLabel,
   getScoutAvailabilityLabel,
   formatScoutJlptSummary,
+  isScoutEmptyDisplayValue,
+  formatScoutDesiredSalary,
   isScoutWorkExperienceAnonymized,
 } from '../../utils/scoutCandidateDisplay'
+import ScoutMatchBadge from './ScoutMatchBadge'
 
 const ICON_SM = { width: 10, height: 10 }
 const ANONYMOUS_AVATAR = 'https://api.dicebear.com/7.x/shapes/svg?seed=scout-anonymous'
@@ -87,6 +90,8 @@ export default function ScoutCandidateProfilePanel({
   accessLabelColor = '#047857',
   footerNote = null,
   showLockedHint = false,
+  matchScore = null,
+  matchJobTitle = null,
   className = '',
 }) {
   const isUnlocked = treatAsUnlocked || Boolean(candidate?.isUnlocked)
@@ -112,7 +117,10 @@ export default function ScoutCandidateProfilePanel({
   const approximateAge = getScoutApproximateAgeLabel(candidate)
   const availability = getScoutAvailabilityLabel(candidate)
   const residenceLabel = getScoutResidenceStatusLabel(candidate.jpResidenceStatus)
-  const position = candidate.desiredPosition || candidate.jobCategory?.name || '—'
+  const position = candidate.desiredPosition || candidate.jobCategory?.name || null
+  const desiredSalary = formatScoutDesiredSalary(candidate)
+  const languageSummary = formatScoutJlptSummary(candidate)
+  const experienceYears = formatScoutExperienceYears(candidate.experienceYears)
 
   const workExperiences = isUnlocked
     ? normalizeScoutWorkExperiences(candidate.workExperiences)
@@ -154,11 +162,21 @@ export default function ScoutCandidateProfilePanel({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="scout-detail-title text-slate-800">{hl(getDisplayName(candidate, isUnlocked))}</div>
           <div className="scout-detail-body text-slate-500">
-            {hl(position)}
+            {position ? hl(position) : null}
             {isUnlocked && candidate.code ? (
-              <span style={{ color: '#94a3b8' }}> · {candidate.code}</span>
+              <span style={{ color: '#94a3b8' }}>{position ? ' · ' : ''}{candidate.code}</span>
             ) : null}
           </div>
+          {Number.isFinite(Number(matchScore)) ? (
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              <ScoutMatchBadge score={matchScore} />
+              {matchJobTitle ? (
+                <span className="scout-detail-caption text-slate-500">
+                  với JD: {matchJobTitle}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         {onClose && (
           <button
@@ -174,10 +192,10 @@ export default function ScoutCandidateProfilePanel({
 
       {/* Tier 1 — lặp lại thông tin từ list card */}
       <ScoutDetailGrid>
-        <ScoutDetailField label="Kinh nghiệm" value={formatScoutExperienceYears(candidate.experienceYears)} hl={hl} />
+        <ScoutDetailField label="Kinh nghiệm" value={experienceYears} hl={hl} />
         <ScoutDetailField label="Địa điểm mong muốn" value={candidate.desiredWorkLocation} hl={hl} />
-        <ScoutDetailField label="Mức lương mong muốn" value={formatScoutIncome(candidate.desiredIncome)} hl={hl} />
-        <ScoutDetailField label="JLPT / Ngoại ngữ" value={formatScoutJlptSummary(candidate)} hl={hl} />
+        <ScoutDetailField label="Mức lương mong muốn" value={isScoutEmptyDisplayValue(desiredSalary) ? null : desiredSalary} hl={hl} />
+        <ScoutDetailField label="JLPT / Ngoại ngữ" value={isScoutEmptyDisplayValue(languageSummary) ? null : languageSummary} hl={hl} />
       </ScoutDetailGrid>
 
       {/* Tier 2 — preview ẩn danh trước unlock */}

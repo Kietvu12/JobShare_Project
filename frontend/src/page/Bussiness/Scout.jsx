@@ -4,7 +4,7 @@ import {
   Search, SlidersHorizontal, ChevronRight, ChevronLeft,
   UserCheck, X, Unlock, Users, Check, Loader2, Briefcase,
   Sparkles, FilePlus2, BookOpen, AlertTriangle, ArrowRight, Lock,
-  MessageSquare, Gauge, ArrowUpRight, Coins, UserPlus, IdCard, Send, Info,
+  MessageSquare, ArrowUpRight, Coins, UserPlus, IdCard, Send, Info,
   RotateCw,
 } from 'lucide-react'
 import ScoutCandidateFilterFields, { SCOUT_FILTER_INPUT_CLASS } from '../../component/Bussiness/ScoutCandidateFilterFields.jsx'
@@ -33,7 +33,8 @@ import CreditTopUpModal from '../../component/Bussiness/CreditTopUpModal'
 import creditIllustration from '../../assets/scout_credit_vi.png'
 import performanceIllustration from '../../assets/scout_per_vi.png'
 import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont'
-import { getScoutSkillTags, getScoutMatchBadgeClass, formatScoutExperienceSeniority, formatScoutDesiredSalary, formatScoutListLocation, formatScoutLanguageSummary } from '../../utils/scoutCandidateDisplay'
+import { getScoutSkillTags, formatScoutExperienceSeniority, formatScoutDesiredSalary, formatScoutListLocation, isScoutEmptyDisplayValue, getScoutListSkillExcerpt } from '../../utils/scoutCandidateDisplay'
+import ScoutMatchBadge from '../../component/Bussiness/ScoutMatchBadge'
 
 const ICON_SM = { width: 10, height: 10 }
 const ICON_MD = { width: 12, height: 12 }
@@ -48,20 +49,20 @@ const scoutPageStyles = `
   .scout-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   .scout-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
   .scout-candidates-list-ui {
-    --scout-cand-fs-title: 12px;
-    --scout-cand-fs-body: 12px;
-    --scout-cand-fs-caption: 11px;
-    --scout-cand-icon: 13px;
-    line-height: 1.45;
+    --scout-cand-fs-title: 14px;
+    --scout-cand-fs-body: 13px;
+    --scout-cand-fs-caption: 12px;
+    --scout-cand-icon: 14px;
+    line-height: 1.4;
     color: #334155;
     font-size: var(--scout-cand-fs-body);
   }
   @media (min-width: 1536px) {
     .scout-candidates-list-ui {
-      --scout-cand-fs-title: 13px;
-      --scout-cand-fs-body: 12px;
-      --scout-cand-fs-caption: 11px;
-      --scout-cand-icon: 14px;
+      --scout-cand-fs-title: 15px;
+      --scout-cand-fs-body: 14px;
+      --scout-cand-fs-caption: 12px;
+      --scout-cand-icon: 15px;
     }
   }
   .scout-candidates-list-ui .scout-cand-title {
@@ -424,43 +425,11 @@ function rankPreviewCandidates(candidates) {
   return [...candidates].sort((a, b) => getPreviewCandidateScore(b) - getPreviewCandidateScore(a))
 }
 
-function getCandidateSkillExcerpt(candidate) {
-  const tags = getScoutSkillTags(candidate)
-  if (tags.length > 0) return tags.join(' · ')
-  const raw = candidate?.technicalSkills
-  if (typeof raw === 'string' && raw.trim()) {
-    return raw.trim().replace(/\s+/g, ' ')
-  }
-  return ''
-}
-
-function ScoutMatchBadge({ score }) {
-  if (score != null) {
-    return (
-      <span
-        className={`scout-cand-meta inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 font-semibold ${getScoutMatchBadgeClass(score)}`}
-        title="Điểm phù hợp AI"
-      >
-        <Gauge className="scout-cand-icon" />
-        {Math.round(score)}%
-      </span>
-    )
-  }
-  return (
-    <span
-      className={`scout-cand-meta inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 ${getScoutMatchBadgeClass(null)}`}
-      title="Chưa gắn JD — chưa có điểm AI"
-    >
-      <Gauge className="scout-cand-icon" />
-      —
-    </span>
-  )
-}
-
 function ScoutMetaChip({ label, children }) {
+  if (isScoutEmptyDisplayValue(children)) return null
   return (
     <span
-      className="scout-cand-meta inline-flex max-w-full truncate rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600"
+      className="scout-cand-meta inline-flex max-w-full truncate rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700"
       title={label ? `${label}: ${children}` : String(children)}
     >
       {children}
@@ -478,37 +447,44 @@ function ScoutCandidateRowBody({
   const exp = formatScoutExperienceSeniority(candidate.experienceYears)
   const salary = formatScoutDesiredSalary(candidate)
   const location = formatScoutListLocation(candidate)
-  const language = formatScoutLanguageSummary(candidate)
-  const skillExcerpt = getCandidateSkillExcerpt(candidate)
+  const skillExcerpt = getScoutListSkillExcerpt(candidate)
+  const chips = [
+    { label: 'Kinh nghiệm', value: exp },
+    { label: 'Khu vực', value: location },
+    { label: 'Lương', value: salary },
+  ].filter((chip) => !isScoutEmptyDisplayValue(chip.value))
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-2">
         <p className="scout-cand-title truncate text-slate-900">
           {hl(getDisplayName(candidate))}
         </p>
         {showNew ? (
-          <span className="scout-cand-caption rounded-full bg-emerald-100 px-1.5 py-0.5 font-bold text-emerald-700">
+          <span className="scout-cand-caption rounded-full bg-emerald-100 px-2 py-0.5 font-bold text-emerald-700">
             Mới
           </span>
         ) : null}
       </div>
       {position ? (
-        <p className="scout-cand-subtitle mt-0.5 truncate text-slate-600">
+        <p className="scout-cand-subtitle mt-1 truncate text-slate-600">
           {hl(position)}
         </p>
       ) : null}
-      <div className="mt-1.5">
-        <ScoutMatchBadge score={matchScore} />
-      </div>
-      <div className="mt-1.5 flex flex-wrap gap-1">
-        <ScoutMetaChip label="Khu vực">{location}</ScoutMetaChip>
-        <ScoutMetaChip label="Kinh nghiệm">{exp}</ScoutMetaChip>
-        <ScoutMetaChip label="Lương">{salary}</ScoutMetaChip>
-        <ScoutMetaChip label="JLPT / Ngoại ngữ">{language}</ScoutMetaChip>
-      </div>
+      {Number.isFinite(Number(matchScore)) ? (
+        <div className="mt-2">
+          <ScoutMatchBadge score={matchScore} className="scout-cand-meta !text-[12px] !px-2.5 !py-1" iconClassName="scout-cand-icon" />
+        </div>
+      ) : null}
+      {chips.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {chips.map((chip) => (
+            <ScoutMetaChip key={chip.label} label={chip.label}>{chip.value}</ScoutMetaChip>
+          ))}
+        </div>
+      ) : null}
       {skillExcerpt ? (
-        <p className="scout-cand-meta mt-1.5 line-clamp-1 text-slate-500" title={skillExcerpt}>
+        <p className="scout-cand-caption mt-2 line-clamp-1 text-slate-500" title={skillExcerpt}>
           {hl(skillExcerpt)}
         </p>
       ) : null}
@@ -845,9 +821,9 @@ function ScoutCandidateListItem({
       <button
         type="button"
         onClick={() => onOpenDetail(candidate.id)}
-        className="flex w-full items-start gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left transition hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-sm"
+        className="flex w-full items-start gap-3 rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-left transition hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-sm sm:px-4 sm:py-3.5"
       >
-        <AvatarCircle candidate={candidate} size={44} />
+        <AvatarCircle candidate={candidate} size={48} />
         <div className="min-w-0 flex-1">
           <ScoutCandidateRowBody
             candidate={candidate}
@@ -867,7 +843,7 @@ function ScoutCandidateListItem({
           <Lock className="mt-1 h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} aria-hidden />
         ) : null}
       </button>
-      <ScoutCandidateHoverTip candidate={candidate} hl={hl} />
+      <ScoutCandidateHoverTip candidate={candidate} hl={hl} matchScore={matchScore} />
     </div>
   )
 }
@@ -1033,6 +1009,7 @@ function ScoutPerformanceConfirmModal({
   open,
   onClose,
   onConfirm,
+  onQuickCreateJd,
   loading = false,
   agreed,
   onAgreedChange,
@@ -1191,7 +1168,23 @@ function ScoutPerformanceConfirmModal({
                 Chọn JD có sẵn hoặc tạo mới trong Quản lý JD.
               </p>
               <label className="block">
-                <span className="text-xs font-semibold text-slate-700">JD liên quan *</span>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-slate-700">JD liên quan *</span>
+                  {onQuickCreateJd ? (
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => onQuickCreateJd({
+                        requirementNote,
+                        wantsSimilar,
+                      })}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#0077B6]/25 bg-[#e8f4fa] px-2.5 py-1 text-xs font-semibold text-[#0077B6] transition hover:border-[#0077B6]/40 hover:bg-[#dff0fa] disabled:opacity-50"
+                    >
+                      <FilePlus2 className="h-3.5 w-3.5" aria-hidden />
+                      Tạo JD mới
+                    </button>
+                  ) : null}
+                </div>
                 <FilterSelectDropdown
                   value={selectedJobId}
                   onChange={setSelectedJobId}
@@ -2185,6 +2178,7 @@ export {
   ScoutPerformanceSuccessModal,
   ScoutAttachJobModal,
   ScoutActionModal,
+  ScoutMatchBadge,
   getDisplayName as getScoutDisplayName,
 }
 

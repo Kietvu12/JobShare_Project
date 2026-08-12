@@ -17,6 +17,7 @@ import {
   loadJobApplicationForNotify,
 } from '../../services/nominationMessageNotificationService.js';
 import { assertNominationChatContentAllowed } from '../../utils/chatContentModeration.js';
+import { loadNominationResponsibleContact } from '../../services/nominationChatContactService.js';
 
 /**
  * Message Controller (CTV)
@@ -147,9 +148,10 @@ export const messageController = {
         })
       );
 
+      const responsibleContact = await loadNominationResponsibleContact(jobApplicationId);
       res.json({
         success: true,
-        data: { messages: enrichedMessages }
+        data: { messages: enrichedMessages, responsibleContact },
       });
     } catch (error) {
       next(error);

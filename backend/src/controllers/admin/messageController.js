@@ -15,6 +15,7 @@ import sequelize from '../../config/database.js';
 import { uploadBufferToS3, buildMessageAttachmentKey, getSignedUrlForFile, makeDownloadDisposition } from '../../services/s3Service.js';
 import { dispatchNominationMessageNotifications } from '../../services/nominationMessageNotificationService.js';
 import { collaboratorNotificationService } from '../../services/collaboratorNotificationService.js';
+import { loadNominationResponsibleContact } from '../../services/nominationChatContactService.js';
 
 // Helper function to map model field names to database column names
 const mapOrderField = (fieldName) => {
@@ -259,9 +260,10 @@ export const messageController = {
         })
       );
 
+      const responsibleContact = await loadNominationResponsibleContact(jobApplicationId);
       res.json({
         success: true,
-        data: { messages: enrichedMessages }
+        data: { messages: enrichedMessages, responsibleContact },
       });
     } catch (error) {
       next(error);

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom'
 import {
   Check, Unlock, Users, Loader2, ArrowLeft, ExternalLink,
 } from 'lucide-react'
@@ -12,6 +12,8 @@ import {
   fetchScoutCvBusinessJobMatches,
 } from '../../utils/businessJobAiMatching'
 import { highlightSearchText } from '../../utils/searchTextHighlight'
+import { getScoutCandidateDetailUrl } from '../../utils/scoutCandidateDetailUrl'
+import { setScoutPerformanceHearingPending } from '../../utils/scoutPerformanceHearingPending'
 import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont'
 import {
   ScoutUnlockOptionCard,
@@ -63,6 +65,7 @@ const detailPageStyles = `
 export default function ScoutCandidateDetail() {
   const { cvId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const selectedJobId = searchParams.get('jobId') || ''
   const performanceRequestId = searchParams.get('performanceRequestId') || ''
@@ -107,6 +110,52 @@ export default function ScoutCandidateDetail() {
     setCredit(userCredit || 0)
   }, [userCredit])
 
+  useEffect(() => {
+    const st = location.state
+    if (!st?.performanceSuccess && !st?.performanceError) return
+
+    const clearNavState = () => {
+      navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
+    }
+
+    if (st.performanceSuccess) {
+      const ps = st.performanceSuccess
+      if (ps.candidate) {
+        setCandidate({
+          ...ps.candidate,
+          isUnlocked: true,
+          unlockType: 'scout_performance',
+          hideContact: true,
+          isPerformancePartial: true,
+          performanceRequest: {
+            id: ps.requestId,
+            status: ps.candidate?.performanceRequest?.status || 'approved',
+            wantsSimilarCandidates: !!ps.wantsSimilarCandidates,
+          },
+        })
+      }
+      setPerformanceSuccess({
+        requestCode: ps.requestCode,
+        sessionId: ps.sessionId,
+        requestId: ps.requestId,
+        wantsSimilarCandidates: !!ps.wantsSimilarCandidates,
+      })
+      clearNavState()
+      return
+    }
+
+    if (st.performanceError) {
+      setActionModal({
+        open: true,
+        kind: 'notice',
+        title: 'Gửi yêu cầu thất bại',
+        message: st.performanceError,
+        noticeVariant: 'error',
+      })
+      clearNavState()
+    }
+  }, [location.pathname, location.search, location.state, navigate])
+
   const loadJobs = useCallback(async () => {
     if (jobs.length > 0) return jobs
     setJobsLoading(true)
@@ -144,6 +193,36 @@ export default function ScoutCandidateDetail() {
       setJobScoresLoading(false)
     }
   }, [numericCvId, user?.id])
+
+  useEffect(() => {
+    if (!selectedJobId) return undefined
+    let cancelled = false
+    ;(async () => {
+      await loadJobs()
+      if (cancelled) return
+    })()
+    return () => { cancelled = true }
+  }, [selectedJobId, loadJobs])
+
+  useEffect(() => {
+    if (!selectedJobId || !numericCvId || Number.isNaN(numericCvId) || !user?.id) return undefined
+    let cancelled = false
+    setJobScoresLoading(true)
+    fetchScoutCvBusinessJobMatches(apiService, numericCvId, user.id, { top_k: 50 })
+      .then((matches) => {
+        if (!cancelled) setJobScoreById(buildJobScoreMapFromMatches(matches))
+      })
+      .catch((e) => {
+        console.error(e)
+        if (!cancelled) setJobScoreById({})
+      })
+      .finally(() => {
+        if (!cancelled) setJobScoresLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [selectedJobId, numericCvId, user?.id])
+
+  const selectedJobMatchScore = selectedJobId ? jobScoreById[String(selectedJobId)] : null
 
   const needsJobList = attachJobOpen
     || (actionModal.open && actionModal.kind === 'performance-confirm')
@@ -317,6 +396,21 @@ export default function ScoutCandidateDetail() {
       noticeVariant: 'info',
     })
   }
+
+  const handleQuickCreateJdForHearing = useCallback(({ requirementNote, wantsSimilar }) => {
+    if (!candidate?.id) return
+    setScoutPerformanceHearingPending({
+      cvId: candidate.id,
+      returnPath: getScoutCandidateDetailUrl(candidate.id, {
+        jobId: selectedJobId || undefined,
+        search: searchQuery || undefined,
+      }),
+      wantsSimilarCandidates: !!wantsSimilar,
+      message: requirementNote?.trim() || undefined,
+    })
+    closeActionModal()
+    navigate('/business/jobs/manual-create?from=scout-performance-hearing')
+  }, [candidate?.id, selectedJobId, searchQuery, navigate])
 
   const submitPerformanceUnlock = async (payload = {}) => {
     if (!candidate?.id) return
@@ -521,6 +615,8 @@ export default function ScoutCandidateDetail() {
                 className="scout-detail-ui w-full"
                 showLockedHint={!candidate.isUnlocked}
                 hideContact={isPerformancePartialUnlock}
+                matchScore={selectedJobMatchScore}
+                matchJobTitle={selectedJob?.title || null}
                 accessLabel={isPerformancePartialUnlock ? 'Scout Performance — hồ sơ gợi ý' : 'Hồ sơ đã mở — thông tin đầy đủ'}
                 accessLabelColor={isPerformancePartialUnlock ? '#0077B6' : '#047857'}
                 footerNote={isPerformancePartialUnlock
@@ -617,6 +713,7 @@ export default function ScoutCandidateDetail() {
         open={actionModal.open && actionModal.kind === 'performance-confirm'}
         onClose={closeActionModal}
         onConfirm={submitPerformanceUnlock}
+        onQuickCreateJd={handleQuickCreateJdForHearing}
         loading={performanceRequesting}
         agreed={performanceTermsAgreed}
         onAgreedChange={setPerformanceTermsAgreed}

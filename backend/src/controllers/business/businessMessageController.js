@@ -19,6 +19,7 @@ import {
   loadJobApplicationForNotify,
 } from '../../services/nominationMessageNotificationService.js';
 import { assertNominationChatContentAllowed } from '../../utils/chatContentModeration.js';
+import { loadNominationResponsibleContact } from '../../services/nominationChatContactService.js';
 
 const SENDER_TYPE_BUSINESS = 5;
 
@@ -90,7 +91,8 @@ export const businessMessageController = {
       }
 
       const enriched = await enrichMessages(messages);
-      res.json({ success: true, data: { messages: enriched } });
+      const responsibleContact = await loadNominationResponsibleContact(jobApplicationId);
+      res.json({ success: true, data: { messages: enriched, responsibleContact } });
     } catch (error) {
       if (error.statusCode) {
         return res.status(error.statusCode).json({ success: false, message: error.message });

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Send, Calendar, Clock, MessageCircle, Plus, Camera, X, DollarSign, RefreshCw, Paperclip, FileText, Archive, PanelRight } from 'lucide-react';
 import apiService from '../../services/api';
+import NominationChatContactBar from './NominationChatContactBar';
 import { getJobApplicationStatus, getJobApplicationStatusOptionsByLanguage, getJobApplicationStatusLabelByLanguage } from '../../utils/jobApplicationStatus';
 import { useLanguage } from '../../context/LanguageContext';
 import { translations } from '../../translations/translations';
@@ -149,6 +150,7 @@ const NominationChat = ({
   const { language } = useLanguage();
   const t = translations[language] || translations.vi;
   const [messages, setMessages] = useState([]);
+  const [responsibleContact, setResponsibleContact] = useState(null);
   const currentAdminId = Number(localStorage.getItem('adminId') || 0);
   const [newMessage, setNewMessage] = useState('');
   const [selectedAttachment, setSelectedAttachment] = useState(null);
@@ -406,6 +408,9 @@ const NominationChat = ({
 
       if (response.success && response.data?.messages) {
         setMessages(response.data.messages);
+        if (response.data.responsibleContact) {
+          setResponsibleContact(response.data.responsibleContact);
+        }
         if (userType === 'admin') {
           const unreadIds = (response.data.messages || [])
             .filter((m) => [2, 5].includes(m.senderType) && !m.reads?.some((r) => r.readerType === 'admin' && Number(r.adminId) === currentAdminId))
@@ -1035,6 +1040,10 @@ const NominationChat = ({
         </div>
       </div>
       )}
+
+      {!chatWithApplicant && userType !== 'applicant' ? (
+        <NominationChatContactBar responsibleContact={responsibleContact} />
+      ) : null}
 
       {/* Yêu cầu thanh toán (CTV — sau khi đã vào công ty) */}
       {userType === 'ctv' && Number(currentStatus) >= STATUS_JOINED && Number(currentStatus) !== STATUS_PAID && (

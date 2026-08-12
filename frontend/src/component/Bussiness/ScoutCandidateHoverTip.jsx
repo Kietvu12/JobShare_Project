@@ -6,9 +6,10 @@ import {
   formatScoutExperienceSeniority,
   formatScoutDesiredSalary,
   formatScoutListLocation,
-  formatScoutLanguageSummary,
   getScoutSkillTags,
+  isScoutEmptyDisplayValue,
 } from '../../utils/scoutCandidateDisplay'
+import ScoutMatchBadge from './ScoutMatchBadge'
 
 function getDisplayName(candidate) {
   if (!candidate) return 'Ứng viên ẩn danh'
@@ -16,7 +17,7 @@ function getDisplayName(candidate) {
   return candidate.anonymousName || 'Ứng viên ẩn danh'
 }
 
-export default function ScoutCandidateHoverTip({ candidate, hl = (text) => text }) {
+export default function ScoutCandidateHoverTip({ candidate, hl = (text) => text, matchScore = null }) {
   if (!candidate) return null
 
   const educations = normalizeScoutEducations(candidate.educations)
@@ -36,20 +37,24 @@ export default function ScoutCandidateHoverTip({ candidate, hl = (text) => text 
         <p className="scout-cand-subtitle mt-0.5 text-slate-600">{hl(position)}</p>
       ) : null}
 
-      <div className="mt-2 flex flex-wrap gap-1">
-        <span className="scout-cand-caption rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
-          {formatScoutListLocation(candidate)}
-        </span>
-        <span className="scout-cand-caption rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
-          {formatScoutExperienceSeniority(candidate.experienceYears)}
-        </span>
-        <span className="scout-cand-caption rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
-          {formatScoutDesiredSalary(candidate)}
-        </span>
-        <span className="scout-cand-caption rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
-          {formatScoutLanguageSummary(candidate)}
-        </span>
-      </div>
+      {Number.isFinite(Number(matchScore)) ? (
+        <div className="mt-2">
+          <ScoutMatchBadge score={matchScore} />
+        </div>
+      ) : null}
+
+      {[['KN', formatScoutExperienceSeniority(candidate.experienceYears)], ['Khu vực', formatScoutListLocation(candidate)], ['Lương', formatScoutDesiredSalary(candidate)]]
+        .filter(([, v]) => !isScoutEmptyDisplayValue(v)).length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {[['KN', formatScoutExperienceSeniority(candidate.experienceYears)], ['Khu vực', formatScoutListLocation(candidate)], ['Lương', formatScoutDesiredSalary(candidate)]]
+            .filter(([, v]) => !isScoutEmptyDisplayValue(v))
+            .map(([label, value]) => (
+              <span key={label} className="scout-cand-caption rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700">
+                {value}
+              </span>
+            ))}
+        </div>
+      ) : null}
 
       {skills.length > 0 ? (
         <div className="mt-2">
