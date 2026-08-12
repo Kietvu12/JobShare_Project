@@ -1,10 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ChevronRight, MoreHorizontal, Phone, Mail, Loader2, BadgeCheck, MessageSquare,
-  Copy, ArrowLeft,
+  Copy, ArrowLeft, Briefcase, UserPlus, Sparkles,
 } from 'lucide-react'
 import apiService from '../../services/api'
+import useBusinessUser from '../../hooks/useBusinessUser'
+import {
+  fetchScoutCvBusinessJobMatches,
+  getMatchScorePercent,
+} from '../../utils/businessJobAiMatching'
 import {
   normalizeScoutCertificates,
   normalizeScoutEducations,
@@ -23,6 +28,7 @@ import {
   getScoutUnlockSourceMeta,
   getScoutPerformanceRequestMeta,
   getScoutPerformanceExploreMeta,
+  getScoutMatchBadgeClass,
   SCOUT_PERFORMANCE_REQUEST_STATUS_LABELS,
 } from '../../utils/scoutCandidateDisplay'
 
@@ -40,7 +46,7 @@ const detailPageStyles = `
     line-height: 1.45;
     color: #334155;
     --cand-gap: 10px;
-    --cand-side-col: minmax(168px, 200px);
+    --cand-side-col: minmax(240px, 320px);
     --cand-radius: 12px;
     --cand-fs-2xs: 8px;
     --cand-fs-xs: 9px;
@@ -126,6 +132,163 @@ function formatListDate(value) {
   }
 }
 
+async function loadBusinessJobsByIds(jobIds) {
+  const ids = [...new Set((jobIds || []).map((id) => String(id)).filter(Boolean))]
+  if (!ids.length) return {}
+  const entries = await Promise.all(ids.map(async (id) => {
+    try {
+      const res = await apiService.getBusinessJobById(id)
+      if (res?.success && res.data?.job) return [id, res.data.job]
+    } catch {
+      /* skip missing job */
+    }
+    return [id, null]
+  }))
+  return Object.fromEntries(entries.filter(([, job]) => job))
+}
+
+function MatchedJobsRecommendations({
+  cvId,
+  businessId,
+  onAttach,
+  attachingJobId,
+  attachedJobIds,
+}) {
+  const [loading, setLoading] = useState(true)
+  const [items, setItems] = useState([])
+  const [loadError, setLoadError] = useState('')
+
+  useEffect(() => {
+    if (!cvId || !businessId) {
+      setItems([])
+      setLoading(false)
+      return undefined
+    }
+    let cancelled = false
+    ;(async () => {
+      setLoading(true)
+      setLoadError('')
+      setItems([])
+      try {
+        const matches = await fetchScoutCvBusinessJobMatches(apiService, cvId, businessId, { top_k: 50 })
+        if (cancelled) return
+
+        const ranked = matches
+          .map((row) => ({
+            jobId: row.job_id ?? row.jobId ?? row.id,
+            score: getMatchScorePercent(row),
+          }))
+          .filter((item) => item.jobId != null && item.score >= 40)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 8)
+
+        if (!ranked.length) {
+          setItems([])
+          return
+        }
+
+        const jobById = await loadBusinessJobsByIds(ranked.map((item) => item.jobId))
+        if (cancelled) return
+
+        setItems(
+          ranked
+            .map((item) => ({
+              ...item,
+              job: jobById[String(item.jobId)] || null,
+            }))
+            .filter((item) => item.job),
+        )
+      } catch (e) {
+        console.error(e)
+        if (!cancelled) {
+          setLoadError('Không tải được gợi ý JD phù hợp')
+          setItems([])
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [cvId, businessId])
+
+  return (
+    <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
+      <div className="mb-2 flex items-center gap-1.5">
+        <Sparkles className="cand-icon text-[#0077B6]" aria-hidden />
+        <h3 className="cand-fs-sm font-bold text-slate-900">JD phù hợp</h3>
+      </div>
+      <p className="cand-fs-2xs mb-2 text-slate-500">
+        Gợi ý từ AI theo hồ sơ ứng viên và JD của doanh nghiệp
+      </p>
+
+      {loading ? (
+        <div className="cand-fs-xs flex items-center justify-center gap-1.5 py-4 text-slate-500">
+          <Loader2 className="cand-icon animate-spin" />
+          Đang phân tích...
+        </div>
+      ) : loadError ? (
+        <p className="cand-fs-xs py-2 text-amber-700">{loadError}</p>
+      ) : items.length === 0 ? (
+        <p className="cand-fs-xs py-2 text-slate-400">Chưa có JD phù hợp (match ≥ 40%)</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {items.map(({ jobId, score, job }) => {
+            const key = String(jobId)
+            const isAttached = attachedJobIds.has(key)
+            const isSubmitting = String(attachingJobId) === key
+            const title = job.title || job.titleEn || job.titleJp || `JD #${jobId}`
+            return (
+              <li
+                key={key}
+                className="rounded-lg border border-slate-100 bg-slate-50/80 p-2"
+              >
+                <div className="flex items-start gap-2">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#e8f4fa] text-[#0077B6]">
+                    <Briefcase className="h-3.5 w-3.5" aria-hidden />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="cand-fs-sm line-clamp-2 font-semibold text-slate-900">{title}</p>
+                    {job.jobCode || job.job_code ? (
+                      <p className="cand-fs-2xs mt-0.5 text-slate-400">
+                        Mã: {job.jobCode || job.job_code}
+                      </p>
+                    ) : null}
+                    <span
+                      className={`cand-fs-2xs mt-1 inline-flex rounded-full px-1.5 py-0.5 font-semibold ${getScoutMatchBadgeClass(score)}`}
+                    >
+                      Match {Math.round(score)}%
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={isAttached || isSubmitting}
+                  onClick={() => onAttach?.(jobId)}
+                  className="cand-fs-xs mt-2 flex w-full items-center justify-center gap-1 rounded-md border border-[#0077B6]/30 bg-white px-2 py-1.5 font-semibold text-[#0077B6] transition-colors hover:bg-[#e8f4fa] disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="cand-icon animate-spin" />
+                      Đang thêm...
+                    </>
+                  ) : isAttached ? (
+                    'Đã thêm tiến cử'
+                  ) : (
+                    <>
+                      <UserPlus className="cand-icon" />
+                      Thêm vào tiến cử
+                    </>
+                  )}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function AvatarCircle({ candidate, size }) {
   const name = getScoutDisplayName(candidate)
   const resolvedSize = size ?? 28
@@ -175,7 +338,7 @@ function SectionCard({ title, children, className = '' }) {
 }
 
 function CandidateDetail({ candidate, loading }) {
-  if (loading) {
+  if (loading && !candidate) {
     return (
       <div className="cand-fs-sm cand-surface flex flex-col items-center justify-center border border-slate-200/80 bg-white py-12 text-slate-500 shadow-sm">
         <Loader2 className="cand-icon mb-2 animate-spin" />
@@ -414,8 +577,12 @@ function CandidateDetail({ candidate, loading }) {
 
 function CandidateSidebar({
   candidate,
+  businessId,
   exploreSubmitting,
   onExploreStatus,
+  onAttachToJob,
+  attachingJobId,
+  attachedJobIds,
 }) {
   if (!candidate) {
     return null
@@ -604,6 +771,16 @@ function CandidateSidebar({
       </div>
       )}
 
+      {businessId && candidate?.id ? (
+        <MatchedJobsRecommendations
+          cvId={candidate.id}
+          businessId={businessId}
+          onAttach={onAttachToJob}
+          attachingJobId={attachingJobId}
+          attachedJobIds={attachedJobIds}
+        />
+      ) : null}
+
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
         <Link
           to="/business/scout"
@@ -622,13 +799,17 @@ export default function BusinessUnlockedCandidateDetail() {
   const { candidateId } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { user } = useBusinessUser()
 
   const numericCandidateId = parseInt(candidateId, 10)
 
   const [candidate, setCandidate] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [candidateLoading, setCandidateLoading] = useState(true)
   const [error, setError] = useState('')
   const [exploreSubmitting, setExploreSubmitting] = useState(false)
+  const [attachingJobId, setAttachingJobId] = useState(null)
+  const [attachedJobIds, setAttachedJobIds] = useState(() => new Set())
+  const candidateLoadSeqRef = useRef(0)
 
   const backToListUrl = useMemo(() => {
     const params = new URLSearchParams()
@@ -669,22 +850,40 @@ export default function BusinessUnlockedCandidateDetail() {
     }
   }, [patchPerformanceExplore, numericCandidateId])
 
+  const handleAttachToJob = useCallback(async (jobId) => {
+    if (!candidate?.id || !jobId) return
+    setAttachingJobId(jobId)
+    try {
+      const res = await apiService.attachScoutCandidateToJob(candidate.id, { jobId })
+      if (res?.success) {
+        setAttachedJobIds((prev) => new Set([...prev, String(jobId)]))
+      } else {
+        window.alert(res?.message || 'Không thể thêm vào tiến cử')
+      }
+    } catch (e) {
+      console.error(e)
+      window.alert('Không thể thêm vào tiến cử')
+    } finally {
+      setAttachingJobId(null)
+    }
+  }, [candidate?.id])
+
   useEffect(() => {
     if (!numericCandidateId || Number.isNaN(numericCandidateId)) {
       setError('ID ứng viên không hợp lệ')
       setCandidate(null)
-      setLoading(false)
-      return
+      setCandidateLoading(false)
+      return undefined
     }
 
-    let mounted = true
+    const loadSeq = ++candidateLoadSeqRef.current
 
     const loadDetail = async () => {
-      setLoading(true)
+      setCandidateLoading(true)
       setError('')
       try {
         const res = await apiService.getBusinessScoutUnlockedCandidateById(numericCandidateId)
-        if (!mounted) return
+        if (loadSeq !== candidateLoadSeqRef.current) return
         if (res?.success && res.data?.candidate) {
           setCandidate(res.data.candidate)
         } else {
@@ -692,18 +891,17 @@ export default function BusinessUnlockedCandidateDetail() {
           setError(res?.message || 'Không tìm thấy hồ sơ ứng viên')
         }
       } catch (e) {
+        if (loadSeq !== candidateLoadSeqRef.current) return
         console.error(e)
-        if (mounted) {
-          setCandidate(null)
-          setError('Không tải được hồ sơ ứng viên')
-        }
+        setCandidate(null)
+        setError('Không tải được hồ sơ ứng viên')
       } finally {
-        if (mounted) setLoading(false)
+        if (loadSeq === candidateLoadSeqRef.current) setCandidateLoading(false)
       }
     }
 
     loadDetail()
-    return () => { mounted = false }
+    return undefined
   }, [numericCandidateId])
 
   return (
@@ -725,10 +923,8 @@ export default function BusinessUnlockedCandidateDetail() {
         </div>
 
         <div className="candidate-scrollbar min-h-0 flex-1 overflow-y-auto p-2 lg:p-3">
-          <div className="business-candidates-ui mx-auto w-full max-w-[1600px]">
-            {loading ? (
-              <CandidateDetail candidate={null} loading />
-            ) : error || !candidate ? (
+          <div className="business-candidates-ui w-full">
+            {error && !candidateLoading && !candidate ? (
               <div className="cand-surface flex flex-col items-center justify-center border border-slate-200/80 bg-white px-6 py-12 text-center shadow-sm">
                 <p className="cand-fs-sm font-semibold text-slate-800">
                   {error || 'Không tìm thấy hồ sơ ứng viên'}
@@ -744,12 +940,25 @@ export default function BusinessUnlockedCandidateDetail() {
               </div>
             ) : (
               <div className="business-candidates-detail-grid has-sidebar">
-                <CandidateDetail candidate={candidate} loading={false} />
-                <CandidateSidebar
-                  candidate={candidate}
-                  exploreSubmitting={exploreSubmitting}
-                  onExploreStatus={handlePerformanceExplore}
-                />
+                <CandidateDetail candidate={candidate} loading={candidateLoading} />
+                {candidate ? (
+                  <CandidateSidebar
+                    candidate={candidate}
+                    businessId={user?.id}
+                    exploreSubmitting={exploreSubmitting}
+                    onExploreStatus={handlePerformanceExplore}
+                    onAttachToJob={handleAttachToJob}
+                    attachingJobId={attachingJobId}
+                    attachedJobIds={attachedJobIds}
+                  />
+                ) : candidateLoading ? (
+                  <div className="cand-surface hidden border border-slate-200/80 bg-white p-3 shadow-sm xl:block">
+                    <div className="cand-fs-xs flex items-center gap-1.5 text-slate-400">
+                      <Loader2 className="cand-icon animate-spin" />
+                      Đang tải...
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
           </div>

@@ -30,8 +30,8 @@ import { highlightSearchText } from '../../utils/searchTextHighlight'
 import ScoutCandidateHoverTip from '../../component/Bussiness/ScoutCandidateHoverTip'
 import { getScoutCandidateDetailUrl } from '../../utils/scoutCandidateDetailUrl'
 import CreditTopUpModal from '../../component/Bussiness/CreditTopUpModal'
-import performanceIllustration from '../../assets/Performance/Performance_VN.png'
-import creditIllustration from '../../assets/Credit/Credit_VN.png'
+import creditIllustration from '../../assets/scout_credit_vi.png'
+import performanceIllustration from '../../assets/scout_per_vi.png'
 import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont'
 import { getScoutSkillTags, getScoutMatchBadgeClass, formatScoutExperienceSeniority, formatScoutDesiredSalary, formatScoutListLocation, formatScoutLanguageSummary } from '../../utils/scoutCandidateDisplay'
 
@@ -112,7 +112,19 @@ const scoutPageStyles = `
   .candidate-scrollbar::-webkit-scrollbar { width: 4px; }
   .candidate-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .candidate-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-  .candidate-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+  .candidate-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+    scrollbar-gutter: stable;
+    overflow-anchor: none;
+  }
+  /* Tooltip card cuối: hiện phía trên để không kéo dài scroll → tránh rung UI */
+  .candidate-scrollbar .group:last-child .scout-candidate-hover-tip {
+    top: auto;
+    bottom: 100%;
+    margin-top: 0;
+    margin-bottom: 0.25rem;
+  }
   .business-homepage-scroll::-webkit-scrollbar { width: 4px; }
   .business-homepage-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
   .scout-search-highlight {
@@ -167,8 +179,12 @@ const scoutPageStyles = `
     transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease;
   }
   .biz-hp-solution-card:hover {
-    transform: translateY(-6px);
     box-shadow: 0 16px 32px -12px rgba(0, 119, 182, 0.35);
+  }
+  @media (min-width: 640px) {
+    .biz-hp-solution-card:hover {
+      transform: translateY(-4px);
+    }
   }
   @media (prefers-reduced-motion: reduce) {
     .biz-hp-solution-card-wrap { animation: none; }
@@ -230,7 +246,7 @@ const CARD_SURFACE = {
 const scoutSolutionCards = [
   {
     num: '01',
-    title: 'Scout Credit',
+    title: 'Scout Trực Tiếp',
     subtitle: 'Tự chủ tìm kiếm & tiếp cận ứng viên',
     variant: 'brandLight',
     icon: Coins,
@@ -247,7 +263,7 @@ const scoutSolutionCards = [
   },
   {
     num: '02',
-    title: 'Scout Performance',
+    title: 'Scout Ủy Thác',
     subtitle: 'WS hỗ trợ tìm kiếm & tiếp cận ứng viên',
     variant: 'neutral',
     icon: UserPlus,
@@ -530,7 +546,7 @@ function ScoutOnboardingView({ previewCandidates, previewScoreByCvId, scoutCredi
       <header className="shrink-0">
         <h1 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl">Scout</h1>
         <p className="mt-1 max-w-4xl text-xs leading-snug text-slate-600 sm:text-sm">
-          JobShare giúp bạn tiếp cận đúng ứng viên nhanh hơn với Scout Credit và Scout Performance.
+          JobShare giúp bạn tiếp cận đúng ứng viên nhanh hơn với Scout Trực Tiếp và Scout Ủy Thác.
         </p>
       </header>
 
@@ -651,8 +667,8 @@ function ScoutUnlockCompareTable() {
         <thead>
           <tr className="bg-slate-50 text-slate-500">
             <th className="px-2 py-1.5 font-semibold" style={{ width: '28%' }} />
-            <th className="px-2 py-1.5 font-semibold text-[#0077B6]">Credit</th>
-            <th className="px-2 py-1.5 font-semibold text-[#0077B6]">Performance</th>
+            <th className="px-2 py-1.5 font-semibold text-[#0077B6]">Scout Trực Tiếp</th>
+            <th className="px-2 py-1.5 font-semibold text-[#0077B6]">Scout Ủy Thác</th>
           </tr>
         </thead>
         <tbody>
@@ -933,12 +949,12 @@ function ScoutCreditConfirmModal({
         <div className="px-6 pt-6 pb-5 sm:px-8 sm:pt-7">
           <h2 className="pr-10 text-lg font-bold leading-snug text-slate-900 sm:text-xl">
             Mở hồ sơ bằng{' '}
-            <span className="text-[#0077B6]">Scout Credit</span>
+            <span className="text-[#0077B6]">Scout Trực Tiếp</span>
           </h2>
 
           <p className="mt-3 text-sm font-medium leading-[1.65] text-slate-700 sm:text-[15px]">
             Với{' '}
-            <span className="font-bold text-[#0077B6]">Scout Credit</span>, doanh nghiệp sẽ mở thông tin
+            <span className="font-bold text-[#0077B6]">Scout Trực Tiếp</span>, doanh nghiệp sẽ mở thông tin
             liên hệ (email, số điện thoại) của ứng viên và{' '}
             <span className="font-bold text-[#0077B6]">chủ động liên lạc</span>.
           </p>
@@ -959,8 +975,8 @@ function ScoutCreditConfirmModal({
             </ul>
             <div className="flex items-center justify-center sm:justify-end">
               <img
-                src={performanceIllustration}
-                alt="Scout Credit — doanh nghiệp mở hồ sơ và chủ động liên lạc với ứng viên"
+                src={creditIllustration}
+                alt="Scout Trực Tiếp — doanh nghiệp mở hồ sơ và chủ động liên lạc với ứng viên"
                 className="w-full max-w-[380px] object-contain"
               />
             </div>
@@ -973,7 +989,7 @@ function ScoutCreditConfirmModal({
             <p className="min-w-0 text-sm font-medium leading-[1.55] text-slate-700 sm:text-[15px]">
               Workstation sẽ{' '}
               <span className="font-bold text-[#0077B6]">không can thiệp</span>{' '}
-              vào quá trình liên hệ và tuyển dụng của doanh nghiệp với hồ sơ mở bằng hình thức Scout Credit.
+              vào quá trình liên hệ và tuyển dụng của doanh nghiệp với hồ sơ mở bằng hình thức Scout Trực Tiếp.
             </p>
           </div>
 
@@ -985,7 +1001,7 @@ function ScoutCreditConfirmModal({
               className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#0077B6] focus:ring-[#0077B6]"
             />
             <span className="text-sm font-medium leading-snug text-slate-700 sm:text-[15px]">
-              Tôi đã đọc và hiểu rõ nội dung dịch vụ. Tôi xác nhận đồng ý mở hồ sơ bằng Scout Credit.
+              Tôi đã đọc và hiểu rõ nội dung dịch vụ. Tôi xác nhận đồng ý mở hồ sơ bằng Scout Trực Tiếp.
             </span>
           </label>
         </div>
@@ -1094,7 +1110,7 @@ function ScoutPerformanceConfirmModal({
             ) : (
               <>
                 Xác nhận{' '}
-                <span className="text-[#E30613]">Scout Performance</span>
+                <span className="text-[#E30613]">Scout Ủy Thác</span>
               </>
             )}
           </h2>
@@ -1110,7 +1126,7 @@ function ScoutPerformanceConfirmModal({
               <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-[1fr_minmax(280px,44%)] sm:gap-6 sm:items-start">
                 <div className="space-y-3 text-sm font-medium leading-[1.65] text-slate-700 sm:text-[15px]">
                   <p>
-                    Scout Performance là dịch vụ Workstation thay mặt doanh nghiệp tiếp cận ứng viên,
+                    Scout Ủy Thác là dịch vụ Workstation thay mặt doanh nghiệp tiếp cận ứng viên,
                     xác nhận mức độ quan tâm và hỗ trợ kết nối phù hợp.
                   </p>
                   <p>
@@ -1120,8 +1136,8 @@ function ScoutPerformanceConfirmModal({
                 </div>
                 <div className="flex items-center justify-center sm:justify-end">
                   <img
-                    src={creditIllustration}
-                    alt="Scout Performance"
+                    src={performanceIllustration}
+                    alt="Scout Ủy Thác"
                     className="w-full max-w-[380px] object-contain"
                   />
                 </div>
@@ -1290,7 +1306,7 @@ function ScoutPerformanceSuccessModal({
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#dcfce7] text-[#059669]">
           <Check className="h-6 w-6" strokeWidth={2.5} />
         </div>
-        <h2 className="mt-4 text-lg font-bold text-slate-900">Đã gửi yêu cầu Scout Performance</h2>
+        <h2 className="mt-4 text-lg font-bold text-slate-900">Đã gửi yêu cầu Scout Ủy Thác</h2>
         <p className="mt-2 text-sm text-slate-600 leading-relaxed">
           WS sẽ phản hồi trong vòng <strong>24 giờ làm việc</strong>.
           {wantsSimilarCandidates ? ' Đồng thời WS sẽ tìm thêm ứng viên tương tự.' : ''}
@@ -1338,14 +1354,24 @@ function ScoutAttachJobModal({
   loading,
   onSubmit,
   candidateName,
+  jobScoreById = {},
 }) {
   const [jobId, setJobId] = useState('')
   const [note, setNote] = useState('')
 
-  const jobOptions = useMemo(() => jobs.map((job) => ({
-    value: String(job.id),
-    label: job.title || job.titleEn || `JD #${job.id}`,
-  })), [jobs])
+  const jobOptions = useMemo(() => {
+    const sorted = [...(jobs || [])].sort((a, b) => {
+      const sa = jobScoreById[String(a.id)] ?? -1
+      const sb = jobScoreById[String(b.id)] ?? -1
+      return sb - sa
+    })
+    return sorted.map((job) => {
+      const score = jobScoreById[String(job.id)]
+      const base = job.title || job.titleEn || `JD #${job.id}`
+      const label = score != null && score > 0 ? `${base} · Match ${Math.round(score)}%` : base
+      return { value: String(job.id), label }
+    })
+  }, [jobs, jobScoreById])
 
   useEffect(() => {
     if (open) {
@@ -1911,7 +1937,7 @@ const Scout = () => {
       {showPerformanceCta && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
           <div className="bg-white rounded-xl p-5 w-full max-w-md shadow-xl">
-            <h3 className="text-sm font-bold text-slate-800 mb-2">Scout Performance</h3>
+            <h3 className="text-sm font-bold text-slate-800 mb-2">Scout Ủy Thác</h3>
             <p className="text-xs text-slate-600 leading-relaxed mb-4">
               Chúng tôi có những lựa chọn tốt hơn dành cho bạn. Bạn có muốn tìm hiểu thêm không?
             </p>

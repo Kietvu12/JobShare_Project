@@ -81,7 +81,7 @@ export function AiMatchOverviewCard({
       <div className="p-3 space-y-3 min-w-0">
         <p className="biz-jd-title text-slate-900">
           {matchLoading
-            ? 'Đang phân tích ứng viên Scout...'
+            ? 'Đang phân tích ứng viên phù hợp...'
             : `Có ${matchedTotal.toLocaleString('vi-VN')} hồ sơ phù hợp với JD này`}
         </p>
         {matchError ? (
@@ -129,7 +129,7 @@ export function TopCandidatesOverview({
   return (
     <section className="rounded-lg border border-slate-200 bg-white">
       <div className="flex items-center gap-1.5 border-b border-slate-100 px-3 py-2">
-        <h2 className="biz-jd-title text-slate-800">Top ứng viên phù hợp (ẩn danh)</h2>
+        <h2 className="biz-jd-title text-slate-800">Top ứng viên phù hợp</h2>
         <Info className="biz-jd-icon text-slate-300 shrink-0" />
       </div>
       <div className="p-3">
@@ -139,7 +139,7 @@ export function TopCandidatesOverview({
             Đang tải gợi ý AI...
           </div>
         ) : topCandidates.length === 0 ? (
-          <p className="text-center biz-jd-muted py-8">Chưa có ứng viên Scout phù hợp hoặc JD chưa đồng bộ vector.</p>
+          <p className="text-center biz-jd-muted py-8">Chưa có ứng viên phù hợp hoặc JD chưa đồng bộ vector.</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {topCandidates.map((c, i) => {

@@ -21,6 +21,8 @@ import {
   buildBusinessJobDetailTabs,
   BusinessJobDetailSectionList,
 } from '../../utils/businessJobDetailView'
+import BusinessApplicationDetailDrawer from '../../component/Bussiness/BusinessApplicationDetailDrawer'
+import JobDetailNominationsPanel from '../../component/Bussiness/JobDetailNominationsPanel'
 import {
   AiMatchOverviewCard,
   HealthOverviewGrid,
@@ -29,7 +31,8 @@ import {
   TopCandidatesOverview,
 } from '../../component/Bussiness/BusinessJobDetailOverview'
 
-const tabs = ['Tổng quan', 'Mô tả công việc']
+const BASE_TABS = ['Tổng quan', 'Mô tả công việc']
+const AI_TAB = 'AI gợi ý'
 
 const RECRUITMENT_TYPE_LABELS = {
   1: 'Full-time',
@@ -115,6 +118,10 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
   const [menuOpen, setMenuOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [jdContentTab, setJdContentTab] = useState('description')
+  const [jobNominations, setJobNominations] = useState([])
+  const [nominationsLoading, setNominationsLoading] = useState(false)
+  const [selectedNomination, setSelectedNomination] = useState(null)
+  const [nominationDrawerOpen, setNominationDrawerOpen] = useState(false)
   const metricsPeriodDays = 7
 
   const loadJob = useCallback(async () => {
@@ -141,18 +148,13 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
     try {
       const { candidates, cvIds, total } = await fetchAllBusinessScoutCandidates(apiService)
       setScoutTotal(total)
-      if (!cvIds.length) {
-        setMatchSummary(summarizeAiMatches([]))
-        setTopCandidates([])
-        return
-      }
-      const matches = await fetchJobScoutAiMatches(apiService, jobId, cvIds)
+      const matches = await fetchJobScoutAiMatches(apiService, jobId, cvIds, { top_k: 200 })
       const summary = summarizeAiMatches(matches)
       setMatchSummary(summary)
 
       const candidateById = Object.fromEntries(candidates.map((c) => [String(c.id), c]))
       const top = summary.sorted.slice(0, 4).map((row, index) => {
-        const cand = candidateById[String(row.id)]
+        const cand = candidateById[String(row.id ?? row.cv_id)]
         return mergeScoutCandidateWithMatch(cand, row, index)
       })
       setTopCandidates(top)
@@ -191,6 +193,52 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
     if (job?.id) loadRecruitmentMetrics()
   }, [job?.id, loadRecruitmentMetrics])
 
+  const loadJobNominations = useCallback(async () => {
+    if (!jobId) return
+    setNominationsLoading(true)
+    try {
+      const res = await apiService.getBusinessApplications({
+        page: 1,
+        limit: 50,
+        tab: 'all',
+        jobId,
+        sortBy: 'appliedAt',
+        sortOrder: 'DESC',
+      })
+      if (res?.success) {
+        setJobNominations(res.data?.applications || [])
+      } else {
+        setJobNominations([])
+      }
+    } catch {
+      setJobNominations([])
+    } finally {
+      setNominationsLoading(false)
+    }
+  }, [jobId])
+
+  useEffect(() => {
+    if (job?.id && (job.isMarketplace || job.isDirectRecruitment)) {
+      loadJobNominations()
+    } else {
+      setJobNominations([])
+    }
+  }, [job?.id, job?.isMarketplace, job?.isDirectRecruitment, loadJobNominations])
+
+  const openNominationDrawer = (app) => {
+    setSelectedNomination(app)
+    setNominationDrawerOpen(true)
+  }
+
+  const closeNominationDrawer = () => {
+    setNominationDrawerOpen(false)
+    setSelectedNomination(null)
+  }
+
+  const handleNominationUpdated = useCallback(() => {
+    loadJobNominations()
+  }, [loadJobNominations])
+
   const handleDeleteJob = async () => {
     if (!job?.id || deleting) return
     setMenuOpen(false)
@@ -217,6 +265,16 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
 
   const statusMeta = useMemo(() => getJobStatusMeta(job?.status), [job?.status])
   const isOnCtvMarketplace = !!(job?.isMarketplace || job?.isDirectRecruitment)
+  const pageTabs = useMemo(
+    () => (isOnCtvMarketplace ? [...BASE_TABS, AI_TAB] : BASE_TABS),
+    [isOnCtvMarketplace],
+  )
+
+  useEffect(() => {
+    if (!isOnCtvMarketplace && activeTab === AI_TAB) {
+      setActiveTab('Tổng quan')
+    }
+  }, [isOnCtvMarketplace, activeTab])
   const recruitmentLabel = RECRUITMENT_TYPE_LABELS[Number(job?.recruitmentType ?? job?.recruitment_type)] || 'Full-time'
   const location = job?.interviewLocation || job?.interview_location || '—'
   const jobTitle = job?.title || job?.titleEn || job?.titleJp || 'Chi tiết JD'
@@ -329,9 +387,9 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
 
   const activeJdSections = jdContentTabs.find((t) => t.id === jdContentTab)?.sections || []
   const scoutHref = `/business/scout?jobId=${job.id}`
-  const overviewBlocks = (
+
+  const aiTabBlocks = (
     <>
-      <HealthOverviewGrid cards={healthCards} title="Recruitment Health của JD" />
       <AiMatchOverviewCard
         matchLoading={matchLoading}
         matchedTotal={matchedTotal}
@@ -344,6 +402,22 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
         topCandidates={topCandidates}
         onViewAll={() => navigate(scoutHref)}
       />
+    </>
+  )
+
+  const overviewBlocks = (
+    <>
+      <HealthOverviewGrid cards={healthCards} title="Recruitment Health của JD" />
+      {isOnCtvMarketplace ? (
+        <JobDetailNominationsPanel
+          loading={nominationsLoading}
+          applications={jobNominations}
+          selectedId={selectedNomination?.id}
+          onOpen={openNominationDrawer}
+        />
+      ) : (
+        aiTabBlocks
+      )}
     </>
   )
 
@@ -370,11 +444,11 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-1">
-                <button type="button" onClick={() => navigate(scoutHref)} className="biz-jd-body font-semibold rounded-md px-2 py-1 bg-[#0077B6] text-white">Scout</button>
+                <button type="button" onClick={() => navigate(scoutHref)} className="rounded-md bg-[#0077B6] px-2 py-1 font-semibold text-white hover:bg-[#006699]" style={{ fontSize: 10 }}>Scout</button>
               </div>
             </div>
             <div className="flex gap-1">
-              {tabs.map((tab) => (
+              {pageTabs.map((tab) => (
                 <button
                   key={tab}
                   type="button"
@@ -394,6 +468,8 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
                 {overviewBlocks}
                 <ServicesActivityOverview services={services} activities={activities} jobId={job.id} navigate={navigate} />
               </div>
+            ) : activeTab === AI_TAB ? (
+              <div className="space-y-2">{aiTabBlocks}</div>
             ) : (
               <>
                 <div className="flex rounded-lg border border-slate-200 bg-white p-0.5 gap-0.5">
@@ -414,6 +490,12 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
               </>
             )}
           </div>
+          <BusinessApplicationDetailDrawer
+            open={nominationDrawerOpen}
+            application={selectedNomination}
+            onClose={closeNominationDrawer}
+            onStatusUpdated={handleNominationUpdated}
+          />
         </div>
       </div>
     )
@@ -523,8 +605,8 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
                 <button
                   type="button"
                   onClick={() => navigate(`/business/scout?jobId=${job.id}`)}
-                  className="flex items-center gap-1.5 bg-[#0077B6] text-white rounded-lg font-semibold hover:bg-[#006699] transition-colors biz-jd-body"
-                  style={{ padding: '6px 10px' }}
+                  className="flex items-center gap-1.5 rounded-lg bg-[#0077B6] font-semibold text-white transition-colors hover:bg-[#006699]"
+                  style={{ fontSize: 10, padding: '6px 10px' }}
                 >
                   <Target className="biz-jd-icon" />
                   Tìm ứng viên với Scout
@@ -541,7 +623,7 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-white flex items-center gap-3 overflow-x-auto hide-sb px-2">
-            {tabs.map((tab) => (
+            {pageTabs.map((tab) => (
               <button
                 key={tab}
                 type="button"
@@ -560,6 +642,8 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
               {overviewBlocks}
               <ServicesActivityOverview services={services} activities={activities} jobId={job.id} navigate={navigate} />
             </div>
+          ) : activeTab === AI_TAB ? (
+            <div className="space-y-2 pb-2">{aiTabBlocks}</div>
           ) : activeTab === 'Mô tả công việc' ? (
             <div className="space-y-2 pb-2">
               <div className="flex rounded-lg border border-slate-200 bg-white p-0.5 gap-0.5">
@@ -582,6 +666,12 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
           </div>
         </div>
       </div>
+      <BusinessApplicationDetailDrawer
+        open={nominationDrawerOpen}
+        application={selectedNomination}
+        onClose={closeNominationDrawer}
+        onStatusUpdated={handleNominationUpdated}
+      />
     </>
   )
 }

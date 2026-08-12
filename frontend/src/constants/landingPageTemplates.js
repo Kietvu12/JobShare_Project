@@ -35,7 +35,8 @@ export const LANDING_PAGE_TEMPLATES = [
     heroMedia: 'slide',
     category: 'recruitment',
     renderMode: 'html',
-    previewImage: '/template/lp_recruite/lp_a01/img/02.jpg',
+    previewImage: '/template/lp_recruite/lp_a01/img/00_01.jpg',
+    previewImagePosition: 'right 20% center',
   },
   {
     key: 'do_lp_kaishaintro',

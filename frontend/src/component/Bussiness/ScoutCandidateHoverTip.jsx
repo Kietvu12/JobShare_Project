@@ -28,7 +28,7 @@ export default function ScoutCandidateHoverTip({ candidate, hl = (text) => text 
 
   return (
     <div
-      className="pointer-events-none absolute left-0 right-0 top-full z-30 mt-1 hidden rounded-xl border border-slate-200 bg-white p-3 shadow-lg ring-1 ring-black/5 group-hover:block"
+      className="scout-candidate-hover-tip pointer-events-none absolute left-0 right-0 top-full z-30 mt-1 hidden rounded-xl border border-slate-200 bg-white p-3 shadow-lg ring-1 ring-black/5 group-hover:block"
       role="tooltip"
     >
       <div className="scout-cand-title text-slate-900">{hl(getDisplayName(candidate))}</div>
@@ -107,9 +107,9 @@ export default function ScoutCandidateHoverTip({ candidate, hl = (text) => text 
         </div>
       ) : null}
 
-      <p className="scout-cand-caption mt-2.5 border-t border-slate-100 pt-2 text-[#0077B6]">
+      {/* <p className="scout-cand-caption mt-2.5 border-t border-slate-100 pt-2 text-[#0077B6]">
         Bấm để xem chi tiết trong tab mới
-      </p>
+      </p> */}
     </div>
   )
 }

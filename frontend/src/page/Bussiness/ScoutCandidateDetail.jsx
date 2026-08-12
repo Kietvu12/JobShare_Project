@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   Check, Unlock, Users, Loader2, ArrowLeft, ExternalLink,
@@ -7,6 +7,10 @@ import ScoutCandidateProfilePanel from '../../component/Bussiness/ScoutCandidate
 import CreditTopUpModal from '../../component/Bussiness/CreditTopUpModal'
 import apiService from '../../services/api'
 import useBusinessUser from '../../hooks/useBusinessUser'
+import {
+  buildJobScoreMapFromMatches,
+  fetchScoutCvBusinessJobMatches,
+} from '../../utils/businessJobAiMatching'
 import { highlightSearchText } from '../../utils/searchTextHighlight'
 import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont'
 import {
@@ -71,6 +75,9 @@ export default function ScoutCandidateDetail() {
   const [credit, setCredit] = useState(userCredit || 0)
   const [scoutCreditCost, setScoutCreditCost] = useState(5)
   const [jobs, setJobs] = useState([])
+  const [jobsLoading, setJobsLoading] = useState(false)
+  const [jobScoreById, setJobScoreById] = useState({})
+  const [jobScoresLoading, setJobScoresLoading] = useState(false)
   const [performanceDetail, setPerformanceDetail] = useState(null)
   const [performanceDetailLoading, setPerformanceDetailLoading] = useState(false)
   const [unlocking, setUnlocking] = useState(false)
@@ -94,12 +101,15 @@ export default function ScoutCandidateDetail() {
   })
 
   const numericCvId = parseInt(cvId, 10)
+  const candidateLoadSeqRef = useRef(0)
 
   useEffect(() => {
     setCredit(userCredit || 0)
   }, [userCredit])
 
   const loadJobs = useCallback(async () => {
+    if (jobs.length > 0) return jobs
+    setJobsLoading(true)
     try {
       let currentPage = 1
       let totalPages = 1
@@ -112,14 +122,50 @@ export default function ScoutCandidateDetail() {
         currentPage += 1
       } while (currentPage <= totalPages)
       setJobs(all)
+      return all
     } catch {
       setJobs([])
+      return []
+    } finally {
+      setJobsLoading(false)
     }
-  }, [])
+  }, [jobs.length])
+
+  const loadJobScores = useCallback(async () => {
+    if (!numericCvId || Number.isNaN(numericCvId) || !user?.id) return
+    setJobScoresLoading(true)
+    try {
+      const matches = await fetchScoutCvBusinessJobMatches(apiService, numericCvId, user.id, { top_k: 50 })
+      setJobScoreById(buildJobScoreMapFromMatches(matches))
+    } catch (e) {
+      console.error(e)
+      setJobScoreById({})
+    } finally {
+      setJobScoresLoading(false)
+    }
+  }, [numericCvId, user?.id])
+
+  const needsJobList = attachJobOpen
+    || (actionModal.open && actionModal.kind === 'performance-confirm')
 
   useEffect(() => {
-    loadJobs()
-  }, [loadJobs])
+    if (!needsJobList) return undefined
+    let cancelled = false
+    ;(async () => {
+      await loadJobs()
+      if (cancelled) return
+    })()
+    return () => { cancelled = true }
+  }, [needsJobList, loadJobs])
+
+  useEffect(() => {
+    if (!attachJobOpen) return undefined
+    let cancelled = false
+    ;(async () => {
+      await loadJobScores()
+    })()
+    return () => { cancelled = true }
+  }, [attachJobOpen, loadJobScores])
 
   const loadCandidate = useCallback(async () => {
     if (!numericCvId || Number.isNaN(numericCvId)) {
@@ -127,12 +173,14 @@ export default function ScoutCandidateDetail() {
       setLoading(false)
       return
     }
+    const loadSeq = ++candidateLoadSeqRef.current
     setLoading(true)
     setError('')
     try {
       const res = await apiService.getBusinessScoutCandidateById(numericCvId, {
         search: searchQuery || undefined,
       })
+      if (loadSeq !== candidateLoadSeqRef.current) return
       if (res?.success && res.data?.candidate) {
         setCandidate(res.data.candidate)
         if (typeof res.data.scoutCreditCost === 'number') {
@@ -146,11 +194,12 @@ export default function ScoutCandidateDetail() {
         setError(res?.message || 'Không tải được hồ sơ ứng viên')
       }
     } catch (e) {
+      if (loadSeq !== candidateLoadSeqRef.current) return
       console.error(e)
       setCandidate(null)
       setError('Không tải được hồ sơ ứng viên')
     } finally {
-      setLoading(false)
+      if (loadSeq === candidateLoadSeqRef.current) setLoading(false)
     }
   }, [numericCvId, searchQuery])
 
@@ -413,7 +462,7 @@ export default function ScoutCandidateDetail() {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-2.5 sm:p-3 lg:p-4">
-          {loading ? (
+          {loading && !candidate ? (
             <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-20 text-slate-500">
               <Loader2 className="h-5 w-5 animate-spin text-[#0077B6]" />
               <span className="text-sm">Đang tải hồ sơ...</span>
@@ -490,7 +539,7 @@ export default function ScoutCandidateDetail() {
                     <ScoutUnlockOptionCard
                       icon={Unlock}
                       iconWrapClass="bg-[#f3e8ff]"
-                      title="Mở liên hệ bằng Credit"
+                      title="Scout Trực Tiếp"
                       subtitle={`Credit hiện có: ${credit}`}
                       description="Dùng credit để mở ngay email, SĐT và thông tin liên hệ."
                       footer={(
@@ -510,18 +559,18 @@ export default function ScoutCandidateDetail() {
                   {!performanceDetail && !isPerformancePartialUnlock ? (
                     <ScoutUnlockOptionCard
                       icon={Users}
-                      title="Scout Performance"
+                      title="Scout Ủy Thác"
                       subtitle="Nhờ WS tiếp cận thay bạn"
                       description="WS chủ động tiếp cận ứng viên, xác nhận mức độ quan tâm và hỗ trợ kết nối phù hợp."
                       footer={(
                         <p className="scout-detail-caption font-semibold text-slate-500">
-                          Không tốn credit · Phí 20% khi tuyển thành công
+                          Không tốn credit. Phí tuyển dụng tương ứng với kinh nghiệm và năng lực của ứng viên
                         </p>
                       )}
                       buttonLabel={
                         candidate?.unlockType === 'scout_performance'
                           ? 'Đã gửi yêu cầu WS'
-                          : 'Nhờ WS tiếp cận ứng viên'
+                          : 'Uỷ thác WS tiếp cận ứng viên (Recommend)'
                       }
                       loadingLabel="Đang gửi yêu cầu..."
                       onClick={handlePerformanceRequestClick}
@@ -601,7 +650,8 @@ export default function ScoutCandidateDetail() {
         open={attachJobOpen}
         onClose={() => setAttachJobOpen(false)}
         jobs={jobs}
-        loading={attachJobLoading}
+        jobScoreById={jobScoreById}
+        loading={attachJobLoading || jobsLoading || jobScoresLoading}
         onSubmit={handleAttachToJob}
         candidateName={candidate?.name || getScoutDisplayName(candidate)}
       />

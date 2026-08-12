@@ -419,6 +419,7 @@ function BrandingOverviewMain({ onCardCta, onConsultation, requestLoadingKey }) 
 function BrandingStatsSection({
   statCards,
   statsEmpty,
+  hasPublishedPage,
   displayPages,
   activities,
   setShowCreate,
@@ -429,7 +430,7 @@ function BrandingStatsSection({
     <div className="flex flex-col gap-2">
       <h2 className="text-sm font-bold text-slate-900 sm:text-base">Thống kê &amp; landing page</h2>
 
-      {statsEmpty ? (
+      {statsEmpty && !hasPublishedPage ? (
         <div className="rounded-xl border border-dashed border-[#0077B6]/35 bg-[#e8f4fa]/60 px-4 py-4 text-center sm:text-left">
           <p className="text-xs font-semibold text-slate-800 sm:text-sm">
             Chưa có dữ liệu thống kê
@@ -481,14 +482,16 @@ function BrandingStatsSection({
             <h2 className="mb-1.5 text-xs font-bold text-slate-800">Trang giới thiệu DN</h2>
             <p className="text-[10px] leading-snug text-slate-500">Template, đa trang, motion, SEO</p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="mt-4 flex w-full shrink-0 items-center justify-center gap-1 rounded-lg bg-[#0077B6] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#006399]"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Tạo
-          </button>
+          {hasPublishedPage ? (
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="mt-4 flex w-full shrink-0 items-center justify-center gap-1 rounded-lg bg-[#0077B6] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#006399]"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Tạo
+            </button>
+          ) : null}
         </div>
 
         <div className="min-w-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
@@ -576,6 +579,7 @@ function BrandingUnifiedMain({
   requestLoadingKey,
   statCards,
   statsEmpty,
+  hasPublishedPage,
   displayPages,
   activities,
   setShowCreate,
@@ -592,6 +596,7 @@ function BrandingUnifiedMain({
       <BrandingStatsSection
         statCards={statCards}
         statsEmpty={statsEmpty}
+        hasPublishedPage={hasPublishedPage}
         displayPages={displayPages}
         activities={activities}
         setShowCreate={setShowCreate}
@@ -710,6 +715,8 @@ const Branding = () => {
     && (stats.views || 0) === 0
     && (stats.formSubmissions || 0) === 0
     && (stats.conversionRate || 0) === 0
+
+  const hasPublishedPage = !loading && landingPages.some((p) => Number(p.status) === 1)
 
   const handleCreated = () => {
     loadData()
@@ -848,6 +855,7 @@ const Branding = () => {
                   requestLoadingKey={requestLoadingKey}
                   statCards={statCards}
                   statsEmpty={statsEmpty}
+                  hasPublishedPage={hasPublishedPage}
                   displayPages={landingPages}
                   activities={activities}
                   setShowCreate={setShowCreate}

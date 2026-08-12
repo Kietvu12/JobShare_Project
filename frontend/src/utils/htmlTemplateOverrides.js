@@ -1352,7 +1352,7 @@ function applySectionVisualOrder(doc, sections = []) {
 }
 
 /** lp_recruite: fade_in / curtain cần .show từ JS gốc — trong iframe builder scroll không chạy hết */
-export function applyRecruitPreviewFixes(doc, { builderPreview = false } = {}) {
+export function applyRecruitPreviewFixes(doc, { builderPreview = false, previewMode = false } = {}) {
   if (!doc?.head) return;
 
   const main = doc.querySelector('main.container, main');
@@ -1389,6 +1389,16 @@ export function applyRecruitPreviewFixes(doc, { builderPreview = false } = {}) {
     }
   ` : '';
 
+  const templatePreviewCss = previewMode ? `
+    .slide_hero {
+      height: clamp(320px, 38vw, 460px) !important;
+    }
+    .slide_hero_img {
+      background-size: cover !important;
+      background-position: right 20% center !important;
+    }
+  ` : '';
+
   let style = doc.getElementById('wjs-recruit-preview-fix');
   if (!style) {
     style = doc.createElement('style');
@@ -1397,6 +1407,7 @@ export function applyRecruitPreviewFixes(doc, { builderPreview = false } = {}) {
   }
   style.textContent = `
     ${builderCss}
+    ${templatePreviewCss}
     .slide_hero_img {
       z-index: 0 !important;
       animation: none !important;
@@ -1574,6 +1585,7 @@ export function applyHtmlTemplateOverrides(doc, {
   applyVisualOrder = true,
   documentMeta = null,
   builderPreview = false,
+  previewMode = false,
 }) {
   if (!doc) return;
   ensureHeadingMainStyles(doc);
@@ -1596,7 +1608,7 @@ export function applyHtmlTemplateOverrides(doc, {
   }
 
   if (reg?.layout === 'recruit') {
-    applyRecruitPreviewFixes(doc, { builderPreview });
+    applyRecruitPreviewFixes(doc, { builderPreview, previewMode });
   }
 
   if (documentMeta) {

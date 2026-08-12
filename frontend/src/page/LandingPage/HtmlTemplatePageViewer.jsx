@@ -29,6 +29,7 @@ export default function HtmlTemplatePageViewer({
   onMediaDrop,
   syncKey = 0,
   autoHeight = false,
+  previewMode = false,
   documentMeta = null,
   onNavigatePage = null,
   onScrollToSection = null,
@@ -92,6 +93,7 @@ export default function HtmlTemplatePageViewer({
           applyVisualOrder: true,
           documentMeta: documentMetaRef.current,
           builderPreview: false,
+          previewMode,
         });
         resizeIframe();
       } catch {
@@ -102,7 +104,7 @@ export default function HtmlTemplatePageViewer({
     [100, 400, 1000].forEach((ms) => {
       bindTimersRef.current.push(setTimeout(run, ms));
     });
-  }, [editable, templateKey, resizeIframe]);
+  }, [editable, templateKey, resizeIframe, previewMode]);
 
   const callbacksRef = useRef({
     onSelectSection, onSectionEdit, onHeaderEdit, onBlockDelete, onImageFileDrop, onMediaDrop,
@@ -353,6 +355,7 @@ export default function HtmlTemplatePageViewer({
         applyVisualOrder: true,
         documentMeta: documentMetaRef.current,
         builderPreview: editable,
+        previewMode,
       });
       if (editable) {
         scheduleBind();
@@ -364,7 +367,7 @@ export default function HtmlTemplatePageViewer({
     } catch {
       // cross-origin
     }
-  }, [templateKey, editable, scheduleBind, resizeIframe, schedulePublicFixes, wireNav]);
+  }, [templateKey, editable, previewMode, scheduleBind, resizeIframe, schedulePublicFixes, wireNav]);
 
   useEffect(() => {
     const iframe = iframeRef.current;

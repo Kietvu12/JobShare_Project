@@ -97,7 +97,7 @@ export default function TemplateSlidePanel({ open, onClose, onCreated }) {
         />
         <div
           className={`relative flex max-h-[min(90vh,720px)] w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl ${
-            previewTemplate ? 'max-w-[680px]' : 'max-w-[520px]'
+            previewTemplate ? 'max-w-[1000px]' : 'max-w-[1000px]'
           }`}
         >
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 pr-12">
@@ -174,7 +174,8 @@ export default function TemplateSlidePanel({ open, onClose, onCreated }) {
                     <img
                       src={t.previewImage || `/template/${t.folder}/images/mainimg1.jpg`}
                       alt=""
-                      className="h-full w-full object-cover object-top"
+                      className="h-full w-full object-cover"
+                      style={t.previewImagePosition ? { objectPosition: t.previewImagePosition } : { objectPosition: 'top' }}
                       onError={(e) => { e.target.style.display = 'none'; }}
                     />
                     {busy && (

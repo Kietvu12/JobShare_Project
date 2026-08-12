@@ -816,34 +816,6 @@ const Avatar = ({ id, size = 24, bg = '#e0e7ff', color = '#4f46e5' }) => (
 
 const VALID_TABS = ['jobs', 'nominations', 'candidates', 'costs']
 
-const HOW_IT_WORKS_STEPS = [
-  'Chọn job & thiết lập phí thưởng (hiển thị rõ DN trả / CTV nhận 70%)',
-  'Gửi đề xuất cho WS duyệt — cam kết xác nhận tuyển dụng trên nền tảng',
-  'Sau khi WS duyệt — job hiện trên sàn cho CTV đủ điểm',
-  'CTV tiến cử qua JobShare (email chỉ là thông báo)',
-  'Tuyển thành công → DN xác nhận trên sàn → Thanh toán & chia phí',
-]
-
-function MarketplaceHowItWorks() {
-  return (
-    <div className="shrink-0 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-3 py-2">
-        <span className="text-xs font-bold text-slate-900">Cách hoạt động</span>
-      </div>
-      <div className="flex flex-col gap-2 px-3 py-2.5">
-        {HOW_IT_WORKS_STEPS.map((step, i) => (
-          <div key={step} className="flex items-start gap-2">
-            <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#e8f4fa] text-[9px] font-bold text-[#0077B6]">
-              {i + 1}
-            </div>
-            <span className="text-[11px] leading-snug text-slate-600">{step}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 function ThreeWayChatPanel({ selectedNomination }) {
   return (
     <div className="flex h-full min-h-0 max-h-full flex-col overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
@@ -1075,7 +1047,7 @@ const CandidateSharing = () => {
     }
   }, [confirmingHireId, loadData])
 
-  const showChatColumn = tab !== 'costs'
+  const showChatColumn = tab !== 'costs' && tab !== 'jobs'
 
   const tablePanelClass =
     'ctv-marketplace-table-panel overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm shrink-0'
@@ -1258,17 +1230,18 @@ const CandidateSharing = () => {
                           </tr>
                         ) : jobsData.map((job) => {
                           const sc = statusColor(job.status)
-                          const openJobInManagement = () => {
+                          const openJobDetail = () => {
                             if (!job.jobId) return
-                            navigate(`/business/jobs/${encodeURIComponent(String(job.jobId))}`)
+                            const url = `${window.location.origin}/business/jobs/${encodeURIComponent(String(job.jobId))}`
+                            window.open(url, '_blank', 'noopener,noreferrer')
                           }
                           return (
                             <tr
                               key={job.id}
                               role={job.jobId ? 'button' : undefined}
                               tabIndex={job.jobId ? 0 : undefined}
-                              onClick={job.jobId ? openJobInManagement : undefined}
-                              onKeyDown={job.jobId ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openJobInManagement() } } : undefined}
+                              onClick={job.jobId ? openJobDetail : undefined}
+                              onKeyDown={job.jobId ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openJobDetail() } } : undefined}
                               className={`border-t border-slate-100 hover:bg-slate-50/60 ${job.jobId ? 'cursor-pointer' : ''}`}
                             >
                               <td className="px-3 py-2">
@@ -1288,12 +1261,6 @@ const CandidateSharing = () => {
                       </tbody>
                     </table>
                   </div>
-                </div>
-                <div className={tablePanelClass}>
-                  <div className="shrink-0 border-b border-slate-100 px-3 py-2.5">
-                    <span className="text-xs font-bold text-slate-900">Đơn tiến cử — chọn để chat</span>
-                  </div>
-                  {renderNominationsTable(nominationsData, 'Chưa có đơn tiến cử', { showHireAction: true })}
                 </div>
               </>
             )}
@@ -1365,7 +1332,6 @@ const CandidateSharing = () => {
               <div className="flex min-h-[min(420px,52vh)] min-h-0 flex-1 flex-col xl:min-h-[360px]">
                 <ThreeWayChatPanel selectedNomination={selectedNomination} />
               </div>
-              {tab === 'jobs' && <MarketplaceHowItWorks />}
             </div>
           )}
         </div>

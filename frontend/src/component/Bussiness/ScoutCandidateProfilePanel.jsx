@@ -374,13 +374,6 @@ export default function ScoutCandidateProfilePanel({
         </div>
       )}
 
-      {showLockedHint && !isUnlocked && (
-        <div className="rounded-lg bg-indigo-50" style={{ padding: 8, marginTop: 8, border: '1px solid #e0e7ff' }}>
-          <div className="scout-detail-body text-indigo-600" style={{ lineHeight: 1.35 }}>
-            Hồ sơ đang ẩn danh. Mở bằng credit để xem tên thật, email, SĐT, địa chỉ và tên công ty cụ thể.
-          </div>
-        </div>
-      )}
 
       {footerNote && (
         <div className="scout-detail-body text-slate-500" style={{ marginTop: 8, padding: 8, background: '#fffbeb', borderRadius: 8, border: '1px solid #fde68a', lineHeight: 1.4 }}>

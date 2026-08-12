@@ -51,6 +51,7 @@ export default function TemplateLivePreview({ templateKey, companyName = '', cla
             pageId={htmlHomePage.id}
             title={htmlHomePage.title}
             autoHeight
+            previewMode
           />
         ) : (
           <CompanyLandingRenderer

@@ -157,7 +157,7 @@ const getCurrentUserType = () => {
 };
 
 /** Base URL for AI matching (vector compare / reranking). Mặc định gọi thẳng server AI, không qua localhost. */
-const AI_API_BASE_DEFAULT = 'https://ws-jobshare.com/api_ai';
+const AI_API_BASE_DEFAULT = 'https://test.ws-jobshare.com/api_ai';
 
 /** Số kết quả match tối đa (query `top_k`). */
 const DEFAULT_AI_MATCH_TOP_K = 20;
@@ -236,6 +236,25 @@ async function fetchAiJson(url, { method = 'GET', body, signal } = {}) {
   if (signal) init.signal = signal;
   const response = await fetch(url, init);
   return handleAiJsonResponse(response);
+}
+
+function buildAiMatchV3Query(options = {}) {
+  const params = new URLSearchParams();
+  if (options.top_k != null) {
+    params.set('top_k', String(Math.min(200, Math.max(1, Number(options.top_k) || DEFAULT_AI_MATCH_TOP_K))));
+  }
+  if (options.lang) params.set('lang', String(options.lang));
+  if (Array.isArray(options.cv_ids) && options.cv_ids.length) {
+    params.set('cv_ids', options.cv_ids.map((id) => String(id)).filter(Boolean).join(','));
+  } else if (typeof options.cv_ids === 'string' && options.cv_ids.trim()) {
+    params.set('cv_ids', options.cv_ids.trim());
+  }
+  if (Array.isArray(options.job_ids) && options.job_ids.length) {
+    params.set('job_ids', options.job_ids.map((id) => String(id)).filter(Boolean).join(','));
+  } else if (typeof options.job_ids === 'string' && options.job_ids.trim()) {
+    params.set('job_ids', options.job_ids.trim());
+  }
+  return params.toString();
 }
 
 /** Base URL for assets (no /api). Use for post images etc. */
@@ -5124,6 +5143,50 @@ const apiService = {
     const url = `${base}/v2/matching/match/job/${encodeURIComponent(jobId)}/cvs?${qs.toString()}`;
     const response = await fetch(url, { method: 'GET' });
     return handleAiJsonResponse(response);
+  },
+
+  /**
+   * Matching v3 — GET scores (business Scout / gợi ý JD↔CV).
+   * Query: top_k, cv_ids (comma-separated), job_ids, lang
+   */
+  getAiMatchV3CvsScoresForJob: async (jobId, options = {}) => {
+    const base = getAiApiBaseUrl();
+    const qs = buildAiMatchV3Query(options);
+    const url = `${base}/v3/matching/match/job/${encodeURIComponent(jobId)}/cvs/scores${qs ? `?${qs}` : ''}`;
+    return fetchAiJson(url);
+  },
+
+  getAiMatchV3JobsScoresForCv: async (cvId, options = {}) => {
+    const base = getAiApiBaseUrl();
+    const qs = buildAiMatchV3Query(options);
+    const url = `${base}/v3/matching/match/cv/${encodeURIComponent(cvId)}/jobs/scores${qs ? `?${qs}` : ''}`;
+    return fetchAiJson(url);
+  },
+
+  getAiMatchV3ScoutCvsScoresForJob: async (jobId, options = {}) => {
+    const base = getAiApiBaseUrl();
+    const qs = buildAiMatchV3Query(options);
+    const url = `${base}/v3/matching/scout/job/${encodeURIComponent(jobId)}/cvs/scores${qs ? `?${qs}` : ''}`;
+    return fetchAiJson(url);
+  },
+
+  getAiMatchV3ScoutJobsScoresForCvBusiness: async (cvId, businessId, options = {}) => {
+    const base = getAiApiBaseUrl();
+    const qs = buildAiMatchV3Query(options);
+    const url = `${base}/v3/matching/scout/cv/${encodeURIComponent(cvId)}/business/${encodeURIComponent(businessId)}/jobs/scores${qs ? `?${qs}` : ''}`;
+    return fetchAiJson(url);
+  },
+
+  /** GET /v3/matching/reason?job_id=&cv_id=&lang= */
+  getAiMatchV3Reason: async ({ job_id, cv_id, lang } = {}) => {
+    const base = getAiApiBaseUrl();
+    const params = new URLSearchParams();
+    if (job_id != null && job_id !== '') params.set('job_id', String(job_id));
+    if (cv_id != null && cv_id !== '') params.set('cv_id', String(cv_id));
+    if (lang) params.set('lang', String(lang));
+    const qs = params.toString();
+    const url = `${base}/v3/matching/reason${qs ? `?${qs}` : ''}`;
+    return fetchAiJson(url);
   },
 
   /**

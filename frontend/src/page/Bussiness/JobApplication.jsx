@@ -3,11 +3,10 @@ import { useSearchParams } from 'react-router-dom'
 import {
   Users, TrendingUp, Award, CheckCircle2, GitBranch,
   Search, ChevronRight, ChevronLeft,
-  MessageSquare, Loader2, X, Bell, User, LayoutGrid, List,
+  MessageSquare, Loader2, Bell, LayoutGrid, List,
 } from 'lucide-react'
 import apiService from '../../services/api'
-import NominationChat from '../../component/Chat/NominationChat'
-import ScoutCandidateProfilePanel from '../../component/Bussiness/ScoutCandidateProfilePanel'
+import BusinessApplicationDetailDrawer from '../../component/Bussiness/BusinessApplicationDetailDrawer'
 import {
   BUSINESS_APPLICATION_TABS,
   formatApplicationDate,
@@ -342,27 +341,9 @@ const JobApplication = () => {
 
   const [selectedApp, setSelectedApp] = useState(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [drawerLoading, setDrawerLoading] = useState(false)
-  const [drawerTab, setDrawerTab] = useState('chat') // chat | profile
 
   const tabs = useMemo(() => BUSINESS_APPLICATION_TABS.map((t) => t.label), [])
   const statusOptions = useMemo(() => getJobApplicationStatusOptionsByLanguage('vi'), [])
-
-  const loadApplicationDetail = useCallback(async (appId) => {
-    setDrawerLoading(true)
-    try {
-      const res = await apiService.getBusinessApplicationById(appId)
-      if (res?.success && res.data?.application) {
-        setSelectedApp(res.data.application)
-        if (res.data.application.canViewFullProfile) setDrawerTab('profile')
-        else setDrawerTab('chat')
-      }
-    } catch {
-      // keep list row data
-    } finally {
-      setDrawerLoading(false)
-    }
-  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => setSearchDebounced(searchInput.trim()), 350)
@@ -467,17 +448,13 @@ const JobApplication = () => {
     let mounted = true
     const openFromUrl = async () => {
       setDrawerOpen(true)
-      setDrawerLoading(true)
       try {
         const res = await apiService.getBusinessApplicationById(urlNominationId)
         if (mounted && res?.success && res.data?.application) {
           setSelectedApp(res.data.application)
-          setDrawerTab(res.data.application.canViewFullProfile ? 'profile' : 'chat')
         }
       } catch {
         // ignore
-      } finally {
-        if (mounted) setDrawerLoading(false)
       }
     }
     openFromUrl()
@@ -487,19 +464,16 @@ const JobApplication = () => {
   const openDrawer = (app) => {
     setSelectedApp(app)
     setDrawerOpen(true)
-    setDrawerTab(app.canViewFullProfile || app.sourceType === 'ctv_marketplace' ? 'profile' : 'chat')
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
       next.set('nominationId', String(app.id))
       return next
     }, { replace: true })
-    loadApplicationDetail(app.id)
   }
 
   const closeDrawer = () => {
     setDrawerOpen(false)
     setSelectedApp(null)
-    setDrawerTab('chat')
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
       next.delete('nominationId')
@@ -508,10 +482,9 @@ const JobApplication = () => {
   }
 
   const handleStatusUpdated = useCallback(() => {
-    if (selectedApp?.id) loadApplicationDetail(selectedApp.id)
     loadApplications()
     loadStats()
-  }, [selectedApp?.id, loadApplicationDetail, loadApplications, loadStats])
+  }, [loadApplications, loadStats])
 
   const statCards = useMemo(() => [
     { icon: Users, label: 'Tổng ứng viên vào JD', value: stats?.total, color: BRAND, bg: BRAND_LIGHT, accent: true },
@@ -850,97 +823,12 @@ const JobApplication = () => {
         </div>
       </div>
 
-      {drawerOpen && selectedApp && (
-        <div
-          className="fixed inset-0 z-50 flex bg-slate-900/40 backdrop-blur-[1px]"
-          onClick={closeDrawer}
-        >
-          <div
-            className="ml-auto h-full bg-white shadow-2xl flex flex-col border-l border-slate-200"
-            style={{ width: 'min(100vw, 560px)', fontFamily: PAGE_FONT }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 flex-shrink-0 bg-[#f4f6f8]/50">
-              <div>
-                <div className="text-sm font-bold text-slate-800">{selectedApp.candidateName}</div>
-                <div className="text-[10px] text-slate-500 mt-0.5">
-                  {selectedApp.jobTitle} ({selectedApp.jobCode || '—'}) · {selectedApp.sourceLabel}
-                </div>
-              </div>
-              <button type="button" onClick={closeDrawer} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
-                <X className="w-4 h-4 text-slate-500" />
-              </button>
-            </div>
-
-            {selectedApp.canViewFullProfile && (
-              <div className="flex border-b border-slate-200 flex-shrink-0 bg-white">
-                <button
-                  type="button"
-                  onClick={() => setDrawerTab('profile')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold transition-colors ${
-                    drawerTab === 'profile' ? 'text-[#0077B6] border-b-2 border-[#0077B6]' : 'text-slate-500 border-b-2 border-transparent'
-                  }`}
-                >
-                  <User className="w-3.5 h-3.5" /> Hồ sơ ứng viên
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDrawerTab('chat')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold transition-colors ${
-                    drawerTab === 'chat' ? 'text-[#0077B6] border-b-2 border-[#0077B6]' : 'text-slate-500 border-b-2 border-transparent'
-                  }`}
-                >
-                  <MessageSquare className="w-3.5 h-3.5" /> Chat 3 bên
-                </button>
-              </div>
-            )}
-
-            {drawerLoading && (
-              <div className="flex items-center gap-2 px-4 py-2 text-[10px] text-slate-500 border-b border-slate-100 bg-[#e8f4fa]/40">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0077B6]" /> Đang tải hồ sơ...
-              </div>
-            )}
-
-            <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-              {drawerTab === 'profile' && selectedApp.canViewFullProfile ? (
-                <div className="flex-1 overflow-y-auto p-3 business-homepage-scroll">
-                  {drawerLoading && !selectedApp.candidateProfile ? (
-                    <div className="flex items-center justify-center gap-2 py-12 text-xs text-slate-500">
-                      <Loader2 className="w-4 h-4 animate-spin text-[#0077B6]" /> Đang tải hồ sơ...
-                    </div>
-                  ) : (
-                    <ScoutCandidateProfilePanel
-                      candidate={selectedApp.candidateProfile ? {
-                        ...selectedApp.candidateProfile,
-                        name: selectedApp.candidateProfile.name || selectedApp.candidateName,
-                        isUnlocked: true,
-                      } : null}
-                      treatAsUnlocked
-                      accessLabel="Hồ sơ đầy đủ (tiến cử Sàn CTV)"
-                      accessLabelColor={BRAND}
-                      footerNote={selectedApp.candidateProfile?.scoutStillLocked
-                        ? 'Doanh nghiệp xem được hồ sơ nhờ tiến cử Sàn CTV. Trên Scout vẫn hiển thị khóa cho đến khi mở bằng credit.'
-                        : null}
-                    />
-                  )}
-                </div>
-              ) : (
-                <NominationChat
-                  jobApplicationId={selectedApp.id}
-                  userType="business"
-                  currentStatus={selectedApp.status}
-                  cvStorageId={selectedApp.cvStorageId || selectedApp.cvId || null}
-                  introCandidateName={selectedApp.candidateName || '—'}
-                  introJobTitle={selectedApp.jobTitle || '—'}
-                  mobileHeaderName={selectedApp.candidateName || 'Chat 3 bên'}
-                  mobileHeaderAvatar={(selectedApp.candidateName || '?').charAt(0).toUpperCase()}
-                  onStatusUpdated={handleStatusUpdated}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <BusinessApplicationDetailDrawer
+        open={drawerOpen}
+        application={selectedApp}
+        onClose={closeDrawer}
+        onStatusUpdated={handleStatusUpdated}
+      />
     </>
   )
 }
