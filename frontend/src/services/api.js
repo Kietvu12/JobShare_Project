@@ -4795,6 +4795,23 @@ const apiService = {
   },
 
   /**
+   * POST …/v3/jd — parse JD từ file upload (multipart field: file).
+   * Trả về object JD (hoặc bọc trong { data }).
+   */
+  parseJdFromFile: async (file, options = {}) => {
+    const base = getAiApiBaseUrl();
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${base}/v3/jd`, {
+      method: 'POST',
+      body: formData,
+      signal: options.signal,
+    });
+    const data = await handleAiJsonResponse(response);
+    return data?.data ?? data;
+  },
+
+  /**
    * JD Builder — chatbot xây dựng JD theo session (base: getAiApiBaseUrl() /v2/jd-builder/*)
    * Cùng basename với parser/jd, parser/cv, matching, …
    */

@@ -8,6 +8,7 @@ import useBusinessUser from '../../hooks/useBusinessUser';
 import useFluidPageScale from '../../hooks/useFluidPageScale.js';
 import { buildAddJobPatchFromJdBuilder, consumeJdBuilderPrefill } from '../../utils/applyJdBuilderPrefill.js';
 import { applyJdFormStatePatch, applyParsedJdToFormState } from '../../utils/applyParsedJdToFormState.js';
+import { parseJdFile } from '../../utils/parseJdFile.js';
 import { BUSINESS_SECTOR_OPTIONS } from '../../utils/businessSectorOptions';
 import { downloadBlobAsFile } from '../../utils/safeFileDownload.js';
 import {
@@ -80,16 +81,12 @@ const countryProvincesData = {
   'Other': [] // Cho phép nhập tùy chỉnh
 };
 
-const PARSE_JD_API_URL = 'https://ws-jobshare.com/api_ai/v2/parser/jd';
 const JD_TRANSLATE_API_URL = 'https://ws-jobshare.com/api_ai/v2/parser/jd/translate';
 const TAB_LANG_META = {
   vi: { suffix: '', code: 'vi' },
   en: { suffix: 'En', code: 'en' },
   jp: { suffix: 'Jp', code: 'ja' },
 };
-/** Tên field form-data khi gửi file. Nếu API trả 422, thử đổi thành 'cv_original'. */
-const PARSE_JD_FILE_FIELD = 'file';
-
 /** JD parse: description có thể là string, mảng, hoặc { vi, en, ja } với giá trị string hoặc mảng — mỗi ý một dòng. */
 function jdDescriptionToText(desc, lang) {
   if (desc == null) return '';
@@ -659,12 +656,28 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
   }, []);
 
   const buildJdTranslationPayload = useCallback(() => {
-    const sourceTab = languageTab === 'jp' ? 'jp' : languageTab === 'en' ? 'en' : 'vi';
-    const suffixFor = (tab) => (tab === 'en' ? 'En' : tab === 'jp' ? 'Jp' : '');
-    const sourceField = (baseField, tab = sourceTab) => `${baseField}${suffixFor(tab)}`;
-    const getFormValue = (baseField, tab = sourceTab) => formDataRef.current[sourceField(baseField, tab)] ?? '';
-    const getRowValue = (row, baseField, tab = sourceTab) => row?.[sourceField(baseField, tab)] ?? row?.[baseField] ?? '';
+    const fd = formDataRef.current || {};
+    const rc = recruitingCompanyRef.current || {};
     const firstNonEmpty = (...values) => values.find((v) => v != null && String(v).trim() !== '') ?? null;
+    const formAnyLang = (base) => firstNonEmpty(fd[base], fd[`${base}En`], fd[`${base}Jp`]);
+    const rowAnyLang = (row, base = 'content') => firstNonEmpty(row?.[base], row?.[`${base}En`], row?.[`${base}Jp`]);
+    const companyAnyLang = (base) => firstNonEmpty(rc[base], rc[`${base}En`], rc[`${base}Jp`]);
+    const hasJapanese = (text) => /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/.test(String(text || ''));
+
+    const inferContentLanguage = () => {
+      const samples = [
+        fd.title, fd.titleEn, fd.titleJp,
+        fd.description, fd.descriptionEn, fd.descriptionJp,
+        ...requirements.map((row) => rowAnyLang(row)),
+        ...workingLocationDetails.map((row) => rowAnyLang(row)),
+        ...workingHourDetails.map((row) => rowAnyLang(row)),
+        ...jobBenefitRows.map((row) => rowAnyLang(row)),
+      ].filter((v) => v != null && String(v).trim());
+      if (samples.some(hasJapanese)) return 'ja';
+      if (firstNonEmpty(fd.titleJp, fd.descriptionJp)) return 'ja';
+      if (firstNonEmpty(fd.titleEn, fd.descriptionEn)) return 'en';
+      return 'vi';
+    };
 
     const salaryYearly = firstNonEmpty(
       salaryRanges.find((sr) => sr.type === 'yearly')?.salaryRange,
@@ -677,108 +690,99 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
       salaryRanges.find((sr) => sr.type === 'monthly')?.salaryRangeJp,
     );
 
-    const companyField = (baseField) => firstNonEmpty(
-      recruitingCompanyRef.current?.[baseField],
-      recruitingCompanyRef.current?.[`${baseField}En`],
-      recruitingCompanyRef.current?.[`${baseField}Jp`],
-    );
-
     const sourceRequirementsMust = requirements
       .filter((req) => req.status === 'required')
-      .map((req) => getRowValue(req, 'content'))
+      .map((req) => rowAnyLang(req))
       .filter((v) => String(v).trim());
     const sourceRequirementsPreferred = requirements
       .filter((req) => req.status === 'preferred')
-      .map((req) => getRowValue(req, 'content'))
+      .map((req) => rowAnyLang(req))
+      .filter((v) => String(v).trim());
+
+    const locationDetailTexts = workingLocationDetails
+      .map((row) => rowAnyLang(row))
+      .filter((v) => String(v).trim());
+    const workingHourDetailTexts = workingHourDetails
+      .map((row) => rowAnyLang(row))
+      .filter((v) => String(v).trim());
+    const workingHourTexts = workingHours
+      .map((row) => firstNonEmpty(row?.workingHours, row?.workingHoursEn, row?.workingHoursJp))
+      .filter((v) => String(v).trim());
+    const overtimeDetailTexts = overtimeAllowanceDetails
+      .map((row) => rowAnyLang(row))
+      .filter((v) => String(v).trim());
+    const salaryDetailTexts = salaryRangeDetails
+      .map((row) => rowAnyLang(row))
+      .filter((v) => String(v).trim());
+    const benefitTexts = jobBenefitRows
+      .map((row) => rowAnyLang(row))
       .filter((v) => String(v).trim());
 
     return {
-      job_code: firstNonEmpty(formDataRef.current.jobCode),
-      job_title: firstNonEmpty(getFormValue('title')),
-      content_language: sourceTab === 'jp' ? 'ja' : sourceTab,
-      headcount: firstNonEmpty(getFormValue('numberOfHires')),
+      job_code: firstNonEmpty(fd.jobCode),
+      job_title: formAnyLang('title'),
+      content_language: inferContentLanguage(),
+      headcount: formAnyLang('numberOfHires'),
       experience_job: null,
       experience_industry: null,
       features: Array.isArray(highlightKeys) ? highlightKeys : [],
-      description: firstNonEmpty(getFormValue('description')),
+      description: formAnyLang('description'),
       requirements_must: sourceRequirementsMust,
       requirements_preferred: sourceRequirementsPreferred,
       salary: {
-        currency: jobSalaryCurrencyToJdCode(formDataRef.current.salaryCurrency),
+        currency: jobSalaryCurrencyToJdCode(fd.salaryCurrency),
         monthly: salaryMonthly,
         yearly: salaryYearly,
-        salary_details: firstNonEmpty(
-          salaryRangeDetails.map((row) => getRowValue(row, 'content')).find((v) => String(v).trim()),
-          salaryRangeDetails.map((row) => getRowValue(row, 'contentEn')).find((v) => String(v).trim()),
-          salaryRangeDetails.map((row) => getRowValue(row, 'contentJp')).find((v) => String(v).trim()),
-        ),
-        bonus_details: firstNonEmpty(getFormValue('bonus')),
-        raise_details: firstNonEmpty(getFormValue('salaryReview')),
+        salary_details: firstNonEmpty(...salaryDetailTexts),
+        bonus_details: formAnyLang('bonus'),
+        raise_details: formAnyLang('salaryReview'),
       },
       location: firstNonEmpty(
-        workingLocations.map((wl) => normalizeWorkingLocationField(wl.location || wl.locationEn || wl.locationJp || '')).filter(Boolean).join(', '),
+        workingLocations
+          .map((wl) => normalizeWorkingLocationField(wl.location || wl.locationEn || wl.locationJp || ''))
+          .filter(Boolean)
+          .join(', '),
       ),
-      location_detail: firstNonEmpty(
-        workingLocationDetails.map((row) => getRowValue(row, 'content')).find((v) => String(v).trim()),
-        workingLocationDetails.map((row) => getRowValue(row, 'contentEn')).find((v) => String(v).trim()),
-        workingLocationDetails.map((row) => getRowValue(row, 'contentJp')).find((v) => String(v).trim()),
-      ),
-      working_hours: workingHours.map((row) => getRowValue(row, 'workingHours')).filter((v) => String(v).trim()),
-      overtime_details: firstNonEmpty(
-        overtimeAllowanceDetails.map((row) => getRowValue(row, 'content')).find((v) => String(v).trim()),
-        overtimeAllowanceDetails.map((row) => getRowValue(row, 'contentEn')).find((v) => String(v).trim()),
-        overtimeAllowanceDetails.map((row) => getRowValue(row, 'contentJp')).find((v) => String(v).trim()),
-      ),
-      overtime_fee: firstNonEmpty(
-        overtimeAllowanceDetails.map((row) => getRowValue(row, 'content')).find((v) => String(v).trim()),
-        overtimeAllowanceDetails.map((row) => getRowValue(row, 'contentEn')).find((v) => String(v).trim()),
-        overtimeAllowanceDetails.map((row) => getRowValue(row, 'contentJp')).find((v) => String(v).trim()),
-      ),
-      probation_detail: firstNonEmpty(
-        getFormValue('probationDetail'),
-        getFormValue('probationDetailEn'),
-        getFormValue('probationDetailJp'),
-      ),
-      rest_time: firstNonEmpty(
-        getFormValue('breakTime'),
-        getFormValue('breakTimeEn'),
-        getFormValue('breakTimeJp'),
-      ),
-      overtime_fee: firstNonEmpty(
-        overtimeAllowanceDetails.map((row) => getRowValue(row, 'content')).find((v) => String(v).trim()),
-        overtimeAllowanceDetails.map((row) => getRowValue(row, 'contentEn')).find((v) => String(v).trim()),
-        overtimeAllowanceDetails.map((row) => getRowValue(row, 'contentJp')).find((v) => String(v).trim()),
-      ),
-      benefits: jobBenefitRows.map((row) => getRowValue(row, 'content')).filter((v) => String(v).trim()),
-      holiday_detail: firstNonEmpty(getFormValue('holidayDetails')),
-      working_hour_detail: firstNonEmpty(
-        workingHourDetails.map((row) => getRowValue(row, 'workingHourDetail')).find((v) => String(v).trim()),
-        workingHourDetails.map((row) => getRowValue(row, 'workingHourDetailEn')).find((v) => String(v).trim()),
-        workingHourDetails.map((row) => getRowValue(row, 'workingHourDetailJp')).find((v) => String(v).trim()),
-      ),
-      location_detail: firstNonEmpty(
-        workingLocationDetails.map((row) => getRowValue(row, 'content')).find((v) => String(v).trim()),
-        workingLocationDetails.map((row) => getRowValue(row, 'contentEn')).find((v) => String(v).trim()),
-        workingLocationDetails.map((row) => getRowValue(row, 'contentJp')).find((v) => String(v).trim()),
-      ),
-      social_insurance: firstNonEmpty(getFormValue('socialInsurance')),
-      transportation: firstNonEmpty(getFormValue('transportation')),
-      holiday_detail: firstNonEmpty(getFormValue('holidayDetails')),
-      probation: firstNonEmpty(getFormValue('probationPeriod'), getFormValue('probationDetail')),
-      recruitment_process: firstNonEmpty(getFormValue('recruitmentProcess')),
+      location_detail: firstNonEmpty(...locationDetailTexts, formAnyLang('locationDetail')),
+      working_hours: workingHourTexts,
+      working_hour_detail: firstNonEmpty(...workingHourDetailTexts, formAnyLang('workingHourDetail')),
+      overtime_details: firstNonEmpty(...overtimeDetailTexts, formAnyLang('overtime')),
+      overtime_fee: firstNonEmpty(...overtimeDetailTexts, formAnyLang('overtimeFee'), formAnyLang('overtime')),
+      probation_detail: formAnyLang('probationDetail'),
+      rest_time: formAnyLang('breakTime'),
+      benefits: benefitTexts,
+      holidays: formAnyLang('holidays'),
+      holiday_detail: formAnyLang('holidayDetails'),
+      hiring_reason: formAnyLang('recruitmentReason'),
+      social_insurance: formAnyLang('socialInsurance'),
+      transportation: formAnyLang('transportation'),
+      probation: firstNonEmpty(formAnyLang('probationPeriod'), formAnyLang('probationDetail')),
+      recruitment_process: formAnyLang('recruitmentProcess'),
       company: {
-        name: companyField('companyName'),
+        name: companyAnyLang('companyName'),
         listing_status: null,
         industry_class: null,
-        revenue: companyField('revenue'),
-        capital: companyField('investmentCapital'),
-        employee_count: companyField('numberOfEmployees'),
-        established_year: companyField('establishedDate'),
-        headquarter: companyField('headquarters'),
-        overview: companyField('companyIntroduction'),
+        revenue: companyAnyLang('revenue'),
+        capital: companyAnyLang('investmentCapital'),
+        employee_count: companyAnyLang('numberOfEmployees'),
+        established_year: companyAnyLang('establishedDate'),
+        headquarter: companyAnyLang('headquarters'),
+        overview: companyAnyLang('companyIntroduction'),
       },
     };
-  }, [highlightKeys, jobBenefitRows, languageTab, requirements, workingHourDetails, workingHours, workingLocations, salaryRanges, salaryRangeDetails, overtimeAllowanceDetails]);
+  }, [
+    highlightKeys,
+    jobBenefitRows,
+    languageTab,
+    requirements,
+    workingHourDetails,
+    workingHours,
+    workingLocationDetails,
+    workingLocations,
+    salaryRanges,
+    salaryRangeDetails,
+    overtimeAllowanceDetails,
+  ]);
 
   const applyTranslatedJd = useCallback((translated) => {
     const pick = (obj, keys) => {
@@ -831,6 +835,8 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
         [`bonus${prefix}`]: text(obj?.salary, ['bonus_details']) || '',
         [`salaryReview${prefix}`]: text(obj?.salary, ['raise_details']) || '',
         [`overtimeFee${prefix}`]: text(obj, ['overtime_fee']) || text(obj, ['overtime_details']) || '',
+        [`overtime${prefix}`]: text(obj, ['overtime_details']) || '',
+        [`holidays${prefix}`]: text(obj, ['holidays']) || '',
         [`holidayDetails${prefix}`]: text(obj, ['holiday_detail', 'holiday_details', 'holidayDetails', 'holidays_details']) || '',
         [`workingHourDetail${prefix}`]: text(obj, ['working_hour_detail']) || '',
         [`locationDetail${prefix}`]: text(obj, ['location_detail', 'location_details', 'working_location_detail', 'working_location_details']) || '',
@@ -901,9 +907,56 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
       setSalaryRangeDetails([{ id: 0, content: salaryDetailFallback[0] || '', contentEn: salaryDetailFallback[1] || '', contentJp: salaryDetailFallback[2] || '' }]);
     }
 
+    const salaryYearlyVi = text(src.vi?.salary, ['yearly', 'yearly_salary']);
+    const salaryYearlyEn = text(src.en?.salary, ['yearly', 'yearly_salary']);
+    const salaryYearlyJp = text(src.jp?.salary, ['yearly', 'yearly_salary']);
+    const salaryMonthlyVi = text(src.vi?.salary, ['monthly', 'monthly_salary']);
+    const salaryMonthlyEn = text(src.en?.salary, ['monthly', 'monthly_salary']);
+    const salaryMonthlyJp = text(src.jp?.salary, ['monthly', 'monthly_salary']);
+    if (salaryYearlyVi || salaryYearlyEn || salaryYearlyJp || salaryMonthlyVi || salaryMonthlyEn || salaryMonthlyJp) {
+      setSalaryRanges((prev) => {
+        const next = (Array.isArray(prev) ? prev : []).map((sr) => ({ ...sr }));
+        const ensureType = (type) => {
+          let row = next.find((sr) => sr.type === type);
+          if (!row) {
+            row = { salaryRange: '', salaryRangeEn: '', salaryRangeJp: '', type };
+            next.push(row);
+          }
+          return row;
+        };
+        if (salaryYearlyVi || salaryYearlyEn || salaryYearlyJp) {
+          const row = ensureType('yearly');
+          if (salaryYearlyVi) row.salaryRange = salaryYearlyVi;
+          if (salaryYearlyEn) row.salaryRangeEn = salaryYearlyEn;
+          if (salaryYearlyJp) row.salaryRangeJp = salaryYearlyJp;
+        }
+        if (salaryMonthlyVi || salaryMonthlyEn || salaryMonthlyJp) {
+          const row = ensureType('monthly');
+          if (salaryMonthlyVi) row.salaryRange = salaryMonthlyVi;
+          if (salaryMonthlyEn) row.salaryRangeEn = salaryMonthlyEn;
+          if (salaryMonthlyJp) row.salaryRangeJp = salaryMonthlyJp;
+        }
+        return next;
+      });
+    }
+
     const workingHoursRows = mergeRows('working_hours', 'workingHour', 'preferred');
     if (workingHoursRows.length) {
       setWorkingHours(workingHoursRows.map((row, index) => ({ id: index, workingHours: row.content, workingHoursEn: row.contentEn, workingHoursJp: row.contentJp })));
+    }
+
+    const workingHourDetailRows = mergeRows('working_hour_detail', 'workingHourDetail', 'preferred');
+    if (workingHourDetailRows.length) {
+      setWorkingHourDetails(workingHourDetailRows.map((row, index) => ({ id: index, content: row.content, contentEn: row.contentEn, contentJp: row.contentJp })));
+    }
+
+    const workingHourDetailFallback = [
+      text(src.vi, ['working_hour_detail']),
+      text(src.en, ['working_hour_detail']),
+      text(src.jp, ['working_hour_detail']),
+    ].map((v) => String(v || '').trim()).filter(Boolean);
+    if (!workingHourDetailRows.length && workingHourDetailFallback.length) {
+      setWorkingHourDetails([{ id: 0, content: workingHourDetailFallback[0] || '', contentEn: workingHourDetailFallback[1] || '', contentJp: workingHourDetailFallback[2] || '' }]);
     }
 
     const overtimeRows = mergeRows('overtime_details', 'overtime', 'preferred');
@@ -2043,26 +2096,7 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
     setParseJdLoading(true);
     setParseJdError('');
     try {
-      const formDataUpload = new FormData();
-      formDataUpload.append(PARSE_JD_FILE_FIELD, file);
-      const res = await fetch(PARSE_JD_API_URL, {
-        method: 'POST',
-        body: formDataUpload,
-        signal: ac.signal,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const detail = data?.detail;
-        const msg = data?.message || data?.error;
-        const detailStr = Array.isArray(detail)
-          ? detail.map((d) => d.msg || d.loc?.join?.('.') || JSON.stringify(d)).join('; ')
-          : typeof detail === 'string'
-            ? detail
-            : detail != null ? JSON.stringify(detail) : '';
-        const fullMsg = [msg, detailStr].filter(Boolean).join(' — ') || `HTTP ${res.status}`;
-        throw new Error(fullMsg);
-      }
-      const j = data?.data ?? data;
+      const j = await parseJdFile(file, ac.signal);
       const patch = applyParsedJdToFormState(j, {
         prevFormData: formDataRef.current,
         prevRecruitingCompany: recruitingCompanyRef.current,
