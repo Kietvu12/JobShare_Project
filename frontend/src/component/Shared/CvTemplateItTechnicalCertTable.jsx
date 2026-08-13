@@ -14,6 +14,7 @@ import {
   getJlptDisplay,
   hasFixedCertData,
 } from '../../utils/cvFixedCertDisplay.js';
+import { CV_TPL_TABLE_STYLE } from '../../utils/cvTemplateTypography.js';
 
 const DEFAULT_CERT_COL_PERCENTS = [12, 14, 8, 8, 8, 8, 42];
 const JLPT_LEVELS = ['N1', 'N2', 'N3', 'N4'];
@@ -65,13 +66,13 @@ export default function CvTemplateItTechnicalCertTable({
     const text = fixedCertYearMonth(kind);
     if (pdfExportMode) {
       return (
-        <td className="border p-1.5 bg-white text-center text-xs" style={CELL_BORDER}>
+        <td className="border px-2 py-2 bg-white text-center" style={CELL_BORDER}>
           {text || '　'}
         </td>
       );
     }
     return (
-      <td className="border p-1.5 bg-white text-center text-xs" style={CELL_BORDER}>
+      <td className="border px-2 py-2 bg-white text-center" style={CELL_BORDER}>
         <span
           contentEditable
           suppressContentEditableWarning
@@ -97,7 +98,7 @@ export default function CvTemplateItTechnicalCertTable({
     >
     <ResizableCvTable
       className="w-full border-collapse mt-3"
-      style={{ fontSize: '11px', color: '#1f2937', borderColor: '#1f2937' }}
+      style={CV_TPL_TABLE_STYLE}
       colPercents={colSaved('rirekisho', 'certificates_v2', DEFAULT_CERT_COL_PERCENTS)}
       layoutKey={cvLayoutKey(cvTpl, 'rirekisho', 'certificates_v2')}
       onLayoutCommit={onCvTableLayoutCommit}
@@ -132,15 +133,15 @@ export default function CvTemplateItTechnicalCertTable({
             </td>
             {pdfExportMode ? (
               JLPT_LEVELS.map((n) => (
-                <td key={n} className="border p-1 bg-white text-center text-xs" style={CELL_BORDER}>
+                <td key={n} className="border px-2 py-2 bg-white text-center" style={CELL_BORDER}>
                   {formatJlptLevelMark(jlptDisplay, n)}
                 </td>
               ))
             ) : (
-              <td colSpan={4} className="border p-1 bg-white" style={CELL_BORDER}>
-                <div className="flex flex-wrap justify-center gap-x-2 gap-y-1">
+              <td colSpan={4} className="border px-2 py-2 bg-white" style={CELL_BORDER} data-cv-cert-jlpt-cell="1">
+                <div className="flex flex-wrap justify-center gap-x-5 gap-y-2">
                   {JLPT_LEVELS.map((n) => (
-                    <label key={n} className="flex items-center justify-center gap-0.5 text-xs cursor-pointer">
+                    <label key={n} className="flex items-center justify-center gap-1.5 cursor-pointer">
                       <input
                         type="checkbox"
                         className="rounded"
@@ -240,17 +241,17 @@ export default function CvTemplateItTechnicalCertTable({
             </td>
             {pdfExportMode ? (
               <>
-                <td colSpan={2} className="border p-1.5 bg-white text-center text-xs" style={CELL_BORDER}>
+                <td colSpan={2} className="border px-2 py-2 bg-white text-center" style={CELL_BORDER}>
                   {formatDrivingLicenseMark(formData.hasDrivingLicense, '有る')}
                 </td>
-                <td colSpan={2} className="border p-1.5 bg-white text-center text-xs" style={CELL_BORDER}>
+                <td colSpan={2} className="border px-2 py-2 bg-white text-center" style={CELL_BORDER}>
                   {formatDrivingLicenseMark(formData.hasDrivingLicense, '無し')}
                 </td>
               </>
             ) : (
               <>
-                <td colSpan={2} className="border p-1.5 bg-white text-center" style={CELL_BORDER}>
-                  <label className="flex items-center justify-center gap-1 text-xs cursor-pointer">
+                <td colSpan={2} className="border px-2 py-2 bg-white text-center" style={CELL_BORDER}>
+                  <label className="flex items-center justify-center gap-1.5 cursor-pointer">
                     <input
                       type="checkbox"
                       className="rounded"
@@ -265,8 +266,8 @@ export default function CvTemplateItTechnicalCertTable({
                     有る
                   </label>
                 </td>
-                <td colSpan={2} className="border p-1.5 bg-white text-center" style={CELL_BORDER}>
-                  <label className="flex items-center justify-center gap-1 text-xs cursor-pointer">
+                <td colSpan={2} className="border px-2 py-2 bg-white text-center" style={CELL_BORDER}>
+                  <label className="flex items-center justify-center gap-1.5 cursor-pointer">
                     <input
                       type="checkbox"
                       className="rounded"

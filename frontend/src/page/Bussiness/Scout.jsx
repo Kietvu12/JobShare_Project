@@ -256,7 +256,7 @@ const Scout = () => {
             : c
         )))
         alert(res.message || 'Đã gửi yêu cầu Scout Performance')
-      } else {
+    } else {
         alert(res?.message || 'Gửi yêu cầu thất bại')
       }
     } catch (e) {
@@ -366,9 +366,9 @@ const Scout = () => {
                 <div key={label}>
                   <div style={labelStyle}>{label}</div>
                   <div style={valueStyle}>{hl(value)}</div>
-                </div>
-              ))}
             </div>
+              ))}
+          </div>
           </>
         )}
 
@@ -398,8 +398,8 @@ const Scout = () => {
                 <div style={labelStyle}>Lương mong muốn</div>
                 <div style={valueStyle}>{hl(formatScoutIncome(selectedCand.desiredIncome))}</div>
               </div>
-            </div>
-          </>
+        </div>
+      </>
         )}
 
         <div style={sectionTitleStyle}>Học vấn</div>
@@ -428,7 +428,7 @@ const Scout = () => {
                 <div style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>{hl(work.period)}</div>
                 <div style={{ fontSize: 8, color: '#475569', marginTop: 4, lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
                   {hl(work.description)}
-                </div>
+              </div>
                 {work.projects?.length > 0 && (
                   <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {work.projects.map((project, pIdx) => (
@@ -438,9 +438,9 @@ const Scout = () => {
                         {project.description ? (
                           <div style={{ marginTop: 2, lineHeight: 1.35 }}>{hl(project.description)}</div>
                         ) : null}
-                      </div>
+            </div>
                     ))}
-                  </div>
+          </div>
                 )}
               </div>
             ))}
@@ -456,8 +456,8 @@ const Scout = () => {
                   {hl(`${cert.name}${cert.year ? ` (${cert.year})` : ''}`)}
                 </span>
               ))}
-            </div>
-          </>
+        </div>
+      </>
         )}
 
         {selectedCand.motivation && (
@@ -493,15 +493,15 @@ const Scout = () => {
                 <button type="button" style={{ fontSize: 9, fontWeight: 600, color: '#3b82f6', background: 'none', border: 'none', cursor: 'default', padding: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
                   <SlidersHorizontal {...ICON_SM} aria-hidden />
                   Credit: {credit} · Mở hồ sơ: {scoutCreditCost} credit
-                </button>
+                    </button>
               </div>
 
               <div className="flex items-center justify-between">
                 <div style={{ fontSize: 9, fontWeight: 600, color: '#1e293b' }}>
                   {loading ? 'Đang tải...' : `${totalItems.toLocaleString('vi-VN')} ứng viên trên Scout`}
-                </div>
+                  </div>
                 <div style={{ fontSize: 8, color: '#64748b' }}>{companyName || ''}</div>
-              </div>
+                </div>
               {error && (
                 <div style={{ fontSize: 8, color: '#dc2626', marginTop: 4 }}>{error}</div>
               )}
@@ -511,13 +511,13 @@ const Scout = () => {
               {loading ? (
                 <div className="bg-white rounded-xl border border-slate-100 flex items-center justify-center" style={{ padding: 24, color: '#64748b', fontSize: 10 }}>
                   <Loader2 className="animate-spin mr-2" width={14} height={14} />
-                  Đang tải danh sách...
-                </div>
+                    Đang tải danh sách...
+                  </div>
               ) : candidates.length === 0 ? (
                 <div className="bg-white rounded-xl border border-slate-100 text-center" style={{ padding: 24, color: '#64748b', fontSize: 10 }}>
                   Chưa có hồ sơ nào trên sàn Scout
-                </div>
-              ) : (
+                  </div>
+                ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {candidates.map((c) => {
                     const { skills: visibleSkills, hiddenCount: more } = getVisibleSkills(c, highlightQuery)
@@ -568,8 +568,8 @@ const Scout = () => {
                               <div style={{ fontSize: 8, color: '#475569', marginTop: 4, lineHeight: 1.35, padding: '4px 6px', background: '#fffbeb', borderRadius: 6, border: '1px solid #fde68a' }}>
                                 {c.searchSnippets.map((snippet) => (
                                   <div key={snippet}>{hl(snippet)}</div>
-                                ))}
-                              </div>
+                    ))}
+                  </div>
                             )}
                             <div className="flex items-center flex-wrap gap-1" style={{ marginTop: 4 }}>
                               {visibleSkills.map((skill) => (
@@ -593,10 +593,10 @@ const Scout = () => {
                     )
                   })}
                 </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            {totalPages > 1 && (
+              {totalPages > 1 && (
               <div className="bg-white rounded-xl border border-slate-100 flex items-center justify-between" style={{ padding: '8px 12px' }}>
                 <span style={{ fontSize: 8, color: '#94a3b8' }}>Hiển thị {limit} / trang</span>
                 <div className="flex items-center gap-1">
@@ -647,9 +647,9 @@ const Scout = () => {
                     <ChevronRight {...ICON_SM} aria-hidden />
                   </button>
                 </div>
+                </div>
+              )}
               </div>
-            )}
-          </div>
 
           <div className="flex flex-col gap-2 scout-scrollbar" style={{ minHeight: 0, overflowY: 'auto' }}>
             {!selectedCand ? (
@@ -680,7 +680,7 @@ const Scout = () => {
                     <button type="button" onClick={() => setSelectedId(null)} style={{ width: 18, height: 18, borderRadius: 3, border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Đóng">
                       <X {...ICON_SM} aria-hidden />
                     </button>
-                  </div>
+            </div>
 
                   <div style={{ fontSize: 8, color: '#64748b', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                     {selectedCand.isUnlocked ? (
@@ -688,15 +688,15 @@ const Scout = () => {
                         <div>
                           <div style={{ color: '#94a3b8', marginBottom: 1 }}>Kinh nghiệm</div>
                           <div style={{ fontWeight: 600, color: '#1e293b' }}>{hl(formatExperienceYears(selectedCand.experienceYears))}</div>
-                        </div>
+            </div>
                         <div>
                           <div style={{ color: '#94a3b8', marginBottom: 1 }}>Địa điểm</div>
                           <div style={{ fontWeight: 600, color: '#1e293b' }}>{hl(selectedCand.desiredWorkLocation || '—')}</div>
-                        </div>
+          </div>
                         <div>
                           <div style={{ color: '#94a3b8', marginBottom: 1 }}>Mức lương mong muốn</div>
                           <div style={{ fontWeight: 600, color: '#1e293b' }}>{hl(selectedCand.desiredIncome || '—')}</div>
-                        </div>
+        </div>
                         <div>
                           <div style={{ color: '#94a3b8', marginBottom: 1 }}>JLPT / Ngoại ngữ</div>
                           <div style={{ fontWeight: 600, color: '#1e293b' }}>
@@ -709,7 +709,7 @@ const Scout = () => {
                         Chỉ hiển thị PR và kỹ năng. Mở bằng credit để xem đầy đủ thông tin.
                       </div>
                     )}
-                  </div>
+      </div>
 
                   {getPrSummary(selectedCand) && (
                     <div style={{ marginTop: 8, padding: 8, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>

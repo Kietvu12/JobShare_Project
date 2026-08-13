@@ -520,7 +520,8 @@ button:focus-visible {
 }
 
 /* CV template preview — tránh cắt viền bảng 1px khi scroll/overflow */
-.cv-template-body {
+.cv-template-body,
+.cv-pdf-capture-layer .cv-template-body {
   width: 100%;
   overflow-x: auto;
   overflow-y: visible;
@@ -529,6 +530,63 @@ button:focus-visible {
   box-sizing: border-box;
   font-family: 'MS Mincho', 'MS 明朝', 'Yu Mincho', 'Hiragino Mincho ProN', serif;
   font-weight: 400;
+  font-size: 15px;
+  line-height: 1.45;
+  color: #1f2937;
+}
+
+/* Checkbox / 外国語 / ツール / 資格 — đồng bộ mẫu CV */
+.cv-template-body label:has(input[type="checkbox"]),
+.cv-pdf-capture-layer .cv-template-body label:has(input[type="checkbox"]) {
+  font-size: 15px;
+  line-height: 1.35;
+  gap: 0.35rem;
+}
+
+.cv-template-body label:has(input[type="checkbox"]) input[type="checkbox"],
+.cv-pdf-capture-layer .cv-template-body label:has(input[type="checkbox"]) input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  min-width: 15px;
+  min-height: 15px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.cv-template-body [data-cv-fixed-cert-table] td,
+.cv-pdf-capture-layer .cv-template-body [data-cv-fixed-cert-table] td {
+  font-size: 15px;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.cv-template-body [data-cv-layout-key$="::tools_v2"] td,
+.cv-template-body [data-cv-layout-key$="::languages_v2"] td,
+.cv-template-body [data-cv-tools-name-cell],
+.cv-pdf-capture-layer .cv-template-body [data-cv-layout-key$="::tools_v2"] td,
+.cv-pdf-capture-layer .cv-template-body [data-cv-layout-key$="::languages_v2"] td,
+.cv-pdf-capture-layer .cv-template-body [data-cv-tools-name-cell] {
+  font-size: 15px;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+
+.cv-template-body .text-xs,
+.cv-template-body .text-sm {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.cv-template-body .cv-tpl-side-label {
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+/* 自己PR / 応募動機 / 備考 — cùng cỡ body, không thu nhỏ */
+.cv-template-body .cv-tpl-dense,
+.cv-template-body .cv-tpl-note {
+  font-size: inherit;
+  line-height: 1.45;
 }
 
 .cv-resizable-table-wrap {
@@ -538,6 +596,31 @@ button:focus-visible {
   box-sizing: border-box;
   min-width: 0;
   max-width: 100%;
+}
+
+/* 職務経歴 Technical — cột 期間 rộng hơn, không cắt ngày tháng */
+.cv-template-body [data-cv-layout-key$="::workGrid_v1"].cv-resizable-table-wrap {
+  overflow-x: visible;
+}
+
+.cv-template-body [data-cv-layout-key$="::workGrid_v1"] [data-cv-shokumu-period] {
+  overflow: visible !important;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+  min-width: 12.5rem;
+}
+
+.cv-template-body [data-cv-layout-key$="::workGrid_v1"] [data-cv-shokumu-period] .cv-pdf-date-inline {
+  font-size: inherit;
+  line-height: 1.35;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.cv-template-body [data-cv-layout-key$="::workGrid_v1"] [data-cv-shokumu-period] input[type="text"],
+.cv-template-body [data-cv-layout-key$="::workGrid_v1"] [data-cv-shokumu-period] input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]) {
+  box-sizing: border-box;
 }
 
 /* Bảng thông tin cá nhân 履歴書 (IT/Technical) — hàng thoáng hơn, không fit sát nội dung */

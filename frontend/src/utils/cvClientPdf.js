@@ -17,8 +17,17 @@ export const CV_PDF_CAPTURE_BORDER_BLEED_PX = 8;
 /** Đẩy layer capture ra ngoài viewport — vẫn layout/paint cho modern-screenshot. */
 export const CV_PDF_CAPTURE_OFFSCREEN_TRANSFORM = 'translateX(-200vw)';
 
+import {
+  CV_PDF_TABLE_FONT_SIZE,
+  CV_PDF_CHECKBOX_MARKER_PX,
+  CV_TPL_FONT_BODY,
+  CV_TPL_FONT_DENSE,
+  createCvPdfCheckboxMarkerElement,
+  buildCvPdfCaptureTypographyCss,
+} from './cvTemplateTypography.js';
+
 /** Cỡ chữ nội dung bảng 職務経歴書 — đồng nhất khi capture PDF. */
-const CV_PDF_SHOKUMU_TABLE_FONT_SIZE = '11px';
+const CV_PDF_SHOKUMU_TABLE_FONT_SIZE = CV_PDF_TABLE_FONT_SIZE;
 
 export const CV_TEMPLATE_DIR_MAP = {
   common: 'Common',
@@ -111,22 +120,25 @@ function enhanceCheckboxForPdfCapture(input) {
   if (!(input instanceof HTMLInputElement) || input.type !== 'checkbox') return null;
   if (input.closest('.cv-pdf-hide')) return null;
 
-  const marker = document.createElement('span');
-  marker.dataset.cvPdfCheckboxMarker = '1';
-  marker.setAttribute('aria-hidden', 'true');
-  marker.textContent = input.checked ? '■' : '□';
-  Object.assign(marker.style, {
-    display: 'inline-block',
-    width: '11px',
-    height: '11px',
-    lineHeight: '11px',
-    fontSize: '10px',
-    textAlign: 'center',
-    verticalAlign: 'middle',
-    flexShrink: '0',
-    color: '#1f2937',
-    fontFamily: '"MS PMincho", "MS Mincho", "Yu Mincho", serif',
-  });
+  const marker = createCvPdfCheckboxMarkerElement(input.checked);
+
+  const label = input.closest('label');
+  const prevLabel = label ? {
+    fontSize: label.style.fontSize,
+    lineHeight: label.style.lineHeight,
+    display: label.style.display,
+    alignItems: label.style.alignItems,
+    gap: label.style.gap,
+  } : null;
+  if (label instanceof HTMLElement) {
+    Object.assign(label.style, {
+      display: 'inline-flex',
+      alignItems: 'center',
+      fontSize: CV_PDF_TABLE_FONT_SIZE,
+      lineHeight: '1.35',
+      gap: '0.35rem',
+    });
+  }
 
   const prev = {
     visibility: input.style.visibility,
@@ -159,6 +171,13 @@ function enhanceCheckboxForPdfCapture(input) {
     input.style.padding = prev.padding;
     input.style.opacity = prev.opacity;
     input.style.position = prev.position;
+    if (label instanceof HTMLElement && prevLabel) {
+      label.style.fontSize = prevLabel.fontSize;
+      label.style.lineHeight = prevLabel.lineHeight;
+      label.style.display = prevLabel.display;
+      label.style.alignItems = prevLabel.alignItems;
+      label.style.gap = prevLabel.gap;
+    }
   };
 }
 
@@ -255,7 +274,8 @@ function isInsideShokumuTable(el) {
 
 function resolveCvPdfContentFontSize(el, fonts) {
   if (isInsideShokumuTable(el)) return CV_PDF_SHOKUMU_TABLE_FONT_SIZE;
-  return fonts.fontSize;
+  if (el?.closest?.('.cv-tpl-dense, .cv-tpl-note')) return CV_TPL_FONT_DENSE;
+  return fonts.fontSize || CV_TPL_FONT_BODY;
 }
 
 /** modern-screenshot hay vẽ trùng chữ / lệch đậm nhạt với contentEditable — thay bằng span tĩnh. */
@@ -474,7 +494,7 @@ function suppressScrollbarsForCapture(root, restoreFns) {
       overflow-wrap: normal !important;
     }
     [data-cv-pdf-capture-root] [data-cv-shokumu-period] {
-      min-width: 10.5rem !important;
+      min-width: 12.5rem !important;
     }
     [data-cv-pdf-capture-root] td.whitespace-nowrap,
     [data-cv-pdf-capture-root] [data-cv-shokumu-period],
@@ -508,8 +528,9 @@ function suppressScrollbarsForCapture(root, restoreFns) {
     [data-cv-pdf-capture-root] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-editable-marker],
     [data-cv-pdf-capture-root] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-period-flat],
     [data-cv-pdf-capture-root] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-flat-cell] {
-      font-size: 11px !important;
+      font-size: ${CV_PDF_TABLE_FONT_SIZE} !important;
     }
+    ${buildCvPdfCaptureTypographyCss('[data-cv-pdf-capture-root]')}
     [data-cv-pdf-capture-root] [data-cv-pdf-flat-cell] {
       font-weight: 400 !important;
       color: #1f2937 !important;
@@ -819,15 +840,89 @@ function flattenToolsTableCellsForPdfCapture(root, restoreFns) {
 
     const flat = document.createElement('span');
     flat.dataset.cvPdfToolsFlat = '1';
-    flat.textContent = checkbox?.checked ? `■ ${toolName}` : `□ ${toolName}`;
     Object.assign(flat.style, {
-      display: 'inline-block',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '0.35rem',
       whiteSpace: 'nowrap',
       wordBreak: 'keep-all',
       overflowWrap: 'normal',
-      fontSize: '11px',
-      lineHeight: '1.4',
+      fontSize: CV_PDF_TABLE_FONT_SIZE,
+      lineHeight: '1.35',
       color: '#1f2937',
+    });
+    const box = createCvPdfCheckboxMarkerElement(Boolean(checkbox?.checked));
+    box.dataset.cvPdfToolsBox = '1';
+    const nameEl = document.createElement('span');
+    nameEl.textContent = toolName;
+    nameEl.style.fontSize = CV_PDF_TABLE_FONT_SIZE;
+    flat.append(box, nameEl);
+
+    const prevHtml = cell.innerHTML;
+    cell.innerHTML = '';
+    cell.appendChild(flat);
+    restoreFns.push(() => {
+      cell.innerHTML = prevHtml;
+    });
+  });
+}
+
+/** 保有資格 JLPT — gộp checkbox thành ■/□ lớn, đồng bộ template khi capture PDF. */
+function flattenFixedCertCheckboxCellsForPdfCapture(root, restoreFns) {
+  if (!(root instanceof HTMLElement)) return;
+
+  root.querySelectorAll('[data-cv-cert-jlpt-cell]').forEach((cell) => {
+    const labels = Array.from(cell.querySelectorAll('label'));
+    if (!labels.length) return;
+
+    const flat = document.createElement('div');
+    flat.dataset.cvCertJlptFlat = '1';
+    Object.assign(flat.style, {
+      display: 'flex',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      alignItems: 'center',
+      columnGap: '1.25rem',
+      rowGap: '0.5rem',
+      fontSize: CV_PDF_TABLE_FONT_SIZE,
+      lineHeight: '1.35',
+      color: '#1f2937',
+    });
+
+    labels.forEach((label) => {
+      const cb = label.querySelector('input[type="checkbox"]');
+      const marker = label.querySelector('[data-cv-pdf-checkbox-marker="1"]');
+      const level = String(label.textContent || '')
+        .replace(/[■□]/g, '')
+        .replace(/\s+/g, '')
+        .trim();
+      if (!level) return;
+
+      const checked = Boolean(
+        cb?.checked
+        || marker?.style?.backgroundColor === 'rgb(31, 41, 55)'
+        || marker?.textContent?.includes('■')
+        || marker?.textContent?.includes('✓'),
+      );
+
+      const item = document.createElement('span');
+      Object.assign(item.style, {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.35rem',
+        fontSize: CV_PDF_TABLE_FONT_SIZE,
+        whiteSpace: 'nowrap',
+      });
+
+      const box = createCvPdfCheckboxMarkerElement(checked);
+      box.dataset.cvPdfCertBox = '1';
+
+      const text = document.createElement('span');
+      text.textContent = level;
+      text.style.fontSize = CV_PDF_TABLE_FONT_SIZE;
+
+      item.append(box, text);
+      flat.appendChild(item);
     });
 
     const prevHtml = cell.innerHTML;
@@ -835,6 +930,20 @@ function flattenToolsTableCellsForPdfCapture(root, restoreFns) {
     cell.appendChild(flat);
     restoreFns.push(() => {
       cell.innerHTML = prevHtml;
+    });
+  });
+}
+
+/** Ghi đè inline font-size cũ (vd. 11px) trước khi chụp PDF. */
+function normalizeInlineTableFontSizesForPdfCapture(root, restoreFns) {
+  if (!(root instanceof HTMLElement)) return;
+
+  root.querySelectorAll('.cv-template-body table, .cv-template-body .cv-resizable-table-wrap, [data-cv-fixed-cert-table] table').forEach((el) => {
+    if (!(el instanceof HTMLElement)) return;
+    const prev = el.style.fontSize;
+    el.style.fontSize = CV_PDF_TABLE_FONT_SIZE;
+    restoreFns.push(() => {
+      el.style.fontSize = prev;
     });
   });
 }
@@ -971,7 +1080,7 @@ function flattenCvPdfTableCellsForCapture(root, restoreFns) {
     flat.textContent = text;
     Object.assign(flat.style, {
       fontFamily: fonts.fontFamily,
-      fontSize: fonts.fontSize || '11px',
+      fontSize: fonts.fontSize || CV_TPL_FONT_BODY,
       lineHeight: '1.5',
       fontWeight: '400',
       fontStyle: 'normal',
@@ -1010,7 +1119,7 @@ function flattenDateTripletsForPdfCapture(root, restoreFns) {
     Object.assign(flat.style, {
       whiteSpace: 'nowrap',
       fontFamily: fonts.fontFamily,
-      fontSize: fonts.fontSize || '10px',
+      fontSize: fonts.fontSize || CV_TPL_FONT_BODY,
       fontWeight: '400',
       color: '#1f2937',
       letterSpacing: 0,
@@ -1032,6 +1141,8 @@ function preparePdfCaptureUi(root) {
   const restoreFns = [];
 
   applyFixedCertTablePdfLayout(root, restoreFns);
+
+  normalizeInlineTableFontSizesForPdfCapture(root, restoreFns);
 
   flattenShokumuCertRowsForPdfCapture(root, restoreFns);
 
@@ -1072,6 +1183,8 @@ function preparePdfCaptureUi(root) {
   flattenShokumuPeriodCellsForPdfCapture(root, restoreFns);
 
   flattenToolsTableCellsForPdfCapture(root, restoreFns);
+
+  flattenFixedCertCheckboxCellsForPdfCapture(root, restoreFns);
 
   root.querySelectorAll('input[type="checkbox"]').forEach((input) => {
     const restore = enhanceCheckboxForPdfCapture(input);
@@ -1338,14 +1451,7 @@ function mountCaptureClone(element) {
   sandbox.appendChild(clone);
   const styleEl = document.createElement('style');
   styleEl.textContent = `
-    [data-cv-pdf-capture-sandbox] .cv-template-body {
-      font-family: 'MS Mincho', 'MS 明朝', 'Yu Mincho', 'Hiragino Mincho ProN', serif !important;
-      font-weight: 400 !important;
-    }
-    [data-cv-pdf-capture-sandbox] .cv-template-body .font-bold,
-    [data-cv-pdf-capture-sandbox] .cv-template-body h2 {
-      font-weight: 700 !important;
-    }
+    ${buildCvPdfCaptureTypographyCss('[data-cv-pdf-capture-sandbox]')}
     [data-cv-pdf-capture-sandbox] [data-cv-pdf-flat-cell],
     [data-cv-pdf-capture-sandbox] [data-cv-pdf-editable-marker],
     [data-cv-pdf-capture-sandbox] [data-cv-pdf-date-flat] {
@@ -1355,7 +1461,6 @@ function mountCaptureClone(element) {
     [data-cv-pdf-capture-sandbox] .cv-template-date-triplet {
       flex-wrap: nowrap !important;
       white-space: nowrap !important;
-      font-size: 10px !important;
     }
     [data-cv-pdf-capture-sandbox] .cv-template-date-triplet [contenteditable] {
       display: inline !important;
@@ -1380,7 +1485,6 @@ function mountCaptureClone(element) {
     }
     [data-cv-pdf-capture-sandbox] [data-cv-layout-key$="::personalGrid_v3"] .cv-template-date-triplet,
     [data-cv-pdf-capture-sandbox] [data-cv-layout-key$="::personalGrid_v3"] [data-cv-pdf-date-flat] {
-      font-size: 11px !important;
       letter-spacing: 0 !important;
     }
     [data-cv-pdf-capture-sandbox] td.whitespace-nowrap,
@@ -1414,16 +1518,6 @@ function mountCaptureClone(element) {
     [data-cv-pdf-capture-sandbox] [data-cv-shokumu-cert-list],
     [data-cv-pdf-capture-sandbox] [data-cv-pdf-cert-flat] {
       border: none !important;
-    }
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap td,
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap th,
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap td *,
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap th *,
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-editable-marker],
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-period-flat],
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-flat-cell],
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-cert-flat] {
-      font-size: 11px !important;
     }
   `;
   sandbox.appendChild(styleEl);
