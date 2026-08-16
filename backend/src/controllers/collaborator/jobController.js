@@ -35,7 +35,9 @@ import {
 } from '../../utils/jobFileDownload.js';
 import { getRequestPublicBaseUrl } from '../../utils/requestPublicBaseUrl.js';
 import { executeJobListQuery, executeJobListInIdsQuery, MAX_JOB_LIST_LIMIT, localizeJobPlainForLanguage } from '../../services/jobListQueryService.js';
+import { loadJobDetailByIdOrSlug } from '../../services/jobDetailQueryService.js';
 import { findJobByIdOrSlug } from '../../utils/resolveJobByIdOrSlug.js';
+import { attachCampaignCommission } from '../../utils/campaignCommissionHelper.js';
 
 /**
  * Job Management Controller (CTV)
@@ -242,143 +244,9 @@ export const jobController = {
     try {
       const { id } = req.params;
 
-      const job = await findJobByIdOrSlug(id, {
-        include: [
-          {
-            model: JobCategory,
-            as: 'category',
-            required: false
-          },
-          {
-            model: Company,
-            as: 'company',
-            required: false,
-            include: [
-              {
-                model: CompanyBusinessField,
-                as: 'businessFields',
-                required: false,
-                attributes: ['id', 'content']
-              },
-              {
-                model: CompanyOffice,
-                as: 'offices',
-                required: false,
-                attributes: ['id', 'address', 'isHeadOffice']
-              }
-            ]
-          },
-          {
-            model: JobRecruitingCompany,
-            as: 'recruitingCompany',
-            required: false,
-            include: [
-              {
-                model: JobRecruitingCompanyService,
-                as: 'services',
-                required: false,
-                order: [['order', 'ASC']]
-              },
-              {
-                model: JobRecruitingCompanyBusinessSector,
-                as: 'businessSectors',
-                required: false,
-                order: [['order', 'ASC']]
-              }
-            ]
-          },
-          {
-            model: JobValue,
-            as: 'jobValues',
-            required: false,
-            include: [
-              {
-                model: Type,
-                as: 'type',
-                required: false,
-                attributes: ['id', 'typename']
-              },
-              {
-                model: Value,
-                as: 'valueRef',
-                required: false,
-                attributes: ['id', 'valuename', 'valuenameEn', 'valuenameJp']
-              }
-            ]
-          },
-          {
-            model: JobCampaign,
-            as: 'jobCampaigns',
-            required: false,
-            attributes: ['id', 'campaignId', 'jobId'],
-            paranoid: true,
-            include: [
-              {
-                model: Campaign,
-                as: 'campaign',
-                required: false,
-                attributes: ['id', 'name', 'percent']
-              }
-            ]
-          },
-          {
-            model: Requirement,
-            as: 'requirements',
-            required: false,
-            attributes: ['id', 'content', 'contentEn', 'contentJp', 'type', 'status']
-          },
-          {
-            model: WorkingLocationDetail,
-            as: 'workingLocationDetails',
-            required: false,
-            attributes: ['id', 'content', 'contentEn', 'contentJp']
-          },
-          {
-            model: SalaryRange,
-            as: 'salaryRanges',
-            required: false,
-            attributes: ['id', 'salaryRange', 'salaryRangeEn', 'salaryRangeJp', 'type']
-          },
-          {
-            model: SalaryRangeDetail,
-            as: 'salaryRangeDetails',
-            required: false,
-            attributes: ['id', 'content', 'contentEn', 'contentJp']
-          },
-          {
-            model: OvertimeAllowanceDetail,
-            as: 'overtimeAllowanceDetails',
-            required: false,
-            attributes: ['id', 'content']
-          },
-          {
-            model: SmokingPolicyDetail,
-            as: 'smokingPolicyDetails',
-            required: false,
-            attributes: ['id', 'content']
-          },
-          {
-            model: WorkingHourDetail,
-            as: 'workingHourDetails',
-            required: false,
-            attributes: ['id', 'content']
-          },
-          {
-            model: Benefit,
-            as: 'benefits',
-            required: false,
-            attributes: ['id', 'content', 'contentEn', 'contentJp']
-          },
-          {
-            model: SmokingPolicy,
-            as: 'smokingPolicies',
-            required: false,
-            attributes: ['id', 'allow']
-          }
-        ]
-      });
+      const jobData = await loadJobDetailByIdOrSlug(id, { scope: 'ctv' });
 
-      if (!job) {
+      if (!jobData) {
         return res.status(404).json({
           success: false,
           message: 'Không tìm thấy việc làm'
@@ -386,7 +254,7 @@ export const jobController = {
       }
 
       // Check if job is published
-      if (job.status !== 1) {
+      if (jobData.status !== 1) {
         return res.status(403).json({
           success: false,
           message: 'Việc làm này chưa được công bố'
@@ -395,13 +263,10 @@ export const jobController = {
 
       const langRaw = String(req.query.lang || req.query.language || 'vi').toLowerCase();
       const lang = langRaw === 'en' ? 'en' : langRaw === 'jp' ? 'jp' : 'vi';
-      const jobData = job.toJSON();
       jobData.isFavorite = false;
-      const { attachCampaignCommission } = await import('../../utils/campaignCommissionHelper.js');
       const jobWithComputedCommission = attachCampaignCommission(localizeJobPlainForLanguage(jobData, lang), false, 1);
 
-      // Tăng views count
-      await job.increment('viewsCount');
+      Job.increment('viewsCount', { where: { id: jobData.id } }).catch(() => {});
 
       res.json({
         success: true,

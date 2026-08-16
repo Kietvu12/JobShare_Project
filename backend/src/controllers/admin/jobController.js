@@ -42,6 +42,7 @@ import {
 import { generateJdPdfBuffer } from '../../services/jdPdfService.js';
 import { parseDateOnlyQuery } from '../../utils/parseDateOnlyQuery.js';
 import { executeJobListQuery, MAX_JOB_LIST_LIMIT } from '../../services/jobListQueryService.js';
+import { loadJobDetailById, loadJobDetailByIdOrSlug } from '../../services/jobDetailQueryService.js';
 import { bumpJobListCacheVersion } from '../../services/jobListCache.js';
 import { buildJdDownloadFilename } from '../../utils/jdDownloadFilename.js';
 import {
@@ -240,171 +241,18 @@ export const jobController = {
   getJobById: async (req, res, next) => {
     try {
       const { id } = req.params;
-      const mode = String(req.query.mode || req.query.view || '').toLowerCase();
-      const isEditMode = mode === 'edit' || mode === 'light' || mode === 'form';
+      const jobJson = await loadJobDetailById(id, { scope: 'admin' });
 
-      const include = [
-        {
-          model: JobCategory,
-          as: 'category',
-          required: false
-        },
-        {
-          model: Company,
-          as: 'company',
-          required: false
-        },
-        {
-          model: JobRecruitingCompany,
-          as: 'recruitingCompany',
-          required: false,
-          include: [
-            {
-              model: JobRecruitingCompanyService,
-              as: 'services',
-              required: false,
-              order: [['order', 'ASC']]
-            },
-            {
-              model: JobRecruitingCompanyBusinessSector,
-              as: 'businessSectors',
-              required: false,
-              order: [['order', 'ASC']]
-            }
-          ]
-        },
-        {
-          model: WorkingLocation,
-          as: 'workingLocations',
-          required: false
-        },
-        {
-          model: WorkingLocationDetail,
-          as: 'workingLocationDetails',
-          required: false,
-          separate: true
-        },
-        {
-          model: SalaryRange,
-          as: 'salaryRanges',
-          required: false,
-          separate: true
-        },
-        {
-          model: SalaryRangeDetail,
-          as: 'salaryRangeDetails',
-          required: false,
-          separate: true
-        },
-        {
-          model: OvertimeAllowance,
-          as: 'overtimeAllowances',
-          required: false,
-          separate: true
-        },
-        {
-          model: OvertimeAllowanceDetail,
-          as: 'overtimeAllowanceDetails',
-          required: false,
-          separate: true
-        },
-        {
-          model: Requirement,
-          as: 'requirements',
-          required: false,
-          separate: true
-        },
-        {
-          model: SmokingPolicy,
-          as: 'smokingPolicies',
-          required: false,
-          separate: true
-        },
-        {
-          model: SmokingPolicyDetail,
-          as: 'smokingPolicyDetails',
-          required: false,
-          separate: true
-        },
-        {
-          model: WorkingHour,
-          as: 'workingHours',
-          required: false,
-          separate: true
-        },
-        {
-          model: WorkingHourDetail,
-          as: 'workingHourDetails',
-          required: false,
-          separate: true
-        },
-        {
-          model: Benefit,
-          as: 'benefits',
-          required: false,
-          separate: true,
-          attributes: ['id', 'content', 'contentEn', 'contentJp']
-        },
-        {
-          model: JobValue,
-          as: 'jobValues',
-          required: false,
-          separate: true,
-          include: [
-            {
-              model: Type,
-              as: 'type',
-              required: false
-            },
-            {
-              model: Value,
-              as: 'valueRef',
-              required: false
-            }
-          ]
-        },
-        {
-          model: JobPickupId,
-          as: 'jobPickupIds',
-          required: false,
-          separate: true,
-          include: [
-            {
-              model: JobPickup,
-              as: 'pickup',
-              required: false
-            }
-          ]
-        },
-        {
-          model: JobCampaign,
-          as: 'jobCampaigns',
-          required: false,
-          separate: true,
-          include: [
-            {
-              model: Campaign,
-              as: 'campaign',
-              required: false,
-              attributes: ['id', 'name', 'status']
-            }
-          ]
-        }
-      ];
-
-      const job = await Job.findByPk(id, { include });
-
-      if (!job) {
+      if (!jobJson) {
         return res.status(404).json({
           success: false,
           message: 'Không tìm thấy việc làm'
         });
       }
 
-      const jobJson = normalizeJobFilenameFields(typeof job.toJSON === 'function' ? job.toJSON() : { ...job });
       res.json({
         success: true,
-        data: { job: jobJson }
+        data: { job: normalizeJobFilenameFields(jobJson) }
       });
     } catch (error) {
       next(error);
@@ -418,80 +266,15 @@ export const jobController = {
   getJobBySlug: async (req, res, next) => {
     try {
       const { slug } = req.params;
-      const mode = String(req.query.mode || req.query.view || '').toLowerCase();
-      const isEditMode = mode === 'edit' || mode === 'light' || mode === 'form';
-
-      const include = [
-        {
-          model: JobCategory,
-          as: 'category',
-          required: false
-        },
-        {
-          model: Company,
-          as: 'company',
-          required: false
-        },
-        {
-          model: JobRecruitingCompany,
-          as: 'recruitingCompany',
-          required: false,
-          include: [
-            { model: JobRecruitingCompanyService, as: 'services', required: false, order: [['order', 'ASC']] },
-            { model: JobRecruitingCompanyBusinessSector, as: 'businessSectors', required: false, order: [['order', 'ASC']] }
-          ]
-        },
-        { model: WorkingLocation, as: 'workingLocations', required: false },
-        { model: WorkingLocationDetail, as: 'workingLocationDetails', required: false, separate: true },
-        { model: SalaryRange, as: 'salaryRanges', required: false, separate: true },
-        { model: SalaryRangeDetail, as: 'salaryRangeDetails', required: false, separate: true },
-        { model: OvertimeAllowance, as: 'overtimeAllowances', required: false, separate: true },
-        { model: OvertimeAllowanceDetail, as: 'overtimeAllowanceDetails', required: false, separate: true },
-        { model: Requirement, as: 'requirements', required: false, separate: true },
-        { model: SmokingPolicy, as: 'smokingPolicies', required: false, separate: true },
-        { model: SmokingPolicyDetail, as: 'smokingPolicyDetails', required: false, separate: true },
-        { model: WorkingHour, as: 'workingHours', required: false, separate: true },
-        { model: WorkingHourDetail, as: 'workingHourDetails', required: false, separate: true },
-        {
-          model: Benefit,
-          as: 'benefits',
-          required: false,
-          separate: true,
-          attributes: ['id', 'content', 'contentEn', 'contentJp']
-        },
-        {
-          model: JobValue,
-          as: 'jobValues',
-          required: false,
-          separate: true,
-          include: [
-            { model: Type, as: 'type', required: false },
-            { model: Value, as: 'valueRef', required: false }
-          ]
-        },
-        {
-          model: JobPickupId,
-          as: 'jobPickupIds',
-          required: false,
-          separate: true,
-          include: [{ model: JobPickup, as: 'pickup', required: false }]
-        },
-        {
-          model: JobCampaign,
-          as: 'jobCampaigns',
-          required: false,
-          separate: true,
-          include: [{ model: Campaign, as: 'campaign', required: false, attributes: ['id', 'name', 'status'] }]
-        }
-      ];
-
-      const job = await Job.findOne({ where: { slug }, include });
-      if (!job) {
+      const jobJson = await loadJobDetailByIdOrSlug(slug, { scope: 'admin' });
+      if (!jobJson) {
         return res.status(404).json({ success: false, message: 'Không tìm thấy việc làm' });
       }
 
-      const jobJson = normalizeJobFilenameFields(typeof job.toJSON === 'function' ? job.toJSON() : { ...job });
-      res.json({ success: true, data: { job: jobJson } });
+      res.json({
+        success: true,
+        data: { job: normalizeJobFilenameFields(jobJson) },
+      });
     } catch (error) {
       next(error);
     }
@@ -500,84 +283,9 @@ export const jobController = {
   getJobEditData: async (req, res, next) => {
     try {
       const { id } = req.params;
+      const jobJson = await loadJobDetailById(id, { scope: 'admin' });
 
-      const job = await Job.findByPk(id, {
-        include: [
-          {
-            model: JobCategory,
-            as: 'category',
-            required: false
-          },
-          {
-            model: Company,
-            as: 'company',
-            required: false
-          },
-          {
-            model: JobRecruitingCompany,
-            as: 'recruitingCompany',
-            required: false,
-            include: [
-              {
-                model: JobRecruitingCompanyService,
-                as: 'services',
-                required: false,
-                order: [['order', 'ASC']]
-              },
-              {
-                model: JobRecruitingCompanyBusinessSector,
-                as: 'businessSectors',
-                required: false,
-                order: [['order', 'ASC']]
-              }
-            ]
-          },
-          { model: WorkingLocation, as: 'workingLocations', required: false },
-          { model: WorkingLocationDetail, as: 'workingLocationDetails', required: false, separate: true },
-          { model: SalaryRange, as: 'salaryRanges', required: false, separate: true },
-          { model: SalaryRangeDetail, as: 'salaryRangeDetails', required: false, separate: true },
-          { model: OvertimeAllowance, as: 'overtimeAllowances', required: false, separate: true },
-          { model: OvertimeAllowanceDetail, as: 'overtimeAllowanceDetails', required: false, separate: true },
-          { model: Requirement, as: 'requirements', required: false, separate: true },
-          { model: SmokingPolicy, as: 'smokingPolicies', required: false, separate: true },
-          { model: SmokingPolicyDetail, as: 'smokingPolicyDetails', required: false, separate: true },
-          { model: WorkingHour, as: 'workingHours', required: false, separate: true },
-          { model: WorkingHourDetail, as: 'workingHourDetails', required: false, separate: true },
-          {
-            model: Benefit,
-            as: 'benefits',
-            required: false,
-            separate: true,
-            attributes: ['id', 'content', 'contentEn', 'contentJp']
-          },
-          {
-            model: JobValue,
-            as: 'jobValues',
-            required: false,
-            separate: true,
-            include: [
-              { model: Type, as: 'type', required: false },
-              { model: Value, as: 'valueRef', required: false }
-            ]
-          },
-          {
-            model: JobPickupId,
-            as: 'jobPickupIds',
-            required: false,
-            separate: true,
-            include: [{ model: JobPickup, as: 'pickup', required: false }]
-          },
-          {
-            model: JobCampaign,
-            as: 'jobCampaigns',
-            required: false,
-            separate: true,
-            include: [{ model: Campaign, as: 'campaign', required: false, attributes: ['id', 'name', 'status'] }]
-          }
-        ]
-      });
-
-      if (!job) {
+      if (!jobJson) {
         return res.status(404).json({
           success: false,
           message: 'Không tìm thấy việc làm'
@@ -586,7 +294,7 @@ export const jobController = {
 
       res.json({
         success: true,
-        data: { job: typeof job.toJSON === 'function' ? job.toJSON() : job }
+        data: { job: jobJson }
       });
     } catch (error) {
       next(error);
