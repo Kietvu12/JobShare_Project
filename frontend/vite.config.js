@@ -14,11 +14,23 @@ function serveTemplateAssets() {
 
   return {
     name: 'serve-landing-templates',
+    enforce: 'pre',
     configResolved(config) {
       buildOutDir = path.resolve(config.root, config.build.outDir)
     },
     configureServer(server) {
-      server.middlewares.use('/template', sirv(templateDir, { dev: true, single: false }))
+      server.middlewares.use(
+        '/template',
+        sirv(templateDir, {
+          dev: true,
+          single: false,
+          setHeaders(res, filepath) {
+            if (filepath.endsWith('.html')) {
+              res.setHeader('Content-Type', 'text/html; charset=utf-8')
+            }
+          },
+        }),
+      )
     },
     configurePreviewServer(server) {
       server.middlewares.use('/template', sirv(templateDir, { dev: false, single: false }))
