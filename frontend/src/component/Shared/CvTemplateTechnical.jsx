@@ -901,28 +901,32 @@ const CvTemplateTechnical = ({
                     const linkedKey = type === 'learned' ? 'learnedTools' : 'experienceTools';
                     if (!toolName) {
                       return (
-                        <td key={`${fieldPrefix}-name-${ri}-${ci}`} className="border p-1 bg-white text-center" style={{ ...rowStyle, borderRight: '2px dotted #1f2937' }}>
-                          <span className="inline-block w-[19px] h-[19px] border border-gray-800 shrink-0" aria-hidden />
+                        <td key={`${fieldPrefix}-name-${ri}-${ci}`} className="border px-2 py-1.5 bg-white" style={{ ...rowStyle, borderRight: '2px dotted #1f2937' }} data-cv-tools-name-cell="1">
+                          <div className="cv-tools-option-empty" aria-hidden="true">
+                            <span className="inline-block w-[19px] h-[19px] border border-gray-800 shrink-0" />
+                          </div>
                         </td>
                       );
                     }
                     const checked = (type === 'learned' ? learned : experienced).includes(toolName);
                     return (
-                        <td key={`${fieldPrefix}-name-${ri}-${ci}`} className="border px-2 py-1.5 bg-white text-center" style={{ ...rowStyle, borderRight: '2px dotted #1f2937' }} data-cv-tools-name-cell="1">
-                        <label className="cv-tools-option flex items-center w-full gap-1.5 cursor-pointer min-w-0">
+                        <td key={`${fieldPrefix}-name-${ri}-${ci}`} className="border px-2 py-1.5 bg-white" style={{ ...rowStyle, borderRight: '2px dotted #1f2937' }} data-cv-tools-name-cell="1">
+                        <label className="cv-tools-option cursor-pointer min-w-0">
                           <input
                             type="checkbox"
-                            className="rounded shrink-0 flex-none"
+                            className="rounded shrink-0"
                             checked={checked}
                             onChange={() => toggleTool(type, toolName)}
                           />
-                          <SupplementTplText
-                            fieldKey={`tpl-tech-tools-${fieldPrefix}-name-${ri}-${ci}`}
-                            text={toolName}
-                            supplementMarking={supplementMarking}
-                            linkedFieldKeys={[linkedKey]}
-                            className="select-text inline min-w-0"
-                          />
+                          <span className="cv-tools-option-label min-w-0 select-text">
+                            <SupplementTplText
+                              fieldKey={`tpl-tech-tools-${fieldPrefix}-name-${ri}-${ci}`}
+                              text={toolName}
+                              supplementMarking={supplementMarking}
+                              linkedFieldKeys={[linkedKey]}
+                              className="select-text min-w-0"
+                            />
+                          </span>
                         </label>
                       </td>
                     );
@@ -1316,13 +1320,13 @@ const CvTemplateTechnical = ({
                 <tr data-cv-table-footer-row>
                   <td colSpan={4} className="border p-2 bg-white align-top min-w-0 break-words cv-tpl-note" style={{ borderColor: '#1f2937', wordBreak: 'keep-all', overflowWrap: 'break-word' }}>
                     <div className="space-y-1">
-                      <div className="break-words">・現年収: <span {...cvEditable('currentSalary', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap', { wordBreak: 'keep-all', overflowWrap: 'break-word' })} /></div>
-                      <div className="break-words">・希望年収: <span {...cvEditable('desiredSalary', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap', { wordBreak: 'keep-all', overflowWrap: 'break-word' })} /></div>
-                      <div className="break-words">・希望職種: <span {...cvEditable('desiredPosition', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap', { wordBreak: 'keep-all', overflowWrap: 'break-word' })} /></div>
-                      <div className="break-words">・希望勤務地: <span {...cvEditable('desiredLocation', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap', { wordBreak: 'keep-all', overflowWrap: 'break-word' })} /></div>
-                      <div>・在留資格の種類: 技術・人文知識・国際業務</div>
-                      <div>・在留期間: {formatCvAnyDateJa(formData.visaExpirationDate) || '年月日'}</div>
-                      <div>・在留カードに記載の就労制限:「在留資格に基づく就労活動のみ可」</div>
+                      <div className="break-words text-left">・現年収: <span {...cvEditable('currentSalary', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap text-left', { wordBreak: 'keep-all', overflowWrap: 'break-word' })} /></div>
+                      <div className="break-words text-left">・希望年収: <span {...cvEditable('desiredSalary', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap text-left', { wordBreak: 'keep-all', overflowWrap: 'break-word' })} /></div>
+                      <div className="break-words text-left">・希望職種: <span {...cvEditable('desiredPosition', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap text-left', { wordBreak: 'keep-all', overflowWrap: 'break-word' })} /></div>
+                      <div className="break-words text-left">・希望勤務地: <span {...cvEditable('desiredLocation', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap text-left', { wordBreak: 'keep-all', overflowWrap: 'break-word' })} /></div>
+                      <div className="break-words text-left">・在留資格の種類: 技術・人文知識・国際業務</div>
+                      <div className="break-words text-left">・在留期間: {formatCvAnyDateJa(formData.visaExpirationDate) || '年月日'}</div>
+                      <div className="break-words text-left">・在留カードに記載の就労制限:「在留資格に基づく就労活動のみ可」</div>
                     </div>
                   </td>
                 </tr>
@@ -1369,7 +1373,7 @@ const CvTemplateTechnical = ({
                     <SupplementTplText fieldKey="tpl-tech-shokumu-summary-title" text="職務要約" supplementMarking={supplementMarking} linkedFieldKeys={['careerSummary']} className="select-text inline" />
                   </td>
                   <td className="border p-3 bg-white align-top" style={{ borderColor: '#1f2937' }}>
-                    <div className="whitespace-pre-wrap min-h-[4rem] cv-tpl-dense" {...cvEditable('careerSummary', 'block')} />
+                    <div className="whitespace-pre-wrap min-h-[4rem] cv-tpl-dense" {...cvEditable('careerSummary', 'block cv-tpl-dense')} />
                   </td>
                 </tr>
               </tbody>
@@ -1382,7 +1386,7 @@ const CvTemplateTechnical = ({
               const headerGrayStyle = { backgroundColor: '#e5e7eb', verticalAlign: 'middle' };
               const headerWhiteStyle = { backgroundColor: '#fff', verticalAlign: 'middle' };
               const bodyStyle = { backgroundColor: '#fff', verticalAlign: 'top' };
-              const bodyCenterStyle = { ...bodyStyle, verticalAlign: 'middle', textAlign: 'center' };
+              const bodyCenterStyle = { ...bodyStyle, verticalAlign: 'middle' };
 
               const setWorkField = (index, field, value) => {
                 if (typeof updateEmploymentPair === 'function') {
@@ -1489,16 +1493,16 @@ const CvTemplateTechnical = ({
                                   </button>
                                 ) : null}
                               </td>
-                              <td colSpan={2} className="py-2 px-2 text-center align-middle font-normal" style={headerGrayStyle}>
-                                <div className="flex flex-col items-center justify-center gap-0.5 w-full">
-                                  <span {...makeInlineEditable(`shokumu-company-${i}`, emp.company_name || emp.companyName || emp.company || '', (v) => setWorkField(i, 'company_name', v), { className: 'block w-full outline-none whitespace-pre-wrap text-center' })} />
+                              <td colSpan={2} className="py-2 px-2 text-left align-middle font-normal" style={headerGrayStyle}>
+                                <div className="flex flex-col items-start justify-center gap-0.5 w-full">
+                                  <span {...makeInlineEditable(`shokumu-company-${i}`, emp.company_name || emp.companyName || emp.company || '', (v) => setWorkField(i, 'company_name', v), { className: 'block w-full outline-none whitespace-pre-wrap text-left' })} />
                                   {(emp.companyRole || emp.company_role || emp.position) ? (
-                                    <span {...makeInlineEditable(`shokumu-role-${i}`, emp.companyRole || emp.company_role || emp.position || '', (v) => setWorkField(i, 'companyRole', v), { className: 'block w-full outline-none whitespace-pre-wrap cv-tpl-dense text-gray-700 text-center' })} />
+                                    <span {...makeInlineEditable(`shokumu-role-${i}`, emp.companyRole || emp.company_role || emp.position || '', (v) => setWorkField(i, 'companyRole', v), { className: 'block w-full outline-none whitespace-pre-wrap cv-tpl-dense text-gray-700 text-left' })} />
                                   ) : null}
                                 </div>
                               </td>
-                              <td className="py-2 px-2 text-center align-middle font-normal" style={headerGrayStyle}>
-                                <span {...makeInlineEditable(`shokumu-place-${i}`, emp.employmentPlace || emp.employment_place || emp.work_location || '', (v) => setWorkField(i, 'employmentPlace', v), { className: 'block w-full outline-none whitespace-pre-wrap text-center' })} />
+                              <td className="py-2 px-2 text-left align-middle font-normal" style={headerGrayStyle}>
+                                <span {...makeInlineEditable(`shokumu-place-${i}`, emp.employmentPlace || emp.employment_place || emp.work_location || '', (v) => setWorkField(i, 'employmentPlace', v), { className: 'block w-full outline-none whitespace-pre-wrap text-left' })} />
                               </td>
                             </tr>
                             <tr>
@@ -1607,7 +1611,7 @@ const CvTemplateTechnical = ({
                                 </div>
                               </td>
                               <td className="p-1.5 align-top whitespace-pre-wrap" style={bodyStyle}>
-                                <span {...makeInlineEditable(`shokumu-tools-${i}`, emp.tools_tech || '', (v) => setWorkField(i, 'tools_tech', v), { className: 'block w-full outline-none whitespace-pre-wrap break-words' })} />
+                                <span {...makeInlineEditable(`shokumu-tools-${i}`, emp.tools_tech || '', (v) => setWorkField(i, 'tools_tech', v), { className: 'block w-full outline-none whitespace-pre-wrap break-words text-left' })} />
                               </td>
                             </tr>
                             {i < workCount - 1 && (
@@ -1634,6 +1638,7 @@ const CvTemplateTechnical = ({
             })()}
 
             {/* 活かせるスキル + 資格・免許 */}
+            <div className="cv-shokumu-prose">
             <ResizableCvTable
               className="w-full border-collapse mt-4 border"
               style={CV_TPL_TABLE_STYLE}
@@ -1650,7 +1655,7 @@ const CvTemplateTechnical = ({
                 <tr>
                   <td className="border p-3 min-h-[100px] bg-white cv-tpl-dense whitespace-pre-wrap align-top" style={{ borderColor: '#1f2937', color: '#1f2937' }}>
                     <div className="whitespace-pre-wrap min-h-[100px]">
-                      <span {...cvEditable('technicalSkills', 'inline-block min-w-0 outline-none whitespace-pre-wrap block w-full', { minHeight: '100px' })} />
+                      <span {...cvEditable('technicalSkills', 'inline-block min-w-0 outline-none whitespace-pre-wrap block w-full cv-tpl-dense text-left', { minHeight: '100px' })} />
                     </div>
                   </td>
                 </tr>
@@ -1664,9 +1669,9 @@ const CvTemplateTechnical = ({
                     <div className="space-y-2" data-cv-shokumu-cert-list style={{ minHeight: '4rem' }}>
                       {(formData.certificates || []).length > 0 ? (
                         (formData.certificates || []).map((cert, index) => (
-                          <div key={`tech-cert-${index}`} data-cv-shokumu-cert-row className="flex flex-wrap items-center gap-1">
+                          <div key={`tech-cert-${index}`} data-cv-shokumu-cert-row className="flex flex-wrap items-center justify-start gap-1">
                             <span className="shrink-0">・</span>
-                            <span {...cvEditableArray('certificates', index, 'name', 'min-w-[10rem] flex-1 border-0 outline-none bg-transparent whitespace-pre-wrap')} />
+                            <span {...cvEditableArray('certificates', index, 'name', 'min-w-[10rem] flex-1 border-0 outline-none bg-transparent whitespace-pre-wrap text-left')} />
                             <span className="shrink-0">（</span>
                             <span {...makeInlineEditable(`cert-year-${index}`, cert?.year || '', (v) => setFormData((prev) => { const next = [...(prev.certificates || [])]; next[index] = { ...(next[index] || {}), year: v }; return { ...prev, certificates: next }; }), { className: 'w-14 border-0 outline-none bg-transparent text-center', multiline: false })} />
                             <span className="shrink-0">年</span>
@@ -1714,6 +1719,7 @@ const CvTemplateTechnical = ({
                 </tr>
               </tbody>
             </ResizableCvTable>
+            </div>
           </div>
         </div>
       )}

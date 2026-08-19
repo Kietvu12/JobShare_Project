@@ -713,52 +713,163 @@ button:focus-visible {
   line-height: 1.45;
 }
 
-/* Ô nhập dữ liệu — căn giữa (preview + PDF capture) */
-.cv-template-body td.bg-white,
-.cv-pdf-capture-layer .cv-template-body td.bg-white,
-[data-cv-pdf-capture-root] .cv-template-body td.bg-white,
-.cv-template-body .cv-shokumu-work-section tbody td,
-.cv-pdf-capture-layer .cv-template-body .cv-shokumu-work-section tbody td,
-[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section tbody td,
-.cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50),
-.cv-pdf-capture-layer .cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50),
-[data-cv-pdf-capture-root] .cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50) {
+/* Ô nhập dữ liệu — căn giữa (preview + PDF capture); trừ đoạn văn / 職務経歴 */
+.cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]),
+.cv-pdf-capture-layer .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]),
+[data-cv-pdf-capture-root] .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]),
+.cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]),
+.cv-pdf-capture-layer .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]),
+[data-cv-pdf-capture-root] .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]) {
   text-align: center !important;
   vertical-align: middle;
 }
 
-.cv-template-body td.bg-white [contenteditable],
-.cv-template-body td.bg-white input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
-.cv-template-body td.bg-white select,
-.cv-template-body td.bg-white textarea,
-.cv-template-body .cv-shokumu-work-section tbody td [contenteditable],
-.cv-template-body .cv-shokumu-work-section tbody td input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
-.cv-template-body .cv-shokumu-work-section tbody td > div,
-.cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]) [contenteditable],
-.cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
-.cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]) select,
-.cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]) textarea,
-.cv-pdf-capture-layer .cv-template-body td.bg-white [contenteditable],
-.cv-pdf-capture-layer .cv-template-body td.bg-white input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
-.cv-pdf-capture-layer .cv-template-body .cv-shokumu-work-section tbody td [contenteditable],
-.cv-pdf-capture-layer .cv-template-body .cv-shokumu-work-section tbody td > div,
-.cv-pdf-capture-layer .cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]) [contenteditable],
-[data-cv-pdf-capture-root] .cv-template-body td.bg-white [contenteditable],
-[data-cv-pdf-capture-root] .cv-template-body td.bg-white input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
-[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section tbody td [contenteditable],
-[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section tbody td > div,
-[data-cv-pdf-capture-root] .cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]) [contenteditable] {
+.cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable],
+.cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) select,
+.cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) textarea,
+.cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable],
+.cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) select,
+.cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) textarea,
+.cv-pdf-capture-layer .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable],
+.cv-pdf-capture-layer .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.cv-pdf-capture-layer .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable],
+[data-cv-pdf-capture-root] .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable],
+[data-cv-pdf-capture-root] .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+[data-cv-pdf-capture-root] .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable] {
   text-align: center !important;
 }
 
-.cv-template-body .cv-shokumu-work-section tbody td label.flex,
+/* 自己PR / 応募動機 / 備考 — đoạn văn, căn trái (override rule căn giữa ô nhập) */
+.cv-template-body td.bg-white.cv-tpl-note,
+.cv-template-body td.bg-white:has(.cv-tpl-dense),
+.cv-template-body td.bg-white.cv-tpl-dense,
+.cv-template-body .cv-resizable-table-wrap tbody td.cv-tpl-note,
+.cv-template-body .cv-resizable-table-wrap tbody td:has(.cv-tpl-dense),
+.cv-template-body .cv-resizable-table-wrap tbody td.cv-tpl-dense,
+.cv-pdf-capture-layer .cv-template-body td.bg-white.cv-tpl-note,
+.cv-pdf-capture-layer .cv-template-body td.bg-white:has(.cv-tpl-dense),
+.cv-pdf-capture-layer .cv-template-body td.bg-white.cv-tpl-dense,
+.cv-pdf-capture-layer .cv-template-body .cv-resizable-table-wrap tbody td.cv-tpl-note,
+.cv-pdf-capture-layer .cv-template-body .cv-resizable-table-wrap tbody td:has(.cv-tpl-dense),
+.cv-pdf-capture-layer .cv-template-body .cv-resizable-table-wrap tbody td.cv-tpl-dense,
+[data-cv-pdf-capture-root] .cv-template-body td.bg-white.cv-tpl-note,
+[data-cv-pdf-capture-root] .cv-template-body td.bg-white:has(.cv-tpl-dense),
+[data-cv-pdf-capture-root] .cv-template-body td.bg-white.cv-tpl-dense,
+[data-cv-pdf-capture-root] .cv-template-body .cv-resizable-table-wrap tbody td.cv-tpl-note,
+[data-cv-pdf-capture-root] .cv-template-body .cv-resizable-table-wrap tbody td:has(.cv-tpl-dense),
+[data-cv-pdf-capture-root] .cv-template-body .cv-resizable-table-wrap tbody td.cv-tpl-dense {
+  text-align: left !important;
+  vertical-align: top !important;
+}
+
+.cv-template-body .cv-tpl-dense,
+.cv-template-body td.cv-tpl-note,
+.cv-template-body td.cv-tpl-note > div,
+.cv-template-body td.cv-tpl-note > div > div,
+.cv-template-body .cv-tpl-dense[contenteditable],
+.cv-template-body td.cv-tpl-note [contenteditable],
+.cv-template-body td:has(.cv-tpl-dense) [contenteditable],
+.cv-pdf-capture-layer .cv-template-body .cv-tpl-dense,
+.cv-pdf-capture-layer .cv-template-body td.cv-tpl-note,
+.cv-pdf-capture-layer .cv-template-body td.cv-tpl-note > div,
+.cv-pdf-capture-layer .cv-template-body td.cv-tpl-note > div > div,
+.cv-pdf-capture-layer .cv-template-body .cv-tpl-dense[contenteditable],
+.cv-pdf-capture-layer .cv-template-body td.cv-tpl-note [contenteditable],
+[data-cv-pdf-capture-root] .cv-template-body .cv-tpl-dense,
+[data-cv-pdf-capture-root] .cv-template-body td.cv-tpl-note,
+[data-cv-pdf-capture-root] .cv-template-body td.cv-tpl-note > div,
+[data-cv-pdf-capture-root] .cv-template-body td.cv-tpl-note > div > div,
+[data-cv-pdf-capture-root] .cv-template-body .cv-tpl-dense[contenteditable],
+[data-cv-pdf-capture-root] .cv-template-body td.cv-tpl-note [contenteditable] {
+  text-align: left !important;
+}
+
+/* 活かせるスキル / 資格・免許 — danh sách căn trái */
+.cv-template-body td.cv-tpl-dense [contenteditable],
+.cv-template-body [data-cv-shokumu-cert-list],
+.cv-template-body [data-cv-shokumu-cert-list] [data-cv-shokumu-cert-row],
+.cv-template-body [data-cv-shokumu-cert-list] input[type="text"]:not(.text-center),
+.cv-pdf-capture-layer .cv-template-body [data-cv-shokumu-cert-list],
+[data-cv-pdf-capture-root] .cv-template-body [data-cv-shokumu-cert-list] {
+  text-align: left !important;
+}
+
+.cv-template-body [data-cv-shokumu-cert-list] [data-cv-shokumu-cert-row] {
+  justify-content: flex-start !important;
+}
+
+/* 職務要約 / 職務経歴 — đoạn văn, căn trái (trừ cột 期間) */
+.cv-template-body .cv-shokumu-work-section tbody td:not([data-cv-shokumu-period]),
+.cv-template-body .cv-shokumu-prose tbody td:not([data-cv-shokumu-period]),
+.cv-template-body .cv-shokumu-prose .cv-resizable-table-wrap tbody td:not([data-cv-shokumu-period]),
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-work-section tbody td:not([data-cv-shokumu-period]),
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-prose tbody td:not([data-cv-shokumu-period]),
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-prose .cv-resizable-table-wrap tbody td:not([data-cv-shokumu-period]),
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section tbody td:not([data-cv-shokumu-period]),
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-prose tbody td:not([data-cv-shokumu-period]),
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-prose .cv-resizable-table-wrap tbody td:not([data-cv-shokumu-period]) {
+  text-align: left !important;
+  vertical-align: top !important;
+}
+
+.cv-template-body .cv-shokumu-work-section tbody td:not([data-cv-shokumu-period]) [contenteditable],
+.cv-template-body .cv-shokumu-work-section tbody td:not([data-cv-shokumu-period]) > div,
+.cv-template-body .cv-shokumu-prose tbody td:not([data-cv-shokumu-period]) [contenteditable],
+.cv-template-body .cv-shokumu-prose tbody td:not([data-cv-shokumu-period]) > div,
+.cv-template-body .cv-shokumu-prose .cv-resizable-table-wrap tbody td:not([data-cv-shokumu-period]) [contenteditable],
+.cv-template-body .cv-shokumu-prose .cv-resizable-table-wrap tbody td:not([data-cv-shokumu-period]) > div,
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-work-section tbody td:not([data-cv-shokumu-period]) [contenteditable],
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-prose tbody td:not([data-cv-shokumu-period]) [contenteditable],
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-prose .cv-resizable-table-wrap tbody td:not([data-cv-shokumu-period]) [contenteditable],
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section tbody td:not([data-cv-shokumu-period]) [contenteditable],
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-prose tbody td:not([data-cv-shokumu-period]) [contenteditable],
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-prose .cv-resizable-table-wrap tbody td:not([data-cv-shokumu-period]) [contenteditable] {
+  text-align: left !important;
+}
+
+/* 期間 — căn giữa trong ô */
+.cv-template-body [data-cv-shokumu-period],
+.cv-template-body td.cv-pdf-shokumu-period,
+.cv-pdf-capture-layer .cv-template-body [data-cv-shokumu-period],
+[data-cv-pdf-capture-root] .cv-template-body [data-cv-shokumu-period] {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+.cv-template-body [data-cv-shokumu-period] .cv-pdf-date-inline,
+.cv-template-body [data-cv-shokumu-period] > span,
+.cv-template-body [data-cv-shokumu-period] input,
+.cv-pdf-capture-layer .cv-template-body [data-cv-shokumu-period] .cv-pdf-date-inline,
+[data-cv-pdf-capture-root] .cv-template-body [data-cv-shokumu-period] .cv-pdf-date-inline,
+[data-cv-pdf-capture-root] .cv-template-body [data-cv-pdf-period-flat] {
+  text-align: center !important;
+}
+
+.cv-template-body [data-cv-shokumu-period] .cv-pdf-date-inline,
+.cv-pdf-capture-layer .cv-template-body [data-cv-shokumu-period] .cv-pdf-date-inline,
+[data-cv-pdf-capture-root] .cv-template-body [data-cv-shokumu-period] .cv-pdf-date-inline {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
 .cv-template-body td.bg-white label.flex,
 .cv-template-body .cv-resizable-table-wrap tbody td label.flex,
-.cv-pdf-capture-layer .cv-template-body .cv-shokumu-work-section tbody td label.flex,
 .cv-pdf-capture-layer .cv-template-body td.bg-white label.flex,
-[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section tbody td label.flex,
 [data-cv-pdf-capture-root] .cv-template-body td.bg-white label.flex {
   justify-content: center !important;
+}
+
+.cv-template-body .cv-shokumu-work-section tbody td label.flex,
+.cv-template-body .cv-shokumu-prose .cv-resizable-table-wrap tbody td label.flex,
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-work-section tbody td label.flex,
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-prose .cv-resizable-table-wrap tbody td label.flex,
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section tbody td label.flex,
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-prose .cv-resizable-table-wrap tbody td label.flex {
+  justify-content: flex-start !important;
 }
 
 /* Nhóm checkbox (性別 / パスポート / 配偶者 / 外国語…) — căn giữa trong ô */
@@ -818,40 +929,75 @@ button:focus-visible {
 .cv-template-body td[data-cv-tools-name-cell="1"],
 .cv-pdf-capture-layer .cv-template-body td[data-cv-tools-name-cell="1"],
 [data-cv-pdf-capture-root] .cv-template-body td[data-cv-tools-name-cell="1"] {
-  text-align: center !important;
+  text-align: left !important;
   vertical-align: middle;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
 }
 
 .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option,
+.cv-template-body td[data-cv-tools-name-cell="1"] > .cv-tools-option-empty,
 .cv-pdf-capture-layer .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option,
-[data-cv-pdf-capture-root] .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option {
-  display: flex !important;
+.cv-pdf-capture-layer .cv-template-body td[data-cv-tools-name-cell="1"] > .cv-tools-option-empty,
+[data-cv-pdf-capture-root] .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option,
+[data-cv-pdf-capture-root] .cv-template-body td[data-cv-tools-name-cell="1"] > .cv-tools-option-empty {
+  display: grid !important;
+  grid-template-columns: 19px minmax(0, 1fr) !important;
   align-items: center !important;
-  justify-content: flex-start !important;
-  gap: 0.375rem;
+  justify-items: start;
+  column-gap: 0.375rem;
   width: 100% !important;
   max-width: 100%;
   text-align: left;
   cursor: pointer;
   white-space: nowrap;
   overflow: visible;
+  min-width: 0;
 }
 
-.cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option input[type="checkbox"],
-.cv-pdf-capture-layer .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option input[type="checkbox"],
-[data-cv-pdf-capture-root] .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option input[type="checkbox"] {
-  flex: 0 0 19px;
+.cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option > input[type="checkbox"],
+.cv-pdf-capture-layer .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option > input[type="checkbox"],
+[data-cv-pdf-capture-root] .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option > input[type="checkbox"] {
+  grid-column: 1;
+  grid-row: 1;
+  display: inline-block !important;
+  box-sizing: border-box;
   width: 19px !important;
   min-width: 19px !important;
   max-width: 19px !important;
   height: 19px !important;
   margin: 0;
   padding: 0;
-  opacity: 1;
-  visibility: visible;
+  opacity: 1 !important;
+  visibility: visible !important;
   position: static;
   appearance: auto;
   -webkit-appearance: checkbox;
+  accent-color: #1f2937;
+  justify-self: start;
+  flex-shrink: 0;
+}
+
+.cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option > .cv-tools-option-label,
+.cv-pdf-capture-layer .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option > .cv-tools-option-label,
+[data-cv-pdf-capture-root] .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option > .cv-tools-option-label,
+.cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option > :not(input[type="checkbox"]):not(.cv-tools-option-label),
+.cv-pdf-capture-layer .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option > :not(input[type="checkbox"]):not(.cv-tools-option-label),
+[data-cv-pdf-capture-root] .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option > :not(input[type="checkbox"]):not(.cv-tools-option-label) {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.cv-template-body td[data-cv-tools-name-cell="1"] > .cv-tools-option-empty > span,
+.cv-pdf-capture-layer .cv-template-body td[data-cv-tools-name-cell="1"] > .cv-tools-option-empty > span,
+[data-cv-pdf-capture-root] .cv-template-body td[data-cv-tools-name-cell="1"] > .cv-tools-option-empty > span {
+  grid-column: 1;
+  grid-row: 1;
+  width: 19px;
+  height: 19px;
+  justify-self: start;
 }
 
 .cv-template-body .cv-template-date-triplet,

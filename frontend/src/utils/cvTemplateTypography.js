@@ -158,8 +158,8 @@ export function buildCvPdfCaptureTypographyCss(rootSelector) {
       padding-top: 0.5rem !important;
       padding-bottom: 0.5rem !important;
     }
-    ${rootSelector} label:has(input[type="checkbox"]),
-    ${rootSelector} label:has([data-cv-pdf-checkbox-marker="1"]) {
+    ${rootSelector} label:has(input[type="checkbox"]):not(.cv-lang-level-option):not(.cv-tools-option),
+    ${rootSelector} label:has([data-cv-pdf-checkbox-marker="1"]):not(.cv-lang-level-option):not(.cv-tools-option) {
       display: inline-flex !important;
       align-items: center !important;
       font-size: ${CV_PDF_TABLE_FONT_SIZE} !important;
@@ -205,21 +205,17 @@ export function buildCvPdfCaptureTypographyCss(rootSelector) {
     ${rootSelector} table.cv-personal-grid-v3 .cv-personal-date-cell [data-cv-pdf-date-flat="1"] {
       font-size: ${CV_TPL_FONT_DATE} !important;
     }
-    ${rootSelector} .cv-template-body td.bg-white,
-    ${rootSelector} .cv-template-body .cv-shokumu-work-section tbody td,
-    ${rootSelector} .cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50) {
+    ${rootSelector} .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]),
+    ${rootSelector} .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]) {
       text-align: center !important;
       vertical-align: middle !important;
     }
-    ${rootSelector} .cv-template-body td.bg-white [contenteditable],
-    ${rootSelector} .cv-template-body td.bg-white input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
-    ${rootSelector} .cv-template-body .cv-shokumu-work-section tbody td [contenteditable],
-    ${rootSelector} .cv-template-body .cv-shokumu-work-section tbody td > div,
-    ${rootSelector} .cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]) [contenteditable],
-    ${rootSelector} .cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]) {
+    ${rootSelector} .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable],
+    ${rootSelector} .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+    ${rootSelector} .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable],
+    ${rootSelector} .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]) {
       text-align: center !important;
     }
-    ${rootSelector} .cv-template-body .cv-shokumu-work-section tbody td label.flex,
     ${rootSelector} .cv-template-body td.bg-white label.flex,
     ${rootSelector} .cv-template-body .cv-resizable-table-wrap tbody td label.flex {
       justify-content: center !important;
@@ -255,19 +251,32 @@ export function buildCvPdfCaptureTypographyCss(rootSelector) {
       height: ${CV_TPL_CHECKBOX_INPUT_PX} !important;
       margin: 0 !important;
     }
-    ${rootSelector} .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option {
-      display: flex !important;
+    ${rootSelector} .cv-template-body td[data-cv-tools-name-cell="1"] {
+      text-align: left !important;
+      vertical-align: middle !important;
+      padding-left: 0.5rem !important;
+      padding-right: 0.5rem !important;
+    }
+    ${rootSelector} .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option,
+    ${rootSelector} .cv-template-body td[data-cv-tools-name-cell="1"] > .cv-tools-option-empty {
+      display: grid !important;
+      grid-template-columns: ${CV_TPL_CHECKBOX_INPUT_PX} minmax(0, 1fr) !important;
       align-items: center !important;
-      justify-content: flex-start !important;
-      gap: 0.375rem !important;
+      justify-items: start !important;
+      column-gap: 0.375rem !important;
       width: 100% !important;
       max-width: 100% !important;
       text-align: left !important;
       white-space: nowrap !important;
       overflow: visible !important;
+      min-width: 0 !important;
     }
-    ${rootSelector} .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option input[type="checkbox"] {
-      flex: 0 0 ${CV_TPL_CHECKBOX_INPUT_PX} !important;
+    ${rootSelector} .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option > input[type="checkbox"] {
+      grid-column: 1 !important;
+      grid-row: 1 !important;
+      display: inline-block !important;
+      box-sizing: border-box !important;
+      flex: unset !important;
       width: ${CV_TPL_CHECKBOX_INPUT_PX} !important;
       min-width: ${CV_TPL_CHECKBOX_INPUT_PX} !important;
       max-width: ${CV_TPL_CHECKBOX_INPUT_PX} !important;
@@ -277,6 +286,26 @@ export function buildCvPdfCaptureTypographyCss(rootSelector) {
       opacity: 1 !important;
       visibility: visible !important;
       position: static !important;
+      justify-self: start !important;
+      flex-shrink: 0 !important;
+      appearance: auto !important;
+      -webkit-appearance: checkbox !important;
+    }
+    ${rootSelector} .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option > .cv-tools-option-label,
+    ${rootSelector} .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option > :not(input[type="checkbox"]):not(.cv-tools-option-label) {
+      grid-column: 2 !important;
+      grid-row: 1 !important;
+      min-width: 0 !important;
+      text-align: left !important;
+    }
+    ${rootSelector} .cv-template-body [data-cv-pdf-tools-flat] {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      gap: 0.375rem !important;
+      width: 100% !important;
+      text-align: left !important;
+      white-space: nowrap !important;
     }
     ${rootSelector} .cv-template-body [data-cv-pdf-tools-box="1"],
     ${rootSelector} .cv-template-body [data-cv-pdf-tools-flat="1"] [data-cv-pdf-tools-box="1"] {
@@ -284,6 +313,65 @@ export function buildCvPdfCaptureTypographyCss(rootSelector) {
       width: ${CV_PDF_CHECKBOX_MARKER_PX} !important;
       min-width: ${CV_PDF_CHECKBOX_MARKER_PX} !important;
       height: ${CV_PDF_CHECKBOX_MARKER_PX} !important;
+    }
+    ${rootSelector} .cv-template-body td.bg-white.cv-tpl-note,
+    ${rootSelector} .cv-template-body td.bg-white:has(.cv-tpl-dense),
+    ${rootSelector} .cv-template-body td.bg-white.cv-tpl-dense,
+    ${rootSelector} .cv-template-body .cv-resizable-table-wrap tbody td.cv-tpl-note,
+    ${rootSelector} .cv-template-body .cv-resizable-table-wrap tbody td:has(.cv-tpl-dense),
+    ${rootSelector} .cv-template-body .cv-resizable-table-wrap tbody td.cv-tpl-dense {
+      text-align: left !important;
+      vertical-align: top !important;
+    }
+    ${rootSelector} .cv-template-body .cv-tpl-dense,
+    ${rootSelector} .cv-template-body td.cv-tpl-note,
+    ${rootSelector} .cv-template-body td.cv-tpl-note > div,
+    ${rootSelector} .cv-template-body td.cv-tpl-note > div > div,
+    ${rootSelector} .cv-template-body .cv-tpl-dense[contenteditable],
+    ${rootSelector} .cv-template-body td.cv-tpl-note [contenteditable],
+    ${rootSelector} .cv-template-body td:has(.cv-tpl-dense) [contenteditable],
+    ${rootSelector} .cv-template-body td.cv-tpl-dense [contenteditable] {
+      text-align: left !important;
+    }
+    ${rootSelector} .cv-template-body [data-cv-shokumu-cert-list],
+    ${rootSelector} .cv-template-body [data-cv-shokumu-cert-list] [data-cv-shokumu-cert-row],
+    ${rootSelector} .cv-template-body [data-cv-shokumu-cert-list] input[type="text"]:not(.text-center) {
+      text-align: left !important;
+    }
+    ${rootSelector} .cv-template-body [data-cv-shokumu-cert-list] [data-cv-shokumu-cert-row] {
+      justify-content: flex-start !important;
+    }
+    ${rootSelector} .cv-template-body .cv-shokumu-work-section tbody td:not([data-cv-shokumu-period]),
+    ${rootSelector} .cv-template-body .cv-shokumu-prose tbody td:not([data-cv-shokumu-period]),
+    ${rootSelector} .cv-template-body .cv-shokumu-prose .cv-resizable-table-wrap tbody td:not([data-cv-shokumu-period]) {
+      text-align: left !important;
+      vertical-align: top !important;
+    }
+    ${rootSelector} .cv-template-body .cv-shokumu-work-section tbody td:not([data-cv-shokumu-period]) [contenteditable],
+    ${rootSelector} .cv-template-body .cv-shokumu-work-section tbody td:not([data-cv-shokumu-period]) > div,
+    ${rootSelector} .cv-template-body .cv-shokumu-prose tbody td:not([data-cv-shokumu-period]) [contenteditable],
+    ${rootSelector} .cv-template-body .cv-shokumu-prose .cv-resizable-table-wrap tbody td:not([data-cv-shokumu-period]) [contenteditable] {
+      text-align: left !important;
+    }
+    ${rootSelector} .cv-template-body [data-cv-shokumu-period],
+    ${rootSelector} .cv-template-body td.cv-pdf-shokumu-period {
+      text-align: center !important;
+      vertical-align: middle !important;
+    }
+    ${rootSelector} .cv-template-body [data-cv-shokumu-period] .cv-pdf-date-inline,
+    ${rootSelector} .cv-template-body [data-cv-shokumu-period] > span,
+    ${rootSelector} .cv-template-body [data-cv-shokumu-period] input {
+      text-align: center !important;
+    }
+    ${rootSelector} .cv-template-body [data-cv-shokumu-period] .cv-pdf-date-inline {
+      margin-left: auto !important;
+      margin-right: auto !important;
+      justify-content: center !important;
+      align-items: center !important;
+    }
+    ${rootSelector} .cv-template-body .cv-shokumu-work-section tbody td label.flex,
+    ${rootSelector} .cv-template-body .cv-shokumu-prose .cv-resizable-table-wrap tbody td label.flex {
+      justify-content: flex-start !important;
     }
   `;
 }

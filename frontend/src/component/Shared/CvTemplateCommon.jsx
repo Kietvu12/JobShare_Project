@@ -1371,7 +1371,7 @@ const CvTemplateCommon = ({
                 <SupplementTplText fieldKey="tpl-common-shokumu-yokyu-h" text="職務要約" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-career-summary']} />
               </span>
             </div>
-            <div className="border min-h-[48px] p-2 cv-tpl-dense whitespace-pre-wrap mb-4" style={{ borderColor: '#1f2937', backgroundColor: '#fafafa' }} {...cvEditable('careerSummary', 'block', {}, sm('tpl-common-careerSummary', 'careerSummary'))} />
+            <div className="border min-h-[48px] p-2 cv-tpl-dense whitespace-pre-wrap mb-4" style={{ borderColor: '#1f2937', backgroundColor: '#fafafa' }} {...cvEditable('careerSummary', 'block cv-tpl-dense', {}, sm('tpl-common-careerSummary', 'careerSummary'))} />
 
             {/* ■職務経歴 */}
             <div className="mt-10 flex items-center gap-1 mb-2">
@@ -1385,6 +1385,7 @@ const CvTemplateCommon = ({
               const blockCount = Math.max(1, list.length);
               const canRemoveShokumuWork = list.length > 1;
               return (
+                <div className="cv-shokumu-prose">
                 <ResizableCvTable
                   className="w-full border-collapse border"
                   style={CV_TPL_TABLE_STYLE}
@@ -1467,7 +1468,7 @@ const CvTemplateCommon = ({
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               ) : null}
-                              <span className="inline-flex items-center gap-0.5 whitespace-nowrap">
+                              <span className="inline-flex items-center justify-center gap-0.5 whitespace-nowrap mx-auto">
                                 <input
                                   ref={(el) => { startYearRefs.current[idx] = el; }}
                                   value={emp.startYear || ''}
@@ -1522,15 +1523,15 @@ const CvTemplateCommon = ({
                                 )}
                               </span>
                             </td>
-                            <td className="px-2 py-1.5 align-top border-0 text-right whitespace-nowrap" style={{ borderColor: '#1f2937', width: '32%' }}>
-                              <span {...cvEditableArray('workExperiences', idx, 'company_name', 'inline-block min-w-[10em] text-right', {}, companyDisplay, sm(`tpl-common-shokumu-${idx}-company`, `employment-${idx}-company`))} />
+                            <td className="px-2 py-1.5 align-top border-0 text-left whitespace-nowrap" style={{ borderColor: '#1f2937', width: '32%' }}>
+                              <span {...cvEditableArray('workExperiences', idx, 'company_name', 'inline-block min-w-[10em] text-left', {}, companyDisplay, sm(`tpl-common-shokumu-${idx}-company`, `employment-${idx}-company`))} />
                             </td>
                           </tr>
                           <tr className="leading-none text-gray-700" style={{ backgroundColor: '#d1d5db', ...CV_TPL_TABLE_STYLE }}>
-                            <td className="px-2 py-0.5 align-middle border-0 border-b border-r" style={{ borderColor: '#1f2937' }}>
+                            <td className="px-2 py-0.5 align-middle border-0 border-b border-r text-left" style={{ borderColor: '#1f2937' }}>
                               <SupplementTplText fieldKey={`tpl-common-shokumu-${idx}-jigyo-mokuteki-lbl`} text="【事業目的】" supplementMarking={supplementMarking} linkedFieldKeys={[`employment-${idx}-business`]} className="select-text inline min-w-0 leading-none font-normal" />
                             </td>
-                            <td className="px-2 py-0.5 text-right align-middle border-0 border-b" style={{ borderColor: '#1f2937' }}>
+                            <td className="px-2 py-0.5 text-left align-middle border-0 border-b" style={{ borderColor: '#1f2937' }}>
                               <SupplementTplText fieldKey={`tpl-common-shokumu-${idx}-kibo-yakuwari-lbl`} text="規模 / 役割" supplementMarking={supplementMarking} linkedFieldKeys={[`employment-${idx}-scale`]} className="select-text inline min-w-0 leading-none font-normal" />
                             </td>
                           </tr>
@@ -1540,18 +1541,18 @@ const CvTemplateCommon = ({
                               style={CV_TPL_TABLE_STYLE}
                               data-cv-pdf-keep-structure
                             >
-                              <div className="whitespace-pre-wrap min-h-[2em] mb-2" {...cvEditableArray('workExperiences', idx, 'business_purpose', 'block', {}, emp.business_purpose, sm(`tpl-common-shokumu-${idx}-business`, `employment-${idx}-business`))} />
+                              <div className="whitespace-pre-wrap min-h-[2em] mb-2 text-left" {...cvEditableArray('workExperiences', idx, 'business_purpose', 'block text-left', {}, emp.business_purpose, sm(`tpl-common-shokumu-${idx}-business`, `employment-${idx}-business`))} />
                               <div className="cv-tpl-side-label text-gray-600 mb-0.5">
                                 <SupplementTplText fieldKey={`tpl-common-shokumu-${idx}-gyomu-lbl`} text="【業務内容】" supplementMarking={supplementMarking} linkedFieldKeys={[`employment-${idx}-description`]} />
                               </div>
-                              <div className="whitespace-pre-wrap min-h-[2em] mb-2" {...cvEditableArray('workExperiences', idx, 'description', 'block', {}, emp.description, sm(`tpl-common-shokumu-${idx}-desc`, `employment-${idx}-description`))} />
+                              <div className="whitespace-pre-wrap min-h-[2em] mb-2 text-left" {...cvEditableArray('workExperiences', idx, 'description', 'block text-left', {}, emp.description, sm(`tpl-common-shokumu-${idx}-desc`, `employment-${idx}-description`))} />
                               <div className="cv-tpl-side-label text-gray-600 mb-0.5">
                                 <SupplementTplText fieldKey={`tpl-common-shokumu-${idx}-tool-lbl`} text="【ツール】" supplementMarking={supplementMarking} linkedFieldKeys={[`employment-${idx}-tools`]} />
                               </div>
-                              <div className="whitespace-pre-wrap min-h-[1.5em]" {...cvEditableArray('workExperiences', idx, 'tools_tech', 'block', {}, emp.tools_tech, sm(`tpl-common-shokumu-${idx}-tools`, `employment-${idx}-tools`))} />
+                              <div className="whitespace-pre-wrap min-h-[1.5em] text-left" {...cvEditableArray('workExperiences', idx, 'tools_tech', 'block text-left', {}, emp.tools_tech, sm(`tpl-common-shokumu-${idx}-tools`, `employment-${idx}-tools`))} />
                             </td>
-                            <td className="p-2 align-top border-0" data-cv-pdf-keep-structure>
-                              <div className="whitespace-pre-wrap w-full min-h-[4em]" {...cvEditableArray('workExperiences', idx, 'scale_role', 'block', { width: '100%', minHeight: '4em' }, emp.scale_role, sm(`tpl-common-shokumu-${idx}-scale`, `employment-${idx}-scale`))} />
+                            <td className="p-2 align-top border-0 text-left" data-cv-pdf-keep-structure>
+                              <div className="whitespace-pre-wrap w-full min-h-[4em] text-left" {...cvEditableArray('workExperiences', idx, 'scale_role', 'block text-left', { width: '100%', minHeight: '4em' }, emp.scale_role, sm(`tpl-common-shokumu-${idx}-scale`, `employment-${idx}-scale`))} />
                             </td>
                           </tr>
                         </React.Fragment>
@@ -1559,6 +1560,7 @@ const CvTemplateCommon = ({
                     })}
                   </tbody>
                 </ResizableCvTable>
+                </div>
               );
             })()}
             <div className="flex justify-center mt-2 mb-2">

@@ -767,6 +767,8 @@ const CV_PDF_FLAT_CELL_SKIP_SELECTOR = [
   'label',
   'select',
   '[data-cv-pdf-keep-structure]',
+  '[data-cv-pdf-tools-flat]',
+  '[data-cv-pdf-tools-box]',
 ].join(', ');
 
 function shouldSkipCvPdfFlatCell(cell) {
@@ -775,6 +777,7 @@ function shouldSkipCvPdfFlatCell(cell) {
   if (cell.hasAttribute('data-cv-pdf-keep-structure')) return true;
   if (cell.querySelector('[data-cv-pdf-keep-structure]')) return true;
   if (cell.hasAttribute('data-cv-shokumu-period')) return true;
+  if (cell.hasAttribute('data-cv-tools-name-cell')) return true;
   if (cell.querySelector(CV_PDF_FLAT_CELL_SKIP_SELECTOR)) return true;
   if (cell.querySelector('[data-cv-shokumu-cert-list], [data-cv-pdf-cert-flat]')) return true;
   if (cell.querySelector('input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"])')) return true;

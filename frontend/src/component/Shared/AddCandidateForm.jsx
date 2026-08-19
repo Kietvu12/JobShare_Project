@@ -1144,6 +1144,13 @@ const AddCandidateForm = ({
   };
 
   /** Ô text trong preview CV: cho phép sửa trực tiếp, đồng bộ vào formData khi nhập/blur. Không trả key trong props để tránh spread key vào JSX. */
+  const cvEditableAlignClass = (className = '') => {
+    if (/\bcv-tpl-dense\b|\bcv-tpl-note\b|\btext-left\b/.test(className)) {
+      return className || '';
+    }
+    return className ? `${className} text-center` : 'text-center';
+  };
+
   const cvEditable = (field, className = '', style = {}, supp = null) => {
     const stored = String(formData[field] ?? '').replace(/\r\n?/g, '\n');
     const raw = displayEditableScalarText(stored);
@@ -1190,7 +1197,7 @@ const AddCandidateForm = ({
         const v = readContentEditableText(e.currentTarget, true);
         setFormData((prev) => ({ ...prev, [field]: v || '' }));
       },
-      className: className ? `${className} text-center` : 'text-center',
+      className: cvEditableAlignClass(className),
       style: {
         outline: 'none',
         minHeight: '1.2em',
@@ -1251,7 +1258,7 @@ const AddCandidateForm = ({
         const v = (e.currentTarget.textContent || '').trim();
         setFormData((prev) => ({ ...prev, birthDate: normalizeBirthDateToStorage(v || '') }));
       },
-      className: className ? `${className} text-center` : 'text-center',
+      className: cvEditableAlignClass(className),
       style: { outline: 'none', minHeight: '1.2em', ...style },
       children: reactChildren ? renderCvScalarMarked(showWhenBlurred, supp) : undefined,
     };
@@ -1308,7 +1315,7 @@ const AddCandidateForm = ({
         const stored = !v || v === defaultVal || v.trim() === String(defaultVal).trim() ? '' : v;
         setFormData((prev) => ({ ...prev, [field]: stored }));
       },
-      className: className ? `${className} text-center` : 'text-center',
+      className: cvEditableAlignClass(className),
       style: { outline: 'none', minHeight: '1.2em', whiteSpace: 'pre-wrap', ...style },
       children: reactChildren ? renderCvScalarMarked(display, supp) : undefined,
     };
@@ -1464,7 +1471,7 @@ const AddCandidateForm = ({
         setFocusedCvArrayField(null);
         applyValue(readContentEditableText(e.currentTarget, !isYearMonth));
       },
-      className: className ? `${className} text-center` : 'text-center',
+      className: cvEditableAlignClass(className),
       style: { outline: 'none', minHeight: '1em', minWidth: '1.5em', display: 'inline-block', cursor: 'text', whiteSpace: 'pre-wrap', ...style },
       children: reactChildren ? renderArrayMarked() : undefined,
     };

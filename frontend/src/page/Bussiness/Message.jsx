@@ -208,14 +208,14 @@ const FileCard = ({ file }) => {
     <div style={{ background: '#fff', border: bd, borderRadius: 6, padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 6, width: '100%', maxWidth: 210 }}>
       <div style={{ width: 24, height: 24, background: isXlsx ? '#dcfce7' : '#fce7f3', borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         {isXlsx ? <FileSpreadsheet {...ICON_MD} color="#16a34a" /> : <FileText {...ICON_MD} color="#9d174d" />}
-      </div>
+    </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 8, fontWeight: 500, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</div>
         <div style={{ fontSize: 7, color: '#64748b' }}>{file.size} • {isXlsx ? 'XLSX' : 'PDF'}</div>
-      </div>
+    </div>
       <button type="button" style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
         <Download {...ICON_MD} color="#64748b" />
-      </button>
+  </button>
     </div>
   )
 }
@@ -477,29 +477,29 @@ const Message = () => {
 
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '210px 1fr 210px', overflow: 'hidden', border: bd, borderRadius: 8, background: '#fff', minHeight: 0 }}>
 
-        {/* LEFT */}
+            {/* LEFT */}
         <div style={{ borderRight: bd, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
           <div style={{ display: 'flex', borderBottom: bd, flexShrink: 0 }}>
-            {TABS.map((tab, i) => (
+                {TABS.map((tab, i) => (
               <div key={i} onClick={() => handleTabChange(i)} style={{
                 flex: 1, padding: '4px 2px 3px', textAlign: 'center', fontSize: 8,
                 color: activeTab === i ? '#4f6ef7' : '#64748b',
                 borderBottom: activeTab === i ? '2px solid #4f6ef7' : '2px solid transparent',
                 cursor: 'pointer', position: 'relative',
               }}>
-                {tab.label}
+                    {tab.label}
                 <span style={{ position: 'absolute', top: 2, right: 3, background: '#ef4444', color: '#fff', borderRadius: 99, fontSize: 6, fontWeight: 700, padding: '0 3px', minWidth: 12, textAlign: 'center' }}>{tab.badge}</span>
               </div>
-            ))}
-          </div>
+                ))}
+              </div>
 
-          {isWsTab ? (
+              {isWsTab ? (
             <>
               <div style={{ padding: '4px 6px', borderBottom: bd, flexShrink: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, border: bd, borderRadius: 6, padding: '3px 6px', background: '#f8fafc', marginBottom: 4 }}>
                   <Search {...ICON_MD} color="#94a3b8" style={{ flexShrink: 0 }} />
                   <input placeholder="Tìm kiếm theo tên, nội dung, yêu cầu..." style={{ flex: 1, border: 'none', background: 'transparent', fontSize: 8, outline: 'none', minWidth: 0 }} />
-                </div>
+                      </div>
                 <div style={{ display: 'flex', gap: 4 }}>
                   <button type="button" style={{ flex: 1, border: bd, borderRadius: 6, padding: '3px 6px', background: '#fff', cursor: 'pointer', fontSize: 8, color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     Tất cả trạng thái <ChevronDown {...ICON_SM} />
@@ -507,16 +507,16 @@ const Message = () => {
                   <button type="button" style={{ border: bd, borderRadius: 6, padding: '3px 6px', background: '#fff', cursor: 'pointer', display: 'flex' }}>
                     <Filter {...ICON_MD} color="#64748b" />
                   </button>
-                </div>
-              </div>
+                    </div>
+                    </div>
               <div className="msg-scroll-hide" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
                 {WS_CONVERSATIONS.map(conv => (
                   <WsConvItem key={conv.id} conv={conv} active={activeWsConv === conv.id} onClick={() => setActiveWsConv(conv.id)} />
                 ))}
                 <button type="button" style={{ padding: '10px 9px', fontSize: 8, color: '#4f46e5', cursor: 'pointer', background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 2, lineHeight: 1.5 }}>
                   Xem tất cả cuộc trò chuyện <ChevronRight {...ICON_SM} />
-                </button>
-              </div>
+                        </button>
+                  </div>
             </>
           ) : isCtvTab ? (
             <>
@@ -524,16 +524,16 @@ const Message = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, border: bd, borderRadius: 6, padding: '3px 6px', background: '#f8fafc', marginBottom: 4 }}>
                   <Search {...ICON_MD} color="#94a3b8" style={{ flexShrink: 0 }} />
                   <input placeholder="Tìm kiếm CTV, ứng viên, tên JD..." style={{ flex: 1, border: 'none', background: 'transparent', fontSize: 8, outline: 'none', minWidth: 0 }} />
-                </div>
+                    </div>
                 <div style={{ display: 'flex', gap: 4 }}>
                   <button type="button" style={{ flex: 1, border: bd, borderRadius: 6, padding: '3px 6px', background: '#fff', cursor: 'pointer', fontSize: 8, color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     Tất cả trạng thái <ChevronDown {...ICON_SM} />
-                  </button>
+                      </button>
                   <button type="button" style={{ border: bd, borderRadius: 6, padding: '3px 6px', background: '#fff', cursor: 'pointer', display: 'flex' }}>
                     <Filter {...ICON_MD} color="#64748b" />
-                  </button>
-                </div>
-              </div>
+                      </button>
+                    </div>
+                  </div>
               <div className="msg-scroll-hide" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
                 {CTV_CONVERSATIONS.map(conv => (
                   <CtvConvItem key={conv.id} conv={conv} active={activeCtvConv === conv.id} onClick={() => setActiveCtvConv(conv.id)} />
@@ -541,7 +541,7 @@ const Message = () => {
                 <button type="button" style={{ padding: '10px 9px', fontSize: 8, color: '#4f6ef7', cursor: 'pointer', background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 2, lineHeight: 1.5 }}>
                   Xem tất cả cuộc trò chuyện <ChevronRight {...ICON_SM} />
                 </button>
-              </div>
+                      </div>
             </>
           ) : (
             <>
@@ -559,13 +559,13 @@ const Message = () => {
                 <button type="button" style={{ padding: '10px 9px', fontSize: 8, color: '#4f6ef7', cursor: 'pointer', background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 2, lineHeight: 1.5 }}>
                   Xem tất cả cuộc trò chuyện <ChevronRight {...ICON_SM} />
                 </button>
-              </div>
-            </>
-          )}
-        </div>
+                  </div>
+                </>
+              )}
+            </div>
 
-        {/* CENTER */}
-        {isWsTab ? (
+            {/* CENTER */}
+            {isWsTab ? (
           <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#f8fafc', minHeight: 0, position: 'relative' }}>
             <div style={{ background: '#fff', borderBottom: bd, padding: '4px 8px', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
@@ -581,7 +581,7 @@ const Message = () => {
                 <div style={{ display: 'flex', gap: 3, alignItems: 'center', flexShrink: 0 }}>
                   <button type="button" onClick={() => setShowRequestForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 3, border: '1.5px solid #4f46e5', borderRadius: 5, padding: '3px 7px', fontSize: 8, color: '#4f46e5', background: '#fff', cursor: 'pointer', fontWeight: 600 }}>
                     <ClipboardList {...ICON_SM} /> Phiếu gửi yêu cầu
-                  </button>
+                      </button>
                   <button type="button" style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 2, display: 'flex' }}>
                     <MoreHorizontal {...ICON_MD} color="#64748b" />
                   </button>
@@ -614,8 +614,8 @@ const Message = () => {
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: '#94a3b8', padding: 20, textAlign: 'center', lineHeight: 1.5 }}>
                   {wsChatTab === 1 ? 'Danh sách yêu cầu đang xử lý sẽ hiển thị tại đây.' : 'Lịch sử các yêu cầu đã gửi tới WS Team.'}
                 </div>
-              )}
-            </div>
+                )}
+              </div>
 
             <div style={{ background: '#fff', borderTop: bd, padding: '2px 6px', display: 'flex', gap: 2, flexWrap: 'wrap', flexShrink: 0 }}>
               {WS_QUICK_REPLIES.map((qr, i) => (
@@ -647,7 +647,7 @@ const Message = () => {
                 />
               </>
             )}
-          </div>
+                          </div>
         ) : isCtvTab ? (
           <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#f8fafc', minHeight: 0 }}>
             {/* Header */}
@@ -657,16 +657,16 @@ const Message = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', lineHeight: 1.3 }}>
                     <span style={{ fontSize: 9, fontWeight: 600, color: '#1e293b' }}>Cuộc trò chuyện: Đơn tiến cử <strong>#MT2405-0012</strong></span>
                     <Tag type="discuss">Đang trao đổi</Tag>
-                  </div>
+                        </div>
                 </div>
                 <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 2, border: bd, borderRadius: 5, padding: '3px 6px', fontSize: 8, color: '#475569', background: '#fff', cursor: 'pointer' }}>
                   <ExternalLink {...ICON_SM} /> Xem chi tiết đơn
-                </button>
+                        </button>
                 <button type="button" style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 2, display: 'flex' }}>
                   <MoreHorizontal {...ICON_MD} color="#64748b" />
-                </button>
-              </div>
-            </div>
+                        </button>
+                      </div>
+                    </div>
 
             {/* Participants */}
             <div style={{ background: '#fff', borderBottom: bd, padding: '6px 8px', flexShrink: 0, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
@@ -677,27 +677,27 @@ const Message = () => {
               ].map((p, i) => (
                 <div key={i} style={{ border: bd, borderRadius: 6, padding: '5px 6px', background: '#f8fafc' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                    {p.logo}
+                            {p.logo}
                     <div style={{ fontSize: 7, fontWeight: 600, color: '#64748b', lineHeight: 1.3 }}>{p.label}</div>
-                  </div>
+                          </div>
                   <div style={{ fontSize: 8, fontWeight: 600, color: '#1e293b', lineHeight: 1.35 }}>{p.name}</div>
                   <div style={{ fontSize: 7, color: '#94a3b8', lineHeight: 1.35 }}>{p.sub}</div>
-                </div>
-              ))}
-            </div>
+                        </div>
+                      ))}
+                    </div>
 
             {/* Application summary */}
             <div style={{ background: '#f1f5f9', borderBottom: bd, padding: '5px 8px', flexShrink: 0, fontSize: 7, color: '#475569', lineHeight: 1.55 }}>
               <strong>Ứng viên:</strong> {selectedCtvConv.candidate} &nbsp;|&nbsp; <strong>Vị trí:</strong> {selectedCtvConv.job} &nbsp;|&nbsp; <strong>Ngày:</strong> 16/05/2024<br />
               <strong>Thưởng:</strong> 8,000,000 VND &nbsp;|&nbsp; <strong>Trạng thái:</strong> Đang trao đổi
-            </div>
+                    </div>
 
             {/* Messages */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 6, minHeight: 0 }}>
               <div style={{ textAlign: 'center', fontSize: 8, color: '#94a3b8', position: 'relative' }}>
                 <span style={{ background: '#f8fafc', padding: '0 6px', position: 'relative', zIndex: 1 }}>Hôm nay</span>
                 <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 1, background: '#e2e8f0', zIndex: 0 }} />
-              </div>
+                    </div>
               {ctvMessages.map(msg => <CtvChatMessage key={msg.id} msg={msg} />)}
               <div ref={ctvMsgEndRef} />
             </div>
@@ -734,7 +734,7 @@ const Message = () => {
                   {selectedConv.name}
                   <Star {...ICON_SM} color="#f59e0b" fill="#f59e0b" />
                   <span style={{ fontSize: 7, padding: '1px 5px', borderRadius: 99, background: '#dbeafe', color: '#1d4ed8', fontWeight: 500 }}>Từ Landing Page</span>
-                </div>
+                  </div>
                 <div style={{ fontSize: 8, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>{selectedConv.role} • 3 năm KN • Hà Nội • {selectedConv.job}</div>
               </div>
               <div style={{ display: 'flex', gap: 3, alignItems: 'center', flexShrink: 0 }}>
@@ -766,37 +766,37 @@ const Message = () => {
               <button type="button" style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}><Smile {...ICON_MD} color="#64748b" /></button>
               <button type="button" onClick={handleSend} style={{ width: 26, height: 26, borderRadius: '50%', background: '#4f6ef7', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Send {...ICON_SM} color="#fff" /></button>
             </div>
-          </div>
-        )}
+              </div>
+            )}
 
         {/* RIGHT */}
-        {isWsTab ? (
+              {isWsTab ? (
           <div style={{ borderLeft: bd, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
             <div style={{ padding: '4px 8px 3px', borderBottom: bd, flexShrink: 0 }}>
               <div style={{ fontSize: 9, fontWeight: 600, color: '#1e293b' }}>Thông tin WS</div>
-            </div>
+                  </div>
             <div className="msg-scroll-hide" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
               <div style={{ padding: '9px 9px', borderBottom: bd }}>
                 <div style={{ display: 'flex', gap: 7, alignItems: 'flex-start' }}>
                   <WsLogo size={28} />
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <div style={{ fontSize: 9, fontWeight: 600, color: '#1e293b', lineHeight: 1.4 }}>WS Team – Tuyển dụng</div>
-                    <Tag type="active">Đang hoạt động</Tag>
+                          <Tag type="active">Đang hoạt động</Tag>
                     <div style={{ fontSize: 8, color: '#64748b', lineHeight: 1.45 }}>Đội ngũ tư vấn tuyển dụng của JobShare</div>
                     <div style={{ fontSize: 7, color: '#94a3b8', lineHeight: 1.45 }}>Phản hồi TB: 15 phút</div>
-                  </div>
-                </div>
+                        </div>
+                      </div>
                 <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
                   <button type="button" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, border: bd, borderRadius: 5, padding: '6px 4px', fontSize: 7, color: '#475569', background: '#fff', cursor: 'pointer' }}><User {...ICON_SM} /> Xem hồ sơ WS</button>
                   <button type="button" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, border: bd, borderRadius: 5, padding: '6px 4px', fontSize: 7, color: '#475569', background: '#fff', cursor: 'pointer' }}><History {...ICON_SM} /> Lịch sử hợp tác</button>
-                </div>
-              </div>
+                        </div>
+                        </div>
 
               <div style={{ padding: '9px 9px', borderBottom: bd }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
                   <div style={{ fontSize: 8, fontWeight: 600, color: '#64748b', lineHeight: 1.4 }}>Yêu cầu đang xử lý (2)</div>
                   <button type="button" style={{ fontSize: 8, color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, padding: 0 }}>Xem tất cả <ChevronRight {...ICON_SM} /></button>
-                </div>
+                  </div>
                 {WS_ACTIVE_REQUESTS.map((req, i) => (
                   <div key={i} style={{ display: 'flex', gap: 6, marginBottom: i < WS_ACTIVE_REQUESTS.length - 1 ? 8 : 0 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
@@ -845,12 +845,12 @@ const Message = () => {
         ) : isCtvTab ? (
           <div style={{ borderLeft: bd, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
             <div className="msg-scroll-hide" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
-              <InfoCard title="Thông tin đơn tiến cử">
+                  <InfoCard title="Thông tin đơn tiến cử">
                 <div style={{ fontSize: 8, fontWeight: 600, color: '#1e293b', lineHeight: 1.45, marginBottom: 3 }}>#MT2405-0012</div>
                 <Tag type="discuss">Đang trao đổi</Tag>
-              </InfoCard>
+                  </InfoCard>
 
-              <InfoCard title="Thông tin ứng viên">
+                  <InfoCard title="Thông tin ứng viên">
                 <div style={{ display: 'flex', gap: 7, alignItems: 'flex-start' }}>
                   <Avatar initials="TĐ" bg="#d1fae5" color="#065f46" size={28} />
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -858,26 +858,26 @@ const Message = () => {
                     <Tag type="ready">Đang sẵn sàng</Tag>
                     <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.45 }}>Frontend Developer</div>
                     <div style={{ fontSize: 7, color: '#94a3b8', lineHeight: 1.45 }}>3 năm kinh nghiệm • Hà Nội</div>
-                  </div>
-                </div>
+                      </div>
+                    </div>
                 <button type="button" style={{ width: '100%', marginTop: 8, border: bd, borderRadius: 5, padding: '5px', fontSize: 8, color: '#475569', background: '#fff', cursor: 'pointer' }}>Xem hồ sơ ứng viên</button>
-              </InfoCard>
+                  </InfoCard>
 
-              <InfoCard title="Thông tin JD">
+                  <InfoCard title="Thông tin JD">
                 <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
                   <div style={{ width: 24, height: 24, borderRadius: 5, background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Briefcase {...ICON_MD} color="#1d4ed8" />
-                  </div>
+                      </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 8, fontWeight: 600, color: '#1e293b', lineHeight: 1.45, marginBottom: 3 }}>{selectedCtvConv.job}</div>
                     <div style={{ fontSize: 7, color: '#94a3b8', lineHeight: 1.45 }}>Phòng IT – Product</div>
                     <div style={{ fontSize: 7, color: '#94a3b8', lineHeight: 1.45 }}>Ngày đăng: 05/05/2024</div>
-                  </div>
+                      </div>
                 </div>
                 <button type="button" style={{ width: '100%', marginTop: 8, border: bd, borderRadius: 5, padding: '5px', fontSize: 8, color: '#475569', background: '#fff', cursor: 'pointer' }}>Xem chi tiết JD</button>
-              </InfoCard>
+                  </InfoCard>
 
-              <InfoCard title="Thông tin CTV">
+                  <InfoCard title="Thông tin CTV">
                 <div style={{ display: 'flex', gap: 7, alignItems: 'flex-start' }}>
                   <Avatar initials={selectedCtvConv.initials} bg={selectedCtvConv.bg} color={selectedCtvConv.color} size={28} />
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -885,25 +885,25 @@ const Message = () => {
                     <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.45 }}>CTV tuyển dụng</div>
                     <div style={{ fontSize: 7, color: '#64748b', lineHeight: 1.45, display: 'flex', alignItems: 'center', gap: 2 }}>
                       4.8 <Star {...ICON_SM} color="#f59e0b" fill="#f59e0b" /> (56 đánh giá)
-                    </div>
+                          </div>
                     <div style={{ fontSize: 7, color: '#94a3b8', lineHeight: 1.45 }}>Tỷ lệ thành công: 82% • 38 tiến cử</div>
-                  </div>
-                </div>
+                      </div>
+                    </div>
                 <button type="button" style={{ width: '100%', marginTop: 8, border: bd, borderRadius: 5, padding: '5px', fontSize: 8, color: '#475569', background: '#fff', cursor: 'pointer' }}>Xem hồ sơ CTV</button>
-              </InfoCard>
+                  </InfoCard>
 
-              <InfoCard title="Thông tin thưởng">
+                  <InfoCard title="Thông tin thưởng">
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
                   <div style={{ width: 24, height: 24, borderRadius: 5, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Coins {...ICON_MD} color="#16a34a" />
-                  </div>
+                      </div>
                   <div>
                     <div style={{ fontSize: 9, fontWeight: 700, color: '#1e293b', lineHeight: 1.4 }}>8,000,000 VND</div>
                     <Tag type="pendingBonus">Chưa chốt</Tag>
-                  </div>
+                    </div>
                 </div>
                 <button type="button" style={{ width: '100%', border: bd, borderRadius: 5, padding: '5px', fontSize: 8, color: '#475569', background: '#fff', cursor: 'pointer' }}>Đề nghị điều chỉnh</button>
-              </InfoCard>
+                  </InfoCard>
 
               <InfoCard title="Ghi chú">
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -28, marginBottom: 7 }}>
@@ -913,7 +913,7 @@ const Message = () => {
                   <div key={i} style={{ background: '#f8fafc', borderRadius: 5, padding: '8px', fontSize: 8, color: '#1e293b', lineHeight: 1.55 }}>
                     <div style={{ fontSize: 7, color: '#94a3b8', marginBottom: 5, lineHeight: 1.45 }}>{note.time} • {note.author}</div>
                     {note.text}
-                  </div>
+                </div>
                 ))}
               </InfoCard>
             </div>
@@ -922,7 +922,7 @@ const Message = () => {
           <div style={{ borderLeft: bd, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
             <div style={{ padding: '4px 8px 3px', borderBottom: bd, flexShrink: 0 }}>
               <div style={{ fontSize: 9, fontWeight: 600, color: '#1e293b' }}>Thông tin ứng viên</div>
-            </div>
+        </div>
             <div className="msg-scroll-hide" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, padding: '10px 9px', borderBottom: bd }}>
                 <Avatar initials={selectedConv.initials} bg={selectedConv.bg} color={selectedConv.color} size={28} />
@@ -931,7 +931,7 @@ const Message = () => {
                   <span style={{ fontSize: 7, padding: '1px 4px', borderRadius: 99, background: '#dbeafe', color: '#1d4ed8', fontWeight: 500, display: 'inline-block', alignSelf: 'flex-start' }}>Từ Landing Page</span>
                   <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.45 }}>{selectedConv.role}</div>
                   <div style={{ fontSize: 7, color: '#94a3b8', lineHeight: 1.45 }}>Hà Nội • 3 năm KN</div>
-                </div>
+      </div>
                 <div style={{ position: 'relative', width: 38, height: 38, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="38" height="38" style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)' }}>
                     <circle cx="19" cy="19" r="15" fill="none" stroke="#e2e8f0" strokeWidth="3" />
@@ -939,13 +939,13 @@ const Message = () => {
                   </svg>
                   <div style={{ fontSize: 9, fontWeight: 700, color: '#4f6ef7' }}>85%</div>
                   <div style={{ fontSize: 5, color: '#94a3b8', textAlign: 'center' }}>Match</div>
-                </div>
-              </div>
+                    </div>
+                  </div>
               <div style={{ display: 'flex', gap: 4, padding: '8px 9px', borderBottom: bd }}>
                 {RIGHT_ACTIONS.map(({ icon: Icon, label }, i) => (
                   <button key={i} type="button" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, border: bd, borderRadius: 5, padding: '6px 4px', fontSize: 7, color: '#475569', background: '#fff', cursor: 'pointer', lineHeight: 1.4 }}><Icon {...ICON_SM} /> {label}</button>
                 ))}
-              </div>
+                </div>
               <div style={{ padding: '9px 9px', borderBottom: bd }}>
                 <div style={{ fontSize: 8, fontWeight: 600, color: '#64748b', marginBottom: 7, lineHeight: 1.4 }}>Ứng viên đang ứng tuyển</div>
                 {[
@@ -956,12 +956,12 @@ const Message = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 4, marginBottom: 3 }}>
                       <div style={{ fontSize: 8, fontWeight: 500, color: '#1e293b', lineHeight: 1.5 }}>{job.title}</div>
                       <span style={{ fontSize: 7, padding: '1px 5px', borderRadius: 99, background: job.statusBg, color: job.statusColor, whiteSpace: 'nowrap', flexShrink: 0 }}>{job.status}</span>
-                    </div>
+                  </div>
                     <div style={{ fontSize: 7, color: '#94a3b8', lineHeight: 1.45 }}>Ngày ứng tuyển: {job.date}</div>
                   </div>
                 ))}
                 <button type="button" style={{ fontSize: 8, color: '#4f6ef7', cursor: 'pointer', background: 'none', border: 'none', padding: '4px 0 0', display: 'flex', alignItems: 'center', gap: 2, lineHeight: 1.45 }}>Xem tất cả (2) <ChevronRight {...ICON_SM} /></button>
-              </div>
+                        </div>
               <div style={{ padding: '9px 9px', borderBottom: bd }}>
                 <div style={{ fontSize: 8, fontWeight: 600, color: '#64748b', marginBottom: 7, lineHeight: 1.4 }}>Tiến trình tuyển dụng</div>
                 {TIMELINE.map((step, i) => (
@@ -973,26 +973,26 @@ const Message = () => {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <div style={{ fontSize: 8, fontWeight: 500, color: step.status === 'pending' ? '#94a3b8' : '#1e293b', lineHeight: 1.45 }}>{step.label}</div>
                         {step.date && <div style={{ fontSize: 7, color: '#94a3b8', lineHeight: 1.4 }}>{step.date}</div>}
-                      </div>
+                </div>
                       {step.badge && <span style={{ fontSize: 7, padding: '1px 5px', borderRadius: 99, flexShrink: 0, background: step.badgeType === 'warn' ? '#fef9c3' : '#f1f5f9', color: step.badgeType === 'warn' ? '#854d0e' : '#94a3b8' }}>{step.badge}</span>}
-                    </div>
-                  </div>
+              </div>
+            </div>
                 ))}
                 <button type="button" style={{ width: '100%', marginTop: 4, background: '#4f6ef7', color: '#fff', border: 'none', borderRadius: 5, padding: '6px', fontSize: 8, cursor: 'pointer', lineHeight: 1.4 }}>Cập nhật trạng thái</button>
-              </div>
+                </div>
               <div style={{ padding: '9px 9px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
                   <div style={{ fontSize: 8, fontWeight: 600, color: '#64748b', lineHeight: 1.4 }}>Ghi chú nội bộ</div>
                   <span style={{ fontSize: 8, color: '#4f6ef7', cursor: 'pointer', lineHeight: 1.4 }}>+ Thêm</span>
-                </div>
+              </div>
                 <div style={{ background: '#f8fafc', borderRadius: 5, padding: '8px', fontSize: 8, color: '#1e293b', lineHeight: 1.55 }}>
                   <div style={{ fontSize: 7, color: '#94a3b8', marginBottom: 5, lineHeight: 1.45 }}>18/05/2024 11:30 • Nguyễn Văn A</div>
                   Ứng viên có kinh nghiệm tốt với React, TypeScript. Trao đổi rất nhiệt tình, sẵn phỏng vấn technical test.
-                </div>
-              </div>
+            </div>
             </div>
           </div>
-        )}
+          </div>
+      )}
 
       </div>
     </div>
