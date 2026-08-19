@@ -22,15 +22,12 @@ import {
   isScoutWorkExperienceAnonymized,
 } from '../../utils/scoutCandidateDisplay'
 import ScoutMatchBadge from './ScoutMatchBadge'
+import { useLanguage } from '../../context/LanguageContext'
+import { getLocalizedScoutDisplayName } from '../../i18n/businessApp/scout.js'
 
 const ICON_SM = { width: 10, height: 10 }
-const ANONYMOUS_AVATAR = 'https://api.dicebear.com/7.x/shapes/svg?seed=scout-anonymous'
 
-function getDisplayName(candidate, isUnlocked) {
-  if (!candidate) return 'Ứng viên ẩn danh'
-  if (isUnlocked && candidate.name) return candidate.name
-  return candidate.anonymousName || 'Ứng viên ẩn danh'
-}
+const ANONYMOUS_AVATAR = 'https://api.dicebear.com/7.x/shapes/svg?seed=scout-anonymous'
 
 function AvatarCircle({ candidate, size = 36, unlocked }) {
   const isUnlocked = unlocked ?? candidate?.isUnlocked
@@ -94,6 +91,7 @@ export default function ScoutCandidateProfilePanel({
   matchJobTitle = null,
   className = '',
 }) {
+  const { language } = useLanguage()
   const isUnlocked = treatAsUnlocked || Boolean(candidate?.isUnlocked)
   const shouldHideContact = hideContact || candidate?.hideContact || candidate?.isPerformancePartial
 
@@ -148,6 +146,10 @@ export default function ScoutCandidateProfilePanel({
     ['Hộ chiếu', formatScoutYesNo(candidate.passport)],
   ].filter(([, v]) => v && v !== '—')
 
+  const displayName = (isUnlocked && candidate.name)
+    ? candidate.name
+    : getLocalizedScoutDisplayName(candidate, language)
+
   return (
     <div className={`rounded-xl border border-slate-100 bg-white ${className}`} style={{ padding: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #e2e8f0' }}>
@@ -160,7 +162,7 @@ export default function ScoutCandidateProfilePanel({
           )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="scout-detail-title text-slate-800">{hl(getDisplayName(candidate, isUnlocked))}</div>
+          <div className="scout-detail-title text-slate-800">{hl(displayName)}</div>
           <div className="scout-detail-body text-slate-500">
             {position ? hl(position) : null}
             {isUnlocked && candidate.code ? (

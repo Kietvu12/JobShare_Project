@@ -60,7 +60,8 @@ export function switchLocaleInPathname(pathname, newLocale) {
     return withLocalePath(lang, rest || '/');
   }
   if (pathname.startsWith('/landing/business')) {
-    return withLocalePath(lang, '/business');
+    const rest = pathname.slice('/landing/business'.length) || '';
+    return withLocalePath(lang, `/business${rest}`);
   }
   if (pathname === '/') return withLocalePath(lang, '/');
   return withLocalePath(lang, pathname);
@@ -167,7 +168,8 @@ export function legacyPublicRedirectPath(pathname, search = '', hash = '', perso
     return `${withLocalePath(lang, rest || '/')}${search}${hash}`;
   }
   if (pathname.startsWith('/landing/business')) {
-    return `${withLocalePath(lang, '/business')}${search}${hash}`;
+    const rest = pathname.slice('/landing/business'.length) || '';
+    return `${withLocalePath(lang, `/business${rest}`)}${search}${hash}`;
   }
 
   if (persona === 'candidate') {

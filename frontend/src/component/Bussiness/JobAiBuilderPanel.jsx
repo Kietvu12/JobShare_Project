@@ -1,5 +1,5 @@
 import React, {
-  forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState,
+  forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -7,6 +7,9 @@ import {
 } from 'lucide-react';
 import apiService from '../../services/api';
 import useBusinessUser from '../../hooks/useBusinessUser';
+import useBusinessAppCopy from '../../hooks/useBusinessAppCopy';
+import { useLanguage } from '../../context/LanguageContext';
+import { getJdBuilderStatusOptions } from '../../i18n/businessAppI18n';
 import JdTemplate from '../Admin/AddJob/JdTemplate';
 import JobCreatedNextStepsModal, { navigateJobCreatedNextStep } from './JobCreatedNextStepsModal';
 import {
@@ -73,13 +76,6 @@ function mergeServerMessages(prev, serverMessages) {
   return combined.sort((a, b) => (a.ts || 0) - (b.ts || 0));
 }
 
-const JOB_STATUS_OPTIONS = [
-  { value: '0', label: 'Nháp' },
-  { value: '1', label: 'Đang đăng tuyển' },
-  { value: '2', label: 'Đã đóng' },
-  { value: '3', label: 'Hết hạn' },
-];
-
 const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   embedded = false,
   hideToolbarTitle = false,
@@ -92,6 +88,15 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
 }, ref) {
   const navigate = useNavigate();
   const { companyName, user: businessUser } = useBusinessUser();
+  const { language: uiLanguage } = useLanguage();
+  const copy = useBusinessAppCopy();
+  const jdCopy = copy.jdBuilder;
+  const jdCopyRef = useRef(jdCopy);
+  const jobStatusOptions = useMemo(
+    () => getJdBuilderStatusOptions(uiLanguage).map((opt) => ({ value: opt.value, label: opt.label })),
+    [uiLanguage],
+  );
+  useEffect(() => { jdCopyRef.current = jdCopy; }, [jdCopy]);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -177,7 +182,8 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   ]);
 
   const buildThreadPayload = useCallback(async (overrides = {}) => {
-    const title = formData.title || formData.titleEn || formData.titleJp || 'JD mới';
+    const t = jdCopyRef.current;
+    const title = formData.title || formData.titleEn || formData.titleJp || t.defaultTitle;
     // Auto-save không kèm file gốc (base64). Chỉ gửi khi overrides có jdOriginalStored.
     const payload = {
       id: activeThreadId || createJobBuilderThreadId(),
@@ -216,7 +222,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       return saved;
     } catch (err) {
       console.error('Lưu phiên JD builder thất bại:', err);
-      setError(err?.message || 'Không lưu được phiên chat. Kiểm tra backend đang chạy.');
+      setError(err?.message || jdCopyRef.current.errors.saveThread);
       onThreadPersist?.({
         ...payload,
         createdAt: Date.now(),
@@ -243,7 +249,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       || formDataRef.current?.title
       || formDataRef.current?.titleEn
       || formDataRef.current?.titleJp
-      || 'JD mới';
+      || jdCopyRef.current.defaultTitle;
 
     const optimistic = {
       id: String(clientId),
@@ -278,7 +284,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       return optimistic;
     } catch (err) {
       console.error('ensureThreadSaved failed:', err);
-      setError(err?.message || 'Không lưu được phiên chat. Kiểm tra backend đang chạy.');
+      setError(err?.message || jdCopyRef.current.errors.saveThread);
       return optimistic;
     }
   }, [activeThreadId, savedJobId, messages, sessionId, getFormSnapshot, onThreadPersist]);
@@ -381,10 +387,11 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     setError('');
     setLoading(true);
     try {
+      const t = jdCopyRef.current;
       const data = await apiService.jdBuilderStart({
-        company_name: companyName || businessUser?.companyName || 'Doanh nghiệp',
-        locale: 'vi',
-        initial_brief: 'Xin chào, tôi muốn tạo JD tuyển dụng mới.',
+        company_name: companyName || businessUser?.companyName || t.defaultCompany,
+        locale: uiLanguage,
+        initial_brief: t.ai.initialBrief,
       });
       sessionStartedRef.current = true;
       let initialMessages = [];
@@ -401,14 +408,14 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       applySessionResponse(data);
       return { data, initialMessages, sessionId: data?.session_id || null };
     } catch (err) {
-      setError(err?.message || 'Không thể bắt đầu phiên chat.');
+      setError(err?.message || jdCopyRef.current.errors.startChat);
       sessionStartedRef.current = false;
       return null;
     } finally {
       setLoading(false);
       setBootLoading(false);
     }
-  }, [applySessionResponse, businessUser?.companyName, companyName, sessionId]);
+  }, [applySessionResponse, businessUser?.companyName, companyName, sessionId, uiLanguage]);
 
   const applySessionResponseRef = useRef(applySessionResponse);
   const startSessionRef = useRef(startSession);
@@ -561,7 +568,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       // Lưu phiên sau mỗi tin nhắn
       persistThread().catch(() => {});
     } catch (err) {
-      setError(err?.message || 'Gửi tin nhắn thất bại.');
+      setError(err?.message || jdCopyRef.current.errors.sendMessage);
     } finally {
       setLoading(false);
       inputRef.current?.focus();
@@ -584,7 +591,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     parseAbortRef.current = ac;
 
     const uploadMsgId = createMessageId();
-    const fileLabel = file.name || 'JD file';
+    const fileLabel = file.name || jdCopyRef.current.panel.jdFileFallback;
     const sizeLabel = formatFileSize(file.size);
 
     // Có box chat / bắt đầu upload = lưu DB ngay (giống localStorage)
@@ -596,7 +603,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       fileName: fileLabel,
       fileSize: file.size,
       status: 'parsing',
-      content: `Đã tải lên: ${fileLabel}${sizeLabel ? ` (${sizeLabel})` : ''}`,
+      content: jdCopyRef.current.messages.uploaded(fileLabel, sizeLabel),
       ts: Date.now(),
     };
     setError('');
@@ -605,7 +612,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
 
     await ensureThreadSaved({
       messages: [...messages, uploadMsg],
-      title: formDataRef.current?.title || formDataRef.current?.titleJp || formDataRef.current?.titleEn || fileLabel || 'JD mới',
+      title: formDataRef.current?.title || formDataRef.current?.titleJp || formDataRef.current?.titleEn || fileLabel || jdCopyRef.current.defaultTitle,
     });
 
     try {
@@ -620,9 +627,10 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       )));
 
       const titleHint = parsed?.title?.vi || parsed?.title || parsed?.title_vi || '';
+      const msgs = jdCopyRef.current.messages;
       const successContent = titleHint
-        ? `Đã phân tích JD thành công từ file "${fileLabel}".\nVị trí: ${titleHint}\nBấm Lưu job để lưu JD, chat và file gốc.`
-        : `Đã phân tích JD thành công từ file "${fileLabel}".\nBấm Lưu job để lưu JD, chat và file gốc.`;
+        ? msgs.parseSuccessWithTitle(fileLabel, titleHint)
+        : msgs.parseSuccess(fileLabel);
       const successMsg = {
         id: createMessageId(),
         role: 'assistant',
@@ -640,7 +648,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
           || formDataRef.current?.titleJp
           || formDataRef.current?.titleEn
           || fileLabel
-          || 'JD mới';
+          || jdCopyRef.current.defaultTitle;
       const snapshot = getFormSnapshot();
       if (titleHint && typeof titleHint === 'string') {
         snapshot.formData = {
@@ -676,7 +684,10 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
         kind: 'parse_result',
         localOnly: true,
         success: false,
-        content: `Không thể phân tích file "${fileLabel}".\n${err?.message || 'Vui lòng thử lại với file PDF/DOC/DOCX khác.'}`,
+        content: jdCopyRef.current.messages.parseError(
+          fileLabel,
+          err?.message || jdCopyRef.current.errors.parseFallback,
+        ),
         ts: Date.now(),
       };
       setMessages((prev) => [...prev, failMsg]);
@@ -712,7 +723,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
         : await apiService.createBusinessJob(payload);
 
       if (!response?.success) {
-        throw new Error(response?.message || 'Không thể lưu job');
+        throw new Error(response?.message || jdCopyRef.current.errors.saveJob);
       }
 
       const newJobId = savedJobId || response.data?.job?.id;
@@ -727,7 +738,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
         }
       }
     } catch (err) {
-      setError(err?.message || 'Không thể lưu job');
+      setError(err?.message || jdCopyRef.current.errors.saveJob);
     } finally {
       setSaving(false);
     }
@@ -778,7 +789,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     setActiveThreadId(clientId);
     const savedThread = await ensureThreadSaved({
       id: clientId,
-      title: 'JD mới',
+      title: jdCopyRef.current.defaultTitle,
       jobId: null,
       messages: [],
       sessionId: null,
@@ -809,7 +820,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       }
       await ensureThreadSaved({
         id: savedThread?.id || clientId,
-        title: 'JD mới',
+        title: jdCopyRef.current.defaultTitle,
         jobId: null,
         messages: started.initialMessages || [],
         sessionId: started.sessionId || null,
@@ -860,7 +871,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       });
     } catch (err) {
       console.error('Translate JD inputs error:', err);
-      setError(err?.message || 'Không dịch được dữ liệu.');
+      setError(err?.message || jdCopyRef.current.errors.translate);
     } finally {
       setTranslatingInputs(false);
     }
@@ -882,7 +893,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     return (
       <div className="h-full flex items-center justify-center text-slate-500 gap-2 text-sm">
         <Loader2 className="w-4 h-4 animate-spin" />
-        Đang khởi tạo trợ lý AI...
+        {jdCopy.panel.bootLoading}
       </div>
     );
   }
@@ -910,7 +921,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
               : <FileText className={iconCls} />}
           </div>
           <div className="min-w-0">
-            <p className={`font-medium text-slate-800 ${compactUi ? bodyCls : ''}`}>{msg.fileName || 'JD file'}</p>
+            <p className={`font-medium text-slate-800 ${compactUi ? bodyCls : ''}`}>{msg.fileName || jdCopy.panel.jdFileFallback}</p>
             {msg.fileSize ? (
               <p className={`${compactUi ? mutedCls : 'text-[10px] text-slate-400'} mt-0.5`}>{formatFileSize(msg.fileSize)}</p>
             ) : null}
@@ -918,14 +929,14 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
             {msg.status === 'parsing' && (
               <p className={`${compactUi ? bodyCls : 'text-[11px]'} text-blue-600 mt-1 flex items-center gap-1`}>
                 <Loader2 className={`${iconCls} animate-spin`} />
-                Đang phân tích file...
+                {jdCopy.panel.parsingFile}
               </p>
             )}
             {msg.status === 'done' && (
-              <p className={`${compactUi ? bodyCls : 'text-[11px]'} text-emerald-600 mt-1`}>Phân tích hoàn tất</p>
+              <p className={`${compactUi ? bodyCls : 'text-[11px]'} text-emerald-600 mt-1`}>{jdCopy.panel.parseDone}</p>
             )}
             {msg.status === 'error' && (
-              <p className={`${compactUi ? bodyCls : 'text-[11px]'} text-rose-600 mt-1`}>Phân tích thất bại</p>
+              <p className={`${compactUi ? bodyCls : 'text-[11px]'} text-rose-600 mt-1`}>{jdCopy.panel.parseFailed}</p>
             )}
           </div>
         </div>
@@ -971,12 +982,10 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
         {!hideToolbarTitle ? (
           <div className="min-w-0 flex-1">
             <h2 className={titleCls}>
-              {isEditingSavedJob ? 'Chỉnh sửa JD với AI' : 'Tạo JD với AI'}
+              {isEditingSavedJob ? jdCopy.panel.editHeading : jdCopy.panel.createHeading}
             </h2>
             <p className={`truncate ${mutedCls}`}>
-              {isEditingSavedJob
-                ? 'Chỉnh sửa nội dung qua chat và template JD'
-                : 'Chat với AI và xem trước template JD'}
+              {isEditingSavedJob ? jdCopy.panel.editSubheading : jdCopy.panel.createSubheading}
             </p>
           </div>
         ) : (
@@ -991,7 +1000,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 compactUi ? `${bodyCls} py-0.5 px-1.5` : 'text-xs py-1.5 px-2.5 lg:py-2 lg:px-3'
               }`}
             >
-              Xem chi tiết job
+              {jdCopy.panel.viewJobDetail}
             </button>
           ) : null}
           <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 lg:hidden">
@@ -1002,7 +1011,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 mobileBuilderPane === 'chat' ? 'bg-slate-100 text-slate-800' : 'text-slate-500'
               }`}
             >
-              Chat
+              {jdCopy.panel.chatTab}
             </button>
             <button
               type="button"
@@ -1011,20 +1020,20 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 mobileBuilderPane === 'preview' ? 'bg-slate-100 text-slate-800' : 'text-slate-500'
               }`}
             >
-              Template
+              {jdCopy.panel.templateTab}
             </button>
           </div>
           <label className={`inline-flex items-center gap-1 shrink-0 ${compactUi ? '' : 'lg:gap-1.5'}`}>
-            <span className={`${mutedCls} font-medium whitespace-nowrap hidden sm:inline`}>Trạng thái</span>
+            <span className={`${mutedCls} font-medium whitespace-nowrap hidden sm:inline`}>{jdCopy.panel.statusLabel}</span>
             <select
               value={String(formData.status ?? 0)}
               onChange={(e) => setFormData((prev) => ({ ...prev, status: parseInt(e.target.value, 10) }))}
               className={`rounded-md border border-slate-200 bg-white text-slate-800 font-medium max-w-[9rem] truncate ${
                 compactUi ? `${bodyCls} py-0.5 pl-1 pr-6` : 'text-[10px] lg:text-xs py-1 pl-1.5 pr-7 lg:py-1.5'
               }`}
-              aria-label="Trạng thái job"
+              aria-label={jdCopy.panel.statusAria}
             >
-              {JOB_STATUS_OPTIONS.map((opt) => (
+              {jobStatusOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
@@ -1038,7 +1047,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
             }`}
           >
             {saving ? <Loader2 className={`${iconCls} animate-spin`} /> : <Save className={iconCls} />}
-            {isEditingSavedJob ? 'Cập nhật JD' : 'Lưu job'}
+            {isEditingSavedJob ? jdCopy.panel.saveUpdate : jdCopy.panel.saveCreate}
           </button>
         </div>
       </div>
@@ -1064,12 +1073,10 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
             {showEmptyGreeting ? (
               <div className="h-full flex flex-col items-center justify-center text-center px-3 lg:px-4">
                 <h3 className={`${titleCls} mb-1.5 ${compactUi ? '' : 'lg:mb-2'}`}>
-                  {isEditingSavedJob ? 'Tiếp tục chỉnh sửa' : 'Bắt đầu từ đâu?'}
+                  {isEditingSavedJob ? jdCopy.panel.greetingEdit : jdCopy.panel.greetingCreate}
                 </h3>
                 <p className={`${mutedCls} max-w-md leading-relaxed ${compactUi ? '' : 'text-xs lg:text-sm'}`}>
-                  {isEditingSavedJob
-                    ? 'Mô tả thay đổi cần cập nhật hoặc chỉnh trực tiếp trên template bên cạnh.'
-                    : 'Mô tả vị trí cần tuyển, dán JD gốc hoặc trả lời câu hỏi của AI. JD được cập nhật trực tiếp ở cột template bên cạnh.'}
+                  {isEditingSavedJob ? jdCopy.panel.greetingBodyEdit : jdCopy.panel.greetingBodyCreate}
                 </p>
               </div>
             ) : (
@@ -1152,7 +1159,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 onClick={handleFileUploadClick}
                 disabled={parseLoading}
                 className={`${hitCls} inline-flex items-center justify-center rounded-full shrink-0 mb-0.5 border border-slate-200 bg-transparent text-[#0077B6] hover:border-[#0077B6]/40 hover:text-[#0077B6] disabled:opacity-40 [&_svg]:block`}
-                title="Tải file JD (PDF, DOC, DOCX)"
+                title={jdCopy.panel.uploadTitle}
               >
                 {parseLoading ? <Loader2 className={`${iconCls} animate-spin`} /> : <Plus className={iconCls} />}
               </button>
@@ -1161,7 +1168,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 rows={1}
-                placeholder="Mô tả vị trí cần tuyển..."
+                placeholder={jdCopy.panel.inputPlaceholder}
                 disabled={parseLoading}
                 className={`flex-1 min-w-0 resize-none bg-transparent outline-none placeholder:text-slate-400 max-h-28 disabled:opacity-50 leading-normal ${
                   compactUi ? `${bodyCls} text-slate-800 py-1.5` : 'text-[12px] lg:text-[13px] text-slate-800 py-1.5 lg:py-2'
@@ -1183,7 +1190,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
               </button>
               </div>
               <p className={`text-center mt-1 lg:mt-1.5 leading-tight px-2 ${compactUi ? mutedCls : 'text-[8px] lg:text-[9px] text-slate-400'}`}>
-                Enter để gửi · Shift+Enter xuống dòng · Nút + để tải JD (PDF/DOC/DOCX)
+                {jdCopy.panel.inputHint}
               </p>
             </div>
           </div>
@@ -1197,12 +1204,12 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
             <>
               <div className={`shrink-0 border-b border-slate-100 bg-white space-y-1.5 ${compactUi ? 'px-2 py-1.5' : 'px-2 py-1.5 lg:px-3 lg:py-2 lg:space-y-2'}`}>
                 <div className="flex items-center gap-1.5">
-                  <span className={titleCls}>{isEditingSavedJob ? 'Template JD' : 'Xem trước JD'}</span>
+                  <span className={titleCls}>{isEditingSavedJob ? jdCopy.panel.previewEdit : jdCopy.panel.previewCreate}</span>
                 </div>
                 <div
                   className="flex w-full min-w-0 items-stretch gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5"
                   role="tablist"
-                  aria-label={languageTab === 'jp' ? 'フォーム言語' : 'Form language'}
+                  aria-label={jdCopy.panel.formLanguageAria}
                 >
                   {JD_LANGUAGE_TABS.map((tab) => (
                     <button
@@ -1230,21 +1237,13 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                     } text-slate-600 hover:text-slate-900 hover:bg-white/80 [&_svg]:text-[#0077B6] ${
                       translatingInputs ? 'bg-white shadow-sm text-[#0077B6]' : ''
                     }`}
-                    title={
-                      languageTab === 'jp'
-                        ? '現在のタブから他の2言語へ入力欄を翻訳'
-                        : languageTab === 'en'
-                          ? 'Translate input fields from current tab to the other two tabs'
-                          : 'Dịch các ô nhập từ tab hiện tại sang 2 tab còn lại'
-                    }
+                    title={jdCopy.panel.translateTitle}
                   >
                     {translatingInputs
                       ? <Loader2 className={`${iconCls} shrink-0 animate-spin`} />
                       : <Languages className={`${iconCls} shrink-0 text-[#0077B6]`} />}
                     <span className="whitespace-nowrap">
-                      {translatingInputs
-                        ? (languageTab === 'jp' ? '翻訳中...' : languageTab === 'en' ? 'Translating...' : 'Đang dịch...')
-                        : (languageTab === 'jp' ? '翻訳' : languageTab === 'en' ? 'Translate' : 'Dịch')}
+                      {translatingInputs ? jdCopy.panel.translating : jdCopy.panel.translate}
                     </span>
                   </button>
                 </div>

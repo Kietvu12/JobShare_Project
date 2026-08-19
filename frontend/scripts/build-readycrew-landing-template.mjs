@@ -898,6 +898,7 @@ function build() {
   const overridesCss = `/* Ready Crew — iframe / JobShare auth CTAs */
 html, body {
   overflow-x: hidden;
+  font-family: "Roboto", sans-serif;
 }
 .front-page-visual__upper {
   background-color: ${BUSINESS_BLUE} !important;
@@ -917,7 +918,7 @@ html, body {
 }
 .js-hero-headline__text {
   display: block;
-  font-family: "Noto Sans JP", sans-serif;
+  font-family: "Roboto", sans-serif;
   font-weight: 900;
   color: #fff;
   font-size: 52px;
@@ -1229,7 +1230,7 @@ html, body {
 
 .front-page-flow__lower-text {
   color: #fff;
-  font-family: "Noto Sans JP", sans-serif;
+  font-family: "Roboto", sans-serif;
   font-weight: 700;
   font-size: clamp(16px, 2vw, 20px);
   line-height: 1.6;
@@ -1269,6 +1270,11 @@ html, body {
   min-height: 0;
   padding: 0;
   margin: 0;
+}
+
+/* Roboto — override legacy Noto / Typekit stacks in style.css */
+body :not(pre):not(code):not(kbd):not(samp) {
+  font-family: "Roboto", sans-serif !important;
 }
 ${getBrandThemeOverridesCss()}
 `;

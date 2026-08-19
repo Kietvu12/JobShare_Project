@@ -5,6 +5,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { localizeNotification } from '../../utils/notificationI18n';
 import { getBusinessPageMeta } from '../../utils/businessPageMeta';
 import apiService from '../../services/api';
+import BusinessAppLanguageSwitcher from './BusinessAppLanguageSwitcher';
+import useBusinessAppCopy from '../../hooks/useBusinessAppCopy';
 
 const I18N = {
   vi: {
@@ -55,6 +57,7 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
   const navigate = useNavigate();
   const location = useLocation();
   const { language } = useLanguage();
+  const appCopy = useBusinessAppCopy();
   const t = I18N[language] || I18N.vi;
   const pageMeta = useMemo(
     () => getBusinessPageMeta(location.pathname, language),
@@ -319,6 +322,15 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
           <span className="truncate">{t.messages}</span>
         </button>
 
+        <div className="px-2 py-2 border-b border-gray-200 lg:hidden">
+          <BusinessAppLanguageSwitcher
+            compact
+            showLabel
+            label={appCopy.layout.language}
+            className="w-full"
+          />
+        </div>
+
         <button
           type="button"
           className="w-full text-left px-2 py-1.5 rounded-md hover:bg-gray-50 text-[11px] lg:text-[10px] text-gray-700 flex items-center gap-2"
@@ -519,6 +531,10 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
         >
           <HelpCircle className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-gray-600" />
         </button>
+
+        <div className="hidden lg:block">
+          <BusinessAppLanguageSwitcher compact />
+        </div>
 
         <div className="h-4 lg:h-5 border-l border-gray-300 mx-0.5 lg:mx-1" />
 

@@ -8,12 +8,27 @@ import {
 import apiService from '../../services/api'
 import BusinessApplicationDetailDrawer from '../../component/Bussiness/BusinessApplicationDetailDrawer'
 import {
-  BUSINESS_APPLICATION_TABS,
-  formatApplicationDate,
-  formatRelativeTime,
   getStatusCategoryStyle,
 } from '../../utils/businessApplicationSource'
 import { getJobApplicationStatusOptionsByLanguage } from '../../utils/jobApplicationStatus'
+import {
+  buildJobByIdMap,
+  formatApplicationDateLocalized,
+  formatApplicationRelativeTimeLocalized,
+  localizeApplication,
+  localizeApplications,
+  localizeApplicationStats,
+} from '../../utils/businessApplicationDisplay'
+import { localizeNotification } from '../../utils/notificationI18n'
+import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
+import { useLanguage } from '../../context/LanguageContext'
+import {
+  getApplicationSourceOptions,
+  getApplicationStageLabels,
+  getApplicationTabs,
+  getKanbanColumns,
+} from '../../i18n/businessAppI18n'
+import { getLocalizedJobTitle } from '../../i18n/businessApp/jdBuilder'
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 const BRAND = '#0077B6'
@@ -57,36 +72,17 @@ const applicationsPageStyles = `
 const scrollbarHideStyle = applicationsPageStyles
 
 const TAB_API_MAP = {
-  'Tất cả': 'all',
-  'Tiến cử (WS/CTV)': 'ws_ctv',
-  'Scout Credit': 'scout_credit',
-  'Đã tuyển dụng': 'hired',
-  'Không phù hợp': 'rejected',
-  'Khác': 'other',
+  all: 'all',
+  ws_ctv: 'ws_ctv',
+  scout_credit: 'scout_credit',
+  hired: 'hired',
+  rejected: 'rejected',
+  other: 'other',
 }
 
-const SOURCE_OPTIONS = [
-  { value: '', label: 'Nguồn: Tất cả' },
-  { value: 'ctv_marketplace', label: 'Sàn CTV' },
-  { value: 'ctv_nomination', label: 'Tiến cử CTV' },
-  { value: 'scout_performance', label: 'Scout Performance' },
-  { value: 'scout_credit', label: 'Scout Credit' },
-  { value: 'landing', label: 'Branding LP' },
-  { value: 'other', label: 'Khác' },
-]
-
-const KANBAN_COLUMNS = [
-  { id: 'new', label: 'Mới', defaultStatus: 2, statuses: [2] },
-  { id: 'screening', label: 'Sàng lọc', defaultStatus: 3, statuses: [3] },
-  { id: 'shortlist', label: 'Shortlist', defaultStatus: 5, statuses: [5] },
-  { id: 'interview', label: 'Phỏng vấn', defaultStatus: 8, statuses: [7, 8, 9] },
-  { id: 'offer', label: 'Offer', defaultStatus: 11, statuses: [11, 12] },
-  { id: 'hired', label: 'Đã tuyển', defaultStatus: 14, statuses: [14, 15] },
-]
-
-function getKanbanColumnId(status) {
+function getKanbanColumnId(status, kanbanColumns) {
   const n = Number(status)
-  const col = KANBAN_COLUMNS.find((c) => c.statuses.includes(n))
+  const col = kanbanColumns.find((c) => c.statuses.includes(n))
   return col?.id || 'new'
 }
 
@@ -116,18 +112,18 @@ function KanbanCard({ app, onOpen, onDragStart }) {
   )
 }
 
-function ApplicationsKanban({ applications, onOpen, onStatusChange, updatingId }) {
+function ApplicationsKanban({ applications, onOpen, onStatusChange, updatingId, kanbanColumns, updatingLabel }) {
   const [dragApp, setDragApp] = useState(null)
 
   const grouped = useMemo(() => {
-    const map = Object.fromEntries(KANBAN_COLUMNS.map((c) => [c.id, []]))
+    const map = Object.fromEntries(kanbanColumns.map((c) => [c.id, []]))
     applications.forEach((app) => {
-      const colId = getKanbanColumnId(app.status)
+      const colId = getKanbanColumnId(app.status, kanbanColumns)
       if (map[colId]) map[colId].push(app)
       else map.new.push(app)
     })
     return map
-  }, [applications])
+  }, [applications, kanbanColumns])
 
   const handleDrop = (column) => async (e) => {
     e.preventDefault()
@@ -141,7 +137,7 @@ function ApplicationsKanban({ applications, onOpen, onStatusChange, updatingId }
 
   return (
     <div className="flex min-h-0 flex-1 gap-2 overflow-x-auto p-3 business-homepage-scroll">
-      {KANBAN_COLUMNS.map((col) => (
+      {kanbanColumns.map((col) => (
         <div
           key={col.id}
           className="flex w-[168px] shrink-0 flex-col rounded-xl bg-slate-50/80 ring-1 ring-slate-100"
@@ -164,7 +160,7 @@ function ApplicationsKanban({ applications, onOpen, onStatusChange, updatingId }
               />
             ))}
             {updatingId && grouped[col.id]?.some((a) => a.id === updatingId) && (
-              <div className="text-center text-[9px] text-slate-400 py-1">Đang cập nhật...</div>
+              <div className="text-center text-[9px] text-slate-400 py-1">{updatingLabel}</div>
             )}
           </div>
         </div>
@@ -173,13 +169,13 @@ function ApplicationsKanban({ applications, onOpen, onStatusChange, updatingId }
   )
 }
 
-function PieChart({ stats }) {
+function PieChart({ stats, emptyLabel, totalLabel }) {
   const slices = stats?.bySource || []
   const total = stats?.total || 0
   if (!total) {
     return (
       <div className="text-[10px] text-slate-400 text-center py-3">
-        Chưa có dữ liệu
+        {emptyLabel}
       </div>
     )
   }
@@ -219,7 +215,7 @@ function PieChart({ stats }) {
           {total}
         </text>
         <text x="50" y="60" textAnchor="middle" fontSize="7" fill="#64748b">
-          Tổng
+          {totalLabel}
         </text>
       </svg>
       <div className="flex-1 flex flex-col gap-1 min-w-0">
@@ -256,7 +252,7 @@ const StatCard = ({ icon: Icon, label, value, color, bg, accent }) => (
   </div>
 )
 
-function ApplicationMobileCard({ app, isSelected, onOpen }) {
+function ApplicationMobileCard({ app, isSelected, onOpen, tableLabels, language, unreadLabel }) {
   const stageStyle = getStatusCategoryStyle(app.statusCategory)
   return (
     <button
@@ -268,10 +264,10 @@ function ApplicationMobileCard({ app, isSelected, onOpen }) {
     >
       <div className="space-y-2">
         {[
-          { label: 'Ứng viên', value: app.candidateName, sub: app.candidateEmail || '—' },
-          { label: 'JD / Vị trí', value: app.jobTitle, sub: app.jobCode || '—' },
-          { label: 'Nguồn', value: app.sourceLabel, color: app.sourceColor },
-          { label: 'Tiến cử bởi', value: app.nominatedBy || '—' },
+          { label: tableLabels.candidate, value: app.candidateName, sub: app.candidateEmail || '—' },
+          { label: tableLabels.job, value: app.jobTitle, sub: app.jobCode || '—' },
+          { label: tableLabels.source, value: app.sourceLabel, color: app.sourceColor },
+          { label: tableLabels.nominatedBy, value: app.nominatedBy || '—' },
         ].map((row) => (
           <div key={row.label} className="flex items-start justify-between gap-3">
             <span className="shrink-0 text-[11px] text-slate-400">{row.label}</span>
@@ -288,7 +284,7 @@ function ApplicationMobileCard({ app, isSelected, onOpen }) {
         ))}
 
         <div className="flex items-start justify-between gap-3">
-          <span className="shrink-0 text-[11px] text-slate-400">Trạng thái</span>
+          <span className="shrink-0 text-[11px] text-slate-400">{tableLabels.status}</span>
           <span
             className="rounded-md px-2 py-0.5 text-[10px] font-semibold"
             style={{ color: stageStyle.color, background: stageStyle.bg }}
@@ -298,17 +294,17 @@ function ApplicationMobileCard({ app, isSelected, onOpen }) {
         </div>
 
         <div className="flex items-start justify-between gap-3">
-          <span className="shrink-0 text-[11px] text-slate-400">Ngày tiến cử</span>
+          <span className="shrink-0 text-[11px] text-slate-400">{tableLabels.appliedAt}</span>
           <div className="text-right">
-            <div className="text-[11px] font-medium text-slate-700">{formatApplicationDate(app.appliedAt)}</div>
-            <div className="text-[10px] text-slate-400">{formatRelativeTime(app.appliedAt)}</div>
+            <div className="text-[11px] font-medium text-slate-700">{formatApplicationDateLocalized(app.appliedAt, language)}</div>
+            <div className="text-[10px] text-slate-400">{formatApplicationRelativeTimeLocalized(app.appliedAt, language)}</div>
           </div>
         </div>
 
         {(app.unreadCount > 0) && (
           <div className="flex items-center justify-end gap-1 pt-1">
             <span className="rounded-full bg-rose-500 px-1.5 py-px text-[9px] font-bold text-white">
-              {app.unreadCount} tin mới
+              {unreadLabel(app.unreadCount)}
             </span>
             <MessageSquare className="h-3.5 w-3.5 text-[#0077B6]/70" />
           </div>
@@ -321,6 +317,14 @@ function ApplicationMobileCard({ app, isSelected, onOpen }) {
 const JobApplication = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const urlNominationId = searchParams.get('nominationId')
+  const { language } = useLanguage()
+  const copy = useBusinessAppCopy()
+  const appCopy = copy.applications
+
+  const applicationTabs = useMemo(() => getApplicationTabs(language), [language])
+  const sourceOptions = useMemo(() => getApplicationSourceOptions(language), [language])
+  const kanbanColumns = useMemo(() => getKanbanColumns(language), [language])
+  const stageLabels = useMemo(() => getApplicationStageLabels(language), [language])
 
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState(null)
@@ -329,7 +333,7 @@ const JobApplication = () => {
   const [jobs, setJobs] = useState([])
   const [recentNotifications, setRecentNotifications] = useState([])
 
-  const [activeTabLabel, setActiveTabLabel] = useState('Tất cả')
+  const [activeTabKey, setActiveTabKey] = useState('all')
   const [searchInput, setSearchInput] = useState('')
   const [searchDebounced, setSearchDebounced] = useState('')
   const [jobFilter, setJobFilter] = useState('')
@@ -342,8 +346,24 @@ const JobApplication = () => {
   const [selectedApp, setSelectedApp] = useState(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
-  const tabs = useMemo(() => BUSINESS_APPLICATION_TABS.map((t) => t.label), [])
-  const statusOptions = useMemo(() => getJobApplicationStatusOptionsByLanguage('vi'), [])
+  const statusOptions = useMemo(() => getJobApplicationStatusOptionsByLanguage(language), [language])
+
+  const jobById = useMemo(() => buildJobByIdMap(jobs), [jobs])
+
+  const localizedApplications = useMemo(
+    () => localizeApplications(applications, language, jobById),
+    [applications, language, jobById],
+  )
+
+  const localizedStats = useMemo(
+    () => localizeApplicationStats(stats, language),
+    [stats, language],
+  )
+
+  const localizedSelectedApp = useMemo(
+    () => (selectedApp ? localizeApplication(selectedApp, language, jobById) : null),
+    [selectedApp, language, jobById],
+  )
 
   useEffect(() => {
     const timer = setTimeout(() => setSearchDebounced(searchInput.trim()), 350)
@@ -352,7 +372,7 @@ const JobApplication = () => {
 
   useEffect(() => {
     setPage(1)
-  }, [activeTabLabel, searchDebounced, jobFilter, sourceFilter, statusFilter])
+  }, [activeTabKey, searchDebounced, jobFilter, sourceFilter, statusFilter])
 
   const loadJobs = useCallback(async () => {
     try {
@@ -387,7 +407,7 @@ const JobApplication = () => {
   const loadApplications = useCallback(async () => {
     try {
       setLoading(true)
-      const tab = TAB_API_MAP[activeTabLabel] || 'all'
+      const tab = TAB_API_MAP[activeTabKey] || 'all'
       const params = {
         page: viewMode === 'kanban' ? 1 : page,
         limit: viewMode === 'kanban' ? 100 : 20,
@@ -412,7 +432,7 @@ const JobApplication = () => {
     } finally {
       setLoading(false)
     }
-  }, [activeTabLabel, page, searchDebounced, jobFilter, sourceFilter, statusFilter, viewMode])
+  }, [activeTabKey, page, searchDebounced, jobFilter, sourceFilter, statusFilter, viewMode])
 
   const handleKanbanStatusChange = useCallback(async (app, newStatus) => {
     setKanbanUpdatingId(app.id)
@@ -487,24 +507,17 @@ const JobApplication = () => {
   }, [loadApplications, loadStats])
 
   const statCards = useMemo(() => [
-    { icon: Users, label: 'Tổng ứng viên vào JD', value: stats?.total, color: BRAND, bg: BRAND_LIGHT, accent: true },
-    { icon: TrendingUp, label: 'Tiến cử (WS/CTV, Sàn CTV)', value: stats?.wsCtv, color: '#d97706', bg: '#fef3c7' },
-    { icon: Award, label: 'Scout Credit', value: stats?.scoutCredit, color: '#ea580c', bg: '#ffedd5' },
-    { icon: CheckCircle2, label: 'Đã tuyển dụng', value: stats?.hired, color: '#059669', bg: '#d1fae5' },
-    { icon: GitBranch, label: 'Đang xử lý', value: stats?.pipeline, color: '#0d9488', bg: '#ccfbf1' },
-  ], [stats])
+    { icon: Users, label: appCopy.stats.total, value: stats?.total, color: BRAND, bg: BRAND_LIGHT, accent: true },
+    { icon: TrendingUp, label: appCopy.stats.wsCtv, value: stats?.wsCtv, color: '#d97706', bg: '#fef3c7' },
+    { icon: Award, label: appCopy.stats.scoutCredit, value: stats?.scoutCredit, color: '#ea580c', bg: '#ffedd5' },
+    { icon: CheckCircle2, label: appCopy.stats.hired, value: stats?.hired, color: '#059669', bg: '#d1fae5' },
+    { icon: GitBranch, label: appCopy.stats.pipeline, value: stats?.pipeline, color: '#0d9488', bg: '#ccfbf1' },
+  ], [stats, appCopy.stats])
 
   const stageData = useMemo(() => {
     const cats = stats?.byStatusCategory || []
     const max = Math.max(...cats.map((c) => c.value), 1)
-    const labels = {
-      processing: 'Đang xử lý',
-      interview: 'Phỏng vấn',
-      waiting: 'Chờ kết quả',
-      success: 'Thành công',
-      rejected: 'Không phù hợp',
-      cancelled: 'Đã hủy',
-    }
+    const labels = stageLabels
     const colors = {
       processing: '#ea580c',
       interview: '#4338ca',
@@ -519,7 +532,7 @@ const JobApplication = () => {
       color: colors[c.category] || '#94a3b8',
       width: c.value / max,
     }))
-  }, [stats])
+  }, [stats, stageLabels])
 
   const pageStart = pagination.total ? (pagination.page - 1) * pagination.limit + 1 : 0
   const pageEnd = Math.min(pagination.page * pagination.limit, pagination.total)
@@ -534,9 +547,9 @@ const JobApplication = () => {
         <div className="business-homepage-ui flex min-h-0 flex-1 flex-col p-0 lg:p-3">
           <div className="mb-0 hidden shrink-0 items-start justify-between gap-3 px-3 pt-3 lg:mb-3 lg:flex lg:px-0 lg:pt-0">
             <div>
-              <h1 className="text-sm sm:text-base font-bold text-slate-800 mb-0.5">Quản lý tiến cử</h1>
+              <h1 className="text-sm sm:text-base font-bold text-slate-800 mb-0.5">{appCopy.title}</h1>
               <p className="text-[10px] sm:text-xs text-slate-500 leading-snug max-w-xl">
-                Theo dõi đơn tiến cử vào JD của doanh nghiệp từ Scout Credit, Sàn CTV và các nguồn khác
+                {appCopy.subtitle}
               </p>
             </div>
           </div>
@@ -559,18 +572,18 @@ const JobApplication = () => {
 
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border-y border-slate-200/90 bg-white shadow-sm lg:rounded-xl lg:border">
                 <div className="flex items-center gap-0 overflow-x-auto border-b border-slate-100 px-2 scrollbar-hide">
-                  {tabs.map((tab) => (
+                  {applicationTabs.map((tab) => (
                     <button
-                      key={tab}
+                      key={tab.key}
                       type="button"
-                      onClick={() => setActiveTabLabel(tab)}
+                      onClick={() => setActiveTabKey(tab.key)}
                       className={`text-[10px] sm:text-xs font-semibold px-3 py-2.5 whitespace-nowrap shrink-0 border-b-2 transition-colors ${
-                        activeTabLabel === tab
+                        activeTabKey === tab.key
                           ? 'border-[#0077B6] text-[#0077B6]'
                           : 'border-transparent text-slate-500 hover:text-slate-700'
                       }`}
                     >
-                      {tab}
+                      {tab.label}
                     </button>
                   ))}
                 </div>
@@ -580,7 +593,7 @@ const JobApplication = () => {
                     <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <input
                       type="text"
-                      placeholder="Tìm ứng viên, JD..."
+                      placeholder={appCopy.filters.searchPlaceholder}
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
                       className="bg-transparent outline-none w-full text-[10px] sm:text-xs text-slate-700 placeholder:text-slate-400"
@@ -591,9 +604,9 @@ const JobApplication = () => {
                     onChange={(e) => setJobFilter(e.target.value)}
                     className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] text-slate-600 outline-none focus:border-[#0077B6]/50 focus:ring-1 focus:ring-[#0077B6]/30 sm:w-auto sm:max-w-[160px] sm:py-1.5 sm:text-[10px] lg:text-xs"
                   >
-                    <option value="">JD: Tất cả</option>
+                    <option value="">{appCopy.filters.allJobs}</option>
                     {jobs.map((j) => (
-                      <option key={j.id} value={j.id}>{j.jobCode || j.title}</option>
+                      <option key={j.id} value={j.id}>{j.jobCode || getLocalizedJobTitle(j, language)}</option>
                     ))}
                   </select>
                   <select
@@ -601,7 +614,7 @@ const JobApplication = () => {
                     onChange={(e) => setSourceFilter(e.target.value)}
                     className="w-[calc(50%-4px)] rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] text-slate-600 outline-none focus:ring-1 focus:ring-[#0077B6]/30 sm:w-auto sm:py-1.5 sm:text-[10px] lg:text-xs"
                   >
-                    {SOURCE_OPTIONS.map((o) => (
+                    {sourceOptions.map((o) => (
                       <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
                   </select>
@@ -610,7 +623,7 @@ const JobApplication = () => {
                     onChange={(e) => setStatusFilter(e.target.value)}
                     className="w-[calc(50%-4px)] rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] text-slate-600 outline-none focus:ring-1 focus:ring-[#0077B6]/30 sm:w-auto sm:py-1.5 sm:text-[10px] lg:text-xs"
                   >
-                    <option value="">Trạng thái: Tất cả</option>
+                    <option value="">{appCopy.filters.allStatus}</option>
                     {statusOptions.map((o) => (
                       <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
@@ -620,7 +633,7 @@ const JobApplication = () => {
                       type="button"
                       onClick={() => setViewMode('table')}
                       className={`rounded-md p-1.5 ${viewMode === 'table' ? 'bg-[#e8f4fa] text-[#0077B6]' : 'text-slate-400'}`}
-                      title="Danh sách"
+                      title={appCopy.view.list}
                     >
                       <List className="w-3.5 h-3.5" />
                     </button>
@@ -628,7 +641,7 @@ const JobApplication = () => {
                       type="button"
                       onClick={() => setViewMode('kanban')}
                       className={`rounded-md p-1.5 ${viewMode === 'kanban' ? 'bg-[#e8f4fa] text-[#0077B6]' : 'text-slate-400'}`}
-                      title="Kanban pipeline"
+                      title={appCopy.view.kanban}
                     >
                       <LayoutGrid className="w-3.5 h-3.5" />
                     </button>
@@ -638,32 +651,35 @@ const JobApplication = () => {
                 {loading ? (
                   <div className="flex items-center justify-center gap-2 py-16 text-slate-500">
                     <Loader2 className="w-4 h-4 animate-spin text-[#0077B6]" />
-                    <span className="text-xs">Đang tải đơn tiến cử...</span>
+                    <span className="text-xs">{appCopy.loading}</span>
                   </div>
                 ) : viewMode === 'kanban' ? (
-                  applications.length === 0 ? (
-                    <div className="py-12 text-center text-xs text-slate-400">Chưa có đơn tiến cử phù hợp</div>
+                  localizedApplications.length === 0 ? (
+                    <div className="py-12 text-center text-xs text-slate-400">{appCopy.empty}</div>
                   ) : (
                     <ApplicationsKanban
-                      applications={applications}
+                      applications={localizedApplications}
                       onOpen={openDrawer}
                       onStatusChange={handleKanbanStatusChange}
                       updatingId={kanbanUpdatingId}
+                      kanbanColumns={kanbanColumns}
+                      updatingLabel={appCopy.kanbanUpdating}
                     />
                   )
                 ) : (
                   <>
                     <div className="min-h-0 flex-1 overflow-auto business-homepage-scroll lg:hidden">
-                      {applications.length === 0 ? (
-                        <div className="py-12 text-center text-xs text-slate-400">
-                          Chưa có đơn tiến cử phù hợp
-                        </div>
-                      ) : applications.map((app) => (
+                      {localizedApplications.length === 0 ? (
+                        <div className="py-12 text-center text-xs text-slate-400">{appCopy.empty}</div>
+                      ) : localizedApplications.map((app) => (
                         <ApplicationMobileCard
                           key={app.id}
                           app={app}
                           isSelected={selectedApp?.id === app.id}
                           onOpen={openDrawer}
+                          tableLabels={appCopy.table}
+                          language={language}
+                          unreadLabel={appCopy.unreadMessages}
                         />
                       ))}
                     </div>
@@ -672,19 +688,19 @@ const JobApplication = () => {
                     <table className="w-full text-left text-[10px] sm:text-xs border-collapse table-fixed">
                       <thead>
                         <tr className="text-[9px] sm:text-[10px] uppercase tracking-wide text-slate-400 border-b border-slate-100 bg-slate-50/80">
-                          {['Ứng viên', 'JD / Vị trí', 'Nguồn', 'Tiến cử bởi', 'Trạng thái', 'Ngày tiến cử', ''].map((h, i) => (
+                          {[appCopy.table.candidate, appCopy.table.job, appCopy.table.source, appCopy.table.nominatedBy, appCopy.table.status, appCopy.table.appliedAt, ''].map((h, i) => (
                             <th key={i} className={`font-semibold px-2.5 py-2 ${i === 6 ? 'text-right' : 'text-left'}`}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {applications.length === 0 ? (
+                        {localizedApplications.length === 0 ? (
                           <tr>
                             <td colSpan={7} className="py-10 text-center text-slate-400 text-xs">
-                              Chưa có đơn tiến cử phù hợp
+                              {appCopy.empty}
                             </td>
                           </tr>
-                        ) : applications.map((app) => {
+                        ) : localizedApplications.map((app) => {
                           const stageStyle = getStatusCategoryStyle(app.statusCategory)
                           const isSelected = selectedApp?.id === app.id
                           return (
@@ -718,8 +734,8 @@ const JobApplication = () => {
                                 </span>
                               </td>
                               <td className="px-2 py-2 text-slate-500">
-                                {formatApplicationDate(app.appliedAt)}
-                                <div className="text-[10px] text-slate-400">{formatRelativeTime(app.appliedAt)}</div>
+                                {formatApplicationDateLocalized(app.appliedAt, language)}
+                                <div className="text-[10px] text-slate-400">{formatApplicationRelativeTimeLocalized(app.appliedAt, language)}</div>
                               </td>
                               <td className="px-2 py-2 text-right">
                                 <div className="flex items-center justify-end gap-1">
@@ -743,7 +759,7 @@ const JobApplication = () => {
                 {!loading && viewMode === 'table' && pagination.totalPages > 0 && (
                   <div className="flex flex-col gap-2 border-t border-slate-100 bg-slate-50/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-[10px] text-slate-500">
-                      {pageStart} - {pageEnd} / {pagination.total} tiến cử
+                      {appCopy.pagination.showing(pageStart, pageEnd, pagination.total)}
                     </span>
                     <div className="flex items-center gap-1">
                       <button
@@ -774,15 +790,15 @@ const JobApplication = () => {
             {!drawerOpen && (
               <div className="hidden min-h-0 flex-col gap-2.5 overflow-hidden lg:flex">
                 <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
-                  <h2 className="text-xs font-bold text-[#0077B6] mb-2">Tỷ lệ nguồn ứng viên</h2>
-                  <PieChart stats={stats} />
+                  <h2 className="text-xs font-bold text-[#0077B6] mb-2">{appCopy.sidebar.sourceRatio}</h2>
+                  <PieChart stats={localizedStats} emptyLabel={appCopy.sidebar.noData} totalLabel={appCopy.sidebar.total} />
                 </div>
 
                 <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
-                  <h2 className="text-xs font-bold text-[#0077B6] mb-2">Trạng thái tiến cử</h2>
+                  <h2 className="text-xs font-bold text-[#0077B6] mb-2">{appCopy.sidebar.statusBreakdown}</h2>
                   <div className="flex flex-col gap-2">
                     {stageData.length === 0 ? (
-                      <div className="text-[10px] text-slate-400">Chưa có dữ liệu</div>
+                      <div className="text-[10px] text-slate-400">{appCopy.sidebar.noData}</div>
                     ) : stageData.map((stage, i) => (
                       <div key={i}>
                         <div className="flex items-center justify-between gap-2 mb-1">
@@ -798,22 +814,24 @@ const JobApplication = () => {
                 </div>
 
                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
-                  <h2 className="mb-2 shrink-0 text-xs font-bold text-[#0077B6]">Hoạt động gần đây</h2>
+                  <h2 className="mb-2 shrink-0 text-xs font-bold text-[#0077B6]">{appCopy.sidebar.recentActivity}</h2>
                   <div className="min-h-0 flex-1 overflow-y-auto business-homepage-scroll">
                     {recentNotifications.length === 0 ? (
-                      <div className="text-[10px] text-slate-400">Chưa có hoạt động</div>
-                    ) : recentNotifications.map((n) => (
+                      <div className="text-[10px] text-slate-400">{appCopy.sidebar.noActivity}</div>
+                    ) : recentNotifications.map((n) => {
+                      const localized = localizeNotification(n, language)
+                      return (
                       <div key={n.id} className="flex items-start gap-2">
                         <div className="w-7 h-7 rounded-full bg-[#e8f4fa] flex items-center justify-center shrink-0">
                           <Bell className="w-3.5 h-3.5 text-[#0077B6]" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[10px] font-semibold text-slate-700 leading-snug">{n.title}</div>
-                          <div className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{n.content}</div>
-                          <div className="text-[9px] text-slate-400 mt-0.5">{formatApplicationDate(n.createdAt)}</div>
+                          <div className="text-[10px] font-semibold text-slate-700 leading-snug">{localized.title}</div>
+                          <div className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{localized.content}</div>
+                          <div className="text-[9px] text-slate-400 mt-0.5">{formatApplicationDateLocalized(n.createdAt, language)}</div>
                         </div>
                       </div>
-                    ))}
+                    )})}
                   </div>
                 </div>
               </div>
@@ -825,7 +843,7 @@ const JobApplication = () => {
 
       <BusinessApplicationDetailDrawer
         open={drawerOpen}
-        application={selectedApp}
+        application={localizedSelectedApp}
         onClose={closeDrawer}
         onStatusUpdated={handleStatusUpdated}
       />

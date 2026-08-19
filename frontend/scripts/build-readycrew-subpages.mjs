@@ -163,6 +163,20 @@ function hideLoadingScreen(html) {
   return html.replace(/class="js-loading"/g, 'class="js-loading" style="display:none;"');
 }
 
+/**
+ * Subpage iframes are now wrapped by the shared React navbar/footer
+ * (BusinessLandingLayout). Strip the baked-in header & footer from the
+ * static HTML so there is no double chrome.
+ */
+function stripChrome(html) {
+  let out = html;
+  out = out.replace(/<header class="header">[\s\S]*?<\/header>/g, '');
+  out = out.replace(/<footer class="footer l-section">[\s\S]*?<\/footer>/g, '');
+  // Remove leftover header-only wrappers / hamburger overlay
+  out = out.replace(/<div class="js-hamburger-menu__bg"><\/div>\s*/g, '');
+  return out;
+}
+
 function injectBootstrap(html) {
   const boot = `<script src="${ASSET_PREFIX}jobshare-bootstrap.js"></script>`;
   if (html.includes('jobshare-bootstrap.js')) return html;
@@ -262,6 +276,7 @@ async function buildSubpage(sourceFile, outFile, pageKey) {
   html = applyNavbar(html);
   html = injectAuthButtons(html);
   html = hideLoadingScreen(html);
+  html = stripChrome(html);
   html = rebuildHeadScripts(html);
   html = injectBootstrap(html);
   html = injectOverrides(html);

@@ -3,6 +3,7 @@ import {
   formatProjectPeriodJa,
   formatWorkExperiencePeriodJa,
 } from './cvJapanesePeriod.js';
+import { getLocalizedScoutDisplayName } from '../i18n/businessApp/scout.js';
 import { getJlptDisplay } from './cvFixedCertDisplay.js';
 
 const RESIDENCE_STATUS_LABELS = {
@@ -329,10 +330,8 @@ export function getScoutListSkillExcerpt(candidate, maxLen = 96) {
   return '';
 }
 
-export function getScoutDisplayName(candidate) {
-  if (!candidate) return 'Ứng viên ẩn danh';
-  if (candidate.name) return candidate.name;
-  return candidate.anonymousName || 'Ứng viên ẩn danh';
+export function getScoutDisplayName(candidate, language = 'vi') {
+  return getLocalizedScoutDisplayName(candidate, language);
 }
 
 export function getScoutPrSummary(candidate) {

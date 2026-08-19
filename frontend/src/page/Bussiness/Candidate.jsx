@@ -19,15 +19,24 @@ import {
 } from '../../utils/scoutFilterOptions'
 import ScoutCandidateHoverTip from '../../component/Bussiness/ScoutCandidateHoverTip'
 import {
-  getScoutDisplayName,
-  getScoutPipelineMeta,
-  getScoutUnlockSourceMeta,
   getScoutSkillTags,
-  formatScoutExperienceSeniority,
   formatScoutDesiredSalary,
   formatScoutListLocation,
-  formatScoutLanguageSummary,
 } from '../../utils/scoutCandidateDisplay'
+import { getLocalizedCandidateRole } from '../../utils/jobCategoryDisplay'
+import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
+import { useLanguage } from '../../context/LanguageContext'
+import {
+  formatCandidateListDate,
+  formatCandidateNumber,
+  formatScoutExperienceSeniorityLocalized,
+  formatScoutLanguageSummaryLocalized,
+  getCandidateListFilterEmptyText,
+  getCandidateUnlockSourceOptions,
+  getLocalizedScoutDisplayName,
+  getLocalizedScoutPipelineMeta,
+  getLocalizedScoutUnlockSourceMeta,
+} from '../../i18n/businessAppI18n'
 
 const ANONYMOUS_AVATAR = 'https://api.dicebear.com/7.x/shapes/svg?seed=scout-unlocked'
 const PAGE_SIZE = 20
@@ -36,35 +45,9 @@ const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-
 
 const LIST_FILTER_ALL = 'all'
 
-const CANDIDATE_LIST_SOURCES = [
-  { id: 'scout_credit', label: 'Scout Credit', emptySearchText: 'Không tìm thấy ứng viên Scout Credit.' },
-  { id: 'scout_performance', label: 'Scout Performance', emptySearchText: 'Không tìm thấy ứng viên Scout Performance.' },
-]
-
-const UNLOCK_SOURCE_OPTIONS = [
-  { value: LIST_FILTER_ALL, label: 'Tất cả nguồn mở hồ sơ' },
-  ...CANDIDATE_LIST_SOURCES.map((s) => ({ value: s.id, label: s.label })),
-]
-
 function parseListFilter(listParam) {
   if (listParam === 'scout_credit' || listParam === 'scout_performance') return listParam
   return LIST_FILTER_ALL
-}
-
-function getListFilterMeta(filterId) {
-  if (filterId === LIST_FILTER_ALL) {
-    return { emptySearchText: 'Không tìm thấy ứng viên phù hợp.' }
-  }
-  return CANDIDATE_LIST_SOURCES.find((s) => s.id === filterId) || { emptySearchText: 'Không tìm thấy ứng viên phù hợp.' }
-}
-
-function formatListDate(value) {
-  if (!value) return '—'
-  try {
-    return new Date(value).toLocaleDateString('vi-VN')
-  } catch {
-    return '—'
-  }
 }
 
 const candidatePageStyles = `
@@ -124,8 +107,8 @@ const candidatePageStyles = `
   .scout-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
 `
 
-function AvatarCircle({ candidate, size = 44 }) {
-  const name = getScoutDisplayName(candidate)
+function AvatarCircle({ candidate, size = 44, language = 'vi' }) {
+  const name = getLocalizedScoutDisplayName(candidate, language)
   const src = candidate?.avatarPhotoPath
     ? candidate.avatarPhotoPath
     : `${ANONYMOUS_AVATAR}&seed=${encodeURIComponent(String(name || candidate?.id || 'x'))}`
@@ -147,21 +130,21 @@ function ScoutMetaChip({ children }) {
   )
 }
 
-function UnlockedCandidateRowBody({ candidate, hl = (t) => t }) {
-  const position = candidate.desiredPosition || candidate.jobCategory?.name
-  const pipeline = getScoutPipelineMeta(candidate.pipelineStatus)
-  const unlockSource = getScoutUnlockSourceMeta(candidate.unlockType)
+function UnlockedCandidateRowBody({ candidate, hl = (t) => t, language }) {
+  const position = getLocalizedCandidateRole(candidate, language)
+  const pipeline = getLocalizedScoutPipelineMeta(candidate.pipelineStatus, language)
+  const unlockSource = getLocalizedScoutUnlockSourceMeta(candidate.unlockType, language)
   const skillExcerpt = getScoutSkillTags(candidate).join(' · ')
 
   return (
     <>
-      <p className="scout-cand-title truncate text-slate-900">{hl(getScoutDisplayName(candidate))}</p>
+      <p className="scout-cand-title truncate text-slate-900">{hl(getLocalizedScoutDisplayName(candidate, language))}</p>
       {position ? <p className="scout-cand-subtitle mt-0.5 truncate text-slate-600">{hl(position)}</p> : null}
       <div className="mt-1.5 flex flex-wrap gap-1">
         <ScoutMetaChip>{formatScoutListLocation(candidate)}</ScoutMetaChip>
-        <ScoutMetaChip>{formatScoutExperienceSeniority(candidate.experienceYears)}</ScoutMetaChip>
+        <ScoutMetaChip>{formatScoutExperienceSeniorityLocalized(candidate.experienceYears, language)}</ScoutMetaChip>
         <ScoutMetaChip>{formatScoutDesiredSalary(candidate)}</ScoutMetaChip>
-        <ScoutMetaChip>{formatScoutLanguageSummary(candidate)}</ScoutMetaChip>
+        <ScoutMetaChip>{formatScoutLanguageSummaryLocalized(candidate, language)}</ScoutMetaChip>
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
         <span
@@ -176,7 +159,7 @@ function UnlockedCandidateRowBody({ candidate, hl = (t) => t }) {
         >
           {pipeline.label}
         </span>
-        <span className="scout-cand-caption text-slate-400">{formatListDate(candidate.unlockedAt)}</span>
+        <span className="scout-cand-caption text-slate-400">{formatCandidateListDate(candidate.unlockedAt, language)}</span>
       </div>
       {skillExcerpt ? (
         <p className="scout-cand-meta mt-1.5 line-clamp-1 text-slate-500" title={skillExcerpt}>{hl(skillExcerpt)}</p>
@@ -185,7 +168,7 @@ function UnlockedCandidateRowBody({ candidate, hl = (t) => t }) {
   )
 }
 
-function UnlockedCandidateListItem({ candidate, highlightQuery, onOpenDetail, hl }) {
+function UnlockedCandidateListItem({ candidate, highlightQuery, onOpenDetail, hl, language }) {
   const tipCandidate = { ...candidate, isUnlocked: true }
   return (
     <div className="group relative">
@@ -194,23 +177,23 @@ function UnlockedCandidateListItem({ candidate, highlightQuery, onOpenDetail, hl
         onClick={() => onOpenDetail(candidate.id)}
         className="flex w-full items-start gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left transition hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-sm"
       >
-        <AvatarCircle candidate={candidate} size={44} />
+        <AvatarCircle candidate={candidate} size={44} language={language} />
         <div className="min-w-0 flex-1">
-          <UnlockedCandidateRowBody candidate={candidate} hl={hl} />
+          <UnlockedCandidateRowBody candidate={candidate} hl={hl} language={language} />
         </div>
       </button>
-      <ScoutCandidateHoverTip candidate={tipCandidate} hl={hl} />
+      <ScoutCandidateHoverTip candidate={tipCandidate} hl={hl} language={language} />
     </div>
   )
 }
 
-function CandidatesEmptyState() {
+function CandidatesEmptyState({ copy }) {
   const navigate = useNavigate()
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-5 py-10 text-center">
       <img src={nothingIllustration} alt="" className="mb-4 w-full max-w-[220px] object-contain" draggable={false} />
       <p className="max-w-md text-xs font-medium leading-relaxed text-slate-700 sm:text-sm">
-        Có vẻ bạn chưa mở hồ sơ ứng viên nào. Hãy dùng Scout Credit hoặc Scout Performance trên Workstation để tìm ứng viên phù hợp.
+        {copy.candidates.list.emptyBody}
       </p>
       <button
         type="button"
@@ -219,7 +202,7 @@ function CandidatesEmptyState() {
         style={{ background: BRAND }}
       >
         <Sparkles className="h-4 w-4" strokeWidth={2} />
-        Tìm ứng viên trên Scout
+        {copy.candidates.list.emptyCta}
       </button>
     </div>
   )
@@ -237,17 +220,20 @@ function UnlockedCandidateFilterPanel({
   hasActiveFilters,
   displayCount,
   listLoading,
+  copy,
+  language,
+  unlockSourceOptions,
 }) {
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [showJobCategoryModal, setShowJobCategoryModal] = useState(false)
 
   const leadingBlock = (
-    <FilterBlock icon={Unlock} label="Nguồn mở hồ sơ" compact>
+    <FilterBlock icon={Unlock} label={copy.candidates.list.unlockSourceLabel} compact>
       <FilterSelectDropdown
         value={listFilter}
         onChange={onListFilterChange}
-        options={UNLOCK_SOURCE_OPTIONS}
-        placeholder="Tất cả nguồn mở hồ sơ"
+        options={unlockSourceOptions}
+        placeholder={copy.candidates.list.unlockSourceAll}
         className={SCOUT_FILTER_INPUT_CLASS}
       />
     </FilterBlock>
@@ -256,11 +242,11 @@ function UnlockedCandidateFilterPanel({
   return (
     <section className="scout-workspace-filters shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-3 py-2.5">
-        <h2 className="text-xs font-bold text-gray-900">Bộ lọc tìm kiếm</h2>
+        <h2 className="text-xs font-bold text-gray-900">{copy.candidates.list.filtersTitle}</h2>
         <div className="flex items-center gap-2">
           {hasActiveFilters ? (
             <button type="button" onClick={onClear} className="text-[9px] font-semibold text-[#0077B6] hover:underline">
-              Xóa điều kiện
+              {copy.candidates.list.clearConditions}
             </button>
           ) : null}
           <button
@@ -276,7 +262,7 @@ function UnlockedCandidateFilterPanel({
               <Search className="h-3 w-3 text-gray-800" />
             )}
             <span className="text-[9px] font-semibold text-gray-800">
-              {`Tìm ${Number(displayCount || 0).toLocaleString('vi-VN')} hồ sơ`}
+              {copy.candidates.list.searchCount(formatCandidateNumber(displayCount || 0, language))}
             </span>
           </button>
         </div>
@@ -290,6 +276,7 @@ function UnlockedCandidateFilterPanel({
           setSearchInput={setSearchInput}
           onOpenLocationModal={() => setShowLocationModal(true)}
           onOpenJobCategoryModal={() => setShowJobCategoryModal(true)}
+          language={language}
         />
       </div>
       <WorkLocationFilterModal
@@ -297,13 +284,13 @@ function UnlockedCandidateFilterPanel({
         onClose={() => setShowLocationModal(false)}
         value={scoutFilters.locations}
         onConfirm={(locations) => setScoutFilters((prev) => ({ ...prev, locations }))}
-        language="vi"
-        rightPanelTitle="Chọn khu vực"
+        language={language}
+        rightPanelTitle={copy.candidates.list.locationModalTitle}
       />
       <JobCategoryPickerModal
         open={showJobCategoryModal}
         onClose={() => setShowJobCategoryModal(false)}
-        language="vi"
+        language={language}
         initialLeafId={scoutFilters.jobCategoryId || null}
         onConfirm={({ id, displayName }) => {
           setScoutFilters((prev) => ({
@@ -326,11 +313,12 @@ function CandidateListPanel({
   totalPages,
   onPageChange,
   listFilter,
-  highlightQuery,
   onOpenDetail,
   hl,
+  copy,
+  language,
 }) {
-  const filterMeta = getListFilterMeta(listFilter)
+  const emptySearchText = getCandidateListFilterEmptyText(listFilter, language)
   const listPageNumbers = useMemo(() => {
     if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1)
     if (page <= 3) return [1, 2, 3, 4, 5]
@@ -344,28 +332,28 @@ function CandidateListPanel({
     <div className="scout-candidates-list-ui flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
       <div className="border-b border-slate-100 px-3 py-2">
         <h2 className="scout-cand-title text-slate-900">
-          {loading ? 'Đang tải...' : `${total.toLocaleString('vi-VN')} hồ sơ đã mở`}
+          {loading ? copy.candidates.list.loading : copy.candidates.list.openedCount(formatCandidateNumber(total, language))}
         </h2>
-        <p className="scout-cand-caption mt-0.5 text-slate-500">Bấm vào hồ sơ để xem chi tiết trong tab mới</p>
+        <p className="scout-cand-caption mt-0.5 text-slate-500">{copy.candidates.list.clickHint}</p>
       </div>
 
       <div className="candidate-scrollbar min-h-0 flex-1 overflow-y-auto px-2 py-2">
         {loading ? (
           <div className="scout-cand-meta flex items-center justify-center gap-2 py-10 text-slate-500">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Đang tải danh sách...
+            {copy.candidates.list.loadingList}
           </div>
         ) : candidates.length === 0 ? (
-          <div className="scout-cand-meta px-3 py-8 text-center text-slate-500">{filterMeta.emptySearchText}</div>
+          <div className="scout-cand-meta px-3 py-8 text-center text-slate-500">{emptySearchText}</div>
         ) : (
           <div className="flex flex-col gap-2">
             {candidates.map((c) => (
               <UnlockedCandidateListItem
                 key={c.id}
                 candidate={c}
-                highlightQuery={highlightQuery}
                 onOpenDetail={onOpenDetail}
                 hl={hl}
+                language={language}
               />
             ))}
           </div>
@@ -379,7 +367,7 @@ function CandidateListPanel({
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}
             className="scout-cand-meta flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 disabled:opacity-40"
-            aria-label="Trang trước"
+            aria-label={copy.common.pagination.prevPage}
           >
             ‹
           </button>
@@ -402,7 +390,7 @@ function CandidateListPanel({
             disabled={page >= totalPages}
             onClick={() => onPageChange(page + 1)}
             className="scout-cand-meta flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 disabled:opacity-40"
-            aria-label="Trang sau"
+            aria-label={copy.common.pagination.nextPage}
           >
             ›
           </button>
@@ -414,8 +402,15 @@ function CandidateListPanel({
 
 const Candidate = () => {
   const navigate = useNavigate()
+  const { language } = useLanguage()
+  const copy = useBusinessAppCopy()
   const [searchParams, setSearchParams] = useSearchParams()
   const listFilter = parseListFilter(searchParams.get('list'))
+
+  const unlockSourceOptions = useMemo(
+    () => getCandidateUnlockSourceOptions(language),
+    [language],
+  )
 
   const handleListFilterChange = useCallback((nextFilter) => {
     if (nextFilter === LIST_FILTER_ALL) {
@@ -459,16 +454,16 @@ const Candidate = () => {
         setPagination(res.data.pagination || { total: 0, totalPages: 0 })
       } else {
         setCandidates([])
-        setError(res?.message || 'Không tải được danh sách ứng viên')
+        setError(res?.message || copy.candidates.list.loadError)
       }
     } catch (e) {
       console.error(e)
       setCandidates([])
-      setError('Không tải được danh sách ứng viên')
+      setError(copy.candidates.list.loadError)
     } finally {
       setLoading(false)
     }
-  }, [page, searchQuery, listFilter, hasActiveFilters])
+  }, [page, searchQuery, listFilter, hasActiveFilters, copy.candidates.list.loadError])
 
   useEffect(() => { setPage(1) }, [listFilter])
 
@@ -594,7 +589,7 @@ const Candidate = () => {
 
         <div className="business-homepage-ui flex min-h-0 flex-1 flex-col overflow-hidden p-2 lg:p-3">
           {showGlobalEmpty ? (
-            <CandidatesEmptyState />
+            <CandidatesEmptyState copy={copy} />
           ) : (
             <div className="candidates-workspace-body min-h-0 flex-1">
               <div className="candidates-workspace-content min-h-0">
@@ -610,6 +605,9 @@ const Candidate = () => {
                   hasActiveFilters={hasActiveFilters}
                   displayCount={totalItems}
                   listLoading={listLoading}
+                  copy={copy}
+                  language={language}
+                  unlockSourceOptions={unlockSourceOptions}
                 />
                 <CandidateListPanel
                   candidates={listForRender}
@@ -619,9 +617,10 @@ const Candidate = () => {
                   totalPages={totalPages}
                   onPageChange={setPage}
                   listFilter={listFilter}
-                  highlightQuery={highlightQuery}
                   onOpenDetail={openCandidateDetail}
                   hl={hl}
+                  copy={copy}
+                  language={language}
                 />
               </div>
               <div className="candidates-workspace-aside candidate-scrollbar min-h-0 overflow-y-auto business-homepage-scroll">

@@ -9,6 +9,20 @@ import {
 import FilterSelectDropdown from '../../component/Shared/FilterSelectDropdown'
 import apiService from '../../services/api'
 import useBusinessUser from '../../hooks/useBusinessUser'
+import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
+import { useLanguage } from '../../context/LanguageContext'
+import {
+  formatJobSalary,
+  getDateLocale,
+  getJobDateFilterOptions,
+  getJobRowMenuItems,
+  getJobSortOptions,
+  getJobStatusFilterOptions,
+  getJobStatusMeta,
+  getJobStatusTabs,
+  getLocalizedJobTitle,
+  getRecruitmentLabel,
+} from '../../i18n/businessAppI18n'
 import {
   importLegacyJobBuilderThreadsFromLocalStorage,
   listJobBuilderThreads,
@@ -19,35 +33,6 @@ const BUSINESS_JOBS_FONT =
 
 const JD_NAVY = '#0f2744'
 const JD_NAVY_MID = '#1e3a5f'
-
-const STATUS_TABS = [
-  { id: 'all', label: 'Tất cả' },
-  { id: 'recruiting', label: 'Đang tuyển', statuses: [1] },
-  { id: 'draft', label: 'Nháp', statuses: [0] },
-  { id: 'paused', label: 'Tạm dừng', statuses: [] },
-  { id: 'closed', label: 'Đã đóng', statuses: [2, 3] },
-]
-
-const SORT_OPTIONS = [
-  { value: 'updated', label: 'Mới cập nhật' },
-  { value: 'created', label: 'Mới tạo' },
-  { value: 'title', label: 'Tên JD' },
-]
-
-const STATUS_FILTER_OPTIONS = [
-  { value: 'all', label: 'Tất cả trạng thái' },
-  { value: 'recruiting', label: 'Đang tuyển' },
-  { value: 'draft', label: 'Nháp' },
-  { value: 'paused', label: 'Tạm dừng' },
-  { value: 'closed', label: 'Đã đóng' },
-]
-
-const DATE_FILTER_OPTIONS = [
-  { value: '', label: 'Tất cả thời gian' },
-  { value: '7d', label: '7 ngày qua' },
-  { value: '30d', label: '30 ngày qua' },
-  { value: '90d', label: '90 ngày qua' },
-]
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50]
 
@@ -126,6 +111,7 @@ function JobListPagination({
   totalItems,
   onPageChange,
   onPageSizeChange,
+  paginationCopy,
 }) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
   const safePage = Math.min(page, totalPages)
@@ -146,8 +132,7 @@ function JobListPagination({
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-slate-200/90 bg-white px-3 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:px-4">
       <p className="text-xs text-slate-500">
-        Hiển thị <strong className="text-slate-700">{start} – {end}</strong> trên{' '}
-        <strong className="text-slate-700">{totalItems}</strong> kết quả
+        {paginationCopy.showing(start, end, totalItems)}
       </p>
       <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
         <div className="flex items-center gap-1">
@@ -156,7 +141,7 @@ function JobListPagination({
             disabled={safePage <= 1}
             onClick={() => onPageChange(safePage - 1)}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:opacity-40"
-            aria-label="Trang trước"
+            aria-label={paginationCopy.prevPage}
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -179,7 +164,7 @@ function JobListPagination({
             disabled={safePage >= totalPages}
             onClick={() => onPageChange(safePage + 1)}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:opacity-40"
-            aria-label="Trang sau"
+            aria-label={paginationCopy.nextPage}
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -191,7 +176,7 @@ function JobListPagination({
             className="appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-2.5 pr-8 text-xs font-medium text-slate-700 outline-none"
           >
             {PAGE_SIZE_OPTIONS.map((size) => (
-              <option key={size} value={size}>Hiển thị {size}</option>
+              <option key={size} value={size}>{paginationCopy.pageSize(size)}</option>
             ))}
           </select>
           <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -228,30 +213,11 @@ function JobFilterField({ label, children }) {
   )
 }
 
-function getJobStatusMeta(status) {
-  const n = Number(status)
-  if (n === 1) return { label: 'Đang tuyển', color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' }
-  if (n === 0) return { label: 'Nháp', color: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' }
-  if (n === 4) return { label: 'Tạm dừng', color: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' }
-  if (n === 2 || n === 3) return { label: 'Đã đóng', color: 'bg-rose-100 text-rose-700', dot: 'bg-rose-500' }
-  return { label: 'Không xác định', color: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' }
-}
-
-function formatDate(value) {
+function formatDate(value, locale = 'vi-VN') {
   if (!value) return '—'
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleDateString('vi-VN')
-}
-
-function formatSalary(job) {
-  const min = job?.salaryMin ?? job?.salary_min
-  const max = job?.salaryMax ?? job?.salary_max
-  const unit = job?.salaryUnit || job?.salary_unit || 'JPY'
-  if (min == null && max == null) return 'Thỏa thuận'
-  if (min != null && max != null) return `${Number(min).toLocaleString('vi-VN')} – ${Number(max).toLocaleString('vi-VN')} ${unit}`
-  if (min != null) return `Từ ${Number(min).toLocaleString('vi-VN')} ${unit}`
-  return `Đến ${Number(max).toLocaleString('vi-VN')} ${unit}`
+  return d.toLocaleDateString(locale)
 }
 
 function getJobLocation(job) {
@@ -263,14 +229,8 @@ function getJobLocation(job) {
     || '—'
 }
 
-function getRecruitmentLabel(job) {
-  const map = { 1: 'Chính thức', 2: 'Hợp đồng', 3: 'Phái cử', 4: 'Bán thời gian', 5: 'Uỷ thác' }
-  const t = Number(job?.recruitmentType ?? job?.recruitment_type)
-  return map[t] || 'Chính thức'
-}
-
-function getJobTitle(job) {
-  return job?.title || job?.titleEn || job?.titleJp || `JD #${job?.id}`
+function getJobTitle(job, language = 'vi') {
+  return getLocalizedJobTitle(job, language)
 }
 
 function getJobCode(job) {
@@ -287,41 +247,56 @@ const jobListStyles = `
   }
 `
 
-function JobRowMenu({ job, onClose, onAction }) {
-  const items = [
-    { id: 'view', label: 'Xem chi tiết', icon: Eye },
-    { id: 'edit', label: 'Sửa JD', icon: Pencil },
-    { id: 'duplicate', label: 'Sao chép JD', icon: Copy },
-    { id: 'pause', label: 'Tạm dừng', icon: Pause, hidden: Number(job.status) !== 1 },
-    { id: 'close', label: 'Đóng JD', icon: XCircle, hidden: Number(job.status) === 2 || Number(job.status) === 3 },
-  ].filter((item) => !item.hidden)
+const MENU_ICONS = {
+  view: Eye,
+  edit: Pencil,
+  duplicate: Copy,
+  pause: Pause,
+  close: XCircle,
+}
+
+function JobRowMenu({ job, onClose, onAction, menuItems, closeMenuLabel }) {
+  const items = menuItems.filter((item) => !item.hiddenStatus?.(job.status))
 
   return (
     <>
-      <button type="button" className="fixed inset-0 z-30 cursor-default" aria-label="Đóng menu" onClick={onClose} />
+      <button type="button" className="fixed inset-0 z-30 cursor-default" aria-label={closeMenuLabel} onClick={onClose} />
       <div className="absolute right-0 top-full z-40 mt-1 min-w-[160px] overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-        {items.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => onAction(id)}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
-          >
-            <Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-            {label}
-          </button>
-        ))}
+        {items.map(({ id, label }) => {
+          const Icon = MENU_ICONS[id]
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onAction(id)}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+            >
+              {Icon ? <Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" /> : null}
+              {label}
+            </button>
+          )
+        })}
       </div>
     </>
   )
 }
 
-function JobListRow({ job, stats, onOpen, onMenuAction }) {
+function JobListRow({
+  job,
+  stats,
+  onOpen,
+  onMenuAction,
+  language,
+  jobsCopy,
+  commonCopy,
+  menuItems,
+}) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const statusMeta = getJobStatusMeta(job.status)
-  const title = getJobTitle(job)
+  const statusMeta = getJobStatusMeta(job.status, language)
+  const title = getJobTitle(job, language)
   const iconVariant = getRowIconVariant(job.id)
   const metrics = stats || EMPTY_JOB_STATS
+  const dateLocale = getDateLocale(language)
 
   return (
     <div
@@ -348,8 +323,8 @@ function JobListRow({ job, stats, onOpen, onMenuAction }) {
           <p className="mt-0.5 text-[11px] font-medium text-slate-500">{getJobCode(job)}</p>
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
             <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3 shrink-0" />{getJobLocation(job)}</span>
-            <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3 shrink-0" />{getRecruitmentLabel(job)}</span>
-            <span>{formatSalary(job)}</span>
+            <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3 shrink-0" />{getRecruitmentLabel(job, language)}</span>
+            <span>{formatJobSalary(job, language)}</span>
           </div>
         </div>
 
@@ -358,13 +333,15 @@ function JobListRow({ job, stats, onOpen, onMenuAction }) {
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            aria-label="Thao tác"
+            aria-label={commonCopy.actions}
           >
             <MoreHorizontal className="h-4 w-4" />
           </button>
           {menuOpen ? (
             <JobRowMenu
               job={job}
+              menuItems={menuItems}
+              closeMenuLabel={commonCopy.closeMenu}
               onClose={() => setMenuOpen(false)}
               onAction={(action) => {
                 setMenuOpen(false)
@@ -376,28 +353,30 @@ function JobListRow({ job, stats, onOpen, onMenuAction }) {
       </div>
 
       <div className="grid grid-cols-4 gap-2 border-t border-slate-100 pt-3 lg:flex lg:shrink-0 lg:items-center lg:gap-4 lg:border-0 lg:pt-0 xl:gap-5">
-        <JobMetricColumn value={metrics.candidates} label="Ứng viên" />
-        <JobMetricColumn value={metrics.referrals} label="Tiến cử" />
-        <JobMetricColumn value={metrics.interviews} label="Phỏng vấn" />
-        <JobMetricColumn value={metrics.hired} label="Tuyển thành công" />
+        <JobMetricColumn value={metrics.candidates} label={jobsCopy.metrics.candidates} />
+        <JobMetricColumn value={metrics.referrals} label={jobsCopy.metrics.referrals} />
+        <JobMetricColumn value={metrics.interviews} label={jobsCopy.metrics.interviews} />
+        <JobMetricColumn value={metrics.hired} label={jobsCopy.metrics.hired} />
       </div>
 
       <div className="hidden shrink-0 flex-col items-end gap-2 lg:flex">
         <p className="whitespace-nowrap text-[10px] text-slate-400">
-          Cập nhật: {formatDate(job.updatedAt || job.updated_at)}
+          {commonCopy.updatedAt(formatDate(job.updatedAt || job.updated_at, dateLocale))}
         </p>
         <div className="relative" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            aria-label="Thao tác"
+            aria-label={commonCopy.actions}
           >
             <MoreHorizontal className="h-4 w-4" />
           </button>
           {menuOpen ? (
             <JobRowMenu
               job={job}
+              menuItems={menuItems}
+              closeMenuLabel={commonCopy.closeMenu}
               onClose={() => setMenuOpen(false)}
               onAction={(action) => {
                 setMenuOpen(false)
@@ -411,7 +390,8 @@ function JobListRow({ job, stats, onOpen, onMenuAction }) {
   )
 }
 
-function DraftThreadRow({ thread, onOpen }) {
+function DraftThreadRow({ thread, onOpen, jobsCopy, commonCopy, language }) {
+  const dateLocale = getDateLocale(language)
   return (
     <div
       role="button"
@@ -425,11 +405,11 @@ function DraftThreadRow({ thread, onOpen }) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="truncate text-sm font-bold text-slate-900">{thread.title || 'JD mới'}</h3>
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Nháp chat</span>
+          <h3 className="truncate text-sm font-bold text-slate-900">{thread.title || jobsCopy.draft.defaultTitle}</h3>
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">{jobsCopy.draft.badge}</span>
         </div>
-        <p className="mt-1 text-[11px] text-slate-500">Phiên chat chưa lưu thành JD · Bấm để tiếp tục tạo</p>
-        <p className="mt-1 text-[10px] text-slate-400">Cập nhật: {formatDate(thread.updatedAt)}</p>
+        <p className="mt-1 text-[11px] text-slate-500">{jobsCopy.draft.hint}</p>
+        <p className="mt-1 text-[10px] text-slate-400">{commonCopy.updatedAt(formatDate(thread.updatedAt, dateLocale))}</p>
       </div>
     </div>
   )
@@ -439,6 +419,16 @@ const JobManagement = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { user: businessUser } = useBusinessUser()
+  const { language } = useLanguage()
+  const copy = useBusinessAppCopy()
+  const jobsCopy = copy.jobs
+  const commonCopy = copy.common
+  const statusTabs = useMemo(() => getJobStatusTabs(language), [language])
+  const sortOptions = useMemo(() => getJobSortOptions(language), [language])
+  const statusFilterOptions = useMemo(() => getJobStatusFilterOptions(language), [language])
+  const dateFilterOptions = useMemo(() => getJobDateFilterOptions(language), [language])
+  const menuItems = useMemo(() => getJobRowMenuItems(jobsCopy), [jobsCopy])
+  const dateLocale = getDateLocale(language)
 
   const [jobs, setJobs] = useState([])
   const [draftThreads, setDraftThreads] = useState([])
@@ -556,12 +546,12 @@ const JobManagement = () => {
       if (loc && loc !== '—') set.add(loc)
     })
     return [
-      { value: '', label: 'Tất cả địa điểm' },
+      { value: '', label: jobsCopy.filters.allLocation },
       ...Array.from(set)
-        .sort((a, b) => a.localeCompare(b, 'vi'))
+        .sort((a, b) => a.localeCompare(b, dateLocale))
         .map((loc) => ({ value: loc, label: loc })),
     ]
-  }, [jobs])
+  }, [jobs, jobsCopy.filters.allLocation, dateLocale])
 
   const tabCounts = useMemo(() => {
     const counts = { all: jobs.length, recruiting: 0, draft: 0, paused: 0, closed: 0 }
@@ -576,7 +566,7 @@ const JobManagement = () => {
   }, [jobs, draftThreads])
 
   const filteredJobs = useMemo(() => {
-    const tab = STATUS_TABS.find((t) => t.id === statusTab)
+    const tab = statusTabs.find((t) => t.id === statusTab)
     let list = jobs
     if (tab?.statuses?.length) {
       list = list.filter((job) => tab.statuses.includes(Number(job.status)))
@@ -594,14 +584,14 @@ const JobManagement = () => {
     }
     return [...list].sort((a, b) => {
       if (sortBy === 'title') {
-        return getJobTitle(a).localeCompare(getJobTitle(b), 'vi')
+        return getJobTitle(a, language).localeCompare(getJobTitle(b, language), dateLocale)
       }
       if (sortBy === 'created') {
         return new Date(b.createdAt || b.created_at || 0) - new Date(a.createdAt || a.created_at || 0)
       }
       return new Date(b.updatedAt || b.updated_at || 0) - new Date(a.updatedAt || a.updated_at || 0)
     })
-  }, [jobs, sortBy, statusTab, categoryFilter, locationFilter, dateFilter])
+  }, [jobs, sortBy, statusTab, categoryFilter, locationFilter, dateFilter, statusTabs, dateLocale])
 
   const showDraftThreads = statusTab === 'all' || statusTab === 'draft'
 
@@ -660,20 +650,20 @@ const JobManagement = () => {
       try {
         const res = await apiService.updateBusinessJob(job.id, { status: 0 })
         if (res?.success) loadJobs(searchInput.trim())
-        else window.alert(res?.message || 'Không thể tạm dừng JD')
+        else window.alert(res?.message || jobsCopy.alerts.pauseFailed)
       } catch {
-        window.alert('Không thể tạm dừng JD')
+        window.alert(jobsCopy.alerts.pauseFailed)
       }
       return
     }
     if (action === 'close') {
-      if (!window.confirm(`Đóng JD "${getJobTitle(job)}"?`)) return
+      if (!window.confirm(jobsCopy.alerts.closeConfirm(getJobTitle(job, language)))) return
       try {
         const res = await apiService.updateBusinessJob(job.id, { status: 2 })
         if (res?.success) loadJobs(searchInput.trim())
-        else window.alert(res?.message || 'Không thể đóng JD')
+        else window.alert(res?.message || jobsCopy.alerts.closeFailed)
       } catch {
-        window.alert('Không thể đóng JD')
+        window.alert(jobsCopy.alerts.closeFailed)
       }
     }
   }
@@ -705,9 +695,9 @@ const JobManagement = () => {
           <div className="w-full space-y-3 px-1 lg:px-2">
             <header className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h1 className="text-lg font-bold text-slate-900 lg:text-xl">Quản lý JD</h1>
+                <h1 className="text-lg font-bold text-slate-900 lg:text-xl">{jobsCopy.title}</h1>
                 <p className="mt-1 text-xs text-slate-500 lg:text-sm">
-                  Quản lý các vị trí tuyển dụng và theo dõi tình trạng tuyển dụng
+                  {jobsCopy.subtitle}
                 </p>
               </div>
               <button
@@ -717,7 +707,7 @@ const JobManagement = () => {
                 style={{ backgroundColor: JD_NAVY_MID }}
               >
                 <Plus className="h-4 w-4" />
-                Tạo JD mới
+                {jobsCopy.createJd}
               </button>
             </header>
 
@@ -728,7 +718,7 @@ const JobManagement = () => {
                     type="text"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder="Tìm kiếm theo tên vị trí, mã JD, từ khóa..."
+                    placeholder={jobsCopy.searchPlaceholder}
                     className="min-w-0 flex-1 bg-transparent pr-8 text-xs text-slate-800 outline-none placeholder:text-slate-400 lg:text-sm"
                   />
                   <Search className="pointer-events-none absolute right-3 h-4 w-4 text-slate-400" />
@@ -740,51 +730,51 @@ const JobManagement = () => {
                   className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
-                  Xóa bộ lọc
+                  {commonCopy.clearFilters}
                 </button>
               </div>
 
               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <JobFilterField label="Trạng thái">
+                <JobFilterField label={jobsCopy.filters.status}>
                   <FilterSelectDropdown
                     value={statusTab}
                     onChange={handleStatusFilterChange}
-                    options={STATUS_FILTER_OPTIONS}
-                    placeholder="Tất cả trạng thái"
+                    options={statusFilterOptions}
+                    placeholder={jobsCopy.filters.allStatus}
                     className={FILTER_SELECT_CLASS}
                     maxPanelHeight={220}
                   />
                 </JobFilterField>
-                <JobFilterField label="Ngành nghề">
+                <JobFilterField label={jobsCopy.filters.category}>
                   <FilterSelectDropdown
                     value={categoryFilter}
                     onChange={setCategoryFilter}
                     options={categoryOptions}
-                    placeholder="Tất cả ngành nghề"
+                    placeholder={jobsCopy.filters.allCategory}
                     searchable
-                    searchPlaceholder="Tìm ngành nghề..."
+                    searchPlaceholder={jobsCopy.filters.searchCategory}
                     className={FILTER_SELECT_CLASS}
                     maxPanelHeight={240}
                   />
                 </JobFilterField>
-                <JobFilterField label="Địa điểm làm việc">
+                <JobFilterField label={jobsCopy.filters.location}>
                   <FilterSelectDropdown
                     value={locationFilter}
                     onChange={setLocationFilter}
                     options={locationOptions}
-                    placeholder="Tất cả địa điểm"
+                    placeholder={jobsCopy.filters.allLocation}
                     searchable
-                    searchPlaceholder="Tìm địa điểm..."
+                    searchPlaceholder={jobsCopy.filters.searchLocation}
                     className={FILTER_SELECT_CLASS}
                     maxPanelHeight={240}
                   />
                 </JobFilterField>
-                <JobFilterField label="Ngày cập nhật">
+                <JobFilterField label={jobsCopy.filters.date}>
                   <FilterSelectDropdown
                     value={dateFilter}
                     onChange={setDateFilter}
-                    options={DATE_FILTER_OPTIONS}
-                    placeholder="Tất cả thời gian"
+                    options={dateFilterOptions}
+                    placeholder={jobsCopy.filters.allTime}
                     className={FILTER_SELECT_CLASS}
                     maxPanelHeight={200}
                   />
@@ -793,7 +783,7 @@ const JobManagement = () => {
 
               <div className="mt-3 flex flex-wrap items-end justify-between gap-3 border-t border-slate-100 pt-3">
                 <div className="flex flex-wrap gap-4">
-                  {STATUS_TABS.map((tab) => (
+                  {statusTabs.map((tab) => (
                     <button
                       key={tab.id}
                       type="button"
@@ -810,14 +800,14 @@ const JobManagement = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative flex items-center gap-2">
-                    <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">Sắp xếp:</span>
+                    <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">{commonCopy.sortLabel}</span>
                     <div className="relative">
                       <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
                         className="appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-2.5 pr-7 text-[11px] font-medium text-slate-700 outline-none"
                       >
-                        {SORT_OPTIONS.map((opt) => (
+                        {sortOptions.map((opt) => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
                       </select>
@@ -829,7 +819,7 @@ const JobManagement = () => {
                       type="button"
                       onClick={() => setViewMode('list')}
                       className={`rounded-md p-1.5 ${viewMode === 'list' ? 'bg-[#0077B6] text-white' : 'text-slate-400 hover:text-slate-600'}`}
-                      aria-label="Danh sách"
+                      aria-label={commonCopy.listView}
                     >
                       <LayoutList className="h-4 w-4" />
                     </button>
@@ -837,7 +827,7 @@ const JobManagement = () => {
                       type="button"
                       onClick={() => setViewMode('grid')}
                       className={`rounded-md p-1.5 ${viewMode === 'grid' ? 'bg-[#0077B6] text-white' : 'text-slate-400 hover:text-slate-600'}`}
-                      aria-label="Lưới"
+                      aria-label={commonCopy.gridView}
                     >
                       <LayoutGrid className="h-4 w-4" />
                     </button>
@@ -853,8 +843,8 @@ const JobManagement = () => {
             ) : totalListItems === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-200 bg-white py-16 text-center">
                 <Briefcase className="mx-auto h-10 w-10 text-slate-300" />
-                <p className="mt-3 text-sm font-medium text-slate-600">Chưa có JD nào</p>
-                <p className="mt-1 text-xs text-slate-400">Bấm &quot;Tạo JD mới&quot; để bắt đầu với AI Assistant</p>
+                <p className="mt-3 text-sm font-medium text-slate-600">{jobsCopy.empty.title}</p>
+                <p className="mt-1 text-xs text-slate-400">{jobsCopy.empty.hint}</p>
                 <button
                   type="button"
                   onClick={() => navigate('/business/jobs/create')}
@@ -862,7 +852,7 @@ const JobManagement = () => {
                   style={{ backgroundColor: JD_NAVY_MID }}
                 >
                   <Plus className="h-4 w-4" />
-                  Tạo JD mới
+                  {jobsCopy.createJd}
                 </button>
               </div>
             ) : (
@@ -870,7 +860,14 @@ const JobManagement = () => {
                 <div className={viewMode === 'grid' ? 'grid grid-cols-1 gap-2 md:grid-cols-2' : 'flex flex-col gap-2'}>
                   {pagedListItems.map((item) => (
                     item.type === 'draft' ? (
-                      <DraftThreadRow key={item.thread.id} thread={item.thread} onOpen={openDraftThread} />
+                      <DraftThreadRow
+                        key={item.thread.id}
+                        thread={item.thread}
+                        onOpen={openDraftThread}
+                        jobsCopy={jobsCopy}
+                        commonCopy={commonCopy}
+                        language={language}
+                      />
                     ) : (
                       <JobListRow
                         key={item.job.id}
@@ -878,6 +875,10 @@ const JobManagement = () => {
                         stats={getJobStats(item.job, jobStatsMap)}
                         onOpen={openJobDetail}
                         onMenuAction={handleMenuAction}
+                        language={language}
+                        jobsCopy={jobsCopy}
+                        commonCopy={commonCopy}
+                        menuItems={menuItems}
                       />
                     )
                   ))}
@@ -891,6 +892,7 @@ const JobManagement = () => {
                     setPageSize(size)
                     setPage(1)
                   }}
+                  paginationCopy={commonCopy.pagination}
                 />
               </>
             )}

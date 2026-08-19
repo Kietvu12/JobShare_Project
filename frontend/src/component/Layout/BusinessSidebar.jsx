@@ -20,6 +20,8 @@ import {
 import { useLanguage } from '../../context/LanguageContext';
 import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont';
 import apiService from '../../services/api';
+import BusinessAppLanguageSwitcher from './BusinessAppLanguageSwitcher';
+import useBusinessAppCopy from '../../hooks/useBusinessAppCopy';
 
 /** Màu chủ đạo — active state & biểu đồ */
 const BRAND = {
@@ -58,6 +60,7 @@ const I18N = {
     collapseSidebar: 'Thu gọn sidebar',
     expandSidebar: 'Mở rộng sidebar',
     closeMenu: 'Đóng menu',
+    language: 'Ngôn ngữ',
   },
   en: {
     dashboard: 'Dashboard',
@@ -89,6 +92,7 @@ const I18N = {
     collapseSidebar: 'Collapse sidebar',
     expandSidebar: 'Expand sidebar',
     closeMenu: 'Close menu',
+    language: 'Language',
   },
   ja: {
     dashboard: 'ダッシュボード',
@@ -120,6 +124,7 @@ const I18N = {
     collapseSidebar: 'サイドバーを折りたたむ',
     expandSidebar: 'サイドバーを展開',
     closeMenu: 'メニューを閉じる',
+    language: '言語',
   },
 };
 
@@ -215,6 +220,7 @@ function NavSpacer({ collapsed }) {
 const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) => {
   const { pathname } = useLocation();
   const { language } = useLanguage();
+  const appCopy = useBusinessAppCopy();
   const t = I18N[language] || I18N.vi;
 
   const [collapsed, setCollapsed] = useState(() => {
@@ -391,6 +397,25 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
     })
   );
 
+  const renderLanguageBlock = ({ forceExpanded = false } = {}) => {
+    const showExpanded = forceExpanded || !collapsed;
+    return (
+      <div
+        className={`shrink-0 border-t border-slate-100 bg-white p-2 ${
+          showExpanded ? '' : 'flex flex-col items-center'
+        }`}
+      >
+        <BusinessAppLanguageSwitcher
+          compact={showExpanded}
+          collapsed={!showExpanded}
+          showLabel={showExpanded}
+          label={appCopy.layout.language}
+          className={showExpanded ? 'w-full' : ''}
+        />
+      </div>
+    );
+  };
+
   const renderHealthBlock = ({ forceExpanded = false } = {}) => {
     const showExpanded = forceExpanded || !collapsed;
     return (
@@ -501,6 +526,7 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
           {renderSidebarSections()}
         </nav>
 
+        {renderLanguageBlock()}
         {renderHealthBlock()}
       </aside>
 
@@ -545,6 +571,7 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
             {renderSidebarSections({ forceExpanded: true, onNavigate: handleMobileNavigate })}
           </nav>
 
+          {renderLanguageBlock({ forceExpanded: true })}
           {renderHealthBlock({ forceExpanded: true })}
         </aside>
       </div>

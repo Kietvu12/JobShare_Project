@@ -12,9 +12,15 @@ import {
 } from 'lucide-react';
 import useBusinessUser from '../../hooks/useBusinessUser';
 import { useLanguage } from '../../context/LanguageContext';
+import useBusinessAppCopy from '../../hooks/useBusinessAppCopy';
+import {
+  formatBusinessRelativeTime,
+  getHomepageNews,
+  getHomepageSolutionCards,
+} from '../../i18n/businessAppI18n';
 import { localizeNotification } from '../../utils/notificationI18n';
 import apiService from '../../services/api';
-import BusinessQuickActionsPanel, { DEFAULT_BUSINESS_QUICK_ACTIONS } from '../../component/Bussiness/BusinessQuickActionsPanel.jsx';
+import BusinessQuickActionsPanel, { getDefaultBusinessQuickActions } from '../../component/Bussiness/BusinessQuickActionsPanel.jsx';
 import BusinessServiceCardTag, { getBusinessServiceTag } from '../../component/Bussiness/BusinessServiceCardTag.jsx';
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif";
@@ -24,30 +30,7 @@ function getNotificationTimestamp(notification) {
 }
 
 function formatNotificationRelativeTime(ts, language = 'vi') {
-  if (!ts) return '';
-  const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return '';
-  const diffMs = Date.now() - d.getTime();
-  const mins = Math.floor(diffMs / 60000);
-  const hours = Math.floor(diffMs / 3600000);
-  const days = Math.floor(diffMs / 86400000);
-
-  if (language === 'en') {
-    if (mins < 1) return 'Just now';
-    if (mins < 60) return `${mins} min ago`;
-    if (hours < 24) return `${hours} hr ago`;
-    return `${days} day${days === 1 ? '' : 's'} ago`;
-  }
-  if (language === 'ja') {
-    if (mins < 1) return 'たった今';
-    if (mins < 60) return `${mins}分前`;
-    if (hours < 24) return `${hours}時間前`;
-    return `${days}日前`;
-  }
-  if (mins < 1) return 'Vừa xong';
-  if (mins < 60) return `${mins} phút trước`;
-  if (hours < 24) return `${hours} giờ trước`;
-  return `${days} ngày trước`;
+  return formatBusinessRelativeTime(ts, language);
 }
 
 function getNotificationVisual(notification, localized) {
@@ -60,89 +43,12 @@ function getNotificationVisual(notification, localized) {
   };
 }
 
-const news = [
-  {
-    title: 'Báo cáo thị trường lao động IT Nhật Bản Q2/2024',
-    date: '20/05/2024',
-    img: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=200&h=150&fit=crop',
-  },
-  {
-    title: '5 cách thu hút ứng viên kỹ thuật hiệu quả',
-    date: '18/05/2024',
-    img: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=200&h=150&fit=crop',
-  },
-];
-
-const solutionCards = [
-  {
-    num: '01',
-    tagId: 'direct-scout',
-    title: 'Scout Trực Tiếp',
-    subtitle: 'Tự chủ tìm kiếm ứng viên',
-    variant: 'brandLight',
-    icon: Coins,
-    painPoint: 'Khó tìm đủ ứng viên phù hợp trong thời gian ngắn',
-    solution: 'Tự tìm kiếm và tiếp cận ứng viên từ kho hồ sơ chất lượng',
-    features: [
-      'Tìm kiếm AI theo kỹ năng & vị trí',
-      'Xem hồ sơ ẩn danh trước khi unlock',
-      'Chủ động chat & tiếp cận ứng viên',
-    ],
-    suitableFor: 'Doanh nghiệp chủ động tìm ứng viên',
-    path: '/business/scout',
-  },
-  {
-    num: '02',
-    tagId: 'managed-scout',
-    title: 'Scout Ủy Thác',
-    subtitle: 'WS hỗ trợ tìm & tiếp cận',
-    variant: 'neutral',
-    icon: UserPlus,
-    painPoint: 'Bận rộn, thiếu thời gian sàng lọc và tiếp cận ứng viên',
-    solution: 'Workstation tìm kiếm, đánh giá và tiếp cận ứng viên thay bạn',
-    features: [
-      'WS chủ động tìm & gửi ứng viên theo JD',
-      'WS trao đổi điều kiện & sắp xếp phỏng vấn',
-      'Báo cáo tiến độ minh bạch thường xuyên',
-    ],
-    suitableFor: 'Doanh nghiệp bận rộn, thiếu thời gian tuyển dụng',
-    path: '/business/scout',
-  },
-  {
-    num: '03',
-    tagId: 'employer-branding',
-    title: 'Thương hiệu Tuyển dụng',
-    subtitle: 'Thương hiệu tuyển dụng',
-    variant: 'primary',
-    icon: Sparkles,
-    painPoint: 'Ứng viên chất lượng không biết đến thương hiệu tuyển dụng của bạn',
-    solution: 'Xây dựng trang tuyển dụng chuyên nghiệp và quảng bá đa kênh',
-    features: [
-      'Thiết kế landing page tuyển dụng chuyên nghiệp',
-      'Quản lý & đăng tin tuyển dụng đa kênh',
-      'Báo cáo phân tích hiệu quả thương hiệu',
-    ],
-    suitableFor: 'Doanh nghiệp muốn nâng cao thương hiệu tuyển dụng',
-    path: '/business/saiyo',
-  },
-  {
-    num: '04',
-    tagId: 'hr-partner-network',
-    title: 'Mạng lưới Đối tác Tuyển dụng',
-    subtitle: 'Mạng lưới mở rộng',
-    variant: 'neutral',
-    icon: Users2,
-    painPoint: 'Cần tuyển số lượng lớn nhưng kênh tuyển dụng hiện tại quá hẹp',
-    solution: 'Mở rộng kênh qua mạng lưới CTV HR Partner trên toàn quốc',
-    features: [
-      'Tiếp cận mạng lưới CTV HR Partner rộng khắp',
-      'Nhận ứng viên đề cử chất lượng theo job',
-      'Thanh toán theo kết quả ứng viên đạt yêu cầu',
-    ],
-    suitableFor: 'Doanh nghiệp tuyển số lượng lớn hoặc mở rộng kênh nhanh',
-    path: '/business/candidate-sharing',
-  },
-];
+const SOLUTION_CARD_ICONS = {
+  'direct-scout': Coins,
+  'managed-scout': UserPlus,
+  'employer-branding': Sparkles,
+  'hr-partner-network': Users2,
+};
 
 const CARD_SURFACE = {
   brandLight: 'bg-[#e8f4fa] text-slate-900',
@@ -223,7 +129,7 @@ const homepageStyles = `
   }
 `;
 
-function SolutionCard({ card, onUse }) {
+function SolutionCard({ card, onUse, labels }) {
   const isOnDark = card.variant === 'primary';
   const surface = CARD_SURFACE[card.variant] || CARD_SURFACE.neutral;
   const DecoIcon = card.icon;
@@ -254,7 +160,7 @@ function SolutionCard({ card, onUse }) {
               ? 'bg-white/15 text-white hover:bg-white/25'
               : 'bg-white text-slate-600 shadow-sm ring-1 ring-slate-100 hover:text-[#0077B6]'
           }`}
-          aria-label={`Mở ${card.title}`}
+          aria-label={labels.openCard(card.title)}
         >
           <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
         </button>
@@ -301,7 +207,7 @@ function SolutionCard({ card, onUse }) {
         style={{ borderColor: `${frameColor}66` }}
       >
         <p className={`text-[10px] leading-snug sm:text-[11px] ${isOnDark ? 'text-white/90' : 'text-slate-600'}`}>
-          <span className={`font-semibold ${isOnDark ? 'text-white' : 'text-slate-700'}`}>Phù hợp:</span>
+          <span className={`font-semibold ${isOnDark ? 'text-white' : 'text-slate-700'}`}>{labels.suitableFor}</span>
           {' '}
           {card.suitableFor}
         </p>
@@ -313,6 +219,9 @@ function SolutionCard({ card, onUse }) {
 
 function HomepageSidebar({ onNavigate }) {
   const { language } = useLanguage();
+  const copy = useBusinessAppCopy();
+  const news = useMemo(() => getHomepageNews(language), [language]);
+  const quickActions = useMemo(() => getDefaultBusinessQuickActions(language), [language]);
   const [notifList, setNotifList] = useState([]);
   const [notifUnread, setNotifUnread] = useState(0);
   const [notifLoading, setNotifLoading] = useState(true);
@@ -371,7 +280,7 @@ function HomepageSidebar({ onNavigate }) {
   return (
     <div className="flex min-h-0 flex-col gap-3">
       <BusinessQuickActionsPanel
-        actions={DEFAULT_BUSINESS_QUICK_ACTIONS}
+        actions={quickActions}
         onActionClick={(a) => {
           if (a.path) onNavigate(a.path);
         }}
@@ -380,7 +289,7 @@ function HomepageSidebar({ onNavigate }) {
       <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="flex items-center gap-2 text-xs font-bold text-slate-900">
-            Thông báo
+            {copy.homepage.notifications}
             {notifUnread > 0 ? (
               <span className="rounded-full bg-[#0077B6] px-1.5 py-0.5 text-[9px] font-bold text-white">
                 {notifUnread > 99 ? '99+' : notifUnread}
@@ -392,7 +301,7 @@ function HomepageSidebar({ onNavigate }) {
             className="shrink-0 text-[10px] font-semibold text-[#0077B6]"
             onClick={() => window.dispatchEvent(new CustomEvent('business-notifications:open'))}
           >
-            Xem tất cả
+            {copy.homepage.viewAll}
           </button>
         </div>
         <div className="flex flex-col divide-y divide-slate-100">
@@ -401,7 +310,7 @@ function HomepageSidebar({ onNavigate }) {
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           ) : notifList.length === 0 ? (
-            <p className="py-6 text-center text-[10px] text-slate-400">Không có thông báo.</p>
+            <p className="py-6 text-center text-[10px] text-slate-400">{copy.homepage.noNotifications}</p>
           ) : notifList.map((n) => {
             const localized = localizeNotification(n, language);
             const visual = getNotificationVisual(n, localized);
@@ -433,9 +342,9 @@ function HomepageSidebar({ onNavigate }) {
 
       <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="text-xs font-bold text-slate-900">Tin tức &amp; Insights</h2>
+          <h2 className="text-xs font-bold text-slate-900">{copy.homepage.newsInsights}</h2>
           <button type="button" className="shrink-0 text-[10px] font-semibold text-[#0077B6]">
-            Xem tất cả
+            {copy.homepage.viewAll}
           </button>
         </div>
         <div className="flex flex-col gap-3">
@@ -454,13 +363,13 @@ function HomepageSidebar({ onNavigate }) {
   );
 }
 
-function HomepageMain({ displayName, onNavigate }) {
+function HomepageMain({ displayName, onNavigate, copy, cardLabels, solutionCards }) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       <header className="shrink-0">
-        <h1 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl">Xin chào, {displayName}</h1>
+        <h1 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl">{copy.homepage.greeting(displayName)}</h1>
         <p className="mt-1 text-xs leading-snug text-slate-600 sm:text-sm">
-          JobShare giúp doanh nghiệp tìm kiếm, tiếp cận và quản lý ứng viên hiệu quả.
+          {copy.homepage.subtitle}
         </p>
       </header>
 
@@ -471,23 +380,23 @@ function HomepageMain({ displayName, onNavigate }) {
             className="biz-hp-solution-card-wrap"
             style={{ animationDelay: `${0.06 + index * 0.1}s` }}
           >
-            <SolutionCard card={card} onUse={onNavigate} />
+            <SolutionCard card={card} onUse={onNavigate} labels={cardLabels} />
           </div>
         ))}
       </div>
 
       <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="min-w-0 flex-1 text-xs leading-snug text-slate-700">
-          <span className="font-semibold text-slate-900">Không chắc giải pháp nào phù hợp?</span>
+          <span className="font-semibold text-slate-900">{copy.homepage.consultTitle}</span>
           {' '}
-          JobShare tư vấn miễn phí cho doanh nghiệp của bạn.
+          {copy.homepage.consultBody}
         </p>
         <button
           type="button"
           onClick={() => onNavigate('/business/messages?tab=ws')}
           className="shrink-0 rounded-lg bg-[#0077B6] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#006399]"
         >
-          Nhận tư vấn ngay
+          {copy.homepage.consultCta}
         </button>
       </div>
     </div>
@@ -497,6 +406,22 @@ function HomepageMain({ displayName, onNavigate }) {
 const Homepage = () => {
   const navigate = useNavigate();
   const { contactName, companyName } = useBusinessUser();
+  const { language } = useLanguage();
+  const copy = useBusinessAppCopy();
+  const solutionCards = useMemo(
+    () => getHomepageSolutionCards(language).map((card) => ({
+      ...card,
+      icon: SOLUTION_CARD_ICONS[card.tagId] || Coins,
+    })),
+    [language],
+  );
+  const cardLabels = useMemo(
+    () => ({
+      suitableFor: copy.homepage.suitableFor,
+      openCard: copy.homepage.openCard,
+    }),
+    [copy],
+  );
   const displayName = contactName || companyName || 'bạn';
   const handleNavigate = useMemo(() => (path) => navigate(path), [navigate]);
 
@@ -510,7 +435,13 @@ const Homepage = () => {
         <div className="business-homepage-ui w-full min-h-0 p-2.5 sm:p-3 xl:h-full xl:flex xl:flex-col">
           <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:h-full xl:grid-cols-[minmax(0,1fr)_minmax(196px,228px)] xl:gap-3 xl:overflow-hidden">
             <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col xl:h-full xl:overflow-y-auto xl:pr-0.5">
-              <HomepageMain displayName={displayName} onNavigate={handleNavigate} />
+              <HomepageMain
+                displayName={displayName}
+                onNavigate={handleNavigate}
+                copy={copy}
+                cardLabels={cardLabels}
+                solutionCards={solutionCards}
+              />
             </div>
 
             <div className="business-homepage-scroll scrollbar-hide min-h-0 xl:h-full xl:overflow-y-auto xl:pr-0.5">

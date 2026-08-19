@@ -25,7 +25,8 @@ import {
   simpleCommissionToPayload,
 } from '../../utils/businessSimpleCommission'
 import { normalizeJobSalaryCurrency } from '../../utils/jobSalaryCurrency'
-import BusinessQuickActionsPanel, { DEFAULT_BUSINESS_QUICK_ACTIONS } from '../../component/Bussiness/BusinessQuickActionsPanel.jsx'
+import { useLanguage } from '../../context/LanguageContext'
+import BusinessQuickActionsPanel, { getDefaultBusinessQuickActions } from '../../component/Bussiness/BusinessQuickActionsPanel.jsx'
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 const BRAND = '#0077B6'
@@ -166,6 +167,9 @@ const onboardNews = [
 ]
 
 function OnboardingSidebar({ onNavigate }) {
+  const { language } = useLanguage()
+  const quickActions = useMemo(() => getDefaultBusinessQuickActions(language), [language])
+
   const handleAction = (item) => {
     if (item.path) onNavigate(item.path)
   }
@@ -173,7 +177,7 @@ function OnboardingSidebar({ onNavigate }) {
   return (
     <div className="flex min-h-0 flex-col gap-3 xl:h-full xl:min-h-0 xl:overflow-y-auto xl:pr-0.5 business-homepage-scroll scrollbar-hide">
       <BusinessQuickActionsPanel
-        actions={DEFAULT_BUSINESS_QUICK_ACTIONS}
+        actions={quickActions}
         onActionClick={handleAction}
       />
 

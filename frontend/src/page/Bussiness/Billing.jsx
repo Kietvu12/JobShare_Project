@@ -15,6 +15,9 @@ import {
   TrendingDown,
 } from 'lucide-react';
 import apiService from '../../services/api';
+import useBusinessAppCopy from '../../hooks/useBusinessAppCopy';
+import { useLanguage } from '../../context/LanguageContext';
+import { getBillingPaymentTabs } from '../../i18n/businessAppI18n';
 import BillingPaymentDetailPanel, { PaymentTypeIcon } from '../../component/Bussiness/BillingPaymentDetailPanel';
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif";
@@ -27,21 +30,6 @@ const billingStyles = `
   .billing-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
   .billing-scroll, .billing-detail-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
 `;
-
-const PAYMENT_TABS = [
-  { key: 'all', label: 'Tất cả' },
-  { key: 'unpaid', label: 'Thanh toán cần xử lý' },
-  { key: 'processing', label: 'Đang xử lý' },
-  { key: 'paid', label: 'Đã thanh toán' },
-  { key: 'draft', label: 'Draft' },
-];
-
-const PROCESS_STEPS = [
-  'Workstation tạo yêu cầu',
-  'Doanh nghiệp nhận thông báo',
-  'Trao đổi & xác nhận',
-  'Xác nhận thanh toán',
-];
 
 function SummaryCard({ icon: Icon, iconBg, iconColor, title, value, subValue, linkLabel, onLink, accent }) {
   return (
@@ -80,6 +68,11 @@ function SummaryCard({ icon: Icon, iconBg, iconColor, title, value, subValue, li
 
 export default function Billing() {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const copy = useBusinessAppCopy();
+  const billingCopy = copy.billing;
+  const commonCopy = copy.common;
+  const paymentTabDefs = useMemo(() => getBillingPaymentTabs(language), [language]);
   const [loading, setLoading] = useState(true);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -101,13 +94,13 @@ export default function Billing() {
     try {
       const res = await apiService.getBusinessBillingDashboard();
       if (res?.success) setDashboard(res.data);
-      else setError(res?.message || 'Không tải được dữ liệu thanh toán');
+      else setError(res?.message || billingCopy.loadFailed);
     } catch (e) {
-      setError(e?.message || 'Không tải được dữ liệu thanh toán');
+      setError(e?.message || billingCopy.loadFailed);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [billingCopy.loadFailed]);
 
   const loadPayments = useCallback(async () => {
     setPaymentsLoading(true);
@@ -157,7 +150,7 @@ export default function Billing() {
     return pages;
   }, [totalPages]);
 
-  const paymentTabs = PAYMENT_TABS.map((tab) => ({
+  const paymentTabs = paymentTabDefs.map((tab) => ({
     ...tab,
     count: tabCounts[tab.key] ?? 0,
   }));
@@ -174,7 +167,7 @@ export default function Billing() {
         style={{ fontFamily: PAGE_FONT }}
       >
         <Loader2 className="h-5 w-5 animate-spin text-[#0077B6]" />
-        Đang tải...
+        {commonCopy.loading}
       </div>
     );
   }
@@ -202,8 +195,8 @@ export default function Billing() {
 
         <header className="flex shrink-0 flex-wrap items-start justify-between gap-2">
           <div>
-            <h1 className="text-base font-bold text-slate-900 sm:text-[17px]">Thanh toán & Hóa đơn</h1>
-            <p className="mt-0.5 text-[10px] text-slate-500 sm:text-[11px]">Quản lý yêu cầu thanh toán và hóa đơn</p>
+            <h1 className="text-base font-bold text-slate-900 sm:text-[17px]">{billingCopy.title}</h1>
+            <p className="mt-0.5 text-[10px] text-slate-500 sm:text-[11px]">{billingCopy.subtitle}</p>
           </div>
           <button
             type="button"
@@ -211,7 +204,7 @@ export default function Billing() {
             className="rounded-lg px-3 py-1.5 text-[10px] font-bold text-white sm:text-[11px]"
             style={{ background: BRAND }}
           >
-            Tạo yêu cầu dịch vụ
+            {billingCopy.createServiceRequest}
           </button>
         </header>
 
@@ -221,10 +214,10 @@ export default function Billing() {
             iconBg="#fee2e2"
             iconColor="#dc2626"
             accent="#dc2626"
-            title="Invoice chưa thanh toán"
+            title={billingCopy.summary.unpaid}
             value={paymentSummary?.unpaid?.count ?? 0}
             subValue={paymentSummary?.unpaid?.amountLabel || '0 VND'}
-            linkLabel="Xem chi tiết"
+            linkLabel={commonCopy.viewDetails}
             onLink={() => handleSummaryFilter('unpaid')}
           />
           <SummaryCard
@@ -232,10 +225,10 @@ export default function Billing() {
             iconBg="#ffedd5"
             iconColor="#ea580c"
             accent="#ea580c"
-            title="Đang xử lý"
+            title={billingCopy.summary.processing}
             value={paymentSummary?.processing?.count ?? 0}
             subValue={paymentSummary?.processing?.amountLabel || '0 VND'}
-            linkLabel="Xem chi tiết"
+            linkLabel={commonCopy.viewDetails}
             onLink={() => handleSummaryFilter('processing')}
           />
           <SummaryCard
@@ -243,10 +236,10 @@ export default function Billing() {
             iconBg="#dcfce7"
             iconColor="#16a34a"
             accent="#16a34a"
-            title="Đã thanh toán"
+            title={billingCopy.summary.paid}
             value={paymentSummary?.paid?.count ?? 0}
             subValue={paymentSummary?.paid?.amountLabel || '0 VND'}
-            linkLabel="Xem chi tiết"
+            linkLabel={commonCopy.viewDetails}
             onLink={() => handleSummaryFilter('paid')}
           />
           <SummaryCard
@@ -254,11 +247,11 @@ export default function Billing() {
             iconBg="#e8f4fa"
             iconColor="#0077B6"
             accent="#0077B6"
-            title="Chi phí tháng này"
+            title={billingCopy.summary.monthlyCost}
             value={paymentSummary?.monthlyCost?.amountLabel || '0 VND'}
             subValue={
               <span className="inline-flex items-center gap-1">
-                So với tháng trước
+                {billingCopy.summary.vsLastMonth}
                 {paymentSummary?.monthlyCost?.changeDirection === 'down' ? (
                   <TrendingDown className="h-3.5 w-3.5 text-emerald-600" />
                 ) : (
@@ -296,7 +289,7 @@ export default function Billing() {
                   <input
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder="Tìm theo mã thanh toán, loại, nội dung..."
+                    placeholder={billingCopy.searchPlaceholder}
                     className="min-w-0 flex-1 border-0 bg-transparent text-[10px] outline-none sm:text-[11px]"
                   />
                 </div>
@@ -304,7 +297,7 @@ export default function Billing() {
                   type="button"
                   onClick={() => { setSearchInput(''); setSearch(''); setPage(1); }}
                   className="flex shrink-0 rounded-lg border border-slate-200 bg-white p-1.5 hover:bg-slate-50"
-                  title="Xóa bộ lọc"
+                  title={billingCopy.clearFilterTitle}
                 >
                   <Filter className="h-3.5 w-3.5 text-slate-500" />
                 </button>
@@ -319,7 +312,7 @@ export default function Billing() {
                 <table className="w-full min-w-[720px] border-collapse text-[10px] sm:text-[11px]">
                   <thead className="sticky top-0 z-[1] bg-white">
                     <tr className="border-b border-slate-200 text-left text-[10px] font-semibold text-slate-400">
-                      {['Payment ID', 'Loại thanh toán', 'Liên quan', 'Số tiền', 'Deadline', 'Trạng thái', ''].map((h) => (
+                      {billingCopy.tableHeaders.map((h) => (
                         <th key={h || 'action'} className="px-2 py-2 font-semibold">{h}</th>
                       ))}
                     </tr>
@@ -328,7 +321,7 @@ export default function Billing() {
                     {payments.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="px-2 py-8 text-center text-[11px] text-slate-400">
-                          Chưa có yêu cầu thanh toán nào.
+                          {billingCopy.emptyPayments}
                         </td>
                       </tr>
                     ) : payments.map((row) => {
@@ -375,7 +368,7 @@ export default function Billing() {
               <div className="mt-2 flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2">
                 <div className="text-[10px] text-slate-500 sm:text-[11px]">
                   {pagination
-                    ? `Hiển thị ${pagination.from} – ${pagination.to} trên ${pagination.total} kết quả`
+                    ? commonCopy.pagination.showing(pagination.from, pagination.to, pagination.total)
                     : '—'}
                 </div>
                 <div className="flex items-center gap-2">
@@ -419,7 +412,7 @@ export default function Billing() {
                       className="appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-2 pr-7 text-xs text-slate-600"
                     >
                       {[10, 20, 50].map((n) => (
-                        <option key={n} value={n}>{n} / trang</option>
+                        <option key={n} value={n}>{billingCopy.perPage(n)}</option>
                       ))}
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -429,9 +422,9 @@ export default function Billing() {
             </div>
 
             <div className={`${CARD} shrink-0 p-3`}>
-              <h3 className="mb-3 text-[11px] font-bold text-slate-800 sm:text-xs">Quy trình yêu cầu thanh toán</h3>
+              <h3 className="mb-3 text-[11px] font-bold text-slate-800 sm:text-xs">{billingCopy.processTitle}</h3>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-                {PROCESS_STEPS.map((step, index) => (
+                {billingCopy.processSteps.map((step, index) => (
                   <div key={step} className="flex items-start gap-2">
                     <div
                       className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"

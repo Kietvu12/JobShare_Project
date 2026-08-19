@@ -1,48 +1,12 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Loader2, Search, X } from 'lucide-react'
 import apiService from '../../services/api'
 import { BUSINESS_UI_FONT } from '../../utils/businessUiFont'
+import { useLanguage } from '../../context/LanguageContext'
+import { getBrandingCopy, formatBrandingJobLabel } from '../../i18n/businessAppI18n'
 
 const BRAND = '#0077B6'
-
-const AD_CHANNELS = [
-  { id: 'facebook', label: 'Facebook' },
-  { id: 'instagram', label: 'Instagram' },
-  { id: 'linkedin', label: 'LinkedIn' },
-  { id: 'google', label: 'Google Ads' },
-]
-
-const EVENT_TYPES = [
-  { id: 'online', label: 'Online (webinar / livestream)' },
-  { id: 'offline', label: 'Offline (job fair / hội thảo)' },
-  { id: 'hybrid', label: 'Hybrid (kết hợp)' },
-]
-
-const EVENT_SCALES = [
-  { id: 'under50', label: 'Dưới 50 người' },
-  { id: '50-100', label: '50 – 100 người' },
-  { id: '100-300', label: '100 – 300 người' },
-  { id: '300plus', label: 'Trên 300 người' },
-]
-
-const PROFILE_FORMATS = [
-  { id: 'pdf', label: 'PDF (in ấn / gửi file)' },
-  { id: 'online', label: 'Online (trang web / microsite)' },
-  { id: 'both', label: 'Cả PDF & Online' },
-]
-
-const PROFILE_LANGUAGES = [
-  { id: 'vn', label: 'Tiếng Việt' },
-  { id: 'en', label: 'English' },
-  { id: 'jp', label: '日本語' },
-]
-
-function formatJobLabel(job) {
-  if (!job) return ''
-  const code = job.jobCode ? `[${job.jobCode}] ` : ''
-  return `${code}${job.title || 'JD không tên'}`
-}
 
 export default function BrandingServiceIntakeModal({
   open,
@@ -51,6 +15,10 @@ export default function BrandingServiceIntakeModal({
   onSubmit,
   submitting = false,
 }) {
+  const { language } = useLanguage()
+  const copy = useMemo(() => getBrandingCopy(language), [language])
+  const intake = copy.intake
+
   const isAds = serviceKey === 'recruitment_ads'
   const isEvent = serviceKey === 'recruitment_event'
   const isProfile = serviceKey === 'company_profile'
@@ -128,18 +96,18 @@ export default function BrandingServiceIntakeModal({
 
   const buildNote = () => {
     if (isAds) {
-      const channelLabels = channels.map((id) => AD_CHANNELS.find((c) => c.id === id)?.label).filter(Boolean)
+      const channelLabels = channels.map((id) => intake.adChannels.find((c) => c.id === id)?.label).filter(Boolean)
       const lines = [
         '--- Quảng cáo tuyển dụng ---',
-        selectedJob ? `JD: ${formatJobLabel(selectedJob)}` : 'JD: (chưa chọn)',
+        selectedJob ? `JD: ${formatBrandingJobLabel(selectedJob, language)}` : 'JD: (chưa chọn)',
         budget.trim() ? `Ngân sách dự kiến: ${budget.trim()}` : 'Ngân sách dự kiến: (chưa nhập)',
         channelLabels.length ? `Kênh mong muốn: ${channelLabels.join(', ')}` : 'Kênh mong muốn: (chưa chọn)',
       ]
       return lines.join('\n')
     }
     if (isEvent) {
-      const typeLabel = EVENT_TYPES.find((t) => t.id === eventType)?.label || eventType
-      const scaleLabel = EVENT_SCALES.find((s) => s.id === eventScale)?.label || eventScale
+      const typeLabel = intake.eventTypes.find((t) => t.id === eventType)?.label || eventType
+      const scaleLabel = intake.eventScales.find((s) => s.id === eventScale)?.label || eventScale
       const lines = [
         '--- Seminar & event tuyển dụng ---',
         `Loại sự kiện: ${typeLabel}`,
@@ -150,9 +118,9 @@ export default function BrandingServiceIntakeModal({
       return lines.join('\n')
     }
     if (isProfile) {
-      const formatLabel = PROFILE_FORMATS.find((f) => f.id === profileFormat)?.label || profileFormat
+      const formatLabel = intake.profileFormats.find((f) => f.id === profileFormat)?.label || profileFormat
       const langLabels = profileLanguages
-        .map((id) => PROFILE_LANGUAGES.find((l) => l.id === id)?.label)
+        .map((id) => intake.profileLangs.find((l) => l.id === id)?.label)
         .filter(Boolean)
       const lines = [
         '--- Company profile ---',
@@ -182,16 +150,8 @@ export default function BrandingServiceIntakeModal({
 
   if (!open || (!isAds && !isEvent && !isProfile)) return null
 
-  const title = isAds
-    ? 'Quảng cáo tuyển dụng'
-    : isEvent
-      ? 'Seminar & event tuyển dụng'
-      : 'Company profile'
-  const subtitle = isAds
-    ? 'Chọn JD, ngân sách và kênh quảng cáo để WS triển khai chính xác hơn.'
-    : isEvent
-      ? 'Cho WS biết loại sự kiện, thời gian và quy mô trước khi lên kế hoạch.'
-      : 'Chọn định dạng, ngôn ngữ và đính kèm tài liệu nguồn trước khi WS thiết kế.'
+  const title = isAds ? intake.adsTitle : isEvent ? intake.eventTitle : intake.profileTitle
+  const subtitle = isAds ? intake.adsSubtitle : isEvent ? intake.eventSubtitle : intake.profileSubtitle
 
   return createPortal(
     <div
@@ -203,7 +163,7 @@ export default function BrandingServiceIntakeModal({
     >
       <button
         type="button"
-        aria-label="Đóng"
+        aria-label={copy.template.close}
         className="absolute inset-0 bg-slate-900/45"
         onClick={() => !submitting && onClose?.()}
       />
@@ -213,7 +173,7 @@ export default function BrandingServiceIntakeModal({
             type="button"
             onClick={() => !submitting && onClose?.()}
             className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-slate-600"
-            aria-label="Đóng hộp thoại"
+            aria-label={copy.template.closeDialog}
           >
             <X className="h-4 w-4" />
           </button>
@@ -227,19 +187,19 @@ export default function BrandingServiceIntakeModal({
               <>
                 <section>
                   <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
-                    JD cần quảng cáo <span className="text-red-500">*</span>
+                    {intake.jdRequired} <span className="text-red-500">*</span>
                   </label>
                   {selectedJob ? (
                     <div className="flex items-center gap-2 rounded-lg border border-[#0077B6]/30 bg-[#e8f4fa]/50 px-3 py-2.5">
                       <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-800">
-                        {formatJobLabel(selectedJob)}
+                        {formatBrandingJobLabel(selectedJob, language)}
                       </span>
                       <button
                         type="button"
                         onClick={() => setSelectedJob(null)}
                         disabled={submitting}
                         className="shrink-0 rounded-md p-1 text-slate-400 hover:bg-white hover:text-slate-600"
-                        aria-label="Bỏ chọn JD"
+                        aria-label={intake.clearJd}
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -251,7 +211,7 @@ export default function BrandingServiceIntakeModal({
                         type="search"
                         value={jobQuery}
                         onChange={(e) => setJobQuery(e.target.value)}
-                        placeholder="Tìm theo tên hoặc mã JD..."
+                        placeholder={intake.searchJd}
                         disabled={submitting}
                         className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
                       />
@@ -271,7 +231,7 @@ export default function BrandingServiceIntakeModal({
                                 }}
                                 className="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
                               >
-                                {formatJobLabel(job)}
+                                {formatBrandingJobLabel(job, language)}
                               </button>
                             </li>
                           ))}
@@ -283,13 +243,13 @@ export default function BrandingServiceIntakeModal({
 
                 <section>
                   <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
-                    Ngân sách dự kiến (VNĐ/tháng) <span className="text-red-500">*</span>
+                    {intake.budget} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={budget}
                     onChange={(e) => setBudget(e.target.value)}
-                    placeholder="VD: 10.000.000 – 20.000.000"
+                    placeholder={intake.budgetPlaceholder}
                     disabled={submitting}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
                   />
@@ -297,10 +257,10 @@ export default function BrandingServiceIntakeModal({
 
                 <section>
                   <p className="mb-2 text-[11px] font-semibold text-slate-700 sm:text-xs">
-                    Kênh quảng cáo mong muốn <span className="text-red-500">*</span>
+                    {intake.channels} <span className="text-red-500">*</span>
                   </p>
                   <div className="grid grid-cols-2 gap-2">
-                    {AD_CHANNELS.map((ch) => {
+                    {intake.adChannels.map((ch) => {
                       const checked = channels.includes(ch.id)
                       return (
                         <label
@@ -334,7 +294,7 @@ export default function BrandingServiceIntakeModal({
               <>
                 <section>
                   <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
-                    Loại sự kiện <span className="text-red-500">*</span>
+                    {intake.eventType} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={eventType}
@@ -342,7 +302,7 @@ export default function BrandingServiceIntakeModal({
                     disabled={submitting}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs text-slate-800 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
                   >
-                    {EVENT_TYPES.map((t) => (
+                    {intake.eventTypes.map((t) => (
                       <option key={t.id} value={t.id}>{t.label}</option>
                     ))}
                   </select>
@@ -350,7 +310,7 @@ export default function BrandingServiceIntakeModal({
 
                 <section>
                   <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
-                    Thời gian dự kiến <span className="text-red-500">*</span>
+                    {intake.eventDate} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -364,7 +324,7 @@ export default function BrandingServiceIntakeModal({
 
                 <section>
                   <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
-                    Quy mô dự kiến <span className="text-red-500">*</span>
+                    {intake.eventScale} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={eventScale}
@@ -372,7 +332,7 @@ export default function BrandingServiceIntakeModal({
                     disabled={submitting}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs text-slate-800 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
                   >
-                    {EVENT_SCALES.map((s) => (
+                    {intake.eventScales.map((s) => (
                       <option key={s.id} value={s.id}>{s.label}</option>
                     ))}
                   </select>
@@ -380,13 +340,13 @@ export default function BrandingServiceIntakeModal({
 
                 <section>
                   <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
-                    Ghi chú thêm (tuỳ chọn)
+                    {intake.eventNote}
                   </label>
                   <textarea
                     value={eventNote}
                     onChange={(e) => setEventNote(e.target.value)}
                     rows={3}
-                    placeholder="Mục tiêu sự kiện, địa điểm, yêu cầu đặc biệt..."
+                    placeholder={intake.eventNotePlaceholder}
                     disabled={submitting}
                     className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
                   />
@@ -398,7 +358,7 @@ export default function BrandingServiceIntakeModal({
               <>
                 <section>
                   <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
-                    Định dạng đầu ra <span className="text-red-500">*</span>
+                    {intake.profileFormat} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={profileFormat}
@@ -406,7 +366,7 @@ export default function BrandingServiceIntakeModal({
                     disabled={submitting}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs text-slate-800 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
                   >
-                    {PROFILE_FORMATS.map((f) => (
+                    {intake.profileFormats.map((f) => (
                       <option key={f.id} value={f.id}>{f.label}</option>
                     ))}
                   </select>
@@ -414,10 +374,10 @@ export default function BrandingServiceIntakeModal({
 
                 <section>
                   <p className="mb-2 text-[11px] font-semibold text-slate-700 sm:text-xs">
-                    Ngôn ngữ <span className="text-red-500">*</span>
+                    {intake.profileLanguages} <span className="text-red-500">*</span>
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {PROFILE_LANGUAGES.map((lang) => {
+                    {intake.profileLangs.map((lang) => {
                       const checked = profileLanguages.includes(lang.id)
                       return (
                         <label
@@ -442,13 +402,13 @@ export default function BrandingServiceIntakeModal({
 
                 <section>
                   <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
-                    Tài liệu / link tham khảo (tuỳ chọn)
+                    {intake.profileMaterials}
                   </label>
                   <textarea
                     value={profileMaterials}
                     onChange={(e) => setProfileMaterials(e.target.value)}
                     rows={4}
-                    placeholder="Link logo, brochure, website công ty, bản nháp nội dung..."
+                    placeholder={intake.profileMaterialsPlaceholder}
                     disabled={submitting}
                     className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
                   />
@@ -456,13 +416,13 @@ export default function BrandingServiceIntakeModal({
 
                 <section>
                   <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
-                    Ghi chú thêm (tuỳ chọn)
+                    {intake.profileNote}
                   </label>
                   <textarea
                     value={profileNote}
                     onChange={(e) => setProfileNote(e.target.value)}
                     rows={2}
-                    placeholder="Tone giọng, màu thương hiệu, deadline mong muốn..."
+                    placeholder={intake.profileNotePlaceholder}
                     disabled={submitting}
                     className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
                   />
@@ -478,7 +438,7 @@ export default function BrandingServiceIntakeModal({
               disabled={submitting}
               className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60"
             >
-              Hủy
+              {intake.cancel}
             </button>
             <button
               type="submit"
@@ -486,7 +446,7 @@ export default function BrandingServiceIntakeModal({
               className="inline-flex items-center gap-2 rounded-lg bg-[#0077B6] px-4 py-2 text-sm font-semibold text-white hover:bg-[#006399] disabled:opacity-60"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Gửi yêu cầu tới WS
+              {intake.submit}
             </button>
           </div>
         </form>

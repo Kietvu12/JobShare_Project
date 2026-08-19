@@ -211,7 +211,7 @@ const AdminSidebar = () => {
     },
     {
       id: 'candidate-sharing',
-      label: 'Sàn CTV (DN)',
+      label: t.adminSidebarCandidateSharing,
       icon: Building2,
       path: '/admin/candidate-sharing',
       roles: [1, 2],

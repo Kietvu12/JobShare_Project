@@ -1,15 +1,20 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { DEFAULT_LOCALE, getInitialLocale, isSupportedLocale } from '../utils/localeRoutes';
 
-const LanguageContext = createContext();
-
-export const useLanguage = () => {
-  const context = useContext(LanguageContext);
-  if (!context) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
+function createFallbackLanguageApi() {
+  if (typeof window === 'undefined') {
+    return { language: DEFAULT_LOCALE, changeLanguage: () => {}, syncFromUrl: () => {} };
   }
-  return context;
-};
+  return {
+    language: getInitialLocale(window.location.pathname),
+    changeLanguage: () => {},
+    syncFromUrl: () => {},
+  };
+}
+
+const LanguageContext = createContext(createFallbackLanguageApi());
+
+export const useLanguage = () => useContext(LanguageContext);
 
 export const LanguageProvider = ({ children }) => {
   const [language, setLanguage] = useState(() => {
@@ -33,8 +38,13 @@ export const LanguageProvider = ({ children }) => {
     setLanguage(lang);
   }, []);
 
+  const value = useMemo(
+    () => ({ language, changeLanguage, syncFromUrl }),
+    [language, changeLanguage, syncFromUrl],
+  );
+
   return (
-    <LanguageContext.Provider value={{ language, changeLanguage, syncFromUrl }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );

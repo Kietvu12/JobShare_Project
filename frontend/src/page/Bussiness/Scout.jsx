@@ -19,8 +19,25 @@ import {
 } from '../../utils/scoutFilterOptions'
 import apiService from '../../services/api'
 import useBusinessUser from '../../hooks/useBusinessUser'
+import { useLanguage } from '../../context/LanguageContext'
+import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
+import {
+  getScoutSampleNews,
+  getScoutSampleNotifications,
+  getScoutSolutionCards,
+  getScoutFilterCopy,
+  formatScoutExperienceSeniorityLocalized,
+  getLocalizedScoutDisplayName,
+  getScoutWorkspaceCopy,
+  getScoutCompareTableRows,
+  getScoutPerformanceFeeTiers,
+  getScoutJobOptionLabel,
+  formatScoutLocaleNumber,
+  getDateLocale,
+} from '../../i18n/businessAppI18n'
+import { getLocalizedJobTitle } from '../../i18n/businessApp/jdBuilder'
 import { HomepageSidebar } from './Homepage'
-import BusinessQuickActionsPanel, { DEFAULT_BUSINESS_QUICK_ACTIONS } from '../../component/Bussiness/BusinessQuickActionsPanel.jsx'
+import BusinessQuickActionsPanel, { getDefaultBusinessQuickActions } from '../../component/Bussiness/BusinessQuickActionsPanel.jsx'
 import {
   buildScoreMapFromMatches,
   fetchAllBusinessScoutCandidates,
@@ -33,7 +50,8 @@ import CreditTopUpModal from '../../component/Bussiness/CreditTopUpModal'
 import creditIllustration from '../../assets/scout_credit_vi.png'
 import performanceIllustration from '../../assets/scout_per_vi.png'
 import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont'
-import { getScoutSkillTags, formatScoutExperienceSeniority, formatScoutDesiredSalary, formatScoutListLocation, isScoutEmptyDisplayValue, getScoutListSkillExcerpt } from '../../utils/scoutCandidateDisplay'
+import { getScoutSkillTags, formatScoutDesiredSalary, formatScoutListLocation, isScoutEmptyDisplayValue, getScoutListSkillExcerpt } from '../../utils/scoutCandidateDisplay'
+import { getLocalizedCandidateRole } from '../../utils/jobCategoryDisplay'
 import ScoutMatchBadge from '../../component/Bussiness/ScoutMatchBadge'
 
 const ICON_SM = { width: 10, height: 10 }
@@ -226,77 +244,19 @@ const scoutPageStyles = `
   }
 `
 
-const SCOUT_PERFORMANCE_FEE_TIERS = [
-  { level: 'Junior', range: '0 – 2 năm KN', fee: '15%', note: 'Vị trí entry / associate' },
-  { level: 'Mid', range: '2 – 7 năm KN', fee: '18 – 20%', note: 'Vị trí mid-level' },
-  { level: 'Senior', range: '7+ năm KN', fee: '20 – 25%', note: 'Lead / manager trở lên' },
-]
-
-const SCOUT_UNLOCK_COMPARE_ROWS = [
-  { label: 'Chi phí mở hồ sơ', credit: 'Tốn credit / hồ sơ', performance: 'Không tốn credit' },
-  { label: 'Thông tin liên hệ', credit: 'Email & SĐT ngay lập tức', performance: 'WS tiếp cận thay bạn' },
-  { label: 'Ai chủ động liên hệ', credit: 'Doanh nghiệp tự liên hệ', performance: 'Workstation hỗ trợ' },
-  { label: 'Phí khi tuyển thành công', credit: 'Chỉ credit mở hồ sơ', performance: '20% thu nhập năm ứng viên' },
-]
-
 const CARD_SURFACE = {
   brandLight: 'bg-[#e8f4fa] border border-[#cce5f0]/80 text-slate-900',
   neutral: 'bg-white border border-slate-200/90 text-slate-900',
 }
 
-const scoutSolutionCards = [
-  {
-    num: '01',
-    title: 'Scout Trực Tiếp',
-    subtitle: 'Tự chủ tìm kiếm & tiếp cận ứng viên',
-    variant: 'brandLight',
-    icon: Coins,
-    mode: 'credit',
-    painPoint: 'Khó tìm đủ ứng viên phù hợp trong thời gian ngắn',
-    solution: 'Tự tìm kiếm và tiếp cận ứng viên từ kho hồ sơ chất lượng',
-    features: [
-      'Tìm kiếm AI theo kỹ năng & vị trí',
-      'Xem hồ sơ ẩn danh trước khi unlock',
-      'Chủ động chat & tiếp cận ứng viên',
-    ],
-    suitableFor: 'Doanh nghiệp chủ động tìm ứng viên',
-    footerNote: 'Chỉ từ 1,000 credit · 1 credit = 1 lượt mở hồ sơ',
-  },
-  {
-    num: '02',
-    title: 'Scout Ủy Thác',
-    subtitle: 'WS hỗ trợ tìm kiếm & tiếp cận ứng viên',
-    variant: 'neutral',
-    icon: UserPlus,
-    mode: 'performance',
-    painPoint: 'Bận rộn, thiếu thời gian sàng lọc và tiếp cận ứng viên',
-    solution: 'Workstation tìm kiếm, đánh giá và tiếp cận ứng viên thay bạn',
-    features: [
-      'WS chủ động tìm & gửi ứng viên theo JD',
-      'WS trao đổi điều kiện & sắp xếp phỏng vấn',
-      'Gợi ý thay thế khi cần',
-    ],
-    suitableFor: 'Doanh nghiệp bận rộn, thiếu thời gian tuyển dụng',
-    slaLine: 'WS phản hồi ứng viên đầu tiên trong 48h',
-    footerNote: 'Không tốn credit mở hồ sơ · Phí 20% khi giới thiệu việc làm thành công',
-  },
-]
+const SCOUT_CARD_ICONS = {
+  credit: Coins,
+  performance: UserPlus,
+}
 
-const scoutNotifications = [
-  { dot: 'bg-[#0077B6]', text: 'Có 3 ứng viên mới phù hợp với Mechanical Engineer', time: '10 phút trước' },
-  { dot: 'bg-[#0077B6]', text: 'WS đã gửi 5 ứng viên gợi ý cho IT Developer', time: '1 giờ trước' },
-  { dot: 'bg-slate-400', text: 'Ứng viên T.N.H đã trả lời tin nhắn', time: '2 giờ trước' },
-  { dot: 'bg-rose-500', text: 'Credit Scout sắp hết — nạp thêm để tiếp tục unlock', time: '3 giờ trước', warn: true },
-]
-
-const scoutNews = [
-  { title: 'Báo cáo thị trường lao động IT Nhật Bản Q2/2024', date: '20/05/2024', img: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=200&h=150&fit=crop' },
-  { title: '5 cách tiếp cận ứng viên kỹ thuật hiệu quả qua Scout', date: '18/05/2024', img: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=200&h=150&fit=crop' },
-]
-
-function ScoutSolutionCard({ card, onStart, animationDelay = 0 }) {
+function ScoutSolutionCard({ card, onStart, animationDelay = 0, scoutCopy }) {
   const surface = CARD_SURFACE[card.variant] || CARD_SURFACE.neutral
-  const DecoIcon = card.icon
+  const DecoIcon = SCOUT_CARD_ICONS[card.mode] || Coins
   const bodyClass = 'text-slate-600'
   const mutedClass = 'text-slate-500'
 
@@ -334,7 +294,7 @@ function ScoutSolutionCard({ card, onStart, animationDelay = 0 }) {
 
         <div className="relative z-10 mt-3 shrink-0 border-t border-slate-200/80 pt-3">
           <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 sm:text-[11px]">
-            Phù hợp: {card.suitableFor}
+            {scoutCopy.suitableFor} {card.suitableFor}
           </span>
           {card.slaLine ? (
             <p className="mt-2 text-[10px] font-bold text-emerald-700 sm:text-[11px]">{card.slaLine}</p>
@@ -347,7 +307,7 @@ function ScoutSolutionCard({ card, onStart, animationDelay = 0 }) {
             onClick={() => onStart(card.mode)}
             className="mt-3 w-full rounded-lg bg-[#0077B6] py-2.5 text-xs font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:text-sm inline-flex items-center justify-center gap-1.5"
           >
-            Bắt đầu với {card.title}
+            {scoutCopy.startWith(card.title)}
             <ArrowRight className="h-4 w-4 shrink-0" />
           </button>
         </div>
@@ -357,21 +317,28 @@ function ScoutSolutionCard({ card, onStart, animationDelay = 0 }) {
 }
 
 function ScoutOnboardingSidebar({ onNavigate }) {
+  const { language } = useLanguage()
+  const copy = useBusinessAppCopy()
+  const scoutCopy = copy.scout
+  const quickActions = useMemo(() => getDefaultBusinessQuickActions(language), [language])
+  const scoutNotifications = useMemo(() => getScoutSampleNotifications(language), [language])
+  const scoutNews = useMemo(() => getScoutSampleNews(language), [language])
+
   const handleAction = (item) => {
     if (item.path) onNavigate(item.path)
   }
 
   return (
     <div className="flex min-h-0 flex-col gap-3 xl:h-full xl:overflow-y-auto xl:pr-0.5 business-homepage-scroll scrollbar-hide">
-      <BusinessQuickActionsPanel actions={DEFAULT_BUSINESS_QUICK_ACTIONS} onActionClick={handleAction} />
+      <BusinessQuickActionsPanel actions={quickActions} onActionClick={handleAction} />
 
       <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="flex items-center gap-2 text-xs font-bold text-slate-900">
-            Thông báo
+            {scoutCopy.notifications}
             <span className="rounded-full bg-[#0077B6] px-1.5 py-0.5 text-[9px] font-bold text-white">4</span>
           </h2>
-          <button type="button" className="shrink-0 text-[10px] font-semibold text-[#0077B6]">Xem tất cả</button>
+          <button type="button" className="shrink-0 text-[10px] font-semibold text-[#0077B6]">{copy.homepage.viewAll}</button>
         </div>
         <div className="flex flex-col divide-y divide-slate-100">
           {scoutNotifications.map((n) => (
@@ -392,8 +359,8 @@ function ScoutOnboardingSidebar({ onNavigate }) {
 
       <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="text-xs font-bold text-slate-900">Tin tức &amp; Insights</h2>
-          <button type="button" className="shrink-0 text-[10px] font-semibold text-[#0077B6]">Xem tất cả</button>
+          <h2 className="text-xs font-bold text-slate-900">{scoutCopy.newsInsights}</h2>
+          <button type="button" className="shrink-0 text-[10px] font-semibold text-[#0077B6]">{copy.homepage.viewAll}</button>
         </div>
         <div className="flex flex-col gap-3">
           {scoutNews.map((n) => (
@@ -443,26 +410,30 @@ function ScoutCandidateRowBody({
   hl = (text) => text,
   showNew = false,
 }) {
-  const position = candidate.desiredPosition || candidate.jobCategory?.name
-  const exp = formatScoutExperienceSeniority(candidate.experienceYears)
+  const { language } = useLanguage()
+  const copy = useBusinessAppCopy()
+  const chipLabels = copy.scout.chips
+  const newBadgeLabel = copy.scout.newBadge
+  const position = getLocalizedCandidateRole(candidate, language)
+  const exp = formatScoutExperienceSeniorityLocalized(candidate.experienceYears, language)
   const salary = formatScoutDesiredSalary(candidate)
   const location = formatScoutListLocation(candidate)
   const skillExcerpt = getScoutListSkillExcerpt(candidate)
   const chips = [
-    { label: 'Kinh nghiệm', value: exp },
-    { label: 'Khu vực', value: location },
-    { label: 'Lương', value: salary },
+    { label: chipLabels.experience, value: exp },
+    { label: chipLabels.location, value: location },
+    { label: chipLabels.salary, value: salary },
   ].filter((chip) => !isScoutEmptyDisplayValue(chip.value))
 
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
         <p className="scout-cand-title truncate text-slate-900">
-          {hl(getDisplayName(candidate))}
+          {hl(getLocalizedScoutDisplayName(candidate, language))}
         </p>
         {showNew ? (
           <span className="scout-cand-caption rounded-full bg-emerald-100 px-2 py-0.5 font-bold text-emerald-700">
-            Mới
+            {newBadgeLabel}
           </span>
         ) : null}
       </div>
@@ -473,7 +444,7 @@ function ScoutCandidateRowBody({
       ) : null}
       {Number.isFinite(Number(matchScore)) ? (
         <div className="mt-2">
-          <ScoutMatchBadge score={matchScore} className="scout-cand-meta !text-[12px] !px-2.5 !py-1" iconClassName="scout-cand-icon" />
+          <ScoutMatchBadge score={matchScore} language={language} className="scout-cand-meta !text-[12px] !px-2.5 !py-1" iconClassName="scout-cand-icon" />
         </div>
       ) : null}
       {chips.length > 0 ? (
@@ -492,10 +463,11 @@ function ScoutCandidateRowBody({
   )
 }
 
-function ScoutPreviewCandidateRow({ candidate, matchScore, scoutCreditCost, onExplore }) {
+function ScoutPreviewCandidateRow({ candidate, matchScore, scoutCreditCost, onExplore, language = 'vi' }) {
+  const ws = getScoutWorkspaceCopy(language)
   return (
     <div className="group flex gap-3 px-3 py-3 transition-colors hover:bg-slate-50/80 sm:gap-3.5 sm:px-4 sm:py-3.5">
-      <AvatarCircle candidate={candidate} size={40} />
+      <AvatarCircle candidate={candidate} size={40} language={language} />
       <div className="min-w-0 flex-1">
         <ScoutCandidateRowBody candidate={candidate} matchScore={matchScore} />
       </div>
@@ -503,7 +475,7 @@ function ScoutPreviewCandidateRow({ candidate, matchScore, scoutCreditCost, onEx
         type="button"
         onClick={onExplore}
         className="flex h-8 w-8 shrink-0 self-start items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition-colors hover:border-[#0077B6]/35 hover:bg-[#e8f4fa] hover:text-[#0077B6] sm:h-9 sm:w-9"
-        title={`Mở hồ sơ (${scoutCreditCost} credit)`}
+        title={ws.onboarding.unlockTitle(scoutCreditCost)}
       >
         <Lock className="h-4 w-4" />
       </button>
@@ -512,6 +484,14 @@ function ScoutPreviewCandidateRow({ candidate, matchScore, scoutCreditCost, onEx
 }
 
 function ScoutOnboardingView({ previewCandidates, previewScoreByCvId, scoutCreditCost, onStart, onExplore }) {
+  const { language } = useLanguage()
+  const copy = useBusinessAppCopy()
+  const scoutCopy = copy.scout
+  const ws = getScoutWorkspaceCopy(language)
+  const scoutSolutionCards = useMemo(
+    () => getScoutSolutionCards(language),
+    [language],
+  )
   const rankedPreviewCandidates = useMemo(
     () => rankPreviewCandidates(previewCandidates).slice(0, 5),
     [previewCandidates],
@@ -520,9 +500,9 @@ function ScoutOnboardingView({ previewCandidates, previewScoreByCvId, scoutCredi
   return (
     <div className="flex h-full min-h-0 flex-col gap-2 sm:gap-3">
       <header className="shrink-0">
-        <h1 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl">Scout</h1>
+        <h1 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl">{ws.onboarding.pageTitle}</h1>
         <p className="mt-1 max-w-4xl text-xs leading-snug text-slate-600 sm:text-sm">
-          JobShare giúp bạn tiếp cận đúng ứng viên nhanh hơn với Scout Trực Tiếp và Scout Ủy Thác.
+          {ws.onboarding.pageSubtitle}
         </p>
       </header>
 
@@ -533,6 +513,7 @@ function ScoutOnboardingView({ previewCandidates, previewScoreByCvId, scoutCredi
             card={card}
             onStart={onStart}
             animationDelay={0.06 + index * 0.1}
+            scoutCopy={scoutCopy}
           />
         ))}
       </div>
@@ -540,12 +521,12 @@ function ScoutOnboardingView({ previewCandidates, previewScoreByCvId, scoutCredi
       <div className="scout-candidates-list-ui mt-auto shrink-0 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
         <div className="flex flex-col gap-1 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
           <div>
-            <h2 className="scout-cand-title text-slate-900">Ứng viên tiềm năng gợi ý cho bạn</h2>
-            <p className="scout-cand-caption mt-0.5 text-slate-500">Xem trước hồ sơ ẩn danh trong kho Scout</p>
+            <h2 className="scout-cand-title text-slate-900">{ws.onboarding.previewTitle}</h2>
+            <p className="scout-cand-caption mt-0.5 text-slate-500">{ws.onboarding.previewSubtitle}</p>
           </div>
           <span className="scout-cand-caption inline-flex w-fit items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-500">
             <Lock className="h-3 w-3" />
-            Hồ sơ đang được ẩn danh
+            {ws.onboarding.anonymousBadge}
           </span>
         </div>
 
@@ -553,7 +534,7 @@ function ScoutOnboardingView({ previewCandidates, previewScoreByCvId, scoutCredi
           <div className="px-3 py-8 text-center sm:px-4 sm:py-10">
             <Users className="mx-auto h-8 w-8 text-slate-300" />
             <p className="mt-3 text-xs text-slate-500 sm:text-sm">
-              Chưa có gợi ý ứng viên — bấm &quot;Khám phá toàn bộ ứng viên&quot; để vào kho Scout.
+              {ws.onboarding.previewEmpty}
             </p>
           </div>
         ) : (
@@ -565,6 +546,7 @@ function ScoutOnboardingView({ previewCandidates, previewScoreByCvId, scoutCredi
                 matchScore={previewScoreByCvId[String(candidate.id)]}
                 scoutCreditCost={scoutCreditCost}
                 onExplore={onExplore}
+                language={language}
               />
             ))}
           </div>
@@ -576,7 +558,7 @@ function ScoutOnboardingView({ previewCandidates, previewScoreByCvId, scoutCredi
             onClick={onExplore}
             className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-[#0077B6]/35 hover:bg-[#f8fbfd] hover:text-[#0077B6] sm:rounded-xl sm:py-2.5 sm:text-sm"
           >
-            Khám phá toàn bộ ứng viên
+            {ws.onboarding.exploreAll}
             <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </button>
         </div>
@@ -637,18 +619,21 @@ function ScoutUnlockOptionCard({
 }
 
 function ScoutUnlockCompareTable() {
+  const { language } = useLanguage()
+  const compare = getScoutWorkspaceCopy(language).compareTable
+  const rows = getScoutCompareTableRows(language)
   return (
     <div className="scout-detail-ui mb-2 overflow-hidden rounded-lg border border-slate-200">
       <table className="scout-detail-body w-full text-left">
         <thead>
           <tr className="bg-slate-50 text-slate-500">
             <th className="px-2 py-1.5 font-semibold" style={{ width: '28%' }} />
-            <th className="px-2 py-1.5 font-semibold text-[#0077B6]">Scout Trực Tiếp</th>
-            <th className="px-2 py-1.5 font-semibold text-[#0077B6]">Scout Ủy Thác</th>
+            <th className="px-2 py-1.5 font-semibold text-[#0077B6]">{compare.directScout}</th>
+            <th className="px-2 py-1.5 font-semibold text-[#0077B6]">{compare.managedScout}</th>
           </tr>
         </thead>
         <tbody>
-          {SCOUT_UNLOCK_COMPARE_ROWS.map((row, idx) => (
+          {rows.map((row, idx) => (
             <tr key={row.label} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
               <td className="px-2 py-1.5 font-semibold text-slate-600">{row.label}</td>
               <td className="px-2 py-1.5 text-slate-700">{row.credit}</td>
@@ -714,27 +699,29 @@ function ScoutFilterPanel({
   hasActiveFilters,
   displayCount,
   listLoading,
+  language = 'vi',
 }) {
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [showJobCategoryModal, setShowJobCategoryModal] = useState(false)
+  const ws = getScoutWorkspaceCopy(language)
 
   const jobOptions = useMemo(() => [
-    { value: '', label: 'Tất cả ứng viên Scout' },
+    { value: '', label: ws.workspace.allScoutCandidates },
     ...jobs.map((job) => ({
       value: String(job.id),
-      label: job.title || job.titleEn || `JD #${job.id}`,
+      label: getScoutJobOptionLabel(job, language),
     })),
-  ], [jobs])
+  ], [jobs, language, ws.workspace.allScoutCandidates])
 
   const leadingBlock = (
-    <FilterBlock icon={Briefcase} label="Gắn JD (AI gợi ý)" compact>
+    <FilterBlock icon={Briefcase} label={ws.workspace.attachJd} compact>
       <FilterSelectDropdown
         value={selectedJobId || ''}
         onChange={onJobChange}
         options={jobOptions}
-        placeholder="Tất cả ứng viên Scout"
+        placeholder={ws.workspace.allScoutCandidates}
         searchable
-        searchPlaceholder="Tìm theo tên JD..."
+        searchPlaceholder={ws.workspace.searchJdPlaceholder}
         disabled={jobsLoading}
         className={SCOUT_FILTER_INPUT_CLASS}
         maxPanelHeight={220}
@@ -745,11 +732,11 @@ function ScoutFilterPanel({
   return (
     <section className="scout-workspace-filters shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-3 py-2.5">
-        <h2 className="text-xs font-bold text-gray-900">Bộ lọc tìm kiếm</h2>
+        <h2 className="text-xs font-bold text-gray-900">{ws.workspace.filterTitle}</h2>
         <div className="flex items-center gap-2">
           {hasActiveFilters ? (
             <button type="button" onClick={onClear} className="text-[9px] font-semibold text-[#0077B6] hover:underline">
-              Xóa điều kiện
+              {ws.workspace.clearFilters}
             </button>
           ) : null}
           <button
@@ -765,7 +752,7 @@ function ScoutFilterPanel({
               <Search className="h-3 w-3 text-gray-800" />
             )}
             <span className="text-[9px] font-semibold text-gray-800">
-              {`Tìm ${Number(displayCount || 0).toLocaleString('vi-VN')} hồ sơ`}
+              {ws.workspace.searchProfiles(displayCount, getDateLocale(language))}
             </span>
           </button>
         </div>
@@ -779,6 +766,7 @@ function ScoutFilterPanel({
           setSearchInput={setSearchInput}
           onOpenLocationModal={() => setShowLocationModal(true)}
           onOpenJobCategoryModal={() => setShowJobCategoryModal(true)}
+          language={language}
         />
       </div>
       <WorkLocationFilterModal
@@ -786,13 +774,13 @@ function ScoutFilterPanel({
         onClose={() => setShowLocationModal(false)}
         value={scoutFilters.locations}
         onConfirm={(locations) => setScoutFilters((prev) => ({ ...prev, locations }))}
-        language="vi"
-        rightPanelTitle="Chọn khu vực"
+        language={language}
+        rightPanelTitle={getScoutFilterCopy(language).locationModalTitle}
       />
       <JobCategoryPickerModal
         open={showJobCategoryModal}
         onClose={() => setShowJobCategoryModal(false)}
-        language="vi"
+        language={language}
         initialLeafId={scoutFilters.jobCategoryId || null}
         onConfirm={({ id, displayName }) => {
           setScoutFilters((prev) => ({
@@ -813,6 +801,7 @@ function ScoutCandidateListItem({
   highlightQuery,
   onOpenDetail,
   hl,
+  language = 'vi',
 }) {
   const showNew = isCandidateNew(candidate)
 
@@ -823,7 +812,7 @@ function ScoutCandidateListItem({
         onClick={() => onOpenDetail(candidate.id)}
         className="flex w-full items-start gap-3 rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-left transition hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-sm sm:px-4 sm:py-3.5"
       >
-        <AvatarCircle candidate={candidate} size={48} />
+        <AvatarCircle candidate={candidate} size={48} language={language} />
         <div className="min-w-0 flex-1">
           <ScoutCandidateRowBody
             candidate={candidate}
@@ -843,30 +832,13 @@ function ScoutCandidateListItem({
           <Lock className="mt-1 h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} aria-hidden />
         ) : null}
       </button>
-      <ScoutCandidateHoverTip candidate={candidate} hl={hl} matchScore={matchScore} />
+      <ScoutCandidateHoverTip candidate={candidate} hl={hl} matchScore={matchScore} language={language} />
     </div>
   )
 }
 
 function getSkillTags(candidate) {
   return getScoutSkillTags(candidate)
-}
-
-function getDisplayName(candidate) {
-  if (!candidate) return 'Ứng viên ẩn danh'
-  if (candidate.isUnlocked && candidate.name) return candidate.name
-  return candidate.anonymousName || 'Ứng viên ẩn danh'
-}
-
-function getPerformanceRequestContextLabel(candidate) {
-  const position = candidate?.desiredPosition || candidate?.jobCategory?.name
-  const skills = getSkillTags(candidate).slice(0, 3)
-  if (position && skills.length) {
-    return `vị trí "${position}" (${skills.join(', ')})`
-  }
-  if (position) return `vị trí "${position}"`
-  if (skills.length) return `kỹ năng: ${skills.join(', ')}`
-  return 'hồ sơ ứng viên bạn đang xem'
 }
 
 function ScoutCreditConfirmModal({
@@ -878,26 +850,32 @@ function ScoutCreditConfirmModal({
   onAgreedChange,
   creditCost = 5,
 }) {
+  const { language } = useLanguage()
+  const ws = getScoutWorkspaceCopy(language)
+  const m = ws.modals.credit
+  const c = ws.common
+
   if (!open) return null
 
   const features = [
     {
       icon: IdCard,
-      title: 'Doanh nghiệp mở thông tin liên hệ',
-      desc: 'Nhận email và số điện thoại của ứng viên ngay lập tức.',
+      title: m.features[0].title,
+      desc: m.features[0].desc,
     },
     {
       icon: Send,
-      title: 'Chủ động liên lạc với ứng viên',
-      desc: 'Doanh nghiệp tự liên hệ và trao đổi trực tiếp với ứng viên.',
+      title: m.features[1].title,
+      desc: m.features[1].desc,
     },
     {
       icon: Coins,
-      title: 'Chi phí mở hồ sơ',
+      title: m.features[2].title,
       desc: (
         <>
-          Mỗi lần mở hồ sơ ứng viên là{' '}
-          <span className="font-bold text-[#0077B6]">{creditCost} credits</span>.
+          {m.features[2].descPrefix}{' '}
+          <span className="font-bold text-[#0077B6]">{creditCost} credits</span>
+          {m.features[2].descSuffix}
         </>
       ),
     },
@@ -917,22 +895,19 @@ function ScoutCreditConfirmModal({
           type="button"
           onClick={onClose}
           className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-slate-600"
-          aria-label="Đóng"
+          aria-label={c.close}
         >
           <X className="h-4 w-4" />
         </button>
 
         <div className="px-6 pt-6 pb-5 sm:px-8 sm:pt-7">
           <h2 className="pr-10 text-lg font-bold leading-snug text-slate-900 sm:text-xl">
-            Mở hồ sơ bằng{' '}
-            <span className="text-[#0077B6]">Scout Trực Tiếp</span>
+            {m.title}{' '}
+            <span className="text-[#0077B6]">{m.titleHighlight}</span>
           </h2>
 
           <p className="mt-3 text-sm font-medium leading-[1.65] text-slate-700 sm:text-[15px]">
-            Với{' '}
-            <span className="font-bold text-[#0077B6]">Scout Trực Tiếp</span>, doanh nghiệp sẽ mở thông tin
-            liên hệ (email, số điện thoại) của ứng viên và{' '}
-            <span className="font-bold text-[#0077B6]">chủ động liên lạc</span>.
+            {m.intro}
           </p>
 
           <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-[1fr_minmax(280px,44%)] sm:gap-6 sm:items-center">
@@ -952,7 +927,7 @@ function ScoutCreditConfirmModal({
             <div className="flex items-center justify-center sm:justify-end">
               <img
                 src={creditIllustration}
-                alt="Scout Trực Tiếp — doanh nghiệp mở hồ sơ và chủ động liên lạc với ứng viên"
+                alt={m.imageAlt}
                 className="w-full max-w-[380px] object-contain"
               />
             </div>
@@ -963,9 +938,7 @@ function ScoutCreditConfirmModal({
               <Info className="h-4 w-4" strokeWidth={2.5} />
             </div>
             <p className="min-w-0 text-sm font-medium leading-[1.55] text-slate-700 sm:text-[15px]">
-              Workstation sẽ{' '}
-              <span className="font-bold text-[#0077B6]">không can thiệp</span>{' '}
-              vào quá trình liên hệ và tuyển dụng của doanh nghiệp với hồ sơ mở bằng hình thức Scout Trực Tiếp.
+              {m.disclaimer}
             </p>
           </div>
 
@@ -977,7 +950,7 @@ function ScoutCreditConfirmModal({
               className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#0077B6] focus:ring-[#0077B6]"
             />
             <span className="text-sm font-medium leading-snug text-slate-700 sm:text-[15px]">
-              Tôi đã đọc và hiểu rõ nội dung dịch vụ. Tôi xác nhận đồng ý mở hồ sơ bằng Scout Trực Tiếp.
+              {m.agree}
             </span>
           </label>
         </div>
@@ -989,7 +962,7 @@ function ScoutCreditConfirmModal({
             onClick={onClose}
             className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
           >
-            Hủy
+            {c.cancel}
           </button>
           <button
             type="button"
@@ -997,7 +970,7 @@ function ScoutCreditConfirmModal({
             onClick={onConfirm}
             className="rounded-lg bg-[#0077B6] px-4 py-2 text-sm font-semibold text-white hover:bg-[#006399] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? 'Đang mở hồ sơ...' : `Xác nhận và mở hồ sơ (${creditCost} credits)`}
+            {loading ? m.opening : m.confirmUnlock(creditCost)}
           </button>
         </div>
       </div>
@@ -1020,14 +993,19 @@ function ScoutPerformanceConfirmModal({
   requirementNote = '',
   onRequirementNoteChange,
 }) {
+  const { language } = useLanguage()
+  const ws = getScoutWorkspaceCopy(language)
+  const m = ws.modals.performance
+  const c = ws.common
+  const feeTiers = getScoutPerformanceFeeTiers(language)
   const [step, setStep] = useState('confirm')
   const [selectedJobId, setSelectedJobId] = useState(initialJobId || '')
   const skipJdStep = !!initialJobId
 
   const jobOptions = useMemo(() => jobs.map((job) => ({
     value: String(job.id),
-    label: job.title || job.titleEn || `JD #${job.id}`,
-  })), [jobs])
+    label: getScoutJobOptionLabel(job, language),
+  })), [jobs, language])
 
   useEffect(() => {
     if (!open) {
@@ -1075,7 +1053,7 @@ function ScoutPerformanceConfirmModal({
           type="button"
           onClick={onClose}
           className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-slate-600"
-          aria-label="Đóng"
+          aria-label={c.close}
         >
           <X className="h-4 w-4" />
         </button>
@@ -1083,11 +1061,11 @@ function ScoutPerformanceConfirmModal({
         <div className="px-6 pt-6 pb-5 sm:px-8 sm:pt-7">
           <h2 className="pr-10 text-lg font-bold leading-snug text-slate-900 sm:text-xl">
             {step === 'jd' ? (
-              'Chọn JD cho WS hearing'
+              m.jdStepTitle
             ) : (
               <>
-                Xác nhận{' '}
-                <span className="text-[#E30613]">Scout Ủy Thác</span>
+                {m.confirmTitle}{' '}
+                <span className="text-[#E30613]">{m.confirmTitleHighlight}</span>
               </>
             )}
           </h2>
@@ -1096,25 +1074,23 @@ function ScoutPerformanceConfirmModal({
             <>
               {skipJdStep && selectedJob ? (
                 <div className="mt-3 rounded-lg bg-[#e8f4fa] px-4 py-2.5 text-sm text-[#006399]">
-                  JD: <strong>{selectedJob.title || selectedJob.titleEn}</strong>
+                  {m.jdSelected(getLocalizedJobTitle(selectedJob, language))}
                 </div>
               ) : null}
 
               <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-[1fr_minmax(280px,44%)] sm:gap-6 sm:items-start">
                 <div className="space-y-3 text-sm font-medium leading-[1.65] text-slate-700 sm:text-[15px]">
+                  <p>{m.intro1}</p>
                   <p>
-                    Scout Ủy Thác là dịch vụ Workstation thay mặt doanh nghiệp tiếp cận ứng viên,
-                    xác nhận mức độ quan tâm và hỗ trợ kết nối phù hợp.
-                  </p>
-                  <p>
-                    Doanh nghiệp <span className="font-bold text-slate-900">không cần sử dụng credit</span>.
-                    WS sẽ chủ động liên hệ và cập nhật tiến độ qua hệ thống.
+                    {m.intro2Prefix}{' '}
+                    <span className="font-bold text-slate-900">{m.intro2Highlight}</span>
+                    {m.intro2Suffix}
                   </p>
                 </div>
                 <div className="flex items-center justify-center sm:justify-end">
                   <img
                     src={performanceIllustration}
-                    alt="Scout Ủy Thác"
+                    alt={m.imageAlt}
                     className="w-full max-w-[380px] object-contain"
                   />
                 </div>
@@ -1122,18 +1098,18 @@ function ScoutPerformanceConfirmModal({
 
               <div className="mt-5 overflow-hidden rounded-xl border border-slate-200">
                 <div className="bg-slate-50 px-4 py-2 text-xs font-bold text-slate-600">
-                  Bảng phí tham khảo (khi tuyển thành công)
+                  {m.feeTableTitle}
                 </div>
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-slate-100 text-slate-500">
-                      <th className="px-4 py-2 font-semibold">Cấp bậc</th>
-                      <th className="px-4 py-2 font-semibold">Kinh nghiệm</th>
-                      <th className="px-4 py-2 font-semibold">Phí giới thiệu</th>
+                      <th className="px-4 py-2 font-semibold">{m.feeColLevel}</th>
+                      <th className="px-4 py-2 font-semibold">{m.feeColExperience}</th>
+                      <th className="px-4 py-2 font-semibold">{m.feeColFee}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {SCOUT_PERFORMANCE_FEE_TIERS.map((tier, idx) => (
+                    {feeTiers.map((tier, idx) => (
                       <tr key={tier.level} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
                         <td className="px-4 py-2 font-semibold text-slate-800">{tier.level}</td>
                         <td className="px-4 py-2 text-slate-600">{tier.range}</td>
@@ -1143,7 +1119,7 @@ function ScoutPerformanceConfirmModal({
                   </tbody>
                 </table>
                 <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500">
-                  Phí tính trên thu nhập năm ứng viên. Hợp đồng B2B — liên hệ WS để chốt mức phí cụ thể.
+                  {m.feeFootnote}
                 </p>
               </div>
 
@@ -1155,7 +1131,7 @@ function ScoutPerformanceConfirmModal({
                   className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#E30613] focus:ring-[#E30613]"
                 />
                 <span className="text-sm font-medium leading-snug text-slate-700 sm:text-[15px]">
-                  Tôi đã đọc, hiểu rõ nội dung dịch vụ và đồng ý với điều kiện phí nêu trên.
+                  {m.agree}
                 </span>
               </label>
             </>
@@ -1164,12 +1140,11 @@ function ScoutPerformanceConfirmModal({
           {step === 'jd' && (
             <div className="mt-5 space-y-4">
               <p className="text-sm text-slate-600 leading-relaxed">
-                WS cần JD và yêu cầu tuyển dụng để hearing và giới thiệu ứng viên phù hợp.
-                Chọn JD có sẵn hoặc tạo mới trong Quản lý JD.
+                {m.jdStepIntro}
               </p>
               <label className="block">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs font-semibold text-slate-700">JD liên quan *</span>
+                  <span className="text-xs font-semibold text-slate-700">{m.relatedJd}</span>
                   {onQuickCreateJd ? (
                     <button
                       type="button"
@@ -1181,7 +1156,7 @@ function ScoutPerformanceConfirmModal({
                       className="inline-flex items-center gap-1.5 rounded-lg border border-[#0077B6]/25 bg-[#e8f4fa] px-2.5 py-1 text-xs font-semibold text-[#0077B6] transition hover:border-[#0077B6]/40 hover:bg-[#dff0fa] disabled:opacity-50"
                     >
                       <FilePlus2 className="h-3.5 w-3.5" aria-hidden />
-                      Tạo JD mới
+                      {m.createJd}
                     </button>
                   ) : null}
                 </div>
@@ -1189,21 +1164,21 @@ function ScoutPerformanceConfirmModal({
                   value={selectedJobId}
                   onChange={setSelectedJobId}
                   options={jobOptions}
-                  placeholder="— Tìm hoặc chọn JD —"
+                  placeholder={ws.workspace.selectJdPlaceholder}
                   searchable
-                  searchPlaceholder="Tìm theo tên JD..."
+                  searchPlaceholder={ws.workspace.searchJdPlaceholder}
                   optionSize="comfortable"
                   maxPanelHeight={280}
                   className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-[#0077B6]"
                 />
               </label>
               <label className="block">
-                <span className="text-xs font-semibold text-slate-700">Yêu cầu bổ sung (tuỳ chọn)</span>
+                <span className="text-xs font-semibold text-slate-700">{m.extraRequirements}</span>
                 <textarea
                   value={requirementNote}
                   onChange={(e) => onRequirementNoteChange?.(e.target.value)}
                   rows={3}
-                  placeholder="VD: Ưu tiên ứng viên biết tiếng Nhật N2+, có thể onsite tại Tokyo..."
+                  placeholder={m.extraRequirementsPlaceholder}
                   className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-[#0077B6] resize-y"
                 />
               </label>
@@ -1215,7 +1190,7 @@ function ScoutPerformanceConfirmModal({
                   className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#E30613] focus:ring-[#E30613]"
                 />
                 <span className="text-sm font-medium leading-snug text-slate-700">
-                  Đồng thời nhờ WS tìm thêm ứng viên tương tự (headhunt)
+                  {m.headhuntSimilar}
                 </span>
               </label>
             </div>
@@ -1231,7 +1206,7 @@ function ScoutPerformanceConfirmModal({
                 onClick={() => setStep('confirm')}
                 className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
               >
-                Quay lại
+                {c.back}
               </button>
             ) : null}
           </div>
@@ -1242,7 +1217,7 @@ function ScoutPerformanceConfirmModal({
               onClick={onClose}
               className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
             >
-              Hủy
+              {c.cancel}
             </button>
             {step === 'confirm' ? (
               <button
@@ -1252,10 +1227,10 @@ function ScoutPerformanceConfirmModal({
                 className="rounded-lg bg-[#0077B6] px-4 py-2 text-sm font-semibold text-white hover:bg-[#006399] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading
-                  ? 'Đang gửi yêu cầu...'
+                  ? m.sending
                   : skipJdStep
-                    ? 'Xác nhận và gửi yêu cầu'
-                    : 'Tiếp tục'}
+                    ? m.confirmSend
+                    : c.continue}
               </button>
             ) : (
               <button
@@ -1264,7 +1239,7 @@ function ScoutPerformanceConfirmModal({
                 onClick={handleConfirm}
                 className="rounded-lg bg-[#E30613] px-4 py-2 text-sm font-semibold text-white hover:bg-[#c90511] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {loading ? 'Đang gửi yêu cầu...' : 'Xác nhận và gửi yêu cầu'}
+                {loading ? m.sending : m.confirmSend}
               </button>
             )}
           </div>
@@ -1284,6 +1259,9 @@ function ScoutPerformanceSuccessModal({
   onGoApplications,
   onGoChat,
 }) {
+  const { language } = useLanguage()
+  const m = getScoutWorkspaceCopy(language).modals.performanceSuccess
+  const c = getScoutWorkspaceCopy(language).common
   if (!open) return null
 
   return (
@@ -1299,14 +1277,14 @@ function ScoutPerformanceSuccessModal({
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#dcfce7] text-[#059669]">
           <Check className="h-6 w-6" strokeWidth={2.5} />
         </div>
-        <h2 className="mt-4 text-lg font-bold text-slate-900">Đã gửi yêu cầu Scout Ủy Thác</h2>
+        <h2 className="mt-4 text-lg font-bold text-slate-900">{m.title}</h2>
         <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-          WS sẽ phản hồi trong vòng <strong>24 giờ làm việc</strong>.
-          {wantsSimilarCandidates ? ' Đồng thời WS sẽ tìm thêm ứng viên tương tự.' : ''}
+          {m.body}
+          {wantsSimilarCandidates ? m.bodySimilar : ''}
         </p>
         {requestCode && (
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Mã yêu cầu</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{m.requestCode}</div>
             <div className="mt-1 text-xl font-bold text-[#0077B6]">{requestCode}</div>
           </div>
         )}
@@ -1316,7 +1294,7 @@ function ScoutPerformanceSuccessModal({
             onClick={onGoApplications}
             className="w-full rounded-lg bg-[#0077B6] py-2.5 text-sm font-semibold text-white hover:bg-[#006399]"
           >
-            Theo dõi tại Quản lý tiến cử
+            {m.trackApplications}
           </button>
           {sessionId && (
             <button
@@ -1324,7 +1302,7 @@ function ScoutPerformanceSuccessModal({
               onClick={onGoChat}
               className="w-full rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
-              Mở chat WS
+              {m.openWsChat}
             </button>
           )}
           <button
@@ -1332,7 +1310,7 @@ function ScoutPerformanceSuccessModal({
             onClick={onClose}
             className="w-full py-2 text-xs font-medium text-slate-500 hover:text-slate-700"
           >
-            Đóng
+            {c.close}
           </button>
         </div>
       </div>
@@ -1349,6 +1327,10 @@ function ScoutAttachJobModal({
   candidateName,
   jobScoreById = {},
 }) {
+  const { language } = useLanguage()
+  const ws = getScoutWorkspaceCopy(language)
+  const m = ws.modals.attachJob
+  const c = ws.common
   const [jobId, setJobId] = useState('')
   const [note, setNote] = useState('')
 
@@ -1360,11 +1342,11 @@ function ScoutAttachJobModal({
     })
     return sorted.map((job) => {
       const score = jobScoreById[String(job.id)]
-      const base = job.title || job.titleEn || `JD #${job.id}`
-      const label = score != null && score > 0 ? `${base} · Match ${Math.round(score)}%` : base
+      const base = getScoutJobOptionLabel(job, language)
+      const label = score != null && score > 0 ? `${base}${m.matchSuffix(score)}` : base
       return { value: String(job.id), label }
     })
-  }, [jobs, jobScoreById])
+  }, [jobs, jobScoreById, language, m])
 
   useEffect(() => {
     if (open) {
@@ -1378,42 +1360,42 @@ function ScoutAttachJobModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3" onClick={onClose}>
       <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-sm font-bold text-slate-900">Thêm vào pipeline JD</h3>
+        <h3 className="text-sm font-bold text-slate-900">{m.title}</h3>
         <p className="mt-1 text-xs text-slate-500">
-          {candidateName ? `Ứng viên: ${candidateName}` : 'Chọn JD để đưa ứng viên vào pipeline tuyển dụng'}
+          {candidateName ? `${m.candidatePrefix} ${candidateName}` : m.selectJdHint}
         </p>
         <label className="mt-4 block">
-          <span className="text-xs font-semibold text-slate-600">JD *</span>
+          <span className="text-xs font-semibold text-slate-600">{c.jdLabel} *</span>
           <FilterSelectDropdown
             value={jobId}
             onChange={setJobId}
             options={jobOptions}
-            placeholder="— Tìm hoặc chọn JD —"
+            placeholder={ws.workspace.selectJdPlaceholder}
             searchable
-            searchPlaceholder="Tìm theo tên JD..."
+            searchPlaceholder={ws.workspace.searchJdPlaceholder}
             optionSize="comfortable"
             maxPanelHeight={280}
             className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-[#0077B6]"
           />
         </label>
         <label className="mt-3 block">
-          <span className="text-[10px] font-semibold text-slate-600">Ghi chú</span>
+          <span className="text-[10px] font-semibold text-slate-600">{m.note}</span>
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Tuỳ chọn"
+            placeholder={c.optional}
             className="mt-1 w-full rounded-lg border border-slate-200 px-2.5 py-2 text-xs outline-none focus:border-[#0077B6]"
           />
         </label>
         <div className="mt-4 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600">Hủy</button>
+          <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600">{c.cancel}</button>
           <button
             type="button"
             disabled={!jobId || loading}
             onClick={() => onSubmit({ jobId, note })}
             className="rounded-lg bg-[#0077B6] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
           >
-            {loading ? 'Đang thêm...' : 'Thêm vào pipeline'}
+            {loading ? m.adding : m.addToPipeline}
           </button>
         </div>
       </div>
@@ -1426,17 +1408,21 @@ function ScoutActionModal({
   kind,
   title,
   message,
-  confirmLabel = 'Xác nhận',
-  cancelLabel = 'Hủy',
+  confirmLabel,
+  cancelLabel,
   noticeVariant = 'info',
   onConfirm,
   onClose,
   loading = false,
   children,
 }) {
+  const { language } = useLanguage()
+  const c = getScoutWorkspaceCopy(language).common
   if (!open) return null
 
   const isConfirm = kind === 'similar-candidates-prompt'
+  const resolvedConfirmLabel = confirmLabel || c.confirm
+  const resolvedCancelLabel = cancelLabel || c.cancel
   const noticeButtonClass = noticeVariant === 'error'
     ? 'bg-red-600 hover:bg-red-700'
     : 'bg-[#0077B6] hover:bg-[#006399]'
@@ -1461,7 +1447,7 @@ function ScoutActionModal({
                 onClick={onClose}
                 className="text-xs px-3 py-2 border border-slate-200 rounded-lg text-slate-600 disabled:opacity-50"
               >
-                {cancelLabel}
+                {resolvedCancelLabel}
               </button>
               <button
                 type="button"
@@ -1469,7 +1455,7 @@ function ScoutActionModal({
                 onClick={onConfirm}
                 className="text-xs px-3 py-2 rounded-lg text-white bg-[#0077B6] disabled:opacity-50"
               >
-                {loading ? 'Đang xử lý...' : confirmLabel}
+                {loading ? c.processing : resolvedConfirmLabel}
               </button>
             </>
           ) : (
@@ -1478,7 +1464,7 @@ function ScoutActionModal({
               onClick={onClose}
               className={`text-xs px-3 py-2 rounded-lg text-white ${noticeButtonClass}`}
             >
-              Đã hiểu
+              {c.understand}
             </button>
           )}
         </div>
@@ -1496,8 +1482,8 @@ function getPrSummary(candidate) {
   )
 }
 
-function AvatarCircle({ candidate, size = 28 }) {
-  const name = getDisplayName(candidate)
+function AvatarCircle({ candidate, size = 28, language = 'vi' }) {
+  const name = getLocalizedScoutDisplayName(candidate, language)
   const seed = candidate?.isUnlocked ? name : `anon-${candidate?.id || 'x'}`
   const src = candidate?.isUnlocked && candidate?.avatarPhotoPath
     ? candidate.avatarPhotoPath
@@ -1518,6 +1504,8 @@ function AvatarCircle({ candidate, size = 28 }) {
 const Scout = () => {
   const navigate = useNavigate()
   const location = useLocation()
+  const { language } = useLanguage()
+  const ws = useMemo(() => getScoutWorkspaceCopy(language), [language])
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedJobId = searchParams.get('jobId') || ''
   const performanceRequestId = searchParams.get('performanceRequestId') || ''
@@ -1749,16 +1737,16 @@ const Scout = () => {
         }
       } else {
         setCandidates([])
-        setError(res?.message || 'Không tải được danh sách Scout')
+        setError(res?.message || ws.workspace.loadError)
       }
     } catch (e) {
       console.error(e)
       setCandidates([])
-      setError('Không tải được danh sách Scout')
+      setError(ws.workspace.loadError)
     } finally {
       setLoading(false)
     }
-  }, [page, limit, searchQuery, selectedJobId, showOnboarding])
+  }, [page, limit, searchQuery, selectedJobId, showOnboarding, ws.workspace.loadError])
 
   useEffect(() => {
     loadList()
@@ -1930,9 +1918,9 @@ const Scout = () => {
       {showPerformanceCta && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
           <div className="bg-white rounded-xl p-5 w-full max-w-md shadow-xl">
-            <h3 className="text-sm font-bold text-slate-800 mb-2">Scout Ủy Thác</h3>
+            <h3 className="text-sm font-bold text-slate-800 mb-2">{ws.modals.performanceCta.title}</h3>
             <p className="text-xs text-slate-600 leading-relaxed mb-4">
-              Chúng tôi có những lựa chọn tốt hơn dành cho bạn. Bạn có muốn tìm hiểu thêm không?
+              {ws.modals.performanceCta.message}
             </p>
             <div className="flex gap-2 justify-end">
               <button
@@ -1941,7 +1929,7 @@ const Scout = () => {
                 onClick={() => handlePerformanceExplore('declined')}
                 className="text-xs px-3 py-2 border border-slate-200 rounded-lg text-slate-600"
               >
-                Không, cảm ơn
+                {ws.modals.performanceCta.decline}
               </button>
               <button
                 type="button"
@@ -1949,7 +1937,7 @@ const Scout = () => {
                 onClick={() => handlePerformanceExplore('interested')}
                 className="text-xs px-3 py-2 rounded-lg text-white bg-[#0077B6] disabled:opacity-50"
               >
-                Có, tôi muốn tìm hiểu
+                {ws.modals.performanceCta.interested}
               </button>
             </div>
           </div>
@@ -2032,31 +2020,32 @@ const Scout = () => {
                 hasActiveFilters={hasActiveFilters}
                 displayCount={totalItems}
                 listLoading={listLoading}
+                language={language}
               />
 
               <div className="scout-candidates-list-ui flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
               <div className="border-b border-slate-100 px-3 py-2">
                 <p className="scout-cand-caption text-slate-500">
-                  Credit: <span className="font-semibold text-slate-600">{credit.toLocaleString('vi-VN')}</span>
+                  {ws.workspace.creditLabel}: <span className="font-semibold text-slate-600">{formatScoutLocaleNumber(credit, language)}</span>
                   {' · '}
-                  Mở hồ sơ: <span className="font-semibold text-[#0077B6]">{scoutCreditCost} credit</span>
+                  {ws.workspace.unlockLabel}: <span className="font-semibold text-[#0077B6]">{scoutCreditCost} {ws.workspace.creditUnit}</span>
                   {credit < scoutCreditCost ? (
                     <button
                       type="button"
                       onClick={() => setCreditTopUpOpen(true)}
                       className="ml-1 font-semibold text-[#0077B6] hover:underline"
                     >
-                      Nạp credit
+                      {ws.workspace.topUpCredit}
                     </button>
                   ) : null}
                 </p>
                 <h2 className="scout-cand-title mt-1 text-slate-900">
-                  {listLoading ? 'Đang tải...' : `${totalItems.toLocaleString('vi-VN')} ứng viên tìm thấy`}
+                  {listLoading ? ws.workspace.loading : ws.workspace.candidatesFound(totalItems, getDateLocale(language))}
                 </h2>
                 {selectedJobId && !matchLoading ? (
                   <p className="scout-cand-caption mt-0.5 text-slate-500">
-                    AI gợi ý cho <strong>{selectedJob?.title || `JD #${selectedJobId}`}</strong>
-                    {' · '}{aiMatchedTotal.toLocaleString('vi-VN')} phù hợp
+                    {ws.workspace.aiSuggestFor(getLocalizedJobTitle(selectedJob, language) || `JD #${selectedJobId}`)}
+                    {' · '}{ws.workspace.aiMatched(aiMatchedTotal, getDateLocale(language))}
                   </p>
                 ) : null}
                 {error ? <p className="scout-cand-caption mt-1 text-rose-600">{error}</p> : null}
@@ -2065,7 +2054,7 @@ const Scout = () => {
               {performanceDetail?.recommendations?.length > 0 && (
                 <div className="border-b border-blue-100 bg-[#e8f4fa] px-3 py-2">
                   <p className="scout-cand-caption font-semibold text-[#006399]">
-                    Gợi ý từ JobShare WS ({performanceDetail.recommendations.length})
+                    {ws.workspace.wsRecommendations(performanceDetail.recommendations.length)}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {performanceDetail.recommendations.map((rec) => {
@@ -2095,11 +2084,11 @@ const Scout = () => {
                 {listLoading ? (
                   <div className="scout-cand-meta flex items-center justify-center gap-2 py-10 text-slate-500">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Đang tải danh sách...
+                    {ws.workspace.loadingList}
                   </div>
                 ) : listForRender.length === 0 ? (
                   <div className="scout-cand-meta px-3 py-8 text-center text-slate-500">
-                    {selectedJobId ? 'Chưa có ứng viên Scout phù hợp với JD này' : hasActiveFilters ? 'Không có ứng viên phù hợp bộ lọc' : 'Chưa có hồ sơ nào trên sàn Scout'}
+                    {selectedJobId ? ws.workspace.emptyJobMatch : hasActiveFilters ? ws.workspace.emptyFilters : ws.workspace.emptyScout}
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
@@ -2111,6 +2100,7 @@ const Scout = () => {
                         highlightQuery={highlightQuery}
                         onOpenDetail={openCandidateDetail}
                         hl={hl}
+                        language={language}
                       />
                     ))}
                   </div>
@@ -2124,7 +2114,7 @@ const Scout = () => {
                     disabled={page <= 1}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     className="scout-cand-meta flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 disabled:opacity-40"
-                    aria-label="Trang trước"
+                    aria-label={ws.workspace.prevPage}
                   >
                     ‹
                   </button>
@@ -2147,7 +2137,7 @@ const Scout = () => {
                     disabled={page >= totalPages}
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     className="scout-cand-meta flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 disabled:opacity-40"
-                    aria-label="Trang sau"
+                    aria-label={ws.workspace.nextPage}
                   >
                     ›
                   </button>
@@ -2179,7 +2169,7 @@ export {
   ScoutAttachJobModal,
   ScoutActionModal,
   ScoutMatchBadge,
-  getDisplayName as getScoutDisplayName,
+  getLocalizedScoutDisplayName as getScoutDisplayName,
 }
 
 export const SCOUT_DETAIL_ICON_SM = ICON_SM

@@ -18,6 +18,46 @@ const TITLE_MAP = {
   'Đơn thanh toán được phê duyệt': {
     en: 'Payment request approved',
     ja: '支払い申請が承認されました'
+  },
+  'Yêu cầu nạp credit đã được duyệt': {
+    en: 'Credit top-up approved',
+    ja: 'クレジットチャージが承認されました'
+  },
+  'Yêu cầu nạp credit mới': {
+    en: 'New credit top-up request',
+    ja: '新しいクレジットチャージ申請'
+  },
+  'Yêu cầu nạp credit bị từ chối': {
+    en: 'Credit top-up rejected',
+    ja: 'クレジットチャージが却下されました'
+  },
+  'Job đã được WS duyệt trên Sàn CTV': {
+    en: 'Job approved on CTV Marketplace',
+    ja: 'CTVマーケットでジョブが承認されました'
+  },
+  'Job Sàn CTV chờ duyệt': {
+    en: 'CTV Marketplace job pending approval',
+    ja: 'CTVマーケット掲載が承認待ち'
+  },
+  'Yêu cầu đăng Sàn CTV bị từ chối': {
+    en: 'CTV Marketplace listing rejected',
+    ja: 'CTVマーケット掲載が却下されました'
+  },
+  'Yêu cầu Saiyo Branding mới': {
+    en: 'New Saiyo Branding request',
+    ja: '新しいSaiyo Branding申請'
+  },
+  'Tin nhắn Scout Performance mới': {
+    en: 'New Scout Performance message',
+    ja: 'Scout Performanceの新着メッセージ'
+  },
+  'Scout Performance — có hồ sơ mới': {
+    en: 'Scout Performance — new profile',
+    ja: 'Scout Performance — 新しい候補者'
+  },
+  'Scout Performance — yêu cầu bị từ chối': {
+    en: 'Scout Performance — request rejected',
+    ja: 'Scout Performance — 申請が却下されました'
   }
 };
 
@@ -81,6 +121,31 @@ const CONTENT_PATTERNS = [
     regex: /^Bạn có tin nhắn mới về đơn tiến cử (.+)$/u,
     en: (a) => `You have a new message for nomination ${a}`,
     ja: (a) => `推薦${a}に新しいメッセージがあります`
+  },
+  {
+    regex: /^WS đã duyệt và cộng (.+) vào tài khoản của bạn\.$/u,
+    en: (a) => `WS approved and added ${a} to your account.`,
+    ja: (a) => `WSが承認し、${a}をアカウントに追加しました。`
+  },
+  {
+    regex: /^WS đã từ chối yêu cầu nạp credit( \(.+\))?\.$/u,
+    en: (_, code) => `WS rejected the credit top-up request${code || ''}.`,
+    ja: (_, code) => `WSがクレジットチャージ申請を却下しました${code || ''}。`
+  },
+  {
+    regex: /^Job "([^"]+)" đã được publish lên Sàn HR Partner\.$/u,
+    en: (a) => `Job "${a}" has been published on the HR Partner Marketplace.`,
+    ja: (a) => `ジョブ「${a}」がHR Partnerマーケットに公開されました。`
+  },
+  {
+    regex: /^Job đã được publish lên Sàn HR Partner\.$/u,
+    en: () => 'Job has been published on the HR Partner Marketplace.',
+    ja: () => 'ジョブがHR Partnerマーケットに公開されました。'
+  },
+  {
+    regex: /^Doanh nghiệp đã hủy yêu cầu nạp credit đang chờ duyệt\.$/u,
+    en: () => 'Business cancelled the pending credit top-up request.',
+    ja: () => '企業が承認待ちのクレジットチャージ申請をキャンセルしました。'
   }
 ];
 

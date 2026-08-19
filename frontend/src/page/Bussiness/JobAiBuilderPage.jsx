@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import JobAiBuilderPanel from '../../component/Bussiness/JobAiBuilderPanel'
@@ -15,6 +15,9 @@ import {
 } from '../../utils/marketplaceListingFlow'
 import apiService from '../../services/api'
 import useBusinessUser from '../../hooks/useBusinessUser'
+import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
+import { useLanguage } from '../../context/LanguageContext'
+import { getLocalizedJobTitle } from '../../i18n/businessAppI18n'
 
 const BUSINESS_JOBS_FONT =
   "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
@@ -32,6 +35,15 @@ const builderPageStyles = `
   }
 `
 
+const DEFAULT_NEW_TITLE_KEYS = new Set(['JD mới', 'New JD', '新規JD'])
+
+function resolveBuilderPageTitle({ mode, jdCopy, displayName, isDraftThread }) {
+  if (displayName) return jdCopy.editTitleWithName(displayName)
+  if (mode === 'edit') return jdCopy.editTitle
+  if (isDraftThread) return jdCopy.createTitle
+  return jdCopy.createTitle
+}
+
 const JobAiBuilderPage = ({ mode = 'create' }) => {
   const navigate = useNavigate()
   const { jobId: jobIdParam } = useParams()
@@ -39,16 +51,37 @@ const JobAiBuilderPage = ({ mode = 'create' }) => {
   const threadIdParam = searchParams.get('threadId')
   const quickMarketplaceParam = searchParams.get('quickMarketplace') === '1'
   const { user: businessUser } = useBusinessUser()
+  const { language } = useLanguage()
+  const copy = useBusinessAppCopy()
+  const jdCopy = copy.jdBuilder
 
   const builderRef = useRef(null)
   const [activeThreadId, setActiveThreadId] = useState(null)
   const [savedJobId, setSavedJobId] = useState(mode === 'edit' ? jobIdParam : null)
   const [loading, setLoading] = useState(true)
-  const [pageTitle, setPageTitle] = useState(mode === 'edit' ? 'Chỉnh sửa JD với AI' : 'Tạo JD mới với AI')
+  const [loadedJob, setLoadedJob] = useState(null)
+  const [threadTitle, setThreadTitle] = useState(null)
+  const [isDraftThread, setIsDraftThread] = useState(false)
   const [marketplaceQuickCreateActive, setMarketplaceQuickCreateActive] = useState(
     () => mode === 'create' && Boolean(peekPendingMarketplaceListingDraft()),
   )
   const [marketplaceSubmitting, setMarketplaceSubmitting] = useState(false)
+
+  const displayJobTitle = useMemo(() => {
+    if (loadedJob) return getLocalizedJobTitle(loadedJob, language)
+    if (threadTitle && !DEFAULT_NEW_TITLE_KEYS.has(threadTitle)) return threadTitle
+    return null
+  }, [loadedJob, threadTitle, language])
+
+  const pageTitle = useMemo(
+    () => resolveBuilderPageTitle({
+      mode,
+      jdCopy,
+      displayName: displayJobTitle,
+      isDraftThread,
+    }),
+    [mode, jdCopy, displayJobTitle, isDraftThread],
+  )
 
   const goBack = useCallback(() => {
     if (savedJobId) {
@@ -69,22 +102,33 @@ const JobAiBuilderPage = ({ mode = 'create' }) => {
         if (mode === 'edit' && jobIdParam) {
           let thread = await getJobBuilderThreadByJobId(jobIdParam)
           if (!thread) {
-            let title = ''
+            let job = null
             try {
               const res = await apiService.getBusinessJobById(jobIdParam)
-              const job = res?.data?.job || res?.data
-              title = job?.title || job?.titleEn || job?.titleJp || ''
-              if (title) setPageTitle(`Chỉnh sửa: ${title}`)
+              job = res?.data?.job || res?.data
+              if (job) setLoadedJob(job)
             } catch {
               /* ignore */
             }
-            thread = await ensureJobBuilderThreadForJob(jobIdParam, { title: title || undefined })
+            thread = await ensureJobBuilderThreadForJob(jobIdParam, {
+              title: getLocalizedJobTitle(job, language) || undefined,
+            })
           } else if (thread.title) {
-            setPageTitle(`Chỉnh sửa: ${thread.title}`)
+            setThreadTitle(thread.title)
+            setIsDraftThread(!thread.jobId)
           }
           if (thread) {
             setActiveThreadId(thread.id)
             setSavedJobId(thread.jobId || jobIdParam)
+            if (thread.jobId) {
+              try {
+                const res = await apiService.getBusinessJobById(thread.jobId)
+                const job = res?.data?.job || res?.data
+                if (job) setLoadedJob(job)
+              } catch {
+                /* ignore */
+              }
+            }
             const full = await getJobBuilderThread(thread.id)
             await builderRef.current?.loadThread?.(full || thread)
           }
@@ -102,15 +146,29 @@ const JobAiBuilderPage = ({ mode = 'create' }) => {
           if (full) {
             setActiveThreadId(full.id)
             setSavedJobId(full.jobId || null)
-            if (full.title) setPageTitle(full.jobId ? `Chỉnh sửa: ${full.title}` : 'Tạo JD mới với AI')
+            if (full.title) {
+              setThreadTitle(full.title)
+              setIsDraftThread(!full.jobId)
+            }
+            if (full.jobId) {
+              try {
+                const res = await apiService.getBusinessJobById(full.jobId)
+                const job = res?.data?.job || res?.data
+                if (job) setLoadedJob(job)
+              } catch {
+                /* ignore */
+              }
+            }
             await builderRef.current?.loadThread?.(full)
             return
           }
         }
 
+        setIsDraftThread(true)
         await builderRef.current?.startNewSession?.()
       } catch (err) {
         console.error(err)
+        setIsDraftThread(true)
         await builderRef.current?.startNewSession?.()
       } finally {
         if (!cancelled) setLoading(false)
@@ -120,17 +178,28 @@ const JobAiBuilderPage = ({ mode = 'create' }) => {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [businessUser?.id, jobIdParam, mode, quickMarketplaceParam, threadIdParam])
+  }, [businessUser?.id, jobIdParam, language, mode, quickMarketplaceParam, threadIdParam])
 
   const handleThreadPersist = useCallback((thread) => {
     if (thread?.id) setActiveThreadId(String(thread.id))
-    if (thread?.title && !thread.jobId) setPageTitle(thread.title === 'JD mới' ? 'Tạo JD mới với AI' : thread.title)
+    if (thread?.title) {
+      setThreadTitle(thread.title)
+      setIsDraftThread(!thread?.jobId)
+    }
   }, [])
 
   const handleJobSaved = useCallback(async ({ jobId, thread, isCreate }) => {
     setSavedJobId(jobId)
     setActiveThreadId(thread?.id || null)
-    if (thread?.title) setPageTitle(`Chỉnh sửa: ${thread.title}`)
+    setIsDraftThread(false)
+    if (thread?.title) setThreadTitle(thread.title)
+    try {
+      const res = await apiService.getBusinessJobById(jobId)
+      const job = res?.data?.job || res?.data
+      if (job) setLoadedJob(job)
+    } catch {
+      /* ignore */
+    }
 
     const pending = peekPendingMarketplaceListingDraft()
     if (!pending || !isCreate) return
@@ -146,15 +215,12 @@ const JobAiBuilderPage = ({ mode = 'create' }) => {
         navigate('/business/candidate-sharing?tab=jobs')
       }
     } catch (err) {
-      window.alert(
-        err?.message
-          || 'JD đã lưu nhưng không gửi được yêu cầu lên sàn. Bạn có thể thử lại tại Sàn CTV.',
-      )
+      window.alert(err?.message || jdCopy.marketplaceSaveError)
       navigate(`/business/candidate-sharing?create=1&jobId=${encodeURIComponent(jobId)}`)
     } finally {
       setMarketplaceSubmitting(false)
     }
-  }, [navigate])
+  }, [jdCopy.marketplaceSaveError, navigate])
 
   return (
     <>
@@ -166,24 +232,20 @@ const JobAiBuilderPage = ({ mode = 'create' }) => {
               type="button"
               onClick={goBack}
               className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
-              aria-label="Quay lại"
+              aria-label={jdCopy.back}
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Quản lý JD</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{jdCopy.breadcrumb}</p>
               <h1 className="truncate text-sm font-bold text-slate-900 lg:text-base">{pageTitle}</h1>
-              <p className="text-[11px] text-slate-500">
-                Chat với AI để tạo JD hoặc chỉnh sửa nội dung theo nhu cầu của bạn.
-              </p>
+              <p className="text-[11px] text-slate-500">{jdCopy.pageSubtitle}</p>
             </div>
           </header>
 
           {marketplaceQuickCreateActive ? (
             <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-              {marketplaceSubmitting
-                ? 'Đang gửi WS duyệt đưa job lên sàn CTV...'
-                : 'Tạo & lưu JD bằng chat — sau khi lưu, hệ thống tự gửi WS duyệt đưa job lên sàn.'}
+              {marketplaceSubmitting ? jdCopy.marketplaceSubmitting : jdCopy.marketplaceHint}
             </div>
           ) : null}
 

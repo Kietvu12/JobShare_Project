@@ -22,6 +22,14 @@ import { getBillingServiceKeyFromIntake } from '../../utils/serviceRequestNoteDi
 import { getServiceByKey } from '../../utils/businessServiceRequestCatalog'
 import { isCompanyBuilderContent } from '../../utils/companyLandingPageSchema'
 import { HomepageSidebar } from './Homepage'
+import { useLanguage } from '../../context/LanguageContext'
+import {
+  getBrandingCopy,
+  getBrandingServicePackages,
+  getLandingPageStatusMeta,
+  formatBrandingDate,
+} from '../../i18n/businessAppI18n'
+import { getLocalizedJobTitle } from '../../i18n/businessApp/jdBuilder'
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 const BRAND = '#0077B6'
@@ -93,141 +101,12 @@ const CARD_SURFACE = {
   primary: 'bg-[#0077B6] border border-[#0077B6] text-white shadow-sm shadow-[#0077B6]/15',
 }
 
-const STATUS_STYLE = {
-  'Nháp': { color: '#64748b', bg: '#f1f5f9' },
-  'Đang hoạt động': { color: '#10b981', bg: '#d1fae5' },
-  'Tạm dừng': { color: '#f59e0b', bg: '#fef3c7' },
-  'Đã đóng': { color: '#dc2626', bg: '#fee2e2' },
+const PACKAGE_ICONS = {
+  landing: Sparkles,
+  recruitment_ads: Megaphone,
+  recruitment_event: CalendarDays,
+  company_profile: Building2,
 }
-
-const SERVICE_PACKAGES = [
-  {
-    id: 'landing',
-    num: '01',
-    title: 'Landing page chuyên nghiệp',
-    subtitle: 'Trang tuyển dụng theo thương hiệu',
-    variant: 'primary',
-    icon: Sparkles,
-    features: [
-      'Thiết kế theo thương hiệu doanh nghiệp',
-      'Tối ưu hiển thị mobile',
-      'Form ứng tuyển thông minh',
-      'Tích hợp JobShare',
-      'Báo cáo lượt xem & ứng tuyển',
-    ],
-    suitableFor: 'Doanh nghiệp cần trang tuyển dụng chuẩn employer branding, tối ưu chuyển đổi ứng viên.',
-    deliveryBadge: { type: 'self_service', label: 'Tự phục vụ' },
-    ctas: [
-      {
-        label: 'Tạo thử landing page có sẵn',
-        tag: 'Free',
-        tagTone: 'free',
-        variant: 'white',
-        action: 'landing_free',
-      },
-      {
-        label: 'Gửi yêu cầu tạo Landing Page chuyên biệt',
-        tag: 'Pro',
-        tagTone: 'pro',
-        variant: 'yellow',
-        action: 'landing_pro',
-      },
-    ],
-  },
-  {
-    id: 'recruitment_ads',
-    num: '02',
-    title: 'Quảng cáo tuyển dụng',
-    subtitle: 'Tiếp cận ứng viên đa kênh',
-    variant: 'brandLight',
-    icon: Megaphone,
-    features: [
-      'Quảng cáo FB, IG, LinkedIn, Google',
-      'Targeting chính xác theo JD',
-      'Tối ưu ngân sách & hiệu quả',
-      'Báo cáo realtime',
-      'Hỗ trợ triển khai A-Z',
-    ],
-    suitableFor: 'Doanh nghiệp muốn mở rộng reach và thu hút ứng viên tiềm năng nhanh.',
-    serviceKey: 'recruitment_ads',
-    deliveryBadge: { type: 'ws_support', label: 'WS tư vấn' },
-    ctas: [
-      {
-        label: 'Xem tài liệu giới thiệu dịch vụ',
-        variant: 'white',
-        action: 'view_docs',
-        docsPath: '/business/service-requests/recruitment-ads',
-      },
-      {
-        label: 'Gửi yêu cầu dịch vụ',
-        variant: 'yellow',
-        action: 'request_service',
-      },
-    ],
-  },
-  {
-    id: 'recruitment_event',
-    num: '03',
-    title: 'Seminar & event tuyển dụng',
-    subtitle: 'Sự kiện online / offline',
-    variant: 'neutral',
-    icon: CalendarDays,
-    features: [
-      'Lên kế hoạch & kịch bản sự kiện',
-      'Thiết kế banner, tài liệu',
-      'Quản lý đăng ký & check-in',
-      'Livestream & ghi hình',
-      'Báo cáo hiệu quả sau sự kiện',
-    ],
-    suitableFor: 'Doanh nghiệp tổ chức hội thảo, job fair hoặc buổi giới thiệu công ty.',
-    serviceKey: 'recruitment_event',
-    deliveryBadge: { type: 'ws_support', label: 'WS tư vấn' },
-    ctas: [
-      {
-        label: 'Xem tài liệu giới thiệu dịch vụ',
-        variant: 'white',
-        action: 'view_docs',
-        docsPath: '/business/service-requests/seminar-campaign',
-      },
-      {
-        label: 'Gửi yêu cầu dịch vụ',
-        variant: 'yellow',
-        action: 'request_service',
-      },
-    ],
-  },
-  {
-    id: 'company_profile',
-    num: '04',
-    title: 'Thiết kế Company Profile',
-    subtitle: 'Hồ sơ năng lực chuẩn thương hiệu',
-    variant: 'neutral',
-    icon: Building2,
-    features: [
-      'Thiết kế hiện đại, bắt mắt',
-      'Nội dung chuẩn SEO',
-      'Đa định dạng (PDF, Online)',
-      'Hỗ trợ chỉnh sửa & cập nhật',
-      'Bàn giao file & hướng dẫn sử dụng',
-    ],
-    suitableFor: 'Doanh nghiệp cần bộ tài liệu giới thiệu công ty thống nhất trên mọi kênh.',
-    serviceKey: 'company_profile',
-    deliveryBadge: { type: 'ws_support', label: 'WS tư vấn' },
-    ctas: [
-      {
-        label: 'Xem tài liệu giới thiệu dịch vụ',
-        variant: 'white',
-        action: 'view_docs',
-        docsPath: '/business/service-requests/company-profile',
-      },
-      {
-        label: 'Gửi yêu cầu dịch vụ',
-        variant: 'yellow',
-        action: 'request_service',
-      },
-    ],
-  },
-]
 
 const CTA_TAG_STYLE = {
   free: 'bg-emerald-100 text-emerald-700',
@@ -266,19 +145,14 @@ function ServiceCardCtaButton({ cta, isOnDark, disabled, onClick }) {
   )
 }
 
-function formatDate(value) {
-  if (!value) return '—'
-  try {
-    return new Date(value).toLocaleString('vi-VN')
-  } catch {
-    return '—'
-  }
+function formatDate(value, language) {
+  return formatBrandingDate(value, language)
 }
 
-function BrandingServiceCard({ card, onCta, loadingKey }) {
+function BrandingServiceCard({ card, onCta, loadingKey, copy }) {
   const isOnDark = card.variant === 'primary'
   const surface = CARD_SURFACE[card.variant] || CARD_SURFACE.neutral
-  const DecoIcon = card.icon
+  const DecoIcon = PACKAGE_ICONS[card.id] || Sparkles
   const busy = Boolean(loadingKey && (loadingKey === card.serviceKey || loadingKey === card.id))
   const primaryCta = card.ctas?.[0]
 
@@ -323,7 +197,7 @@ function BrandingServiceCard({ card, onCta, loadingKey }) {
               ? 'bg-white/15 text-white hover:bg-white/25'
               : 'bg-white text-slate-600 shadow-sm ring-1 ring-slate-100 hover:text-[#0077B6]'
           }`}
-          aria-label={primaryCta ? primaryCta.label : `Sử dụng ${card.title}`}
+          aria-label={primaryCta ? primaryCta.label : copy.useCard(card.title)}
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpRight className="h-4 w-4" strokeWidth={2} />}
         </button>
@@ -343,7 +217,7 @@ function BrandingServiceCard({ card, onCta, loadingKey }) {
 
       <div className="relative z-10 mt-3 flex min-h-0 flex-col">
         <h4 className={`shrink-0 text-xs font-bold sm:text-[13px] ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}>
-          Tính năng nổi bật
+          {copy.featuresHeading}
         </h4>
         <ul className={`mt-2 flex min-h-0 flex-1 flex-col gap-2 text-[11px] leading-snug sm:text-xs ${bodyClass}`}>
           {card.features.map((line) => (
@@ -356,7 +230,7 @@ function BrandingServiceCard({ card, onCta, loadingKey }) {
       </div>
 
       <div className={`relative z-10 mt-3 shrink-0 border-t pt-3 ${isOnDark ? 'border-white/20' : 'border-slate-200/80'}`}>
-        <h4 className={`text-xs font-bold sm:text-[13px] ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}>Phù hợp với</h4>
+        <h4 className={`text-xs font-bold sm:text-[13px] ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}>{copy.suitableHeading}</h4>
         <p className={`mt-1.5 min-h-[2.75rem] text-[11px] leading-snug sm:text-xs ${bodyClass}`}>{card.suitableFor}</p>
         <div className="mt-2.5 grid grid-cols-1 gap-1.5">
           {(card.ctas || []).map((cta) => (
@@ -374,33 +248,33 @@ function BrandingServiceCard({ card, onCta, loadingKey }) {
   )
 }
 
-function BrandingOverviewMain({ onCardCta, onConsultation, requestLoadingKey }) {
+function BrandingOverviewMain({ onCardCta, onConsultation, requestLoadingKey, copy, servicePackages }) {
   return (
     <div className="flex flex-col gap-2">
       <header className="shrink-0">
-        <h1 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl">Saiyo Branding</h1>
+        <h1 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl">{copy.pageTitle}</h1>
         <p className="mt-1 text-xs leading-snug text-slate-600 sm:text-sm">
-          Xây dựng thương hiệu tuyển dụng — gói dịch vụ, landing page, thống kê hiệu quả và form ứng tuyển.
+          {copy.pageSubtitle}
         </p>
       </header>
 
       <div className="grid grid-cols-1 items-stretch gap-2 sm:grid-cols-2 xl:grid-cols-4">
-        {SERVICE_PACKAGES.map((card, index) => (
+        {servicePackages.map((card, index) => (
           <div
             key={card.num}
             className="biz-hp-solution-card-wrap"
             style={{ animationDelay: `${0.06 + index * 0.1}s` }}
           >
-            <BrandingServiceCard card={card} onCta={onCardCta} loadingKey={requestLoadingKey} />
+            <BrandingServiceCard card={card} onCta={onCardCta} loadingKey={requestLoadingKey} copy={copy} />
           </div>
         ))}
       </div>
 
       <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="min-w-0 flex-1 text-xs leading-snug text-slate-700">
-          <span className="font-semibold text-slate-900">Không chắc gói nào phù hợp?</span>
+          <span className="font-semibold text-slate-900">{copy.consultTitle}</span>
           {' '}
-          JobShare tư vấn miễn phí cho doanh nghiệp của bạn.
+          {copy.consultBody}
         </p>
         <button
           type="button"
@@ -409,7 +283,7 @@ function BrandingOverviewMain({ onCardCta, onConsultation, requestLoadingKey }) 
           className="shrink-0 rounded-lg bg-[#0077B6] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#006399] disabled:opacity-60 inline-flex items-center justify-center gap-2"
         >
           {requestLoadingKey === 'consultation' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-          Nhận tư vấn ngay
+          {copy.consultCta}
         </button>
       </div>
     </div>
@@ -417,6 +291,8 @@ function BrandingOverviewMain({ onCardCta, onConsultation, requestLoadingKey }) 
 }
 
 function BrandingStatsSection({
+  copy,
+  language,
   statCards,
   statsEmpty,
   hasPublishedPage,
@@ -428,15 +304,15 @@ function BrandingStatsSection({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <h2 className="text-sm font-bold text-slate-900 sm:text-base">Thống kê &amp; landing page</h2>
+      <h2 className="text-sm font-bold text-slate-900 sm:text-base">{copy.statsSectionTitle}</h2>
 
       {statsEmpty && !hasPublishedPage ? (
         <div className="rounded-xl border border-dashed border-[#0077B6]/35 bg-[#e8f4fa]/60 px-4 py-4 text-center sm:text-left">
           <p className="text-xs font-semibold text-slate-800 sm:text-sm">
-            Chưa có dữ liệu thống kê
+            {copy.statsEmptyTitle}
           </p>
           <p className="mt-1 text-[11px] leading-relaxed text-slate-600 sm:text-xs">
-            Xuất bản trang đầu tiên để bắt đầu theo dõi lượt xem, form ứng tuyển và tỷ lệ chuyển đổi.
+            {copy.statsEmptyBody}
           </p>
           <button
             type="button"
@@ -444,7 +320,7 @@ function BrandingStatsSection({
             className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#006399]"
           >
             <Plus className="h-3.5 w-3.5" />
-            Tạo &amp; xuất bản trang đầu tiên
+            {copy.statsEmptyCta}
           </button>
         </div>
       ) : null}
@@ -479,8 +355,8 @@ function BrandingStatsSection({
             >
               <Building2 className="h-5 w-5" style={{ color: BRAND }} strokeWidth={2} />
             </div>
-            <h2 className="mb-1.5 text-xs font-bold text-slate-800">Trang giới thiệu DN</h2>
-            <p className="text-[10px] leading-snug text-slate-500">Template, đa trang, motion, SEO</p>
+            <h2 className="mb-1.5 text-xs font-bold text-slate-800">{copy.companyPageTitle}</h2>
+            <p className="text-[10px] leading-snug text-slate-500">{copy.companyPageDesc}</p>
           </div>
           {hasPublishedPage ? (
             <button
@@ -489,57 +365,58 @@ function BrandingStatsSection({
               className="mt-4 flex w-full shrink-0 items-center justify-center gap-1 rounded-lg bg-[#0077B6] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#006399]"
             >
               <Plus className="h-3.5 w-3.5" />
-              Tạo
+              {copy.create}
             </button>
           ) : null}
         </div>
 
         <div className="min-w-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xs font-bold text-slate-900 sm:text-sm">Tất cả landing pages</h2>
+            <h2 className="text-xs font-bold text-slate-900 sm:text-sm">{copy.allLandingPages}</h2>
             <button type="button" onClick={() => setShowCreate(true)} className="text-[10px] font-semibold text-[#0077B6] hover:text-[#006399] sm:text-xs">
-              + Tạo mới
+              {copy.createNew}
             </button>
           </div>
 
           {displayPages.length === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-400">Chưa có landing page. Bấm Tạo để bắt đầu.</div>
+            <div className="py-8 text-center text-xs text-slate-400">{copy.noLandingPages}</div>
           ) : (
             <div className="overflow-x-auto business-homepage-scroll">
               <table className="w-full border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/80 text-[10px] uppercase tracking-wide text-slate-400">
-                    <th className="px-2 py-2 text-left font-semibold">Tên</th>
-                    <th className="px-2 py-2 text-left font-semibold">Loại</th>
-                    <th className="px-2 py-2 text-center font-semibold">Lượt xem</th>
-                    <th className="px-2 py-2 text-center font-semibold">Form</th>
-                    <th className="px-2 py-2 font-semibold">Trạng thái</th>
-                    <th className="px-2 py-2 text-right font-semibold">Thao tác</th>
+                    <th className="px-2 py-2 text-left font-semibold">{copy.tableName}</th>
+                    <th className="px-2 py-2 text-left font-semibold">{copy.tableType}</th>
+                    <th className="px-2 py-2 text-center font-semibold">{copy.tableViews}</th>
+                    <th className="px-2 py-2 text-center font-semibold">{copy.tableForms}</th>
+                    <th className="px-2 py-2 font-semibold">{copy.tableStatus}</th>
+                    <th className="px-2 py-2 text-right font-semibold">{copy.tableActions}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {displayPages.map((p) => {
-                    const st = STATUS_STYLE[p.statusLabel] || STATUS_STYLE['Nháp']
+                    const st = getLandingPageStatusMeta(p.status, language)
+                    const typeLabel = (p.builderType === 'company' || isCompanyBuilderContent(p.content))
+                      ? copy.pageTypeCompany
+                      : (getLocalizedJobTitle(p.job, language) || p.job?.jobCode || copy.pageTypeRecruitment)
                     return (
                       <tr key={p.id} className="border-t border-slate-100 hover:bg-slate-50/60">
                         <td className="px-2 py-2 font-semibold text-slate-800">{p.title}</td>
-                        <td className="px-2 py-2 text-slate-500">
-                          {p.builderType === 'company' || isCompanyBuilderContent(p.content) ? 'Giới thiệu DN' : (p.job?.title || p.job?.jobCode || 'Tuyển dụng')}
-                        </td>
+                        <td className="px-2 py-2 text-slate-500">{typeLabel}</td>
                         <td className="px-2 py-2 text-center tabular-nums text-slate-600">{p.viewsCount}</td>
                         <td className="px-2 py-2 text-center tabular-nums text-slate-600">{p.formSubmissionsCount}</td>
                         <td className="px-2 py-2">
                           <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ color: st.color, background: st.bg }}>
-                            {p.statusLabel}
+                            {st.label}
                           </span>
                         </td>
                         <td className="px-2 py-2 text-right">
                           <div className="flex flex-wrap justify-end gap-1">
-                            <button type="button" onClick={() => openEditor(p)} className="rounded-md bg-[#e8f4fa] px-2 py-1 text-[10px] font-semibold text-[#0077B6] hover:bg-[#cce5f0]">Sửa</button>
+                            <button type="button" onClick={() => openEditor(p)} className="rounded-md bg-[#e8f4fa] px-2 py-1 text-[10px] font-semibold text-[#0077B6] hover:bg-[#cce5f0]">{copy.edit}</button>
                             {p.status === 1 && (
                               <>
-                                <button type="button" onClick={() => copyPublicLink(p)} className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-200">Copy link</button>
-                                <a href={p.publicPath} target="_blank" rel="noreferrer" className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 no-underline hover:bg-slate-200">Xem</a>
+                                <button type="button" onClick={() => copyPublicLink(p)} className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-200">{copy.copyLink}</button>
+                                <a href={p.publicPath} target="_blank" rel="noreferrer" className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 no-underline hover:bg-slate-200">{copy.view}</a>
                               </>
                             )}
                           </div>
@@ -555,15 +432,15 @@ function BrandingStatsSection({
       </div>
 
       <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
-        <h2 className="mb-3 text-xs font-bold text-[#0077B6]">Hoạt động gần đây</h2>
+        <h2 className="mb-3 text-xs font-bold text-[#0077B6]">{copy.recentActivity}</h2>
         {activities.length === 0 ? (
-          <div className="text-xs text-slate-400">Chưa có hoạt động</div>
+          <div className="text-xs text-slate-400">{copy.noActivity}</div>
         ) : (
           <div className="flex flex-col divide-y divide-slate-100">
             {activities.map((a) => (
               <div key={a.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
                 <div className="flex-1 text-xs text-slate-700">{a.message}</div>
-                <div className="shrink-0 whitespace-nowrap text-[10px] text-slate-400">{formatDate(a.createdAt)}</div>
+                <div className="shrink-0 whitespace-nowrap text-[10px] text-slate-400">{formatDate(a.createdAt, language)}</div>
               </div>
             ))}
           </div>
@@ -574,6 +451,9 @@ function BrandingStatsSection({
 }
 
 function BrandingUnifiedMain({
+  copy,
+  language,
+  servicePackages,
   onCardCta,
   onConsultation,
   requestLoadingKey,
@@ -592,8 +472,12 @@ function BrandingUnifiedMain({
         onCardCta={onCardCta}
         onConsultation={onConsultation}
         requestLoadingKey={requestLoadingKey}
+        copy={copy}
+        servicePackages={servicePackages}
       />
       <BrandingStatsSection
+        copy={copy}
+        language={language}
         statCards={statCards}
         statsEmpty={statsEmpty}
         hasPublishedPage={hasPublishedPage}
@@ -610,6 +494,9 @@ function BrandingUnifiedMain({
 const Branding = () => {
   const navigate = useNavigate()
   const location = useLocation()
+  const { language } = useLanguage()
+  const copy = useMemo(() => getBrandingCopy(language), [language])
+  const servicePackages = useMemo(() => getBrandingServicePackages(language), [language])
   const [loading, setLoading] = useState(true)
   const [dashboard, setDashboard] = useState(null)
   const [landingPages, setLandingPages] = useState([])
@@ -623,7 +510,7 @@ const Branding = () => {
     message: '',
     variant: 'info',
     confirmLabel: 'OK',
-    cancelLabel: 'Hủy',
+    cancelLabel: '',
     hideCancel: false,
     onConfirm: null,
   })
@@ -632,15 +519,15 @@ const Branding = () => {
     setAlertModal((prev) => ({ ...prev, open: false, onConfirm: null }))
   }
 
-  const openNoticeModal = (title, message, variant = 'info', confirmLabel = 'OK') => {
+  const openNoticeModal = (title, message, variant = 'info', confirmLabel) => {
     setAlertModal({
       open: true,
       kind: 'notice',
       title,
       message,
       variant,
-      confirmLabel,
-      cancelLabel: 'Hủy',
+      confirmLabel: confirmLabel ?? copy.alerts.ok,
+      cancelLabel: copy.alerts.cancel,
       hideCancel: false,
       onConfirm: null,
     })
@@ -651,8 +538,8 @@ const Branding = () => {
     message,
     onConfirm,
     variant = 'info',
-    confirmLabel = 'OK',
-    cancelLabel = 'Hủy',
+    confirmLabel,
+    cancelLabel,
     hideCancel = false,
   }) => {
     setAlertModal({
@@ -661,8 +548,8 @@ const Branding = () => {
       title,
       message,
       variant,
-      confirmLabel,
-      cancelLabel,
+      confirmLabel: confirmLabel ?? copy.alerts.ok,
+      cancelLabel: cancelLabel ?? copy.alerts.cancel,
       hideCancel,
       onConfirm,
     })
@@ -704,12 +591,12 @@ const Branding = () => {
   const stats = dashboard?.stats || {}
   const activities = dashboard?.activities || []
 
-  const statCards = [
-    { icon: Bookmark, value: stats.views || 0, label: 'Lượt xem', color: BRAND },
-    { icon: BarChart3, value: stats.formSubmissions || 0, label: 'Lượt đăng ký form', color: '#d97706' },
-    { icon: Users, value: stats.candidates || 0, label: 'Hồ sơ ứng viên', color: '#0d9488' },
-    { icon: TrendingUp, value: `${stats.conversionRate || 0}%`, label: 'Tỷ lệ chuyển đổi', color: '#059669' },
-  ]
+  const statCards = useMemo(() => [
+    { icon: Bookmark, value: stats.views || 0, label: copy.statViews, color: BRAND },
+    { icon: BarChart3, value: stats.formSubmissions || 0, label: copy.statForms, color: '#d97706' },
+    { icon: Users, value: stats.candidates || 0, label: copy.statCandidates, color: '#0d9488' },
+    { icon: TrendingUp, value: `${stats.conversionRate || 0}%`, label: copy.statConversion, color: '#059669' },
+  ], [stats.views, stats.formSubmissions, stats.candidates, stats.conversionRate, copy])
 
   const statsEmpty = !loading
     && (stats.views || 0) === 0
@@ -732,7 +619,7 @@ const Branding = () => {
   const copyPublicLink = (lp) => {
     const url = `${window.location.origin}${lp.publicPath || `/lp/${lp.slug}`}`
     navigator.clipboard.writeText(url)
-    openNoticeModal('Đã copy link', 'Đã copy link public', 'success')
+    openNoticeModal(copy.alerts.copyTitle, copy.alerts.copyMessage, 'success')
   }
 
   const handleNavigate = useMemo(() => (path) => navigate(path), [navigate])
@@ -756,24 +643,24 @@ const Branding = () => {
       }
       if (res?.success) {
         openConfirmModal({
-          title: 'Đã gửi yêu cầu',
-          message: `${res.message || 'Đã gửi yêu cầu tới JobShare WS.'}\n\nMở mục Tin nhắn để theo dõi?`,
+          title: copy.alerts.requestSentTitle,
+          message: copy.alerts.requestSentMessage(res.message),
           variant: 'success',
-          confirmLabel: 'Mở Tin nhắn',
+          confirmLabel: copy.alerts.openMessages,
           hideCancel: true,
           onConfirm: () => navigate('/business/messages?tab=ws'),
         })
       } else {
         openNoticeModal(
-          'Gửi yêu cầu thất bại',
-          res?.message || 'Không gửi được yêu cầu. Vui lòng thử lại.',
+          copy.alerts.requestFailedTitle,
+          res?.message || copy.alerts.requestFailedMessage,
           'error',
         )
       }
     } catch (e) {
       openNoticeModal(
-        'Gửi yêu cầu thất bại',
-        e?.message || 'Không gửi được yêu cầu. Vui lòng thử lại.',
+        copy.alerts.requestFailedTitle,
+        e?.message || copy.alerts.requestFailedMessage,
         'error',
       )
     } finally {
@@ -844,12 +731,15 @@ const Branding = () => {
           {loading ? (
             <div className="flex flex-1 items-center justify-center gap-2 py-20 text-slate-500">
               <Loader2 className="h-5 w-5 animate-spin text-[#0077B6]" />
-              <span className="text-sm">Đang tải...</span>
+              <span className="text-sm">{copy.loading}</span>
             </div>
           ) : (
             <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:h-full xl:grid-cols-[minmax(0,1fr)_minmax(196px,228px)] xl:gap-3 xl:overflow-hidden">
               <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col xl:h-full xl:overflow-y-auto xl:pr-0.5">
                 <BrandingUnifiedMain
+                  copy={copy}
+                  language={language}
+                  servicePackages={servicePackages}
                   onCardCta={handleCardCta}
                   onConsultation={handleConsultation}
                   requestLoadingKey={requestLoadingKey}

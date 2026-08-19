@@ -1,18 +1,26 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Gauge } from 'lucide-react'
 import { getScoutMatchBadgeClass } from '../../utils/scoutCandidateDisplay'
+import { getScoutMatchBadgeCopy } from '../../i18n/businessAppI18n'
 
-export default function ScoutMatchBadge({ score, className = '', iconClassName = 'h-3 w-3' }) {
+export default function ScoutMatchBadge({
+  score,
+  className = '',
+  iconClassName = 'h-3 w-3',
+  language = 'vi',
+}) {
   const n = Number(score)
+  const copy = useMemo(() => getScoutMatchBadgeCopy(language), [language])
+
   if (!Number.isFinite(n)) return null
 
   return (
     <span
       className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold leading-none sm:text-[13px] ${getScoutMatchBadgeClass(n)} ${className}`.trim()}
-      title="Điểm phù hợp AI"
+      title={copy.title}
     >
       <Gauge className={iconClassName} aria-hidden />
-      {Math.round(n)}% match
+      {copy.label(Math.round(n))}
     </span>
   )
 }

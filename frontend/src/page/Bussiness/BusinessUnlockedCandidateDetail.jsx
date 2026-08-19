@@ -6,6 +6,8 @@ import {
 } from 'lucide-react'
 import apiService from '../../services/api'
 import useBusinessUser from '../../hooks/useBusinessUser'
+import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
+import { useLanguage } from '../../context/LanguageContext'
 import {
   fetchScoutCvBusinessJobMatches,
   getMatchScorePercent,
@@ -15,22 +17,26 @@ import {
   normalizeScoutEducations,
   normalizeScoutWorkExperiences,
   getScoutResidenceStatusLabel,
-  formatScoutGender,
-  formatScoutYesNo,
-  formatScoutDate,
   formatScoutIncome,
-  formatScoutExperienceYears,
   getScoutSkillTags,
-  getScoutDisplayName,
   getScoutPrSummary,
-  formatScoutAgeGender,
-  getScoutPipelineMeta,
-  getScoutUnlockSourceMeta,
-  getScoutPerformanceRequestMeta,
-  getScoutPerformanceExploreMeta,
   getScoutMatchBadgeClass,
-  SCOUT_PERFORMANCE_REQUEST_STATUS_LABELS,
 } from '../../utils/scoutCandidateDisplay'
+import { getLocalizedCandidateRole } from '../../utils/jobCategoryDisplay'
+import {
+  formatCandidateAgeGender,
+  formatCandidateExperienceYears,
+  formatCandidateGender,
+  formatCandidateListDate,
+  formatCandidateYesNo,
+  getLocalizedJobTitle,
+  getLocalizedScoutDisplayName,
+  getLocalizedScoutPerformanceExploreMeta,
+  getLocalizedScoutPerformanceRequestMeta,
+  getLocalizedScoutPerformanceRequestStatusLabel,
+  getLocalizedScoutPipelineMeta,
+  getLocalizedScoutUnlockSourceMeta,
+} from '../../i18n/businessAppI18n'
 
 const ANONYMOUS_AVATAR = 'https://api.dicebear.com/7.x/shapes/svg?seed=scout-unlocked'
 const BRAND = '#0077B6'
@@ -123,15 +129,6 @@ const detailPageStyles = `
   .candidate-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
 `
 
-function formatListDate(value) {
-  if (!value) return '—'
-  try {
-    return new Date(value).toLocaleDateString('vi-VN')
-  } catch {
-    return '—'
-  }
-}
-
 async function loadBusinessJobsByIds(jobIds) {
   const ids = [...new Set((jobIds || []).map((id) => String(id)).filter(Boolean))]
   if (!ids.length) return {}
@@ -153,7 +150,10 @@ function MatchedJobsRecommendations({
   onAttach,
   attachingJobId,
   attachedJobIds,
+  copy,
+  language,
 }) {
+  const mj = copy.detail.matchedJobs
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState([])
   const [loadError, setLoadError] = useState('')
@@ -201,7 +201,7 @@ function MatchedJobsRecommendations({
       } catch (e) {
         console.error(e)
         if (!cancelled) {
-          setLoadError('Không tải được gợi ý JD phù hợp')
+          setLoadError(mj.loadError)
           setItems([])
         }
       } finally {
@@ -209,34 +209,34 @@ function MatchedJobsRecommendations({
       }
     })()
     return () => { cancelled = true }
-  }, [cvId, businessId])
+  }, [cvId, businessId, mj.loadError])
 
   return (
     <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
       <div className="mb-2 flex items-center gap-1.5">
         <Sparkles className="cand-icon text-[#0077B6]" aria-hidden />
-        <h3 className="cand-fs-sm font-bold text-slate-900">JD phù hợp</h3>
+        <h3 className="cand-fs-sm font-bold text-slate-900">{mj.title}</h3>
       </div>
       <p className="cand-fs-2xs mb-2 text-slate-500">
-        Gợi ý từ AI theo hồ sơ ứng viên và JD của doanh nghiệp
+        {mj.subtitle}
       </p>
 
       {loading ? (
         <div className="cand-fs-xs flex items-center justify-center gap-1.5 py-4 text-slate-500">
           <Loader2 className="cand-icon animate-spin" />
-          Đang phân tích...
+          {mj.analyzing}
         </div>
       ) : loadError ? (
         <p className="cand-fs-xs py-2 text-amber-700">{loadError}</p>
       ) : items.length === 0 ? (
-        <p className="cand-fs-xs py-2 text-slate-400">Chưa có JD phù hợp (match ≥ 40%)</p>
+        <p className="cand-fs-xs py-2 text-slate-400">{mj.empty}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {items.map(({ jobId, score, job }) => {
             const key = String(jobId)
             const isAttached = attachedJobIds.has(key)
             const isSubmitting = String(attachingJobId) === key
-            const title = job.title || job.titleEn || job.titleJp || `JD #${jobId}`
+            const title = getLocalizedJobTitle(job, language) || `JD #${jobId}`
             return (
               <li
                 key={key}
@@ -250,13 +250,13 @@ function MatchedJobsRecommendations({
                     <p className="cand-fs-sm line-clamp-2 font-semibold text-slate-900">{title}</p>
                     {job.jobCode || job.job_code ? (
                       <p className="cand-fs-2xs mt-0.5 text-slate-400">
-                        Mã: {job.jobCode || job.job_code}
+                        {mj.jobCode(job.jobCode || job.job_code)}
                       </p>
                     ) : null}
                     <span
                       className={`cand-fs-2xs mt-1 inline-flex rounded-full px-1.5 py-0.5 font-semibold ${getScoutMatchBadgeClass(score)}`}
                     >
-                      Match {Math.round(score)}%
+                      {mj.match(Math.round(score))}
                     </span>
                   </div>
                 </div>
@@ -269,14 +269,14 @@ function MatchedJobsRecommendations({
                   {isSubmitting ? (
                     <>
                       <Loader2 className="cand-icon animate-spin" />
-                      Đang thêm...
+                      {mj.adding}
                     </>
                   ) : isAttached ? (
-                    'Đã thêm tiến cử'
+                    mj.added
                   ) : (
                     <>
                       <UserPlus className="cand-icon" />
-                      Thêm vào tiến cử
+                      {mj.addToPipeline}
                     </>
                   )}
                 </button>
@@ -289,8 +289,8 @@ function MatchedJobsRecommendations({
   )
 }
 
-function AvatarCircle({ candidate, size }) {
-  const name = getScoutDisplayName(candidate)
+function AvatarCircle({ candidate, size, language = 'vi' }) {
+  const name = getLocalizedScoutDisplayName({ ...candidate, isUnlocked: true }, language)
   const resolvedSize = size ?? 28
   const src = candidate?.avatarPhotoPath
     ? candidate.avatarPhotoPath
@@ -337,12 +337,17 @@ function SectionCard({ title, children, className = '' }) {
   )
 }
 
-function CandidateDetail({ candidate, loading }) {
+function CandidateDetail({ candidate, loading, copy, language }) {
+  const d = copy.detail
+  const f = d.fields
+  const s = d.sections
+  const m = d.metrics
+
   if (loading && !candidate) {
     return (
       <div className="cand-fs-sm cand-surface flex flex-col items-center justify-center border border-slate-200/80 bg-white py-12 text-slate-500 shadow-sm">
         <Loader2 className="cand-icon mb-2 animate-spin" />
-        Đang tải chi tiết...
+        {d.loadingDetail}
       </div>
     )
   }
@@ -350,19 +355,19 @@ function CandidateDetail({ candidate, loading }) {
   if (!candidate) {
     return (
       <div className="cand-fs-sm cand-surface flex flex-col items-center justify-center border border-dashed border-slate-200 bg-white py-12 text-slate-500 shadow-sm">
-        Chọn ứng viên ở danh sách bên trái để xem hồ sơ
+        {d.selectHint}
       </div>
     )
   }
 
-  const source = getScoutUnlockSourceMeta(candidate.unlockType)
-  const pipeline = getScoutPipelineMeta(candidate.pipelineStatus)
+  const source = getLocalizedScoutUnlockSourceMeta(candidate.unlockType, language)
+  const pipeline = getLocalizedScoutPipelineMeta(candidate.pipelineStatus, language)
   const skills = getScoutSkillTags(candidate)
   const educations = normalizeScoutEducations(candidate.educations)
   const workExperiences = normalizeScoutWorkExperiences(candidate.workExperiences)
   const certificates = normalizeScoutCertificates(candidate.certificates)
   const perfReq = candidate.performanceRequest
-  const perfStatusMeta = perfReq?.status ? getScoutPerformanceRequestMeta(perfReq.status) : null
+  const perfStatusMeta = perfReq?.status ? getLocalizedScoutPerformanceRequestMeta(perfReq.status, language) : null
 
   const copyCode = () => {
     if (candidate.code && navigator.clipboard) {
@@ -374,20 +379,20 @@ function CandidateDetail({ candidate, loading }) {
 
   const overviewMetrics = isPerformanceUnlock
     ? [
-        { label: 'Trạng thái tiếp cận', value: pipeline.label, sub: 'Pipeline' },
+        { label: m.approachStatus, value: pipeline.label, sub: m.pipeline },
         {
-          label: 'Yêu cầu WS',
+          label: m.wsRequest,
           value: perfStatusMeta?.label || '—',
-          sub: perfReq?.recommendationCount ? `${perfReq.recommendationCount} gợi ý` : undefined,
+          sub: perfReq?.recommendationCount ? m.recommendations(perfReq.recommendationCount) : undefined,
         },
-        { label: 'Kinh nghiệm', value: formatScoutExperienceYears(candidate.experienceYears), sub: 'Tổng quan' },
-        { label: 'Mở hồ sơ', value: formatListDate(candidate.unlockedAt), sub: source.label },
+        { label: m.experience, value: formatCandidateExperienceYears(candidate.experienceYears, language), sub: m.overview },
+        { label: m.profileUnlock, value: formatCandidateListDate(candidate.unlockedAt, language), sub: source.label },
       ]
     : [
-        { label: 'Trạng thái tiếp cận', value: pipeline.label, sub: 'Pipeline' },
-        { label: 'Credit đã dùng', value: candidate.creditCost != null ? String(candidate.creditCost) : '—', sub: 'Scout Credit' },
-        { label: 'Kinh nghiệm', value: formatScoutExperienceYears(candidate.experienceYears), sub: 'Tổng quan' },
-        { label: 'Mở hồ sơ', value: formatListDate(candidate.unlockedAt), sub: source.label },
+        { label: m.approachStatus, value: pipeline.label, sub: m.pipeline },
+        { label: m.creditUsed, value: candidate.creditCost != null ? String(candidate.creditCost) : '—', sub: m.scoutCredit },
+        { label: m.experience, value: formatCandidateExperienceYears(candidate.experienceYears, language), sub: m.overview },
+        { label: m.profileUnlock, value: formatCandidateListDate(candidate.unlockedAt, language), sub: source.label },
       ]
 
   return (
@@ -395,14 +400,14 @@ function CandidateDetail({ candidate, loading }) {
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
         <div className="flex items-start gap-3">
           <div className="relative shrink-0">
-            <AvatarCircle candidate={candidate} size={40} />
+            <AvatarCircle candidate={candidate} size={40} language={language} />
             <div className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white bg-emerald-500 text-white">
               <BadgeCheck className="h-2 w-2" aria-hidden />
             </div>
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
-              <h2 className="cand-fs-lg font-bold text-slate-900">{getScoutDisplayName(candidate)}</h2>
+              <h2 className="cand-fs-lg font-bold text-slate-900">{getLocalizedScoutDisplayName({ ...candidate, isUnlocked: true }, language)}</h2>
               <span
                 className="cand-fs-xs rounded-full px-1.5 py-0.5 font-semibold"
                 style={{ color: pipeline.color, background: pipeline.bg }}
@@ -411,14 +416,14 @@ function CandidateDetail({ candidate, loading }) {
               </span>
             </div>
             <p className="cand-fs-sm mt-0.5 text-slate-500">
-              {candidate.desiredPosition || candidate.jobCategory?.name || '—'}
+              {getLocalizedCandidateRole(candidate, language)}
             </p>
             <p className="cand-fs-xs mt-0.5 text-slate-400">
-              {formatScoutAgeGender(candidate)}
+              {formatCandidateAgeGender(candidate, language)}
               {candidate.desiredWorkLocation ? ` · ${candidate.desiredWorkLocation}` : ''}
             </p>
             <p className="cand-fs-xs mt-1 font-medium" style={{ color: source.color }}>
-              {source.label} · Mở {formatListDate(candidate.unlockedAt)}
+              {d.unlockedLine(source.label, formatCandidateListDate(candidate.unlockedAt, language))}
             </p>
           </div>
           <div className="flex shrink-0 items-start gap-1.5">
@@ -431,7 +436,7 @@ function CandidateDetail({ candidate, loading }) {
             <button
               type="button"
               className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-400 hover:bg-slate-50"
-              aria-label="Thêm"
+              aria-label={d.moreActions}
             >
               <MoreHorizontal className="cand-icon" />
             </button>
@@ -441,7 +446,7 @@ function CandidateDetail({ candidate, loading }) {
 
       <div>
         <div className="mb-1.5 flex items-center justify-between px-0.5">
-          <h3 className="cand-fs-sm font-bold text-slate-900">Tổng quan</h3>
+          <h3 className="cand-fs-sm font-bold text-slate-900">{d.overview}</h3>
         </div>
         <div className="cand-metrics">
           {overviewMetrics.map((m) => (
@@ -453,9 +458,9 @@ function CandidateDetail({ candidate, loading }) {
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
-            <h3 className="cand-fs-sm font-bold text-slate-900">Thông tin hồ sơ</h3>
+            <h3 className="cand-fs-sm font-bold text-slate-900">{d.profileInfo}</h3>
             <span className="cand-fs-2xs rounded-full bg-emerald-50 px-1.5 py-0.5 font-semibold text-emerald-700">
-              Đã mở
+              {d.unlockedBadge}
             </span>
           </div>
           {candidate.code ? (
@@ -464,30 +469,30 @@ function CandidateDetail({ candidate, loading }) {
               onClick={copyCode}
               className="cand-fs-xs inline-flex items-center gap-1 font-medium text-slate-500 hover:text-slate-800"
             >
-              Mã CV: {candidate.code}
+              {d.cvCode(candidate.code)}
               <Copy className="cand-icon" />
             </button>
           ) : null}
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <DetailField label="Email" value={candidate.email} />
-          <DetailField label="Số điện thoại" value={candidate.phone} />
-          <DetailField label="Furigana" value={candidate.furigana} />
-          <DetailField label="Ngày sinh" value={formatScoutDate(candidate.birthDate)} />
-          <DetailField label="Giới tính" value={formatScoutGender(candidate.gender)} />
-          <DetailField label="Địa điểm mong muốn" value={candidate.desiredWorkLocation} />
-          <DetailField label="Kinh nghiệm" value={formatScoutExperienceYears(candidate.experienceYears)} />
-          <DetailField label="Vị trí mong muốn" value={candidate.desiredPosition || candidate.jobCategory?.name} />
-          <DetailField label="Mức lương mong muốn" value={candidate.desiredIncome} />
+          <DetailField label={f.email} value={candidate.email} />
+          <DetailField label={f.phone} value={candidate.phone} />
+          <DetailField label={f.furigana} value={candidate.furigana} />
+          <DetailField label={f.birthDate} value={formatCandidateListDate(candidate.birthDate, language)} />
+          <DetailField label={f.gender} value={formatCandidateGender(candidate.gender, language)} />
+          <DetailField label={f.desiredLocation} value={candidate.desiredWorkLocation} />
+          <DetailField label={f.experience} value={formatCandidateExperienceYears(candidate.experienceYears, language)} />
+          <DetailField label={f.desiredPosition} value={getLocalizedCandidateRole(candidate, language)} />
+          <DetailField label={f.desiredSalary} value={candidate.desiredIncome} />
           <DetailField
-            label="JLPT / Ngoại ngữ"
+            label={f.jlptLanguages}
             value={[candidate.jlptLevel, candidate.jpConversationLevel, candidate.enConversationLevel].filter(Boolean).join(' · ') || null}
           />
         </div>
       </div>
 
       {getScoutPrSummary(candidate) && (
-        <SectionCard title="PR / Giới thiệu">
+        <SectionCard title={s.pr}>
           <p className="cand-fs-sm whitespace-pre-wrap leading-relaxed text-slate-600">
             {getScoutPrSummary(candidate)}
           </p>
@@ -495,7 +500,7 @@ function CandidateDetail({ candidate, loading }) {
       )}
 
       {skills.length > 0 && (
-        <SectionCard title="Kỹ năng">
+        <SectionCard title={s.skills}>
           <p className="cand-fs-sm leading-relaxed text-slate-600">
             {skills.join(' · ')}
           </p>
@@ -503,7 +508,7 @@ function CandidateDetail({ candidate, loading }) {
       )}
 
       {educations.length > 0 && (
-        <SectionCard title="Học vấn">
+        <SectionCard title={s.education}>
           <ul className="flex flex-col gap-2">
             {educations.map((edu, i) => (
               <li key={i} className="cand-fs-sm border-l-2 border-slate-200 pl-2 text-slate-600">
@@ -517,7 +522,7 @@ function CandidateDetail({ candidate, loading }) {
       )}
 
       {workExperiences.length > 0 && (
-        <SectionCard title="Lịch sử công việc">
+        <SectionCard title={s.workHistory}>
           <div className="flex flex-col gap-2">
             {workExperiences.map((work, i) => (
               <div key={i} className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
@@ -535,7 +540,7 @@ function CandidateDetail({ candidate, loading }) {
       )}
 
       {certificates.length > 0 && (
-        <SectionCard title="Chứng chỉ">
+        <SectionCard title={s.certificates}>
           <div className="flex flex-wrap gap-1.5">
             {certificates.map((cert, i) => (
               <div key={i} className="cand-fs-xs rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-slate-600">
@@ -547,27 +552,27 @@ function CandidateDetail({ candidate, loading }) {
       )}
 
       {(candidate.jpResidenceStatus || candidate.visaExpirationDate || candidate.currentResidence) && (
-        <SectionCard title="Visa & cư trú">
+        <SectionCard title={s.visaResidence}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <DetailField label="Tư cách lưu trú" value={getScoutResidenceStatusLabel(candidate.jpResidenceStatus)} />
-            <DetailField label="Ngày hết hạn visa" value={formatScoutDate(candidate.visaExpirationDate)} />
-            <DetailField label="Nơi cư trú hiện tại" value={candidate.currentResidence} />
-            <DetailField label="Hộ chiếu" value={formatScoutYesNo(candidate.passport)} />
+            <DetailField label={f.residenceStatus} value={getScoutResidenceStatusLabel(candidate.jpResidenceStatus)} />
+            <DetailField label={f.visaExpiry} value={formatCandidateListDate(candidate.visaExpirationDate, language)} />
+            <DetailField label={f.currentResidence} value={candidate.currentResidence} />
+            <DetailField label={f.passport} value={formatCandidateYesNo(candidate.passport, language)} />
           </div>
         </SectionCard>
       )}
 
       {(candidate.currentIncome != null || candidate.desiredIncome != null) && (
-        <SectionCard title="Lương">
+        <SectionCard title={s.salary}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <DetailField label="Lương hiện tại" value={formatScoutIncome(candidate.currentIncome)} />
-            <DetailField label="Lương mong muốn" value={formatScoutIncome(candidate.desiredIncome)} />
+            <DetailField label={f.currentSalary} value={formatScoutIncome(candidate.currentIncome)} />
+            <DetailField label={f.desiredSalarySection} value={formatScoutIncome(candidate.desiredIncome)} />
           </div>
         </SectionCard>
       )}
 
       {candidate.motivation && (
-        <SectionCard title="Động lực">
+        <SectionCard title={s.motivation}>
           <p className="cand-fs-sm whitespace-pre-wrap leading-relaxed text-slate-600">{candidate.motivation}</p>
         </SectionCard>
       )}
@@ -583,43 +588,47 @@ function CandidateSidebar({
   onAttachToJob,
   attachingJobId,
   attachedJobIds,
+  copy,
+  language,
 }) {
   if (!candidate) {
     return null
   }
 
-  const pipeline = getScoutPipelineMeta(candidate.pipelineStatus)
-  const source = getScoutUnlockSourceMeta(candidate.unlockType)
+  const sb = copy.detail.sidebar
+  const tl = copy.detail.timeline
+  const pipeline = getLocalizedScoutPipelineMeta(candidate.pipelineStatus, language)
+  const source = getLocalizedScoutUnlockSourceMeta(candidate.unlockType, language)
   const isPerformanceUnlock = isScoutPerformanceUnlock(candidate)
   const perfReq = candidate.performanceRequest
-  const perfStatusMeta = perfReq?.status ? getScoutPerformanceRequestMeta(perfReq.status) : null
+  const perfStatusMeta = perfReq?.status ? getLocalizedScoutPerformanceRequestMeta(perfReq.status, language) : null
   const exploreMeta = perfReq?.businessExploreStatus
-    ? getScoutPerformanceExploreMeta(perfReq.businessExploreStatus)
+    ? getLocalizedScoutPerformanceExploreMeta(perfReq.businessExploreStatus, language)
     : null
   const canSetExplore = perfReq?.status === 'approved' && !perfReq?.businessExploreStatus
 
   const timeline = [
     {
-      date: formatListDate(candidate.unlockedAt),
-      action: `Mở hồ sơ Scout (${source.label})`,
+      date: formatCandidateListDate(candidate.unlockedAt, language),
+      action: tl.unlockProfile(source.label),
     },
     ...(candidate.savedAt && candidate.savedAt !== candidate.unlockedAt
-      ? [{ date: formatListDate(candidate.savedAt), action: 'Thêm vào hồ sơ ứng viên' }]
+      ? [{ date: formatCandidateListDate(candidate.savedAt, language), action: tl.addToCandidates }]
       : []),
     ...(perfReq?.requestedAt
       ? [{
-        date: formatListDate(perfReq.requestedAt),
-        action: `Yêu cầu Scout Performance (${SCOUT_PERFORMANCE_REQUEST_STATUS_LABELS[perfReq.status] || perfReq.status})`,
+        date: formatCandidateListDate(perfReq.requestedAt, language),
+        action: tl.perfRequest(getLocalizedScoutPerformanceRequestStatusLabel(perfReq.status, language)),
       }]
       : []),
     ...(perfReq?.handledAt
-      ? [{ date: formatListDate(perfReq.handledAt), action: 'WS xử lý yêu cầu' }]
+      ? [{ date: formatCandidateListDate(perfReq.handledAt, language), action: tl.wsHandled }]
       : []),
     ...(perfReq?.businessExploreStatus === 'interested'
-      ? [{ date: '—', action: 'DN xác nhận quan tâm — WS đang hỗ trợ liên hệ' }]
+      ? [{ date: '—', action: tl.businessInterested }]
       : []),
     ...(perfReq?.wantsSimilarCandidates
-      ? [{ date: '—', action: 'WS đang tìm thêm ứng viên tương tự' }]
+      ? [{ date: '—', action: tl.findingSimilar }]
       : []),
   ]
 
@@ -627,10 +636,10 @@ function CandidateSidebar({
     <div className="candidate-scrollbar flex min-h-0 flex-col gap-3">
       {isPerformanceUnlock && (
         <div className="cand-surface border border-violet-100 bg-white shadow-sm">
-          <h3 className="cand-fs-sm mb-2 font-bold text-slate-900">Scout Performance · WS</h3>
+          <h3 className="cand-fs-sm mb-2 font-bold text-slate-900">{sb.perfWsTitle}</h3>
           {!perfReq ? (
             <p className="cand-fs-xs text-slate-400">
-              Chưa có yêu cầu WS gắn với hồ sơ này.
+              {sb.noPerfRequest}
             </p>
           ) : (
             <>
@@ -639,8 +648,8 @@ function CandidateSidebar({
                   className="cand-fs-xs mb-1.5 w-full rounded border border-slate-200 px-1.5 py-1 font-semibold"
                   style={{ color: perfStatusMeta.color, background: perfStatusMeta.bg }}
                 >
-                  Yêu cầu: {perfStatusMeta.label}
-                  {perfReq.recommendationCount > 0 ? ` · ${perfReq.recommendationCount} gợi ý` : ''}
+                  {sb.requestLabel}: {perfStatusMeta.label}
+                  {perfReq.recommendationCount > 0 ? ` · ${sb.recommendationsSuffix(perfReq.recommendationCount)}` : ''}
                 </div>
               )}
               {exploreMeta ? (
@@ -648,21 +657,21 @@ function CandidateSidebar({
                   className="cand-fs-xs mb-1.5 w-full rounded border border-slate-200 px-1.5 py-1 font-semibold"
                   style={{ color: exploreMeta.color, background: exploreMeta.bg }}
                 >
-                  Làm việc với WS: {exploreMeta.label}
+                  {sb.workingWithWs}: {exploreMeta.label}
                 </div>
               ) : perfReq.wantsSimilarCandidates ? (
                 <div className="cand-fs-2xs mb-1.5 font-semibold text-violet-600">
-                  WS đang tìm ứng viên tương tự cho bạn
+                  {sb.findingSimilar}
                 </div>
               ) : perfReq.status === 'pending' ? (
                 <div className="cand-fs-2xs mb-1.5 text-amber-600">
-                  WS đang xem xét yêu cầu của bạn
+                  {sb.reviewingRequest}
                 </div>
               ) : null}
               {canSetExplore && (
                 <div className="mb-1.5">
                   <p className="cand-fs-2xs mb-1.5 text-slate-600">
-                    WS có gợi ý phù hợp. Bạn có muốn WS hỗ trợ thêm về ứng viên này?
+                    {sb.explorePrompt}
                   </p>
                   <div className="flex flex-col gap-1">
                     <button
@@ -671,7 +680,7 @@ function CandidateSidebar({
                       onClick={() => onExploreStatus?.(perfReq.id, 'interested')}
                       className="cand-fs-xs w-full rounded bg-indigo-600 px-2 py-1.5 font-semibold text-white disabled:opacity-70"
                     >
-                      Có — WS hỗ trợ liên hệ
+                      {sb.exploreYes}
                     </button>
                     <button
                       type="button"
@@ -679,7 +688,7 @@ function CandidateSidebar({
                       onClick={() => onExploreStatus?.(perfReq.id, 'declined')}
                       className="cand-fs-xs w-full rounded border border-slate-200 bg-slate-50 px-2 py-1.5 font-semibold text-slate-600 disabled:opacity-70"
                     >
-                      Không, cảm ơn
+                      {sb.exploreNo}
                     </button>
                   </div>
                 </div>
@@ -688,7 +697,7 @@ function CandidateSidebar({
                 to={perfReq.id ? `/business/scout?performanceRequestId=${perfReq.id}` : '/business/scout'}
                 className="cand-fs-2xs mb-1 flex items-center justify-between font-semibold text-[#0077B6]"
               >
-                Xem gợi ý trên Scout
+                {sb.viewOnScout}
                 <ChevronRight className="cand-icon" />
               </Link>
               <Link
@@ -696,7 +705,7 @@ function CandidateSidebar({
                 className="cand-fs-2xs flex items-center gap-1 font-semibold text-violet-600"
               >
                 <MessageSquare className="cand-icon" />
-                Chat với WS
+                {sb.chatWithWs}
               </Link>
             </>
           )}
@@ -705,7 +714,7 @@ function CandidateSidebar({
 
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
         <h3 className="cand-fs-sm mb-2 font-bold text-slate-900">
-          {isPerformanceUnlock ? 'Trạng thái tiếp cận' : 'Trạng thái'}
+          {isPerformanceUnlock ? sb.approachTitle : sb.statusTitle}
         </h3>
         <div
           className="cand-fs-sm mb-1 w-full rounded-md border border-slate-200 px-2 py-1 font-semibold"
@@ -714,12 +723,12 @@ function CandidateSidebar({
           {pipeline.label}
         </div>
         <p className="cand-fs-xs text-slate-400">
-          {isPerformanceUnlock ? 'Gói Scout Performance · Phí 20% khi tuyển thành công' : `Chi phí mở: ${candidate.creditCost ?? '—'} credit`}
+          {isPerformanceUnlock ? sb.perfFeeNote : sb.creditCostNote(candidate.creditCost)}
         </p>
       </div>
 
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
-        <h3 className="cand-fs-sm mb-2 font-bold text-slate-900">Hoạt động</h3>
+        <h3 className="cand-fs-sm mb-2 font-bold text-slate-900">{sb.activity}</h3>
         <div className="flex flex-col gap-1.5">
           {timeline.map((item, i) => (
             <div key={i} className="flex gap-2">
@@ -747,11 +756,11 @@ function CandidateSidebar({
             style={{ background: BRAND }}
           >
             <Phone className="cand-icon" />
-            Gọi {candidate.phone}
+            {sb.callPhone(candidate.phone)}
           </a>
         ) : (
           <button type="button" disabled className="cand-fs-sm mb-1 w-full rounded-lg bg-slate-100 py-1.5 font-semibold text-slate-400">
-            Không có SĐT
+            {sb.noPhone}
           </button>
         )}
         {candidate.email ? (
@@ -761,11 +770,11 @@ function CandidateSidebar({
             style={{ borderColor: BRAND, color: BRAND }}
           >
             <Mail className="cand-icon" />
-            Email
+            {sb.email}
           </a>
         ) : (
           <button type="button" disabled className="cand-fs-sm w-full rounded-lg border border-slate-200 bg-slate-50 py-1.5 font-semibold text-slate-400">
-            Không có email
+            {sb.noEmail}
           </button>
         )}
       </div>
@@ -778,6 +787,8 @@ function CandidateSidebar({
           onAttach={onAttachToJob}
           attachingJobId={attachingJobId}
           attachedJobIds={attachedJobIds}
+          copy={copy}
+          language={language}
         />
       ) : null}
 
@@ -787,7 +798,7 @@ function CandidateSidebar({
           className="cand-fs-sm flex items-center justify-between font-semibold hover:opacity-80"
           style={{ color: BRAND }}
         >
-          Tìm thêm trên Scout
+          {sb.findMoreOnScout}
           <ChevronRight className="cand-icon" />
         </Link>
       </div>
@@ -800,6 +811,10 @@ export default function BusinessUnlockedCandidateDetail() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { user } = useBusinessUser()
+  const { language } = useLanguage()
+  const copy = useBusinessAppCopy()
+  const candidateCopy = copy.candidates
+  const d = candidateCopy.detail
 
   const numericCandidateId = parseInt(candidateId, 10)
 
@@ -858,19 +873,19 @@ export default function BusinessUnlockedCandidateDetail() {
       if (res?.success) {
         setAttachedJobIds((prev) => new Set([...prev, String(jobId)]))
       } else {
-        window.alert(res?.message || 'Không thể thêm vào tiến cử')
+        window.alert(res?.message || d.attachError)
       }
     } catch (e) {
       console.error(e)
-      window.alert('Không thể thêm vào tiến cử')
+      window.alert(d.attachError)
     } finally {
       setAttachingJobId(null)
     }
-  }, [candidate?.id])
+  }, [candidate?.id, d.attachError])
 
   useEffect(() => {
     if (!numericCandidateId || Number.isNaN(numericCandidateId)) {
-      setError('ID ứng viên không hợp lệ')
+      setError(d.invalidId)
       setCandidate(null)
       setCandidateLoading(false)
       return undefined
@@ -888,13 +903,13 @@ export default function BusinessUnlockedCandidateDetail() {
           setCandidate(res.data.candidate)
         } else {
           setCandidate(null)
-          setError(res?.message || 'Không tìm thấy hồ sơ ứng viên')
+          setError(res?.message || d.notFound)
         }
       } catch (e) {
         if (loadSeq !== candidateLoadSeqRef.current) return
         console.error(e)
         setCandidate(null)
-        setError('Không tải được hồ sơ ứng viên')
+        setError(d.loadError)
       } finally {
         if (loadSeq === candidateLoadSeqRef.current) setCandidateLoading(false)
       }
@@ -902,7 +917,7 @@ export default function BusinessUnlockedCandidateDetail() {
 
     loadDetail()
     return undefined
-  }, [numericCandidateId])
+  }, [numericCandidateId, d.invalidId, d.notFound, d.loadError])
 
   return (
     <>
@@ -918,7 +933,7 @@ export default function BusinessUnlockedCandidateDetail() {
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Quay lại danh sách
+            {d.backToList}
           </button>
         </div>
 
@@ -927,7 +942,7 @@ export default function BusinessUnlockedCandidateDetail() {
             {error && !candidateLoading && !candidate ? (
               <div className="cand-surface flex flex-col items-center justify-center border border-slate-200/80 bg-white px-6 py-12 text-center shadow-sm">
                 <p className="cand-fs-sm font-semibold text-slate-800">
-                  {error || 'Không tìm thấy hồ sơ ứng viên'}
+                  {error || d.notFound}
                 </p>
                 <button
                   type="button"
@@ -935,12 +950,17 @@ export default function BusinessUnlockedCandidateDetail() {
                   className="cand-fs-sm mt-4 rounded-lg px-4 py-2 font-semibold text-white hover:opacity-95"
                   style={{ background: BRAND }}
                 >
-                  Quay lại danh sách
+                  {d.backToList}
                 </button>
               </div>
             ) : (
               <div className="business-candidates-detail-grid has-sidebar">
-                <CandidateDetail candidate={candidate} loading={candidateLoading} />
+                <CandidateDetail
+                  candidate={candidate}
+                  loading={candidateLoading}
+                  copy={candidateCopy}
+                  language={language}
+                />
                 {candidate ? (
                   <CandidateSidebar
                     candidate={candidate}
@@ -950,12 +970,14 @@ export default function BusinessUnlockedCandidateDetail() {
                     onAttachToJob={handleAttachToJob}
                     attachingJobId={attachingJobId}
                     attachedJobIds={attachedJobIds}
+                    copy={candidateCopy}
+                    language={language}
                   />
                 ) : candidateLoading ? (
                   <div className="cand-surface hidden border border-slate-200/80 bg-white p-3 shadow-sm xl:block">
                     <div className="cand-fs-xs flex items-center gap-1.5 text-slate-400">
                       <Loader2 className="cand-icon animate-spin" />
-                      Đang tải...
+                      {copy.common.loading}
                     </div>
                   </div>
                 ) : null}

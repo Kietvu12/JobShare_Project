@@ -23,6 +23,9 @@ import WsCreditRequestsPanel from '../../component/Bussiness/WsCreditRequestsPan
 import ScoutCandidateProfilePanel from '../../component/Bussiness/ScoutCandidateProfilePanel'
 import JobDetail from './JobDetail'
 import apiService from '../../services/api'
+import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
+import { useLanguage } from '../../context/LanguageContext'
+import { getMessageWsViews } from '../../i18n/businessAppI18n'
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 const BRAND = '#0077B6'
@@ -33,12 +36,6 @@ const WS_TAB_INDEX = 1
 const TABS = [
   { label: 'CTV', key: 'ctv' },
   { label: 'WS', key: 'ws' },
-]
-
-const WS_VIEWS = [
-  { key: 'chat', label: 'Trò chuyện', icon: MessageSquare },
-  { key: 'credit', label: 'Yêu cầu credit', icon: CreditCard },
-  { key: 'credit-history', label: 'Lịch sử yêu cầu', icon: History },
 ]
 
 const messageStyles = `
@@ -181,6 +178,14 @@ const searchWrapClass =
 
 const Message = () => {
   const [searchParams, setSearchParams] = useSearchParams()
+  const { language } = useLanguage()
+  const copy = useBusinessAppCopy()
+  const msgCopy = copy.messages
+  const wsViewDefs = useMemo(() => {
+    const labels = getMessageWsViews(language)
+    const icons = { chat: MessageSquare, credit: CreditCard, 'credit-history': History }
+    return labels.map((v) => ({ ...v, icon: icons[v.key] || MessageSquare }))
+  }, [language])
   const wsSessionId = searchParams.get('sessionId') || null
   const urlNominationId = searchParams.get('nominationId')
   const urlWsView = searchParams.get('wsView')
@@ -215,9 +220,9 @@ const Message = () => {
     statusLabel: n.statusLabel,
     cvStorageId: n.cvStorageId,
     canViewFullProfile: Boolean(n.cvStorageId),
-    sourceLabel: 'Sàn CTV',
+    sourceLabel: msgCopy.marketplaceSource,
     sourceType: 'ctv_marketplace',
-  }), [])
+  }), [msgCopy.marketplaceSource])
 
   const loadApplicationDetail = useCallback(async (appId, fallbackNomination) => {
     setCandidateDrawerLoading(true)
@@ -492,7 +497,7 @@ const Message = () => {
                         <input
                           value={wsChat.search}
                           onChange={(e) => wsChat.setSearch(e.target.value)}
-                          placeholder="Tìm cuộc trò chuyện WS..."
+                          placeholder={msgCopy.search.ws}
                           className={searchInputClass}
                         />
                       </div>
@@ -518,7 +523,7 @@ const Message = () => {
                 ) : (
                   <div className="msg-scrollbar min-h-0 flex-1 overflow-y-auto p-2.5">
                     <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Điều hướng WS</p>
-                    {WS_VIEWS.map((view) => {
+                    {wsViewDefs.map((view) => {
                       const Icon = view.icon
                       const active = wsViewMode === view.key
                       return (
@@ -547,7 +552,7 @@ const Message = () => {
                       <input
                         value={ctvSearch}
                         onChange={(e) => setCtvSearch(e.target.value)}
-                        placeholder="Tìm CTV, ứng viên, JD..."
+                        placeholder={msgCopy.search.ctv}
                         className={searchInputClass}
                       />
                     </div>
@@ -594,7 +599,7 @@ const Message = () => {
             {isWsTab ? (
               <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-slate-200 lg:border-r">
                 <div className="flex shrink-0 border-b border-slate-100 bg-white px-1">
-                  {WS_VIEWS.map((view) => {
+                  {wsViewDefs.map((view) => {
                     const Icon = view.icon
                     const active = wsViewMode === view.key
                     return (
@@ -643,7 +648,7 @@ const Message = () => {
                             <span className="text-[11px] font-semibold text-slate-900 sm:text-xs">
                               Đơn tiến cử <strong>#{selectedNomination.id}</strong>
                             </span>
-                            <Tag>{selectedNomination.statusLabel || 'Đang trao đổi'}</Tag>
+                            <Tag>{selectedNomination.statusLabel || msgCopy.statusDiscussing}</Tag>
                           </div>
                         </div>
                         <button
@@ -662,7 +667,7 @@ const Message = () => {
 
                     <div className="grid shrink-0 grid-cols-1 gap-2 border-b border-slate-100 bg-white px-3 py-2 sm:grid-cols-3">
                       {[
-                        { logo: <CompanyLogo size={24} />, label: 'Doanh nghiệp (Bạn)', name: 'Bạn', sub: 'HR / Recruiter' },
+                        { logo: <CompanyLogo size={24} />, label: msgCopy.parties.company, name: msgCopy.parties.you, sub: msgCopy.parties.companySub },
                         { logo: <WsLogo size={24} />, label: 'WS (JobShare)', name: 'WS Team', sub: 'Talent Consultant' },
                         {
                           logo: (
@@ -675,7 +680,7 @@ const Message = () => {
                           ),
                           label: 'CTV',
                           name: selectedNomination.ctvName || '—',
-                          sub: 'CTV tuyển dụng',
+                          sub: msgCopy.parties.ctvSub,
                         },
                       ].map((p) => (
                         <div key={p.label} className="rounded-lg border border-slate-100 bg-slate-50/80 px-2 py-1.5">
@@ -690,9 +695,9 @@ const Message = () => {
                     </div>
 
                     <div className="shrink-0 border-b border-slate-100 bg-[#f1f5f9]/80 px-3 py-1.5 text-[10px] leading-relaxed text-slate-600">
-                      <strong className="font-semibold text-slate-700">Ứng viên:</strong> {selectedNomination.candidateName || '—'}
+                      <strong className="font-semibold text-slate-700">{msgCopy.candidate}</strong> {selectedNomination.candidateName || '—'}
                       {' · '}
-                      <strong className="font-semibold text-slate-700">Vị trí:</strong> {selectedNomination.jobTitle || '—'}
+                      <strong className="font-semibold text-slate-700">{msgCopy.position}</strong> {selectedNomination.jobTitle || '—'}
                       {selectedNomination.jobCode ? ` (${selectedNomination.jobCode})` : ''}
                       {' · '}
                       <strong className="font-semibold text-slate-700">Ngày:</strong> {formatDateShort(selectedNomination.appliedAt)}
@@ -708,7 +713,7 @@ const Message = () => {
                         introCandidateName={selectedNomination.candidateName || '—'}
                         introJobTitle={selectedNomination.jobTitle || '—'}
                         cvStorageId={selectedNomination.cvStorageId}
-                        mobileHeaderName={selectedNomination.candidateName || 'Chat 3 bên'}
+                        mobileHeaderName={selectedNomination.candidateName || msgCopy.chatThreeWay}
                         mobileHeaderAvatar={getInitials(selectedNomination.candidateName)}
                         onStatusUpdated={handleCandidateStatusUpdated}
                       />
@@ -716,7 +721,7 @@ const Message = () => {
                   </>
                 ) : (
                   <div className="flex flex-1 items-center justify-center p-6 text-center text-[11px] text-slate-400">
-                    {nominationsLoading ? 'Đang tải đơn tiến cử...' : 'Chọn đơn tiến cử để trao đổi với CTV và WS'}
+                    {nominationsLoading ? msgCopy.loadingNominations : msgCopy.selectNomination}
                   </div>
                 )}
               </div>
@@ -730,7 +735,7 @@ const Message = () => {
                     <div className="text-xs font-bold text-slate-900">Thông tin WS</div>
                   </div>
                   <div className="msg-scrollbar min-h-0 flex-1 overflow-y-auto">
-                    <InfoCard title="Hỗ trợ WS">
+                    <InfoCard title={msgCopy.infoCards.wsSupport}>
                       <div className="flex gap-2">
                         <WsLogo size={32} />
                         <div className="min-w-0 flex-1">
@@ -742,7 +747,7 @@ const Message = () => {
                         </div>
                       </div>
                     </InfoCard>
-                    <InfoCard title="Yêu cầu nạp credit">
+                    <InfoCard title={msgCopy.infoCards.creditRequest}>
                       <p className="mb-2 text-[10px] leading-relaxed text-slate-500">
                         Tạo yêu cầu cấp credit — WS phê duyệt sau khi xác nhận thanh toán.
                       </p>
@@ -763,7 +768,7 @@ const Message = () => {
                       </button>
                     </InfoCard>
                     {wsViewMode === 'chat' && wsChat.activeSession && (
-                      <InfoCard title="Cuộc trò chuyện hiện tại">
+                      <InfoCard title={msgCopy.infoCards.currentChat}>
                         <div className="text-[11px] font-semibold text-slate-900">
                           {wsChat.activeSession.title || wsChat.activeSession.subject || 'WS Chat'}
                         </div>
@@ -776,11 +781,11 @@ const Message = () => {
                 </>
               ) : selectedNomination ? (
                 <div className="msg-scrollbar min-h-0 flex-1 overflow-y-auto">
-                  <InfoCard title="Thông tin đơn tiến cử">
+                  <InfoCard title={msgCopy.infoCards.nominationInfo}>
                     <div className="text-[11px] font-semibold text-slate-900">#{selectedNomination.id}</div>
                     <Tag>{selectedNomination.statusLabel || '—'}</Tag>
                   </InfoCard>
-                  <InfoCard title="Thông tin ứng viên">
+                  <InfoCard title={msgCopy.infoCards.candidateInfo}>
                     <div className="flex gap-2">
                       <Avatar initials={getInitials(selectedNomination.candidateName)} bg="#d1fae5" color="#065f46" size={32} />
                       <div>
@@ -798,7 +803,7 @@ const Message = () => {
                       Xem hồ sơ ứng viên
                     </button>
                   </InfoCard>
-                  <InfoCard title="Thông tin JD">
+                  <InfoCard title={msgCopy.infoCards.jdInfo}>
                     <button
                       type="button"
                       onClick={openJobDrawer}
@@ -816,7 +821,7 @@ const Message = () => {
                       </div>
                     </button>
                   </InfoCard>
-                  <InfoCard title="Thông tin CTV">
+                  <InfoCard title={msgCopy.infoCards.ctvInfo}>
                     <div className="flex gap-2">
                       <Avatar
                         initials={getInitials(selectedNomination.ctvName)}
@@ -836,7 +841,7 @@ const Message = () => {
                       </div>
                     </div>
                   </InfoCard>
-                  <InfoCard title="Thông tin thưởng">
+                  <InfoCard title={msgCopy.infoCards.rewardInfo}>
                     <div className="flex items-center gap-2">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
                         <Coins className="h-4 w-4 text-emerald-600" />
@@ -873,7 +878,7 @@ const Message = () => {
                   <div>
                     <div className="text-sm font-bold text-slate-800">{drawerApp.candidateName}</div>
                     <div className="mt-0.5 text-[10px] text-slate-500">
-                      {drawerApp.jobTitle} ({drawerApp.jobCode || '—'}) · {drawerApp.sourceLabel || 'Sàn CTV'}
+                      {drawerApp.jobTitle} ({drawerApp.jobCode || '—'}) · {drawerApp.sourceLabel || msgCopy.marketplaceSource}
                     </div>
                   </div>
                   <button type="button" onClick={closeCandidateDrawer} className="rounded-lg p-1.5 transition-colors hover:bg-slate-100">
@@ -925,10 +930,10 @@ const Message = () => {
                             isUnlocked: true,
                           } : null}
                           treatAsUnlocked
-                          accessLabel="Hồ sơ đầy đủ (tiến cử Sàn CTV)"
+                          accessLabel={msgCopy.fullProfileAccess}
                           accessLabelColor={BRAND}
                           footerNote={drawerApp.candidateProfile?.scoutStillLocked
-                            ? 'Doanh nghiệp xem được hồ sơ nhờ tiến cử Sàn CTV. Trên Scout vẫn hiển thị khóa cho đến khi mở bằng credit.'
+                            ? msgCopy.fullProfileHint
                             : null}
                         />
                       )}
@@ -941,7 +946,7 @@ const Message = () => {
                       cvStorageId={drawerApp.cvStorageId || drawerApp.cvId || null}
                       introCandidateName={drawerApp.candidateName || '—'}
                       introJobTitle={drawerApp.jobTitle || '—'}
-                      mobileHeaderName={drawerApp.candidateName || 'Chat 3 bên'}
+                      mobileHeaderName={drawerApp.candidateName || msgCopy.chatThreeWay}
                       mobileHeaderAvatar={(drawerApp.candidateName || '?').charAt(0).toUpperCase()}
                       onStatusUpdated={handleCandidateStatusUpdated}
                     />

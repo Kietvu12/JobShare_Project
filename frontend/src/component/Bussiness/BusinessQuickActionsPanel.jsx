@@ -7,39 +7,45 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
-import { translations } from '../../translations/translations';
+import { getBusinessAppCopy } from '../../i18n/businessAppI18n';
 
 /** Danh sách mặc định — dùng trên Homepage, Branding, Scout, Sàn CTV, … */
-export const DEFAULT_BUSINESS_QUICK_ACTIONS = [
-  {
-    id: 'create-jd',
-    icon: Sparkles,
-    title: 'Tạo JD mới nhanh chóng',
-    desc: 'Tạo job description bằng AI trên JobShare',
-    path: '/business/jobs',
-  },
-  {
-    id: 'scout-candidates',
-    icon: Search,
-    title: 'Tìm kiếm ứng viên phù hợp nhất với JD của bạn',
-    desc: 'Scout trong kho ứng viên chất lượng',
-    path: '/business/scout',
-  },
-  {
-    id: 'ws-recruitment-support',
-    icon: MessageSquare,
-    title: 'Gửi yêu cầu hỗ trợ tuyển dụng cho Work Station',
-    desc: 'Trao đổi & nhờ WS hỗ trợ tuyển dụng',
-    path: '/business/messages?tab=ws',
-  },
-  {
-    id: 'usage-guide',
-    icon: BookOpen,
-    title: 'Xem hướng dẫn sử dụng',
-    desc: 'Tài liệu và best practice trên nền tảng',
-    path: '/business/knowledge',
-  },
-];
+export function getDefaultBusinessQuickActions(language = 'vi') {
+  const copy = getBusinessAppCopy(language).quickActions;
+  return [
+    {
+      id: 'create-jd',
+      icon: Sparkles,
+      title: copy.createJd.title,
+      desc: copy.createJd.desc,
+      path: '/business/jobs',
+    },
+    {
+      id: 'scout-candidates',
+      icon: Search,
+      title: copy.scout.title,
+      desc: copy.scout.desc,
+      path: '/business/scout',
+    },
+    {
+      id: 'ws-recruitment-support',
+      icon: MessageSquare,
+      title: copy.wsSupport.title,
+      desc: copy.wsSupport.desc,
+      path: '/business/messages?tab=ws',
+    },
+    {
+      id: 'usage-guide',
+      icon: BookOpen,
+      title: copy.guide.title,
+      desc: copy.guide.desc,
+      path: '/business/knowledge',
+    },
+  ];
+}
+
+/** @deprecated Dùng getDefaultBusinessQuickActions(language) */
+export const DEFAULT_BUSINESS_QUICK_ACTIONS = getDefaultBusinessQuickActions('vi');
 
 /**
  * Panel「Thao tác nhanh」— style chuẩn business sidebar (Homepage).
@@ -48,8 +54,8 @@ export const DEFAULT_BUSINESS_QUICK_ACTIONS = [
  */
 export default function BusinessQuickActionsPanel({ actions, onActionClick, title = null }) {
   const { language } = useLanguage();
-  const t = translations[language] || translations.vi;
-  const heading = title || t.quickActions || 'Thao tác nhanh';
+  const copy = getBusinessAppCopy(language);
+  const heading = title || copy.homepage.quickActions;
 
   return (
     <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">

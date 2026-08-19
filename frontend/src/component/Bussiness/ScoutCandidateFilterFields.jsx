@@ -7,10 +7,13 @@ import FilterSelectDropdown from '../Shared/FilterSelectDropdown'
 import {
   EXPERIENCE_YEARS_OPTIONS,
   JAPANESE_LEVEL_FILTER_OPTIONS,
-  SCOUT_VISA_FILTER_OPTIONS,
   getLocalizedOptionLabel,
 } from '../../utils/scoutFilterOptions'
 import { getWorkLocationsDisplayText } from '../../utils/workLocationFilter'
+import {
+  getScoutFilterCopy,
+  getScoutVisaFilterOptions,
+} from '../../i18n/businessAppI18n'
 
 export const SCOUT_FILTER_INPUT_CLASS =
   'w-full h-[26px] px-2 py-0 text-[9px] border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
@@ -44,85 +47,88 @@ export default function ScoutCandidateFilterFields({
   setSearchInput,
   onOpenLocationModal,
   onOpenJobCategoryModal,
+  language = 'vi',
 }) {
+  const f = useMemo(() => getScoutFilterCopy(language), [language])
+
   const japaneseLevelOptions = useMemo(() => [
-    { value: '', label: 'Chọn trình độ tiếng Nhật' },
+    { value: '', label: f.japaneseLevelPlaceholder },
     ...JAPANESE_LEVEL_FILTER_OPTIONS.map((opt) => ({
       value: opt.value,
-      label: getLocalizedOptionLabel(opt, 'vi'),
+      label: getLocalizedOptionLabel(opt, language),
     })),
-  ], [])
+  ], [f.japaneseLevelPlaceholder, language])
 
   const experienceOptions = useMemo(() => [
-    { value: '', label: 'Tất cả kinh nghiệm' },
+    { value: '', label: f.experienceAll },
     ...EXPERIENCE_YEARS_OPTIONS.map((opt) => ({
       value: opt.value,
-      label: getLocalizedOptionLabel(opt, 'vi'),
+      label: getLocalizedOptionLabel(opt, language),
     })),
-  ], [])
+  ], [f.experienceAll, language])
 
   const visaOptions = useMemo(() => [
-    { value: '', label: 'Tất cả tư cách lưu trú' },
-    ...SCOUT_VISA_FILTER_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label })),
-  ], [])
+    { value: '', label: f.visaAll },
+    ...getScoutVisaFilterOptions(language).map((opt) => ({ value: opt.value, label: opt.label })),
+  ], [f.visaAll, language])
 
   const locationDisplay = useMemo(
-    () => getWorkLocationsDisplayText(scoutFilters.locations, 'vi'),
-    [scoutFilters.locations],
+    () => getWorkLocationsDisplayText(scoutFilters.locations, language),
+    [scoutFilters.locations, language],
   )
 
   return (
     <div className="grid grid-cols-1 gap-x-3 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-4">
       {leadingBlock}
 
-      <FilterBlock icon={Languages} label="Trình độ tiếng Nhật" compact>
+      <FilterBlock icon={Languages} label={f.japaneseLevel} compact>
         <FilterSelectDropdown
           value={scoutFilters.japaneseLevel || ''}
           onChange={(next) => setScoutFilters((prev) => ({ ...prev, japaneseLevel: next }))}
           options={japaneseLevelOptions}
-          placeholder="Chọn trình độ tiếng Nhật"
+          placeholder={f.japaneseLevelPlaceholder}
           className={SCOUT_FILTER_INPUT_CLASS}
         />
       </FilterBlock>
 
-      <FilterBlock icon={UserCheck} label="Số năm kinh nghiệm" compact>
+      <FilterBlock icon={UserCheck} label={f.experience} compact>
         <FilterSelectDropdown
           value={scoutFilters.experience || ''}
           onChange={(next) => setScoutFilters((prev) => ({ ...prev, experience: next }))}
           options={experienceOptions}
-          placeholder="Tất cả kinh nghiệm"
+          placeholder={f.experienceAll}
           className={SCOUT_FILTER_INPUT_CLASS}
         />
       </FilterBlock>
 
-      <FilterBlock icon={IdCard} label="Tình trạng visa" compact>
+      <FilterBlock icon={IdCard} label={f.visa} compact>
         <FilterSelectDropdown
           value={scoutFilters.visa || ''}
           onChange={(next) => setScoutFilters((prev) => ({ ...prev, visa: next }))}
           options={visaOptions}
-          placeholder="Tất cả tư cách lưu trú"
+          placeholder={f.visaAll}
           className={SCOUT_FILTER_INPUT_CLASS}
           maxPanelHeight={220}
         />
       </FilterBlock>
 
-      <FilterBlock icon={MapPin} label="Địa điểm hiện tại" compact>
+      <FilterBlock icon={MapPin} label={f.location} compact>
         <FilterPickerRow
           value={locationDisplay}
-          placeholder="Chọn khu vực (Việt Nam / Nhật Bản...)"
+          placeholder={f.locationPlaceholder}
           onOpen={onOpenLocationModal}
         />
       </FilterBlock>
 
-      <FilterBlock icon={Building2} label="Ngành nghề" compact>
+      <FilterBlock icon={Building2} label={f.jobCategory} compact>
         <FilterPickerRow
           value={scoutFilters.jobCategoryLabel || ''}
-          placeholder="Chọn ngành nghề"
+          placeholder={f.jobCategoryPlaceholder}
           onOpen={onOpenJobCategoryModal}
         />
       </FilterBlock>
 
-      <FilterBlock icon={DollarSign} label="Mức lương mong muốn (VNĐ)" compact>
+      <FilterBlock icon={DollarSign} label={f.salary} compact>
         <div className="flex min-w-0 items-center gap-1">
           <input
             type="number"
@@ -131,7 +137,7 @@ export default function ScoutCandidateFilterFields({
               ...prev,
               salaryMin: e.target.value ? Number(e.target.value) : '',
             }))}
-            placeholder="Từ"
+            placeholder={f.salaryFrom}
             className={`min-w-0 flex-1 ${SCOUT_FILTER_INPUT_CLASS}`}
           />
           <span className="shrink-0 text-[9px] text-gray-500">~</span>
@@ -142,18 +148,18 @@ export default function ScoutCandidateFilterFields({
               ...prev,
               salaryMax: e.target.value ? Number(e.target.value) : '',
             }))}
-            placeholder="Đến"
+            placeholder={f.salaryTo}
             className={`min-w-0 flex-1 ${SCOUT_FILTER_INPUT_CLASS}`}
           />
         </div>
       </FilterBlock>
 
-      <FilterBlock icon={Search} label="Từ khóa" compact>
+      <FilterBlock icon={Search} label={f.keyword} compact>
         <input
           type="text"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Nhập từ khóa: React Developer, Sales..."
+          placeholder={f.keywordPlaceholder}
           className={SCOUT_FILTER_INPUT_CLASS}
         />
       </FilterBlock>
