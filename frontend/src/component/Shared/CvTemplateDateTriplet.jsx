@@ -1,29 +1,42 @@
 import React from 'react';
+import { CV_TPL_FONT_DATE } from '../../utils/cvTemplateTypography.js';
 
 const PART_STYLE = {
   year: {
     display: 'inline-block',
     width: '4ch',
+    maxWidth: '4ch',
     outline: 'none',
     letterSpacing: 0,
     padding: 0,
     verticalAlign: 'baseline',
+    textAlign: 'center',
+    boxSizing: 'content-box',
+    overflow: 'hidden',
   },
   month: {
     display: 'inline-block',
     width: '2ch',
+    maxWidth: '2ch',
     outline: 'none',
     letterSpacing: 0,
     padding: 0,
     verticalAlign: 'baseline',
+    textAlign: 'center',
+    boxSizing: 'content-box',
+    overflow: 'hidden',
   },
   day: {
     display: 'inline-block',
     width: '2ch',
+    maxWidth: '2ch',
     outline: 'none',
     letterSpacing: 0,
     padding: 0,
     verticalAlign: 'baseline',
+    textAlign: 'center',
+    boxSizing: 'content-box',
+    overflow: 'hidden',
   },
 };
 
@@ -61,8 +74,10 @@ export default function CvTemplateDateTriplet({
   isBirthField = false,
   prefix = '',
   daySuffix = '日生',
+  compact = false,
 }) {
   const handleBlur = () => onCommit?.(field, refs, isBirthField);
+  const fontSize = compact ? CV_TPL_FONT_DATE : undefined;
 
   const bindPart = (ref, kind, partKey, maxLen) => ({
     ref,
@@ -89,7 +104,14 @@ export default function CvTemplateDateTriplet({
   return (
     <div
       className={`cv-template-date-triplet cv-pdf-date-inline inline-flex items-baseline flex-nowrap ${className}`}
-      style={{ letterSpacing: 0, gap: 0, lineHeight: 1.35, whiteSpace: 'nowrap', fontSize: '11px' }}
+      style={{
+        letterSpacing: 0,
+        gap: 0,
+        lineHeight: 1.35,
+        whiteSpace: 'nowrap',
+        maxWidth: '100%',
+        ...(fontSize ? { fontSize } : null),
+      }}
     >
       {errorMessage ? <div className="w-full text-[10px] text-rose-600">{errorMessage}</div> : null}
       {prefix ? <span>{prefix}</span> : null}

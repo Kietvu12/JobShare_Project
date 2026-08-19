@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "@fontsource/noto-sans-jp/japanese-400.css";
+@import "@fontsource/noto-sans-jp/japanese-700.css";
 
 /* Font local dùng cho component cụ thể (datepicker, v.v.). Đường dẫn tuyệt đối từ base. */
 @font-face {
@@ -488,11 +490,11 @@ button:focus-visible {
   background-color: #fff;
 }
 
-/* AddCandidateForm — preview CV đồng bộ khổ PDF client-side (280mm) trên desktop */
+/* AddCandidateForm — preview CV đồng bộ khổ PDF client-side (430mm) trên desktop */
 @media (min-width: 1280px) {
   .add-candidate-cv-preview-bleed .add-candidate-cv-content-shell {
-    width: min(100%, 280mm);
-    max-width: min(100%, 280mm);
+    width: min(100%, 430mm);
+    max-width: min(100%, 430mm);
     margin-left: auto;
     margin-right: auto;
     padding-left: 10mm;
@@ -528,36 +530,157 @@ button:focus-visible {
   -webkit-overflow-scrolling: touch;
   padding: 0 1px 4px;
   box-sizing: border-box;
-  font-family: 'MS Mincho', 'MS 明朝', 'Yu Mincho', 'Hiragino Mincho ProN', serif;
-  font-weight: 400;
-  font-size: 15px;
+  font-family: 'Noto Sans JP', 'Meiryo UI', Meiryo, sans-serif;
+  font-weight: 600;
+  font-size: 19px;
   line-height: 1.45;
   color: #1f2937;
+}
+
+.cv-template-body td,
+.cv-template-body th,
+.cv-template-body td *,
+.cv-template-body th *,
+.cv-template-body [contenteditable],
+.cv-template-body label,
+.cv-template-body input,
+.cv-template-body select,
+.cv-template-body span,
+.cv-template-body .font-normal,
+.cv-pdf-capture-layer .cv-template-body td,
+.cv-pdf-capture-layer .cv-template-body th,
+.cv-pdf-capture-layer .cv-template-body td *,
+.cv-pdf-capture-layer .cv-template-body th *,
+.cv-pdf-capture-layer .cv-template-body [contenteditable],
+.cv-pdf-capture-layer .cv-template-body label,
+.cv-pdf-capture-layer .cv-template-body .font-normal {
+  font-weight: 600;
+}
+
+.cv-template-body .font-bold,
+.cv-template-body h2,
+.cv-pdf-capture-layer .cv-template-body .font-bold,
+.cv-pdf-capture-layer .cv-template-body h2 {
+  font-weight: 700;
 }
 
 /* Checkbox / 外国語 / ツール / 資格 — đồng bộ mẫu CV */
 .cv-template-body label:has(input[type="checkbox"]),
 .cv-pdf-capture-layer .cv-template-body label:has(input[type="checkbox"]) {
-  font-size: 15px;
+  font-size: 19px;
   line-height: 1.35;
   gap: 0.35rem;
 }
 
 .cv-template-body label:has(input[type="checkbox"]) input[type="checkbox"],
 .cv-pdf-capture-layer .cv-template-body label:has(input[type="checkbox"]) input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
-  min-width: 15px;
-  min-height: 15px;
+  width: 19px;
+  height: 19px;
+  min-width: 19px;
+  min-height: 19px;
   flex-shrink: 0;
   margin: 0;
 }
 
 .cv-template-body [data-cv-fixed-cert-table] td,
 .cv-pdf-capture-layer .cv-template-body [data-cv-fixed-cert-table] td {
-  font-size: 15px;
+  font-size: 19px;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
+}
+
+/* Cột nhãn trái 履歴書 — khóa cùng pixel với personalGrid (フリガナ/氏名/Email…) */
+.cv-template-body,
+.cv-pdf-capture-layer .cv-template-body,
+[data-cv-pdf-capture-root] .cv-template-body {
+  --cv-rirekisho-label-col-px: 13%;
+}
+
+.cv-template-body table.cv-personal-grid-v3 col:first-child,
+.cv-pdf-capture-layer .cv-template-body table.cv-personal-grid-v3 col:first-child,
+[data-cv-pdf-capture-root] .cv-template-body table.cv-personal-grid-v3 col:first-child,
+.cv-template-body [data-cv-layout-key$="::education"] col:first-child,
+.cv-template-body [data-cv-layout-key$="::languages_v2"] col:first-child,
+.cv-template-body [data-cv-layout-key$="::certificates_v7"] col:first-child,
+.cv-template-body [data-cv-layout-key$="::tools_v2"] col:first-child,
+.cv-pdf-capture-layer .cv-template-body [data-cv-layout-key$="::education"] col:first-child,
+.cv-pdf-capture-layer .cv-template-body [data-cv-layout-key$="::languages_v2"] col:first-child,
+.cv-pdf-capture-layer .cv-template-body [data-cv-layout-key$="::certificates_v7"] col:first-child,
+.cv-pdf-capture-layer .cv-template-body [data-cv-layout-key$="::tools_v2"] col:first-child,
+[data-cv-pdf-capture-root] .cv-template-body [data-cv-layout-key$="::education"] col:first-child,
+[data-cv-pdf-capture-root] .cv-template-body [data-cv-layout-key$="::languages_v2"] col:first-child,
+[data-cv-pdf-capture-root] .cv-template-body [data-cv-layout-key$="::certificates_v7"] col:first-child,
+[data-cv-pdf-capture-root] .cv-template-body [data-cv-layout-key$="::tools_v2"] col:first-child {
+  width: var(--cv-rirekisho-label-col-px, 13%) !important;
+}
+
+/* 保有資格 / section title — typography */
+.cv-template-body .cv-tpl-section-title-col,
+.cv-pdf-capture-layer .cv-template-body .cv-tpl-section-title-col,
+[data-cv-pdf-capture-root] .cv-template-body .cv-tpl-section-title-col,
+.cv-template-body [data-cv-fixed-cert-table] .cv-cert-title-col,
+.cv-pdf-capture-layer .cv-template-body [data-cv-fixed-cert-table] .cv-cert-title-col,
+[data-cv-pdf-capture-root] .cv-template-body [data-cv-fixed-cert-table] .cv-cert-title-col {
+  min-width: 0;
+  max-width: none;
+  white-space: pre-wrap;
+  line-height: 1.35;
+  word-break: keep-all;
+}
+
+.cv-template-body [data-cv-fixed-cert-table] .cv-cert-title-col,
+.cv-pdf-capture-layer .cv-template-body [data-cv-fixed-cert-table] .cv-cert-title-col {
+  font-size: 19px;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.cv-template-body [data-cv-fixed-cert-table] .cv-cert-left-ym,
+.cv-pdf-capture-layer .cv-template-body [data-cv-fixed-cert-table] .cv-cert-left-ym {
+  max-width: 5.5rem;
+  padding-left: 0.15rem;
+  padding-right: 0.15rem;
+}
+
+.cv-template-body [data-cv-fixed-cert-table] .cv-cert-other-name,
+.cv-pdf-capture-layer .cv-template-body [data-cv-fixed-cert-table] .cv-cert-other-name {
+  max-width: 14rem;
+}
+
+.cv-template-body [data-cv-fixed-cert-table] .cv-cert-other-ym,
+.cv-pdf-capture-layer .cv-template-body [data-cv-fixed-cert-table] .cv-cert-other-ym {
+  max-width: 6.5rem;
+}
+
+.cv-template-body [data-cv-fixed-cert-table] .cv-cert-other-name input,
+.cv-template-body [data-cv-fixed-cert-table] .cv-cert-other-ym input {
+  font-size: inherit;
+  line-height: 1.35;
+  pointer-events: auto;
+}
+
+.cv-template-body [data-cv-fixed-cert-table] [data-cv-cert-jlpt-cell],
+.cv-template-body [data-cv-fixed-cert-table] .cv-cert-jlpt-levels,
+.cv-template-body [data-cv-fixed-cert-table] [data-cv-cert-jlpt-flat="1"],
+.cv-pdf-capture-layer .cv-template-body [data-cv-fixed-cert-table] [data-cv-cert-jlpt-cell],
+.cv-pdf-capture-layer .cv-template-body [data-cv-fixed-cert-table] .cv-cert-jlpt-levels,
+.cv-pdf-capture-layer .cv-template-body [data-cv-fixed-cert-table] [data-cv-cert-jlpt-flat="1"] {
+  white-space: nowrap !important;
+}
+
+.cv-template-body [data-cv-fixed-cert-table] [data-cv-cert-jlpt-cell] > div,
+.cv-template-body [data-cv-fixed-cert-table] [data-cv-cert-jlpt-flat="1"] {
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+}
+
+/* Thanh kéo cột — không chặn click vào ô nhập bên phải */
+.cv-template-body [data-cv-fixed-cert-table] .cv-resizable-table-wrap > div[role="separator"] {
+  pointer-events: none;
+}
+
+.cv-template-body [data-cv-fixed-cert-table] .cv-resizable-table-wrap > div[role="separator"]:hover {
+  pointer-events: auto;
 }
 
 .cv-template-body [data-cv-layout-key$="::tools_v2"] td,
@@ -566,7 +689,7 @@ button:focus-visible {
 .cv-pdf-capture-layer .cv-template-body [data-cv-layout-key$="::tools_v2"] td,
 .cv-pdf-capture-layer .cv-template-body [data-cv-layout-key$="::languages_v2"] td,
 .cv-pdf-capture-layer .cv-template-body [data-cv-tools-name-cell] {
-  font-size: 15px;
+  font-size: 19px;
   padding-top: 0.45rem;
   padding-bottom: 0.45rem;
 }
@@ -578,7 +701,8 @@ button:focus-visible {
 }
 
 .cv-template-body .cv-tpl-side-label {
-  font-size: 12px;
+  font-size: 18px;
+  font-weight: 600;
   line-height: 1.3;
 }
 
@@ -587,6 +711,175 @@ button:focus-visible {
 .cv-template-body .cv-tpl-note {
   font-size: inherit;
   line-height: 1.45;
+}
+
+/* Ô nhập dữ liệu — căn giữa (preview + PDF capture) */
+.cv-template-body td.bg-white,
+.cv-pdf-capture-layer .cv-template-body td.bg-white,
+[data-cv-pdf-capture-root] .cv-template-body td.bg-white,
+.cv-template-body .cv-shokumu-work-section tbody td,
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-work-section tbody td,
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section tbody td,
+.cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50),
+.cv-pdf-capture-layer .cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50),
+[data-cv-pdf-capture-root] .cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50) {
+  text-align: center !important;
+  vertical-align: middle;
+}
+
+.cv-template-body td.bg-white [contenteditable],
+.cv-template-body td.bg-white input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.cv-template-body td.bg-white select,
+.cv-template-body td.bg-white textarea,
+.cv-template-body .cv-shokumu-work-section tbody td [contenteditable],
+.cv-template-body .cv-shokumu-work-section tbody td input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.cv-template-body .cv-shokumu-work-section tbody td > div,
+.cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]) [contenteditable],
+.cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]) select,
+.cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]) textarea,
+.cv-pdf-capture-layer .cv-template-body td.bg-white [contenteditable],
+.cv-pdf-capture-layer .cv-template-body td.bg-white input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-work-section tbody td [contenteditable],
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-work-section tbody td > div,
+.cv-pdf-capture-layer .cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]) [contenteditable],
+[data-cv-pdf-capture-root] .cv-template-body td.bg-white [contenteditable],
+[data-cv-pdf-capture-root] .cv-template-body td.bg-white input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section tbody td [contenteditable],
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section tbody td > div,
+[data-cv-pdf-capture-root] .cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]) [contenteditable] {
+  text-align: center !important;
+}
+
+.cv-template-body .cv-shokumu-work-section tbody td label.flex,
+.cv-template-body td.bg-white label.flex,
+.cv-template-body .cv-resizable-table-wrap tbody td label.flex,
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-work-section tbody td label.flex,
+.cv-pdf-capture-layer .cv-template-body td.bg-white label.flex,
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section tbody td label.flex,
+[data-cv-pdf-capture-root] .cv-template-body td.bg-white label.flex {
+  justify-content: center !important;
+}
+
+/* Nhóm checkbox (性別 / パスポート / 配偶者 / 外国語…) — căn giữa trong ô */
+.cv-template-body td.bg-white > div.flex:has(input[type="checkbox"]),
+.cv-template-body .cv-resizable-table-wrap tbody td > div.flex:has(input[type="checkbox"]),
+.cv-pdf-capture-layer .cv-template-body td.bg-white > div.flex:has(input[type="checkbox"]),
+[data-cv-pdf-capture-root] .cv-template-body td.bg-white > div.flex:has(input[type="checkbox"]) {
+  justify-content: center !important;
+  width: 100%;
+}
+
+.cv-template-body td.bg-white > label:has(input[type="checkbox"]):not(.cv-lang-level-option):not(.cv-tools-option),
+.cv-template-body .cv-resizable-table-wrap tbody td > label:has(input[type="checkbox"]):not(.cv-lang-level-option):not(.cv-tools-option),
+.cv-pdf-capture-layer .cv-template-body td.bg-white > label:has(input[type="checkbox"]):not(.cv-lang-level-option):not(.cv-tools-option),
+[data-cv-pdf-capture-root] .cv-template-body td.bg-white > label:has(input[type="checkbox"]):not(.cv-lang-level-option):not(.cv-tools-option) {
+  display: flex !important;
+  justify-content: center !important;
+  width: 100%;
+}
+
+/* 外国語の会話レベル — checkbox thẳng hàng theo cột (width cố định) */
+.cv-template-body td.cv-lang-level-cell,
+.cv-pdf-capture-layer .cv-template-body td.cv-lang-level-cell,
+[data-cv-pdf-capture-root] .cv-template-body td.cv-lang-level-cell {
+  text-align: center !important;
+  vertical-align: middle;
+}
+
+.cv-template-body td.cv-lang-level-cell > label.cv-lang-level-option,
+.cv-pdf-capture-layer .cv-template-body td.cv-lang-level-cell > label.cv-lang-level-option,
+[data-cv-pdf-capture-root] .cv-template-body td.cv-lang-level-cell > label.cv-lang-level-option {
+  display: inline-grid !important;
+  grid-template-columns: 19px 1fr;
+  gap: 0.375rem;
+  align-items: center;
+  justify-content: unset !important;
+  width: 7.75em !important;
+  min-width: unset !important;
+  max-width: 100%;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cv-template-body td.cv-lang-level-cell > label.cv-lang-level-option input[type="checkbox"],
+.cv-pdf-capture-layer .cv-template-body td.cv-lang-level-cell > label.cv-lang-level-option input[type="checkbox"],
+[data-cv-pdf-capture-root] .cv-template-body td.cv-lang-level-cell > label.cv-lang-level-option input[type="checkbox"] {
+  width: 19px;
+  min-width: 19px;
+  height: 19px;
+  margin: 0;
+  flex-shrink: 0;
+  justify-self: start;
+}
+
+/* 使用可能ツール — checkbox thẳng hàng trong từng cột tên */
+.cv-template-body td[data-cv-tools-name-cell="1"],
+.cv-pdf-capture-layer .cv-template-body td[data-cv-tools-name-cell="1"],
+[data-cv-pdf-capture-root] .cv-template-body td[data-cv-tools-name-cell="1"] {
+  text-align: center !important;
+  vertical-align: middle;
+}
+
+.cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option,
+.cv-pdf-capture-layer .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option,
+[data-cv-pdf-capture-root] .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 0.375rem;
+  width: 100% !important;
+  max-width: 100%;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option input[type="checkbox"],
+.cv-pdf-capture-layer .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option input[type="checkbox"],
+[data-cv-pdf-capture-root] .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option input[type="checkbox"] {
+  flex: 0 0 19px;
+  width: 19px !important;
+  min-width: 19px !important;
+  max-width: 19px !important;
+  height: 19px !important;
+  margin: 0;
+  padding: 0;
+  opacity: 1;
+  visibility: visible;
+  position: static;
+  appearance: auto;
+  -webkit-appearance: checkbox;
+}
+
+.cv-template-body .cv-template-date-triplet,
+.cv-template-body .cv-template-date-triplet [contenteditable] {
+  line-height: 1.35;
+}
+
+/* personalGrid — ô ảnh thẻ hẹp hơn */
+.cv-template-body table.cv-personal-grid-v3 .cv-personal-avatar-col,
+.cv-pdf-capture-layer .cv-template-body table.cv-personal-grid-v3 .cv-personal-avatar-col,
+[data-cv-pdf-capture-root] .cv-template-body table.cv-personal-grid-v3 .cv-personal-avatar-col {
+  padding: 0.25rem 0.125rem;
+  width: 16%;
+  max-width: 16%;
+}
+
+/* personalGrid — ô ngày không tràn sang cột kề */
+.cv-template-body table.cv-personal-grid-v3 .cv-personal-date-cell {
+  overflow: hidden;
+  max-width: 0;
+  padding-left: 0.125rem;
+  padding-right: 0.125rem;
+  vertical-align: middle;
+}
+
+.cv-template-body table.cv-personal-grid-v3 .cv-personal-date-cell .cv-template-date-triplet {
+  font-size: 18px;
+  max-width: 100%;
 }
 
 .cv-resizable-table-wrap {
@@ -662,4 +955,52 @@ button:focus-visible {
 /* Chỉ củng cố viền đáy hàng 備考 — không áp cho mọi bảng (tránh line thừa dưới 保有資格…) */
 .cv-template-body table [data-cv-table-footer-row] > td {
   border-bottom: 1px solid #1f2937;
+}
+
+/*
+ * 職務経歴 (IT/Technical) — viền ngoài do wrapper; ô chỉ vẽ right+bottom
+ * để tránh 2 border chồng (wrapper + ô, hoặc top+bottom giữa các hàng).
+ */
+.cv-template-body .cv-shokumu-work-section {
+  border: 1px solid #1f2937;
+  box-sizing: border-box;
+}
+
+.cv-template-body .cv-shokumu-work-section .cv-shokumu-work-banner {
+  border-bottom: 1px solid #1f2937;
+}
+
+.cv-template-body .cv-shokumu-work-section .cv-resizable-table-wrap table td,
+.cv-template-body .cv-shokumu-work-section .cv-resizable-table-wrap table th {
+  border: none !important;
+  border-right: 1px solid #1f2937 !important;
+  border-bottom: 1px solid #1f2937 !important;
+}
+
+.cv-template-body .cv-shokumu-work-section .cv-resizable-table-wrap table td:last-child,
+.cv-template-body .cv-shokumu-work-section .cv-resizable-table-wrap table th:last-child {
+  border-right: none !important;
+}
+
+.cv-template-body .cv-shokumu-work-section .cv-resizable-table-wrap table tr[data-cv-work-add-row] > td,
+.cv-template-body .cv-shokumu-work-section .cv-resizable-table-wrap table tr[data-cv-work-insert-row] > td {
+  border: none !important;
+  background-color: #f9fafb;
+}
+
+.cv-template-body .cv-shokumu-work-section .cv-resizable-table-wrap table tr:has(+ tr[data-cv-work-add-row]) > td,
+.cv-template-body .cv-shokumu-work-section .cv-resizable-table-wrap table tr:has(+ tr[data-cv-work-insert-row]) > td,
+.cv-template-body .cv-shokumu-work-section .cv-resizable-table-wrap table tr:has(+ tr[data-cv-pdf-hidden-row="1"]) > td,
+.cv-template-body .cv-shokumu-work-section .cv-resizable-table-wrap table tbody tr:last-child:not([data-cv-work-add-row]):not([data-cv-work-insert-row]):not([data-cv-pdf-hidden-row="1"]) > td {
+  border-bottom: none !important;
+}
+
+.cv-template-body .cv-shokumu-work-section .cv-resizable-table-wrap table tr[data-cv-work-project-row] > td {
+  border-bottom-style: dotted !important;
+  border-bottom-color: #9ca3af !important;
+}
+
+.cv-template-body .cv-shokumu-work-section .cv-resizable-table-wrap table tr[data-cv-work-company-last] > td {
+  border-bottom-style: solid !important;
+  border-bottom-color: #1f2937 !important;
 }

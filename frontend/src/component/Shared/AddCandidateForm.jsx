@@ -5,6 +5,7 @@ import CvTemplateCommon from './CvTemplateCommon';
 import CvTemplateIt from './CvTemplateIt';
 import CvTemplateTechnical from './CvTemplateTechnical';
 import CvPdfCaptureLayer from './CvPdfCaptureLayer.jsx';
+import PdfBlobViewer from './PdfBlobViewer.jsx';
 import { formatCvBirthDateJa, normalizeBirthDateToStorage, normalizeCvDateToStorage } from '../../utils/cvJpDateDisplay.js';
 import 'react-datepicker/dist/react-datepicker.css';
 import apiService from '../../services/api';
@@ -80,6 +81,7 @@ import {
   isCvTemplateId,
   CV_TEMPLATE_OPTIONS,
 } from '../../utils/cvTemplateMeta.js';
+import { normalizeOtherLanguageCerts } from '../../utils/cvOtherLanguageCerts.js';
 
 const mapPassportToBool = (v) => (v === '有' ? 1 : v === '無' ? 0 : undefined);
 
@@ -271,6 +273,8 @@ const AddCandidateForm = ({
     hasDrivingLicense: '',
     drivingLicenseYear: '',
     drivingLicenseMonth: '',
+    /** Chứng chỉ ngôn ngữ khác — bảng 保有資格 (cột phải), lưu trong cvTableLayout.otherLanguageCerts */
+    otherLanguageCerts: normalizeOtherLanguageCerts([]),
     // Self Introduction
     careerSummary: '',
     strengths: '',
@@ -745,6 +749,19 @@ const AddCandidateForm = ({
               return {};
             }
           })(),
+          otherLanguageCerts: (() => {
+            const layout = (() => {
+              const v = cv.cvTableLayout;
+              if (v == null) return {};
+              if (typeof v === 'object') return v;
+              try {
+                return typeof v === 'string' && v.trim() ? JSON.parse(v) : {};
+              } catch {
+                return {};
+              }
+            })();
+            return normalizeOtherLanguageCerts(layout.otherLanguageCerts);
+          })(),
           adminSupplementMarks: (() => {
             const m = cv.adminSupplementMarks;
             if (m == null) return [];
@@ -1173,7 +1190,7 @@ const AddCandidateForm = ({
         const v = readContentEditableText(e.currentTarget, true);
         setFormData((prev) => ({ ...prev, [field]: v || '' }));
       },
-      className,
+      className: className ? `${className} text-center` : 'text-center',
       style: {
         outline: 'none',
         minHeight: '1.2em',
@@ -1234,7 +1251,7 @@ const AddCandidateForm = ({
         const v = (e.currentTarget.textContent || '').trim();
         setFormData((prev) => ({ ...prev, birthDate: normalizeBirthDateToStorage(v || '') }));
       },
-      className,
+      className: className ? `${className} text-center` : 'text-center',
       style: { outline: 'none', minHeight: '1.2em', ...style },
       children: reactChildren ? renderCvScalarMarked(showWhenBlurred, supp) : undefined,
     };
@@ -1291,7 +1308,7 @@ const AddCandidateForm = ({
         const stored = !v || v === defaultVal || v.trim() === String(defaultVal).trim() ? '' : v;
         setFormData((prev) => ({ ...prev, [field]: stored }));
       },
-      className,
+      className: className ? `${className} text-center` : 'text-center',
       style: { outline: 'none', minHeight: '1.2em', whiteSpace: 'pre-wrap', ...style },
       children: reactChildren ? renderCvScalarMarked(display, supp) : undefined,
     };
@@ -1447,7 +1464,7 @@ const AddCandidateForm = ({
         setFocusedCvArrayField(null);
         applyValue(readContentEditableText(e.currentTarget, !isYearMonth));
       },
-      className,
+      className: className ? `${className} text-center` : 'text-center',
       style: { outline: 'none', minHeight: '1em', minWidth: '1.5em', display: 'inline-block', cursor: 'text', whiteSpace: 'pre-wrap', ...style },
       children: reactChildren ? renderArrayMarked() : undefined,
     };
@@ -2965,6 +2982,7 @@ const AddCandidateForm = ({
       primary: primaryCvTemplate,
       active: activeCvTemplates,
     });
+    layoutWithMeta.otherLanguageCerts = normalizeOtherLanguageCerts(fd.otherLanguageCerts);
     submitFormData.append('cvTableLayout', JSON.stringify(layoutWithMeta));
     if (isAdmin) {
       submitFormData.append('adminSupplementMarks', JSON.stringify(fd.adminSupplementMarks || []));
@@ -6112,7 +6130,7 @@ const AddCandidateForm = ({
         >
           <div
             className="relative rounded-xl shadow-2xl flex flex-col bg-white overflow-hidden"
-            style={{ width: '95vw', maxWidth: '1080px', maxHeight: '95vh' }}
+            style={{ width: '98vw', maxWidth: '1700px', maxHeight: '95vh' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-2 px-4 py-2 border-b flex-shrink-0" style={{ borderColor: '#e5e7eb' }}>
@@ -6145,12 +6163,18 @@ const AddCandidateForm = ({
               <div className="flex items-center justify-center p-16">
                 <div className="animate-spin rounded-full h-10 w-10 border-2 border-t-transparent" style={{ borderColor: '#2563eb' }} />
               </div>
+            ) : previewPdfUrl ? (
+              <PdfBlobViewer
+                key={previewPdfUrl}
+                url={previewPdfUrl}
+                className="w-full flex-1 min-h-0"
+                style={{ minHeight: '75vh', height: '75vh' }}
+              />
             ) : (
               <iframe
-                key={previewPdfUrl || 'html'}
+                key="html"
                 title="Preview CV"
-                src={previewPdfUrl || undefined}
-                srcDoc={previewPdfUrl ? undefined : previewHtml}
+                srcDoc={previewHtml}
                 className="w-full border-0 flex-1 min-h-0 bg-neutral-100"
                 style={{ minHeight: '75vh', height: '75vh' }}
               />

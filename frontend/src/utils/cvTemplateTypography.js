@@ -1,18 +1,30 @@
 /** Kích cỡ chữ CV IT/Technical — đồng bộ preview, form, PDF capture. */
-export const CV_TPL_FONT_BODY = '15px';
-export const CV_TPL_FONT_DENSE = '15px';
-export const CV_TPL_FONT_LABEL = '14px';
-export const CV_TPL_FONT_TITLE = '19px';
-export const CV_PDF_TABLE_FONT_SIZE = '15px';
+import '@fontsource/noto-sans-jp/japanese-400.css';
+import '@fontsource/noto-sans-jp/japanese-600.css';
+import '@fontsource/noto-sans-jp/japanese-700.css';
+
+export const CV_TPL_FONT_BODY = '19px';
+export const CV_TPL_FONT_DENSE = '19px';
+export const CV_TPL_FONT_LABEL = '18px';
+/** Ô ngày trong personalGrid — vừa đủ cột, không tràn sang ô kề. */
+export const CV_TPL_FONT_DATE = '18px';
+export const CV_TPL_FONT_TITLE = '23px';
+export const CV_PDF_TABLE_FONT_SIZE = '19px';
+/** Độ đậm mặc định toàn bộ chữ CV (preview + PDF). */
+export const CV_TPL_FONT_WEIGHT = 600;
+export const CV_TPL_FONT_WEIGHT_BOLD = 700;
+/** Noto Sans JP is bundled via @fontsource; Meiryo UI is local-only on Windows. */
+export const CV_TPL_FONT_FAMILY = "'Noto Sans JP', 'Meiryo UI', Meiryo, sans-serif";
 /** Ô checkbox PDF — vẽ bằng border/fill, không dùng glyph ■ (glyph hay bé hơn em-box). */
-export const CV_PDF_CHECKBOX_MARKER_PX = '16px';
+export const CV_PDF_CHECKBOX_MARKER_PX = '20px';
 export const CV_PDF_CHECKBOX_BORDER_PX = '1.5px';
-export const CV_TPL_CHECKBOX_INPUT_PX = '15px';
+export const CV_TPL_CHECKBOX_INPUT_PX = '19px';
 
 export const CV_TPL_BODY_STYLE = {
   fontSize: CV_TPL_FONT_BODY,
   color: '#1f2937',
-  fontFamily: "'MS Mincho', 'MS 明朝', 'Yu Mincho', 'Hiragino Mincho ProN', serif",
+  fontFamily: CV_TPL_FONT_FAMILY,
+  fontWeight: CV_TPL_FONT_WEIGHT,
 };
 
 export const CV_TPL_TABLE_STYLE = {
@@ -20,6 +32,24 @@ export const CV_TPL_TABLE_STYLE = {
   color: '#1f2937',
   borderColor: '#1f2937',
 };
+
+/** Ensure bundled CV Japanese glyphs are loaded before PDF capture. */
+export async function ensureCvTemplateFontsLoaded() {
+  try {
+    if (document.fonts?.load) {
+      await Promise.all([
+        document.fonts.load(`400 ${CV_TPL_FONT_BODY} "Noto Sans JP"`),
+        document.fonts.load(`600 ${CV_TPL_FONT_BODY} "Noto Sans JP"`),
+        document.fonts.load(`700 ${CV_TPL_FONT_BODY} "Noto Sans JP"`),
+      ]);
+    }
+    if (document.fonts?.ready) {
+      await document.fonts.ready;
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 /** Tạo ô vuông giống checkbox HTML — rõ trong PDF screenshot. */
 export function createCvPdfCheckboxMarkerElement(checked = false) {
@@ -52,7 +82,7 @@ export function createCvPdfCheckboxMarkerElement(checked = false) {
       alignItems: 'center',
       justifyContent: 'center',
       color: '#ffffff',
-      fontSize: '11px',
+      fontSize: '13px',
       lineHeight: '1',
       fontWeight: '700',
       fontFamily: 'Arial, sans-serif',
@@ -67,14 +97,26 @@ export function createCvPdfCheckboxMarkerElement(checked = false) {
 export function buildCvPdfCaptureTypographyCss(rootSelector) {
   return `
     ${rootSelector} .cv-template-body {
-      font-family: 'MS Mincho', 'MS 明朝', 'Yu Mincho', 'Hiragino Mincho ProN', serif !important;
-      font-weight: 400 !important;
+      font-family: ${CV_TPL_FONT_FAMILY} !important;
+      font-weight: ${CV_TPL_FONT_WEIGHT} !important;
       font-size: ${CV_TPL_FONT_BODY} !important;
       line-height: 1.45 !important;
     }
+    ${rootSelector} .cv-template-body td,
+    ${rootSelector} .cv-template-body th,
+    ${rootSelector} .cv-template-body td *,
+    ${rootSelector} .cv-template-body th *,
+    ${rootSelector} .cv-template-body [contenteditable],
+    ${rootSelector} .cv-template-body .font-normal,
+    ${rootSelector} .cv-template-body label,
+    ${rootSelector} .cv-template-body input,
+    ${rootSelector} .cv-template-body select,
+    ${rootSelector} .cv-template-body span {
+      font-weight: ${CV_TPL_FONT_WEIGHT} !important;
+    }
     ${rootSelector} .cv-template-body .font-bold,
     ${rootSelector} .cv-template-body h2 {
-      font-weight: 700 !important;
+      font-weight: ${CV_TPL_FONT_WEIGHT_BOLD} !important;
     }
     ${rootSelector} .cv-resizable-table-wrap,
     ${rootSelector} .cv-resizable-table-wrap table {
@@ -90,9 +132,9 @@ export function buildCvPdfCaptureTypographyCss(rootSelector) {
     ${rootSelector} [data-cv-fixed-cert-table] td,
     ${rootSelector} [data-cv-fixed-cert-table] th,
     ${rootSelector} [data-cv-fixed-cert-table] td *,
-    ${rootSelector} [data-cv-layout-key$="::certificates_v2"] td,
-    ${rootSelector} [data-cv-layout-key$="::certificates_v2"] th,
-    ${rootSelector} [data-cv-layout-key$="::certificates_v2"] td * {
+    ${rootSelector} [data-cv-layout-key$="::certificates_v7"] td,
+    ${rootSelector} [data-cv-layout-key$="::certificates_v7"] th,
+    ${rootSelector} [data-cv-layout-key$="::certificates_v7"] td * {
       font-size: ${CV_PDF_TABLE_FONT_SIZE} !important;
     }
     ${rootSelector} .cv-template-body .text-xs,
@@ -148,15 +190,100 @@ export function buildCvPdfCaptureTypographyCss(rootSelector) {
     ${rootSelector} [data-cv-cert-jlpt-flat="1"] {
       font-size: ${CV_PDF_TABLE_FONT_SIZE} !important;
       display: flex !important;
-      flex-wrap: wrap !important;
+      flex-wrap: nowrap !important;
       justify-content: center !important;
       align-items: center !important;
-      gap: 0.5rem 1rem !important;
+      gap: 0.35rem 0.75rem !important;
+      white-space: nowrap !important;
     }
     ${rootSelector} .cv-pdf-date-inline,
     ${rootSelector} .cv-template-date-triplet,
     ${rootSelector} [data-cv-pdf-date-flat="1"] {
       font-size: ${CV_TPL_FONT_BODY} !important;
+    }
+    ${rootSelector} table.cv-personal-grid-v3 .cv-personal-date-cell .cv-template-date-triplet,
+    ${rootSelector} table.cv-personal-grid-v3 .cv-personal-date-cell [data-cv-pdf-date-flat="1"] {
+      font-size: ${CV_TPL_FONT_DATE} !important;
+    }
+    ${rootSelector} .cv-template-body td.bg-white,
+    ${rootSelector} .cv-template-body .cv-shokumu-work-section tbody td,
+    ${rootSelector} .cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50) {
+      text-align: center !important;
+      vertical-align: middle !important;
+    }
+    ${rootSelector} .cv-template-body td.bg-white [contenteditable],
+    ${rootSelector} .cv-template-body td.bg-white input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+    ${rootSelector} .cv-template-body .cv-shokumu-work-section tbody td [contenteditable],
+    ${rootSelector} .cv-template-body .cv-shokumu-work-section tbody td > div,
+    ${rootSelector} .cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]) [contenteditable],
+    ${rootSelector} .cv-template-body .cv-resizable-table-wrap tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]) {
+      text-align: center !important;
+    }
+    ${rootSelector} .cv-template-body .cv-shokumu-work-section tbody td label.flex,
+    ${rootSelector} .cv-template-body td.bg-white label.flex,
+    ${rootSelector} .cv-template-body .cv-resizable-table-wrap tbody td label.flex {
+      justify-content: center !important;
+    }
+    ${rootSelector} .cv-template-body td.bg-white > div.flex:has(input[type="checkbox"]),
+    ${rootSelector} .cv-template-body .cv-resizable-table-wrap tbody td > div.flex:has(input[type="checkbox"]) {
+      justify-content: center !important;
+      width: 100% !important;
+    }
+    ${rootSelector} .cv-template-body td.bg-white > label:has(input[type="checkbox"]):not(.cv-lang-level-option):not(.cv-tools-option),
+    ${rootSelector} .cv-template-body .cv-resizable-table-wrap tbody td > label:has(input[type="checkbox"]):not(.cv-lang-level-option):not(.cv-tools-option) {
+      display: flex !important;
+      justify-content: center !important;
+      width: 100% !important;
+    }
+    ${rootSelector} .cv-template-body td.cv-lang-level-cell {
+      text-align: center !important;
+      vertical-align: middle !important;
+    }
+    ${rootSelector} .cv-template-body td.cv-lang-level-cell > label.cv-lang-level-option {
+      display: inline-grid !important;
+      grid-template-columns: ${CV_TPL_CHECKBOX_INPUT_PX} 1fr !important;
+      gap: 0.375rem !important;
+      align-items: center !important;
+      width: 7.75em !important;
+      min-width: unset !important;
+      text-align: left !important;
+      white-space: nowrap !important;
+    }
+    ${rootSelector} .cv-template-body td.cv-lang-level-cell > label.cv-lang-level-option input[type="checkbox"] {
+      width: ${CV_TPL_CHECKBOX_INPUT_PX} !important;
+      min-width: ${CV_TPL_CHECKBOX_INPUT_PX} !important;
+      height: ${CV_TPL_CHECKBOX_INPUT_PX} !important;
+      margin: 0 !important;
+    }
+    ${rootSelector} .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      gap: 0.375rem !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      text-align: left !important;
+      white-space: nowrap !important;
+      overflow: visible !important;
+    }
+    ${rootSelector} .cv-template-body td[data-cv-tools-name-cell="1"] > label.cv-tools-option input[type="checkbox"] {
+      flex: 0 0 ${CV_TPL_CHECKBOX_INPUT_PX} !important;
+      width: ${CV_TPL_CHECKBOX_INPUT_PX} !important;
+      min-width: ${CV_TPL_CHECKBOX_INPUT_PX} !important;
+      max-width: ${CV_TPL_CHECKBOX_INPUT_PX} !important;
+      height: ${CV_TPL_CHECKBOX_INPUT_PX} !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      position: static !important;
+    }
+    ${rootSelector} .cv-template-body [data-cv-pdf-tools-box="1"],
+    ${rootSelector} .cv-template-body [data-cv-pdf-tools-flat="1"] [data-cv-pdf-tools-box="1"] {
+      flex: 0 0 ${CV_PDF_CHECKBOX_MARKER_PX} !important;
+      width: ${CV_PDF_CHECKBOX_MARKER_PX} !important;
+      min-width: ${CV_PDF_CHECKBOX_MARKER_PX} !important;
+      height: ${CV_PDF_CHECKBOX_MARKER_PX} !important;
     }
   `;
 }

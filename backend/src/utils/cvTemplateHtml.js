@@ -13,6 +13,11 @@ import {
   formatCvAnyDateJa,
   formatCvDocumentDateDisplay,
 } from './cvJpDateDisplay.js';
+import {
+  hasOtherLangCertData,
+  otherLangCertCellsHtml,
+  readOtherLanguageCertsFromCv,
+} from './cvOtherLanguageCerts.js';
 
 /** Đồng bộ value số với RESIDENCE_STATUS_OPTIONS (AddCandidateForm). */
 const JPRESIDENCE_LABELS = {
@@ -588,9 +593,9 @@ export function generateCvTemplateHtml(cv, options = {}) {
   const toolsRowCount = Math.max(1, learnedList.length, expList.length);
   const toolsTableHtml = cvTemplate === 'cv_technical' ? `
   <!-- 使用可能ツール・ソフトウェア等枠 (CV Technical): dữ liệu từ 24 & 25, không checkbox, mỗi ô = [tên | ghi chú] -->
-  ${openFixedTable(layoutMap, L('rirekisho', 'tools'), [12, 22, 22, 22, 22], 'font-size:10px;border:1px solid #1f2937;margin-top:8px')}
+  ${openFixedTable(layoutMap, L('rirekisho', 'tools'), [13, 21, 22, 22, 22], 'font-size:10px;border:1px solid #1f2937;margin-top:8px')}
     <tr>
-      <td rowspan="${toolsRowCount + 1}" style="border:1px solid #1f2937;padding:6px;text-align:center;vertical-align:middle;background:#e2efd9;width:5rem">使用可能ツール・ソフトウェア等枠</td>
+      <td rowspan="${toolsRowCount + 1}" style="border:1px solid #1f2937;padding:6px;text-align:center;vertical-align:middle;background:#e2efd9;width:${labelColWidth}">使用可能ツール・ソフトウェア等枠</td>
       <td colspan="2" style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">学習したツール・ソフトウェア</td>
       <td colspan="2" style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">業務で利用したツール・ソフトウェア</td>
     </tr>
@@ -627,10 +632,19 @@ export function generateCvTemplateHtml(cv, options = {}) {
     if (kind === 'driving') return Boolean(String(d.hasDrivingLicense || '').trim() || fixedCertYm('driving'));
     return false;
   };
-  const certItVisibleRowCount = ['jlpt', 'toeic', 'ielts', 'driving'].filter(hasFixedCertData).length;
+  const otherLangCerts = readOtherLanguageCertsFromCv(d);
+  const certRowVisible = (kind) => {
+    if (kind === 'jlpt') return hasFixedCertData('jlpt') || hasOtherLangCertData(otherLangCerts[0]);
+    if (kind === 'toeic') return hasFixedCertData('toeic') || hasOtherLangCertData(otherLangCerts[1]);
+    if (kind === 'ielts') return hasFixedCertData('ielts') || hasOtherLangCertData(otherLangCerts[2]);
+    if (kind === 'driving') return hasFixedCertData('driving') || hasOtherLangCertData(otherLangCerts[3]);
+    return false;
+  };
+  const certItVisibleRowCount = ['jlpt', 'toeic', 'ielts', 'driving'].filter(certRowVisible).length;
+  const showCertItTable = certItVisibleRowCount > 0;
   const certItTitleRowSpan = certItVisibleRowCount + 1;
-  const certItColPercents = [12, 14, 8, 8, 8, 8, 42];
-  const labelColWidth = '14%'; // left section label column width (IT tables)
+  const certItColPercents = [13, 9, 11, 11, 10, 31, 15];
+  const labelColWidth = '13%'; // cột nhãn trái — thẳng hàng personalGrid cột 1
   /** 日本滞在目的 — đồng bộ 在留資格 từ form (không còn checkbox cố định). */
   const stayPurposeDisplay = d.jpResidenceStatus || d.stayPurpose || '';
 
@@ -877,7 +891,7 @@ export function generateCvTemplateHtml(cv, options = {}) {
   const shokumuPartIt = `
 <!-- SHOKUMU IT (職務経歴書 – aligned with frontend CvTemplateIt.jsx) -->
 <div style="font-size:11px;color:#1f2937;padding:10px;font-family:${FONT_MINCHO}">
-  <div style="border:1px solid #1f2937;padding:8px;text-align:center;font-weight:bold;background:#e2efd9;font-size:14px">職務経歴書</div>
+  <div style="border:1px solid #1f2937;padding:8px;text-align:center;font-weight:bold;background:#e2efd9;font-size:18px">職務経歴書</div>
   <div style="display:flex;justify-content:flex-end;gap:24px;font-size:10px;margin:8px 0">
     <span>現在、${d.cvDocumentDate ? esc(formatCvDocumentDateDisplay(String(d.cvDocumentDate))) : nowStr}</span>
     <span>氏名: ${orBlank(d.nameKanji)} (${orBlank(d.nameKana)})</span>
@@ -965,7 +979,7 @@ ${(() => {
   const shokumuPartTechnical = `
 <!-- SHOKUMU TECHNICAL (職務経歴書 – mirror frontend CvTemplateTechnical.jsx tab 2) -->
 <div style="font-size:11px;color:#1f2937;padding:10px;font-family:${FONT_MINCHO}">
-  <div style="border:1px solid #1f2937;padding:8px;text-align:center;font-weight:bold;background:#e2efd9;font-size:14px">職務経歴書</div>
+  <div style="border:1px solid #1f2937;padding:8px;text-align:center;font-weight:bold;background:#e2efd9;font-size:18px">職務経歴書</div>
   <div style="display:flex;justify-content:flex-end;gap:24px;font-size:10px;margin:8px 0">
     <span>現在、${d.cvDocumentDate ? esc(formatCvDocumentDateDisplay(String(d.cvDocumentDate))) : nowStr}</span>
     <span>氏名: ${orBlank(d.nameKanji)} (${orBlank(d.nameKana)})</span>
@@ -1077,14 +1091,14 @@ ${(() => {
   const rirekishoPartIt = `
 <!-- RIREKISHO (IT/Technical layout) — không viền ngoài; chỉ viền theo từng bảng như template chung -->
 <div style="max-width:100%;font-size:11px;color:#1f2937;overflow:visible;font-family:${FONT_MINCHO}">
-  ${openFixedTable(layoutMap, L('rirekisho', 'personalGrid_v3'), [10, 25, 8, 15, 10, 14, 18], 'font-size:10px;border:1px solid #1f2937;width:100%')}
+  ${openFixedTable(layoutMap, L('rirekisho', 'personalGrid_v3'), [13, 20, 7, 19, 8, 17, 16], 'font-size:10px;border:1px solid #1f2937;width:100%')}
     <tr>
-      <td colspan="7" style="border:1px solid #1f2937;padding:6px;text-align:center;font-weight:bold;background:#e2efd9;font-size:14px">履歴書</td>
+      <td colspan="7" style="border:1px solid #1f2937;padding:6px;text-align:center;font-weight:bold;background:#e2efd9;font-size:18px">履歴書</td>
     </tr>
     <tr>
-      <td style="border:1px solid #1f2937;padding:4px;width:9%;background:#e2efd9;text-align:center">フリガナ</td>
-      <td style="border:1px solid #1f2937;padding:4px;width:26%">${orBlank(d.nameKana)}</td>
-      <td style="border:1px solid #1f2937;padding:4px;width:9%;background:#e2efd9;text-align:center">生年月日</td>
+      <td style="border:1px solid #1f2937;padding:4px;width:13%;background:#e2efd9;text-align:center">フリガナ</td>
+      <td style="border:1px solid #1f2937;padding:4px;width:20%">${orBlank(d.nameKana)}</td>
+      <td style="border:1px solid #1f2937;padding:4px;width:7%;background:#e2efd9;text-align:center">生年月日</td>
       <td style="border:1px solid #1f2937;padding:4px;width:18%">${d.birthDate ? esc(formatCvBirthDateJa(d.birthDate) || d.birthDate) : '　'}</td>
       <td style="border:1px solid #1f2937;padding:4px;background:#e2efd9;text-align:center;white-space:nowrap">年齢</td>
       <td style="border:1px solid #1f2937;padding:4px;width:10%">${orBlank(d.age)}</td>
@@ -1129,7 +1143,7 @@ ${(() => {
   </table>
 
   <!-- 学歴 bảng theo layout IT (1 dòng/trường, 入学・卒業 trên cùng dòng) -->
-  ${openFixedTable(layoutMap, L('rirekisho', 'education'), [12, 20, 18, 18, 18, 14], 'font-size:10px;border:1px solid #1f2937;margin-top:8px;width:100%')}
+  ${openFixedTable(layoutMap, L('rirekisho', 'education'), [13, 19, 18, 18, 18, 14], 'font-size:10px;border:1px solid #1f2937;margin-top:8px;width:100%')}
     <tr>
       <td rowspan="${1 + Math.max(1, (d.educations || []).length)}" style="border:1px solid #1f2937;padding:6px;text-align:center;width:${labelColWidth};background:#e2efd9">学歴</td>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">学校名 (英語名)</td>
@@ -1169,7 +1183,7 @@ ${(() => {
   </table>
 
   <!-- 外国語の会話レベル -->
-  ${openFixedTable(layoutMap, L('rirekisho', 'languages_v2'), [12, 18, 18, 18, 18, 16], 'font-size:10px;border:1px solid #1f2937;margin-top:8px;width:100%')}
+  ${openFixedTable(layoutMap, L('rirekisho', 'languages_v2'), [13, 17, 18, 18, 18, 16], 'font-size:10px;border:1px solid #1f2937;margin-top:8px;width:100%')}
     <tr>
       <td rowspan="4" style="border:1px solid #1f2937;padding:6px;text-align:center;width:${labelColWidth};background:#e2efd9">外国語の会話レベル</td>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">日本語</td>
@@ -1197,46 +1211,48 @@ ${(() => {
     </tr>
   </table>
 
-  ${certItVisibleRowCount > 0 ? `
+  ${showCertItTable ? `
   <!-- 保有資格・免許等 -->
-  ${openFixedTable(layoutMap, L('rirekisho', 'certificates_v2'), certItColPercents, 'font-size:10px;border:1px solid #1f2937;margin-top:8px;width:100%')}
+  ${openFixedTable(layoutMap, L('rirekisho', 'certificates_v7'), certItColPercents, 'font-size:10px;border:1px solid #1f2937;margin-top:8px;width:100%')}
     <tr>
       <td rowspan="${certItTitleRowSpan}" style="border:1px solid #1f2937;padding:6px;text-align:center;width:${labelColWidth};background:#e2efd9">保有資格・免許等</td>
       <td style="border:1px solid #1f2937;padding:4px;background:#e2efd9"></td>
-      <td colspan="4" style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">名称</td>
+      <td colspan="2" style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">名称</td>
+      <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">取得年月</td>
+      <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">名称</td>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center;background:#e2efd9">取得年月</td>
     </tr>
-    ${hasFixedCertData('jlpt') ? `<tr>
+    ${certRowVisible('jlpt') ? `<tr>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center;white-space:nowrap">日本語検定</td>
-      <td style="border:1px solid #1f2937;padding:4px;text-align:center;width:6%">${jlptDisplay === 'N1' ? '■ N1' : '□ N1'}</td>
-      <td style="border:1px solid #1f2937;padding:4px;text-align:center;width:6%">${jlptDisplay === 'N2' ? '■ N2' : '□ N2'}</td>
-      <td style="border:1px solid #1f2937;padding:4px;text-align:center;width:6%">${jlptDisplay === 'N3' ? '■ N3' : '□ N3'}</td>
-      <td style="border:1px solid #1f2937;padding:4px;text-align:center;width:6%">${jlptDisplay === 'N4' ? '■ N4' : '□ N4'}</td>
+      <td colspan="2" style="border:1px solid #1f2937;padding:4px;text-align:center;white-space:nowrap">
+        ${jlptDisplay === 'N1' ? '■ N1' : '□ N1'}　${jlptDisplay === 'N2' ? '■ N2' : '□ N2'}　${jlptDisplay === 'N3' ? '■ N3' : '□ N3'}　${jlptDisplay === 'N4' ? '■ N4' : '□ N4'}
+      </td>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center">${orBlank(fixedCertYm('jlpt'))}</td>
+      ${otherLangCertCellsHtml(otherLangCerts[0], orBlank)}
     </tr>` : ''}
-    ${hasFixedCertData('toeic') ? `<tr>
+    ${certRowVisible('toeic') ? `<tr>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center;white-space:nowrap">英語</td>
-      <td colspan="4" style="border:1px solid #1f2937;padding:4px;text-align:center">
-        TOEIC ${d.toeicScore ? esc(d.toeicScore + '点') : '（　　　点）'}
+      <td colspan="2" style="border:1px solid #1f2937;padding:4px;text-align:center">
+        TOEIC ${d.toeicScore ? esc(d.toeicScore + '点') : '（　点）'}
       </td>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center">${orBlank(fixedCertYm('toeic'))}</td>
+      ${otherLangCertCellsHtml(otherLangCerts[1], orBlank)}
     </tr>` : ''}
-    ${hasFixedCertData('ielts') ? `<tr>
+    ${certRowVisible('ielts') ? `<tr>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center;white-space:nowrap">英語</td>
-      <td colspan="4" style="border:1px solid #1f2937;padding:4px;text-align:center">
-        IELTS ${d.ieltsScore ? esc(d.ieltsScore + '点') : '（　　　点）'}
+      <td colspan="2" style="border:1px solid #1f2937;padding:4px;text-align:center">
+        IELTS ${d.ieltsScore ? esc(d.ieltsScore + '点') : '（　点）'}
       </td>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center">${orBlank(fixedCertYm('ielts'))}</td>
+      ${otherLangCertCellsHtml(otherLangCerts[2], orBlank)}
     </tr>` : ''}
-    ${hasFixedCertData('driving') ? `<tr>
+    ${certRowVisible('driving') ? `<tr>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center;white-space:nowrap">自動車免許</td>
       <td colspan="2" style="border:1px solid #1f2937;padding:4px;text-align:center">
-        ${d.hasDrivingLicense === '1' || d.hasDrivingLicense === 'true' || d.hasDrivingLicense === '有る' ? '■ 有る' : '□ 有る'}
-      </td>
-      <td colspan="2" style="border:1px solid #1f2937;padding:4px;text-align:center">
-        ${d.hasDrivingLicense === '0' || d.hasDrivingLicense === 'false' || d.hasDrivingLicense === '無し' ? '■ 無し' : '□ 無し'}
+        ${d.hasDrivingLicense === '1' || d.hasDrivingLicense === 'true' || d.hasDrivingLicense === '有る' ? '■ 有る' : '□ 有る'}　${d.hasDrivingLicense === '0' || d.hasDrivingLicense === 'false' || d.hasDrivingLicense === '無し' ? '■ 無し' : '□ 無し'}
       </td>
       <td style="border:1px solid #1f2937;padding:4px;text-align:center">${orBlank(fixedCertYm('driving'))}</td>
+      ${otherLangCertCellsHtml(otherLangCerts[3], orBlank)}
     </tr>` : ''}
   </table>
 ` : ''}${toolsTableHtml}

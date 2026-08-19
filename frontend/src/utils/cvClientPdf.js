@@ -8,7 +8,7 @@ import {
   mmToPx,
 } from './cvPdfPagination.js';
 
-/** ~CV_PDF_PAGE_WIDTH_MM @ 96dpi — bề ngang trang PDF khi capture (gồm padding hai lề). */
+/** ~CV_PDF_PAGE_WIDTH_MM @ 96dpi — bề ngang trang PDF khi capture. */
 export const CV_PDF_CAPTURE_WIDTH_PX = Math.round(mmToPx(CV_PDF_PAGE_WIDTH_MM));
 
 /** Bù thêm chiều cao capture — viền dưới 1px của bảng cuối hay bị cắt khi domToCanvas. */
@@ -22,11 +22,43 @@ import {
   CV_PDF_CHECKBOX_MARKER_PX,
   CV_TPL_FONT_BODY,
   CV_TPL_FONT_DENSE,
+  CV_TPL_FONT_WEIGHT,
   createCvPdfCheckboxMarkerElement,
   buildCvPdfCaptureTypographyCss,
+  ensureCvTemplateFontsLoaded,
 } from './cvTemplateTypography.js';
 
 /** Cỡ chữ nội dung bảng 職務経歴書 — đồng nhất khi capture PDF. */
+const CV_PDF_SHOKUMU_WORK_SECTION_BORDER_CSS = `
+  .cv-shokumu-work-section .cv-resizable-table-wrap table td,
+  .cv-shokumu-work-section .cv-resizable-table-wrap table th {
+    border: none !important;
+    border-right: 1px solid #1f2937 !important;
+    border-bottom: 1px solid #1f2937 !important;
+  }
+  .cv-shokumu-work-section .cv-resizable-table-wrap table td:last-child,
+  .cv-shokumu-work-section .cv-resizable-table-wrap table th:last-child {
+    border-right: none !important;
+  }
+  .cv-shokumu-work-section .cv-resizable-table-wrap table tr[data-cv-work-add-row] > td,
+  .cv-shokumu-work-section .cv-resizable-table-wrap table tr[data-cv-work-insert-row] > td {
+    border: none !important;
+  }
+  .cv-shokumu-work-section .cv-resizable-table-wrap table tr:has(+ tr[data-cv-work-add-row]) > td,
+  .cv-shokumu-work-section .cv-resizable-table-wrap table tr:has(+ tr[data-cv-work-insert-row]) > td,
+  .cv-shokumu-work-section .cv-resizable-table-wrap table tr:has(+ tr[data-cv-pdf-hidden-row="1"]) > td,
+  .cv-shokumu-work-section .cv-resizable-table-wrap table tbody tr:last-child:not([data-cv-work-add-row]):not([data-cv-work-insert-row]):not([data-cv-pdf-hidden-row="1"]) > td {
+    border-bottom: none !important;
+  }
+  .cv-shokumu-work-section .cv-resizable-table-wrap table tr[data-cv-work-project-row] > td {
+    border-bottom-style: dotted !important;
+    border-bottom-color: #9ca3af !important;
+  }
+  .cv-shokumu-work-section .cv-resizable-table-wrap table tr[data-cv-work-company-last] > td {
+    border-bottom-style: solid !important;
+    border-bottom-color: #1f2937 !important;
+  }
+`;
 const CV_PDF_SHOKUMU_TABLE_FONT_SIZE = CV_PDF_TABLE_FONT_SIZE;
 
 export const CV_TEMPLATE_DIR_MAP = {
@@ -51,9 +83,7 @@ export function resolveCvTemplatesForSave({ isAdmin, isApplicantProfile, cvTempl
 
 export async function waitForDocumentFonts() {
   try {
-    if (document.fonts?.ready) {
-      await document.fonts.ready;
-    }
+    await ensureCvTemplateFontsLoaded();
   } catch {
     /* ignore */
   }
@@ -304,7 +334,7 @@ function enhanceContentEditableForPdfCapture(el) {
     fontFamily: fonts.fontFamily,
     fontSize: resolveCvPdfContentFontSize(el, fonts),
     lineHeight: fonts.lineHeight,
-    fontWeight: '400',
+    fontWeight: String(CV_TPL_FONT_WEIGHT),
     fontStyle: 'normal',
     color: '#1f2937',
     textAlign: cs.textAlign,
@@ -359,7 +389,7 @@ function enhanceCvSelectionButtonsForPdfCapture(root, restoreFns) {
       span.dataset.cvPdfSelectionValue = '1';
       span.textContent = (selected.textContent || '').replace(/\s+/g, ' ').trim();
       Object.assign(span.style, {
-        fontWeight: '400',
+        fontWeight: String(CV_TPL_FONT_WEIGHT),
         color: '#1f2937',
         fontSize: getComputedStyle(selected).fontSize,
       });
@@ -531,8 +561,9 @@ function suppressScrollbarsForCapture(root, restoreFns) {
       font-size: ${CV_PDF_TABLE_FONT_SIZE} !important;
     }
     ${buildCvPdfCaptureTypographyCss('[data-cv-pdf-capture-root]')}
+    ${CV_PDF_SHOKUMU_WORK_SECTION_BORDER_CSS.replace(/\.cv-shokumu-work-section/g, '[data-cv-pdf-capture-root] .cv-shokumu-work-section')}
     [data-cv-pdf-capture-root] [data-cv-pdf-flat-cell] {
-      font-weight: 400 !important;
+      font-weight: ${CV_TPL_FONT_WEIGHT} !important;
       color: #1f2937 !important;
       -webkit-font-smoothing: auto !important;
     }
@@ -807,7 +838,7 @@ function flattenShokumuPeriodCellsForPdfCapture(root, restoreFns) {
       whiteSpace: 'nowrap',
       fontFamily: fonts.fontFamily,
       fontSize: CV_PDF_SHOKUMU_TABLE_FONT_SIZE,
-      fontWeight: '400',
+      fontWeight: String(CV_TPL_FONT_WEIGHT),
       color: '#1f2937',
       letterSpacing: 0,
     });
@@ -879,14 +910,15 @@ function flattenFixedCertCheckboxCellsForPdfCapture(root, restoreFns) {
     flat.dataset.cvCertJlptFlat = '1';
     Object.assign(flat.style, {
       display: 'flex',
-      flexWrap: 'wrap',
+      flexWrap: 'nowrap',
       justifyContent: 'center',
       alignItems: 'center',
-      columnGap: '1.25rem',
-      rowGap: '0.5rem',
+      columnGap: '0.75rem',
+      rowGap: '0',
       fontSize: CV_PDF_TABLE_FONT_SIZE,
       lineHeight: '1.35',
       color: '#1f2937',
+      whiteSpace: 'nowrap',
     });
 
     labels.forEach((label) => {
@@ -1002,7 +1034,7 @@ function flattenShokumuCertRowsForPdfCapture(root, restoreFns) {
       wordBreak: 'break-word',
       fontFamily: fonts.fontFamily,
       fontSize: CV_PDF_SHOKUMU_TABLE_FONT_SIZE,
-      fontWeight: '400',
+      fontWeight: String(CV_TPL_FONT_WEIGHT),
       color: '#1f2937',
       lineHeight: '1.5',
       margin: '0',
@@ -1082,7 +1114,7 @@ function flattenCvPdfTableCellsForCapture(root, restoreFns) {
       fontFamily: fonts.fontFamily,
       fontSize: fonts.fontSize || CV_TPL_FONT_BODY,
       lineHeight: '1.5',
-      fontWeight: '400',
+      fontWeight: String(CV_TPL_FONT_WEIGHT),
       fontStyle: 'normal',
       color: '#1f2937',
       whiteSpace: 'pre-wrap',
@@ -1120,7 +1152,7 @@ function flattenDateTripletsForPdfCapture(root, restoreFns) {
       whiteSpace: 'nowrap',
       fontFamily: fonts.fontFamily,
       fontSize: fonts.fontSize || CV_TPL_FONT_BODY,
-      fontWeight: '400',
+      fontWeight: String(CV_TPL_FONT_WEIGHT),
       color: '#1f2937',
       letterSpacing: 0,
     });
@@ -1452,10 +1484,11 @@ function mountCaptureClone(element) {
   const styleEl = document.createElement('style');
   styleEl.textContent = `
     ${buildCvPdfCaptureTypographyCss('[data-cv-pdf-capture-sandbox]')}
+    ${CV_PDF_SHOKUMU_WORK_SECTION_BORDER_CSS.replace(/\.cv-shokumu-work-section/g, '[data-cv-pdf-capture-sandbox] .cv-shokumu-work-section')}
     [data-cv-pdf-capture-sandbox] [data-cv-pdf-flat-cell],
     [data-cv-pdf-capture-sandbox] [data-cv-pdf-editable-marker],
     [data-cv-pdf-capture-sandbox] [data-cv-pdf-date-flat] {
-      font-weight: 400 !important;
+      font-weight: ${CV_TPL_FONT_WEIGHT} !important;
     }
     [data-cv-pdf-capture-sandbox] .cv-pdf-date-inline,
     [data-cv-pdf-capture-sandbox] .cv-template-date-triplet {
