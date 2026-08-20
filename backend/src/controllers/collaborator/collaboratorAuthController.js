@@ -120,7 +120,14 @@ export const collaboratorAuthController = {
         bankAccountName,
         bankBranch,
         organizationLink,
-        description
+        description,
+        utmSource,
+        utmMedium,
+        utmCampaign,
+        utmContent,
+        utmTerm,
+        registrationSource,
+        registrationSourceDetail
       } = body;
 
       // Validate required fields
@@ -195,6 +202,13 @@ export const collaboratorAuthController = {
         bankBranch,
         organizationLink,
         description,
+        utmSource: utmSource || null,
+        utmMedium: utmMedium || null,
+        utmCampaign: utmCampaign || null,
+        utmContent: utmContent || null,
+        utmTerm: utmTerm || null,
+        registrationSource: registrationSource || null,
+        registrationSourceDetail: registrationSourceDetail || null,
         status: 0, // Inactive cho đến khi admin phê duyệt
         points: 0,
         rankLevelId: 1,

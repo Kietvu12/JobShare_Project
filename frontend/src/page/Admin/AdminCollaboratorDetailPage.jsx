@@ -20,11 +20,12 @@ import {
   CreditCard,
   FileText,
   ClipboardList,
-  UserCheck,
+  Link2,
 } from 'lucide-react';
 import apiService from '../../services/api';
 import { getCVStatusLabel, getCVStatusStyle } from '../../utils/cvStatus';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatCollaboratorAcquisitionLines, hasCollaboratorAcquisitionData } from '../../utils/utmTracking';
 
 const AdminCollaboratorDetailPage = () => {
   const { collaboratorId } = useParams();
@@ -221,6 +222,7 @@ const AdminCollaboratorDetailPage = () => {
 
   const tabs = [
     { id: 'contact', label: 'Liên hệ', icon: Mail },
+    { id: 'acquisition', label: 'Nguồn đăng ký', icon: Link2 },
     { id: 'organization', label: 'Tổ chức', icon: Building2 },
     { id: 'banking', label: 'Ngân hàng', icon: CreditCard },
     { id: 'rank', label: 'Cấp độ & Điểm', icon: Award },
@@ -236,6 +238,7 @@ const AdminCollaboratorDetailPage = () => {
     .toUpperCase() || 'CV';
 
   const surveyValue = collaborator.registrationSurveyData || collaborator.surveyResponses || collaborator.description;
+  const acquisitionLines = formatCollaboratorAcquisitionLines(collaborator, language);
   const businessLicenseUrl = collaborator?.businessLicenseUrl || '';
   const businessTagLabel = language === 'en' ? 'Business' : language === 'ja' ? 'ビジネス' : 'Doanh nghiệp';
   const referredAdmin = collaborator?.referredByAdmin || null;
@@ -506,6 +509,23 @@ const AdminCollaboratorDetailPage = () => {
                 <div>
                   <label className="block text-xs font-semibold mb-1" style={{ color: '#6b7280' }}>Zalo</label>
                   <p className="text-sm" style={{ color: '#111827' }}>{collaborator.zalo}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'acquisition' && (
+            <div className="space-y-4">
+              {!hasCollaboratorAcquisitionData(collaborator) ? (
+                <p className="text-sm text-gray-500">Chưa có dữ liệu nguồn đăng ký / UTM.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {acquisitionLines.map((line) => (
+                    <div key={line.key}>
+                      <label className="block text-xs font-semibold mb-1" style={{ color: '#6b7280' }}>{line.label}</label>
+                      <p className="text-sm" style={{ color: '#111827' }}>{line.value}</p>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

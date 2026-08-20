@@ -530,8 +530,8 @@ button:focus-visible {
   -webkit-overflow-scrolling: touch;
   padding: 0 1px 4px;
   box-sizing: border-box;
-  font-family: 'Noto Sans JP', 'Meiryo UI', Meiryo, sans-serif;
-  font-weight: 600;
+  font-family: var(--cv-font-family, 'Meiryo UI', Meiryo, 'メイリオ', 'Noto Sans JP', sans-serif);
+  font-weight: 400;
   font-size: 19px;
   line-height: 1.45;
   color: #1f2937;
@@ -554,7 +554,7 @@ button:focus-visible {
 .cv-pdf-capture-layer .cv-template-body [contenteditable],
 .cv-pdf-capture-layer .cv-template-body label,
 .cv-pdf-capture-layer .cv-template-body .font-normal {
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .cv-template-body .font-bold,
@@ -702,7 +702,7 @@ button:focus-visible {
 
 .cv-template-body .cv-tpl-side-label {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.3;
 }
 
@@ -717,27 +717,27 @@ button:focus-visible {
 .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]),
 .cv-pdf-capture-layer .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]),
 [data-cv-pdf-capture-root] .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]),
-.cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]),
-.cv-pdf-capture-layer .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]),
-[data-cv-pdf-capture-root] .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]) {
+.cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-shokumu-prose *):not(.cv-shokumu-work-section *):not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]),
+.cv-pdf-capture-layer .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-shokumu-prose *):not(.cv-shokumu-work-section *):not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]),
+[data-cv-pdf-capture-root] .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-shokumu-prose *):not(.cv-shokumu-work-section *):not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]) {
   text-align: center !important;
   vertical-align: middle;
 }
 
-.cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable],
-.cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable]:not(.cv-tpl-dense):not(.text-left),
+.cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not(.text-left),
 .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) select,
 .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) textarea,
-.cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable],
-.cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
-.cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) select,
-.cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) textarea,
-.cv-pdf-capture-layer .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable],
-.cv-pdf-capture-layer .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
-.cv-pdf-capture-layer .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable],
-[data-cv-pdf-capture-root] .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable],
-[data-cv-pdf-capture-root] .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
-[data-cv-pdf-capture-root] .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable] {
+.cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-shokumu-prose *):not(.cv-shokumu-work-section *):not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable]:not(.cv-tpl-dense):not(.text-left),
+.cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-shokumu-prose *):not(.cv-shokumu-work-section *):not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not(.text-left),
+.cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-shokumu-prose *):not(.cv-shokumu-work-section *):not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) select,
+.cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-shokumu-prose *):not(.cv-shokumu-work-section *):not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) textarea,
+.cv-pdf-capture-layer .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable]:not(.cv-tpl-dense):not(.text-left),
+.cv-pdf-capture-layer .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not(.text-left),
+.cv-pdf-capture-layer .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-shokumu-prose *):not(.cv-shokumu-work-section *):not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable]:not(.cv-tpl-dense):not(.text-left),
+[data-cv-pdf-capture-root] .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable]:not(.cv-tpl-dense):not(.text-left),
+[data-cv-pdf-capture-root] .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not(.text-left),
+[data-cv-pdf-capture-root] .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-shokumu-prose *):not(.cv-shokumu-work-section *):not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable]:not(.cv-tpl-dense):not(.text-left) {
   text-align: center !important;
 }
 
@@ -826,6 +826,35 @@ button:focus-visible {
 [data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section tbody td:not([data-cv-shokumu-period]) [contenteditable],
 [data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-prose tbody td:not([data-cv-shokumu-period]) [contenteditable],
 [data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-prose .cv-resizable-table-wrap tbody td:not([data-cv-shokumu-period]) [contenteditable] {
+  text-align: left !important;
+}
+
+.cv-template-body .cv-shokumu-work-section tbody td:not([data-cv-shokumu-period]) > div,
+.cv-template-body .cv-shokumu-work-section tbody td:not([data-cv-shokumu-period]) > div > div,
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-work-section tbody td:not([data-cv-shokumu-period]) > div,
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section tbody td:not([data-cv-shokumu-period]) > div,
+.cv-template-body .cv-shokumu-work-section .cv-resizable-table-wrap tbody td:not([data-cv-shokumu-period]) [contenteditable],
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-work-section .cv-resizable-table-wrap tbody td:not([data-cv-shokumu-period]) [contenteditable],
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section .cv-resizable-table-wrap tbody td:not([data-cv-shokumu-period]) [contenteditable] {
+  text-align: left !important;
+}
+
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section .cv-resizable-table-wrap tbody td:not([data-cv-shokumu-period]) [contenteditable] {
+  text-align: left !important;
+}
+
+/* 職務経歴 — 業務内容 / 使用ツール: luôn căn trái (override mọi rule căn giữa) */
+.cv-template-body .cv-shokumu-work-section [data-cv-shokumu-desc-cell],
+.cv-template-body .cv-shokumu-work-section [data-cv-shokumu-tools-cell],
+.cv-template-body .cv-shokumu-work-section [data-cv-shokumu-desc-cell] > div,
+.cv-template-body .cv-shokumu-work-section [data-cv-shokumu-desc-cell] [contenteditable],
+.cv-template-body .cv-shokumu-work-section [data-cv-shokumu-tools-cell] [contenteditable],
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-work-section [data-cv-shokumu-desc-cell],
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-work-section [data-cv-shokumu-tools-cell],
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section [data-cv-shokumu-desc-cell],
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section [data-cv-shokumu-tools-cell],
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section [data-cv-shokumu-desc-cell] [data-cv-pdf-flat-cell],
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-section [data-cv-shokumu-tools-cell] [data-cv-pdf-flat-cell] {
   text-align: left !important;
 }
 
@@ -1003,6 +1032,39 @@ button:focus-visible {
 .cv-template-body .cv-template-date-triplet,
 .cv-template-body .cv-template-date-triplet [contenteditable] {
   line-height: 1.35;
+}
+
+/* 履歴書 — ô 氏名/ふりがな: chỉ 氏名 giãn theo chiều cao avatar */
+.cv-template-body .cv-personal-name-cell,
+.cv-pdf-capture-layer .cv-template-body .cv-personal-name-cell,
+[data-cv-pdf-capture-root] .cv-template-body .cv-personal-name-cell {
+  height: 1px;
+  vertical-align: top !important;
+}
+
+.cv-template-body .cv-personal-name-cell-inner,
+.cv-pdf-capture-layer .cv-template-body .cv-personal-name-cell-inner,
+[data-cv-pdf-capture-root] .cv-template-body .cv-personal-name-cell-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 7.5rem;
+  box-sizing: border-box;
+}
+
+.cv-template-body .cv-personal-name-furigana,
+.cv-pdf-capture-layer .cv-template-body .cv-personal-name-furigana,
+[data-cv-pdf-capture-root] .cv-template-body .cv-personal-name-furigana {
+  flex: 0 0 auto;
+}
+
+.cv-template-body .cv-personal-name-kanji,
+.cv-pdf-capture-layer .cv-template-body .cv-personal-name-kanji,
+[data-cv-pdf-capture-root] .cv-template-body .cv-personal-name-kanji {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
 }
 
 /* personalGrid — ô ảnh thẻ hẹp hơn */

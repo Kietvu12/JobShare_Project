@@ -355,42 +355,44 @@ const CvTemplateCommon = ({
               onLayoutCommit={onCvTableLayoutCommit}
             >
               <tbody>
-                <tr>
-                  <td className="border align-top p-1.5" style={{ width: '75%', borderColor: '#1f2937', minHeight: '7.5rem' }}>
-                    <div className="w-full min-w-0 border-b border-dotted border-gray-400 overflow-visible">
-                      <div className="flex items-end gap-2 w-full min-w-0">
-                        <span className="cv-tpl-side-label text-gray-600 flex-shrink-0 pb-[3px]">
-                          <SupplementTplText fieldKey="tpl-common-furigana-h" text="ふりがな" supplementMarking={supplementMarking} linkedFieldKeys={[CV_LINK.nameKana]} className="select-text inline min-w-0" />
-                        </span>
-                        <div className="flex-1 min-w-0 flex justify-center items-end">
+                <tr className="cv-personal-name-row">
+                  <td className="border align-top p-0 cv-personal-name-cell" style={{ width: '75%', borderColor: '#1f2937' }}>
+                    <div className="cv-personal-name-cell-inner p-1.5">
+                      <div className="cv-personal-name-furigana w-full min-w-0 border-b border-dotted border-gray-400 overflow-visible">
+                        <div className="flex items-end gap-2 w-full min-w-0">
+                          <span className="cv-tpl-side-label text-gray-600 flex-shrink-0 pb-[3px]">
+                            <SupplementTplText fieldKey="tpl-common-furigana-h" text="ふりがな" supplementMarking={supplementMarking} linkedFieldKeys={[CV_LINK.nameKana]} className="select-text inline min-w-0" />
+                          </span>
+                          <div className="flex-1 min-w-0 flex justify-center items-end">
+                            <span
+                              {...cvEditable(
+                                'nameKana',
+                                'w-full min-w-0 min-h-[1.2em] px-0.5 text-center block',
+                                { lineHeight: '1.2' },
+                                sm('tpl-common-nameKana', 'nameKana')
+                              )}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="cv-personal-name-kanji flex items-center gap-2 w-full min-w-0 pt-4">
+                        <div className="cv-tpl-side-label text-gray-600 flex-shrink-0 self-center">
+                          <SupplementTplText fieldKey="tpl-common-shimei-h" text="氏名" supplementMarking={supplementMarking} linkedFieldKeys={[CV_LINK.nameKanji]} className="select-text inline min-w-0" />
+                        </div>
+                        <div className="flex-1 min-w-0 flex justify-center items-center">
                           <span
                             {...cvEditable(
-                              'nameKana',
-                              'w-full min-w-0 min-h-[1.2em] px-0.5 text-center block',
-                              { lineHeight: '1.2' },
-                              sm('tpl-common-nameKana', 'nameKana')
+                              'nameKanji',
+                              'w-full min-h-[1.8em] px-1 text-sm inline-block text-center',
+                              { lineHeight: '1.2', fontSize: CV_TPL_BODY_STYLE.fontSize },
+                              sm('tpl-common-nameKanji', 'nameKanji')
                             )}
                           />
                         </div>
                       </div>
                     </div>
-                    <div className="mt-4 flex items-baseline gap-2 w-full min-w-0">
-                      <div className="cv-tpl-side-label text-gray-600 flex-shrink-0">
-                        <SupplementTplText fieldKey="tpl-common-shimei-h" text="氏名" supplementMarking={supplementMarking} linkedFieldKeys={[CV_LINK.nameKanji]} className="select-text inline min-w-0" />
-                      </div>
-                      <div className="flex-1 min-w-0 flex justify-center">
-                        <span
-                          {...cvEditable(
-                            'nameKanji',
-                            'w-full min-h-[1.8em] px-1 text-sm inline-block text-center',
-                            { lineHeight: '1.2', fontSize: CV_TPL_BODY_STYLE.fontSize },
-                            sm('tpl-common-nameKanji', 'nameKanji')
-                          )}
-                        />
-                      </div>
-                    </div>
                   </td>
-                  <td className="align-top border-0 border-none bg-transparent align-middle pl-2 pt-1.5" style={{ border: 'none', background: 'transparent', width: '25%' }}>
+                  <td className="align-top border-0 border-none bg-transparent pl-2 pt-1.5 cv-personal-avatar-col" style={{ border: 'none', background: 'transparent', width: '25%' }}>
                     <div className="flex flex-col items-center gap-2">
                       {currentAvatarPreview ? (
                         <CvTemplateAvatarFrame
@@ -917,7 +919,7 @@ const CvTemplateCommon = ({
                             <span {...cvEditableArray('certificates', i, 'year', 'block', {}, undefined, sm(`tpl-common-cert-${i}-year`, `certificate-${i}-year`))} />
                           </td>
                           <td className="border p-1.5 text-center" style={{ borderColor: '#1f2937' }}><span {...cvEditableArray('certificates', i, 'month', 'block', {}, undefined, sm(`tpl-common-cert-${i}-month`, `certificate-${i}-month`))} /></td>
-                          <td className="border p-1.5" style={{ borderColor: '#1f2937' }}><span {...cvEditableArray('certificates', i, 'name', 'block', {}, undefined, sm(`tpl-common-cert-${i}-name`, `certificate-${i}-name`))} /></td>
+                          <td className="border p-1.5 text-center" style={{ borderColor: '#1f2937' }}><span {...cvEditableArray('certificates', i, 'name', 'block text-center', {}, undefined, sm(`tpl-common-cert-${i}-name`, `certificate-${i}-name`))} /></td>
                         </tr>
                         {i < certCount - 1 && handleInsertCertificateAt && (
                           <tr className="cv-pdf-hide">
@@ -1149,9 +1151,7 @@ const CvTemplateCommon = ({
                       <SupplementTplText fieldKey="tpl-common-jikopr" text="自己PR" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-strengths']} />
                     </div>
                     <div
-                      className="mt-1 cv-tpl-dense min-h-[4rem] whitespace-pre-wrap"
-                      style={{ fontFamily: 'inherit', fontWeight: 400 }}
-                      {...cvEditable('strengths', '', {}, sm('tpl-common-strengths', 'strengths'))}
+                      {...cvEditable('strengths', 'mt-1 cv-tpl-dense min-h-[4rem] whitespace-pre-wrap text-left', { fontFamily: 'inherit', fontWeight: 400 }, sm('tpl-common-strengths', 'strengths'))}
                     />
                   </td>
                   <td className="border p-1.5 align-middle text-center" style={{ borderColor: '#1f2937', width: '50%' }}>
@@ -1159,9 +1159,7 @@ const CvTemplateCommon = ({
                       <SupplementTplText fieldKey="tpl-common-hobby" text="趣味・特技" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-hobbies']} />
                     </div>
                     <div
-                      className="mt-1 cv-tpl-dense min-h-[4rem] whitespace-pre-wrap"
-                      style={{ fontFamily: 'inherit', fontWeight: 400 }}
-                      {...cvEditable('hobbiesSpecialSkills', '', {}, sm('tpl-common-hobbiesSpecialSkills', 'hobbiesSpecialSkills'))}
+                      {...cvEditable('hobbiesSpecialSkills', 'mt-1 cv-tpl-dense min-h-[4rem] whitespace-pre-wrap text-left', { fontFamily: 'inherit', fontWeight: 400 }, sm('tpl-common-hobbiesSpecialSkills', 'hobbiesSpecialSkills'))}
                     />
                   </td>
                 </tr>
@@ -1183,9 +1181,7 @@ const CvTemplateCommon = ({
                       <SupplementTplText fieldKey="tpl-common-shibo" text="志望動機" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-motivation']} />
                     </div>
                     <div
-                      className="mt-1 cv-tpl-dense min-h-[5rem] whitespace-pre-wrap"
-                      style={{ fontFamily: 'inherit', fontWeight: 400 }}
-                      {...cvEditable('motivation', '', {}, sm('tpl-common-motivation', 'motivation'))}
+                      {...cvEditable('motivation', 'mt-1 cv-tpl-dense min-h-[5rem] whitespace-pre-wrap text-left', { fontFamily: 'inherit', fontWeight: 400 }, sm('tpl-common-motivation', 'motivation'))}
                     />
                   </td>
                 </tr>
@@ -1371,7 +1367,7 @@ const CvTemplateCommon = ({
                 <SupplementTplText fieldKey="tpl-common-shokumu-yokyu-h" text="職務要約" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-career-summary']} />
               </span>
             </div>
-            <div className="border min-h-[48px] p-2 cv-tpl-dense whitespace-pre-wrap mb-4" style={{ borderColor: '#1f2937', backgroundColor: '#fafafa' }} {...cvEditable('careerSummary', 'block cv-tpl-dense', {}, sm('tpl-common-careerSummary', 'careerSummary'))} />
+            <div {...cvEditable('careerSummary', 'border min-h-[48px] p-2 cv-tpl-dense whitespace-pre-wrap mb-4 text-left', { borderColor: '#1f2937', backgroundColor: '#fafafa' }, sm('tpl-common-careerSummary', 'careerSummary'))} />
 
             {/* ■職務経歴 */}
             <div className="mt-10 flex items-center gap-1 mb-2">
@@ -1541,18 +1537,18 @@ const CvTemplateCommon = ({
                               style={CV_TPL_TABLE_STYLE}
                               data-cv-pdf-keep-structure
                             >
-                              <div className="whitespace-pre-wrap min-h-[2em] mb-2 text-left" {...cvEditableArray('workExperiences', idx, 'business_purpose', 'block text-left', {}, emp.business_purpose, sm(`tpl-common-shokumu-${idx}-business`, `employment-${idx}-business`))} />
+                              <div {...cvEditableArray('workExperiences', idx, 'business_purpose', 'block cv-tpl-dense text-left whitespace-pre-wrap min-h-[2em] mb-2', {}, emp.business_purpose, sm(`tpl-common-shokumu-${idx}-business`, `employment-${idx}-business`))} />
                               <div className="cv-tpl-side-label text-gray-600 mb-0.5">
                                 <SupplementTplText fieldKey={`tpl-common-shokumu-${idx}-gyomu-lbl`} text="【業務内容】" supplementMarking={supplementMarking} linkedFieldKeys={[`employment-${idx}-description`]} />
                               </div>
-                              <div className="whitespace-pre-wrap min-h-[2em] mb-2 text-left" {...cvEditableArray('workExperiences', idx, 'description', 'block text-left', {}, emp.description, sm(`tpl-common-shokumu-${idx}-desc`, `employment-${idx}-description`))} />
+                              <div {...cvEditableArray('workExperiences', idx, 'description', 'block cv-tpl-dense text-left whitespace-pre-wrap min-h-[2em] mb-2', {}, emp.description, sm(`tpl-common-shokumu-${idx}-desc`, `employment-${idx}-description`))} />
                               <div className="cv-tpl-side-label text-gray-600 mb-0.5">
                                 <SupplementTplText fieldKey={`tpl-common-shokumu-${idx}-tool-lbl`} text="【ツール】" supplementMarking={supplementMarking} linkedFieldKeys={[`employment-${idx}-tools`]} />
                               </div>
-                              <div className="whitespace-pre-wrap min-h-[1.5em] text-left" {...cvEditableArray('workExperiences', idx, 'tools_tech', 'block text-left', {}, emp.tools_tech, sm(`tpl-common-shokumu-${idx}-tools`, `employment-${idx}-tools`))} />
+                              <div {...cvEditableArray('workExperiences', idx, 'tools_tech', 'block cv-tpl-dense text-left whitespace-pre-wrap min-h-[1.5em]', {}, emp.tools_tech, sm(`tpl-common-shokumu-${idx}-tools`, `employment-${idx}-tools`))} />
                             </td>
                             <td className="p-2 align-top border-0 text-left" data-cv-pdf-keep-structure>
-                              <div className="whitespace-pre-wrap w-full min-h-[4em] text-left" {...cvEditableArray('workExperiences', idx, 'scale_role', 'block text-left', { width: '100%', minHeight: '4em' }, emp.scale_role, sm(`tpl-common-shokumu-${idx}-scale`, `employment-${idx}-scale`))} />
+                              <div {...cvEditableArray('workExperiences', idx, 'scale_role', 'block cv-tpl-dense text-left whitespace-pre-wrap w-full min-h-[4em]', { width: '100%', minHeight: '4em' }, emp.scale_role, sm(`tpl-common-shokumu-${idx}-scale`, `employment-${idx}-scale`))} />
                             </td>
                           </tr>
                         </React.Fragment>
@@ -1576,7 +1572,7 @@ const CvTemplateCommon = ({
                 <SupplementTplText fieldKey="tpl-common-ikasu-keiken-h" text="活かせる経験・知識・技術" supplementMarking={supplementMarking} linkedFieldKeys={['label-technicalSkills']} />
               </span>
             </div>
-            <div className="border min-h-[60px] p-2 cv-tpl-dense whitespace-pre-wrap mb-4" style={{ borderColor: '#1f2937', backgroundColor: '#fafafa' }} {...cvEditable('technicalSkills', 'block', {}, sm('tpl-common-technicalSkills', 'technicalSkills'))} />
+            <div {...cvEditable('technicalSkills', 'border min-h-[60px] p-2 cv-tpl-dense whitespace-pre-wrap mb-4 text-left', { borderColor: '#1f2937', backgroundColor: '#fafafa' }, sm('tpl-common-technicalSkills', 'technicalSkills'))} />
 
             {/* ■資格 */}
             <div className="flex items-center gap-1 mb-1.5">
@@ -1612,7 +1608,7 @@ const CvTemplateCommon = ({
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       ) : null}
-                      <span {...cvEditableArray('certificates', i, 'name', 'block', {}, undefined, sm(`tpl-common-cert-shokumu-${i}-name`, `certificate-${i}-name`))} />
+                      <span {...cvEditableArray('certificates', i, 'name', 'block cv-tpl-dense text-left', {}, undefined, sm(`tpl-common-cert-shokumu-${i}-name`, `certificate-${i}-name`))} />
                     </td>
                     <td className="border p-1.5 align-top whitespace-nowrap" style={{ borderColor: '#1f2937' }}>
                       <span className="inline-flex items-baseline gap-0">
@@ -1637,7 +1633,7 @@ const CvTemplateCommon = ({
                 <SupplementTplText fieldKey="tpl-common-shokumu-jikopr-h" text="自己PR" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-strengths']} />
               </span>
             </div>
-            <div className="border min-h-[80px] p-2 cv-tpl-dense whitespace-pre-wrap" style={{ borderColor: '#1f2937', backgroundColor: '#fafafa' }} {...cvEditable('strengths', 'block', {}, sm('tpl-common-strengths-shokumu', 'strengths'))} />
+            <div {...cvEditable('strengths', 'border min-h-[80px] p-2 cv-tpl-dense whitespace-pre-wrap text-left', { borderColor: '#1f2937', backgroundColor: '#fafafa' }, sm('tpl-common-strengths-shokumu', 'strengths'))} />
           </div>
         </div>
       )}

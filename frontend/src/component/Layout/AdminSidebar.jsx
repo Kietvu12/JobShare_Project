@@ -27,6 +27,7 @@ import {
   MessageCircle,
   Package,
   Factory,
+  Link2,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { translations } from '../../translations/translations';
@@ -195,6 +196,13 @@ const AdminSidebar = () => {
       icon: Megaphone, 
       path: '/admin/campaigns',
       roles: [1] // Only Super Admin
+    },
+    {
+      id: 'utm-links',
+      label: 'Link UTM',
+      icon: Link2,
+      path: '/admin/utm-links',
+      roles: [1, 2],
     },
     { 
       id: 'quan-ly-bai-viet', 

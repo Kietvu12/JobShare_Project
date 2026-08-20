@@ -329,6 +329,34 @@ export const Collaborator = sequelize.define(
     description: {
       type: DataTypes.TEXT
     },
+    utmSource: {
+      type: DataTypes.STRING(100),
+      field: 'utm_source'
+    },
+    utmMedium: {
+      type: DataTypes.STRING(100),
+      field: 'utm_medium'
+    },
+    utmCampaign: {
+      type: DataTypes.STRING(150),
+      field: 'utm_campaign'
+    },
+    utmContent: {
+      type: DataTypes.STRING(150),
+      field: 'utm_content'
+    },
+    utmTerm: {
+      type: DataTypes.STRING(150),
+      field: 'utm_term'
+    },
+    registrationSource: {
+      type: DataTypes.STRING(100),
+      field: 'registration_source'
+    },
+    registrationSourceDetail: {
+      type: DataTypes.STRING(255),
+      field: 'registration_source_detail'
+    },
     status: {
       type: DataTypes.TINYINT,
       allowNull: false,

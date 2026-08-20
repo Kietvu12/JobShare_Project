@@ -40,6 +40,7 @@ import {
   resolveCampaignPercentFromJob,
   pickPrimaryCommissionJobValue,
 } from '../../utils/jobCommissionUi';
+import { formatCollaboratorAcquisitionLines, hasCollaboratorAcquisitionData } from '../../utils/utmTracking';
 import CvFilePreview from '../Admin/CvFilePreview';
 import {
   rangeOffsetsRelativeTo,
@@ -1636,6 +1637,21 @@ const CandidateDetailPage = ({
                     <span style={{ color: '#111827' }}>
                       {candidate.applicant.name || candidate.applicant.email || '—'}
                     </span>
+                  </div>
+                )}
+                {isAdmin && hasCollaboratorAcquisitionData(candidate.collaborator) && (
+                  <div className="mt-1 border-t border-dashed border-gray-200 pt-1.5">
+                    <div className="font-medium text-[10px] uppercase tracking-wide" style={{ color: '#6b7280' }}>
+                      Nguồn đăng ký CTV
+                    </div>
+                    <div className="mt-0.5 space-y-0.5">
+                      {formatCollaboratorAcquisitionLines(candidate.collaborator, language).slice(0, 3).map((line) => (
+                        <div key={line.key}>
+                          <span style={{ color: '#9ca3af' }}>{line.label}: </span>
+                          <span style={{ color: '#111827' }}>{line.value}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

@@ -28,7 +28,7 @@ import {
   TECH_LEARNED_TOOLS_GRID,
   TECH_TOOLS_GRID_ROW_COUNT,
 } from '../../constants/technicalToolsGrid.js';
-import { CV_TPL_BODY_STYLE, CV_TPL_FONT_FAMILY, CV_TPL_FONT_TITLE, CV_TPL_TABLE_STYLE } from '../../utils/cvTemplateTypography.js';
+import { CV_TPL_BODY_STYLE, CV_TPL_FONT_TITLE, CV_TPL_TABLE_STYLE } from '../../utils/cvTemplateTypography.js';
 
 const RESIDENCE_STATUS_LABELS = {
   '3': '留学',
@@ -386,7 +386,7 @@ const CvTemplateTechnical = ({
   const showRirekisho = useCapturePartsVisibility ? captureParts.includes('rirekisho') : activeTab === 'rirekisho';
   const showShokumu = useCapturePartsVisibility ? captureParts.includes('shokumu') : activeTab === 'shokumu';
   return (
-    <div style={{ fontFamily: CV_TPL_FONT_FAMILY }}>
+    <div>
       {/* Tab buttons */}
       {!pdfExportMode && !hideInternalTabs && !forcedDocumentPart && (
       <div className="flex border-b mb-2 -mt-0.5 font-bold" style={{ borderColor: '#e5e7eb' }}>
@@ -1602,16 +1602,21 @@ const CvTemplateTechnical = ({
                                   );
                                 })()}
                               </td>
-                              <td colSpan={2} className="p-2 align-top" style={bodyStyle}>
-                                <div className="space-y-2 text-xs">
-                                  <div><span className="font-normal">【事業内容】</span> <span {...makeInlineEditable(`shokumu-business-${i}`, emp.business_purpose || '', (v) => setWorkField(i, 'business_purpose', v), { className: 'inline-block min-w-0 outline-none whitespace-pre-wrap', style: { wordBreak: 'keep-all', overflowWrap: 'break-word' } })} /></div>
-                                  {showDescription ? <div><span className="font-normal">【担当業務】</span> <span {...makeInlineEditable(`shokumu-desc-${i}`, emp.description || '', (v) => setWorkField(i, 'description', v), { className: 'inline-block min-w-0 outline-none whitespace-pre-wrap', style: { wordBreak: 'keep-all', overflowWrap: 'break-word' } })} /></div> : null}
-                                  <div><span className="font-normal">【規模・役割】</span> <span {...makeInlineEditable(`shokumu-scale-${i}`, emp.scale_role || '', (v) => setWorkField(i, 'scale_role', v), { className: 'inline-block min-w-0 outline-none whitespace-pre-wrap', style: { wordBreak: 'keep-all', overflowWrap: 'break-word' } })} /></div>
-                                  <div><span className="font-normal">【退職理由】</span> <span {...makeInlineEditable(`shokumu-reason-${i}`, emp.reason_for_leaving || '', (v) => setWorkField(i, 'reason_for_leaving', v), { className: 'inline-block min-w-0 outline-none whitespace-pre-wrap', style: { wordBreak: 'keep-all', overflowWrap: 'break-word' } })} /></div>
+                              <td
+                                colSpan={2}
+                                className="p-2 align-top text-left"
+                                style={bodyStyle}
+                                data-cv-shokumu-desc-cell
+                              >
+                                <div className="space-y-2 text-xs text-left w-full">
+                                  <div className="text-left w-full"><span className="font-normal">【事業内容】</span>{' '}<span {...makeInlineEditable(`shokumu-business-${i}`, emp.business_purpose || '', (v) => setWorkField(i, 'business_purpose', v), { className: 'block w-full outline-none whitespace-pre-wrap text-left cv-tpl-dense', style: { wordBreak: 'keep-all', overflowWrap: 'break-word' } })} /></div>
+                                  {showDescription ? <div className="text-left w-full"><span className="font-normal">【担当業務】</span>{' '}<span {...makeInlineEditable(`shokumu-desc-${i}`, emp.description || '', (v) => setWorkField(i, 'description', v), { className: 'block w-full outline-none whitespace-pre-wrap text-left cv-tpl-dense', style: { wordBreak: 'keep-all', overflowWrap: 'break-word' } })} /></div> : null}
+                                  <div className="text-left w-full"><span className="font-normal">【規模・役割】</span>{' '}<span {...makeInlineEditable(`shokumu-scale-${i}`, emp.scale_role || '', (v) => setWorkField(i, 'scale_role', v), { className: 'block w-full outline-none whitespace-pre-wrap text-left cv-tpl-dense', style: { wordBreak: 'keep-all', overflowWrap: 'break-word' } })} /></div>
+                                  <div className="text-left w-full"><span className="font-normal">【退職理由】</span>{' '}<span {...makeInlineEditable(`shokumu-reason-${i}`, emp.reason_for_leaving || '', (v) => setWorkField(i, 'reason_for_leaving', v), { className: 'block w-full outline-none whitespace-pre-wrap text-left cv-tpl-dense', style: { wordBreak: 'keep-all', overflowWrap: 'break-word' } })} /></div>
                                 </div>
                               </td>
-                              <td className="p-1.5 align-top whitespace-pre-wrap" style={bodyStyle}>
-                                <span {...makeInlineEditable(`shokumu-tools-${i}`, emp.tools_tech || '', (v) => setWorkField(i, 'tools_tech', v), { className: 'block w-full outline-none whitespace-pre-wrap break-words text-left' })} />
+                              <td className="p-1.5 align-top whitespace-pre-wrap text-left" style={bodyStyle} data-cv-shokumu-tools-cell>
+                                <span {...makeInlineEditable(`shokumu-tools-${i}`, emp.tools_tech || '', (v) => setWorkField(i, 'tools_tech', v), { className: 'block w-full outline-none whitespace-pre-wrap break-words text-left cv-tpl-dense' })} />
                               </td>
                             </tr>
                             {i < workCount - 1 && (

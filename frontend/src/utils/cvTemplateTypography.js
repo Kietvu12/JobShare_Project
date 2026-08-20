@@ -1,6 +1,5 @@
 /** Kích cỡ chữ CV IT/Technical — đồng bộ preview, form, PDF capture. */
 import '@fontsource/noto-sans-jp/japanese-400.css';
-import '@fontsource/noto-sans-jp/japanese-600.css';
 import '@fontsource/noto-sans-jp/japanese-700.css';
 
 export const CV_TPL_FONT_BODY = '19px';
@@ -10,11 +9,39 @@ export const CV_TPL_FONT_LABEL = '18px';
 export const CV_TPL_FONT_DATE = '18px';
 export const CV_TPL_FONT_TITLE = '23px';
 export const CV_PDF_TABLE_FONT_SIZE = '19px';
-/** Độ đậm mặc định toàn bộ chữ CV (preview + PDF). */
-export const CV_TPL_FONT_WEIGHT = 600;
+/** Meiryo UI only has Regular (400) and Bold (700); weight 600 forces fallback to bundled Noto Sans JP. */
+export const CV_TPL_FONT_WEIGHT = 400;
 export const CV_TPL_FONT_WEIGHT_BOLD = 700;
-/** Noto Sans JP is bundled via @fontsource; Meiryo UI is local-only on Windows. */
-export const CV_TPL_FONT_FAMILY = "'Noto Sans JP', 'Meiryo UI', Meiryo, sans-serif";
+/** Meiryo UI is a Windows system font; Noto Sans JP is bundled as web/PDF fallback. */
+export const CV_TPL_FONT_FAMILY_MEIRYO = "'Meiryo UI', Meiryo, 'メイリオ', sans-serif";
+export const CV_TPL_FONT_FAMILY_WEB = "'Noto Sans JP', sans-serif";
+export const CV_TPL_FONT_FAMILY = `${CV_TPL_FONT_FAMILY_MEIRYO}, 'Noto Sans JP', sans-serif`;
+
+let resolvedCvFontFamilyCache = null;
+
+/** Prefer local Meiryo when installed; otherwise use bundled Noto only (no fake Meiryo stack). */
+export async function resolveCvTemplateFontFamily() {
+  if (resolvedCvFontFamilyCache) return resolvedCvFontFamilyCache;
+  try {
+    if (typeof document !== 'undefined' && document.fonts?.load) {
+      await document.fonts.load('400 16px "Meiryo UI"');
+      if (document.fonts.check('400 16px "Meiryo UI"')) {
+        resolvedCvFontFamilyCache = CV_TPL_FONT_FAMILY_MEIRYO;
+        return resolvedCvFontFamilyCache;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  resolvedCvFontFamilyCache = CV_TPL_FONT_FAMILY_WEB;
+  return resolvedCvFontFamilyCache;
+}
+
+export async function applyCvTemplateFontFamily(el = document.documentElement) {
+  const fontFamily = await resolveCvTemplateFontFamily();
+  el?.style?.setProperty('--cv-font-family', fontFamily);
+  return fontFamily;
+}
 /** Ô checkbox PDF — vẽ bằng border/fill, không dùng glyph ■ (glyph hay bé hơn em-box). */
 export const CV_PDF_CHECKBOX_MARKER_PX = '20px';
 export const CV_PDF_CHECKBOX_BORDER_PX = '1.5px';
@@ -23,7 +50,6 @@ export const CV_TPL_CHECKBOX_INPUT_PX = '19px';
 export const CV_TPL_BODY_STYLE = {
   fontSize: CV_TPL_FONT_BODY,
   color: '#1f2937',
-  fontFamily: CV_TPL_FONT_FAMILY,
   fontWeight: CV_TPL_FONT_WEIGHT,
 };
 
@@ -33,15 +59,23 @@ export const CV_TPL_TABLE_STYLE = {
   borderColor: '#1f2937',
 };
 
-/** Ensure bundled CV Japanese glyphs are loaded before PDF capture. */
+/** Wait for CV fonts — Meiryo on Windows when installed, else bundled Noto Sans JP. */
 export async function ensureCvTemplateFontsLoaded() {
+  const fontFamily = await resolveCvTemplateFontFamily();
   try {
+    await applyCvTemplateFontFamily();
     if (document.fonts?.load) {
-      await Promise.all([
-        document.fonts.load(`400 ${CV_TPL_FONT_BODY} "Noto Sans JP"`),
-        document.fonts.load(`600 ${CV_TPL_FONT_BODY} "Noto Sans JP"`),
-        document.fonts.load(`700 ${CV_TPL_FONT_BODY} "Noto Sans JP"`),
-      ]);
+      const useMeiryo = fontFamily === CV_TPL_FONT_FAMILY_MEIRYO;
+      const loads = useMeiryo
+        ? [
+            document.fonts.load(`400 ${CV_TPL_FONT_BODY} "Meiryo UI"`),
+            document.fonts.load(`700 ${CV_TPL_FONT_BODY} "Meiryo UI"`),
+          ]
+        : [
+            document.fonts.load(`400 ${CV_TPL_FONT_BODY} "Noto Sans JP"`),
+            document.fonts.load(`700 ${CV_TPL_FONT_BODY} "Noto Sans JP"`),
+          ];
+      await Promise.allSettled(loads);
     }
     if (document.fonts?.ready) {
       await document.fonts.ready;
@@ -49,6 +83,7 @@ export async function ensureCvTemplateFontsLoaded() {
   } catch {
     /* ignore */
   }
+  return fontFamily;
 }
 
 /** Tạo ô vuông giống checkbox HTML — rõ trong PDF screenshot. */
@@ -97,7 +132,7 @@ export function createCvPdfCheckboxMarkerElement(checked = false) {
 export function buildCvPdfCaptureTypographyCss(rootSelector) {
   return `
     ${rootSelector} .cv-template-body {
-      font-family: ${CV_TPL_FONT_FAMILY} !important;
+      font-family: var(--cv-font-family, ${CV_TPL_FONT_FAMILY}) !important;
       font-weight: ${CV_TPL_FONT_WEIGHT} !important;
       font-size: ${CV_TPL_FONT_BODY} !important;
       line-height: 1.45 !important;
@@ -206,14 +241,14 @@ export function buildCvPdfCaptureTypographyCss(rootSelector) {
       font-size: ${CV_TPL_FONT_DATE} !important;
     }
     ${rootSelector} .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]),
-    ${rootSelector} .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]) {
+    ${rootSelector} .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-shokumu-prose *):not(.cv-shokumu-work-section *):not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not([style*="f9fafb"]):not(.bg-gray-50):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense):not([data-cv-tools-name-cell="1"]) {
       text-align: center !important;
       vertical-align: middle !important;
     }
-    ${rootSelector} .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable],
-    ${rootSelector} .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
-    ${rootSelector} .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable],
-    ${rootSelector} .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]) {
+    ${rootSelector} .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable]:not(.cv-tpl-dense):not(.text-left),
+    ${rootSelector} .cv-template-body td.bg-white:not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not(.text-left),
+    ${rootSelector} .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-shokumu-prose *):not(.cv-shokumu-work-section *):not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) [contenteditable]:not(.cv-tpl-dense):not(.text-left),
+    ${rootSelector} .cv-template-body .cv-resizable-table-wrap:not(.cv-shokumu-prose) tbody td:not(.cv-shokumu-prose *):not(.cv-shokumu-work-section *):not(.cv-tpl-side-label):not(.cv-tpl-section-title-col):not(.cv-cert-title-col):not([style*="e2efd9"]):not(.cv-tpl-note):not(:has(.cv-tpl-dense)):not(.cv-tpl-dense) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not(.text-left) {
       text-align: center !important;
     }
     ${rootSelector} .cv-template-body td.bg-white label.flex,
@@ -353,6 +388,14 @@ export function buildCvPdfCaptureTypographyCss(rootSelector) {
     ${rootSelector} .cv-template-body .cv-shokumu-prose .cv-resizable-table-wrap tbody td:not([data-cv-shokumu-period]) [contenteditable] {
       text-align: left !important;
     }
+    ${rootSelector} .cv-template-body .cv-shokumu-work-section [data-cv-shokumu-desc-cell],
+    ${rootSelector} .cv-template-body .cv-shokumu-work-section [data-cv-shokumu-tools-cell],
+    ${rootSelector} .cv-template-body .cv-shokumu-work-section [data-cv-shokumu-desc-cell] [contenteditable],
+    ${rootSelector} .cv-template-body .cv-shokumu-work-section [data-cv-shokumu-tools-cell] [contenteditable],
+    ${rootSelector} .cv-template-body .cv-shokumu-work-section [data-cv-shokumu-desc-cell] [data-cv-pdf-flat-cell],
+    ${rootSelector} .cv-template-body .cv-shokumu-work-section [data-cv-shokumu-tools-cell] [data-cv-pdf-flat-cell] {
+      text-align: left !important;
+    }
     ${rootSelector} .cv-template-body [data-cv-shokumu-period],
     ${rootSelector} .cv-template-body td.cv-pdf-shokumu-period {
       text-align: center !important;
@@ -372,6 +415,26 @@ export function buildCvPdfCaptureTypographyCss(rootSelector) {
     ${rootSelector} .cv-template-body .cv-shokumu-work-section tbody td label.flex,
     ${rootSelector} .cv-template-body .cv-shokumu-prose .cv-resizable-table-wrap tbody td label.flex {
       justify-content: flex-start !important;
+    }
+    ${rootSelector} .cv-template-body .cv-personal-name-cell {
+      height: 1px;
+      vertical-align: top !important;
+    }
+    ${rootSelector} .cv-template-body .cv-personal-name-cell-inner {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 7.5rem;
+      box-sizing: border-box;
+    }
+    ${rootSelector} .cv-template-body .cv-personal-name-furigana {
+      flex: 0 0 auto;
+    }
+    ${rootSelector} .cv-template-body .cv-personal-name-kanji {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      align-items: center;
     }
   `;
 }

@@ -82,6 +82,7 @@ import {
   CV_TEMPLATE_OPTIONS,
 } from '../../utils/cvTemplateMeta.js';
 import { normalizeOtherLanguageCerts } from '../../utils/cvOtherLanguageCerts.js';
+import { applyCvTemplateFontFamily } from '../../utils/cvTemplateTypography.js';
 
 const mapPassportToBool = (v) => (v === '有' ? 1 : v === '無' ? 0 : undefined);
 
@@ -314,6 +315,10 @@ const AddCandidateForm = ({
   const [parseError, setParseError] = useState(null);
   const [parseSuccess, setParseSuccess] = useState(null);
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    applyCvTemplateFontFamily();
+  }, []);
 
   useEffect(() => {
     if (!isParsing) {

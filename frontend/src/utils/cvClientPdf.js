@@ -1106,9 +1106,14 @@ function flattenCvPdfTableCellsForCapture(root, restoreFns) {
 
     const prevHtml = cell.innerHTML;
     const cs = getComputedStyle(cell);
-    const textAlign = cs.textAlign === 'center' || cell.classList.contains('text-center')
+    const inWorkSection = cell.closest('.cv-shokumu-work-section');
+    const isPeriodCell = cell.hasAttribute('data-cv-shokumu-period');
+    let textAlign = cs.textAlign === 'center' || cell.classList.contains('text-center')
       ? 'center'
       : (cs.textAlign === 'right' || cell.classList.contains('text-right') ? 'right' : 'left');
+    if (inWorkSection && !isPeriodCell) {
+      textAlign = 'left';
+    }
 
     const flat = document.createElement('div');
     flat.dataset.cvPdfFlatCell = '1';

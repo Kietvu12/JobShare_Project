@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+import { ensurePdfJsWorker, pdfjsLib } from '../../utils/pdfJsWorker.js';
 
 const MAX_PIXEL_RATIO = 3;
 const MIN_ZOOM = 0.4;
@@ -16,6 +13,7 @@ function clampZoom(value) {
 }
 
 async function loadPdfDocument(url) {
+  await ensurePdfJsWorker();
   if (url.startsWith('blob:')) {
     const data = await fetch(url).then((res) => res.arrayBuffer());
     return pdfjsLib.getDocument({ data }).promise;
