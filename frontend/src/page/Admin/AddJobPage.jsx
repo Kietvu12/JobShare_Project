@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import apiService from '../../services/api';
@@ -22,6 +22,19 @@ import JdTemplate from '../../component/Admin/AddJob/JdTemplate';
 import { JOB_HIGHLIGHT_OPTIONS } from '../../utils/jobHighlightOptions';
 import { JAPANESE_LEVEL_OPTIONS, EXPERIENCE_YEARS_OPTIONS, DRIVER_LICENSE_OPTIONS } from '../../utils/requirementPresetOptions';
 import { JAPAN_REGIONS, JAPAN_PREFECTURES, fetchJapanCitiesByPrefecture, kanaToRomaji } from '../../utils/japanLocationData';
+import {
+  createAddJobJapanRegionEntry,
+  createAddJobJapanPrefectureEntry,
+  createAddJobJapanCityEntry,
+  createAddJobJapanWardEntry,
+  collapseJapanWorkingLocationsForDisplay,
+  normalizeJapanWorkingLocations,
+  removeJapanWorkingLocationsByMemberJpIds,
+  collectJapanPrefectureCodesForCollapse,
+  getJapanWorkingLocationJpId,
+  isPrefectureFullySelected,
+  isRegionFullySelected,
+} from '../../utils/japanWorkingLocations';
 import {
   getRecruitmentLocationLabel,
   recruitmentLocationLangFromFormTab,
@@ -269,8 +282,9 @@ function normalizeWorkingLocationField(loc) {
   return String(loc).trim();
 }
 
-function sanitizeWorkingLocationsForApi(locs) {
-  return (locs || [])
+function sanitizeWorkingLocationsForApi(locs, languageTab = 'vi', prefectureTrees = {}) {
+  const collapsed = normalizeJapanWorkingLocations(locs, languageTab, prefectureTrees);
+  return (collapsed || [])
     .map((wl) => {
       let location = normalizeWorkingLocationField(wl?.location);
       if (!location && wl?.locationJp != null && String(wl.locationJp).trim()) {
@@ -281,7 +295,9 @@ function sanitizeWorkingLocationsForApi(locs) {
         rawHires != null && String(rawHires).trim() !== ''
           ? normalizeNumberOfHiresStored(rawHires)
           : rawHires;
-      return { ...wl, location, numberOfHires };
+      const { locationLevel, jpId, searchTerm, parentPrefectureJp, parentPrefectureEn, _collapseMemberJpIds, ...rest } =
+        wl || {};
+      return { ...rest, location, numberOfHires };
     })
     .filter((wl) => wl.location);
 }
@@ -291,47 +307,6 @@ function getWorkingLocationsNumberOfHires(locs) {
     (locs || []).find((wl) => wl?.numberOfHires != null && String(wl.numberOfHires).trim() !== '')?.numberOfHires || '';
   return normalizeNumberOfHiresStored(raw);
 }
-
-const createAddJobJapanRegionEntry = (region, languageTab) => ({
-  location: languageTab === 'jp' ? region.ja : region.en,
-  locationJp: region.ja,
-  country: 'Japan',
-  jpId: `region|${region.id}`,
-  locationLevel: 'region',
-  searchTerm: region.ja,
-});
-
-const createAddJobJapanPrefectureEntry = (prefCode, languageTab) => {
-  const pref = JAPAN_PREFECTURES[prefCode];
-  if (!pref) return null;
-  return {
-    location: languageTab === 'jp' ? pref.ja : pref.en,
-    locationJp: pref.ja,
-    country: 'Japan',
-    jpId: `pref|${prefCode}`,
-    locationLevel: 'prefecture',
-    searchTerm: pref.ja,
-  };
-};
-
-const createAddJobJapanWardEntry = (prefCode, nameJa, nameKana, languageTab) => {
-  const pref = JAPAN_PREFECTURES[prefCode];
-  const prefJa = pref?.ja || '';
-  const prefEn = pref?.en || '';
-  const toRomaji = (kana, fallback) => (kana ? kanaToRomaji(kana) : fallback);
-  const ja = nameJa.trim();
-  const alpha = (languageTab === 'jp' ? ja : toRomaji(nameKana, nameJa)).trim();
-  return {
-    location: alpha,
-    locationJp: ja,
-    country: 'Japan',
-    jpId: `${prefCode}|${nameJa}`,
-    locationLevel: 'ward',
-    searchTerm: nameJa,
-    parentPrefectureJp: prefJa,
-    parentPrefectureEn: prefEn,
-  };
-};
 
 /** Mã job duy nhất khi tạo mới (backend vẫn bắt buộc jobCode). */
 function generateNewJobCode() {
@@ -629,6 +604,7 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
   const [selectedJapanRegion, setSelectedJapanRegion] = useState(null);
   const [selectedJapanPrefecture, setSelectedJapanPrefecture] = useState(null);
   const [japanLocationData, setJapanLocationData] = useState({ flat: [], tree: [] });
+  const [japanPrefTreeCache, setJapanPrefTreeCache] = useState({});
   const [japanCitiesLoading, setJapanCitiesLoading] = useState(false);
   /** Popup chọn địa điểm (Việt Nam / Nhật Bản) */
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -1224,12 +1200,45 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
     setJapanCitiesLoading(true);
     fetchJapanCitiesByPrefecture(selectedJapanPrefecture)
       .then((result) => {
-        if (!cancelled) setJapanLocationData(result);
+        if (!cancelled) {
+          setJapanLocationData(result);
+          setJapanPrefTreeCache((prev) => ({ ...prev, [selectedJapanPrefecture]: result.tree || [] }));
+        }
       })
       .catch(() => { if (!cancelled) setJapanLocationData({ flat: [], tree: [] }); })
       .finally(() => { if (!cancelled) setJapanCitiesLoading(false); });
     return () => { cancelled = true; };
   }, [selectedJapanPrefecture]);
+
+  useEffect(() => {
+    const prefCodes = collectJapanPrefectureCodesForCollapse(workingLocations);
+    if (!prefCodes.length) return undefined;
+    let cancelled = false;
+    prefCodes.forEach((code) => {
+      fetchJapanCitiesByPrefecture(code)
+        .then((result) => {
+          if (cancelled) return;
+          setJapanPrefTreeCache((prev) => {
+            if (prev[code]) return prev;
+            return { ...prev, [code]: result.tree || [] };
+          });
+        })
+        .catch(() => {});
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [workingLocations]);
+
+  useEffect(() => {
+    if (!Object.keys(japanPrefTreeCache).length) return;
+    setWorkingLocations((prev) => normalizeJapanWorkingLocations(prev, languageTab, japanPrefTreeCache));
+  }, [japanPrefTreeCache, languageTab]);
+
+  const displayWorkingLocations = useMemo(
+    () => collapseJapanWorkingLocationsForDisplay(workingLocations, languageTab, japanPrefTreeCache),
+    [workingLocations, languageTab, japanPrefTreeCache]
+  );
 
   const loadJobData = async () => {
     try {
@@ -2306,7 +2315,7 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
       transferAbilityJp: formData.transferAbilityJp || null,
       highlights: formData.highlights || null,
 
-      workingLocations: sanitizeWorkingLocationsForApi(workingLocations),
+      workingLocations: sanitizeWorkingLocationsForApi(workingLocations, languageTab, japanPrefTreeCache),
       workingLocationDetails: workingLocationDetails
         .filter((wld) => (wld.content && wld.content.trim()) || (wld.contentEn && wld.contentEn.trim()) || (wld.contentJp && wld.contentJp.trim()))
         .map((wld) => ({ content: wld.content || null, contentEn: wld.contentEn || null, contentJp: wld.contentJp || null })),
@@ -2591,7 +2600,7 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
         isHot: formData.isHot || false,
         jobCommissionType: formData.jobCommissionType || 'fixed',
         // Related data arrays
-        workingLocations: sanitizeWorkingLocationsForApi(workingLocations),
+        workingLocations: sanitizeWorkingLocationsForApi(workingLocations, languageTab, japanPrefTreeCache),
         workingLocationDetails: workingLocationDetails
           .filter(wld =>
             (wld.content && wld.content.trim()) ||
@@ -4338,7 +4347,12 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                               <div className="max-h-[50vh] overflow-y-auto border border-gray-200 rounded-lg p-1.5 bg-white">
                                 {JAPAN_REGIONS.map((reg) => {
                                   const regionEntry = createAddJobJapanRegionEntry(reg, languageTab);
-                                  const checked = workingLocations.some((wl) => wl.country === 'Japan' && (wl.jpId || `${wl.location}_${wl.country}`) === regionEntry.jpId);
+                                  const selectedJapanIds = new Set(
+                                    workingLocations
+                                      .filter((wl) => wl.country === 'Japan')
+                                      .map((wl) => wl.jpId || `${wl.location}_${wl.country}`)
+                                  );
+                                  const checked = isRegionFullySelected(reg, selectedJapanIds, japanPrefTreeCache);
                                   return (
                                     <label key={reg.id} className="flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer hover:bg-gray-50">
                                       <input
@@ -4390,7 +4404,13 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                                   if (!pref) return null;
                                   const label = languageTab === 'jp' ? pref.ja : pref.en;
                                   const prefEntry = createAddJobJapanPrefectureEntry(code, languageTab);
-                                  const checked = !!prefEntry && workingLocations.some((wl) => wl.country === 'Japan' && (wl.jpId || `${wl.location}_${wl.country}`) === prefEntry.jpId);
+                                  const selectedJapanIds = new Set(
+                                    workingLocations
+                                      .filter((wl) => wl.country === 'Japan')
+                                      .map((wl) => wl.jpId || `${wl.location}_${wl.country}`)
+                                  );
+                                  const checked =
+                                    !!prefEntry && isPrefectureFullySelected(code, selectedJapanIds, japanPrefTreeCache);
                                   return (
                                     <label key={code} className="flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer hover:bg-gray-50">
                                       <input
@@ -4423,12 +4443,8 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                                   type="button"
                                   disabled={!selectedJapanPrefecture || japanCitiesLoading || bulkJapanAdding}
                                   onClick={() => {
-                                    const prefCode = selectedJapanPrefecture;
-                                    const entries = (japanLocationData.tree || []).flatMap((city) => {
-                                      if (city.standalone) return [createAddJobJapanWardEntry(prefCode, city.name, city.nameKana, languageTab)];
-                                      return (city.wards || []).map((w) => createAddJobJapanWardEntry(prefCode, w.fullName, w.fullNameKana, languageTab));
-                                    });
-                                    upsertManyJapanWorkingLocations(entries, true);
+                                    const prefEntry = createAddJobJapanPrefectureEntry(selectedJapanPrefecture, languageTab);
+                                    if (prefEntry) upsertJapanWorkingLocation(prefEntry, true);
                                   }}
                                   className="text-[10px] text-blue-600 hover:text-blue-700 font-medium disabled:text-gray-400"
                                 >
@@ -4452,56 +4468,120 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                                     return (c.wards || []).map((w) => makeLocObj(w.fullName, w.fullNameKana));
                                   });
 
-                                  const allSelected = allLocs.length > 0 && allLocs.every((loc) => selectedJapanIds.has(loc.id));
+                                  const prefEntry = createAddJobJapanPrefectureEntry(selectedJapanPrefecture, languageTab);
+                                  const allSelected =
+                                    (prefEntry && selectedJapanIds.has(prefEntry.jpId)) ||
+                                    (allLocs.length > 0 && allLocs.every((loc) => selectedJapanIds.has(loc.jpId)));
                                   const toggleAll = (checked) => {
-                                    const existingJapanIds = new Set(
-                                      workingLocations
-                                        .filter((wl) => wl.country === 'Japan')
-                                        .map((wl) => wl.jpId || `${wl.location}_${wl.country}`)
-                                    );
+                                    if (!prefEntry) return;
+                                    const removeIds = new Set(allLocs.map((l) => l.jpId));
                                     if (checked) {
-                                      const toAdd = allLocs
-                                        .filter((loc) => !existingJapanIds.has(loc.jpId));
-                                      setWorkingLocations((prev) => [...prev, ...toAdd]);
+                                      setWorkingLocations((prev) => {
+                                        const filtered = prev.filter(
+                                          (wl) => wl.country !== 'Japan' || !removeIds.has(wl.jpId || `${wl.location}_${wl.country}`)
+                                        );
+                                        const exists = filtered.some(
+                                          (wl) => wl.country === 'Japan' && wl.jpId === prefEntry.jpId
+                                        );
+                                        return exists ? filtered : [...filtered, prefEntry];
+                                      });
                                     } else {
-                                      const removeIds = new Set(allLocs.map((l) => l.jpId));
                                       setWorkingLocations((prev) =>
-                                        prev.filter((wl) => wl.country !== 'Japan' || !removeIds.has(wl.jpId || `${wl.location}_${wl.country}`))
+                                        prev.filter(
+                                          (wl) =>
+                                            wl.country !== 'Japan' ||
+                                            (wl.jpId !== prefEntry.jpId &&
+                                              !removeIds.has(wl.jpId || `${wl.location}_${wl.country}`))
+                                        )
                                       );
                                     }
                                   };
                                   const toggleCity = (city, checked) => {
+                                    const prefCode = selectedJapanPrefecture;
                                     const cityLocs = city.standalone
                                       ? [makeLocObj(city.name, city.nameKana)]
                                       : (city.wards || []).map((w) => makeLocObj(w.fullName, w.fullNameKana));
+                                    const cityEntry = createAddJobJapanCityEntry(prefCode, city, languageTab);
+                                    const removeIds = new Set(cityLocs.map((l) => l.jpId));
+                                    if (cityEntry) removeIds.add(cityEntry.jpId);
                                     if (checked) {
-                                      const existingJapanIds = new Set(
-                                        workingLocations
-                                          .filter((wl) => wl.country === 'Japan')
-                                          .map((wl) => wl.jpId || `${wl.location}_${wl.country}`)
-                                      );
-                                      const toAdd = cityLocs
-                                        .filter((loc) => !existingJapanIds.has(loc.jpId));
-                                      setWorkingLocations((prev) => [...prev, ...toAdd]);
+                                      setWorkingLocations((prev) => {
+                                        const filtered = prev.filter(
+                                          (wl) => wl.country !== 'Japan' || !removeIds.has(wl.jpId || `${wl.location}_${wl.country}`)
+                                        );
+                                        if (cityEntry && !filtered.some((wl) => wl.jpId === cityEntry.jpId)) {
+                                          return [...filtered, cityEntry];
+                                        }
+                                        return filtered;
+                                      });
                                     } else {
-                                      const removeIds = new Set(cityLocs.map((l) => l.jpId));
                                       setWorkingLocations((prev) =>
-                                        prev.filter((wl) => wl.country !== 'Japan' || !removeIds.has(wl.jpId || `${wl.location}_${wl.country}`))
+                                        prev.filter(
+                                          (wl) => wl.country !== 'Japan' || !removeIds.has(wl.jpId || `${wl.location}_${wl.country}`)
+                                        )
                                       );
                                     }
                                   };
                                   const toggleWard = (fullName, fullNameKana, checked) => {
                                     const loc = makeLocObj(fullName, fullNameKana);
-                                    if (checked) {
-                                      if (!workingLocations.some((wl) => wl.country === 'Japan' && (wl.jpId || `${wl.location}_${wl.country}`) === loc.jpId))
-                                        setWorkingLocations((prev) => [...prev, loc]);
-                                    } else {
-                                      setWorkingLocations((prev) =>
-                                        prev.filter((wl) => !(wl.country === 'Japan' && (wl.jpId || `${wl.location}_${wl.country}`) === loc.jpId))
+                                    const prefEntryForWard = createAddJobJapanPrefectureEntry(
+                                      selectedJapanPrefecture,
+                                      languageTab
+                                    );
+                                    const parentCity = tree.find((city) =>
+                                      city.standalone
+                                        ? city.name === fullName
+                                        : (city.wards || []).some((w) => w.fullName === fullName)
+                                    );
+                                    const cityEntryForWard = parentCity
+                                      ? createAddJobJapanCityEntry(selectedJapanPrefecture, parentCity, languageTab)
+                                      : null;
+
+                                    setWorkingLocations((prev) => {
+                                      let next = prev.filter(
+                                        (wl) =>
+                                          !(
+                                            wl.country === 'Japan' &&
+                                            (wl.jpId || `${wl.location}_${wl.country}`) === loc.jpId
+                                          )
                                       );
-                                    }
+
+                                      const hadPref =
+                                        prefEntryForWard &&
+                                        prev.some((wl) => wl.jpId === prefEntryForWard.jpId);
+                                      const hadCity =
+                                        cityEntryForWard &&
+                                        prev.some((wl) => wl.jpId === cityEntryForWard.jpId);
+
+                                      if (hadPref) {
+                                        next = next.filter((wl) => wl.jpId !== prefEntryForWard.jpId);
+                                        const toAdd = allLocs.filter((item) => item.jpId !== loc.jpId);
+                                        toAdd.forEach((item) => {
+                                          if (!next.some((wl) => wl.jpId === item.jpId)) next = [...next, item];
+                                        });
+                                      } else if (hadCity && parentCity) {
+                                        next = next.filter((wl) => wl.jpId !== cityEntryForWard.jpId);
+                                        const cityLocs = parentCity.standalone
+                                          ? [makeLocObj(parentCity.name, parentCity.nameKana)]
+                                          : (parentCity.wards || []).map((w) =>
+                                              makeLocObj(w.fullName, w.fullNameKana)
+                                            );
+                                        cityLocs
+                                          .filter((item) => item.jpId !== loc.jpId)
+                                          .forEach((item) => {
+                                            if (!next.some((wl) => wl.jpId === item.jpId)) next = [...next, item];
+                                          });
+                                      }
+
+                                      if (checked && !next.some((wl) => wl.jpId === loc.jpId)) {
+                                        next = [...next, loc];
+                                      }
+                                      return next;
+                                    });
                                   };
                                   const isCitySelected = (city) => {
+                                    const cityEntry = createAddJobJapanCityEntry(selectedJapanPrefecture, city, languageTab);
+                                    if (cityEntry && selectedJapanIds.has(cityEntry.jpId)) return true;
                                     const locs = city.standalone
                                       ? [makeLocObj(city.name, city.nameKana)]
                                       : (city.wards || []).map((w) => makeLocObj(w.fullName, w.fullNameKana));
@@ -4527,7 +4607,15 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                                             <div className="ml-4 pl-1 border-l border-gray-200">
                                               {city.wards.map((w) => {
                                                 const loc = makeLocObj(w.fullName, w.fullNameKana);
-                                                const isWardSelected = selectedJapanIds.has(loc.jpId);
+                                                const cityEntryForWard = createAddJobJapanCityEntry(
+                                                  selectedJapanPrefecture,
+                                                  city,
+                                                  languageTab
+                                                );
+                                                const isWardSelected =
+                                                  selectedJapanIds.has(loc.jpId) ||
+                                                  (prefEntry && selectedJapanIds.has(prefEntry.jpId)) ||
+                                                  (cityEntryForWard && selectedJapanIds.has(cityEntryForWard.jpId));
                                                 return (
                                                   <label key={w.fullName} className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
                                                     <input type="checkbox" checked={!!isWardSelected} onChange={(e) => toggleWard(w.fullName, w.fullNameKana, e.target.checked)} className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600" />
@@ -4564,15 +4652,16 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-xs font-semibold text-gray-900">
                     {(t.selectedLocationsLabel || 'Danh sách địa điểm đã chọn ({count})')
-                      .replace('{count}', workingLocations.length)}
+                      .replace('{count}', displayWorkingLocations.length)}
                   </label>
                 </div>
-                {workingLocations.length > 0 ? (
+                {displayWorkingLocations.length > 0 ? (
                   <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {workingLocations.map((wl, index) => {
+                    {displayWorkingLocations.map((wl) => {
                       const isEmpty = !wl.location || !wl.country;
+                      const displayKey = getJapanWorkingLocationJpId(wl) || `${wl.location}_${wl.country}`;
                       return (
-                        <div key={index} className={`flex items-center gap-2 p-2 border rounded-lg ${isEmpty ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200 bg-gray-50'}`}>
+                        <div key={displayKey} className={`flex items-center gap-2 p-2 border rounded-lg ${isEmpty ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200 bg-gray-50'}`}>
                           {isEmpty ? (
                             // Show input fields for empty locations (custom locations)
                             <div className="flex gap-1 flex-1">
@@ -4581,9 +4670,13 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                           placeholder={t.locationPlaceholder || 'Địa điểm'}
                                 value={wl.location || ''}
                                 onChange={(e) => {
-                                  const newLocs = [...workingLocations];
-                                  newLocs[index].location = e.target.value;
-                                  setWorkingLocations(newLocs);
+                                  setWorkingLocations((prev) =>
+                                    prev.map((item) =>
+                                      getJapanWorkingLocationJpId(item) === displayKey
+                                        ? { ...item, location: e.target.value }
+                                        : item
+                                    )
+                                  );
                                 }}
                                 className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-600"
                               />
@@ -4592,9 +4685,13 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                           placeholder={t.countryPlaceholder || 'Quốc gia'}
                                 value={wl.country || ''}
                                 onChange={(e) => {
-                                  const newLocs = [...workingLocations];
-                                  newLocs[index].country = e.target.value;
-                                  setWorkingLocations(newLocs);
+                                  setWorkingLocations((prev) =>
+                                    prev.map((item) =>
+                                      getJapanWorkingLocationJpId(item) === displayKey
+                                        ? { ...item, country: e.target.value }
+                                        : item
+                                    )
+                                  );
                                 }}
                                 className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-600"
                               />
@@ -4610,7 +4707,16 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                           )}
                           <button
                             type="button"
-                            onClick={() => setWorkingLocations(workingLocations.filter((_, i) => i !== index))}
+                            onClick={() => {
+                              const members = wl._collapseMemberJpIds;
+                              if (members?.length) {
+                                setWorkingLocations(removeJapanWorkingLocationsByMemberJpIds(workingLocations, members));
+                              } else {
+                                setWorkingLocations(
+                                  workingLocations.filter((item) => getJapanWorkingLocationJpId(item) !== displayKey)
+                                );
+                              }
+                            }}
                             className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors flex-shrink-0"
                             title="Xóa"
                           >
@@ -6412,6 +6518,7 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                   jobValues={jobValues}
                   workingLocations={workingLocations}
                   setWorkingLocations={setWorkingLocations}
+                  japanPrefectureTrees={japanPrefTreeCache}
                   salaryRanges={salaryRanges}
                   setSalaryRanges={setSalaryRanges}
                   salaryRangeDetails={salaryRangeDetails}

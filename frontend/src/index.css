@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./styles/meiryo-ui.css";
 @import "@fontsource/noto-sans-jp/japanese-400.css";
 @import "@fontsource/noto-sans-jp/japanese-700.css";
 
@@ -531,6 +532,7 @@ button:focus-visible {
   padding: 0 1px 4px;
   box-sizing: border-box;
   font-family: var(--cv-font-family, 'Meiryo UI', Meiryo, 'メイリオ', 'Noto Sans JP', sans-serif);
+  font-synthesis: none;
   font-weight: 400;
   font-size: 19px;
   line-height: 1.45;

@@ -276,19 +276,31 @@ function skillsSection(d) {
   return parts.join('\n') || '　';
 }
 
-// Noto Serif JP: font web hỗ trợ tiếng Nhật + Latin (trên server Linux không cần cài font). Fallback sang font Mincho trên Windows/macOS.
-const FONT_MINCHO = "'Noto Serif JP','MS Mincho','MS PMincho','Yu Mincho','Hiragino Mincho ProN',serif";
+// Meiryo UI — bundled web font for CV PDF (served from /assets/cv-fonts/meiryo-ui/).
+const FONT_CV = "'Meiryo UI', Meiryo, 'メイリオ', 'Noto Sans JP', sans-serif";
+const MEIRYO_UI_WOFF2 = '/assets/cv-fonts/meiryo-ui/5807546a90854fa6bc12a90f7e95e40c.woff2';
 const CV_BORDER_COLOR = '#111827';
 const HTML_HEAD = `<!DOCTYPE html>
 <html lang="ja"><head><meta charset="UTF-8">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
+@font-face {
+  font-family: 'Meiryo UI';
+  src: url('${MEIRYO_UI_WOFF2}') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Meiryo UI';
+  src: url('${MEIRYO_UI_WOFF2}') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 @page { size: A4; margin: 10mm; }
 html { box-sizing: border-box; }
 *, *::before, *::after { box-sizing: inherit; }
-html,body{font-family:${FONT_MINCHO};font-size:11px;color:#1f2937;margin:0;padding:0;line-height:1.4}
+html,body{font-family:${FONT_CV};font-size:11px;color:#1f2937;margin:0;padding:0;line-height:1.4}
 body, table, td, th {
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
@@ -685,7 +697,7 @@ export function generateCvTemplateHtml(cv, options = {}) {
   /* Layout Rirekisho bám đúng form AddCandidateForm (common): 75% + 25%, cùng thứ tự bảng */
   const rirekishoPart = `
 <!-- RIREKISHO (layout = form template common) -->
-<div style="max-width:100%;font-size:11px;color:#1f2937;overflow:visible;font-family:${FONT_MINCHO}">
+<div style="max-width:100%;font-size:11px;color:#1f2937;overflow:visible;font-family:${FONT_CV}">
   <div style="display:flex;width:100%">
     <div style="width:75%;padding:4px 12px 12px 12px">
       <div style="font-weight:bold;font-size:18px;line-height:1.1">履歴書</div>
@@ -714,7 +726,7 @@ export function generateCvTemplateHtml(cv, options = {}) {
               <div style="display:flex;align-items:center;min-height:3.2rem;padding-top:0.55rem;box-sizing:border-box;margin-top:2rem">
                 <table style="border-collapse:collapse;width:100%;table-layout:fixed"><colgroup><col style="width:4.25rem" /><col /></colgroup><tr>
                   <td style="color:#6b7280;font-size:10px;padding:0 8px 0 0;border:none;vertical-align:middle;white-space:nowrap">氏名</td>
-                  <td style="font-weight:500;font-size:20px;line-height:1.25;white-space:pre-wrap;padding:0 2px 0 0;border:none;vertical-align:middle;text-align:center; font-family:${FONT_MINCHO}">${orBlank(d.nameKanji)}</td>
+                  <td style="font-weight:700;font-size:20px;line-height:1.25;white-space:pre-wrap;padding:0 2px 0 0;border:none;vertical-align:middle;text-align:center; font-family:${FONT_CV}">${orBlank(d.nameKanji)}</td>
                 </tr></table>
               </div>
             </td>
@@ -812,7 +824,7 @@ export function generateCvTemplateHtml(cv, options = {}) {
     ${openFixedTable(layoutMap, L('rirekisho', 'wish'), [100], 'border:1px solid #1f2937;font-size:10px')}
       <tr>
         <td style="border:1px solid #1f2937;padding:6px">
-          <div style="font-weight:500;margin-bottom:4px">本人希望記入欄</div>
+          <div style="font-weight:700;margin-bottom:4px">本人希望記入欄</div>
           <ul style="margin:4px 0 0 0;padding-left:16px;list-style:none">
             <li style="margin-bottom:2px">- 現在年収: ${orBlank(d.currentSalary)}</li>
             <li style="margin-bottom:2px">- 希望年収: ${orBlank(d.desiredSalary)}</li>
@@ -828,7 +840,7 @@ export function generateCvTemplateHtml(cv, options = {}) {
 
   const shokumuPart = `
 <!-- SHOKUMU 職務経歴書 – bố cục và màu giống form AddCandidateForm (common, tab 職務経歴書) -->
-<div style="font-size:11px;color:#1f2937;font-family:${FONT_MINCHO}">
+<div style="font-size:11px;color:#1f2937;font-family:${FONT_CV}">
   <h2 style="text-align:center;font-weight:bold;margin-bottom:16px;font-size:18px">職務経歴書</h2>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:11px;margin-bottom:24px;width:100%;box-sizing:border-box">
     <span>${documentDateDisplay}</span>
@@ -842,7 +854,7 @@ export function generateCvTemplateHtml(cv, options = {}) {
     </div>
     <table style="border-collapse:collapse;margin-left:auto;max-width:100%"><tr>
       <td style="color:#6b7280;font-size:10px;padding:0 8px 0 0;border:none;vertical-align:baseline;white-space:nowrap">氏名</td>
-      <td style="border:none;vertical-align:baseline;text-align:right;font-size:13px;min-width:8em;max-width:28rem;padding:0 2px;line-height:1.2;font-weight:500;word-break:break-all">${orBlank(d.nameKanji)}</td>
+      <td style="border:none;vertical-align:baseline;text-align:right;font-size:13px;min-width:8em;max-width:28rem;padding:0 2px;line-height:1.2;font-weight:700;word-break:break-all">${orBlank(d.nameKanji)}</td>
     </tr></table>
   </div>
   <div style="display:flex;justify-content:flex-end;align-items:baseline;flex-wrap:wrap;font-size:11px;margin-bottom:16px;column-gap:0;row-gap:6px">
@@ -890,7 +902,7 @@ export function generateCvTemplateHtml(cv, options = {}) {
 
   const shokumuPartIt = `
 <!-- SHOKUMU IT (職務経歴書 – aligned with frontend CvTemplateIt.jsx) -->
-<div style="font-size:11px;color:#1f2937;padding:10px;font-family:${FONT_MINCHO}">
+<div style="font-size:11px;color:#1f2937;padding:10px;font-family:${FONT_CV}">
   <div style="border:1px solid #1f2937;padding:8px;text-align:center;font-weight:bold;background:#e2efd9;font-size:18px">職務経歴書</div>
   <div style="display:flex;justify-content:flex-end;gap:24px;font-size:10px;margin:8px 0">
     <span>現在、${d.cvDocumentDate ? esc(formatCvDocumentDateDisplay(String(d.cvDocumentDate))) : nowStr}</span>
@@ -978,7 +990,7 @@ ${(() => {
 
   const shokumuPartTechnical = `
 <!-- SHOKUMU TECHNICAL (職務経歴書 – mirror frontend CvTemplateTechnical.jsx tab 2) -->
-<div style="font-size:11px;color:#1f2937;padding:10px;font-family:${FONT_MINCHO}">
+<div style="font-size:11px;color:#1f2937;padding:10px;font-family:${FONT_CV}">
   <div style="border:1px solid #1f2937;padding:8px;text-align:center;font-weight:bold;background:#e2efd9;font-size:18px">職務経歴書</div>
   <div style="display:flex;justify-content:flex-end;gap:24px;font-size:10px;margin:8px 0">
     <span>現在、${d.cvDocumentDate ? esc(formatCvDocumentDateDisplay(String(d.cvDocumentDate))) : nowStr}</span>
@@ -1090,7 +1102,7 @@ ${(() => {
   // Template IT / Technical: layout bám sát preview IT/Technical trong AddCandidateForm
   const rirekishoPartIt = `
 <!-- RIREKISHO (IT/Technical layout) — không viền ngoài; chỉ viền theo từng bảng như template chung -->
-<div style="max-width:100%;font-size:11px;color:#1f2937;overflow:visible;font-family:${FONT_MINCHO}">
+<div style="max-width:100%;font-size:11px;color:#1f2937;overflow:visible;font-family:${FONT_CV}">
   ${openFixedTable(layoutMap, L('rirekisho', 'personalGrid_v3'), [13, 20, 7, 19, 8, 17, 16], 'font-size:10px;border:1px solid #1f2937;width:100%')}
     <tr>
       <td colspan="7" style="border:1px solid #1f2937;padding:6px;text-align:center;font-weight:bold;background:#e2efd9;font-size:18px">履歴書</td>

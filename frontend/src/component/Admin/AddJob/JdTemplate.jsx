@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { JOB_HIGHLIGHT_OPTIONS } from '../../../utils/jobHighlightOptions';
 import { BUSINESS_SECTOR_OPTIONS } from '../../../utils/businessSectorOptions';
 import { getNumberOfHiresDisplayLabel } from '../../../utils/numberOfHiresOptions';
+import { collapseJapanWorkingLocationsForDisplay } from '../../../utils/japanWorkingLocations';
 import logoImage from '../../../assets/logo.png';
 
 /** Liên hệ Workstation JobShare - giá trị cố định */
@@ -212,6 +213,7 @@ export default function JdTemplate({
   jobValues,
   workingLocations,
   setWorkingLocations,
+  japanPrefectureTrees = {},
   salaryRanges,
   setSalaryRanges,
   salaryRangeDetails,
@@ -232,6 +234,11 @@ export default function JdTemplate({
   const suffix = lang === 'vi' ? '' : lang === 'en' ? 'En' : 'Jp';
   const contentKey = lang === 'vi' ? 'content' : lang === 'en' ? 'contentEn' : 'contentJp';
   const L = LABELS[lang] || LABELS.vi;
+
+  const displayWorkingLocations = useMemo(
+    () => collapseJapanWorkingLocationsForDisplay(workingLocations, lang, japanPrefectureTrees),
+    [workingLocations, lang, japanPrefectureTrees]
+  );
 
   const buildEditableProps = (editKey, value, onBlur, className = '', style = {}) => ({
     key: `${lang}:${editKey}`,
@@ -828,7 +835,7 @@ export default function JdTemplate({
             <span
               {...customEditable(
                 'work-locations',
-                (workingLocations || [])
+                (displayWorkingLocations || [])
                   .map((wl) => {
                     const loc = locationLabelByLang(wl);
                     if (!loc) return '';

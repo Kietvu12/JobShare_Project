@@ -35,6 +35,7 @@ import {
   shouldHideCommissionConditionLabel,
   resolveCtvCommissionDisplayMultiplier,
   resolveCommissionBannerLabel,
+  commissionTierLabelFontClass,
 } from '../../utils/jobCommissionUi';
 import { localizedJobValueLabel } from '../../utils/jobValueLocalizedLabel';
 import { hasJobAttachment } from '../../utils/jobAttachmentAvailability';
@@ -2329,7 +2330,7 @@ const mockJobs = [
                           >
                             {/* Left label spanning rows */}
                             <div
-                              className="flex-[0_0_35%] min-w-0 px-2 py-2 text-[10px] font-medium flex items-center justify-center text-center leading-snug whitespace-normal"
+                              className="flex-[0_0_35%] min-w-0 px-2 py-2 text-[10px] font-medium flex items-start justify-start text-left leading-snug whitespace-normal"
                               style={{
                                 backgroundColor: useAdminAPI ? '#5F5F5F' : '#4b4f5a',
                                 color: '#ffffff',
@@ -2342,7 +2343,7 @@ const mockJobs = [
                             {/* Right: condition + amount */}
                             {job.hideCommissionConditionLabel ? (
                               <div
-                                className="flex-1 min-w-0 px-2 sm:px-3 py-2 text-[10px] sm:text-[12px] font-bold flex items-center justify-center text-center leading-snug"
+                                className="flex-1 min-w-0 px-2 sm:px-3 py-2 text-[10px] sm:text-[12px] font-bold flex items-start justify-start text-left leading-snug"
                                 style={{
                                   backgroundColor: '#DF2020',
                                   color: '#ffffff',
@@ -2363,7 +2364,7 @@ const mockJobs = [
                                     }}
                                   >
                                     <div
-                                      className="w-24 sm:w-28 flex-shrink-0 px-2 py-1.5 text-[10px] sm:text-[11px] font-semibold flex items-center justify-center text-center leading-snug"
+                                      className="w-24 sm:w-28 flex-shrink-0 px-1.5 sm:px-2 py-1.5 font-semibold flex items-start justify-start text-left"
                                       style={{
                                         backgroundColor: useAdminAPI
                                           ? (job.isInCampaign ? '#e5f0fb' : '#EB9696')
@@ -2373,10 +2374,12 @@ const mockJobs = [
                                           : '#ffffff',
                                       }}
                                     >
-                                      <span className="break-words line-clamp-2">{tier.label}</span>
+                                      <span className={`break-words whitespace-normal ${commissionTierLabelFontClass(tier.label)}`}>
+                                        {tier.label}
+                                      </span>
                                     </div>
                                     <div
-                                      className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 text-[10px] sm:text-[12px] font-bold flex items-center justify-center text-center leading-snug"
+                                      className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 text-[10px] sm:text-[12px] font-bold flex items-start justify-start text-left leading-snug"
                                       style={{
                                         backgroundColor: '#DF2020',
                                         color: '#ffffff',
@@ -2399,7 +2402,7 @@ const mockJobs = [
                             style={{ borderColor: '#7c3aed' }}
                           >
                             <div
-                              className="flex-[0_0_45%] min-w-0 px-2 py-1 text-[10px] font-medium flex items-center justify-center text-center leading-snug whitespace-normal"
+                              className="flex-[0_0_45%] min-w-0 px-2 py-1 text-[10px] font-medium flex items-start justify-start text-left leading-snug whitespace-normal"
                               style={{
                                 backgroundColor: useAdminAPI ? '#5F5F5F' : '#4b4f5a',
                                 color: '#ffffff',
@@ -2410,7 +2413,7 @@ const mockJobs = [
                               </span>
                             </div>
                             <div
-                              className="flex-1 min-w-0 px-2 py-1.5 text-[10px] sm:text-[11px] font-bold flex items-center justify-center text-center break-words"
+                              className="flex-1 min-w-0 px-2 py-1.5 text-[10px] sm:text-[11px] font-bold flex items-start justify-start text-left break-words"
                               style={{
                                 backgroundColor: '#DF2020',
                                 color: '#ffffff',

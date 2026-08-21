@@ -1,4 +1,5 @@
 /** Kích cỡ chữ CV IT/Technical — đồng bộ preview, form, PDF capture. */
+import '../styles/meiryo-ui.css';
 import '@fontsource/noto-sans-jp/japanese-400.css';
 import '@fontsource/noto-sans-jp/japanese-700.css';
 
@@ -12,28 +13,17 @@ export const CV_PDF_TABLE_FONT_SIZE = '19px';
 /** Meiryo UI only has Regular (400) and Bold (700); weight 600 forces fallback to bundled Noto Sans JP. */
 export const CV_TPL_FONT_WEIGHT = 400;
 export const CV_TPL_FONT_WEIGHT_BOLD = 700;
-/** Meiryo UI is a Windows system font; Noto Sans JP is bundled as web/PDF fallback. */
+/** Meiryo UI bundled in src/assets/MeiryoUI; Noto Sans JP as glyph fallback. */
 export const CV_TPL_FONT_FAMILY_MEIRYO = "'Meiryo UI', Meiryo, 'メイリオ', sans-serif";
 export const CV_TPL_FONT_FAMILY_WEB = "'Noto Sans JP', sans-serif";
 export const CV_TPL_FONT_FAMILY = `${CV_TPL_FONT_FAMILY_MEIRYO}, 'Noto Sans JP', sans-serif`;
 
 let resolvedCvFontFamilyCache = null;
 
-/** Prefer local Meiryo when installed; otherwise use bundled Noto only (no fake Meiryo stack). */
+/** Always use bundled Meiryo UI (@font-face in meiryo-ui.css). */
 export async function resolveCvTemplateFontFamily() {
   if (resolvedCvFontFamilyCache) return resolvedCvFontFamilyCache;
-  try {
-    if (typeof document !== 'undefined' && document.fonts?.load) {
-      await document.fonts.load('400 16px "Meiryo UI"');
-      if (document.fonts.check('400 16px "Meiryo UI"')) {
-        resolvedCvFontFamilyCache = CV_TPL_FONT_FAMILY_MEIRYO;
-        return resolvedCvFontFamilyCache;
-      }
-    }
-  } catch {
-    /* ignore */
-  }
-  resolvedCvFontFamilyCache = CV_TPL_FONT_FAMILY_WEB;
+  resolvedCvFontFamilyCache = CV_TPL_FONT_FAMILY_MEIRYO;
   return resolvedCvFontFamilyCache;
 }
 
@@ -59,23 +49,18 @@ export const CV_TPL_TABLE_STYLE = {
   borderColor: '#1f2937',
 };
 
-/** Wait for CV fonts — Meiryo on Windows when installed, else bundled Noto Sans JP. */
+/** Wait for bundled Meiryo UI (+ Noto fallback) before CV PDF capture. */
 export async function ensureCvTemplateFontsLoaded() {
   const fontFamily = await resolveCvTemplateFontFamily();
   try {
     await applyCvTemplateFontFamily();
     if (document.fonts?.load) {
-      const useMeiryo = fontFamily === CV_TPL_FONT_FAMILY_MEIRYO;
-      const loads = useMeiryo
-        ? [
-            document.fonts.load(`400 ${CV_TPL_FONT_BODY} "Meiryo UI"`),
-            document.fonts.load(`700 ${CV_TPL_FONT_BODY} "Meiryo UI"`),
-          ]
-        : [
-            document.fonts.load(`400 ${CV_TPL_FONT_BODY} "Noto Sans JP"`),
-            document.fonts.load(`700 ${CV_TPL_FONT_BODY} "Noto Sans JP"`),
-          ];
-      await Promise.allSettled(loads);
+      await Promise.allSettled([
+        document.fonts.load(`400 ${CV_TPL_FONT_BODY} "Meiryo UI"`),
+        document.fonts.load(`700 ${CV_TPL_FONT_BODY} "Meiryo UI"`),
+        document.fonts.load(`400 ${CV_TPL_FONT_BODY} "Noto Sans JP"`),
+        document.fonts.load(`700 ${CV_TPL_FONT_BODY} "Noto Sans JP"`),
+      ]);
     }
     if (document.fonts?.ready) {
       await document.fonts.ready;
