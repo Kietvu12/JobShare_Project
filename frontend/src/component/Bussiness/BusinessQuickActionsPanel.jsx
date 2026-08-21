@@ -25,7 +25,7 @@ export function getDefaultBusinessQuickActions(language = 'vi') {
       icon: Search,
       title: copy.scout.title,
       desc: copy.scout.desc,
-      path: '/business/scout',
+      path: '/business/scout/direct',
     },
     {
       id: 'ws-recruitment-support',

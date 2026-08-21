@@ -15,7 +15,7 @@ const solutionCardsVi = [
       'Chủ động chat & tiếp cận ứng viên',
     ],
     suitableFor: 'Doanh nghiệp chủ động tìm ứng viên',
-    path: '/business/scout',
+    path: '/business/scout/direct',
   },
   {
     num: '02',
@@ -31,7 +31,7 @@ const solutionCardsVi = [
       'Báo cáo tiến độ minh bạch thường xuyên',
     ],
     suitableFor: 'Doanh nghiệp bận rộn, thiếu thời gian tuyển dụng',
-    path: '/business/scout',
+    path: '/business/scout/managed',
   },
   {
     num: '03',
@@ -82,7 +82,7 @@ const solutionCardsEn = [
       'Proactively chat & engage candidates',
     ],
     suitableFor: 'Companies that actively source candidates',
-    path: '/business/scout',
+    path: '/business/scout/direct',
   },
   {
     num: '02',
@@ -98,7 +98,7 @@ const solutionCardsEn = [
       'Regular transparent progress reports',
     ],
     suitableFor: 'Busy teams with limited hiring bandwidth',
-    path: '/business/scout',
+    path: '/business/scout/managed',
   },
   {
     num: '03',
@@ -149,7 +149,7 @@ const solutionCardsJa = [
       '能動的にチャット・スカウト',
     ],
     suitableFor: '自社で候補者探索する企業',
-    path: '/business/scout',
+    path: '/business/scout/direct',
   },
   {
     num: '02',
@@ -165,7 +165,7 @@ const solutionCardsJa = [
       '定期的な透明な進捗レポート',
     ],
     suitableFor: '採用リソースが限られる企業',
-    path: '/business/scout',
+    path: '/business/scout/managed',
   },
   {
     num: '03',

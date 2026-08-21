@@ -294,6 +294,10 @@ export function getScoutSolutionCards(language) {
   return scoutI18n[language]?.solutionCards || scoutI18n.vi.solutionCards;
 }
 
+export function getScoutSolutionCard(language, mode) {
+  return getScoutSolutionCards(language).find((card) => card.mode === mode) || null;
+}
+
 export function getScoutSampleNotifications(language) {
   return scoutI18n[language]?.sampleNotifications || scoutI18n.vi.sampleNotifications;
 }

@@ -12,7 +12,7 @@ import {
   fetchScoutCvBusinessJobMatches,
 } from '../../utils/businessJobAiMatching'
 import { highlightSearchText } from '../../utils/searchTextHighlight'
-import { getScoutCandidateDetailUrl } from '../../utils/scoutCandidateDetailUrl'
+import { getScoutCandidateDetailUrl, getScoutListUrl } from '../../utils/scoutCandidateDetailUrl'
 import { setScoutPerformanceHearingPending } from '../../utils/scoutPerformanceHearingPending'
 import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont'
 import {
@@ -521,13 +521,10 @@ export default function ScoutCandidateDetail() {
     }
   }
 
-  const backToScoutUrl = useMemo(() => {
-    const params = new URLSearchParams()
-    if (selectedJobId) params.set('jobId', selectedJobId)
-    if (performanceRequestId) params.set('performanceRequestId', performanceRequestId)
-    const qs = params.toString()
-    return `/business/scout${qs ? `?${qs}` : ''}`
-  }, [selectedJobId, performanceRequestId])
+  const backToScoutUrl = useMemo(() => getScoutListUrl({
+    jobId: selectedJobId,
+    performanceRequestId,
+  }), [selectedJobId, performanceRequestId])
 
   return (
     <>

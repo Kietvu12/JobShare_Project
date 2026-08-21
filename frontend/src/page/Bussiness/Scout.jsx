@@ -25,6 +25,7 @@ import {
   getScoutSampleNews,
   getScoutSampleNotifications,
   getScoutSolutionCards,
+  getScoutSolutionCard,
   getScoutFilterCopy,
   formatScoutExperienceSeniorityLocalized,
   getLocalizedScoutDisplayName,
@@ -261,27 +262,41 @@ function ScoutSolutionCard({ card, onStart, animationDelay = 0, scoutCopy }) {
   const mutedClass = 'text-slate-500'
 
   return (
-    <div className="biz-hp-solution-card-wrap h-full" style={{ animationDelay: `${animationDelay}s` }}>
+    <div className="biz-hp-solution-card-wrap h-full w-full" style={{ animationDelay: `${animationDelay}s` }}>
       <article
-        className={`biz-hp-solution-card relative flex h-full min-h-[280px] flex-col overflow-hidden rounded-[1.25rem] p-3.5 sm:p-4 ${surface}`}
+        className={`biz-hp-solution-card relative flex h-full min-h-[280px] w-full flex-col overflow-hidden rounded-[1.25rem] p-3.5 sm:p-4 lg:min-h-[240px] lg:flex-row lg:gap-6 lg:p-5 ${surface}`}
       >
-        <div className="relative z-20 flex items-start justify-between gap-2">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-[11px] font-bold text-slate-800 shadow-sm ring-1 ring-slate-100">
-            {card.num}
-          </span>
+        <div className="relative z-10 flex min-w-0 flex-1 flex-col">
+          <div className="flex items-start justify-between gap-2">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-[11px] font-bold text-slate-800 shadow-sm ring-1 ring-slate-100">
+              {card.num}
+            </span>
+          </div>
+
+          <div className="relative z-10 mt-2 pr-14 lg:pr-0">
+            <h3 className="text-base font-bold leading-tight sm:text-lg">{card.title}</h3>
+            <p className="mt-2 text-xs font-bold leading-snug text-slate-800 sm:text-[13px]">{card.painPoint}</p>
+            <p className={`mt-1.5 text-[11px] leading-snug sm:text-xs ${mutedClass}`}>{card.solution}</p>
+          </div>
+
+          <div className="relative z-10 mt-3 lg:mt-auto lg:pt-4">
+            <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 sm:text-[11px]">
+              {scoutCopy.suitableFor} {card.suitableFor}
+            </span>
+            {card.slaLine ? (
+              <p className="mt-2 text-[10px] font-bold text-emerald-700 sm:text-[11px]">{card.slaLine}</p>
+            ) : null}
+            {card.footerNote ? (
+              <p className="mt-2 text-[10px] font-semibold text-[#0077B6] sm:text-[11px]">{card.footerNote}</p>
+            ) : null}
+          </div>
         </div>
 
-        <div className="relative z-10 mt-2 pr-14">
-          <h3 className="line-clamp-2 text-base font-bold leading-tight sm:text-lg">{card.title}</h3>
-          <p className="mt-2 text-xs font-bold leading-snug text-slate-800 sm:text-[13px]">{card.painPoint}</p>
-          <p className={`mt-1.5 line-clamp-2 text-[11px] leading-snug sm:text-xs ${mutedClass}`}>{card.solution}</p>
-        </div>
-
-        <div className="pointer-events-none absolute right-0 top-[3.25rem] z-0 translate-x-[18%]" aria-hidden>
+        <div className="pointer-events-none absolute right-0 top-[3.25rem] z-0 translate-x-[18%] lg:right-4 lg:top-1/2 lg:-translate-y-1/2 lg:translate-x-0" aria-hidden>
           <DecoIcon className="h-[6.5rem] w-[6.5rem] text-[#0077B6]/22 sm:h-28 sm:w-28" strokeWidth={1.1} />
         </div>
 
-        <div className="relative z-10 mt-3 flex min-h-0 flex-1 flex-col">
+        <div className="relative z-10 mt-3 flex min-w-0 flex-1 flex-col border-slate-200/80 lg:mt-0 lg:border-l lg:pl-6 lg:pt-1">
           <ul className={`flex min-h-0 flex-1 flex-col gap-2 text-[11px] leading-snug sm:text-xs ${bodyClass}`}>
             {card.features.map((line) => (
               <li key={line} className="flex gap-2">
@@ -290,26 +305,17 @@ function ScoutSolutionCard({ card, onStart, animationDelay = 0, scoutCopy }) {
               </li>
             ))}
           </ul>
-        </div>
 
-        <div className="relative z-10 mt-3 shrink-0 border-t border-slate-200/80 pt-3">
-          <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 sm:text-[11px]">
-            {scoutCopy.suitableFor} {card.suitableFor}
-          </span>
-          {card.slaLine ? (
-            <p className="mt-2 text-[10px] font-bold text-emerald-700 sm:text-[11px]">{card.slaLine}</p>
-          ) : null}
-          {card.footerNote ? (
-            <p className="mt-2 text-[10px] font-semibold text-[#0077B6] sm:text-[11px]">{card.footerNote}</p>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => onStart(card.mode)}
-            className="mt-3 w-full rounded-lg bg-[#0077B6] py-2.5 text-xs font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:text-sm inline-flex items-center justify-center gap-1.5"
-          >
-            {scoutCopy.startWith(card.title)}
-            <ArrowRight className="h-4 w-4 shrink-0" />
-          </button>
+          <div className="mt-3 shrink-0 border-t border-slate-200/80 pt-3 lg:mt-auto">
+            <button
+              type="button"
+              onClick={() => onStart(card.mode)}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] py-2.5 text-xs font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:text-sm"
+            >
+              {scoutCopy.startWith(card.title)}
+              <ArrowRight className="h-4 w-4 shrink-0" />
+            </button>
+          </div>
         </div>
       </article>
     </div>
@@ -475,7 +481,7 @@ function ScoutPreviewCandidateRow({ candidate, matchScore, scoutCreditCost, onEx
         type="button"
         onClick={onExplore}
         className="flex h-8 w-8 shrink-0 self-start items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition-colors hover:border-[#0077B6]/35 hover:bg-[#e8f4fa] hover:text-[#0077B6] sm:h-9 sm:w-9"
-        title={ws.onboarding.unlockTitle(scoutCreditCost)}
+        title={ws.onboarding.direct.unlockTitle(scoutCreditCost)}
       >
         <Lock className="h-4 w-4" />
       </button>
@@ -483,86 +489,168 @@ function ScoutPreviewCandidateRow({ candidate, matchScore, scoutCreditCost, onEx
   )
 }
 
-function ScoutOnboardingView({ previewCandidates, previewScoreByCvId, scoutCreditCost, onStart, onExplore }) {
+function ScoutManagedFeeTable() {
   const { language } = useLanguage()
-  const copy = useBusinessAppCopy()
-  const scoutCopy = copy.scout
   const ws = getScoutWorkspaceCopy(language)
-  const scoutSolutionCards = useMemo(
-    () => getScoutSolutionCards(language),
-    [language],
-  )
-  const rankedPreviewCandidates = useMemo(
-    () => rankPreviewCandidates(previewCandidates).slice(0, 5),
-    [previewCandidates],
-  )
+  const onboarding = ws.onboarding.managed
+  const feeTiers = getScoutPerformanceFeeTiers(language)
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2 sm:gap-3">
-      <header className="shrink-0">
-        <h1 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl">{ws.onboarding.pageTitle}</h1>
-        <p className="mt-1 max-w-4xl text-xs leading-snug text-slate-600 sm:text-sm">
-          {ws.onboarding.pageSubtitle}
-        </p>
-      </header>
+    <div className="mt-auto w-full shrink-0 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
+      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-3 py-2.5 sm:px-4">
+        <h2 className="scout-cand-title text-slate-900">{onboarding.feeTableTitle}</h2>
+        <p className="scout-cand-caption mt-0.5 text-slate-500">{onboarding.feeTableNote}</p>
+      </div>
+      <div className="overflow-x-auto px-3 py-2 sm:px-4">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-slate-100 text-slate-500">
+              <th className="py-2 pr-2 font-semibold">{onboarding.feeTableLevel}</th>
+              <th className="py-2 pr-2 font-semibold">{onboarding.feeTableExperience}</th>
+              <th className="py-2 pr-2 font-semibold">{onboarding.feeTableFee}</th>
+              <th className="py-2 font-semibold">{onboarding.feeTableNoteCol}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {feeTiers.map((tier) => (
+              <tr key={tier.level} className="border-b border-slate-50 last:border-0">
+                <td className="py-2 pr-2 font-semibold text-slate-800">{tier.level}</td>
+                <td className="py-2 pr-2 text-slate-600">{tier.range}</td>
+                <td className="py-2 pr-2 font-bold text-[#0077B6]">{tier.fee}</td>
+                <td className="py-2 text-slate-500">{tier.note}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="border-t border-slate-100 px-3 py-2.5 sm:px-4">
+        <p className="text-[11px] leading-snug text-slate-600 sm:text-xs">{onboarding.wsSupportHint}</p>
+      </div>
+    </div>
+  )
+}
 
-      <div className="grid shrink-0 grid-cols-1 items-stretch gap-2 sm:grid-cols-2 sm:gap-3">
-        {scoutSolutionCards.map((card, index) => (
-          <ScoutSolutionCard
-            key={card.num}
-            card={card}
-            onStart={onStart}
-            animationDelay={0.06 + index * 0.1}
-            scoutCopy={scoutCopy}
-          />
-        ))}
+function ScoutOnboardingCandidatePreview({
+  onboarding,
+  rankedPreviewCandidates,
+  previewScoreByCvId,
+  scoutCreditCost,
+  onExplore,
+  language,
+  showExploreFooter = true,
+}) {
+  return (
+    <div className="scout-candidates-list-ui w-full shrink-0 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
+      <div className="flex flex-col gap-1 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+        <div>
+          <h2 className="scout-cand-title text-slate-900">{onboarding.previewTitle}</h2>
+          <p className="scout-cand-caption mt-0.5 text-slate-500">{onboarding.previewSubtitle}</p>
+        </div>
+        <span className="scout-cand-caption inline-flex w-fit items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-500">
+          <Lock className="h-3 w-3" />
+          {onboarding.anonymousBadge}
+        </span>
       </div>
 
-      <div className="scout-candidates-list-ui mt-auto shrink-0 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
-        <div className="flex flex-col gap-1 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-          <div>
-            <h2 className="scout-cand-title text-slate-900">{ws.onboarding.previewTitle}</h2>
-            <p className="scout-cand-caption mt-0.5 text-slate-500">{ws.onboarding.previewSubtitle}</p>
-          </div>
-          <span className="scout-cand-caption inline-flex w-fit items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-500">
-            <Lock className="h-3 w-3" />
-            {ws.onboarding.anonymousBadge}
-          </span>
+      {rankedPreviewCandidates.length === 0 ? (
+        <div className="px-3 py-8 text-center sm:px-4 sm:py-10">
+          <Users className="mx-auto h-8 w-8 text-slate-300" />
+          <p className="mt-3 text-xs text-slate-500 sm:text-sm">
+            {onboarding.previewEmpty}
+          </p>
         </div>
+      ) : (
+        <div className="scout-candidates-list-ui divide-y divide-slate-100">
+          {rankedPreviewCandidates.map((candidate) => (
+            <ScoutPreviewCandidateRow
+              key={candidate.id}
+              candidate={candidate}
+              matchScore={previewScoreByCvId[String(candidate.id)]}
+              scoutCreditCost={scoutCreditCost}
+              onExplore={onExplore}
+              language={language}
+            />
+          ))}
+        </div>
+      )}
 
-        {rankedPreviewCandidates.length === 0 ? (
-          <div className="px-3 py-8 text-center sm:px-4 sm:py-10">
-            <Users className="mx-auto h-8 w-8 text-slate-300" />
-            <p className="mt-3 text-xs text-slate-500 sm:text-sm">
-              {ws.onboarding.previewEmpty}
-            </p>
-          </div>
-        ) : (
-          <div className="scout-candidates-list-ui divide-y divide-slate-100">
-            {rankedPreviewCandidates.map((candidate) => (
-              <ScoutPreviewCandidateRow
-                key={candidate.id}
-                candidate={candidate}
-                matchScore={previewScoreByCvId[String(candidate.id)]}
-                scoutCreditCost={scoutCreditCost}
-                onExplore={onExplore}
-                language={language}
-              />
-            ))}
-          </div>
-        )}
-
+      {showExploreFooter ? (
         <div className="border-t border-slate-100 px-3 py-2 sm:px-4 sm:py-2.5">
           <button
             type="button"
             onClick={onExplore}
             className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-[#0077B6]/35 hover:bg-[#f8fbfd] hover:text-[#0077B6] sm:rounded-xl sm:py-2.5 sm:text-sm"
           >
-            {ws.onboarding.exploreAll}
+            {onboarding.exploreAll}
             <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </button>
         </div>
+      ) : null}
+    </div>
+  )
+}
+
+function ScoutOnboardingView({ variant = 'credit', previewCandidates, previewScoreByCvId, scoutCreditCost, onStart, onExplore }) {
+  const { language } = useLanguage()
+  const copy = useBusinessAppCopy()
+  const scoutCopy = copy.scout
+  const ws = getScoutWorkspaceCopy(language)
+  const onboardingKey = variant === 'performance' ? 'managed' : 'direct'
+  const onboarding = ws.onboarding[onboardingKey]
+  const scoutCard = useMemo(
+    () => getScoutSolutionCard(language, variant === 'performance' ? 'performance' : 'credit'),
+    [language, variant],
+  )
+  const rankedPreviewCandidates = useMemo(
+    () => rankPreviewCandidates(previewCandidates).slice(0, 5),
+    [previewCandidates],
+  )
+
+  if (!scoutCard) return null
+
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-2 sm:gap-3">
+      <header className="shrink-0">
+        <h1 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl">{onboarding.pageTitle}</h1>
+        <p className="mt-1 text-xs leading-snug text-slate-600 sm:text-sm">
+          {onboarding.pageSubtitle}
+        </p>
+      </header>
+
+      <div className="grid w-full shrink-0 grid-cols-1 items-stretch gap-2 sm:gap-3">
+        <ScoutSolutionCard
+          card={scoutCard}
+          onStart={onStart}
+          animationDelay={0.06}
+          scoutCopy={scoutCopy}
+        />
       </div>
+
+      <ScoutOnboardingCandidatePreview
+        onboarding={onboarding}
+        rankedPreviewCandidates={rankedPreviewCandidates}
+        previewScoreByCvId={previewScoreByCvId}
+        scoutCreditCost={scoutCreditCost}
+        onExplore={onExplore}
+        language={language}
+        showExploreFooter={variant === 'credit'}
+      />
+
+      {variant === 'performance' ? (
+        <div className="flex w-full min-h-0 flex-1 flex-col gap-2 sm:gap-3">
+          <ScoutManagedFeeTable />
+          <div className="shrink-0">
+            <button
+              type="button"
+              onClick={onExplore}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] py-2.5 text-xs font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:text-sm"
+            >
+              {onboarding.exploreAll}
+              <ArrowRight className="h-4 w-4 shrink-0" />
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -1501,7 +1589,7 @@ function AvatarCircle({ candidate, size = 28, language = 'vi' }) {
   )
 }
 
-const Scout = () => {
+const Scout = ({ variant = 'credit' } = {}) => {
   const navigate = useNavigate()
   const location = useLocation()
   const { language } = useLanguage()
@@ -1984,6 +2072,7 @@ const Scout = () => {
             <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:h-full xl:grid-cols-[minmax(0,1fr)_minmax(196px,228px)] xl:gap-3 xl:overflow-hidden">
               <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col xl:h-full xl:overflow-y-auto xl:pr-0.5">
                 <ScoutOnboardingView
+                  variant={variant}
                   previewCandidates={previewCandidates}
                   previewScoreByCvId={previewScoreByCvId}
                   scoutCreditCost={scoutCreditCost}

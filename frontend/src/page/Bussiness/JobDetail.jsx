@@ -386,7 +386,7 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
   }
 
   const activeJdSections = jdContentTabs.find((t) => t.id === jdContentTab)?.sections || []
-  const scoutHref = `/business/scout?jobId=${job.id}`
+  const scoutHref = `/business/scout/direct?jobId=${job.id}`
 
   const aiTabBlocks = (
     <>
@@ -604,7 +604,7 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate(`/business/scout?jobId=${job.id}`)}
+                  onClick={() => navigate(`/business/scout/direct?jobId=${job.id}`)}
                   className="flex items-center gap-1.5 rounded-lg bg-[#0077B6] font-semibold text-white transition-colors hover:bg-[#006699]"
                   style={{ fontSize: 10, padding: '6px 10px' }}
                 >

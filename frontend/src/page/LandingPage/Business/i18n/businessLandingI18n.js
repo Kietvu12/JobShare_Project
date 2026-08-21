@@ -423,8 +423,8 @@ export const businessLandingI18n = {
 };
 
 const SERVICE_HREFS = [
-  '/business/scout',
-  '/business/scout',
+  '/business/scout/direct',
+  '/business/scout/managed',
   '/business/saiyo',
   '/business/candidate-sharing',
 ];

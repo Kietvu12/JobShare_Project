@@ -197,7 +197,7 @@ function CandidatesEmptyState({ copy }) {
       </p>
       <button
         type="button"
-        onClick={() => navigate('/business/scout')}
+        onClick={() => navigate('/business/scout/direct')}
         className="mt-4 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-95 sm:text-sm"
         style={{ background: BRAND }}
       >

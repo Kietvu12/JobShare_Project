@@ -694,7 +694,7 @@ function CandidateSidebar({
                 </div>
               )}
               <Link
-                to={perfReq.id ? `/business/scout?performanceRequestId=${perfReq.id}` : '/business/scout'}
+                to={perfReq.id ? `/business/scout/managed?performanceRequestId=${perfReq.id}` : '/business/scout/managed'}
                 className="cand-fs-2xs mb-1 flex items-center justify-between font-semibold text-[#0077B6]"
               >
                 {sb.viewOnScout}
@@ -794,7 +794,7 @@ function CandidateSidebar({
 
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
         <Link
-          to="/business/scout"
+          to="/business/scout/direct"
           className="cand-fs-sm flex items-center justify-between font-semibold hover:opacity-80"
           style={{ color: BRAND }}
         >

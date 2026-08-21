@@ -16,6 +16,7 @@ export {
   getJobRowMenuItems,
   getDateLocale,
   getScoutSolutionCards,
+  getScoutSolutionCard,
   getScoutSampleNotifications,
   getScoutSampleNews,
   getScoutFilterCopy,

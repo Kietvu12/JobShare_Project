@@ -5,7 +5,6 @@ import {
   ClipboardCheck,
   GitBranch,
   User,
-  Search,
   Users,
   Users2,
   MessageSquare,
@@ -16,6 +15,8 @@ import {
   ChevronRight,
   ChevronLeft,
   X,
+  Coins,
+  UserPlus,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont';
@@ -155,7 +156,8 @@ const NAV_SECTIONS = [
     label: 'services',
     nested: true,
     items: [
-      { id: 'scout', icon: Search, path: '/business/scout', label: 'scout' },
+      { id: 'scout-direct', icon: Coins, path: '/business/scout/direct', label: 'candidateScoutCredit' },
+      { id: 'scout-managed', icon: UserPlus, path: '/business/scout/managed', label: 'candidateScoutPerformance' },
       { id: 'saiyo', icon: Users, path: '/business/saiyo', label: 'saiyo' },
       { id: 'candidate-sharing', icon: Users2, path: '/business/candidate-sharing', label: 'partnerCTV' },
       { id: 'knowledge', icon: BookOpen, path: '/business/knowledge', label: 'knowledgeHub' },

@@ -106,7 +106,8 @@ import JobDetail from './page/Bussiness/JobDetail';
 import JobApplication from './page/Bussiness/JobApplication';
 import Candidate from './page/Bussiness/Candidate';
 import BusinessUnlockedCandidateDetail from './page/Bussiness/BusinessUnlockedCandidateDetail';
-import Scout from './page/Bussiness/Scout';
+import ScoutDirect from './page/Bussiness/ScoutDirect';
+import ScoutManaged from './page/Bussiness/ScoutManaged';
 import ScoutCandidateDetail from './page/Bussiness/ScoutCandidateDetail';
 import AdminScoutPerformancePage from './page/Admin/ScoutPerformancePage';
 import AdminWsChatPage from './page/Admin/AdminWsChatPage';
@@ -418,8 +419,10 @@ function App() {
             <Route path="candidates" element={<Candidate />} />
             <Route path="candidates/:candidateId" element={<BusinessUnlockedCandidateDetail />} />
             <Route path="candidate-sharing" element={<CandidateSharing />} />
-            <Route path="scout" element={<Scout />} />
+            <Route path="scout/direct" element={<ScoutDirect />} />
+            <Route path="scout/managed" element={<ScoutManaged />} />
             <Route path="scout/candidates/:cvId" element={<ScoutCandidateDetail />} />
+            <Route path="scout" element={<Navigate to="/business/scout/direct" replace />} />
             <Route path="saiyo" element={<Branding />} />
             <Route path="saiyo/pages/:pageId/edit" element={<BusinessLandingPageEditor />} />
             <Route path="knowledge" element={<KnowledgeHub />} />
@@ -429,7 +432,6 @@ function App() {
             {/* Placeholder routes - thêm các trang con khi cần */}
             <Route path="payments" element={<div className="p-6"><h1 className="text-2xl font-bold">Payment Management</h1></div>} />
             <Route path="candidates" element={<div className="p-6"><h1 className="text-2xl font-bold">Candidates</h1></div>} />
-            <Route path="scout" element={<div className="p-6"><h1 className="text-2xl font-bold">Scout</h1></div>} />
             <Route path="scout-performance" element={<div className="p-6"><h1 className="text-2xl font-bold">Scout Performance</h1></div>} />
             <Route path="partner-ctv" element={<div className="p-6"><h1 className="text-2xl font-bold">Partner CTV</h1></div>} />
             <Route path="knowledge" element={<div className="p-6"><h1 className="text-2xl font-bold">Knowledge Hub</h1></div>} />

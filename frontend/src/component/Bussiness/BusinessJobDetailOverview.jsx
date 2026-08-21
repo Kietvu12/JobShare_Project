@@ -229,7 +229,7 @@ export function ServicesActivityOverview({ services, activities, jobId, navigate
                 </div>
                 <button
                   type="button"
-                  onClick={() => sv.name === 'Scout Credit' && jobId && navigate(`/business/scout?jobId=${jobId}`)}
+                  onClick={() => sv.name === 'Scout Credit' && jobId && navigate(`/business/scout/direct?jobId=${jobId}`)}
                   className="biz-jd-body font-semibold text-[#0077B6] shrink-0 hover:underline"
                 >
                   {sv.action}

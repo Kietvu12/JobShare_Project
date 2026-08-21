@@ -134,7 +134,7 @@ export function navigateJobCreatedNextStep(navigate, stepNum, jobId) {
   const id = jobId != null && jobId !== '' ? String(jobId) : ''
   switch (stepNum) {
     case '①':
-      navigate(id ? `/business/scout?jobId=${encodeURIComponent(id)}` : '/business/scout')
+      navigate(id ? `/business/scout/direct?jobId=${encodeURIComponent(id)}` : '/business/scout/direct')
       break
     case '②':
       navigate(id
