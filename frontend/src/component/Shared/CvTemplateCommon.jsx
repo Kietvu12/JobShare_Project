@@ -9,6 +9,8 @@ import CvTemplateAvatarFrame from './CvTemplateAvatarFrame.jsx';
 import {
   CV_TPL_BODY_STYLE,
   CV_TPL_FONT_TITLE,
+  CV_TPL_FONT_FAMILY_BODY,
+  CV_TPL_FONT_WEIGHT,
   CV_TPL_TABLE_STYLE,
 } from '../../utils/cvTemplateTypography.js';
 
@@ -192,6 +194,8 @@ const CvTemplateCommon = ({
     minWidth: '2.2em',
     outline: 'none',
     textAlign: 'center',
+    fontFamily: CV_TPL_FONT_FAMILY_BODY,
+    fontWeight: CV_TPL_FONT_WEIGHT,
   };
   const normalizeBirthPart = (value, maxLen) => String(value || '').replace(/\D/g, '').slice(0, maxLen);
   const validateYmdParts = (y, mo, d) => {
@@ -335,7 +339,7 @@ const CvTemplateCommon = ({
             <div className="flex w-full">
               <div className="px-3 pt-1 pb-3" style={{ width: '75%' }}>
                 <div className="flex justify-start">
-                  <h2 className="font-bold" style={{ fontSize: CV_TPL_FONT_TITLE, lineHeight: '1.1', transform: 'translateY(-2px)' }}>
+                  <h2 className="font-bold cv-tpl-doc-title" style={{ fontSize: CV_TPL_FONT_TITLE, lineHeight: '1.1', transform: 'translateY(-2px)' }}>
                     <SupplementTplText fieldKey="tpl-common-rirekisho-h2" text="履歴書" supplementMarking={supplementMarking} />
                   </h2>
                 </div>
@@ -383,7 +387,7 @@ const CvTemplateCommon = ({
                           <span
                             {...cvEditable(
                               'nameKanji',
-                              'w-full min-h-[1.8em] px-1 text-sm inline-block text-center',
+                              'w-full min-h-[1.8em] px-1 text-sm inline-block text-center cv-tpl-candidate-name',
                               { lineHeight: '1.2', fontSize: CV_TPL_BODY_STYLE.fontSize },
                               sm('tpl-common-nameKanji', 'nameKanji')
                             )}
@@ -1151,7 +1155,7 @@ const CvTemplateCommon = ({
                       <SupplementTplText fieldKey="tpl-common-jikopr" text="自己PR" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-strengths']} />
                     </div>
                     <div
-                      {...cvEditable('strengths', 'mt-1 cv-tpl-dense min-h-[4rem] whitespace-pre-wrap text-left', { fontFamily: 'inherit', fontWeight: 400 }, sm('tpl-common-strengths', 'strengths'))}
+                      {...cvEditable('strengths', 'mt-1 cv-tpl-dense min-h-[4rem] whitespace-pre-wrap text-left', { fontFamily: 'inherit' }, sm('tpl-common-strengths', 'strengths'))}
                     />
                   </td>
                   <td className="border p-1.5 align-middle text-center" style={{ borderColor: '#1f2937', width: '50%' }}>
@@ -1159,7 +1163,7 @@ const CvTemplateCommon = ({
                       <SupplementTplText fieldKey="tpl-common-hobby" text="趣味・特技" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-hobbies']} />
                     </div>
                     <div
-                      {...cvEditable('hobbiesSpecialSkills', 'mt-1 cv-tpl-dense min-h-[4rem] whitespace-pre-wrap text-left', { fontFamily: 'inherit', fontWeight: 400 }, sm('tpl-common-hobbiesSpecialSkills', 'hobbiesSpecialSkills'))}
+                      {...cvEditable('hobbiesSpecialSkills', 'mt-1 cv-tpl-dense min-h-[4rem] whitespace-pre-wrap text-left', { fontFamily: 'inherit' }, sm('tpl-common-hobbiesSpecialSkills', 'hobbiesSpecialSkills'))}
                     />
                   </td>
                 </tr>
@@ -1181,7 +1185,7 @@ const CvTemplateCommon = ({
                       <SupplementTplText fieldKey="tpl-common-shibo" text="志望動機" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-motivation']} />
                     </div>
                     <div
-                      {...cvEditable('motivation', 'mt-1 cv-tpl-dense min-h-[5rem] whitespace-pre-wrap text-left', { fontFamily: 'inherit', fontWeight: 400 }, sm('tpl-common-motivation', 'motivation'))}
+                      {...cvEditable('motivation', 'mt-1 cv-tpl-dense min-h-[5rem] whitespace-pre-wrap text-left', { fontFamily: 'inherit' }, sm('tpl-common-motivation', 'motivation'))}
                     />
                   </td>
                 </tr>
@@ -1263,7 +1267,7 @@ const CvTemplateCommon = ({
             className="w-full min-w-0 max-w-full cv-template-body"
             style={CV_TPL_BODY_STYLE}
           >
-            <h2 className="text-center font-bold mb-4" style={{ fontSize: CV_TPL_FONT_TITLE }}>
+            <h2 className="text-center font-bold mb-4 cv-tpl-doc-title" style={{ fontSize: CV_TPL_FONT_TITLE }}>
               <SupplementTplText fieldKey="tpl-common-shokumu-h2" text="職務経歴書" supplementMarking={supplementMarking} />
             </h2>
             <div className="flex flex-col items-end gap-1 mb-6 w-full">

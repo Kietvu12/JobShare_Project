@@ -8,13 +8,3 @@
   font-style: normal;
   font-display: swap;
 }
-
-@font-face {
-  font-family: 'Meiryo UI';
-  src:
-    url('../assets/MeiryoUI/Meiryo UI/Web Fonts/5807546a90854fa6bc12a90f7e95e40c.woff2') format('woff2'),
-    url('../assets/MeiryoUI/Meiryo UI/Meiryo UI.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}

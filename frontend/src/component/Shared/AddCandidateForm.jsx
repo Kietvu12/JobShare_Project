@@ -82,7 +82,7 @@ import {
   CV_TEMPLATE_OPTIONS,
 } from '../../utils/cvTemplateMeta.js';
 import { normalizeOtherLanguageCerts } from '../../utils/cvOtherLanguageCerts.js';
-import { applyCvTemplateFontFamily } from '../../utils/cvTemplateTypography.js';
+import { applyCvTemplateFontFamily, cvTplEditableStyle } from '../../utils/cvTemplateTypography.js';
 
 const mapPassportToBool = (v) => (v === '有' ? 1 : v === '無' ? 0 : undefined);
 
@@ -1203,12 +1203,7 @@ const AddCandidateForm = ({
         setFormData((prev) => ({ ...prev, [field]: v || '' }));
       },
       className: cvEditableAlignClass(className),
-      style: {
-        outline: 'none',
-        minHeight: '1.2em',
-        whiteSpace: 'pre-wrap',
-        ...style,
-      },
+      style: cvTplEditableStyle(className, style),
       children: reactChildren ? renderCvScalarMarked(raw, supp) : undefined,
     };
   };
@@ -1264,7 +1259,7 @@ const AddCandidateForm = ({
         setFormData((prev) => ({ ...prev, birthDate: normalizeBirthDateToStorage(v || '') }));
       },
       className: cvEditableAlignClass(className),
-      style: { outline: 'none', minHeight: '1.2em', ...style },
+      style: cvTplEditableStyle(className, { minHeight: '1.2em', ...style }),
       children: reactChildren ? renderCvScalarMarked(showWhenBlurred, supp) : undefined,
     };
   };
@@ -1321,7 +1316,7 @@ const AddCandidateForm = ({
         setFormData((prev) => ({ ...prev, [field]: stored }));
       },
       className: cvEditableAlignClass(className),
-      style: { outline: 'none', minHeight: '1.2em', whiteSpace: 'pre-wrap', ...style },
+      style: cvTplEditableStyle(className, style),
       children: reactChildren ? renderCvScalarMarked(display, supp) : undefined,
     };
   };
@@ -1477,7 +1472,13 @@ const AddCandidateForm = ({
         applyValue(readContentEditableText(e.currentTarget, !isYearMonth));
       },
       className: cvEditableAlignClass(className),
-      style: { outline: 'none', minHeight: '1em', minWidth: '1.5em', display: 'inline-block', cursor: 'text', whiteSpace: 'pre-wrap', ...style },
+      style: cvTplEditableStyle(className, {
+        minHeight: '1em',
+        minWidth: '1.5em',
+        display: 'inline-block',
+        cursor: 'text',
+        ...style,
+      }),
       children: reactChildren ? renderArrayMarked() : undefined,
     };
   };
@@ -2530,14 +2531,14 @@ const AddCandidateForm = ({
   });
 
   const handleAddWorkExperience = () => {
-    setFormData(prev => ({
-      ...prev,
-      workExperiences: [
-        ...(prev.workExperiences || []),
-        createEmptyWorkExperience(),
-      ],
-      workHistoryCount: (prev.workHistoryCount != null ? prev.workHistoryCount : (prev.workExperiences?.length || 0)) + 1,
-    }));
+    setFormData(prev => {
+      const list = [...(prev.workExperiences || []), createEmptyWorkExperience()];
+      return {
+        ...prev,
+        workExperiences: list,
+        workHistoryCount: Math.max(1, list.length),
+      };
+    });
   };
 
   /** Chèn 1 kinh nghiệm tại vị trí index. */
@@ -2545,7 +2546,11 @@ const AddCandidateForm = ({
     setFormData(prev => {
       const list = [...(prev.workExperiences || [])];
       list.splice(index, 0, createEmptyWorkExperience());
-      return { ...prev, workExperiences: list, workHistoryCount: (prev.workHistoryCount != null ? prev.workHistoryCount : list.length) };
+      return {
+        ...prev,
+        workExperiences: list,
+        workHistoryCount: Math.max(1, list.length),
+      };
     });
   };
 
@@ -2557,7 +2562,7 @@ const AddCandidateForm = ({
       return {
         ...prev,
         workExperiences: list,
-        workHistoryCount: list.length,
+        workHistoryCount: Math.max(1, list.length),
       };
     });
   };

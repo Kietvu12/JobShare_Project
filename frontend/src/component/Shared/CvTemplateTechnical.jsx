@@ -444,7 +444,7 @@ const CvTemplateTechnical = ({
             >
               <tbody>
                 <tr>
-                  <td colSpan={7} className="border p-2 text-center font-bold" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
+                  <td colSpan={7} className="border p-2 text-center font-bold cv-tpl-doc-title" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-rirekisho-banner" text="履歴書" supplementMarking={supplementMarking} className="select-text inline min-w-0" />
                   </td>
                 </tr>
@@ -1350,7 +1350,7 @@ const CvTemplateTechnical = ({
           )}
           <div className="w-full min-w-0 max-w-full cv-template-body" style={CV_TPL_BODY_STYLE}>
             <div className="mb-6">
-              <h2 className="text-center font-bold mb-8" style={{ fontSize: CV_TPL_FONT_TITLE }}>
+              <h2 className="text-center font-bold mb-8 cv-tpl-doc-title" style={{ fontSize: CV_TPL_FONT_TITLE }}>
                 <SupplementTplText fieldKey="tpl-tech-shokumu-h2" text="職務経歴書" supplementMarking={supplementMarking} />
               </h2>
               <div className="text-right space-y-1">

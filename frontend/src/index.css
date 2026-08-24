@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./styles/meiryo-ui.css";
+@import "./styles/cv-template-typography.css";
 @import "@fontsource/noto-sans-jp/japanese-400.css";
 @import "@fontsource/noto-sans-jp/japanese-700.css";
 
@@ -531,12 +532,12 @@ button:focus-visible {
   -webkit-overflow-scrolling: touch;
   padding: 0 1px 4px;
   box-sizing: border-box;
-  font-family: var(--cv-font-family, 'Meiryo UI', Meiryo, 'メイリオ', 'Noto Sans JP', sans-serif);
+  font-family: 'Noto Sans JP', sans-serif;
   font-synthesis: none;
   font-weight: 400;
   font-size: 19px;
   line-height: 1.45;
-  color: #1f2937;
+  color: #000000;
 }
 
 .cv-template-body td,
@@ -555,15 +556,68 @@ button:focus-visible {
 .cv-pdf-capture-layer .cv-template-body th *,
 .cv-pdf-capture-layer .cv-template-body [contenteditable],
 .cv-pdf-capture-layer .cv-template-body label,
-.cv-pdf-capture-layer .cv-template-body .font-normal {
-  font-weight: 400;
+.cv-pdf-capture-layer .cv-template-body .font-normal,
+[data-cv-pdf-capture-root] .cv-template-body td,
+[data-cv-pdf-capture-root] .cv-template-body th,
+[data-cv-pdf-capture-root] .cv-template-body td *,
+[data-cv-pdf-capture-root] .cv-template-body [contenteditable],
+[data-cv-pdf-capture-root] .cv-template-body span {
+  font-family: 'Noto Sans JP', sans-serif !important;
+  font-weight: 400 !important;
+  color: #000000 !important;
+  font-synthesis: none;
 }
 
-.cv-template-body .font-bold,
+.cv-template-body .cv-tpl-side-label,
+.cv-template-body .cv-tpl-side-label *,
+.cv-pdf-capture-layer .cv-template-body .cv-tpl-side-label,
+.cv-pdf-capture-layer .cv-template-body .cv-tpl-side-label *,
+[data-cv-pdf-capture-root] .cv-template-body .cv-tpl-side-label,
+[data-cv-pdf-capture-root] .cv-template-body .cv-tpl-side-label * {
+  color: #000000 !important;
+}
+
+.cv-template-body :is(.text-gray-400, .text-slate-400),
+.cv-pdf-capture-layer .cv-template-body :is(.text-gray-400, .text-slate-400),
+[data-cv-pdf-capture-root] .cv-template-body :is(.text-gray-400, .text-slate-400) {
+  color: #9ca3af !important;
+}
+
+/* Table/section text: Regular — near-black ink. */
+.cv-template-body :is(.font-bold, .font-semibold, .font-medium, .text-gray-900, .text-black),
+.cv-pdf-capture-layer .cv-template-body :is(.font-bold, .font-semibold, .font-medium, .text-gray-900, .text-black),
+[data-cv-pdf-capture-root] .cv-template-body :is(.font-bold, .font-semibold, .font-medium, .text-gray-900, .text-black) {
+  font-weight: 400 !important;
+  color: #000000 !important;
+}
+
 .cv-template-body h2,
-.cv-pdf-capture-layer .cv-template-body .font-bold,
-.cv-pdf-capture-layer .cv-template-body h2 {
-  font-weight: 700;
+.cv-template-body h2.font-bold,
+.cv-template-body .cv-tpl-doc-title,
+.cv-template-body .cv-tpl-candidate-name,
+.cv-template-body .cv-tpl-section-heading,
+.cv-template-body .cv-tpl-section-title-col,
+.cv-template-body .cv-cert-title-col,
+.cv-template-body .cv-shokumu-work-banner,
+.cv-pdf-capture-layer .cv-template-body h2,
+.cv-pdf-capture-layer .cv-template-body h2.font-bold,
+.cv-pdf-capture-layer .cv-template-body .cv-tpl-doc-title,
+.cv-pdf-capture-layer .cv-template-body .cv-tpl-candidate-name,
+.cv-pdf-capture-layer .cv-template-body .cv-tpl-section-heading,
+.cv-pdf-capture-layer .cv-template-body .cv-tpl-section-title-col,
+.cv-pdf-capture-layer .cv-template-body .cv-cert-title-col,
+.cv-pdf-capture-layer .cv-template-body .cv-shokumu-work-banner,
+[data-cv-pdf-capture-root] .cv-template-body h2,
+[data-cv-pdf-capture-root] .cv-template-body h2.font-bold,
+[data-cv-pdf-capture-root] .cv-template-body .cv-tpl-doc-title,
+[data-cv-pdf-capture-root] .cv-template-body .cv-tpl-candidate-name,
+[data-cv-pdf-capture-root] .cv-template-body .cv-tpl-section-heading,
+[data-cv-pdf-capture-root] .cv-template-body .cv-tpl-section-title-col,
+[data-cv-pdf-capture-root] .cv-template-body .cv-cert-title-col,
+[data-cv-pdf-capture-root] .cv-template-body .cv-shokumu-work-banner {
+  font-weight: 700 !important;
+  color: #000000 !important;
+  font-family: 'Noto Sans JP', sans-serif !important;
 }
 
 /* Checkbox / 外国語 / ツール / 資格 — đồng bộ mẫu CV */

@@ -1,0 +1,58 @@
+/* CV template typography — Noto Sans JP body. */
+:is(
+  .cv-template-body,
+  .cv-pdf-capture-layer .cv-template-body,
+  [data-cv-pdf-capture-root] .cv-template-body
+) {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 400;
+  color: #000000;
+  font-synthesis: none;
+  -webkit-font-smoothing: auto;
+}
+
+:is(
+  .cv-template-body,
+  .cv-pdf-capture-layer .cv-template-body,
+  [data-cv-pdf-capture-root] .cv-template-body
+) :where(
+  table,
+  td,
+  th,
+  td *,
+  th *,
+  [contenteditable],
+  input,
+  select,
+  textarea,
+  span,
+  .font-bold,
+  .font-semibold,
+  .font-medium,
+  .text-gray-900,
+  .text-gray-600,
+  .text-black,
+  .cv-tpl-side-label
+) {
+  font-family: inherit;
+  font-weight: 400;
+  color: #000000;
+}
+
+:is(
+  .cv-template-body,
+  .cv-pdf-capture-layer .cv-template-body,
+  [data-cv-pdf-capture-root] .cv-template-body
+) :where(
+  h2,
+  .cv-tpl-candidate-name,
+  .cv-tpl-doc-title,
+  .cv-tpl-section-heading,
+  .cv-tpl-section-title-col,
+  .cv-cert-title-col,
+  .cv-shokumu-work-banner
+) {
+  font-weight: 700;
+  color: #000000;
+  font-family: 'Noto Sans JP', sans-serif;
+}

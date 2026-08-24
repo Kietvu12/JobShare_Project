@@ -23,6 +23,7 @@ import {
   CV_TPL_FONT_BODY,
   CV_TPL_FONT_DENSE,
   CV_TPL_FONT_WEIGHT,
+  CV_TPL_COLOR_TEXT,
   createCvPdfCheckboxMarkerElement,
   buildCvPdfCaptureTypographyCss,
   ensureCvTemplateFontsLoaded,
@@ -232,7 +233,7 @@ function enhanceTextInputForPdfCapture(input) {
     font: 'inherit',
     fontSize: 'inherit',
     lineHeight: 'inherit',
-    color: value ? '#1f2937' : '#9ca3af',
+    color: value ? '#000000' : '#9ca3af',
     verticalAlign: 'baseline',
     minWidth: '0',
     textAlign: input.className.includes('text-center') ? 'center' : 'left',
@@ -336,7 +337,7 @@ function enhanceContentEditableForPdfCapture(el) {
     lineHeight: fonts.lineHeight,
     fontWeight: String(CV_TPL_FONT_WEIGHT),
     fontStyle: 'normal',
-    color: '#1f2937',
+    color: CV_TPL_COLOR_TEXT,
     textAlign: cs.textAlign,
     verticalAlign: 'baseline',
     minWidth: '0',
@@ -390,7 +391,7 @@ function enhanceCvSelectionButtonsForPdfCapture(root, restoreFns) {
       span.textContent = (selected.textContent || '').replace(/\s+/g, ' ').trim();
       Object.assign(span.style, {
         fontWeight: String(CV_TPL_FONT_WEIGHT),
-        color: '#1f2937',
+        color: CV_TPL_COLOR_TEXT,
         fontSize: getComputedStyle(selected).fontSize,
       });
       parent.appendChild(span);
@@ -564,7 +565,7 @@ function suppressScrollbarsForCapture(root, restoreFns) {
     ${CV_PDF_SHOKUMU_WORK_SECTION_BORDER_CSS.replace(/\.cv-shokumu-work-section/g, '[data-cv-pdf-capture-root] .cv-shokumu-work-section')}
     [data-cv-pdf-capture-root] [data-cv-pdf-flat-cell] {
       font-weight: ${CV_TPL_FONT_WEIGHT} !important;
-      color: #1f2937 !important;
+      color: ${CV_TPL_COLOR_TEXT} !important;
       -webkit-font-smoothing: auto !important;
     }
     [data-cv-pdf-capture-root] .cv-resizable-table-wrap [role="separator"] {
@@ -842,7 +843,7 @@ function flattenShokumuPeriodCellsForPdfCapture(root, restoreFns) {
       fontFamily: fonts.fontFamily,
       fontSize: CV_PDF_SHOKUMU_TABLE_FONT_SIZE,
       fontWeight: String(CV_TPL_FONT_WEIGHT),
-      color: '#1f2937',
+      color: CV_TPL_COLOR_TEXT,
       letterSpacing: 0,
     });
 
@@ -883,7 +884,7 @@ function flattenToolsTableCellsForPdfCapture(root, restoreFns) {
       overflowWrap: 'normal',
       fontSize: CV_PDF_TABLE_FONT_SIZE,
       lineHeight: '1.35',
-      color: '#1f2937',
+      color: CV_TPL_COLOR_TEXT,
     });
     const box = createCvPdfCheckboxMarkerElement(Boolean(checkbox?.checked));
     box.dataset.cvPdfToolsBox = '1';
@@ -920,7 +921,7 @@ function flattenFixedCertCheckboxCellsForPdfCapture(root, restoreFns) {
       rowGap: '0',
       fontSize: CV_PDF_TABLE_FONT_SIZE,
       lineHeight: '1.35',
-      color: '#1f2937',
+      color: CV_TPL_COLOR_TEXT,
       whiteSpace: 'nowrap',
     });
 
@@ -1038,7 +1039,7 @@ function flattenShokumuCertRowsForPdfCapture(root, restoreFns) {
       fontFamily: fonts.fontFamily,
       fontSize: CV_PDF_SHOKUMU_TABLE_FONT_SIZE,
       fontWeight: String(CV_TPL_FONT_WEIGHT),
-      color: '#1f2937',
+      color: CV_TPL_COLOR_TEXT,
       lineHeight: '1.5',
       margin: '0',
       padding: '0',
@@ -1124,7 +1125,7 @@ function flattenCvPdfTableCellsForCapture(root, restoreFns) {
       lineHeight: '1.5',
       fontWeight: String(CV_TPL_FONT_WEIGHT),
       fontStyle: 'normal',
-      color: '#1f2937',
+      color: CV_TPL_COLOR_TEXT,
       whiteSpace: 'pre-wrap',
       wordBreak: 'keep-all',
       overflowWrap: 'break-word',
@@ -1161,7 +1162,7 @@ function flattenDateTripletsForPdfCapture(root, restoreFns) {
       fontFamily: fonts.fontFamily,
       fontSize: fonts.fontSize || CV_TPL_FONT_BODY,
       fontWeight: String(CV_TPL_FONT_WEIGHT),
-      color: '#1f2937',
+      color: CV_TPL_COLOR_TEXT,
       letterSpacing: 0,
     });
 
@@ -1497,6 +1498,7 @@ function mountCaptureClone(element) {
     [data-cv-pdf-capture-sandbox] [data-cv-pdf-editable-marker],
     [data-cv-pdf-capture-sandbox] [data-cv-pdf-date-flat] {
       font-weight: ${CV_TPL_FONT_WEIGHT} !important;
+      color: ${CV_TPL_COLOR_TEXT} !important;
     }
     [data-cv-pdf-capture-sandbox] .cv-pdf-date-inline,
     [data-cv-pdf-capture-sandbox] .cv-template-date-triplet {

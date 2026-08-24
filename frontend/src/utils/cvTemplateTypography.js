@@ -1,5 +1,6 @@
 /** Kích cỡ chữ CV IT/Technical — đồng bộ preview, form, PDF capture. */
 import '../styles/meiryo-ui.css';
+import '../styles/cv-template-typography.css';
 import '@fontsource/noto-sans-jp/japanese-400.css';
 import '@fontsource/noto-sans-jp/japanese-700.css';
 
@@ -10,20 +11,28 @@ export const CV_TPL_FONT_LABEL = '18px';
 export const CV_TPL_FONT_DATE = '18px';
 export const CV_TPL_FONT_TITLE = '23px';
 export const CV_PDF_TABLE_FONT_SIZE = '19px';
-/** Meiryo UI only has Regular (400) and Bold (700); weight 600 forces fallback to bundled Noto Sans JP. */
+/** Meiryo UI bundle is Regular only. Do not request 600/700 on body — that faux-bolds Regular. */
 export const CV_TPL_FONT_WEIGHT = 400;
 export const CV_TPL_FONT_WEIGHT_BOLD = 700;
-/** Meiryo UI bundled in src/assets/MeiryoUI; Noto Sans JP as glyph fallback. */
-export const CV_TPL_FONT_FAMILY_MEIRYO = "'Meiryo UI', Meiryo, 'メイリオ', sans-serif";
+/** Body/data text — pure black. */
+export const CV_TPL_COLOR_TEXT = '#000000';
+/** Side labels — same black as body (user request). */
+export const CV_TPL_COLOR_LABEL = '#000000';
+/** Headings + borders + checkbox ink. */
+export const CV_TPL_COLOR_INK = '#000000';
+/** Bundled Regular only — skip system Meiryo/メイリオ (those faces have Bold). */
+export const CV_TPL_FONT_FAMILY_MEIRYO = "'Meiryo UI', sans-serif";
 export const CV_TPL_FONT_FAMILY_WEB = "'Noto Sans JP', sans-serif";
-export const CV_TPL_FONT_FAMILY = `${CV_TPL_FONT_FAMILY_MEIRYO}, 'Noto Sans JP', sans-serif`;
+/** Body uses Noto 400 — bundled Meiryo UI Regular reads heavy at 19px. */
+export const CV_TPL_FONT_FAMILY_BODY = CV_TPL_FONT_FAMILY_WEB;
+export const CV_TPL_FONT_FAMILY = CV_TPL_FONT_FAMILY_BODY;
 
 let resolvedCvFontFamilyCache = null;
 
-/** Always use bundled Meiryo UI (@font-face in meiryo-ui.css). */
+/** CV body font — Noto Sans JP (distinct Regular/Bold files). */
 export async function resolveCvTemplateFontFamily() {
   if (resolvedCvFontFamilyCache) return resolvedCvFontFamilyCache;
-  resolvedCvFontFamilyCache = CV_TPL_FONT_FAMILY_MEIRYO;
+  resolvedCvFontFamilyCache = CV_TPL_FONT_FAMILY_BODY;
   return resolvedCvFontFamilyCache;
 }
 
@@ -39,14 +48,28 @@ export const CV_TPL_CHECKBOX_INPUT_PX = '19px';
 
 export const CV_TPL_BODY_STYLE = {
   fontSize: CV_TPL_FONT_BODY,
-  color: '#1f2937',
+  color: CV_TPL_COLOR_TEXT,
   fontWeight: CV_TPL_FONT_WEIGHT,
+  fontFamily: CV_TPL_FONT_FAMILY_BODY,
 };
+
+/** Inline styles for contenteditable — avoid Meiryo inheritance / faux-bold. */
+export function cvTplEditableStyle(className = '', extra = {}) {
+  const emphasis = String(className).includes('cv-tpl-candidate-name');
+  return {
+    outline: 'none',
+    minHeight: '1.2em',
+    whiteSpace: 'pre-wrap',
+    fontFamily: CV_TPL_FONT_FAMILY_BODY,
+    fontWeight: emphasis ? CV_TPL_FONT_WEIGHT_BOLD : CV_TPL_FONT_WEIGHT,
+    ...extra,
+  };
+}
 
 export const CV_TPL_TABLE_STYLE = {
   fontSize: CV_TPL_FONT_BODY,
-  color: '#1f2937',
-  borderColor: '#1f2937',
+  color: CV_TPL_COLOR_TEXT,
+  borderColor: CV_TPL_COLOR_INK,
 };
 
 /** Wait for bundled Meiryo UI (+ Noto fallback) before CV PDF capture. */
@@ -117,10 +140,12 @@ export function createCvPdfCheckboxMarkerElement(checked = false) {
 export function buildCvPdfCaptureTypographyCss(rootSelector) {
   return `
     ${rootSelector} .cv-template-body {
-      font-family: var(--cv-font-family, ${CV_TPL_FONT_FAMILY}) !important;
+      font-family: ${CV_TPL_FONT_FAMILY_BODY} !important;
       font-weight: ${CV_TPL_FONT_WEIGHT} !important;
       font-size: ${CV_TPL_FONT_BODY} !important;
       line-height: 1.45 !important;
+      color: ${CV_TPL_COLOR_TEXT} !important;
+      font-synthesis: none !important;
     }
     ${rootSelector} .cv-template-body td,
     ${rootSelector} .cv-template-body th,
@@ -132,11 +157,21 @@ export function buildCvPdfCaptureTypographyCss(rootSelector) {
     ${rootSelector} .cv-template-body input,
     ${rootSelector} .cv-template-body select,
     ${rootSelector} .cv-template-body span {
+      font-family: ${CV_TPL_FONT_FAMILY_BODY} !important;
       font-weight: ${CV_TPL_FONT_WEIGHT} !important;
+      color: ${CV_TPL_COLOR_TEXT} !important;
     }
-    ${rootSelector} .cv-template-body .font-bold,
-    ${rootSelector} .cv-template-body h2 {
+    ${rootSelector} .cv-template-body :is(.font-bold, .font-semibold, .font-medium, .text-gray-900, .text-black) {
+      font-weight: ${CV_TPL_FONT_WEIGHT} !important;
+      color: ${CV_TPL_COLOR_TEXT} !important;
+    }
+    ${rootSelector} .cv-template-body :is(.text-gray-400, .text-slate-400) {
+      color: #9ca3af !important;
+    }
+    ${rootSelector} .cv-template-body :is(h2, .cv-tpl-doc-title, .cv-tpl-candidate-name, .cv-tpl-section-heading, .cv-tpl-section-title-col, .cv-cert-title-col, .cv-shokumu-work-banner) {
       font-weight: ${CV_TPL_FONT_WEIGHT_BOLD} !important;
+      color: ${CV_TPL_COLOR_INK} !important;
+      font-family: ${CV_TPL_FONT_FAMILY_WEB} !important;
     }
     ${rootSelector} .cv-resizable-table-wrap,
     ${rootSelector} .cv-resizable-table-wrap table {
