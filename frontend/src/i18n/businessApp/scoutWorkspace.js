@@ -27,6 +27,23 @@ export const scoutWorkspaceI18n = {
         previewEmpty: 'Chưa có gợi ý ứng viên — bấm "Khám phá toàn bộ ứng viên" để vào kho Scout.',
         exploreAll: 'Khám phá toàn bộ ứng viên',
         unlockTitle: (cost) => `Mở hồ sơ (${cost} credit)`,
+        creditIntroLines: [
+          'Credit được nạp để giúp doanh nghiệp có thể tự do mở hồ sơ ứng viên tại dịch vụ Scout Trực Tiếp.',
+          'Để nạp credit, doanh nghiệp gửi yêu cầu và chọn gói phù hợp.',
+          'Yêu cầu nạp sẽ được gửi về bộ phận Admin của Workstation JobShare.',
+          'Chúng tôi sẽ liên hệ lại ngay để làm thủ tục thanh toán phí nạp credit.',
+        ],
+        creditPackagesTitle: 'Thông tin các gói credit',
+        creditPackagesNote: 'Lưu ý: Credit có hiệu lực ngay sau khi nạp và không có thời hạn sử dụng.',
+        submitTopUpRequest: 'Gửi yêu cầu nạp credit',
+        submittingTopUp: 'Đang gửi…',
+        selectPackageError: 'Vui lòng chọn gói credit trước khi gửi yêu cầu.',
+        topUpSuccess: (code) => (code
+          ? `Đã gửi yêu cầu ${code}. WS sẽ liên hệ hướng dẫn thanh toán.`
+          : 'Đã gửi yêu cầu nạp credit. WS sẽ liên hệ hướng dẫn thanh toán.'),
+        insufficientCreditTitle: 'Chưa đủ credit',
+        insufficientCreditMessage: 'Bạn chưa có đủ credit để bắt đầu sử dụng dịch vụ. Bạn có muốn nạp thêm?',
+        modalClose: 'Đóng',
       },
       managed: {
         pageTitle: 'Scout Ủy Thác',
@@ -182,6 +199,23 @@ export const scoutWorkspaceI18n = {
         previewEmpty: 'No suggestions yet — click "Explore all candidates" to browse the Scout pool.',
         exploreAll: 'Explore all candidates',
         unlockTitle: (cost) => `Unlock profile (${cost} credits)`,
+        creditIntroLines: [
+          'Credits let you unlock candidate profiles in Direct Scout.',
+          'Submit a top-up request and choose a package that fits your needs.',
+          'Requests are sent to the Workstation JobShare admin team.',
+          'We will contact you promptly to complete the payment process.',
+        ],
+        creditPackagesTitle: 'Credit packages',
+        creditPackagesNote: 'Credits take effect immediately after top-up and do not expire.',
+        submitTopUpRequest: 'Submit top-up request',
+        submittingTopUp: 'Submitting…',
+        selectPackageError: 'Please select a credit package before submitting.',
+        topUpSuccess: (code) => (code
+          ? `Request ${code} submitted. WS will contact you with payment instructions.`
+          : 'Top-up request submitted. WS will contact you with payment instructions.'),
+        insufficientCreditTitle: 'Insufficient credits',
+        insufficientCreditMessage: 'You do not have enough credits to start using this service. Would you like to top up?',
+        modalClose: 'Close',
       },
       managed: {
         pageTitle: 'Managed Scout',
@@ -337,6 +371,23 @@ export const scoutWorkspaceI18n = {
         previewEmpty: 'まだ候補者の提案がありません — 「すべての候補者を見る」でスカウトプールへ。',
         exploreAll: 'すべての候補者を見る',
         unlockTitle: (cost) => `プロフィール開示（${cost}クレジット）`,
+        creditIntroLines: [
+          'クレジットはダイレクトスカウトで候補者プロフィールを開示するために使用します。',
+          'チャージ依頼を送信し、適したプランを選択してください。',
+          '依頼はWorkstation JobShare管理者チームに送信されます。',
+          'お支払い手続きについて、速やかにご連絡いたします。',
+        ],
+        creditPackagesTitle: 'クレジットプラン',
+        creditPackagesNote: '注：チャージ後すぐに有効となり、有効期限はありません。',
+        submitTopUpRequest: 'チャージ依頼を送信',
+        submittingTopUp: '送信中…',
+        selectPackageError: '送信前にクレジットプランを選択してください。',
+        topUpSuccess: (code) => (code
+          ? `依頼 ${code} を送信しました。WSよりお支払い方法をご連絡します。`
+          : 'チャージ依頼を送信しました。WSよりお支払い方法をご連絡します。'),
+        insufficientCreditTitle: 'クレジット不足',
+        insufficientCreditMessage: 'サービスを開始するのに十分なクレジットがありません。チャージしますか？',
+        modalClose: '閉じる',
       },
       managed: {
         pageTitle: '委託スカウト',

@@ -6,6 +6,12 @@ import CreditTopUpModal from './CreditTopUpModal'
 const ICON_SM = { width: 10, height: 10 }
 const ICON_MD = { width: 12, height: 12 }
 const bd = '1px solid #e2e8f0'
+const FS = {
+  section: 'var(--biz-fs-section)',
+  body: 'var(--biz-fs-body)',
+  caption: 'var(--biz-fs-caption)',
+  micro: 'var(--biz-fs-micro)',
+}
 
 const STATUS_STYLES = {
   pending: { label: 'Chờ WS duyệt', bg: '#dbeafe', color: '#2563eb' },
@@ -143,8 +149,8 @@ export default function WsCreditRequestsPanel({ mode = 'create', onSuccessMessag
         />
 
         <div style={{ background: '#fff', borderBottom: bd, padding: '8px 12px', flexShrink: 0 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>Yêu cầu nạp credit</div>
-          <div style={{ fontSize: 8, color: '#64748b' }}>
+          <div style={{ fontSize: FS.section, fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>Yêu cầu nạp credit</div>
+          <div style={{ fontSize: FS.caption, color: '#64748b' }}>
             Credit hiện tại: <strong>{Number(currentCredit).toLocaleString('vi-VN')}</strong> — WS sẽ phê duyệt và cộng credit sau khi xác nhận thanh toán.
           </div>
         </div>
@@ -162,8 +168,8 @@ export default function WsCreditRequestsPanel({ mode = 'create', onSuccessMessag
                     <CreditCard style={{ width: 18, height: 18, color: '#854d0e' }} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>Tạo yêu cầu cấp thêm credit</div>
-                    <div style={{ fontSize: 8, color: '#64748b', lineHeight: 1.55, marginBottom: 10 }}>
+                    <div style={{ fontSize: FS.section, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>Tạo yêu cầu cấp thêm credit</div>
+                    <div style={{ fontSize: FS.caption, color: '#64748b', lineHeight: 1.55, marginBottom: 10 }}>
                       Gửi yêu cầu nạp credit cho WS phê duyệt. Mỗi lần chỉ có một yêu cầu đang chờ duyệt.
                     </div>
                     <button
@@ -171,7 +177,7 @@ export default function WsCreditRequestsPanel({ mode = 'create', onSuccessMessag
                       onClick={openCreateModal}
                       disabled={!!pendingRequest}
                       style={{
-                        border: 'none', borderRadius: 6, padding: '8px 14px', fontSize: 9, fontWeight: 700,
+                        border: 'none', borderRadius: 6, padding: '8px 14px', fontSize: FS.body, fontWeight: 700,
                         background: pendingRequest ? '#cbd5e1' : '#4f46e5', color: '#fff',
                         cursor: pendingRequest ? 'not-allowed' : 'pointer',
                         display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -186,18 +192,18 @@ export default function WsCreditRequestsPanel({ mode = 'create', onSuccessMessag
               {pendingRequest && (
                 <div style={{ background: '#fff', border: '1.5px solid #93c5fd', borderRadius: 8, padding: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: '#1e293b' }}>Yêu cầu đang chờ WS duyệt</div>
-                    <span style={{ fontSize: 7, padding: '2px 6px', borderRadius: 99, background: '#dbeafe', color: '#2563eb', fontWeight: 600 }}>
+                    <div style={{ fontSize: FS.body, fontWeight: 700, color: '#1e293b' }}>Yêu cầu đang chờ WS duyệt</div>
+                    <span style={{ fontSize: FS.micro, padding: '2px 6px', borderRadius: 99, background: '#dbeafe', color: '#2563eb', fontWeight: 600 }}>
                       Chờ WS duyệt
                     </span>
                   </div>
-                  <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.6, marginBottom: 8 }}>
+                  <div style={{ fontSize: FS.caption, color: '#475569', lineHeight: 1.6, marginBottom: 8 }}>
                     <div><strong>Mã:</strong> {pendingRequest.requestCode || pendingRequest.id}</div>
                     <div><strong>Số credit:</strong> {Number(pendingRequest.amount || 0).toLocaleString('vi-VN')}</div>
                     <div><strong>Ngày gửi:</strong> {formatDate(pendingRequest.requestedAt || pendingRequest.createdAt)}</div>
                     {pendingRequest.note && <div><strong>Ghi chú:</strong> {pendingRequest.note}</div>}
                   </div>
-                  <div style={{ fontSize: 8, color: '#64748b', background: '#f8fafc', borderRadius: 6, padding: '8px', marginBottom: 10, lineHeight: 1.55 }}>
+                  <div style={{ fontSize: FS.caption, color: '#64748b', background: '#f8fafc', borderRadius: 6, padding: '8px', marginBottom: 10, lineHeight: 1.55 }}>
                     Yêu cầu này cũng được gửi vào <strong>tab Trò chuyện WS</strong>. Admin sẽ duyệt hoặc từ chối trực tiếp trong cuộc chat.
                   </div>
                   {onViewInChat && (
@@ -205,7 +211,7 @@ export default function WsCreditRequestsPanel({ mode = 'create', onSuccessMessag
                       type="button"
                       onClick={onViewInChat}
                       style={{
-                        width: '100%', border: 'none', borderRadius: 6, padding: '8px', fontSize: 9, fontWeight: 700,
+                        width: '100%', border: 'none', borderRadius: 6, padding: '8px', fontSize: FS.body, fontWeight: 700,
                         background: '#4f46e5', color: '#fff', cursor: 'pointer', marginBottom: 8,
                       }}
                     >
@@ -213,14 +219,14 @@ export default function WsCreditRequestsPanel({ mode = 'create', onSuccessMessag
                     </button>
                   )}
                   <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-                    <button type="button" onClick={() => openEditModal(pendingRequest)} style={{ border: bd, borderRadius: 5, padding: '5px 10px', fontSize: 8, background: '#fff', cursor: 'pointer' }}>
+                    <button type="button" onClick={() => openEditModal(pendingRequest)} style={{ border: bd, borderRadius: 5, padding: '5px 10px', fontSize: FS.caption, background: '#fff', cursor: 'pointer' }}>
                       Sửa yêu cầu
                     </button>
                     <button
                       type="button"
                       onClick={() => handleCancel(pendingRequest)}
                       disabled={actionRequestId === pendingRequest.id}
-                      style={{ border: bd, borderRadius: 5, padding: '5px 10px', fontSize: 8, background: '#fff', color: '#dc2626', cursor: 'pointer' }}
+                      style={{ border: bd, borderRadius: 5, padding: '5px 10px', fontSize: FS.caption, background: '#fff', color: '#dc2626', cursor: 'pointer' }}
                     >
                       {actionRequestId === pendingRequest.id ? 'Đang hủy...' : 'Hủy yêu cầu'}
                     </button>
@@ -247,7 +253,7 @@ export default function WsCreditRequestsPanel({ mode = 'create', onSuccessMessag
       />
 
       <div style={{ background: '#fff', borderBottom: bd, padding: '8px 12px', flexShrink: 0 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>Lịch sử yêu cầu nạp credit</div>
+        <div style={{ fontSize: FS.section, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>Lịch sử yêu cầu nạp credit</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 120, display: 'flex', alignItems: 'center', gap: 4, border: bd, borderRadius: 6, padding: '3px 8px', background: '#f8fafc' }}>
             <Search {...ICON_MD} color="#94a3b8" />
@@ -255,13 +261,13 @@ export default function WsCreditRequestsPanel({ mode = 'create', onSuccessMessag
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Tìm theo mã yêu cầu..."
-              style={{ flex: 1, border: 'none', background: 'transparent', fontSize: 8, outline: 'none', minWidth: 0 }}
+              style={{ flex: 1, border: 'none', background: 'transparent', fontSize: FS.caption, outline: 'none', minWidth: 0 }}
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            style={{ border: bd, borderRadius: 6, padding: '4px 8px', fontSize: 8, background: '#fff' }}
+            style={{ border: bd, borderRadius: 6, padding: '4px 8px', fontSize: FS.caption, background: '#fff' }}
           >
             <option value="">Tất cả trạng thái</option>
             <option value="pending">Chờ WS duyệt</option>
@@ -272,7 +278,7 @@ export default function WsCreditRequestsPanel({ mode = 'create', onSuccessMessag
           <button
             type="button"
             onClick={openCreateModal}
-            style={{ border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 8, fontWeight: 600, background: '#4f46e5', color: '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            style={{ border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: FS.caption, fontWeight: 600, background: '#4f46e5', color: '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
           >
             <Plus {...ICON_SM} /> Tạo mới
           </button>
@@ -286,7 +292,7 @@ export default function WsCreditRequestsPanel({ mode = 'create', onSuccessMessag
           </div>
         )}
         {filteredRequests.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 32, color: '#94a3b8', fontSize: 9 }}>Chưa có yêu cầu nạp credit.</div>
+          <div style={{ textAlign: 'center', padding: 32, color: '#94a3b8', fontSize: FS.body }}>Chưa có yêu cầu nạp credit.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {filteredRequests.map((req) => {
@@ -296,14 +302,14 @@ export default function WsCreditRequestsPanel({ mode = 'create', onSuccessMessag
                 <div key={req.id} style={{ background: '#fff', border: bd, borderRadius: 8, padding: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
                     <div>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: '#4f46e5' }}>{req.requestCode || `#${req.id}`}</div>
-                      <div style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>{formatDate(req.requestedAt || req.createdAt)}</div>
+                      <div style={{ fontSize: FS.body, fontWeight: 700, color: '#4f46e5' }}>{req.requestCode || `#${req.id}`}</div>
+                      <div style={{ fontSize: FS.caption, color: '#64748b', marginTop: 2 }}>{formatDate(req.requestedAt || req.createdAt)}</div>
                     </div>
-                    <span style={{ fontSize: 7, padding: '2px 6px', borderRadius: 99, background: st.bg, color: st.color, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: FS.micro, padding: '2px 6px', borderRadius: 99, background: st.bg, color: st.color, fontWeight: 600, whiteSpace: 'nowrap' }}>
                       {st.label}
                     </span>
                   </div>
-                  <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.6 }}>
+                  <div style={{ fontSize: FS.caption, color: '#475569', lineHeight: 1.6 }}>
                     <div><strong>Credit yêu cầu:</strong> {Number(req.amount || 0).toLocaleString('vi-VN')}</div>
                     {req.note && <div><strong>Ghi chú:</strong> {req.note}</div>}
                     {req.handledByAdmin?.name && (
@@ -314,14 +320,14 @@ export default function WsCreditRequestsPanel({ mode = 'create', onSuccessMessag
                   </div>
                   {isPending && (
                     <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                      <button type="button" onClick={() => openEditModal(req)} style={{ border: bd, borderRadius: 5, padding: '4px 8px', fontSize: 8, background: '#fff', cursor: 'pointer' }}>
+                      <button type="button" onClick={() => openEditModal(req)} style={{ border: bd, borderRadius: 5, padding: '4px 8px', fontSize: FS.caption, background: '#fff', cursor: 'pointer' }}>
                         Sửa
                       </button>
                       <button
                         type="button"
                         onClick={() => handleCancel(req)}
                         disabled={actionRequestId === req.id}
-                        style={{ border: bd, borderRadius: 5, padding: '4px 8px', fontSize: 8, background: '#fff', color: '#dc2626', cursor: 'pointer' }}
+                        style={{ border: bd, borderRadius: 5, padding: '4px 8px', fontSize: FS.caption, background: '#fff', color: '#dc2626', cursor: 'pointer' }}
                       >
                         Hủy
                       </button>

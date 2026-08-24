@@ -16,7 +16,7 @@ import {
 } from '../../i18n/businessAppI18n'
 
 export const SCOUT_FILTER_INPUT_CLASS =
-  'w-full h-[26px] px-2 py-0 text-[9px] border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+  'biz-ui-caption w-full h-[26px] px-2 py-0 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
 
 const SCOUT_FILTER_PICKER_BTN_CLASS =
   'flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded border border-gray-300 transition-colors hover:bg-gray-50'
@@ -140,7 +140,7 @@ export default function ScoutCandidateFilterFields({
             placeholder={f.salaryFrom}
             className={`min-w-0 flex-1 ${SCOUT_FILTER_INPUT_CLASS}`}
           />
-          <span className="shrink-0 text-[9px] text-gray-500">~</span>
+          <span className="biz-ui-micro shrink-0 text-gray-500">~</span>
           <input
             type="number"
             value={scoutFilters.salaryMax}

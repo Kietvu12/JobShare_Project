@@ -4,6 +4,7 @@ import BusinessSidebar from './BusinessSidebar';
 import BusinessHeader from './BusinessHeader';
 import useBusinessUser from '../../hooks/useBusinessUser';
 import { isBusinessViewportLockedPage } from '../../utils/businessPageMeta';
+import { BUSINESS_UI_FONT, BUSINESS_UI_TYPOGRAPHY_STYLES } from '../../utils/businessUiFont';
 
 const BusinessLayoutWrapper = () => {
   const businessUser = useBusinessUser();
@@ -25,8 +26,12 @@ const BusinessLayoutWrapper = () => {
   }, [mobileNavOpen]);
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div
+      className="business-app-ui flex h-screen overflow-hidden bg-gray-50"
+      style={{ fontFamily: BUSINESS_UI_FONT }}
+    >
       <style>{`
+        ${BUSINESS_UI_TYPOGRAPHY_STYLES}
         /* Custom scrollbar cho main content */
         main::-webkit-scrollbar {
           width: 6px;

@@ -48,6 +48,8 @@ import { highlightSearchText } from '../../utils/searchTextHighlight'
 import ScoutCandidateHoverTip from '../../component/Bussiness/ScoutCandidateHoverTip'
 import { getScoutCandidateDetailUrl } from '../../utils/scoutCandidateDetailUrl'
 import CreditTopUpModal from '../../component/Bussiness/CreditTopUpModal'
+import ScoutCreditPackagesIntro from '../../component/Bussiness/ScoutCreditPackagesIntro'
+import ScoutInsufficientCreditModal from '../../component/Bussiness/ScoutInsufficientCreditModal'
 import creditIllustration from '../../assets/scout_credit_vi.png'
 import performanceIllustration from '../../assets/scout_per_vi.png'
 import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont'
@@ -590,8 +592,9 @@ function ScoutOnboardingCandidatePreview({
   )
 }
 
-function ScoutOnboardingView({ variant = 'credit', previewCandidates, previewScoreByCvId, scoutCreditCost, onStart, onExplore }) {
-  const { language } = useLanguage()
+function ScoutOnboardingView({ variant = 'credit', previewCandidates, previewScoreByCvId, scoutCreditCost, onStart, onExplore, language: languageProp }) {
+  const { language: ctxLanguage } = useLanguage()
+  const language = languageProp || ctxLanguage
   const copy = useBusinessAppCopy()
   const scoutCopy = copy.scout
   const ws = getScoutWorkspaceCopy(language)
@@ -626,31 +629,35 @@ function ScoutOnboardingView({ variant = 'credit', previewCandidates, previewSco
         />
       </div>
 
-      <ScoutOnboardingCandidatePreview
-        onboarding={onboarding}
-        rankedPreviewCandidates={rankedPreviewCandidates}
-        previewScoreByCvId={previewScoreByCvId}
-        scoutCreditCost={scoutCreditCost}
-        onExplore={onExplore}
-        language={language}
-        showExploreFooter={variant === 'credit'}
-      />
+      {variant === 'credit' ? (
+        <ScoutCreditPackagesIntro language={language} showIntro showSubmit />
+      ) : (
+        <>
+          <ScoutOnboardingCandidatePreview
+            onboarding={onboarding}
+            rankedPreviewCandidates={rankedPreviewCandidates}
+            previewScoreByCvId={previewScoreByCvId}
+            scoutCreditCost={scoutCreditCost}
+            onExplore={onExplore}
+            language={language}
+            showExploreFooter={false}
+          />
 
-      {variant === 'performance' ? (
-        <div className="flex w-full min-h-0 flex-1 flex-col gap-2 sm:gap-3">
-          <ScoutManagedFeeTable />
-          <div className="shrink-0">
-            <button
-              type="button"
-              onClick={onExplore}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] py-2.5 text-xs font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:text-sm"
-            >
-              {onboarding.exploreAll}
-              <ArrowRight className="h-4 w-4 shrink-0" />
-            </button>
+          <div className="flex w-full min-h-0 flex-1 flex-col gap-2 sm:gap-3">
+            <ScoutManagedFeeTable />
+            <div className="shrink-0">
+              <button
+                type="button"
+                onClick={onExplore}
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] py-2.5 text-xs font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:text-sm"
+              >
+                {onboarding.exploreAll}
+                <ArrowRight className="h-4 w-4 shrink-0" />
+              </button>
+            </div>
           </div>
-        </div>
-      ) : null}
+        </>
+      )}
     </div>
   )
 }
@@ -1619,6 +1626,7 @@ const Scout = ({ variant = 'credit' } = {}) => {
   const [showPerformanceCta, setShowPerformanceCta] = useState(false)
   const [exploreSubmitting, setExploreSubmitting] = useState(false)
   const [creditTopUpOpen, setCreditTopUpOpen] = useState(false)
+  const [insufficientCreditModalOpen, setInsufficientCreditModalOpen] = useState(false)
   const [activityLoading, setActivityLoading] = useState(true)
   const [forceDashboard, setForceDashboard] = useState(false)
   const [previewCandidates, setPreviewCandidates] = useState([])
@@ -1680,6 +1688,25 @@ const Scout = ({ variant = 'credit' } = {}) => {
   const enterScoutDashboard = useCallback(() => {
     setForceDashboard(true)
   }, [])
+
+  const refreshCreditBalance = useCallback(() => {
+    apiService.getBusinessCredit().then((res) => {
+      if (res?.success && typeof res.data?.credit === 'number') {
+        setCredit(res.data.credit)
+        if (user) {
+          localStorage.setItem('user', JSON.stringify({ ...user, credit: res.data.credit }))
+        }
+      }
+    }).catch(() => {})
+  }, [user])
+
+  const handleOnboardingStart = useCallback(() => {
+    if (variant === 'credit' && credit < scoutCreditCost) {
+      setInsufficientCreditModalOpen(true)
+      return
+    }
+    enterScoutDashboard()
+  }, [variant, credit, scoutCreditCost, enterScoutDashboard])
 
   /** Màn landing Scout luôn hiển thị trước; vào kho khi bấm CTA hoặc deep link job/performance. */
   const showOnboarding = !activityLoading
@@ -2038,14 +2065,16 @@ const Scout = ({ variant = 'credit' } = {}) => {
         currentCredit={credit}
         onSuccess={() => {
           setCreditTopUpOpen(false)
-          apiService.getBusinessCredit().then((res) => {
-            if (res?.success && typeof res.data?.credit === 'number') {
-              setCredit(res.data.credit)
-              if (user) {
-                localStorage.setItem('user', JSON.stringify({ ...user, credit: res.data.credit }))
-              }
-            }
-          }).catch(() => {})
+          refreshCreditBalance()
+        }}
+      />
+
+      <ScoutInsufficientCreditModal
+        open={insufficientCreditModalOpen}
+        onClose={() => setInsufficientCreditModalOpen(false)}
+        language={language}
+        onTopUpSuccess={() => {
+          refreshCreditBalance()
         }}
       />
     </>
@@ -2076,8 +2105,9 @@ const Scout = ({ variant = 'credit' } = {}) => {
                   previewCandidates={previewCandidates}
                   previewScoreByCvId={previewScoreByCvId}
                   scoutCreditCost={scoutCreditCost}
-                  onStart={enterScoutDashboard}
+                  onStart={handleOnboardingStart}
                   onExplore={enterScoutDashboard}
+                  language={language}
                 />
               </div>
               <ScoutOnboardingSidebar onNavigate={navigate} />

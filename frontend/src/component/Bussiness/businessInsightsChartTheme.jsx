@@ -45,10 +45,10 @@ export function InsightChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
     <div style={tooltipBox}>
-      {label ? <p className="mb-1.5 text-[10px] font-semibold text-slate-500">{label}</p> : null}
+      {label ? <p className="biz-ui-caption mb-1.5 font-semibold text-slate-500">{label}</p> : null}
       <ul className="space-y-1">
         {payload.map((entry) => (
-          <li key={entry.dataKey} className="flex items-center justify-between gap-4 text-[11px]">
+          <li key={entry.dataKey} className="biz-ui-body flex items-center justify-between gap-4">
             <span className="inline-flex items-center gap-1.5 text-slate-600">
               <span
                 className="h-2 w-2 rounded-full"
@@ -90,7 +90,7 @@ export function BusinessChartGradients({ ids }) {
 
 export function ChartLegendRow({ items, className = '' }) {
   return (
-    <div className={`flex flex-wrap gap-x-4 gap-y-1 text-[9px] text-slate-500 sm:text-[10px] ${className}`}>
+    <div className={`biz-ui-caption flex flex-wrap gap-x-4 gap-y-1 text-slate-500 ${className}`}>
       {items.map((item) => (
         <span key={item.key || item.label} className="inline-flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full" style={{ background: item.color }} />
@@ -109,7 +109,7 @@ export function ChartPeriodPills({ value, onChange, options = ['Tuần', 'Tháng
           key={opt}
           type="button"
           onClick={() => onChange?.(opt)}
-          className={`rounded-md px-2 py-0.5 text-[9px] font-semibold transition-colors sm:text-[10px] ${
+          className={`biz-ui-caption rounded-md px-2 py-0.5 font-semibold transition-colors ${
             value === opt ? 'bg-white text-[#0077B6] shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -228,8 +228,8 @@ export function InsightsDonutChart({ data, centerLabel, centerValue, height = 14
       </ResponsiveContainer>
       {(centerLabel || centerValue) && (
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          {centerLabel ? <span className="text-[9px] text-slate-400 sm:text-[10px]">{centerLabel}</span> : null}
-          {centerValue ? <span className="text-base font-bold text-slate-900 sm:text-lg">{centerValue}</span> : null}
+          {centerLabel ? <span className="biz-ui-micro text-slate-400">{centerLabel}</span> : null}
+          {centerValue ? <span className="biz-ui-stat text-slate-900">{centerValue}</span> : null}
         </div>
       )}
     </div>

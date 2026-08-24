@@ -426,6 +426,66 @@ export const collaboratorNotificationService = {
     }
   },
 
+  /** Thông báo Super Admin & Admin Backoffice: DN chuyển đơn sang Đã vào công ty. */
+  async notifyAdminsBusinessJoinedCompany({
+    businessName,
+    candidateName,
+    jobCode,
+    jobApplicationId = null,
+    jobId = null,
+  }) {
+    const admins = await Admin.findAll({
+      where: { isActive: true, status: 1, role: { [Op.in]: [1, 2] } },
+      attributes: ['id'],
+    });
+    const safeBusiness = businessName || 'Doanh nghiệp';
+    const safeJobCode = jobCode || 'N/A';
+    const safeCandidate = candidateName || 'Ứng viên';
+    const content = `${safeBusiness} đã chuyển đơn tiến cử ${safeJobCode} (${safeCandidate}) thành Đã vào công ty. Vui lòng tạo yêu cầu thanh toán cho doanh nghiệp.`;
+    const url = jobApplicationId ? `/admin/nominations/${jobApplicationId}` : '/admin/nominations';
+
+    for (const a of admins) {
+      await this.createAndEmit({
+        collaboratorId: null,
+        adminId: a.id,
+        title: 'Đã vào công ty — cần tạo yêu cầu TT',
+        content,
+        jobId,
+        url,
+      });
+    }
+  },
+
+  async notifyBusinessReferralInvoiceCreated({
+    businessId,
+    amount,
+    jobCode,
+    candidateName,
+    invoiceId = null,
+    jobApplicationId = null,
+  }) {
+    if (!businessId) return null;
+    const safeJobCode = jobCode || 'N/A';
+    const safeCandidate = candidateName || 'Ứng viên';
+    const amountText = amount != null
+      ? `${Number(amount).toLocaleString('vi-VN')} VNĐ`
+      : '';
+    const content = amountText
+      ? `WS đã tạo yêu cầu thanh toán phí giới thiệu ${amountText} cho đơn tiến cử ${safeJobCode} — ${safeCandidate}.`
+      : `WS đã tạo yêu cầu thanh toán phí giới thiệu cho đơn tiến cử ${safeJobCode} — ${safeCandidate}.`;
+    return this.createAndEmit({
+      businessId,
+      title: 'Yêu cầu thanh toán phí giới thiệu',
+      content,
+      jobId: null,
+      url: invoiceId
+        ? `/business/billing?invoiceId=${invoiceId}`
+        : jobApplicationId
+          ? `/business/billing?jobApplicationId=${jobApplicationId}`
+          : '/business/billing',
+    });
+  },
+
   async notifyAdminsPaymentRequestCreated({
     candidateName,
     jobCode,

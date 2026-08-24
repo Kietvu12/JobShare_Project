@@ -72,12 +72,12 @@ export default function JobCreatedNextStepsModal({ open, jobId, onClose, onSelec
             >
               <CheckCircle2 className="h-5 w-5" style={{ color: BRAND }} strokeWidth={2} />
             </div>
-            <h2 className="text-[13px] font-bold leading-snug text-slate-900">
+            <h2 className="biz-ui-section leading-snug text-slate-900">
               JD đã được tạo thành công
             </h2>
             <p
               id="job-created-next-steps-title"
-              className="mt-1.5 text-[11px] font-medium leading-relaxed text-slate-600"
+              className="biz-ui-body mt-1.5 font-medium leading-relaxed text-slate-600"
             >
               Tiếp theo bạn muốn làm gì?
             </p>
@@ -93,7 +93,7 @@ export default function JobCreatedNextStepsModal({ open, jobId, onClose, onSelec
                     onClick={() => onSelect?.(opt.num, jobId)}
                     className="group w-full flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-left transition-colors hover:border-[#0077B6]/35 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0077B6]/40 focus-visible:ring-offset-1"
                   >
-                    <span className="shrink-0 text-[10px] font-bold tabular-nums text-slate-400 w-4">
+                    <span className="biz-ui-caption shrink-0 w-4 font-bold tabular-nums text-slate-400">
                       {opt.num}
                     </span>
                     <span
@@ -102,7 +102,7 @@ export default function JobCreatedNextStepsModal({ open, jobId, onClose, onSelec
                     >
                       <Icon className="h-3.5 w-3.5" strokeWidth={2} />
                     </span>
-                    <span className="min-w-0 flex-1 text-[11px] font-semibold leading-snug text-slate-800">
+                    <span className="biz-ui-body min-w-0 flex-1 font-semibold leading-snug text-slate-800">
                       {opt.label}
                     </span>
                     <ChevronRight
@@ -118,7 +118,7 @@ export default function JobCreatedNextStepsModal({ open, jobId, onClose, onSelec
           <button
             type="button"
             onClick={onClose}
-            className="mt-4 w-full text-center text-[11px] font-semibold py-1 transition-colors hover:opacity-80"
+            className="biz-ui-body mt-4 w-full py-1 text-center font-semibold transition-colors hover:opacity-80"
             style={{ color: BRAND }}
           >
             Ở lại trang quản lý JD

@@ -43,7 +43,7 @@ export default function BusinessServiceCardTag({ tag, isOnDark = false, classNam
   const strongClass = isOnDark ? 'text-white/95' : 'text-slate-800';
 
   return (
-    <p className={`text-[9px] leading-snug sm:text-[10px] ${textClass} ${className}`}>
+    <p className={`biz-ui-caption leading-snug ${textClass} ${className}`}>
       <span className={`font-medium ${strongClass}`}>{tag.labelJa}</span>
       {' / '}
       <span>{tag.labelEn}</span>

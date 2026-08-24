@@ -62,8 +62,8 @@ export default function BillingPaymentDetailPanel({ payment, onClose }) {
     return (
       <aside className="flex h-full min-h-0 flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
         <FileText className="mb-3 h-10 w-10 text-slate-300" />
-        <p className="text-sm font-semibold text-slate-700">Chi tiết yêu cầu thanh toán</p>
-        <p className="mt-1 text-xs leading-relaxed text-slate-500">
+        <p className="biz-ui-body font-semibold text-slate-700">Chi tiết yêu cầu thanh toán</p>
+        <p className="biz-ui-caption mt-1 leading-relaxed text-slate-500">
           Chọn một dòng trong danh sách để xem thông tin, file đính kèm và trao đổi với WS.
         </p>
       </aside>
@@ -78,9 +78,9 @@ export default function BillingPaymentDetailPanel({ payment, onClose }) {
     <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="flex shrink-0 items-start justify-between gap-2 border-b border-slate-100 px-4 py-3">
         <div className="min-w-0">
-          <div className="text-sm font-bold text-slate-900">{payment.paymentCode}</div>
+          <div className="biz-ui-body font-bold text-slate-900">{payment.paymentCode}</div>
           <span
-            className="mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold"
+            className="biz-ui-caption mt-1 inline-block rounded-full px-2 py-0.5 font-semibold"
             style={{ background: payment.statusBg, color: payment.statusColor }}
           >
             {payment.statusLabel}
@@ -101,7 +101,7 @@ export default function BillingPaymentDetailPanel({ payment, onClose }) {
             key={tab.key}
             type="button"
             onClick={() => setDetailTab(tab.key)}
-            className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+            className={`biz-ui-caption rounded-lg px-2.5 py-1.5 font-semibold transition-colors ${
               detailTab === tab.key
                 ? 'bg-[#0077B6] text-white'
                 : 'text-slate-500 hover:bg-slate-50'
@@ -115,7 +115,7 @@ export default function BillingPaymentDetailPanel({ payment, onClose }) {
       <div className="billing-detail-scroll min-h-0 flex-1 overflow-y-auto px-4 py-3">
         {detailTab === 'info' ? (
           <div className="space-y-4">
-            <div className="space-y-2 text-xs sm:text-sm">
+            <div className="biz-ui-body space-y-2">
               {[
                 ['Loại thanh toán', payment.type],
                 ['Nguồn tạo', payment.source || 'Workstation'],
@@ -131,10 +131,10 @@ export default function BillingPaymentDetailPanel({ payment, onClose }) {
             </div>
 
             <div className="overflow-hidden rounded-lg border border-slate-200">
-              <div className="bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">Chi tiết phí</div>
-              <table className="w-full text-xs">
+              <div className="biz-ui-body bg-slate-50 px-3 py-2 font-bold text-slate-700">Chi tiết phí</div>
+              <table className="biz-ui-body w-full">
                 <thead>
-                  <tr className="border-b border-slate-100 text-left text-[11px] text-slate-400">
+                  <tr className="biz-ui-caption border-b border-slate-100 text-left text-slate-400">
                     {['Hạng mục', 'Giá trị'].map((h) => (
                       <th key={h} className="px-3 py-2 font-semibold">{h}</th>
                     ))}
@@ -147,7 +147,7 @@ export default function BillingPaymentDetailPanel({ payment, onClose }) {
                   </tr>
                   <tr>
                     <td className="px-3 py-2 font-semibold text-slate-800">Tổng cộng</td>
-                    <td className="px-3 py-2 text-base font-bold text-rose-600">{payment.amount}</td>
+                    <td className="biz-ui-stat px-3 py-2 text-rose-600">{payment.amount}</td>
                   </tr>
                 </tbody>
               </table>
@@ -166,15 +166,15 @@ export default function BillingPaymentDetailPanel({ payment, onClose }) {
                   <FileText className="h-4 w-4 text-[#0077B6]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-xs font-semibold text-slate-800">{file.name}</div>
-                  <div className="text-[11px] text-slate-400">{file.meta}</div>
+                  <div className="biz-ui-body truncate font-semibold text-slate-800">{file.name}</div>
+                  <div className="biz-ui-caption text-slate-400">{file.meta}</div>
                 </div>
                 <button type="button" className="rounded-lg border-0 bg-transparent p-1.5 hover:bg-slate-50">
                   <Download className="h-4 w-4 text-slate-500" />
                 </button>
               </div>
             ))}
-            <p className="pt-2 text-[11px] text-slate-400">File thật sẽ hiển thị khi WS đính kèm trên hệ thống.</p>
+            <p className="biz-ui-caption pt-2 text-slate-400">File thật sẽ hiển thị khi WS đính kèm trên hệ thống.</p>
           </div>
         ) : null}
 
@@ -183,22 +183,22 @@ export default function BillingPaymentDetailPanel({ payment, onClose }) {
             {PLACEHOLDER_MESSAGES.map((msg) => (
               <div key={msg.id} className={`flex gap-2 ${msg.isWs ? '' : 'flex-row-reverse'}`}>
                 <div
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                  className={`biz-ui-caption flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-bold ${
                     msg.isWs ? 'bg-[#e8f4fa] text-[#0077B6]' : 'bg-slate-200 text-slate-600'
                   }`}
                 >
                   {msg.initials}
                 </div>
                 <div className={`max-w-[85%] ${msg.isWs ? '' : 'text-right'}`}>
-                  <div className="text-[11px] font-semibold text-slate-700">{msg.author}</div>
+                  <div className="biz-ui-body font-semibold text-slate-700">{msg.author}</div>
                   <div
-                    className={`mt-1 rounded-xl px-3 py-2 text-xs leading-relaxed ${
+                    className={`biz-ui-body mt-1 rounded-xl px-3 py-2 leading-relaxed ${
                       msg.isWs ? 'bg-slate-100 text-slate-700' : 'bg-[#0077B6] text-white'
                     }`}
                   >
                     {msg.text}
                   </div>
-                  <div className="mt-1 text-[10px] text-slate-400">{msg.time}</div>
+                  <div className="biz-ui-caption mt-1 text-slate-400">{msg.time}</div>
                 </div>
               </div>
             ))}
@@ -218,11 +218,11 @@ export default function BillingPaymentDetailPanel({ payment, onClose }) {
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             placeholder="Nhập tin nhắn..."
-            className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-[#0077B6]"
+            className="biz-ui-body min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-[#0077B6]"
           />
           <button
             type="button"
-            className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-bold text-white"
+            className="biz-ui-body inline-flex items-center gap-1 rounded-lg px-3 py-2 font-bold text-white"
             style={{ background: BRAND }}
           >
             <Send className="h-3.5 w-3.5" />

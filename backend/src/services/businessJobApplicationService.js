@@ -5,12 +5,13 @@ import {
   CVStorage,
   Collaborator,
   Message,
+  Business,
   BusinessCtvMarketplaceListing,
   BusinessScoutUnlock,
   BusinessScoutPerformanceRequest,
   JobCategory,
 } from '../models/index.js';
-import { getJobApplicationStatus, STATUS_PAID } from '../constants/jobApplicationStatus.js';
+import { getJobApplicationStatus, STATUS_PAID, STATUS_JOINED_COMPANY } from '../constants/jobApplicationStatus.js';
 import { buildUnlockedScoutPayload } from './businessScoutService.js';
 import { statusMessageService } from './statusMessageService.js';
 import { collaboratorNotificationService } from './collaboratorNotificationService.js';
@@ -605,6 +606,32 @@ export async function updateBusinessJobApplicationStatus({
         });
       } catch (notificationError) {
         console.error('[businessJobApplication] notifyStatusChanged:', notificationError?.message || notificationError);
+      }
+    }
+
+    if (statusNum === STATUS_JOINED_COMPANY && oldStatus !== STATUS_JOINED_COMPANY) {
+      try {
+        const fullJobApplication = await JobApplication.findByPk(jobApplication.id, {
+          include: [
+            { model: Job, as: 'job', required: false, attributes: ['id', 'jobCode', 'businessId'] },
+            { model: CVStorage, as: 'cv', required: false, attributes: ['id', 'name', 'code'] },
+          ],
+        });
+        const linkedBusinessId = fullJobApplication?.job?.businessId || businessId;
+        let businessName = 'Doanh nghiệp';
+        if (linkedBusinessId) {
+          const biz = await Business.findByPk(linkedBusinessId, { attributes: ['id', 'companyName'] });
+          businessName = biz?.companyName || businessName;
+        }
+        await collaboratorNotificationService.notifyAdminsBusinessJoinedCompany({
+          businessName,
+          candidateName: fullJobApplication?.cv?.name || null,
+          jobCode: fullJobApplication?.job?.jobCode || String(jobApplication.id),
+          jobApplicationId: jobApplication.id,
+          jobId: jobApplication.jobId || null,
+        });
+      } catch (adminNotifyError) {
+        console.error('[businessJobApplication] notifyAdminsBusinessJoinedCompany:', adminNotifyError?.message || adminNotifyError);
       }
     }
   }

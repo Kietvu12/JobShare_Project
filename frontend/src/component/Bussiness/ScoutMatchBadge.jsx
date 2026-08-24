@@ -16,7 +16,7 @@ export default function ScoutMatchBadge({
 
   return (
     <span
-      className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold leading-none sm:text-[13px] ${getScoutMatchBadgeClass(n)} ${className}`.trim()}
+      className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 biz-ui-body font-bold leading-none ${getScoutMatchBadgeClass(n)} ${className}`.trim()}
       title={copy.title}
     >
       <Gauge className={iconClassName} aria-hidden />

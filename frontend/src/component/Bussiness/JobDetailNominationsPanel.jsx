@@ -27,7 +27,7 @@ export default function JobDetailNominationsPanel({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] border-collapse text-left">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/80 text-[10px] uppercase tracking-wide text-slate-400">
+              <tr className="biz-ui-micro border-b border-slate-100 bg-slate-50/80 uppercase tracking-wide text-slate-400">
                 {['Ứng viên', 'Nguồn', 'Tiến cử bởi', 'Trạng thái', 'Ngày', ''].map((h, i) => (
                   <th key={h || `col-${i}`} className={`px-3 py-2 font-semibold ${i >= 3 ? 'text-center' : 'text-left'}`}>
                     {h === '' ? ' ' : h}
@@ -59,7 +59,7 @@ export default function JobDetailNominationsPanel({
                     <td className="px-3 py-2 biz-jd-body text-slate-600">{app.nominatedBy || '—'}</td>
                     <td className="px-3 py-2 text-center">
                       <span
-                        className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        className="biz-ui-micro rounded-full px-2 py-0.5 font-semibold"
                         style={{ color: stageStyle.color, background: stageStyle.bg }}
                       >
                         {app.statusLabel}
@@ -67,12 +67,12 @@ export default function JobDetailNominationsPanel({
                     </td>
                     <td className="px-3 py-2 text-center biz-jd-muted">
                       <div>{formatApplicationDate(app.appliedAt)}</div>
-                      <div className="text-[10px] text-slate-400">{formatRelativeTime(app.appliedAt)}</div>
+                      <div className="biz-ui-micro text-slate-400">{formatRelativeTime(app.appliedAt)}</div>
                     </td>
                     <td className="px-3 py-2 text-right">
                       <div className="flex items-center justify-end gap-1">
                         {app.unreadCount > 0 ? (
-                          <span className="min-w-[18px] rounded-full bg-rose-500 px-1.5 py-px text-center text-[9px] font-bold text-white">
+                          <span className="biz-ui-micro min-w-[18px] rounded-full bg-rose-500 px-1.5 py-px text-center font-bold text-white">
                             {app.unreadCount}
                           </span>
                         ) : null}

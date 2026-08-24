@@ -4042,6 +4042,23 @@ const apiService = {
     return handleResponse(response);
   },
 
+  getAdminBusinessReferralInvoice: async (jobApplicationId) => {
+    const response = await fetch(`${API_BASE_URL}/admin/job-applications/${jobApplicationId}/business-invoice`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+  },
+
+  createAdminBusinessReferralInvoice: async (jobApplicationId, amount) => {
+    const response = await fetch(`${API_BASE_URL}/admin/job-applications/${jobApplicationId}/business-invoice`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ amount: parseFloat(amount) })
+    });
+    return handleResponse(response);
+  },
+
   /**
    * Admin Job Application Memos
    */

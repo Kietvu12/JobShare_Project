@@ -81,6 +81,20 @@ router.delete('/:id/memos/:memoId', authenticate, isSuperAdminOrBackoffice, jobA
 router.patch('/:id/status', authenticate, isSuperAdminOrBackoffice, jobApplicationController.updateStatus);
 
 /**
+ * @route   GET /api/admin/job-applications/:id/business-invoice
+ * @desc    Get business referral invoice for nomination
+ * @access  Private (Super Admin, Backoffice)
+ */
+router.get('/:id/business-invoice', authenticate, isSuperAdminOrBackoffice, jobApplicationController.getBusinessReferralInvoice);
+
+/**
+ * @route   POST /api/admin/job-applications/:id/business-invoice
+ * @desc    Create business referral invoice from admin chat
+ * @access  Private (Super Admin, Backoffice)
+ */
+router.post('/:id/business-invoice', authenticate, isSuperAdminOrBackoffice, jobApplicationController.createBusinessReferralInvoice);
+
+/**
  * @route   DELETE /api/admin/job-applications/:id
  * @desc    Delete job application (soft delete)
  * @access  Private (Super Admin, Backoffice)

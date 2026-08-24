@@ -891,7 +891,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
 
   if (bootLoading) {
     return (
-      <div className="h-full flex items-center justify-center text-slate-500 gap-2 text-sm">
+      <div className="biz-ui-body flex h-full items-center justify-center gap-2 text-slate-500">
         <Loader2 className="w-4 h-4 animate-spin" />
         {jdCopy.panel.bootLoading}
       </div>
@@ -901,10 +901,10 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   const showEmptyGreeting = messages.length === 0 && !loading && !parseLoading;
   const compactUi = Boolean(embedded);
   const isEditingSavedJob = Boolean(savedJobId);
-  const titleCls = compactUi ? 'biz-jd-title' : 'text-xs lg:text-base font-semibold text-slate-800';
-  const bodyCls = compactUi ? 'biz-jd-body' : 'text-[12px] lg:text-[13px] text-slate-800';
-  const mutedCls = compactUi ? 'biz-jd-muted' : 'text-[10px] lg:text-xs text-slate-500';
-  const tabTextCls = compactUi ? 'biz-jd-body font-semibold' : 'text-[9px] lg:text-[10px] font-semibold';
+  const titleCls = compactUi ? 'biz-jd-title' : 'biz-ui-section font-semibold text-slate-800';
+  const bodyCls = compactUi ? 'biz-jd-body' : 'biz-ui-body text-slate-800';
+  const mutedCls = compactUi ? 'biz-jd-muted' : 'biz-ui-caption text-slate-500';
+  const tabTextCls = compactUi ? 'biz-jd-body font-semibold' : 'biz-ui-caption font-semibold';
   const iconCls = compactUi ? 'biz-jd-icon' : 'w-3.5 h-3.5 lg:w-4 lg:h-4';
   const hitCls = compactUi ? 'biz-jd-icon-hit' : 'w-7 h-7 lg:w-8 lg:h-8';
 
@@ -923,20 +923,20 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
           <div className="min-w-0">
             <p className={`font-medium text-slate-800 ${compactUi ? bodyCls : ''}`}>{msg.fileName || jdCopy.panel.jdFileFallback}</p>
             {msg.fileSize ? (
-              <p className={`${compactUi ? mutedCls : 'text-[10px] text-slate-400'} mt-0.5`}>{formatFileSize(msg.fileSize)}</p>
+              <p className={`${mutedCls} mt-0.5`}>{formatFileSize(msg.fileSize)}</p>
             ) : null}
-            <p className={`${compactUi ? bodyCls : 'text-[12px] text-slate-600'} mt-0.5`}>{msg.content}</p>
+            <p className={`${bodyCls} mt-0.5 text-slate-600`}>{msg.content}</p>
             {msg.status === 'parsing' && (
-              <p className={`${compactUi ? bodyCls : 'text-[11px]'} text-blue-600 mt-1 flex items-center gap-1`}>
+              <p className={`${bodyCls} mt-1 flex items-center gap-1 text-blue-600`}>
                 <Loader2 className={`${iconCls} animate-spin`} />
                 {jdCopy.panel.parsingFile}
               </p>
             )}
             {msg.status === 'done' && (
-              <p className={`${compactUi ? bodyCls : 'text-[11px]'} text-emerald-600 mt-1`}>{jdCopy.panel.parseDone}</p>
+              <p className={`${bodyCls} mt-1 text-emerald-600`}>{jdCopy.panel.parseDone}</p>
             )}
             {msg.status === 'error' && (
-              <p className={`${compactUi ? bodyCls : 'text-[11px]'} text-rose-600 mt-1`}>{jdCopy.panel.parseFailed}</p>
+              <p className={`${bodyCls} mt-1 text-rose-600`}>{jdCopy.panel.parseFailed}</p>
             )}
           </div>
         </div>
@@ -949,7 +949,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
           msg.success ? 'bg-emerald-50 border border-emerald-100' : 'bg-rose-50 border border-rose-100'
         }`}
         >
-          <p className={`${compactUi ? bodyCls : 'text-[13px]'} leading-relaxed whitespace-pre-wrap ${
+          <p className={`${bodyCls} leading-relaxed whitespace-pre-wrap ${
             msg.success ? 'text-emerald-900' : 'text-rose-900'
           }`}
           >
@@ -997,7 +997,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
               type="button"
               onClick={() => navigate(`/business/jobs/${savedJobId}`)}
               className={`inline-flex items-center rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-semibold ${
-                compactUi ? `${bodyCls} py-0.5 px-1.5` : 'text-xs py-1.5 px-2.5 lg:py-2 lg:px-3'
+                `${bodyCls} py-0.5 px-1.5`
               }`}
             >
               {jdCopy.panel.viewJobDetail}
@@ -1029,7 +1029,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
               value={String(formData.status ?? 0)}
               onChange={(e) => setFormData((prev) => ({ ...prev, status: parseInt(e.target.value, 10) }))}
               className={`rounded-md border border-slate-200 bg-white text-slate-800 font-medium max-w-[9rem] truncate ${
-                compactUi ? `${bodyCls} py-0.5 pl-1 pr-6` : 'text-[10px] lg:text-xs py-1 pl-1.5 pr-7 lg:py-1.5'
+                `${bodyCls} py-0.5 pl-1 pr-6`
               }`}
               aria-label={jdCopy.panel.statusAria}
             >
@@ -1043,7 +1043,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
             disabled={saving || parseLoading}
             onClick={handleSaveJob}
             className={`inline-flex items-center gap-1 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold ${
-              compactUi ? `${bodyCls} text-white py-0.5 px-1.5` : 'text-[10px] lg:text-xs py-1.5 px-2 lg:py-2 lg:px-3 lg:rounded-lg'
+              `${bodyCls} py-0.5 px-1.5 text-white`
             }`}
           >
             {saving ? <Loader2 className={`${iconCls} animate-spin`} /> : <Save className={iconCls} />}
@@ -1053,7 +1053,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       </div>
 
       {error && (
-        <div className={`shrink-0 mx-3 mt-2 rounded-lg bg-rose-50 border border-rose-100 text-rose-700 px-3 py-2 ${compactUi ? bodyCls : 'text-[11px]'}`}>
+        <div className={`mx-3 mt-2 shrink-0 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-rose-700 ${bodyCls}`}>
           {error}
         </div>
       )}
@@ -1075,7 +1075,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 <h3 className={`${titleCls} mb-1.5 ${compactUi ? '' : 'lg:mb-2'}`}>
                   {isEditingSavedJob ? jdCopy.panel.greetingEdit : jdCopy.panel.greetingCreate}
                 </h3>
-                <p className={`${mutedCls} max-w-md leading-relaxed ${compactUi ? '' : 'text-xs lg:text-sm'}`}>
+                <p className={`${mutedCls} max-w-md leading-relaxed`}>
                   {isEditingSavedJob ? jdCopy.panel.greetingBodyEdit : jdCopy.panel.greetingBodyCreate}
                 </p>
               </div>
@@ -1084,7 +1084,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 {messages.map((msg) => {
                   const isUser = msg.role === 'user';
                   const bubblePad = compactUi ? 'px-2.5 py-1.5 rounded-lg' : 'px-3 py-2 lg:px-4 lg:py-2.5 rounded-xl lg:rounded-2xl';
-                  const msgText = compactUi ? bodyCls : 'text-[12px] lg:text-[13px] text-slate-800';
+                  const msgText = bodyCls;
                   const avatar = compactUi ? hitCls : 'w-7 h-7 lg:w-8 lg:h-8';
                   const iconInAvatar = iconCls;
                   return (
@@ -1111,7 +1111,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                   );
                 })}
                 {loading && (
-                  <div className={`flex gap-2 items-center w-full ${compactUi ? `${mutedCls}` : 'text-[11px] lg:text-[12px] text-slate-400 lg:gap-3'}`}>
+                  <div className={`flex w-full items-center gap-2 ${mutedCls} lg:gap-3`}>
                     <Loader2 className={`${iconCls} animate-spin`} />
                     AI đang suy nghĩ...
                   </div>
@@ -1130,7 +1130,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                   disabled={loading}
                   onClick={() => sendMessage(q)}
                   className={`font-medium px-2 py-1 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 shadow-sm ${
-                    compactUi ? bodyCls : 'text-[10px] lg:text-[11px] lg:px-3 lg:py-1.5'
+                    bodyCls
                   }`}
                 >
                   {q}
@@ -1171,7 +1171,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 placeholder={jdCopy.panel.inputPlaceholder}
                 disabled={parseLoading}
                 className={`flex-1 min-w-0 resize-none bg-transparent outline-none placeholder:text-slate-400 max-h-28 disabled:opacity-50 leading-normal ${
-                  compactUi ? `${bodyCls} text-slate-800 py-1.5` : 'text-[12px] lg:text-[13px] text-slate-800 py-1.5 lg:py-2'
+                  `${bodyCls} py-1.5 text-slate-800`
                 }`}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -1189,7 +1189,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 <Send className={iconCls} />
               </button>
               </div>
-              <p className={`text-center mt-1 lg:mt-1.5 leading-tight px-2 ${compactUi ? mutedCls : 'text-[8px] lg:text-[9px] text-slate-400'}`}>
+              <p className={`${mutedCls} mt-1 px-2 text-center leading-tight lg:mt-1.5`}>
                 {jdCopy.panel.inputHint}
               </p>
             </div>

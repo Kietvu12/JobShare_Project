@@ -31,7 +31,7 @@ export default function BusinessAppLanguageSwitcher({
             key={lang.code}
             type="button"
             onClick={() => changeLanguage(lang.code)}
-            className={`flex h-6 w-6 items-center justify-center rounded-md text-[8px] font-bold uppercase transition-colors ${
+            className={`flex h-6 w-6 items-center justify-center rounded-md biz-ui-micro font-bold uppercase transition-colors ${
               language === lang.code ? activeClass : 'text-slate-500 hover:bg-[#e8f4fa] hover:text-[#0077B6]'
             }`}
             aria-label={lang.label}
@@ -49,7 +49,7 @@ export default function BusinessAppLanguageSwitcher({
     return (
       <div className={className}>
         {showLabel && label ? (
-          <p className="mb-1.5 px-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+          <p className="mb-1.5 px-0.5 biz-ui-micro font-semibold uppercase tracking-wide text-slate-400">{label}</p>
         ) : null}
         <div className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1.5">
           <Globe className="h-3.5 w-3.5 shrink-0 text-[#0077B6]" aria-hidden />
@@ -59,7 +59,7 @@ export default function BusinessAppLanguageSwitcher({
                 key={lang.code}
                 type="button"
                 onClick={() => changeLanguage(lang.code)}
-                className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase transition-colors ${
+                className={`rounded px-2 py-0.5 biz-ui-caption font-bold uppercase transition-colors ${
                   language === lang.code ? activeClass : idleClass
                 }`}
                 aria-label={lang.label}
@@ -77,7 +77,7 @@ export default function BusinessAppLanguageSwitcher({
   return (
     <div className={className}>
       {showLabel && label ? (
-        <p className="mb-1.5 px-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+        <p className="mb-1.5 px-0.5 biz-ui-micro font-semibold uppercase tracking-wide text-slate-400">{label}</p>
       ) : null}
       <div
         className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5"
@@ -89,7 +89,7 @@ export default function BusinessAppLanguageSwitcher({
             key={lang.code}
             type="button"
             onClick={() => changeLanguage(lang.code)}
-            className={`rounded-md px-2 py-1 text-[10px] font-bold uppercase transition-colors ${
+            className={`rounded-md px-2 py-1 biz-ui-caption font-bold uppercase transition-colors ${
               language === lang.code ? activeClass : idleClass
             }`}
             aria-label={lang.label}

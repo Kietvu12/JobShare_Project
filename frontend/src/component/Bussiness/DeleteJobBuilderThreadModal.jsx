@@ -60,14 +60,14 @@ export default function DeleteJobBuilderThreadModal({
           />
           <h2
             id="delete-job-thread-title"
-            className="text-[13px] font-bold leading-snug text-slate-900"
+            className="biz-ui-section leading-snug text-slate-900"
           >
             Bạn có chắc muốn xóa phiên chat này?
           </h2>
-          <p className="mt-2 line-clamp-3 text-[11px] font-medium leading-relaxed text-slate-600">
+          <p className="biz-ui-body mt-2 line-clamp-3 font-medium leading-relaxed text-slate-600">
             &ldquo;{title}&rdquo;
           </p>
-          <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+          <p className="biz-ui-caption mt-2 leading-relaxed text-slate-500">
             {hasJob
               ? 'Phiên chat, bản nháp local và JD đã lưu trên hệ thống sẽ bị xóa. Không thể xóa JD đã có đơn ứng tuyển/tiến cử.'
               : 'Chat và bản nháp local sẽ bị xóa. Chưa có JD lưu trên hệ thống.'}
@@ -77,7 +77,7 @@ export default function DeleteJobBuilderThreadModal({
             type="button"
             disabled={confirming}
             onClick={() => onConfirm?.()}
-            className="mt-5 w-full rounded-full border-2 px-4 py-2 text-[11px] font-bold transition hover:bg-slate-50 disabled:opacity-60"
+            className="biz-ui-body mt-5 w-full rounded-full border-2 px-4 py-2 font-bold transition hover:bg-slate-50 disabled:opacity-60"
             style={{ borderColor: BRAND, color: BRAND }}
           >
             {confirming ? 'Đang xóa…' : 'Có, xóa phiên'}
@@ -86,7 +86,7 @@ export default function DeleteJobBuilderThreadModal({
             type="button"
             disabled={confirming}
             onClick={() => onClose?.()}
-            className="mt-2.5 text-[11px] font-semibold disabled:opacity-50"
+            className="biz-ui-body mt-2.5 font-semibold disabled:opacity-50"
             style={{ color: BRAND }}
           >
             Hủy

@@ -19,7 +19,6 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
-import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont';
 import apiService from '../../services/api';
 import BusinessAppLanguageSwitcher from './BusinessAppLanguageSwitcher';
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy';
@@ -35,11 +34,11 @@ const I18N = {
     dashboard: 'Dashboard',
     jobManagement: 'Quản lý JD',
     candidateManagement: 'Hồ sơ ứng viên',
-    candidateScoutCredit: 'Scout',
+    candidateScoutCredit: 'Scout Trực Tiếp',
     candidateScoutPerformance: 'Scout Ủy Thác',
     applications: 'Quản lý tiến cử',
     services: 'Dịch vụ',
-    scout: 'Scout',
+    scout: 'Scout Trực Tiếp',
     saiyo: 'Thương hiệu Tuyển dụng',
     partnerCTV: 'Mạng lưới Đối tác Tuyển dụng',
     messages: 'Tin nhắn',
@@ -288,8 +287,8 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
       }`;
     }
     const sizeClass = nested
-      ? 'gap-1.5 rounded-lg py-1 pl-3.5 pr-2 text-[10px]'
-      : 'gap-2 rounded-xl px-2.5 py-1.5 text-[10px]';
+      ? 'gap-1.5 rounded-lg py-1 pl-3.5 pr-2 biz-ui-nav'
+      : 'gap-2 rounded-xl px-2.5 py-1.5 biz-ui-nav';
     return `flex items-center font-medium transition-all duration-200 ${sizeClass} ${
       active
         ? 'bg-[#0077B6] font-semibold !text-white shadow-sm [&_svg]:!text-white'
@@ -300,7 +299,7 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
   };
 
   const nestedDashClass = (active) =>
-    `w-2.5 shrink-0 text-center text-[9px] ${active ? 'text-white/90' : 'text-slate-400'}`;
+    `w-2.5 shrink-0 text-center biz-ui-micro ${active ? 'text-white/90' : 'text-slate-400'}`;
 
   const nestedBulletClass = (active) =>
     `mt-[0.35rem] h-1.5 w-1.5 shrink-0 rounded-full ${
@@ -321,7 +320,7 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
     <Link
       key={key}
       to={to}
-      className={`flex items-start gap-2 rounded-lg py-1 pl-6 pr-2 text-[10px] font-medium transition-all duration-200 ${
+      className={`flex items-start gap-2 rounded-lg py-1 pl-6 pr-2 biz-ui-nav font-medium transition-all duration-200 ${
         isLinkActive
           ? 'bg-[#0077B6] font-semibold !text-white shadow-sm'
           : 'text-slate-600 hover:bg-slate-50'
@@ -383,7 +382,7 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
         <div key={section.label || `section-${sectionIndex}`}>
           {sectionIndex > 0 && <NavSpacer collapsed={!showExpanded} />}
           {showExpanded && section.label && (
-            <div className="px-2.5 pb-1 pt-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+            <div className="px-2.5 pb-1 pt-0.5 biz-ui-micro font-semibold uppercase tracking-wide text-slate-400">
               {t[section.label]}
             </div>
           )}
@@ -431,31 +430,31 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
             <div className="flex items-center gap-2.5">
               <div className="relative flex shrink-0 items-center justify-center">
                 <RecruitmentDonut percent={healthScore} size={44} strokeWidth={5} />
-                <span className="absolute text-[10px] font-bold leading-none text-slate-800">
+                <span className="absolute biz-ui-caption font-bold leading-none text-slate-800">
                   {healthLoading ? '…' : healthScore}
                 </span>
               </div>
               <div className="min-w-0 flex-1 leading-snug">
-                <div className="text-[8px] font-semibold uppercase tracking-wide text-slate-400">
+                <div className="biz-ui-micro font-semibold uppercase tracking-wide text-slate-400">
                   {t.recruitmentHealth}
                 </div>
-                <div className="text-[11px] font-bold text-slate-800">
+                <div className="biz-ui-section font-bold text-slate-800">
                   {healthLoading ? t.healthLoading : `${healthScore}% · ${healthSummaryDays}`}
                 </div>
-                <div className="text-[9px] text-[#0077B6]">
+                <div className="biz-ui-micro text-[#0077B6]">
                   {healthLoading ? '…' : healthRatingLabel}
                 </div>
               </div>
             </div>
 
-            <p className="biz-sidebar-health-footnote mt-1.5 text-[8px] leading-snug text-slate-400 [overflow-wrap:anywhere]">
+            <p className="biz-sidebar-health-footnote biz-ui-micro mt-1.5 leading-snug text-slate-400 [overflow-wrap:anywhere]">
               {t.healthScoreHint}
             </p>
           </div>
         ) : (
           <div className="relative flex items-center justify-center py-0.5">
             <RecruitmentDonut percent={healthScore} size={36} strokeWidth={4} />
-            <span className="absolute text-[8px] font-bold text-[#0077B6]">
+            <span className="absolute biz-ui-micro font-bold text-[#0077B6]">
               {healthLoading ? '…' : healthScore}
             </span>
           </div>
@@ -471,7 +470,6 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
   return (
     <>
       <style>{`
-        ${BUSINESS_UI_FONT_IMPORT}
         .business-sidebar-scroll::-webkit-scrollbar { display: none; }
         .business-sidebar-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         @media (max-height: 840px) {
@@ -481,10 +479,9 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
 
       {/* Desktop sidebar */}
       <aside
-        className={`relative hidden h-screen shrink-0 flex-col border-r border-slate-100 bg-white transition-[width] duration-300 ease-out lg:flex ${
+        className={`business-sidebar-ui relative hidden h-screen shrink-0 flex-col border-r border-slate-100 bg-white transition-[width] duration-300 ease-out lg:flex ${
           collapsed ? 'w-[56px]' : 'w-[210px]'
         }`}
-        style={{ fontFamily: BUSINESS_UI_FONT }}
       >
         <div
           className={`relative flex shrink-0 items-center justify-center bg-white px-2.5 py-2.5 ${
@@ -546,10 +543,9 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
           aria-label={t.closeMenu}
         />
         <aside
-          className={`absolute inset-y-0 left-0 flex w-[min(86vw,280px)] flex-col border-r border-slate-100 bg-white shadow-2xl transition-transform duration-300 ease-out ${
+          className={`business-sidebar-ui absolute inset-y-0 left-0 flex w-[min(86vw,280px)] flex-col border-r border-slate-100 bg-white shadow-2xl transition-transform duration-300 ease-out ${
             mobileOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
-          style={{ fontFamily: BUSINESS_UI_FONT }}
         >
           <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-3">
             <Link

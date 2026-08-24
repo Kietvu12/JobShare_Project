@@ -32,12 +32,12 @@ export default function CreditPackageCard({ pkg, selected, onSelect }) {
 
       <div className="flex w-full min-w-0 flex-col items-center gap-1">
         <div className="flex flex-wrap items-center justify-center gap-1">
-          <span className="text-[11px] font-bold sm:text-xs" style={{ color: pkg.accent }}>
+          <span className="biz-ui-body font-bold" style={{ color: pkg.accent }}>
             {pkg.name}
           </span>
           {pkg.discountLabel ? (
             <span
-              className="rounded-full px-1.5 py-px text-[9px] font-semibold sm:text-[10px]"
+              className="biz-ui-micro rounded-full px-1.5 py-px font-semibold"
               style={{
                 background: pkg.discountBadgeBg || pkg.iconBg || '#dcfce7',
                 color: pkg.discountBadgeColor || pkg.accent,
@@ -48,23 +48,23 @@ export default function CreditPackageCard({ pkg, selected, onSelect }) {
           ) : null}
         </div>
 
-        <span className="text-[10px] font-medium text-slate-800 sm:text-[11px]">
+        <span className="biz-ui-caption font-medium text-slate-800">
           {formatCreditAmount(pkg.credits)}
         </span>
 
-        <span className="mt-1.5 text-sm font-bold leading-tight text-slate-900 sm:mt-2 sm:text-base xl:mt-2.5 xl:text-lg">
+        <span className="biz-ui-stat mt-1.5 leading-tight text-slate-900 sm:mt-2 xl:mt-2.5">
           {formatYenAmount(pkg.priceYen)}
         </span>
 
         {pkg.originalPriceYen ? (
-          <span className="text-[9px] text-slate-400 line-through sm:text-[10px]">
+          <span className="biz-ui-micro text-slate-400 line-through">
             {formatYenAmount(pkg.originalPriceYen)}
           </span>
         ) : (
-          <span className="h-[1em] text-[9px] text-transparent" aria-hidden>—</span>
+          <span className="biz-ui-micro h-[1em] text-transparent" aria-hidden>—</span>
         )}
 
-        <span className="mt-0.5 px-1 text-[9px] leading-snug text-slate-500 sm:text-[10px]">
+        <span className="biz-ui-micro mt-0.5 px-1 leading-snug text-slate-500">
           (tương đương {pkg.profileOpens} lần mở hồ sơ)
         </span>
       </div>

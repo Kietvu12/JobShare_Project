@@ -23,6 +23,10 @@ import { collaboratorNotificationService } from '../../services/collaboratorNoti
 import { nominationEmailService } from '../../services/nominationEmailService.js';
 import { createNominationIntroMessages } from '../../services/nominationIntroMessageService.js';
 import { sendBusinessNewApplicationWithCv } from '../../services/businessApplicationEmailService.js';
+import {
+  getBusinessReferralInvoiceForApplication,
+  createBusinessReferralInvoice,
+} from '../../services/adminBusinessReferralInvoiceService.js';
 
 // Helper function to map model field names to database column names
 const mapOrderField = (fieldName) => {
@@ -1947,6 +1951,75 @@ export const jobApplicationController = {
     } catch (error) {
       next(error);
     }
-  }
+  },
+
+  /**
+   * Lấy yêu cầu thanh toán phí giới thiệu (BusinessInvoice) theo đơn tiến cử
+   * GET /api/admin/job-applications/:id/business-invoice
+   */
+  getBusinessReferralInvoice: async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const jobApplication = await JobApplication.findByPk(id);
+      if (!jobApplication) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy đơn ứng tuyển' });
+      }
+      const hasPermission = await checkAdminBackOfficePermission(req.admin, jobApplication);
+      if (!hasPermission) {
+        return res.status(403).json({
+          success: false,
+          message: 'Bạn không có quyền xem đơn ứng tuyển này.',
+        });
+      }
+      const invoice = await getBusinessReferralInvoiceForApplication(id);
+      return res.json({ success: true, data: { invoice } });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Admin tạo yêu cầu thanh toán phí giới thiệu cho doanh nghiệp
+   * POST /api/admin/job-applications/:id/business-invoice
+   */
+  createBusinessReferralInvoice: async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const { amount } = req.body || {};
+      const jobApplication = await JobApplication.findByPk(id);
+      if (!jobApplication) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy đơn ứng tuyển' });
+      }
+      const hasPermission = await checkAdminBackOfficePermission(req.admin, jobApplication);
+      if (!hasPermission) {
+        return res.status(403).json({
+          success: false,
+          message: 'Bạn không có quyền thao tác đơn ứng tuyển này.',
+        });
+      }
+      const result = await createBusinessReferralInvoice({
+        jobApplicationId: id,
+        amount,
+        adminId: req.admin?.id || null,
+      });
+      return res.status(201).json({
+        success: true,
+        message: 'Đã tạo yêu cầu thanh toán cho doanh nghiệp',
+        data: result,
+      });
+    } catch (error) {
+      if (error.statusCode === 409) {
+        return res.status(409).json({
+          success: false,
+          message: error.message,
+          data: { invoice: error.existingInvoice || null },
+        });
+      }
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      next(error);
+    }
+  },
 };
 

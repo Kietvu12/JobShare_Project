@@ -59,7 +59,7 @@ export default function BusinessQuickActionsPanel({ actions, onActionClick, titl
 
   return (
     <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
-      <h2 className="text-xs font-bold text-slate-900">{heading}</h2>
+      <h2 className="biz-ui-section text-slate-900">{heading}</h2>
       <div className="mt-2.5 flex flex-col gap-1">
         {actions.map((a) => {
           const Icon = a.icon;
@@ -74,9 +74,9 @@ export default function BusinessQuickActionsPanel({ actions, onActionClick, titl
                 <Icon className="h-3.5 w-3.5" strokeWidth={2} />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="line-clamp-2 text-[11px] font-semibold leading-snug text-slate-800">{a.title}</div>
+                <div className="biz-ui-body line-clamp-2 font-semibold leading-snug text-slate-800">{a.title}</div>
                 {a.desc ? (
-                  <div className="truncate text-[10px] text-slate-500">{a.desc}</div>
+                  <div className="biz-ui-caption truncate text-slate-500">{a.desc}</div>
                 ) : null}
               </div>
               <ArrowUpRight className="h-3 w-3 shrink-0 text-slate-300" />
