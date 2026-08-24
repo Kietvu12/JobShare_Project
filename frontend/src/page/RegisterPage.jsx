@@ -4,6 +4,13 @@ import apiService from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 import LandingPersonaSwitcher from '../component/Layout/LandingPersonaSwitcher';
 import LegalPoliciesSlidePanel from '../component/Shared/LegalPoliciesSlidePanel';
+import {
+  REGISTRATION_SOURCE_OPTIONS,
+  appendAcquisitionFieldsToPayload,
+  capturePageAttribution,
+  getStoredUtmParams,
+  utmSourceToRegistrationSource,
+} from '../utils/utmTracking';
 
 const HEADER_I18N = {
   vi: {
@@ -115,6 +122,11 @@ const PAGE_I18N = {
     successTitle: 'Đăng ký thành công!',
     successBody: 'Cảm ơn bạn đã đăng ký. Vui lòng mở email để bấm link xác thực, hệ thống sẽ tự động kích hoạt tài khoản cho bạn.',
     successLogin: 'Đăng nhập',
+    acquisitionTitle: 'Bạn biết đến JobShare từ đâu?',
+    acquisitionHint: 'Giúp chúng tôi hiểu kênh bạn tìm thấy nền tảng',
+    acquisitionPlaceholder: 'Chọn nguồn',
+    acquisitionOther: 'Mô tả thêm (nếu chọn Khác)',
+    acquisitionOtherPlaceholder: 'Vui lòng mô tả...',
   },
   en: {
     heroTitle: 'Collaborator Registration',
@@ -190,6 +202,11 @@ const PAGE_I18N = {
     successTitle: 'Registration successful!',
     successBody: 'Thank you for registering. Please open your email and click the verification link; the system will activate your account automatically.',
     successLogin: 'Log in',
+    acquisitionTitle: 'How did you hear about JobShare?',
+    acquisitionHint: 'Helps us understand which channel you found us through',
+    acquisitionPlaceholder: 'Select a source',
+    acquisitionOther: 'Please specify (if Other)',
+    acquisitionOtherPlaceholder: 'Tell us more...',
   },
   ja: {
     heroTitle: 'CTV登録',
@@ -258,6 +275,11 @@ const PAGE_I18N = {
     successTitle: '登録が完了しました！',
     successBody: 'ご登録ありがとうございます。メールを開いて認証リンクをクリックしてください。システムが自動でアカウントを有効化します。',
     successLogin: 'ログイン',
+    acquisitionTitle: 'JobShareをどこで知りましたか？',
+    acquisitionHint: 'どのチャネルからご覧になったか教えてください',
+    acquisitionPlaceholder: '選択してください',
+    acquisitionOther: '詳細（その他の場合）',
+    acquisitionOtherPlaceholder: '詳しくご記入ください...',
   },
 };
 
@@ -643,14 +665,30 @@ const RegisterPage = () => {
     bankName: '',
     bankAccount: '',
     bankAccountName: '',
+    registrationSource: '',
+    registrationSourceOther: '',
     agreeTerms: false,
   });
 
+  const [storedUtm, setStoredUtm] = useState(null);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [legalPanelOpen, setLegalPanelOpen] = useState(false);
+
+  useEffect(() => {
+    capturePageAttribution({
+      search: window.location.search,
+      referrer: document.referrer,
+    });
+    const utm = getStoredUtmParams();
+    setStoredUtm(utm);
+    if (utm?.utm_source) {
+      const src = utmSourceToRegistrationSource(utm.utm_source);
+      setForm((prev) => (prev.registrationSource ? prev : { ...prev, registrationSource: src }));
+    }
+  }, []);
 
   const set = (field) => (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -687,6 +725,20 @@ const RegisterPage = () => {
       if (!(form.tenCongTy || '').trim()) newErrors.tenCongTy = 'Tên công ty là bắt buộc';
       if (!(form.mst || '').trim()) newErrors.mst = 'Mã số thuế là bắt buộc';
       if (!(form.diaChiDN || '').trim()) newErrors.diaChiDN = 'Địa chỉ doanh nghiệp là bắt buộc';
+    }
+    if (!form.registrationSource) {
+      newErrors.registrationSource = language === 'en'
+        ? 'Please select how you heard about us'
+        : language === 'ja'
+          ? '情報源を選択してください'
+          : 'Vui lòng chọn nguồn bạn biết đến JobShare';
+    }
+    if (form.registrationSource === 'other' && !(form.registrationSourceOther || '').trim()) {
+      newErrors.registrationSourceOther = language === 'en'
+        ? 'Please describe your source'
+        : language === 'ja'
+          ? '詳細を入力してください'
+          : 'Vui lòng mô tả nguồn';
     }
 
     setErrors(newErrors);
@@ -738,10 +790,14 @@ const RegisterPage = () => {
       if ((form.diaChiDN || '').trim()) payload.append('businessAddress', (form.diaChiDN || '').trim());
       if (form.giayphepFile) payload.append('businessLicenseFile', form.giayphepFile);
       if (form.linhVucDN?.length) payload.append('companySectors', JSON.stringify(form.linhVucDN));
-      return payload;
+      return appendAcquisitionFieldsToPayload(payload, {
+        utm: storedUtm || getStoredUtmParams(),
+        registrationSource: form.registrationSource,
+        registrationSourceDetail: form.registrationSource === 'other' ? form.registrationSourceOther : '',
+      });
     }
 
-    return {
+    return appendAcquisitionFieldsToPayload({
       name: (form.hoTen || '').trim(),
       email: (form.email || '').trim(),
       password: form.password,
@@ -760,7 +816,11 @@ const RegisterPage = () => {
       hasExperience: form.kinhNghiem,
       yearsExperience: form.namKinhNghiem || undefined,
       sectors: form.linhVucCaNhan?.length ? form.linhVucCaNhan : undefined,
-    };
+    }, {
+      utm: storedUtm || getStoredUtmParams(),
+      registrationSource: form.registrationSource,
+      registrationSourceDetail: form.registrationSource === 'other' ? form.registrationSourceOther : '',
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -1112,6 +1172,41 @@ const RegisterPage = () => {
             )}
 
             {/* Mật khẩu đăng nhập */}
+            <hr style={css.divider} />
+            <div style={css.sectionTitle}>{pt.acquisitionTitle}</div>
+            <p style={css.subDesc}>{pt.acquisitionHint}</p>
+            <div style={css.field}>
+              <label style={css.label}>
+                {pt.acquisitionTitle} <span style={css.req}>*</span>
+              </label>
+              <FSelect
+                value={form.registrationSource}
+                onChange={set('registrationSource')}
+                error={!!errors.registrationSource}
+              >
+                <option value="">{pt.acquisitionPlaceholder}</option>
+                {REGISTRATION_SOURCE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.labels[language] || opt.labels.vi}
+                  </option>
+                ))}
+              </FSelect>
+              {errors.registrationSource && <p style={css.errText}>{errors.registrationSource}</p>}
+            </div>
+            {form.registrationSource === 'other' && (
+              <div style={css.field}>
+                <label style={css.label}>{pt.acquisitionOther}</label>
+                <FInput
+                  type="text"
+                  placeholder={pt.acquisitionOtherPlaceholder}
+                  value={form.registrationSourceOther}
+                  onChange={set('registrationSourceOther')}
+                  error={!!errors.registrationSourceOther}
+                />
+                {errors.registrationSourceOther && <p style={css.errText}>{errors.registrationSourceOther}</p>}
+              </div>
+            )}
+
             <hr style={css.divider} />
             <div style={css.sectionTitle}>{pt.loginPassword}</div>
             <div style={css.grid2}>

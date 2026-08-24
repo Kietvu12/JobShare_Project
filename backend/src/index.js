@@ -119,6 +119,12 @@ app.use(express.urlencoded({ extended: true, limit: '40mb' }));
 // Landing page HTML templates (frontend/template/)
 app.use('/template', express.static(path.join(__dirname, '../../frontend/template')));
 
+// CV fonts (Meiryo UI bundled in frontend/src/assets)
+app.use(
+  '/assets/cv-fonts/meiryo-ui',
+  express.static(path.join(__dirname, '../../frontend/src/assets/MeiryoUI/Meiryo UI/Web Fonts'))
+);
+
 // Serve static files (uploads)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
   setHeaders: (res, filePath) => {

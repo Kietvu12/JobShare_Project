@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { cpSync, existsSync } from 'node:fs'
 import sirv from 'sirv'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -42,6 +43,20 @@ function serveTemplateAssets() {
   }
 }
 
+/** pdf.js worker — luôn serve cùng origin (tránh CDN worker.jobshare.com lỗi fetch). */
+function copyPdfWorkerPlugin() {
+  const workerSrc = path.resolve(__dirname, 'node_modules/pdfjs-dist/build/pdf.worker.min.mjs')
+  const workerDest = path.resolve(__dirname, 'public/pdf.worker.min.js')
+  const copy = () => {
+    if (!existsSync(workerSrc)) return
+    cpSync(workerSrc, workerDest)
+  }
+  return {
+    name: 'copy-pdf-worker',
+    buildStart: copy,
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -57,7 +72,7 @@ export default defineConfig(({ mode }) => {
   const localApi = env.VITE_DEV_API_PROXY || 'http://localhost:3000'
 
   return {
-    plugins: [react(), tailwindcss(), serveTemplateAssets()],
+    plugins: [copyPdfWorkerPlugin(), react(), tailwindcss(), serveTemplateAssets()],
     resolve: {
       dedupe: ['react', 'react-dom'],
     },

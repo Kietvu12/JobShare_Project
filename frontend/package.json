@@ -7,11 +7,13 @@
   "scripts": {
     "predev": "node scripts/build-readycrew-landing-template.mjs && node scripts/build-readycrew-subpages.mjs",
     "dev": "vite",
-    "build": "node scripts/build-readycrew-landing-template.mjs && node scripts/build-readycrew-subpages.mjs && vite build",
+    "build": "node scripts/build-readycrew-landing-template.mjs && node scripts/build-readycrew-subpages.mjs && node scripts/copy-pdf-worker.mjs && vite build",
+    "postinstall": "node scripts/copy-pdf-worker.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/noto-sans-jp": "^5.3.0",
     "@reduxjs/toolkit": "^2.2.6",
     "@tailwindcss/vite": "^4.1.12",
     "crypto-js": "^4.2.0",
@@ -24,6 +26,7 @@
     "lucide-react": "^0.544.0",
     "mammoth": "^1.11.0",
     "modern-screenshot": "^4.7.0",
+    "pdfjs-dist": "^6.2.108",
     "quill": "^2.0.3",
     "react": "^19.1.1",
     "react-datepicker": "^7.3.0",

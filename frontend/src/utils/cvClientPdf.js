@@ -8,7 +8,7 @@ import {
   mmToPx,
 } from './cvPdfPagination.js';
 
-/** ~CV_PDF_PAGE_WIDTH_MM @ 96dpi — bề ngang trang PDF khi capture (gồm padding hai lề). */
+/** ~CV_PDF_PAGE_WIDTH_MM @ 96dpi — bề ngang trang PDF khi capture. */
 export const CV_PDF_CAPTURE_WIDTH_PX = Math.round(mmToPx(CV_PDF_PAGE_WIDTH_MM));
 
 /** Bù thêm chiều cao capture — viền dưới 1px của bảng cuối hay bị cắt khi domToCanvas. */
@@ -17,8 +17,50 @@ export const CV_PDF_CAPTURE_BORDER_BLEED_PX = 8;
 /** Đẩy layer capture ra ngoài viewport — vẫn layout/paint cho modern-screenshot. */
 export const CV_PDF_CAPTURE_OFFSCREEN_TRANSFORM = 'translateX(-200vw)';
 
+import {
+  CV_PDF_TABLE_FONT_SIZE,
+  CV_PDF_CHECKBOX_MARKER_PX,
+  CV_TPL_FONT_BODY,
+  CV_TPL_FONT_DENSE,
+  CV_TPL_FONT_WEIGHT,
+  CV_TPL_COLOR_TEXT,
+  createCvPdfCheckboxMarkerElement,
+  buildCvPdfCaptureTypographyCss,
+  ensureCvTemplateFontsLoaded,
+} from './cvTemplateTypography.js';
+
 /** Cỡ chữ nội dung bảng 職務経歴書 — đồng nhất khi capture PDF. */
-const CV_PDF_SHOKUMU_TABLE_FONT_SIZE = '11px';
+const CV_PDF_SHOKUMU_WORK_SECTION_BORDER_CSS = `
+  .cv-shokumu-work-section .cv-resizable-table-wrap table td,
+  .cv-shokumu-work-section .cv-resizable-table-wrap table th {
+    border: none !important;
+    border-right: 1px solid #1f2937 !important;
+    border-bottom: 1px solid #1f2937 !important;
+  }
+  .cv-shokumu-work-section .cv-resizable-table-wrap table td:last-child,
+  .cv-shokumu-work-section .cv-resizable-table-wrap table th:last-child {
+    border-right: none !important;
+  }
+  .cv-shokumu-work-section .cv-resizable-table-wrap table tr[data-cv-work-add-row] > td,
+  .cv-shokumu-work-section .cv-resizable-table-wrap table tr[data-cv-work-insert-row] > td {
+    border: none !important;
+  }
+  .cv-shokumu-work-section .cv-resizable-table-wrap table tr:has(+ tr[data-cv-work-add-row]) > td,
+  .cv-shokumu-work-section .cv-resizable-table-wrap table tr:has(+ tr[data-cv-work-insert-row]) > td,
+  .cv-shokumu-work-section .cv-resizable-table-wrap table tr:has(+ tr[data-cv-pdf-hidden-row="1"]) > td,
+  .cv-shokumu-work-section .cv-resizable-table-wrap table tbody tr:last-child:not([data-cv-work-add-row]):not([data-cv-work-insert-row]):not([data-cv-pdf-hidden-row="1"]) > td {
+    border-bottom: none !important;
+  }
+  .cv-shokumu-work-section .cv-resizable-table-wrap table tr[data-cv-work-project-row] > td {
+    border-bottom-style: dotted !important;
+    border-bottom-color: #9ca3af !important;
+  }
+  .cv-shokumu-work-section .cv-resizable-table-wrap table tr[data-cv-work-company-last] > td {
+    border-bottom-style: solid !important;
+    border-bottom-color: #1f2937 !important;
+  }
+`;
+const CV_PDF_SHOKUMU_TABLE_FONT_SIZE = CV_PDF_TABLE_FONT_SIZE;
 
 export const CV_TEMPLATE_DIR_MAP = {
   common: 'Common',
@@ -26,7 +68,10 @@ export const CV_TEMPLATE_DIR_MAP = {
   cv_technical: 'Technical',
 };
 
-export function resolveCvTemplatesForSave({ isAdmin, isApplicantProfile, cvTemplate }) {
+export function resolveCvTemplatesForSave({ isAdmin, isApplicantProfile, cvTemplate, activeCvTemplates }) {
+  if (Array.isArray(activeCvTemplates) && activeCvTemplates.length) {
+    return activeCvTemplates.filter((tpl) => CV_TEMPLATE_DIR_MAP[tpl]);
+  }
   if (isApplicantProfile) {
     const tpl = cvTemplate || 'common';
     return CV_TEMPLATE_DIR_MAP[tpl] ? [tpl] : ['common'];
@@ -39,9 +84,7 @@ export function resolveCvTemplatesForSave({ isAdmin, isApplicantProfile, cvTempl
 
 export async function waitForDocumentFonts() {
   try {
-    if (document.fonts?.ready) {
-      await document.fonts.ready;
-    }
+    await ensureCvTemplateFontsLoaded();
   } catch {
     /* ignore */
   }
@@ -77,7 +120,6 @@ function isCvPdfActionButton(btn) {
   const text = (btn.textContent || '').replace(/\s+/g, ' ').trim();
   const meta = `${text} ${btn.getAttribute('aria-label') || ''} ${btn.getAttribute('title') || ''}`;
   if (CV_PDF_ACTION_BUTTON_RE.test(meta)) return true;
-  if (text === '現在') return true;
   if (/\brose-500\b|\brose-600\b|\btext-rose-/.test(btn.className)) return true;
   if (btn.querySelector('svg[class*="lucide-trash"], svg[class*="lucide-plus"]')) return true;
 
@@ -109,22 +151,25 @@ function enhanceCheckboxForPdfCapture(input) {
   if (!(input instanceof HTMLInputElement) || input.type !== 'checkbox') return null;
   if (input.closest('.cv-pdf-hide')) return null;
 
-  const marker = document.createElement('span');
-  marker.dataset.cvPdfCheckboxMarker = '1';
-  marker.setAttribute('aria-hidden', 'true');
-  marker.textContent = input.checked ? '■' : '□';
-  Object.assign(marker.style, {
-    display: 'inline-block',
-    width: '11px',
-    height: '11px',
-    lineHeight: '11px',
-    fontSize: '10px',
-    textAlign: 'center',
-    verticalAlign: 'middle',
-    flexShrink: '0',
-    color: '#1f2937',
-    fontFamily: '"MS PMincho", "MS Mincho", "Yu Mincho", serif',
-  });
+  const marker = createCvPdfCheckboxMarkerElement(input.checked);
+
+  const label = input.closest('label');
+  const prevLabel = label ? {
+    fontSize: label.style.fontSize,
+    lineHeight: label.style.lineHeight,
+    display: label.style.display,
+    alignItems: label.style.alignItems,
+    gap: label.style.gap,
+  } : null;
+  if (label instanceof HTMLElement) {
+    Object.assign(label.style, {
+      display: 'inline-flex',
+      alignItems: 'center',
+      fontSize: CV_PDF_TABLE_FONT_SIZE,
+      lineHeight: '1.35',
+      gap: '0.35rem',
+    });
+  }
 
   const prev = {
     visibility: input.style.visibility,
@@ -157,6 +202,13 @@ function enhanceCheckboxForPdfCapture(input) {
     input.style.padding = prev.padding;
     input.style.opacity = prev.opacity;
     input.style.position = prev.position;
+    if (label instanceof HTMLElement && prevLabel) {
+      label.style.fontSize = prevLabel.fontSize;
+      label.style.lineHeight = prevLabel.lineHeight;
+      label.style.display = prevLabel.display;
+      label.style.alignItems = prevLabel.alignItems;
+      label.style.gap = prevLabel.gap;
+    }
   };
 }
 
@@ -166,6 +218,7 @@ function enhanceTextInputForPdfCapture(input) {
   const type = (input.type || 'text').toLowerCase();
   if (type === 'file' || type === 'checkbox' || type === 'radio' || type === 'hidden') return null;
   if (input.closest('.cv-pdf-hide')) return null;
+  if (input.closest('[data-cv-shokumu-period]')) return null;
 
   const value = String(input.value || '').trim();
   const marker = document.createElement('span');
@@ -180,7 +233,7 @@ function enhanceTextInputForPdfCapture(input) {
     font: 'inherit',
     fontSize: 'inherit',
     lineHeight: 'inherit',
-    color: value ? '#1f2937' : '#9ca3af',
+    color: value ? '#000000' : '#9ca3af',
     verticalAlign: 'baseline',
     minWidth: '0',
     textAlign: input.className.includes('text-center') ? 'center' : 'left',
@@ -252,7 +305,8 @@ function isInsideShokumuTable(el) {
 
 function resolveCvPdfContentFontSize(el, fonts) {
   if (isInsideShokumuTable(el)) return CV_PDF_SHOKUMU_TABLE_FONT_SIZE;
-  return fonts.fontSize;
+  if (el?.closest?.('.cv-tpl-dense, .cv-tpl-note')) return CV_TPL_FONT_DENSE;
+  return fonts.fontSize || CV_TPL_FONT_BODY;
 }
 
 /** modern-screenshot hay vẽ trùng chữ / lệch đậm nhạt với contentEditable — thay bằng span tĩnh. */
@@ -281,9 +335,9 @@ function enhanceContentEditableForPdfCapture(el) {
     fontFamily: fonts.fontFamily,
     fontSize: resolveCvPdfContentFontSize(el, fonts),
     lineHeight: fonts.lineHeight,
-    fontWeight: '400',
+    fontWeight: String(CV_TPL_FONT_WEIGHT),
     fontStyle: 'normal',
-    color: '#1f2937',
+    color: CV_TPL_COLOR_TEXT,
     textAlign: cs.textAlign,
     verticalAlign: 'baseline',
     minWidth: '0',
@@ -336,8 +390,8 @@ function enhanceCvSelectionButtonsForPdfCapture(root, restoreFns) {
       span.dataset.cvPdfSelectionValue = '1';
       span.textContent = (selected.textContent || '').replace(/\s+/g, ' ').trim();
       Object.assign(span.style, {
-        fontWeight: '400',
-        color: '#1f2937',
+        fontWeight: String(CV_TPL_FONT_WEIGHT),
+        color: CV_TPL_COLOR_TEXT,
         fontSize: getComputedStyle(selected).fontSize,
       });
       parent.appendChild(span);
@@ -458,10 +512,20 @@ function suppressScrollbarsForCapture(root, restoreFns) {
       word-break: keep-all !important;
       overflow-wrap: normal !important;
     }
-    [data-cv-pdf-capture-root] td:not(.whitespace-nowrap):not([data-cv-shokumu-period]),
+    [data-cv-pdf-capture-root] td:not(.whitespace-nowrap):not([data-cv-shokumu-period]):not([data-cv-tools-name-cell]),
     [data-cv-pdf-capture-root] th:not(.whitespace-nowrap) {
-      word-break: break-word !important;
+      word-break: keep-all !important;
       overflow-wrap: break-word !important;
+    }
+    [data-cv-pdf-capture-root] [data-cv-layout-key$="::tools_v2"] td,
+    [data-cv-pdf-capture-root] [data-cv-tools-name-cell],
+    [data-cv-pdf-capture-root] [data-cv-pdf-tools-flat] {
+      white-space: nowrap !important;
+      word-break: keep-all !important;
+      overflow-wrap: normal !important;
+    }
+    [data-cv-pdf-capture-root] [data-cv-shokumu-period] {
+      min-width: 12.5rem !important;
     }
     [data-cv-pdf-capture-root] td.whitespace-nowrap,
     [data-cv-pdf-capture-root] [data-cv-shokumu-period],
@@ -495,11 +559,13 @@ function suppressScrollbarsForCapture(root, restoreFns) {
     [data-cv-pdf-capture-root] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-editable-marker],
     [data-cv-pdf-capture-root] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-period-flat],
     [data-cv-pdf-capture-root] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-flat-cell] {
-      font-size: 11px !important;
+      font-size: ${CV_PDF_TABLE_FONT_SIZE} !important;
     }
+    ${buildCvPdfCaptureTypographyCss('[data-cv-pdf-capture-root]')}
+    ${CV_PDF_SHOKUMU_WORK_SECTION_BORDER_CSS.replace(/\.cv-shokumu-work-section/g, '[data-cv-pdf-capture-root] .cv-shokumu-work-section')}
     [data-cv-pdf-capture-root] [data-cv-pdf-flat-cell] {
-      font-weight: 400 !important;
-      color: #1f2937 !important;
+      font-weight: ${CV_TPL_FONT_WEIGHT} !important;
+      color: ${CV_TPL_COLOR_TEXT} !important;
       -webkit-font-smoothing: auto !important;
     }
     [data-cv-pdf-capture-root] .cv-resizable-table-wrap [role="separator"] {
@@ -702,6 +768,8 @@ const CV_PDF_FLAT_CELL_SKIP_SELECTOR = [
   'label',
   'select',
   '[data-cv-pdf-keep-structure]',
+  '[data-cv-pdf-tools-flat]',
+  '[data-cv-pdf-tools-box]',
 ].join(', ');
 
 function shouldSkipCvPdfFlatCell(cell) {
@@ -710,6 +778,7 @@ function shouldSkipCvPdfFlatCell(cell) {
   if (cell.hasAttribute('data-cv-pdf-keep-structure')) return true;
   if (cell.querySelector('[data-cv-pdf-keep-structure]')) return true;
   if (cell.hasAttribute('data-cv-shokumu-period')) return true;
+  if (cell.hasAttribute('data-cv-tools-name-cell')) return true;
   if (cell.querySelector(CV_PDF_FLAT_CELL_SKIP_SELECTOR)) return true;
   if (cell.querySelector('[data-cv-shokumu-cert-list], [data-cv-pdf-cert-flat]')) return true;
   if (cell.querySelector('input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"])')) return true;
@@ -738,7 +807,14 @@ function normalizeShokumuPeriodCaptureText(raw) {
 
 function readShokumuPeriodCellText(cell) {
   const scratch = cell.cloneNode(true);
-  scratch.querySelectorAll('button').forEach((btn) => btn.remove());
+  scratch.querySelectorAll('button').forEach((btn) => {
+    const label = (btn.textContent || '').replace(/\s+/g, ' ').trim();
+    if (label === '現在') {
+      btn.replaceWith(document.createTextNode('現在'));
+    } else {
+      btn.remove();
+    }
+  });
   return normalizeShokumuPeriodCaptureText(scratch.innerText || '');
 }
 
@@ -747,6 +823,12 @@ function flattenShokumuPeriodCellsForPdfCapture(root, restoreFns) {
   if (!(root instanceof HTMLElement)) return;
 
   root.querySelectorAll('[data-cv-shokumu-period]').forEach((cell) => {
+    cell.querySelectorAll('.cv-pdf-date-inline, .flex').forEach((wrap) => {
+      if (wrap instanceof HTMLElement) {
+        wrap.classList.add('cv-pdf-date-inline');
+      }
+    });
+
     const preset = (cell.getAttribute('data-cv-period-display') || '').trim();
     const text = preset || readShokumuPeriodCellText(cell);
     if (!text) return;
@@ -760,8 +842,8 @@ function flattenShokumuPeriodCellsForPdfCapture(root, restoreFns) {
       whiteSpace: 'nowrap',
       fontFamily: fonts.fontFamily,
       fontSize: CV_PDF_SHOKUMU_TABLE_FONT_SIZE,
-      fontWeight: '400',
-      color: '#1f2937',
+      fontWeight: String(CV_TPL_FONT_WEIGHT),
+      color: CV_TPL_COLOR_TEXT,
       letterSpacing: 0,
     });
 
@@ -773,6 +855,131 @@ function flattenShokumuPeriodCellsForPdfCapture(root, restoreFns) {
     restoreFns.push(() => {
       cell.innerHTML = prevHtml;
       cell.style.whiteSpace = prevWhiteSpace;
+    });
+  });
+}
+
+/** 使用可能ツール: bỏ layout checkbox flex — chỉ giữ tên tool (■/□) một dòng khi capture PDF. */
+function flattenToolsTableCellsForPdfCapture(root, restoreFns) {
+  if (!(root instanceof HTMLElement)) return;
+
+  root.querySelectorAll('[data-cv-tools-name-cell], [data-cv-layout-key$="::tools_v2"] td').forEach((cell) => {
+    const label = cell.querySelector('label');
+    if (!label) return;
+
+    const checkbox = label.querySelector('input[type="checkbox"]');
+    const scratch = label.cloneNode(true);
+    scratch.querySelectorAll('input, button, svg').forEach((node) => node.remove());
+    const toolName = String(scratch.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!toolName) return;
+
+    const flat = document.createElement('span');
+    flat.dataset.cvPdfToolsFlat = '1';
+    Object.assign(flat.style, {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '0.35rem',
+      whiteSpace: 'nowrap',
+      wordBreak: 'keep-all',
+      overflowWrap: 'normal',
+      fontSize: CV_PDF_TABLE_FONT_SIZE,
+      lineHeight: '1.35',
+      color: CV_TPL_COLOR_TEXT,
+    });
+    const box = createCvPdfCheckboxMarkerElement(Boolean(checkbox?.checked));
+    box.dataset.cvPdfToolsBox = '1';
+    const nameEl = document.createElement('span');
+    nameEl.textContent = toolName;
+    nameEl.style.fontSize = CV_PDF_TABLE_FONT_SIZE;
+    flat.append(box, nameEl);
+
+    const prevHtml = cell.innerHTML;
+    cell.innerHTML = '';
+    cell.appendChild(flat);
+    restoreFns.push(() => {
+      cell.innerHTML = prevHtml;
+    });
+  });
+}
+
+/** 保有資格 JLPT — gộp checkbox thành ■/□ lớn, đồng bộ template khi capture PDF. */
+function flattenFixedCertCheckboxCellsForPdfCapture(root, restoreFns) {
+  if (!(root instanceof HTMLElement)) return;
+
+  root.querySelectorAll('[data-cv-cert-jlpt-cell]').forEach((cell) => {
+    const labels = Array.from(cell.querySelectorAll('label'));
+    if (!labels.length) return;
+
+    const flat = document.createElement('div');
+    flat.dataset.cvCertJlptFlat = '1';
+    Object.assign(flat.style, {
+      display: 'flex',
+      flexWrap: 'nowrap',
+      justifyContent: 'center',
+      alignItems: 'center',
+      columnGap: '0.75rem',
+      rowGap: '0',
+      fontSize: CV_PDF_TABLE_FONT_SIZE,
+      lineHeight: '1.35',
+      color: CV_TPL_COLOR_TEXT,
+      whiteSpace: 'nowrap',
+    });
+
+    labels.forEach((label) => {
+      const cb = label.querySelector('input[type="checkbox"]');
+      const marker = label.querySelector('[data-cv-pdf-checkbox-marker="1"]');
+      const level = String(label.textContent || '')
+        .replace(/[■□]/g, '')
+        .replace(/\s+/g, '')
+        .trim();
+      if (!level) return;
+
+      const checked = Boolean(
+        cb?.checked
+        || marker?.style?.backgroundColor === 'rgb(31, 41, 55)'
+        || marker?.textContent?.includes('■')
+        || marker?.textContent?.includes('✓'),
+      );
+
+      const item = document.createElement('span');
+      Object.assign(item.style, {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.35rem',
+        fontSize: CV_PDF_TABLE_FONT_SIZE,
+        whiteSpace: 'nowrap',
+      });
+
+      const box = createCvPdfCheckboxMarkerElement(checked);
+      box.dataset.cvPdfCertBox = '1';
+
+      const text = document.createElement('span');
+      text.textContent = level;
+      text.style.fontSize = CV_PDF_TABLE_FONT_SIZE;
+
+      item.append(box, text);
+      flat.appendChild(item);
+    });
+
+    const prevHtml = cell.innerHTML;
+    cell.innerHTML = '';
+    cell.appendChild(flat);
+    restoreFns.push(() => {
+      cell.innerHTML = prevHtml;
+    });
+  });
+}
+
+/** Ghi đè inline font-size cũ (vd. 11px) trước khi chụp PDF. */
+function normalizeInlineTableFontSizesForPdfCapture(root, restoreFns) {
+  if (!(root instanceof HTMLElement)) return;
+
+  root.querySelectorAll('.cv-template-body table, .cv-template-body .cv-resizable-table-wrap, [data-cv-fixed-cert-table] table').forEach((el) => {
+    if (!(el instanceof HTMLElement)) return;
+    const prev = el.style.fontSize;
+    el.style.fontSize = CV_PDF_TABLE_FONT_SIZE;
+    restoreFns.push(() => {
+      el.style.fontSize = prev;
     });
   });
 }
@@ -831,8 +1038,8 @@ function flattenShokumuCertRowsForPdfCapture(root, restoreFns) {
       wordBreak: 'break-word',
       fontFamily: fonts.fontFamily,
       fontSize: CV_PDF_SHOKUMU_TABLE_FONT_SIZE,
-      fontWeight: '400',
-      color: '#1f2937',
+      fontWeight: String(CV_TPL_FONT_WEIGHT),
+      color: CV_TPL_COLOR_TEXT,
       lineHeight: '1.5',
       margin: '0',
       padding: '0',
@@ -900,22 +1107,28 @@ function flattenCvPdfTableCellsForCapture(root, restoreFns) {
 
     const prevHtml = cell.innerHTML;
     const cs = getComputedStyle(cell);
-    const textAlign = cs.textAlign === 'center' || cell.classList.contains('text-center')
+    const inWorkSection = cell.closest('.cv-shokumu-work-section');
+    const isPeriodCell = cell.hasAttribute('data-cv-shokumu-period');
+    let textAlign = cs.textAlign === 'center' || cell.classList.contains('text-center')
       ? 'center'
       : (cs.textAlign === 'right' || cell.classList.contains('text-right') ? 'right' : 'left');
+    if (inWorkSection && !isPeriodCell) {
+      textAlign = 'left';
+    }
 
     const flat = document.createElement('div');
     flat.dataset.cvPdfFlatCell = '1';
     flat.textContent = text;
     Object.assign(flat.style, {
       fontFamily: fonts.fontFamily,
-      fontSize: fonts.fontSize || '11px',
+      fontSize: fonts.fontSize || CV_TPL_FONT_BODY,
       lineHeight: '1.5',
-      fontWeight: '400',
+      fontWeight: String(CV_TPL_FONT_WEIGHT),
       fontStyle: 'normal',
-      color: '#1f2937',
+      color: CV_TPL_COLOR_TEXT,
       whiteSpace: 'pre-wrap',
-      wordBreak: 'break-word',
+      wordBreak: 'keep-all',
+      overflowWrap: 'break-word',
       textAlign,
       padding: '0',
       margin: '0',
@@ -947,9 +1160,9 @@ function flattenDateTripletsForPdfCapture(root, restoreFns) {
     Object.assign(flat.style, {
       whiteSpace: 'nowrap',
       fontFamily: fonts.fontFamily,
-      fontSize: fonts.fontSize || '10px',
-      fontWeight: '400',
-      color: '#1f2937',
+      fontSize: fonts.fontSize || CV_TPL_FONT_BODY,
+      fontWeight: String(CV_TPL_FONT_WEIGHT),
+      color: CV_TPL_COLOR_TEXT,
       letterSpacing: 0,
     });
 
@@ -969,6 +1182,8 @@ function preparePdfCaptureUi(root) {
   const restoreFns = [];
 
   applyFixedCertTablePdfLayout(root, restoreFns);
+
+  normalizeInlineTableFontSizesForPdfCapture(root, restoreFns);
 
   flattenShokumuCertRowsForPdfCapture(root, restoreFns);
 
@@ -1007,6 +1222,10 @@ function preparePdfCaptureUi(root) {
   });
 
   flattenShokumuPeriodCellsForPdfCapture(root, restoreFns);
+
+  flattenToolsTableCellsForPdfCapture(root, restoreFns);
+
+  flattenFixedCertCheckboxCellsForPdfCapture(root, restoreFns);
 
   root.querySelectorAll('input[type="checkbox"]').forEach((input) => {
     const restore = enhanceCheckboxForPdfCapture(input);
@@ -1273,24 +1492,18 @@ function mountCaptureClone(element) {
   sandbox.appendChild(clone);
   const styleEl = document.createElement('style');
   styleEl.textContent = `
-    [data-cv-pdf-capture-sandbox] .cv-template-body {
-      font-family: 'MS Mincho', 'MS 明朝', 'Yu Mincho', 'Hiragino Mincho ProN', serif !important;
-      font-weight: 400 !important;
-    }
-    [data-cv-pdf-capture-sandbox] .cv-template-body .font-bold,
-    [data-cv-pdf-capture-sandbox] .cv-template-body h2 {
-      font-weight: 700 !important;
-    }
+    ${buildCvPdfCaptureTypographyCss('[data-cv-pdf-capture-sandbox]')}
+    ${CV_PDF_SHOKUMU_WORK_SECTION_BORDER_CSS.replace(/\.cv-shokumu-work-section/g, '[data-cv-pdf-capture-sandbox] .cv-shokumu-work-section')}
     [data-cv-pdf-capture-sandbox] [data-cv-pdf-flat-cell],
     [data-cv-pdf-capture-sandbox] [data-cv-pdf-editable-marker],
     [data-cv-pdf-capture-sandbox] [data-cv-pdf-date-flat] {
-      font-weight: 400 !important;
+      font-weight: ${CV_TPL_FONT_WEIGHT} !important;
+      color: ${CV_TPL_COLOR_TEXT} !important;
     }
     [data-cv-pdf-capture-sandbox] .cv-pdf-date-inline,
     [data-cv-pdf-capture-sandbox] .cv-template-date-triplet {
       flex-wrap: nowrap !important;
       white-space: nowrap !important;
-      font-size: 10px !important;
     }
     [data-cv-pdf-capture-sandbox] .cv-template-date-triplet [contenteditable] {
       display: inline !important;
@@ -1315,15 +1528,21 @@ function mountCaptureClone(element) {
     }
     [data-cv-pdf-capture-sandbox] [data-cv-layout-key$="::personalGrid_v3"] .cv-template-date-triplet,
     [data-cv-pdf-capture-sandbox] [data-cv-layout-key$="::personalGrid_v3"] [data-cv-pdf-date-flat] {
-      font-size: 11px !important;
       letter-spacing: 0 !important;
     }
     [data-cv-pdf-capture-sandbox] td.whitespace-nowrap,
     [data-cv-pdf-capture-sandbox] [data-cv-shokumu-period],
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-period-flat] {
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-period-flat],
+    [data-cv-pdf-capture-sandbox] [data-cv-tools-name-cell],
+    [data-cv-pdf-capture-sandbox] [data-cv-pdf-tools-flat] {
       word-break: keep-all !important;
       overflow-wrap: normal !important;
       white-space: nowrap !important;
+    }
+    [data-cv-pdf-capture-sandbox] [data-cv-layout-key$="::tools_v2"] td {
+      white-space: nowrap !important;
+      word-break: keep-all !important;
+      overflow-wrap: normal !important;
     }
     [data-cv-pdf-capture-sandbox] .cv-resizable-table-wrap {
       overflow: visible !important;
@@ -1342,16 +1561,6 @@ function mountCaptureClone(element) {
     [data-cv-pdf-capture-sandbox] [data-cv-shokumu-cert-list],
     [data-cv-pdf-capture-sandbox] [data-cv-pdf-cert-flat] {
       border: none !important;
-    }
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap td,
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap th,
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap td *,
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap th *,
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-editable-marker],
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-period-flat],
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-flat-cell],
-    [data-cv-pdf-capture-sandbox] [data-cv-pdf-section="shokumu"] .cv-resizable-table-wrap [data-cv-pdf-cert-flat] {
-      font-size: 11px !important;
     }
   `;
   sandbox.appendChild(styleEl);

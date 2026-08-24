@@ -215,3 +215,12 @@ export function formatJobCommissionSummary(job, language = 'vi') {
     })
     .join('\n');
 }
+
+/** Thu nhỏ chữ tên điều kiện phí khi quá dài — tránh cắt bằng line-clamp. */
+export function commissionTierLabelFontClass(text) {
+  const len = String(text ?? '').trim().length;
+  if (len > 36) return 'text-[8px] sm:text-[9px]';
+  if (len > 24) return 'text-[9px] sm:text-[10px]';
+  if (len > 16) return 'text-[9px] sm:text-[10px]';
+  return 'text-[10px] sm:text-[11px]';
+}

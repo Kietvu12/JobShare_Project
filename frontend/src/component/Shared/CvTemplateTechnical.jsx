@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { ChevronDown, Plus, Trash2 } from 'lucide-react';
 import ResizableCvTable from './ResizableCvTable';
-import { cvLayoutKey } from './cvLayoutKey';
+import { alignRirekishoSectionColPercents, cvLayoutKey, CV_RIREKISHO_EDUCATION_COLS, CV_RIREKISHO_LANGUAGES_COLS, CV_RIREKISHO_PERSONAL_GRID_COLS, CV_RIREKISHO_TOOLS_COLS, normalizePersonalGridColPercents } from './cvLayoutKey';
+import { useSyncCvRirekishoLabelColWidth } from '../../hooks/useSyncCvRirekishoLabelColWidth.js';
 import { SupplementTplText } from './CvTemplateSupplementText.jsx';
 import { CV_LINK } from './cvSupplementLinks.js';
 import { SupplementMarkedText, SupplementFieldWrap } from './CandidateDetailSupplementMarks.jsx';
@@ -11,10 +12,12 @@ import {
   formatShokumuPeriodRangeJa,
   formatCvDocumentHeaderJa,
   formatCvAnyDateJa,
+  parseCvDateParts,
 } from '../../utils/cvJpDateDisplay.js';
 import CvTemplateItTechnicalCertTable from './CvTemplateItTechnicalCertTable.jsx';
 import { withEducationYearsCalculated, calculateEducationYearsFromDates } from '../../utils/cvEducationUtils.js';
 import CvTemplateDateTriplet from './CvTemplateDateTriplet.jsx';
+import CvTemplateAvatarFrame from './CvTemplateAvatarFrame.jsx';
 import {
   displayEditableScalarText,
   readContentEditableText,
@@ -24,8 +27,8 @@ import {
   TECH_EXPERIENCE_TOOLS_GRID,
   TECH_LEARNED_TOOLS_GRID,
   TECH_TOOLS_GRID_ROW_COUNT,
-  TECH_TOOLS_TABLE_COL_PERCENTS,
 } from '../../constants/technicalToolsGrid.js';
+import { CV_TPL_BODY_STYLE, CV_TPL_FONT_TITLE, CV_TPL_TABLE_STYLE } from '../../utils/cvTemplateTypography.js';
 
 const RESIDENCE_STATUS_LABELS = {
   '3': '留学',
@@ -57,7 +60,7 @@ const CV_TPL = 'cv_technical';
  *   cvEditable, cvEditableBirthDate, cvEditableArray, cvEditableWithDefault
  *   getDefaultCvDate
  *   updateEmployment, updateEmploymentPair
- *   handleAddWorkExperience, handleInsertWorkExperienceAt, handleInsertWorkExperienceBlockAt (bảng 職歴 Rirekisho)
+ *   handleAddWorkExperience, handleInsertWorkExperienceAt, handleInsertWorkExperienceBlockAt (bảng 職歴 Rirekisho / 職務経歴 Shokumu)
  *   handleBackendPreviewWithOptions
  *   avatarPreview
  *   onAvatarFileSelect — đồng bộ ảnh với parent (preview PDF / submit)
@@ -87,6 +90,8 @@ const CvTemplateTechnical = ({
   pdfExportMode = false,
   pdfSectionRefs = null,
   pdfCaptureParts = null,
+  hideInternalTabs = false,
+  forcedDocumentPart = null,
 }) => {
   const layout = formData.cvTableLayout || {};
   const currentAvatarPreview = formData.avatarPreview || avatarPreview;
@@ -124,11 +129,7 @@ const CvTemplateTechnical = ({
     const m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
     return m ? { y: m[1], mo: String(parseInt(m[2], 10)).padStart(2, '0'), d: String(parseInt(m[3], 10)).padStart(2, '0') } : { y: '', mo: '', d: '' };
   })();
-  const visaExpiryParts = (() => {
-    const raw = String(formData.visaExpirationDate || '').trim();
-    const m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-    return m ? { y: m[1], mo: String(parseInt(m[2], 10)).padStart(2, '0'), d: String(parseInt(m[3], 10)).padStart(2, '0') } : { y: '', mo: '', d: '' };
-  })();
+  const visaExpiryParts = parseCvDateParts(formData.visaExpirationDate);
   const birthYearRef = React.useRef(null);
   const birthMonthRef = React.useRef(null);
   const birthDayRef = React.useRef(null);
@@ -142,6 +143,14 @@ const CvTemplateTechnical = ({
   const eduEndMonthRefs = React.useRef([]);
   const colSaved = (tab, tableId, fallback) =>
     layout[cvLayoutKey(CV_TPL, tab, tableId)]?.cols ?? fallback;
+  const personalGridCols = normalizePersonalGridColPercents(
+    colSaved('rirekisho', 'personalGrid_v3', CV_RIREKISHO_PERSONAL_GRID_COLS),
+  );
+  const sideLabelPct = personalGridCols[0] ?? CV_RIREKISHO_PERSONAL_GRID_COLS[0];
+  const sectionCols = (tab, tableId, fallback) =>
+    alignRirekishoSectionColPercents(colSaved(tab, tableId, fallback), sideLabelPct);
+  const rirekishoBodyRef = React.useRef(null);
+  useSyncCvRirekishoLabelColWidth(rirekishoBodyRef, [layout, sideLabelPct]);
   const sm = (templateFieldKey, formFieldKey) => ({ templateFieldKey, formFieldKey });
   const cvEditable = (field, className = '', style = {}, supp = null) =>
     cvEditableRaw(field, className, style, supp || sm(`tpl-it-${field}`, field));
@@ -217,6 +226,10 @@ const CvTemplateTechnical = ({
     const isFocused = focusedInlineField === fieldKey;
     const stored = String(storedValue ?? '').replace(/\r\n?/g, '\n');
     const showText = displayEditableScalarText(stored, options.emptyPlaceholder ?? '　');
+    const blurDisplayText =
+      options.displayText != null
+        ? displayEditableScalarText(String(options.displayText), options.emptyPlaceholder ?? '　')
+        : showText;
 
     return {
       contentEditable: true,
@@ -232,15 +245,15 @@ const CvTemplateTechnical = ({
       onContextMenu: options.onContextMenu,
       ref: (node) => {
         if (!node || isFocused || document.activeElement === node) return;
-        const next = showText;
+        const next = blurDisplayText;
         if (node.textContent !== next) node.textContent = next;
       },
       onFocus: (e) => {
         setFocusedInlineField(fieldKey);
         const el = e.currentTarget;
-        const t = stored.trimEnd() ? stored : '';
+        const t = stored.trim() ? stored : '';
         requestAnimationFrame(() => {
-          if (el && document.activeElement === el) el.textContent = t || showText;
+          if (el && document.activeElement === el) el.textContent = t;
         });
       },
       onInput: (e) => {
@@ -282,6 +295,11 @@ const CvTemplateTechnical = ({
       children: (!isFocused && useMarks) ? markedContent : undefined,
     };
   }, [focusedInlineField, formData.adminSupplementMarks, makeInlineEditable, supplementMarking?.onFieldContextMenu]);
+
+  const addressCombinedDisplay = [
+    formData.postalCode ? `〒${formData.postalCode}` : '',
+    formData.address || '',
+  ].filter(Boolean).join(' ');
 
   const LANGUAGE_LEVEL_FIELDS = ['jpConversationLevel', 'enConversationLevel', 'otherConversationLevel'];
   const LANGUAGE_LEVEL_OPTIONS = [
@@ -326,9 +344,9 @@ const CvTemplateTechnical = ({
       educations: [...(prev.educations || []), { school_name: '', major: '', year: '', month: '', endYear: '', endMonth: '', years: '' }],
     }));
   };
-  const eduTextCellClass = 'block w-full max-w-full break-words whitespace-pre-wrap';
-  const eduTextCellStyle = { display: 'block', width: '100%', maxWidth: '100%', wordBreak: 'break-word', overflowWrap: 'anywhere' };
-  const eduWrapTdStyle = { borderColor: '#1f2937', wordBreak: 'break-word', overflowWrap: 'anywhere' };
+  const eduTextCellClass = 'block w-full max-w-full break-words whitespace-pre-wrap text-center';
+  const eduTextCellStyle = { display: 'block', width: '100%', maxWidth: '100%', wordBreak: 'keep-all', overflowWrap: 'break-word' };
+  const eduWrapTdStyle = { borderColor: '#1f2937', wordBreak: 'keep-all', overflowWrap: 'break-word' };
   const syncEducationContent = (edu) => edu;
   const normalizeEduPart = (value, maxLen) => String(value || '').replace(/\D/g, '').slice(0, maxLen);
   const moveCaretToEnd = (el) => {
@@ -361,14 +379,16 @@ const CvTemplateTechnical = ({
       return { ...prev, educations: list };
     });
   };
-  const captureParts = pdfCaptureParts || ['rirekisho', 'shokumu'];
-  const useCapturePartsVisibility = pdfExportMode || pdfCaptureParts != null;
+  const captureParts = forcedDocumentPart
+    ? [forcedDocumentPart]
+    : (pdfCaptureParts || ['rirekisho', 'shokumu']);
+  const useCapturePartsVisibility = pdfExportMode || pdfCaptureParts != null || forcedDocumentPart != null;
   const showRirekisho = useCapturePartsVisibility ? captureParts.includes('rirekisho') : activeTab === 'rirekisho';
   const showShokumu = useCapturePartsVisibility ? captureParts.includes('shokumu') : activeTab === 'shokumu';
   return (
-    <div style={{ fontFamily: '"MS PMincho", "MS Mincho", "Yu Mincho", "Hiragino Mincho ProN", serif' }}>
+    <div>
       {/* Tab buttons */}
-      {!pdfExportMode && (
+      {!pdfExportMode && !hideInternalTabs && !forcedDocumentPart && (
       <div className="flex border-b mb-2 -mt-0.5 font-bold" style={{ borderColor: '#e5e7eb' }}>
         <button
           type="button"
@@ -414,9 +434,9 @@ const CvTemplateTechnical = ({
             </button>
           </div>
           )}
-          <div className="w-full min-w-0 max-w-full cv-template-body" style={{ fontSize: '11px', color: '#1f2937', fontFamily: "'MS Mincho', 'MS 明朝', 'Yu Mincho', 'Hiragino Mincho ProN', serif" }}>
+          <div ref={rirekishoBodyRef} className="w-full min-w-0 max-w-full cv-template-body" style={CV_TPL_BODY_STYLE}>
             <ResizableCvTable
-              colPercents={colSaved('rirekisho', 'personalGrid_v3', [10, 25, 8, 15, 10, 14, 18])}
+              colPercents={personalGridCols}
               className="w-full border-collapse cv-personal-grid-v3"
               style={{ borderColor: '#1f2937' }}
               layoutKey={cvLayoutKey(CV_TPL, 'rirekisho', 'personalGrid_v3')}
@@ -424,19 +444,19 @@ const CvTemplateTechnical = ({
             >
               <tbody>
                 <tr>
-                  <td colSpan={7} className="border p-2 text-center font-bold" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
+                  <td colSpan={7} className="border p-2 text-center font-bold cv-tpl-doc-title" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-rirekisho-banner" text="履歴書" supplementMarking={supplementMarking} className="select-text inline min-w-0" />
                   </td>
                 </tr>
                 <tr>
-                  <td className="border px-0.5 py-1 font-normal text-center leading-tight text-[10px] whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
+                  <td className="border px-0.5 py-1 font-normal text-center leading-tight cv-tpl-side-label whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-furigana" text="フリガナ" supplementMarking={supplementMarking} linkedFieldKeys={[CV_LINK.nameKana]} className="select-text inline" />
                   </td>
                   <td className="border p-1.5 bg-white min-w-0" style={{ borderColor: '#1f2937' }}><span {...cvEditable('nameKana', '')} /></td>
-                  <td className="border px-0.5 py-1 font-normal text-center leading-tight text-[10px] whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
+                  <td className="border px-0.5 py-1 font-normal text-center leading-tight cv-tpl-side-label whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-seinengappi" text="生年月日" supplementMarking={supplementMarking} linkedFieldKeys={[CV_LINK.birthDate]} className="select-text inline" />
                   </td>
-                  <td className="border px-0.5 py-1 bg-white min-w-0 whitespace-nowrap" style={{ borderColor: '#1f2937' }}>
+                  <td className="border px-0.5 py-1 bg-white min-w-0 cv-personal-date-cell" style={{ borderColor: '#1f2937' }}>
                     <CvTemplateDateTriplet
                       field="birthDate"
                       refs={{ y: birthYearRef, mo: birthMonthRef, d: birthDayRef }}
@@ -445,18 +465,30 @@ const CvTemplateTechnical = ({
                       onCommit={commitDateField}
                       onClearError={clearDateError}
                       isBirthField
+                      compact
                     />
                   </td>
-                  <td className="border px-0.5 py-1 font-normal text-center leading-tight text-[10px] whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
+                  <td className="border px-0.5 py-1 font-normal text-center leading-tight cv-tpl-side-label whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-nenrei" text="年齢" supplementMarking={supplementMarking} linkedFieldKeys={[CV_LINK.age]} className="select-text inline" />
                   </td>
                   <td className="border p-1 bg-white min-w-0" style={{ borderColor: '#1f2937' }}><span {...cvEditable('age', '')} /></td>
-                  <td rowSpan={5} className="border p-1.5 align-middle text-center" style={{ borderColor: '#1f2937', verticalAlign: 'middle' }}>
+                  <td rowSpan={5} className="border p-1 align-middle text-center cv-personal-avatar-col" style={{ borderColor: '#1f2937', verticalAlign: 'middle' }}>
                     <div className="flex flex-col items-center gap-1.5">
                       {currentAvatarPreview ? (
-                        <div style={{ height: '5.5rem', width: '4.125rem', overflow: 'hidden', margin: '0 auto' }}>
-                          <img src={currentAvatarPreview} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', aspectRatio: '3/4', display: 'block' }} />
-                        </div>
+                        <CvTemplateAvatarFrame
+                          src={currentAvatarPreview}
+                          frame={layout.avatarFrame}
+                          onFrameChange={(nextFrame) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              cvTableLayout: { ...(prev.cvTableLayout || {}), avatarFrame: nextFrame },
+                            }))
+                          }
+                          width="4.125rem"
+                          height="5.5rem"
+                          interactive={!pdfExportMode}
+                          className="mx-auto"
+                        />
                       ) : (
                         <span className="text-gray-500 text-xs">&lt;顔写真&gt;</span>
                       )}
@@ -470,74 +502,78 @@ const CvTemplateTechnical = ({
                   </td>
                 </tr>
                 <tr>
-                  <td className="border px-0.5 py-1 font-normal text-center leading-tight text-[10px] whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
+                  <td className="border px-0.5 py-1 font-normal text-center leading-tight cv-tpl-side-label whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-shimei" text="氏名" supplementMarking={supplementMarking} linkedFieldKeys={[CV_LINK.nameKanji]} className="select-text inline" />
                   </td>
                   <td className="border p-1.5 bg-white min-w-0" style={{ borderColor: '#1f2937' }}><span {...cvEditable('nameKanji', '')} /></td>
-                  <td className="border px-0.5 py-1 font-normal text-center leading-tight text-[10px] whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
+                  <td className="border px-0.5 py-1 font-normal text-center leading-tight cv-tpl-side-label whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-label-gender" text="性別" supplementMarking={supplementMarking} linkedFieldKeys={['gender']} className="select-text inline" />
                   </td>
                   <td className="border p-1 bg-white min-w-0" style={{ borderColor: '#1f2937' }}>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5">
                       <label className="flex items-center gap-1 text-xs cursor-pointer shrink-0"><input type="checkbox" className="rounded" checked={formData.gender === '男'} onChange={() => setFormData(prev => ({ ...prev, gender: '男' }))} /> 男</label>
                       <label className="flex items-center gap-1 text-xs cursor-pointer shrink-0"><input type="checkbox" className="rounded" checked={formData.gender === '女'} onChange={() => setFormData(prev => ({ ...prev, gender: '女' }))} /> 女</label>
                     </div>
                   </td>
-                  <td className="border px-0.5 py-1 font-normal text-center leading-tight text-[10px] whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
+                  <td className="border px-0.5 py-1 font-normal text-center leading-tight cv-tpl-side-label whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-label-passport" text="パスポート" supplementMarking={supplementMarking} linkedFieldKeys={['passport']} className="select-text inline" />
                   </td>
                   <td className="border p-1 bg-white min-w-0" style={{ borderColor: '#1f2937' }}>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5">
                       <label className="flex items-center gap-1 text-xs cursor-pointer shrink-0"><input type="checkbox" className="rounded" checked={formData.passport === '有' || formData.passport === '1'} onChange={() => setFormData(prev => ({ ...prev, passport: '有' }))} /> 有</label>
                       <label className="flex items-center gap-1 text-xs cursor-pointer shrink-0"><input type="checkbox" className="rounded" checked={formData.passport === '無' || formData.passport === '0'} onChange={() => setFormData(prev => ({ ...prev, passport: '無' }))} /> 無</label>
                     </div>
                   </td>
                 </tr>
                 <tr>
-                  <td className="border px-0.5 py-1 font-normal text-center leading-tight text-[10px] whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
+                  <td className="border px-0.5 py-1 font-normal text-center leading-tight cv-tpl-side-label whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-email" text="Email" supplementMarking={supplementMarking} linkedFieldKeys={[CV_LINK.email]} className="select-text inline" />
                   </td>
                   <td className="border p-1 bg-white min-w-0" style={{ borderColor: '#1f2937' }}><span {...cvEditable('email', '')} /></td>
-                  <td className="border px-0.5 py-1 font-normal text-center leading-tight text-[10px] whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
+                  <td className="border px-0.5 py-1 font-normal text-center leading-tight cv-tpl-side-label whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-denwa" text="電話" supplementMarking={supplementMarking} linkedFieldKeys={[CV_LINK.phone]} className="select-text inline" />
                   </td>
                   <td className="border p-1 bg-white min-w-0" style={{ borderColor: '#1f2937' }}><span {...cvEditable('phone', '')} /></td>
-                  <td className="border px-0.5 py-1 font-normal text-center leading-tight text-[10px] whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
+                  <td className="border px-0.5 py-1 font-normal text-center leading-tight cv-tpl-side-label whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-label-skypeId" text="Skype ID" supplementMarking={supplementMarking} linkedFieldKeys={['skypeId']} className="select-text inline" />
                   </td>
                   <td className="border p-1 bg-white min-w-0" style={{ borderColor: '#1f2937' }}><span {...cvEditable('skypeId', '')} /></td>
                 </tr>
                 <tr>
-                  <td className="border px-0.5 py-1 font-normal text-center leading-tight text-[10px] whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
+                  <td className="border px-0.5 py-1 font-normal text-center leading-tight cv-tpl-side-label whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-genju" text="現住所" supplementMarking={supplementMarking} linkedFieldKeys={[CV_LINK.postalCode, CV_LINK.address]} className="select-text inline" />
                   </td>
                   <td className="border p-1 bg-white min-w-0 text-center" style={{ borderColor: '#1f2937' }}>
                     <span
-                      {...cvEditable('address', 'block text-center')}
-                      children={undefined}
-                    >
-                      {renderMarked([
-                        formData.postalCode ? `〒${formData.postalCode}` : '',
-                        formData.address || ''
-                      ].filter(Boolean).join(' ') || '　', 'tpl-tech-genju', 'address', ['postalCode'])}
-                    </span>
+                      {...makeMarkedInlineEditable(
+                        'genju-address',
+                        formData.address || '',
+                        (v) => setFormData((prev) => ({ ...prev, address: v || '' })),
+                        renderMarked(addressCombinedDisplay || '　', 'tpl-tech-genju', 'address', ['postalCode']),
+                        {
+                          className: 'block text-center',
+                          displayText: addressCombinedDisplay,
+                          onContextMenu: (e) => supplementMarking?.onFieldContextMenu?.(e, 'address'),
+                        }
+                      )}
+                    />
                   </td>
-                  <td className="border px-0.5 py-1 font-normal text-center leading-tight text-[10px] whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
+                  <td className="border px-0.5 py-1 font-normal text-center leading-tight cv-tpl-side-label whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-label-addressOrigin" text="出身地" supplementMarking={supplementMarking} linkedFieldKeys={['addressOrigin']} className="select-text inline" />
                   </td>
                   <td className="border p-1 bg-white min-w-0" style={{ borderColor: '#1f2937' }}><span {...cvEditable('addressOrigin', '')} /></td>
-                  <td className="border px-0.5 py-1 font-normal text-center leading-tight text-[10px] whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
+                  <td className="border px-0.5 py-1 font-normal text-center leading-tight cv-tpl-side-label whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-label-hasSpouse" text="配偶者" supplementMarking={supplementMarking} linkedFieldKeys={['hasSpouse']} className="select-text inline" />
                   </td>
                   <td className="border p-1 bg-white min-w-0" style={{ borderColor: '#1f2937' }}>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5">
                       <label className="flex items-center gap-1 text-xs cursor-pointer shrink-0"><input type="checkbox" className="rounded" checked={formData.hasSpouse === '有'} onChange={() => setFormData(prev => ({ ...prev, hasSpouse: '有' }))} /> 有</label>
                       <label className="flex items-center gap-1 text-xs cursor-pointer shrink-0"><input type="checkbox" className="rounded" checked={formData.hasSpouse === '無'} onChange={() => setFormData(prev => ({ ...prev, hasSpouse: '無' }))} /> 無</label>
                     </div>
                   </td>
                 </tr>
                 <tr>
-                  <td className="border px-0.5 py-1 font-normal text-center leading-tight text-[10px] whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
+                  <td className="border px-0.5 py-1 font-normal text-center leading-tight cv-tpl-side-label whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-label-stayPurpose" text="日本滞在目的" supplementMarking={supplementMarking} linkedFieldKeys={['label-jpResidenceStatus', 'jpResidenceStatus']} className="select-text inline" />
                   </td>
                   <td className="border p-1 bg-white min-w-0 text-xs relative" style={{ borderColor: '#1f2937' }} colSpan={3}>
@@ -560,10 +596,10 @@ const CvTemplateTechnical = ({
                       </span>
                     </div>
                   </td>
-                  <td className="border px-0.5 py-1 font-normal text-center leading-tight text-[10px] whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
+                  <td className="border px-0.5 py-1 font-normal text-center leading-tight cv-tpl-side-label whitespace-nowrap" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-label-visaExpiry" text="ビザの期限" supplementMarking={supplementMarking} linkedFieldKeys={['visaExpirationDate']} className="select-text inline" />
                   </td>
-                  <td className="border px-0.5 py-1 bg-white min-w-0 whitespace-nowrap" style={{ borderColor: '#1f2937' }}>
+                  <td className="border px-0.5 py-1 bg-white min-w-0 cv-personal-date-cell" style={{ borderColor: '#1f2937' }}>
                     <CvTemplateDateTriplet
                       field="visaExpirationDate"
                       refs={{ y: visaYearRef, mo: visaMonthRef, d: visaDayRef }}
@@ -571,6 +607,8 @@ const CvTemplateTechnical = ({
                       errorMessage={dateFieldErrors.visaExpirationDate}
                       onCommit={commitDateField}
                       onClearError={clearDateError}
+                      daySuffix="日"
+                      compact
                     />
                   </td>
                 </tr>
@@ -580,14 +618,14 @@ const CvTemplateTechnical = ({
             {/* 学歴 */}
             <ResizableCvTable
               className="w-full border-collapse mt-3"
-              style={{ fontSize: '11px', color: '#1f2937', borderColor: '#1f2937' }}
-              colPercents={colSaved('rirekisho', 'education', [12, 20, 18, 18, 18, 14])}
+              style={CV_TPL_TABLE_STYLE}
+              colPercents={sectionCols('rirekisho', 'education', CV_RIREKISHO_EDUCATION_COLS)}
               layoutKey={cvLayoutKey(CV_TPL, 'rirekisho', 'education')}
               onLayoutCommit={onCvTableLayoutCommit}
             >
               <tbody>
                 <tr>
-                  <td rowSpan={1 + Math.max(1, (formData.educations || []).length)} className="border p-2 text-center align-middle font-bold" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9', width: '5rem' }}>
+                  <td rowSpan={1 + Math.max(1, (formData.educations || []).length)} className="border p-2 text-center align-middle font-bold cv-tpl-section-title-col cv-tpl-side-label" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-education-title" text="学歴" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-education', 'education', 'education-0-content']} />
                   </td>
                   <td className="border p-1.5 text-center font-normal" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
@@ -641,14 +679,14 @@ const CvTemplateTechnical = ({
             {/* 外国語の会話レベル */}
             <ResizableCvTable
               className="w-full border-collapse mt-3"
-              style={{ fontSize: '11px', color: '#1f2937', borderColor: '#1f2937' }}
-              colPercents={colSaved('rirekisho', 'languages_v2', [12, 18, 18, 18, 18, 16])}
+              style={CV_TPL_TABLE_STYLE}
+              colPercents={sectionCols('rirekisho', 'languages_v2', CV_RIREKISHO_LANGUAGES_COLS)}
               layoutKey={cvLayoutKey(CV_TPL, 'rirekisho', 'languages_v2')}
               onLayoutCommit={onCvTableLayoutCommit}
             >
               <tbody>
                 <tr>
-                  <td rowSpan={4} className="border p-2 text-center align-middle font-bold" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9', width: '5rem' }}>
+                  <td rowSpan={4} className="border p-2 text-center align-middle font-bold cv-tpl-section-title-col cv-tpl-side-label" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-language-title" text="外国語の会話レベル" supplementMarking={supplementMarking} linkedFieldKeys={['jpConversationLevel', 'enConversationLevel', 'otherConversationLevel', 'languageSkillRemarks', 'remarks']} />
                   </td>
                   <td className="border p-1.5 text-center font-normal" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
@@ -670,11 +708,11 @@ const CvTemplateTechnical = ({
                 {LANGUAGE_LEVEL_OPTIONS.map(({ value, label }, rowIdx) => (
                   <tr key={value}>
                     {LANGUAGE_LEVEL_FIELDS.map((field) => (
-                      <td key={field} className="border p-1.5 bg-white" style={{ borderColor: '#1f2937' }}>
-                        <label className="flex items-center gap-1 text-xs cursor-pointer whitespace-nowrap">
+                      <td key={field} className="border px-2 py-1.5 bg-white cv-lang-level-cell" style={{ borderColor: '#1f2937' }}>
+                        <label className="cv-lang-level-option">
                           <input
                             type="checkbox"
-                            className="rounded"
+                            className="rounded shrink-0"
                             checked={normalizeConversationLevel(formData[field]) === value}
                             onChange={() => {
                               setFormData((prev) => {
@@ -686,7 +724,7 @@ const CvTemplateTechnical = ({
                               });
                             }}
                           />
-                          ・{label}
+                          {label}
                         </label>
                       </td>
                     ))}
@@ -712,17 +750,18 @@ const CvTemplateTechnical = ({
               colSaved={colSaved}
               onCvTableLayoutCommit={onCvTableLayoutCommit}
               pdfExportMode={pdfExportMode}
+              sideLabelPct={sideLabelPct}
             />
 
             {/* 使用可能ツール・ソフトウェア等枠: preset 2+2 cột + hàng tùy chỉnh, checkbox + ô năm */}
             <ResizableCvTable
               className="w-full border-collapse mt-3"
-              style={{ fontSize: '11px', color: '#1f2937', borderColor: '#1f2937' }}
+              style={CV_TPL_TABLE_STYLE}
               colPercents={(() => {
-                const saved = colSaved('rirekisho', 'tools_v2', TECH_TOOLS_TABLE_COL_PERCENTS);
-                return saved.length === TECH_TOOLS_TABLE_COL_PERCENTS.length
+                const saved = sectionCols('rirekisho', 'tools_v2', CV_RIREKISHO_TOOLS_COLS);
+                return saved.length === CV_RIREKISHO_TOOLS_COLS.length
                   ? saved
-                  : TECH_TOOLS_TABLE_COL_PERCENTS;
+                  : CV_RIREKISHO_TOOLS_COLS;
               })()}
               layoutKey={cvLayoutKey(CV_TPL, 'rirekisho', 'tools_v2')}
               onLayoutCommit={onCvTableLayoutCommit}
@@ -862,28 +901,32 @@ const CvTemplateTechnical = ({
                     const linkedKey = type === 'learned' ? 'learnedTools' : 'experienceTools';
                     if (!toolName) {
                       return (
-                        <td key={`${fieldPrefix}-name-${ri}-${ci}`} className="border p-1 bg-white" style={{ ...rowStyle, borderRight: '2px dotted #1f2937' }}>
-                          <span className="inline-block w-3.5 h-3.5 border border-gray-800 shrink-0 ml-1" aria-hidden />
+                        <td key={`${fieldPrefix}-name-${ri}-${ci}`} className="border px-2 py-1.5 bg-white" style={{ ...rowStyle, borderRight: '2px dotted #1f2937' }} data-cv-tools-name-cell="1">
+                          <div className="cv-tools-option-empty" aria-hidden="true">
+                            <span className="inline-block w-[19px] h-[19px] border border-gray-800 shrink-0" />
+                          </div>
                         </td>
                       );
                     }
                     const checked = (type === 'learned' ? learned : experienced).includes(toolName);
                     return (
-                      <td key={`${fieldPrefix}-name-${ri}-${ci}`} className="border p-1 bg-white text-left" style={{ ...rowStyle, borderRight: '2px dotted #1f2937' }}>
-                        <label className="flex items-center gap-1 text-xs cursor-pointer min-w-0">
+                        <td key={`${fieldPrefix}-name-${ri}-${ci}`} className="border px-2 py-1.5 bg-white" style={{ ...rowStyle, borderRight: '2px dotted #1f2937' }} data-cv-tools-name-cell="1">
+                        <label className="cv-tools-option cursor-pointer min-w-0">
                           <input
                             type="checkbox"
                             className="rounded shrink-0"
                             checked={checked}
                             onChange={() => toggleTool(type, toolName)}
                           />
-                          <SupplementTplText
-                            fieldKey={`tpl-tech-tools-${fieldPrefix}-name-${ri}-${ci}`}
-                            text={toolName}
-                            supplementMarking={supplementMarking}
-                            linkedFieldKeys={[linkedKey]}
-                            className="select-text inline min-w-0"
-                          />
+                          <span className="cv-tools-option-label min-w-0 select-text">
+                            <SupplementTplText
+                              fieldKey={`tpl-tech-tools-${fieldPrefix}-name-${ri}-${ci}`}
+                              text={toolName}
+                              supplementMarking={supplementMarking}
+                              linkedFieldKeys={[linkedKey]}
+                              className="select-text min-w-0"
+                            />
+                          </span>
                         </label>
                       </td>
                     );
@@ -951,10 +994,10 @@ const CvTemplateTechnical = ({
                       return [
                         <td
                           key={`${fieldPrefix}-name-${extraIndex}-${slotIndex}`}
-                          className="border p-1 bg-white text-left relative"
+                          className="border p-1 bg-white text-center relative"
                           style={{ ...rowStyle, borderRight: '2px dotted #1f2937', ...(showRowDelete ? { zIndex: 30 } : {}) }}
                         >
-                          <div className="flex items-start gap-0.5 min-w-0">
+                          <div className="flex items-center justify-center gap-0.5 min-w-0">
                             {showRowDelete ? (
                               <button
                                 type="button"
@@ -969,12 +1012,12 @@ const CvTemplateTechnical = ({
                               </button>
                             ) : null}
                             <span
-                              className="min-w-0 flex-1"
+                              className="min-w-0 flex-1 text-center"
                               {...makeInlineEditable(
                                 `${fieldPrefix}-name-${extraIndex}-${slotIndex}`,
                                 toolName,
                                 (v) => updateCustomToolName(type, extraIndex, slotIndex, v),
-                                { className: 'outline-none min-h-[1.2em] block text-xs pl-0.5 w-full whitespace-pre-wrap' }
+                                { className: 'outline-none min-h-[1.2em] block text-xs w-full whitespace-pre-wrap text-center' }
                               )}
                             />
                           </div>
@@ -997,7 +1040,7 @@ const CvTemplateTechnical = ({
                   return (
                     <>
                       <tr>
-                        <td rowSpan={titleRowSpan} className="border p-2 text-center align-middle font-bold" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9', width: '5rem' }}>
+                        <td rowSpan={titleRowSpan} className="border p-2 text-center align-middle font-bold cv-tpl-section-title-col cv-tpl-side-label" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                           <SupplementTplText fieldKey="tpl-tech-tools-title-side" text="使用可能ツール・ソフトウェア等枠" supplementMarking={supplementMarking} linkedFieldKeys={['learnedTools', 'experienceTools', 'toolsSoftwareNotes']} className="select-text inline" />
                         </td>
                         <td colSpan={4} className="border p-1.5 text-center font-normal" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
@@ -1046,8 +1089,8 @@ const CvTemplateTechnical = ({
             {/* Bảng 職歴 + 自己PR + 応募動機 + 備考 – giống CV IT: mặc định 1 hàng, 行を追加, 挿入, 勤務地 nhập tay */}
             <ResizableCvTable
               className="w-full border-collapse mt-3"
-              style={{ fontSize: '11px', color: '#1f2937', borderColor: '#1f2937' }}
-              colPercents={colSaved('rirekisho', 'employment_v3', [20, 22, 33, 25])}
+              style={CV_TPL_TABLE_STYLE}
+              colPercents={colSaved('rirekisho', 'employment_v3', [28, 18, 30, 24])}
               layoutKey={cvLayoutKey(CV_TPL, 'rirekisho', 'employment_v3')}
               onLayoutCommit={onCvTableLayoutCommit}
             >
@@ -1061,8 +1104,8 @@ const CvTemplateTechnical = ({
                 {(() => {
                   const list = formData.workExperiences || [];
                   const workCount = Math.max(1, formData.workHistoryCount ?? list.length);
-                  const cellEditStyle = { outline: 'none', minHeight: '1em', display: 'block', width: '100%', cursor: 'text', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere' };
-                  const cellWrapStyle = { borderColor: '#1f2937', wordBreak: 'break-word', overflowWrap: 'anywhere' };
+                  const cellEditStyle = { outline: 'none', minHeight: '1em', display: 'block', width: '100%', cursor: 'text', whiteSpace: 'pre-wrap', wordBreak: 'keep-all', overflowWrap: 'break-word' };
+                  const cellWrapStyle = { borderColor: '#1f2937', wordBreak: 'keep-all', overflowWrap: 'break-word' };
                   return Array.from({ length: workCount }).map((_, i) => {
                     const row = list[i] || {};
                     const companyNameDisplay = (row.company_name || '').replace(/\s*入社\s*$|\s*退社\s*$/g, '').trim();
@@ -1080,40 +1123,50 @@ const CvTemplateTechnical = ({
                         });
                       }
                     };
+                    const patchWork = (patch) => {
+                      if (typeof updateEmploymentPair === 'function') updateEmploymentPair(i, patch);
+                      else if (typeof updateEmployment === 'function') updateEmployment(i, patch);
+                      else {
+                        setFormData((prev) => {
+                          const next = [...(prev.workExperiences || [])];
+                          if (!next[i]) next[i] = {};
+                          next[i] = { ...next[i], ...patch };
+                          return { ...prev, workExperiences: next };
+                        });
+                      }
+                    };
                     const commitStart = () => {
                       const y = String(startYearRefs.current[i]?.value || '').replace(/\D/g, '').slice(0, 4);
                       const m = String(startMonthRefs.current[i]?.value || '').replace(/\D/g, '').slice(0, 2);
                       if (!y && !m) return;
-                      setWorkField('startYear', y);
-                      setWorkField('startMonth', m);
-                      setWorkField('period', `${y}/${m}`);
+                      patchWork({ startYear: y, startMonth: m });
                     };
                     const commitEnd = () => {
                       const y = String(endYearRefs.current[i]?.value || '').replace(/\D/g, '').slice(0, 4);
                       const m = String(endMonthRefs.current[i]?.value || '').replace(/\D/g, '').slice(0, 2);
                       if (!y && !m) {
-                        setWorkField('endCurrent', true);
-                        setWorkField('endYear', '');
-                        setWorkField('endMonth', '');
-                        setWorkField('period', '現在');
+                        patchWork({ endCurrent: true, endYear: '', endMonth: '' });
                         return;
                       }
-                      setWorkField('endCurrent', false);
-                      setWorkField('endYear', y);
-                      setWorkField('endMonth', m);
-                      setWorkField('period', `${y}/${m}`);
+                      patchWork({ endCurrent: false, endYear: y, endMonth: m });
                     };
                     const setEndCurrent = () => {
-                      setWorkField('endCurrent', true);
-                      setWorkField('endYear', '');
-                      setWorkField('endMonth', '');
-                      setWorkField('period', '現在');
+                      patchWork({ endCurrent: true, endYear: '', endMonth: '' });
                     };
+                    const periodDisplay = formatShokumuPeriodRangeJa(
+                      [row.startYear, row.startMonth].filter(Boolean).join('/'),
+                      row.endCurrent ? '現在' : [row.endYear, row.endMonth].filter(Boolean).join('/'),
+                    );
                     return (
                       <React.Fragment key={`shokureki-${i}`}>
                         <tr>
-                          <td className="border p-1.5 bg-white text-center align-middle min-w-0 overflow-hidden" style={cellWrapStyle}>
-                            <div className="flex flex-row flex-wrap items-center justify-center gap-x-0.5 gap-y-0.5 text-xs leading-tight mx-auto max-w-full">
+                          <td
+                            className="border p-1.5 bg-white text-center align-middle min-w-0 overflow-hidden"
+                            style={{ ...cellWrapStyle, minWidth: '10.5rem' }}
+                            data-cv-shokumu-period
+                            data-cv-period-display={periodDisplay}
+                          >
+                            <div className="cv-pdf-date-inline flex flex-row flex-nowrap items-center justify-center gap-x-0.5 text-xs leading-tight mx-auto max-w-full">
                               <div className="inline-flex items-center shrink-0 gap-0.5">
                                 <input
                                   ref={(el) => { if (!startYearRefs.current) startYearRefs.current = []; startYearRefs.current[i] = el; }}
@@ -1136,9 +1189,16 @@ const CvTemplateTechnical = ({
                               </div>
                               <span className="leading-none shrink-0">～</span>
                               {row.endCurrent ? (
-                                <button type="button" onClick={() => { setWorkField('endCurrent', false); setWorkField('period', ''); }} className="inline-flex items-center justify-center rounded border border-slate-300 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-100">
+                                <span
+                                  className="inline-flex items-center justify-center rounded border border-slate-300 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-700"
+                                  {...(!pdfExportMode ? {
+                                    role: 'button',
+                                    tabIndex: 0,
+                                    onClick: () => patchWork({ endCurrent: false }),
+                                  } : {})}
+                                >
                                   現在
-                                </button>
+                                </span>
                               ) : (
                                 <>
                                   <div className="inline-flex items-center shrink-0 gap-0.5">
@@ -1161,7 +1221,7 @@ const CvTemplateTechnical = ({
                                     />
                                     <span>月</span>
                                   </div>
-                                  <button type="button" onClick={setEndCurrent} className="rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 hover:bg-slate-50 hover:text-slate-800">現在</button>
+                                  <button type="button" onClick={setEndCurrent} className="rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 hover:bg-slate-50 hover:text-slate-800 cv-pdf-hide">現在</button>
                                 </>
                               )}
                             </div>
@@ -1232,41 +1292,41 @@ const CvTemplateTechnical = ({
                     )}
                   </td>
                 </tr>
-                <tr>
+                <tr data-cv-pdf-keep-with-next="1">
                   <td colSpan={4} className="border p-1.5 font-bold text-center" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-selfpr-title" text="自己PR (大学での成績順位、頑張ったこと、趣味等)" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-strengths', 'strengths', 'hobbiesSpecialSkills']} />
                   </td>
                 </tr>
                 <tr>
                   <td colSpan={4} className="border p-2 bg-white align-top min-h-[80px]" style={{ borderColor: '#1f2937' }}>
-                    <div {...cvEditable('strengths', 'block whitespace-pre-wrap outline-none min-h-[80px]', { minHeight: '80px' })} />
+                    <div {...cvEditable('strengths', 'block whitespace-pre-wrap outline-none min-h-[80px] cv-tpl-dense', { minHeight: '80px' })} />
                   </td>
                 </tr>
-                <tr>
+                <tr data-cv-pdf-keep-with-next="1">
                   <td colSpan={4} className="border p-1.5 font-bold text-center" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-motivation-title" text="応募動機" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-motivation', 'motivation']} />
                   </td>
                 </tr>
                 <tr>
                   <td colSpan={4} className="border p-2 bg-white align-top" style={{ borderColor: '#1f2937', minHeight: '80px' }}>
-                    <div {...cvEditable('motivation', 'block whitespace-pre-wrap outline-none min-h-[80px]', { minHeight: '80px' })} />
+                    <div {...cvEditable('motivation', 'block whitespace-pre-wrap outline-none min-h-[80px] cv-tpl-dense', { minHeight: '80px' })} />
                   </td>
                 </tr>
-                <tr>
+                <tr data-cv-pdf-keep-with-next="1">
                   <td colSpan={4} className="border p-1.5 font-bold text-center" style={{ borderColor: '#1f2937', backgroundColor: '#e2efd9' }}>
                     <SupplementTplText fieldKey="tpl-tech-note-title" text="備考" supplementMarking={supplementMarking} linkedFieldKeys={['addCandidate-block6-prefs', 'currentSalary', 'desiredSalary', 'desiredPosition', 'desiredLocation', 'visaExpirationDate']} />
                   </td>
                 </tr>
                 <tr data-cv-table-footer-row>
-                  <td colSpan={4} className="border p-2 bg-white align-top min-w-0 break-words" style={{ borderColor: '#1f2937', fontSize: '10px', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                  <td colSpan={4} className="border p-2 bg-white align-top min-w-0 break-words cv-tpl-note" style={{ borderColor: '#1f2937', wordBreak: 'keep-all', overflowWrap: 'break-word' }}>
                     <div className="space-y-1">
-                      <div className="break-words">・現年収: <span {...cvEditable('currentSalary', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap', { wordBreak: 'break-word', overflowWrap: 'anywhere' })} /></div>
-                      <div className="break-words">・希望年収: <span {...cvEditable('desiredSalary', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap', { wordBreak: 'break-word', overflowWrap: 'anywhere' })} /></div>
-                      <div className="break-words">・希望職種: <span {...cvEditable('desiredPosition', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap', { wordBreak: 'break-word', overflowWrap: 'anywhere' })} /></div>
-                      <div className="break-words">・希望勤務地: <span {...cvEditable('desiredLocation', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap', { wordBreak: 'break-word', overflowWrap: 'anywhere' })} /></div>
-                      <div>・在留資格の種類: 技術・人文知識・国際業務</div>
-                      <div>・在留期間: {formatCvAnyDateJa(formData.visaExpirationDate) || '年月日'}</div>
-                      <div>・在留カードに記載の就労制限:「在留資格に基づく就労活動のみ可」</div>
+                      <div className="break-words text-left">・現年収: <span {...cvEditable('currentSalary', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap text-left', { wordBreak: 'keep-all', overflowWrap: 'break-word' })} /></div>
+                      <div className="break-words text-left">・希望年収: <span {...cvEditable('desiredSalary', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap text-left', { wordBreak: 'keep-all', overflowWrap: 'break-word' })} /></div>
+                      <div className="break-words text-left">・希望職種: <span {...cvEditable('desiredPosition', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap text-left', { wordBreak: 'keep-all', overflowWrap: 'break-word' })} /></div>
+                      <div className="break-words text-left">・希望勤務地: <span {...cvEditable('desiredLocation', 'inline-block min-w-[6em] max-w-full break-words whitespace-pre-wrap text-left', { wordBreak: 'keep-all', overflowWrap: 'break-word' })} /></div>
+                      <div className="break-words text-left">・在留資格の種類: 技術・人文知識・国際業務</div>
+                      <div className="break-words text-left">・在留期間: {formatCvAnyDateJa(formData.visaExpirationDate) || '年月日'}</div>
+                      <div className="break-words text-left">・在留カードに記載の就労制限:「在留資格に基づく就労活動のみ可」</div>
                     </div>
                   </td>
                 </tr>
@@ -1288,9 +1348,9 @@ const CvTemplateTechnical = ({
             </button>
           </div>
           )}
-          <div className="w-full min-w-0 max-w-full cv-template-body" style={{ fontSize: '11px', color: '#1f2937', fontFamily: "'MS Mincho', 'MS 明朝', 'Yu Mincho', 'Hiragino Mincho ProN', serif" }}>
+          <div className="w-full min-w-0 max-w-full cv-template-body" style={CV_TPL_BODY_STYLE}>
             <div className="mb-6">
-              <h2 className="text-center font-bold mb-8" style={{ fontSize: '1.25rem' }}>
+              <h2 className="text-center font-bold mb-8 cv-tpl-doc-title" style={{ fontSize: CV_TPL_FONT_TITLE }}>
                 <SupplementTplText fieldKey="tpl-tech-shokumu-h2" text="職務経歴書" supplementMarking={supplementMarking} />
               </h2>
               <div className="text-right space-y-1">
@@ -1302,7 +1362,7 @@ const CvTemplateTechnical = ({
             {/* 職務要約 */}
             <ResizableCvTable
               className="w-full border-collapse mt-4"
-              style={{ fontSize: '11px', color: '#1f2937', borderColor: '#1f2937' }}
+              style={CV_TPL_TABLE_STYLE}
               colPercents={colSaved('shokumu', 'summary', [12, 88])}
               layoutKey={cvLayoutKey(CV_TPL, 'shokumu', 'summary')}
               onLayoutCommit={onCvTableLayoutCommit}
@@ -1313,7 +1373,7 @@ const CvTemplateTechnical = ({
                     <SupplementTplText fieldKey="tpl-tech-shokumu-summary-title" text="職務要約" supplementMarking={supplementMarking} linkedFieldKeys={['careerSummary']} className="select-text inline" />
                   </td>
                   <td className="border p-3 bg-white align-top" style={{ borderColor: '#1f2937' }}>
-                    <div className="whitespace-pre-wrap min-h-[4rem]" {...cvEditable('careerSummary', 'block')} />
+                    <div className="whitespace-pre-wrap min-h-[4rem] cv-tpl-dense" {...cvEditable('careerSummary', 'block cv-tpl-dense')} />
                   </td>
                 </tr>
               </tbody>
@@ -1323,17 +1383,10 @@ const CvTemplateTechnical = ({
             {(() => {
               const list = formData.workExperiences || [];
               const workCount = Math.max(1, formData.workHistoryCount ?? list.length);
-              const borderSolid = '#1f2937';
-              const cellBorder = (isLastCol = false) => ({
-                borderTop: 'none',
-                borderLeft: 'none',
-                borderBottom: `1px solid ${borderSolid}`,
-                borderRight: isLastCol ? 'none' : `1px solid ${borderSolid}`,
-              });
-              const headerGrayStyle = (isLastCol = false) => ({ ...cellBorder(isLastCol), backgroundColor: '#e5e7eb' });
-              const headerWhiteStyle = (isLastCol = false) => ({ ...cellBorder(isLastCol), backgroundColor: '#fff' });
-              const bodyStyle = (isLastCol = false) => ({ ...cellBorder(isLastCol), backgroundColor: '#fff', verticalAlign: 'top' });
-              const bodyCenterStyle = (isLastCol = false) => ({ ...bodyStyle(isLastCol), verticalAlign: 'middle', textAlign: 'center' });
+              const headerGrayStyle = { backgroundColor: '#e5e7eb', verticalAlign: 'middle' };
+              const headerWhiteStyle = { backgroundColor: '#fff', verticalAlign: 'middle' };
+              const bodyStyle = { backgroundColor: '#fff', verticalAlign: 'top' };
+              const bodyCenterStyle = { ...bodyStyle, verticalAlign: 'middle' };
 
               const setWorkField = (index, field, value) => {
                 if (typeof updateEmploymentPair === 'function') {
@@ -1349,30 +1402,34 @@ const CvTemplateTechnical = ({
                   });
                 }
               };
-              const setWorkPeriodEnd = (index, year, month) => {
-                const y = String(year || '').trim();
-                const m = String(month || '').trim();
-                setWorkField(index, 'endYear', y);
-                setWorkField(index, 'endMonth', m);
-                setWorkField(index, 'endCurrent', !y && !m);
-                if (!y && !m) setWorkField(index, 'period', '現在');
-                else if (y && m) setWorkField(index, 'period', `${y}/${m}`);
-              };
-              const setWorkEndCurrent = (index, isCurrent) => {
-                if (isCurrent) {
-                  setFormData((prev) => {
-                    const next = [...(prev.workExperiences || [])];
-                    if (!next[index]) next[index] = {};
-                    next[index] = { ...next[index], endCurrent: true, endYear: '', endMonth: '', period: '現在' };
-                    return { ...prev, workExperiences: next };
-                  });
+              const patchWork = (index, patch) => {
+                if (typeof updateEmploymentPair === 'function') {
+                  updateEmploymentPair(index, patch);
+                } else if (typeof updateEmployment === 'function') {
+                  updateEmployment(index, patch);
                 } else {
                   setFormData((prev) => {
                     const next = [...(prev.workExperiences || [])];
                     if (!next[index]) next[index] = {};
-                    next[index] = { ...next[index], endCurrent: false, endYear: '', endMonth: '', period: '' };
+                    next[index] = { ...next[index], ...patch };
                     return { ...prev, workExperiences: next };
                   });
+                }
+              };
+              const setWorkPeriodEnd = (index, year, month) => {
+                const y = String(year || '').trim();
+                const m = String(month || '').trim();
+                if (!y && !m) {
+                  patchWork(index, { endCurrent: true, endYear: '', endMonth: '' });
+                  return;
+                }
+                patchWork(index, { endCurrent: false, endYear: y, endMonth: m });
+              };
+              const setWorkEndCurrent = (index, isCurrent) => {
+                if (isCurrent) {
+                  patchWork(index, { endCurrent: true, endYear: '', endMonth: '' });
+                } else {
+                  patchWork(index, { endCurrent: false, endYear: '', endMonth: '' });
                 }
               };
               const addWorkRow = () => {
@@ -1382,6 +1439,21 @@ const CvTemplateTechnical = ({
                   workExperiences: [...(prev.workExperiences || []), { company_name: '', employmentPlace: '', companyRole: '', description: '', tools_tech: '', startYear: '', startMonth: '', endYear: '', endMonth: '', endCurrent: false, period: '' }],
                 }));
               };
+              const insertWorkRowAt = (index) => {
+                if (handleInsertWorkExperienceBlockAt) {
+                  handleInsertWorkExperienceBlockAt(index);
+                  return;
+                }
+                if (handleInsertWorkExperienceAt) {
+                  handleInsertWorkExperienceAt(index);
+                  return;
+                }
+                setFormData((prev) => {
+                  const next = [...(prev.workExperiences || [])];
+                  next.splice(index, 0, { company_name: '', employmentPlace: '', companyRole: '', description: '', tools_tech: '', startYear: '', startMonth: '', endYear: '', endMonth: '', endCurrent: false, period: '' });
+                  return { ...prev, workExperiences: next, workHistoryCount: Math.max(1, next.length) };
+                });
+              };
               const deleteWorkRow = (index) => {
                 setFormData((prev) => {
                   const next = [...(prev.workExperiences || [])].filter((_, i) => i !== index);
@@ -1390,14 +1462,14 @@ const CvTemplateTechnical = ({
               };
 
               return (
-                <div className="mt-4" style={{ border: `1px solid ${borderSolid}` }}>
-                  <div className="p-2 text-center font-bold" style={{ backgroundColor: '#e2efd9', color: borderSolid, borderBottom: `1px solid ${borderSolid}` }}>
+                <div className="mt-4 cv-shokumu-work-section">
+                  <div className="cv-shokumu-work-banner p-2 text-center font-bold" style={{ backgroundColor: '#e2efd9', color: '#1f2937' }}>
                     <SupplementTplText fieldKey="tpl-tech-shokumu-work-banner" text="職務経歴" supplementMarking={supplementMarking} linkedFieldKeys={['workExperiences-0-company_name']} className="select-text inline" />
                   </div>
                   <ResizableCvTable
                     className="w-full border-collapse"
-                    style={{ fontSize: '11px', color: borderSolid }}
-                    colPercents={colSaved('shokumu', 'workGrid_v1', [18, 34, 34, 14])}
+                    style={{ fontSize: CV_TPL_BODY_STYLE.fontSize, color: '#1f2937' }}
+                    colPercents={colSaved('shokumu', 'workGrid_v1', [24, 31, 31, 14])}
                     layoutKey={cvLayoutKey(CV_TPL, 'shokumu', 'workGrid_v1')}
                     onLayoutCommit={onCvTableLayoutCommit}
                   >
@@ -1406,10 +1478,14 @@ const CvTemplateTechnical = ({
                         const emp = list[i] || {};
                         const showDescription = String(emp.description || '').trim() !== String(emp.business_purpose || '').trim();
                         const showDelete = hoveredWorkIndex === i;
+                        const shokumuPeriodDisplay = formatShokumuPeriodRangeJa(
+                          [emp.startYear, emp.startMonth].filter(Boolean).join('/'),
+                          emp.endCurrent ? '現在' : [emp.endYear, emp.endMonth].filter(Boolean).join('/'),
+                        );
                         return (
                           <React.Fragment key={`tech-work-${i}`}>
                             <tr onMouseEnter={() => setHoveredWorkIndex(i)} onMouseLeave={() => setHoveredWorkIndex(null)}>
-                              <td className="py-0.5 px-1.5 text-center align-middle relative" style={headerGrayStyle(false)}>
+                              <td className="py-2 px-1.5 text-center align-middle relative" style={headerGrayStyle}>
                                 <SupplementTplText fieldKey={`tpl-tech-shokumu-block-label-${i}`} text={`【職歴${i + 1}】`} supplementMarking={supplementMarking} linkedFieldKeys={[`workExperiences-${i}-period`]} className="select-text inline text-xs" />
                                 {showDelete ? (
                                   <button type="button" onMouseDown={(e) => { e.preventDefault(); deleteWorkRow(i); }} className="absolute -right-2 -top-2 z-10 rounded-full bg-white p-1 text-rose-500 shadow border border-rose-200 hover:text-rose-700 hover:bg-rose-50" title="Xóa 職務経歴" aria-label="Xóa 職務経歴">
@@ -1417,37 +1493,42 @@ const CvTemplateTechnical = ({
                                   </button>
                                 ) : null}
                               </td>
-                              <td colSpan={2} className="py-0.5 px-1.5 text-center font-normal" style={headerGrayStyle(false)}>
-                                <div className="space-y-0.5">
-                                  <span {...makeInlineEditable(`shokumu-company-${i}`, emp.company_name || emp.companyName || emp.company || '', (v) => setWorkField(i, 'company_name', v), { className: 'block w-full outline-none whitespace-pre-wrap' })} />
-                                  <span {...makeInlineEditable(`shokumu-role-${i}`, emp.companyRole || emp.company_role || emp.position || '', (v) => setWorkField(i, 'companyRole', v), { className: 'block w-full outline-none whitespace-pre-wrap text-[10px] text-gray-700' })} />
+                              <td colSpan={2} className="py-2 px-2 text-left align-middle font-normal" style={headerGrayStyle}>
+                                <div className="flex flex-col items-start justify-center gap-0.5 w-full">
+                                  <span {...makeInlineEditable(`shokumu-company-${i}`, emp.company_name || emp.companyName || emp.company || '', (v) => setWorkField(i, 'company_name', v), { className: 'block w-full outline-none whitespace-pre-wrap text-left' })} />
+                                  {(emp.companyRole || emp.company_role || emp.position) ? (
+                                    <span {...makeInlineEditable(`shokumu-role-${i}`, emp.companyRole || emp.company_role || emp.position || '', (v) => setWorkField(i, 'companyRole', v), { className: 'block w-full outline-none whitespace-pre-wrap cv-tpl-dense text-gray-700 text-left' })} />
+                                  ) : null}
                                 </div>
                               </td>
-                              <td className="py-0.5 px-1.5 text-center font-normal" style={headerGrayStyle(true)}>
-                                <span {...makeInlineEditable(`shokumu-place-${i}`, emp.employmentPlace || emp.employment_place || emp.work_location || '', (v) => setWorkField(i, 'employmentPlace', v), { className: 'block w-full outline-none whitespace-pre-wrap' })} />
+                              <td className="py-2 px-2 text-left align-middle font-normal" style={headerGrayStyle}>
+                                <span {...makeInlineEditable(`shokumu-place-${i}`, emp.employmentPlace || emp.employment_place || emp.work_location || '', (v) => setWorkField(i, 'employmentPlace', v), { className: 'block w-full outline-none whitespace-pre-wrap text-left' })} />
                               </td>
                             </tr>
                             <tr>
-                              <td className="py-0.5 px-1.5 text-center font-normal" style={headerWhiteStyle(false)}>
+                              <td className="py-0.5 px-1.5 text-center font-normal" style={headerWhiteStyle}>
                                 <SupplementTplText fieldKey="tpl-tech-shokumu-period-h" text="期間" supplementMarking={supplementMarking} linkedFieldKeys={[`workExperiences-${i}-period`]} />
                               </td>
-                              <td colSpan={2} className="py-0.5 px-1.5 text-center font-normal" style={headerWhiteStyle(false)}>
+                              <td colSpan={2} className="py-0.5 px-1.5 text-center font-normal" style={headerWhiteStyle}>
                                 <SupplementTplText fieldKey="tpl-tech-shokumu-h-desc-tech" text="業務内容" supplementMarking={supplementMarking} linkedFieldKeys={[`workExperiences-${i}-description`]} className="select-text inline" />
                               </td>
-                              <td className="py-0.5 px-1.5 text-center font-normal" style={headerWhiteStyle(true)}>
+                              <td className="py-0.5 px-1.5 text-center font-normal" style={headerWhiteStyle}>
                                 <SupplementTplText fieldKey="tpl-tech-shokumu-h-tools" text="使用ツール" supplementMarking={supplementMarking} linkedFieldKeys={[`workExperiences-${i}-tools_tech`]} className="select-text inline" />
                               </td>
                             </tr>
-                            <tr>
-                              <td className="p-1.5 align-middle text-center min-w-0 overflow-hidden" style={bodyCenterStyle(false)}>
+                            <tr data-cv-work-company-last="1">
+                              <td
+                                className="p-2 align-middle text-center"
+                                style={{ ...bodyCenterStyle, minWidth: '12.5rem', overflow: 'visible' }}
+                                data-cv-shokumu-period
+                                data-cv-period-display={shokumuPeriodDisplay}
+                              >
                                 {(() => {
                                   const commitShokumuStart = () => {
                                     const y = String(shokumuStartYearRefs.current[i]?.value || '').replace(/\D/g, '').slice(0, 4);
                                     const m = String(shokumuStartMonthRefs.current[i]?.value || '').replace(/\D/g, '').slice(0, 2);
                                     if (!y && !m) return;
-                                    setWorkField(i, 'startYear', y);
-                                    setWorkField(i, 'startMonth', m);
-                                    setWorkField(i, 'period', `${y}/${m}`);
+                                    patchWork(i, { startYear: y, startMonth: m });
                                   };
                                   const commitShokumuEnd = () => {
                                     const y = String(shokumuEndYearRefs.current[i]?.value || '').replace(/\D/g, '').slice(0, 4);
@@ -1459,15 +1540,15 @@ const CvTemplateTechnical = ({
                                     setWorkPeriodEnd(i, y, m);
                                   };
                                   return (
-                                    <div className="flex flex-row flex-wrap items-center justify-center gap-x-0.5 gap-y-0.5 text-xs leading-tight mx-auto max-w-full">
-                                      <div className="inline-flex items-center shrink-0 gap-0.5">
+                                    <div className="cv-pdf-date-inline flex flex-col items-center justify-center gap-0.5 leading-tight mx-auto w-full">
+                                      <div className="inline-flex items-center justify-center shrink-0 gap-0.5 whitespace-nowrap">
                                         <input
                                           ref={(el) => { if (!shokumuStartYearRefs.current) shokumuStartYearRefs.current = []; shokumuStartYearRefs.current[i] = el; }}
                                           value={emp.startYear || ''}
                                           onChange={(e) => setWorkField(i, 'startYear', e.target.value.replace(/\D/g, '').slice(0, 4))}
                                           onBlur={commitShokumuStart}
                                           inputMode="numeric"
-                                          className="w-[2.4em] min-w-0 px-0 text-center tabular-nums bg-transparent border-0 outline-none"
+                                          className="w-[3em] min-w-[3em] max-w-[3em] px-0.5 text-center tabular-nums bg-transparent border-0 outline-none"
                                         />
                                         <span>年</span>
                                         <input
@@ -1476,25 +1557,32 @@ const CvTemplateTechnical = ({
                                           onChange={(e) => setWorkField(i, 'startMonth', e.target.value.replace(/\D/g, '').slice(0, 2))}
                                           onBlur={commitShokumuStart}
                                           inputMode="numeric"
-                                          className="w-[1.8em] min-w-0 px-0 text-center tabular-nums bg-transparent border-0 outline-none"
+                                          className="w-[2em] min-w-[2em] max-w-[2em] px-0.5 text-center tabular-nums bg-transparent border-0 outline-none"
                                         />
                                         <span>月</span>
                                       </div>
-                                      <span className="leading-none shrink-0">～</span>
-                                      {emp.endCurrent ? (
-                                        <button type="button" onClick={() => setWorkEndCurrent(i, false)} className="inline-flex items-center justify-center rounded border border-slate-300 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-100">
-                                          現在
-                                        </button>
-                                      ) : (
-                                        <>
-                                          <div className="inline-flex items-center shrink-0 gap-0.5">
+                                      <div className="inline-flex items-center justify-center shrink-0 gap-0.5 whitespace-nowrap">
+                                        <span className="leading-none shrink-0">～</span>
+                                        {emp.endCurrent ? (
+                                          <span
+                                            className="inline-flex items-center justify-center rounded border border-slate-300 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-700 whitespace-nowrap shrink-0"
+                                            {...(!pdfExportMode ? {
+                                              role: 'button',
+                                              tabIndex: 0,
+                                              onClick: () => setWorkEndCurrent(i, false),
+                                            } : {})}
+                                          >
+                                            現在
+                                          </span>
+                                        ) : (
+                                          <>
                                             <input
                                               ref={(el) => { if (!shokumuEndYearRefs.current) shokumuEndYearRefs.current = []; shokumuEndYearRefs.current[i] = el; }}
                                               value={emp.endYear || ''}
                                               onChange={(e) => setWorkField(i, 'endYear', e.target.value.replace(/\D/g, '').slice(0, 4))}
                                               onBlur={commitShokumuEnd}
                                               inputMode="numeric"
-                                              className="w-[2.4em] min-w-0 px-0 text-center tabular-nums bg-transparent border-0 outline-none"
+                                              className="w-[3em] min-w-[3em] max-w-[3em] px-0.5 text-center tabular-nums bg-transparent border-0 outline-none"
                                             />
                                             <span>年</span>
                                             <input
@@ -1503,34 +1591,46 @@ const CvTemplateTechnical = ({
                                               onChange={(e) => setWorkField(i, 'endMonth', e.target.value.replace(/\D/g, '').slice(0, 2))}
                                               onBlur={commitShokumuEnd}
                                               inputMode="numeric"
-                                              className="w-[1.8em] min-w-0 px-0 text-center tabular-nums bg-transparent border-0 outline-none"
+                                              className="w-[2em] min-w-[2em] max-w-[2em] px-0.5 text-center tabular-nums bg-transparent border-0 outline-none"
                                             />
                                             <span>月</span>
-                                          </div>
-                                          <button type="button" onClick={() => setWorkEndCurrent(i, true)} className="rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 hover:bg-slate-50 hover:text-slate-800">現在</button>
-                                        </>
-                                      )}
+                                            <button type="button" onClick={() => setWorkEndCurrent(i, true)} className="rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] text-slate-600 hover:bg-slate-50 hover:text-slate-800 cv-pdf-hide whitespace-nowrap shrink-0">現在</button>
+                                          </>
+                                        )}
+                                      </div>
                                     </div>
                                   );
                                 })()}
                               </td>
-                              <td colSpan={2} className="p-2 align-top" style={bodyStyle(false)}>
-                                <div className="space-y-2 text-xs">
-                                  <div><span className="font-normal">【事業内容】</span> <span {...makeInlineEditable(`shokumu-business-${i}`, emp.business_purpose || '', (v) => setWorkField(i, 'business_purpose', v), { className: 'inline-block min-w-0 outline-none whitespace-pre-wrap break-words' })} /></div>
-                                  {showDescription ? <div><span className="font-normal">【担当業務】</span> <span {...makeInlineEditable(`shokumu-desc-${i}`, emp.description || '', (v) => setWorkField(i, 'description', v), { className: 'inline-block min-w-0 outline-none whitespace-pre-wrap break-words' })} /></div> : null}
-                                  <div><span className="font-normal">【規模・役割】</span> <span {...makeInlineEditable(`shokumu-scale-${i}`, emp.scale_role || '', (v) => setWorkField(i, 'scale_role', v), { className: 'inline-block min-w-0 outline-none whitespace-pre-wrap break-words' })} /></div>
-                                  <div><span className="font-normal">【退職理由】</span> <span {...makeInlineEditable(`shokumu-reason-${i}`, emp.reason_for_leaving || '', (v) => setWorkField(i, 'reason_for_leaving', v), { className: 'inline-block min-w-0 outline-none whitespace-pre-wrap break-words' })} /></div>
+                              <td
+                                colSpan={2}
+                                className="p-2 align-top text-left"
+                                style={bodyStyle}
+                                data-cv-shokumu-desc-cell
+                              >
+                                <div className="space-y-2 text-xs text-left w-full">
+                                  <div className="text-left w-full"><span className="font-normal">【事業内容】</span>{' '}<span {...makeInlineEditable(`shokumu-business-${i}`, emp.business_purpose || '', (v) => setWorkField(i, 'business_purpose', v), { className: 'block w-full outline-none whitespace-pre-wrap text-left cv-tpl-dense', style: { wordBreak: 'keep-all', overflowWrap: 'break-word' } })} /></div>
+                                  {showDescription ? <div className="text-left w-full"><span className="font-normal">【担当業務】</span>{' '}<span {...makeInlineEditable(`shokumu-desc-${i}`, emp.description || '', (v) => setWorkField(i, 'description', v), { className: 'block w-full outline-none whitespace-pre-wrap text-left cv-tpl-dense', style: { wordBreak: 'keep-all', overflowWrap: 'break-word' } })} /></div> : null}
+                                  <div className="text-left w-full"><span className="font-normal">【規模・役割】</span>{' '}<span {...makeInlineEditable(`shokumu-scale-${i}`, emp.scale_role || '', (v) => setWorkField(i, 'scale_role', v), { className: 'block w-full outline-none whitespace-pre-wrap text-left cv-tpl-dense', style: { wordBreak: 'keep-all', overflowWrap: 'break-word' } })} /></div>
+                                  <div className="text-left w-full"><span className="font-normal">【退職理由】</span>{' '}<span {...makeInlineEditable(`shokumu-reason-${i}`, emp.reason_for_leaving || '', (v) => setWorkField(i, 'reason_for_leaving', v), { className: 'block w-full outline-none whitespace-pre-wrap text-left cv-tpl-dense', style: { wordBreak: 'keep-all', overflowWrap: 'break-word' } })} /></div>
                                 </div>
                               </td>
-                              <td className="p-1.5 align-top whitespace-pre-wrap" style={bodyStyle(true)}>
-                                <span {...makeInlineEditable(`shokumu-tools-${i}`, emp.tools_tech || '', (v) => setWorkField(i, 'tools_tech', v), { className: 'block w-full outline-none whitespace-pre-wrap break-words' })} />
+                              <td className="p-1.5 align-top whitespace-pre-wrap text-left" style={bodyStyle} data-cv-shokumu-tools-cell>
+                                <span {...makeInlineEditable(`shokumu-tools-${i}`, emp.tools_tech || '', (v) => setWorkField(i, 'tools_tech', v), { className: 'block w-full outline-none whitespace-pre-wrap break-words text-left cv-tpl-dense' })} />
                               </td>
                             </tr>
+                            {i < workCount - 1 && (
+                              <tr data-cv-work-insert-row>
+                                <td colSpan={4} className="p-0.5 text-center">
+                                  <button type="button" onClick={() => insertWorkRowAt(i + 1)} className="text-xs text-amber-600 hover:text-amber-800">挿入</button>
+                                </td>
+                              </tr>
+                            )}
                           </React.Fragment>
                         );
                       })}
-                      <tr>
-                        <td colSpan={4} className="p-1.5 align-middle bg-gray-50 text-center" style={{ border: 'none' }}>
+                      <tr data-cv-work-add-row>
+                        <td colSpan={4} className="p-1.5 align-middle bg-gray-50 text-center">
                           <button type="button" onClick={addWorkRow} className="text-xs flex items-center justify-center gap-1 mx-auto text-blue-600 hover:text-blue-800">
                             <Plus className="w-3.5 h-3.5" /> 行を追加
                           </button>
@@ -1543,9 +1643,10 @@ const CvTemplateTechnical = ({
             })()}
 
             {/* 活かせるスキル + 資格・免許 */}
+            <div className="cv-shokumu-prose">
             <ResizableCvTable
               className="w-full border-collapse mt-4 border"
-              style={{ fontSize: '11px', color: '#1f2937', borderColor: '#1f2937' }}
+              style={CV_TPL_TABLE_STYLE}
               colPercents={colSaved('shokumu', 'skillsCert', [100])}
               layoutKey={cvLayoutKey(CV_TPL, 'shokumu', 'skillsCert')}
               onLayoutCommit={onCvTableLayoutCommit}
@@ -1557,9 +1658,9 @@ const CvTemplateTechnical = ({
                   </td>
                 </tr>
                 <tr>
-                  <td className="border p-3 min-h-[100px] bg-white text-sm whitespace-pre-wrap align-top" style={{ borderColor: '#1f2937', color: '#1f2937' }}>
+                  <td className="border p-3 min-h-[100px] bg-white cv-tpl-dense whitespace-pre-wrap align-top" style={{ borderColor: '#1f2937', color: '#1f2937' }}>
                     <div className="whitespace-pre-wrap min-h-[100px]">
-                      <span {...cvEditable('technicalSkills', 'inline-block min-w-0 outline-none whitespace-pre-wrap block w-full', { minHeight: '100px' })} />
+                      <span {...cvEditable('technicalSkills', 'inline-block min-w-0 outline-none whitespace-pre-wrap block w-full cv-tpl-dense text-left', { minHeight: '100px' })} />
                     </div>
                   </td>
                 </tr>
@@ -1569,13 +1670,13 @@ const CvTemplateTechnical = ({
                   </td>
                 </tr>
                 <tr>
-                  <td className="border p-3 bg-white text-sm align-top min-h-[4rem]" style={{ borderColor: '#1f2937', color: '#1f2937' }}>
+                  <td className="border p-3 bg-white cv-tpl-dense align-top min-h-[4rem]" style={{ borderColor: '#1f2937', color: '#1f2937' }}>
                     <div className="space-y-2" data-cv-shokumu-cert-list style={{ minHeight: '4rem' }}>
                       {(formData.certificates || []).length > 0 ? (
                         (formData.certificates || []).map((cert, index) => (
-                          <div key={`tech-cert-${index}`} data-cv-shokumu-cert-row className="flex flex-wrap items-center gap-1">
+                          <div key={`tech-cert-${index}`} data-cv-shokumu-cert-row className="flex flex-wrap items-center justify-start gap-1">
                             <span className="shrink-0">・</span>
-                            <span {...cvEditableArray('certificates', index, 'name', 'min-w-[10rem] flex-1 border-0 outline-none bg-transparent whitespace-pre-wrap')} />
+                            <span {...cvEditableArray('certificates', index, 'name', 'min-w-[10rem] flex-1 border-0 outline-none bg-transparent whitespace-pre-wrap text-left')} />
                             <span className="shrink-0">（</span>
                             <span {...makeInlineEditable(`cert-year-${index}`, cert?.year || '', (v) => setFormData((prev) => { const next = [...(prev.certificates || [])]; next[index] = { ...(next[index] || {}), year: v }; return { ...prev, certificates: next }; }), { className: 'w-14 border-0 outline-none bg-transparent text-center', multiline: false })} />
                             <span className="shrink-0">年</span>
@@ -1623,6 +1724,7 @@ const CvTemplateTechnical = ({
                 </tr>
               </tbody>
             </ResizableCvTable>
+            </div>
           </div>
         </div>
       )}

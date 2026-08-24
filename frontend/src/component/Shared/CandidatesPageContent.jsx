@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import apiService from '../../services/api';
 import {
   getCvDisplayStatusStyle,
@@ -46,9 +46,9 @@ import {
 } from 'lucide-react';
 import BulkImportCandidatesModal from './BulkImportCandidatesModal';
 import QuickCreateCandidateDrawer from './QuickCreateCandidateDrawer';
-import { shouldRestoreCandidatesListState } from '../../utils/routerNavigationHistory';
+import { shouldRestoreCandidatesListState, CANDIDATES_LIST_STORAGE_PREFIX } from '../../utils/routerNavigationHistory';
 
-const CANDIDATES_LIST_STORAGE_PREFIX = 'wsj_candidates_list_v1';
+const SHOW_SCOUT_UI = false;
 
 const readCandidatesListSession = (variant) => {
   try {
@@ -66,6 +66,7 @@ const readCandidatesListSession = (variant) => {
  */
 const CandidatesPageContent = ({ variant = 'admin' }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { language } = useLanguage();
   const t = translations[language] || translations.vi;
   const isAdmin = variant === 'admin';
@@ -152,6 +153,29 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
   const [collaboratorOptions, setCollaboratorOptions] = useState([]);
   const [collaboratorOptionsLoading, setCollaboratorOptionsLoading] = useState(false);
   const [collaboratorAssignSaving, setCollaboratorAssignSaving] = useState(false);
+
+  const resetCandidatesListState = useCallback(() => {
+    setSearchQuery('');
+    setSelectedStatuses([]);
+    setSortColumn('createdAt');
+    setSortDirection('desc');
+    setCurrentPage(1);
+    setSelectedRows(new Set());
+    setBulkNewStatus('');
+    setFailedHistorySearchQuery('');
+    setFailedHistoryPage(1);
+    try {
+      sessionStorage.removeItem(listSessionKey);
+    } catch {
+      // ignore
+    }
+  }, [listSessionKey]);
+
+  useEffect(() => {
+    if (!location.state?.resetCandidatesList) return;
+    resetCandidatesListState();
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.state?.resetCandidatesList, location.pathname, navigate, resetCandidatesListState]);
 
   useEffect(() => {
     if (restoreListState) return;
@@ -412,20 +436,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
   };
 
   const handleReset = () => {
-    setSearchQuery('');
-    setSelectedStatuses([]);
-    setSortColumn('createdAt');
-    setSortDirection('desc');
-    setCurrentPage(1);
-    setSelectedRows(new Set());
-    setBulkNewStatus('');
-    setFailedHistorySearchQuery('');
-    setFailedHistoryPage(1);
-    try {
-      sessionStorage.removeItem(listSessionKey);
-    } catch {
-      // ignore
-    }
+    resetCandidatesListState();
     loadCandidates();
   };
 
@@ -660,11 +671,12 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
   };
   /** Cùng trường `cv_storages.status` với cột badge (1 hợp lệ xanh, 3 trùng đỏ, 4 quá hạn, 5 khởi tạo thất bại) — Admin & CTV */
   const statusOptions = getCVStatusOptions(language);
-  const colCount = isAdmin ? 11 : 7;
+  const colCount = isAdmin ? (SHOW_SCOUT_UI ? 11 : 10) : (SHOW_SCOUT_UI ? 7 : 6);
 
   const displayName = (c) => c.name || c.fullName || c.nameKanji || 'N/A';
 
   const renderScoutStatusBadge = (candidate) => {
+    if (!SHOW_SCOUT_UI) return null;
     const scoutStyle = getScoutStatusStyle(candidate);
     return (
       <span
@@ -682,6 +694,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
   };
 
   const canShowScoutAction = (candidate) => {
+    if (!SHOW_SCOUT_UI) return false;
     if (!canOperateOnCandidate(candidate) || isCvPromotedInactive(candidate)) return false;
     return isScoutListed(candidate) || canCandidateBeListedOnScout(candidate);
   };
@@ -1235,7 +1248,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
         </div>
       )}
 
-      {selectedRows.size > 0 && (
+      {SHOW_SCOUT_UI && selectedRows.size > 0 && (
         <div
           className="mb-2 flex flex-shrink-0 flex-wrap items-center gap-1.5 rounded-xl border px-2.5 py-2 text-xs lg:gap-1.5 lg:px-2 lg:py-1.5 lg:text-[11px] xl:gap-2 xl:px-3 xl:py-2 xl:text-xs"
           style={{ borderColor: '#bfdbfe', backgroundColor: 'rgba(239, 246, 255, 0.85)' }}
@@ -1467,6 +1480,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                           </span>
                         )}
                       </div>
+                      {SHOW_SCOUT_UI && (
                       <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
                         {renderScoutStatusBadge(candidate)}
                         {canShowScoutAction(candidate) && (
@@ -1486,6 +1500,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                           </button>
                         )}
                       </div>
+                      )}
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
                         <span className="inline-flex items-center gap-1 font-medium text-gray-800">
                           {t.numberOfApplications}: {candidate.applicationsCount ?? 0}
@@ -1641,7 +1656,9 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                   <div className="flex items-center gap-0 xl:gap-0.5">{t.candidateName} {getSortIcon('name')}</div>
                 </th>
                 <th className="min-w-[70px] px-px py-1.5 text-left text-[8px] font-bold xl:min-w-[92px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>{t.cvStatus || t.status}</th>
+                {SHOW_SCOUT_UI && (
                 <th className="min-w-[58px] px-px py-1.5 text-left text-[8px] font-bold xl:min-w-[76px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>{t.candidatesPageScoutCol || 'Scout'}</th>
+                )}
                 <th
                   className="min-w-[70px] cursor-pointer px-px py-1.5 text-left text-[8px] font-bold transition-colors xl:min-w-[92px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
                   style={{ color: '#111827', backgroundColor: hoveredTableHeader === 'applicationsCount' ? '#f3f4f6' : 'transparent' }}
@@ -1771,9 +1788,11 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                           </span>
                         )}
                       </td>
+                      {SHOW_SCOUT_UI && (
                       <td className="px-px py-px align-middle xl:px-0.5 xl:py-0.5" onClick={(e) => e.stopPropagation()}>
                         {renderScoutStatusBadge(candidate)}
                       </td>
+                      )}
                       <td className="px-px py-px align-middle xl:px-0.5 xl:py-0.5">
                         <div className="flex items-center gap-0.5">
                           <span className="text-[8px] font-medium lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>{candidate.applicationsCount ?? 0}</span>

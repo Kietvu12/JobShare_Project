@@ -674,7 +674,11 @@ export const cvController = {
             model: Collaborator,
             as: 'collaborator',
             required: false,
-            attributes: ['id', 'name', 'email', 'code', 'phone']
+            attributes: [
+              'id', 'name', 'email', 'code', 'phone',
+              'utmSource', 'utmMedium', 'utmCampaign', 'utmContent', 'utmTerm',
+              'registrationSource', 'registrationSourceDetail',
+            ]
           },
           {
             model: Admin,

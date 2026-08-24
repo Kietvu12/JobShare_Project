@@ -1,5 +1,9 @@
 import { Op } from 'sequelize';
 import { Admin, CollaboratorNotification } from '../models/index.js';
+import {
+  hasCollaboratorNotificationTimestampColumns,
+  isMissingCollaboratorNotificationTimestampColumnError,
+} from '../utils/collaboratorNotificationSchema.js';
 
 const collaboratorStreams = new Map();
 const adminStreams = new Map();
@@ -128,15 +132,20 @@ export const collaboratorNotificationService = {
 
     try {
       let notification;
+      const hasTimestamps = await hasCollaboratorNotificationTimestampColumns();
+      const createOptions = hasTimestamps ? {} : { timestamps: false };
       try {
-        notification = await CollaboratorNotification.create(row);
+        notification = await CollaboratorNotification.create(row, createOptions);
       } catch (err) {
         const e = err?.parent || err?.original || err;
         const missingBusinessId = e?.errno === 1054
           && /Unknown column ['`]?business_id['`]?/i.test(String(e?.sqlMessage || err?.message || ''));
+        const missingTimestamps = isMissingCollaboratorNotificationTimestampColumnError(err);
         if (missingBusinessId && row.businessId != null) {
           const { businessId: _omit, ...withoutBusiness } = row;
-          notification = await CollaboratorNotification.create(withoutBusiness);
+          notification = await CollaboratorNotification.create(withoutBusiness, createOptions);
+        } else if (missingTimestamps) {
+          notification = await CollaboratorNotification.create(row, { timestamps: false });
         } else {
           throw err;
         }

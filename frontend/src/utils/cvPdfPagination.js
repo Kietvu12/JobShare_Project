@@ -3,15 +3,15 @@ import { jsPDF } from 'jspdf';
 
 export const CV_PDF_MARGIN_MM = {
   top: 10,
-  right: 12,
+  right: 8,
   bottom: 10,
-  left: 12,
+  left: 8,
 };
 
 export const A4_WIDTH_MM = 210;
 export const A4_HEIGHT_MM = 297;
 /** Khổ ngang PDF CV client-side — rộng hơn A4 để bảng/label không bị chật. */
-export const CV_PDF_PAGE_WIDTH_MM = 280;
+export const CV_PDF_PAGE_WIDTH_MM = 430;
 /** Chiều cao trang PDF tối đa: A4 rộng × A3 cao — nhiều nội dung/trang, ít cắt bảng. */
 export const CV_PDF_PAGE_HEIGHT_MM = 420;
 
@@ -102,6 +102,22 @@ function collectKeepTogetherBands(root) {
     });
   });
 
+  // Tiêu đề section + hàng nội dung kề (自己PR / 応募動機 / 備考) — không cắt rời.
+  root.querySelectorAll('[data-cv-pdf-keep-with-next]').forEach((headerEl) => {
+    const next = headerEl.nextElementSibling;
+    if (!(next instanceof Element) || isHiddenElement(next)) return;
+    const r1 = headerEl.getBoundingClientRect();
+    const r2 = next.getBoundingClientRect();
+    if (r2.bottom - r1.top < 0.5) return;
+    bands.push({
+      top: r1.top - rootTop,
+      bottom: r2.bottom - rootTop,
+      height: r2.bottom - r1.top,
+      el: headerEl,
+      type: 'block',
+    });
+  });
+
   bands.sort((a, b) => a.top - b.top || a.bottom - b.bottom);
 
   const deduped = [];
@@ -129,7 +145,51 @@ function cutInsideBand(y, band) {
 
 function isSafeCut(y, pageStart, bands) {
   if (y <= pageStart + MIN_SLICE_PX) return false;
-  return !bands.some((b) => cutInsideBand(y, b));
+  // Chỉ tránh cắt xuyên hàng/block — cho phép cắt giữa bảng ở ranh giới hàng.
+  return !bands.some((b) => {
+    if (b.type === 'table') return false;
+    return cutInsideBand(y, b);
+  });
+}
+
+/** Điểm cắt tối ưu: ưu tiên lấp đầy trang, chỉ dừng ở mép dưới hàng an toàn. */
+function findBestPageCut(pageStart, pageEnd, pageH, bands, rootTop) {
+  if (pageEnd >= pageStart + pageH - EPS && isSafeCut(pageEnd, pageStart, bands)) {
+    return pageEnd;
+  }
+
+  const rowEnds = bands
+    .filter((b) => b.type === 'tr' && b.bottom <= pageEnd + EPS && b.bottom > pageStart + MIN_SLICE_PX)
+    .map((b) => b.bottom)
+    .filter((y) => isSafeCut(y, pageStart, bands));
+
+  if (rowEnds.length) {
+    return Math.max(...rowEnds);
+  }
+
+  const blocker = bands
+    .filter((b) => b.type !== 'table' && b.top < pageEnd - EPS && b.bottom > pageEnd + EPS)
+    .sort((a, b) => b.top - a.top)[0];
+
+  if (blocker) {
+    if (blocker.top > pageStart + MIN_SLICE_PX && isSafeCut(blocker.top, pageStart, bands)) {
+      return blocker.top;
+    }
+    if (blocker.height > pageH) {
+      return findLineCutInBand(blocker, pageStart, pageEnd, rootTop);
+    }
+  }
+
+  if (isSafeCut(pageEnd, pageStart, bands)) {
+    return pageEnd;
+  }
+
+  const nextTop = bands.find((b) => b.type !== 'table' && b.top > pageStart + MIN_SLICE_PX)?.top;
+  if (nextTop != null && nextTop < pageEnd && isSafeCut(nextTop, pageStart, bands)) {
+    return nextTop;
+  }
+
+  return pageEnd;
 }
 
 // FIX Bug #3: Trả về điểm cắt an toàn nhất thay vì null khi không tìm được dòng chữ.
@@ -158,35 +218,6 @@ function tableSplitByCut(table, cut) {
   return table.top + EPS < cut && cut < table.bottom - EPS;
 }
 
-/** Không chia đôi bảng nếu cả bảng vừa một trang — đẩy sang trang sau. */
-function enforceTableKeepTogether(cut, pageStart, pageH, bands) {
-  const tables = bands.filter((b) => b.type === 'table');
-  if (!tables.length) return cut;
-
-  let adjusted = cut;
-  for (const table of tables) {
-    if (table.height > pageH + EPS) continue;
-
-    if (tableSplitByCut(table, adjusted) && table.top > pageStart + MIN_SLICE_PX) {
-      adjusted = Math.min(adjusted, table.top);
-      continue;
-    }
-
-    if (
-      table.top >= pageStart + EPS
-      && table.top < adjusted + EPS
-      && table.bottom > pageStart + pageH + EPS
-    ) {
-      const spaceLeft = pageStart + pageH - table.top;
-      if (table.height > spaceLeft + EPS && table.top > pageStart + MIN_SLICE_PX) {
-        adjusted = Math.min(adjusted, table.top);
-      }
-    }
-  }
-
-  return adjusted > pageStart + MIN_SLICE_PX ? adjusted : cut;
-}
-
 /**
  * Tính mốc cắt dọc theo chiều cao canvas (px).
  * Ưu tiên ngắt sau hàng bảng; không cắt xuyên hàng nếu tránh được.
@@ -208,59 +239,11 @@ export function computePageBreakOffsets(root, totalHeightPx, pageContentHeightPx
     const pageEnd = Math.min(pageStart + pageH, total);
     if (pageEnd >= total - EPS) break;
 
-    let cut = null;
-
-    // FIX Bug #1: Không dùng isSafeCut để filter fittingEnds.
-    // b.bottom là ranh giới SAU một band — luôn là điểm cắt hợp lệ,
-    // không cần kiểm tra cutInsideBand vì y == band.bottom không thoả
-    // điều kiện y < band.bottom - EPS. Chỉ cần đảm bảo y không nằm
-    // bên trong một band KHÁC.
-    const fittingEnds = bands
-      .filter((b) => b.bottom <= pageEnd + EPS && b.bottom > pageStart + MIN_SLICE_PX)
-      .map((b) => b.bottom)
-      .filter((y) => !bands.some((b) => cutInsideBand(y, b)));
-
-    if (fittingEnds.length) {
-      cut = Math.max(...fittingEnds);
-    }
-
-    if (cut == null) {
-      // FIX Bug #2: Tìm blocker gần pageEnd nhất (top lớn nhất),
-      // tránh lấy nhầm band đã nằm trước pageStart hoặc band xa.
-      const blocker = bands
-        .filter((b) => b.top < pageEnd - EPS && b.bottom > pageEnd + EPS)
-        .sort((a, b) => b.top - a.top)[0]; // band có top lớn nhất = gần pageEnd nhất
-
-      if (blocker) {
-        if (blocker.top > pageStart + MIN_SLICE_PX && isSafeCut(blocker.top, pageStart, bands)) {
-          // Cắt ngay trước band chắn — band chưa bắt đầu trong trang này
-          cut = blocker.top;
-        } else if (blocker.height > pageH) {
-          // Band cao hơn 1 trang → phải cắt bên trong, tìm điểm giữa dòng chữ
-          cut = findLineCutInBand(blocker, pageStart, pageEnd, rootTop);
-        }
-        // Nếu blocker.top <= pageStart + MIN_SLICE_PX và height <= pageH:
-        // band bắt đầu quá gần đầu trang và vừa trang tiếp theo
-        // → để cut = null, fallback xuống isSafeCut(pageEnd) bên dưới
-      }
-    }
-
-    if (cut == null && isSafeCut(pageEnd, pageStart, bands)) {
-      cut = pageEnd;
-    }
-
-    if (cut == null) {
-      const nextTop = bands.find((b) => b.top > pageStart + MIN_SLICE_PX)?.top;
-      if (nextTop != null && nextTop < pageEnd && isSafeCut(nextTop, pageStart, bands)) {
-        cut = nextTop;
-      }
-    }
+    let cut = findBestPageCut(pageStart, pageEnd, pageH, bands, rootTop);
 
     if (cut == null || cut <= pageStart + EPS) {
       cut = pageEnd;
     }
-
-    cut = enforceTableKeepTogether(cut, pageStart, pageH, bands);
 
     breaks.push(cut);
     pageStart = cut;
@@ -389,10 +372,10 @@ function sliceTotalPageHeightMm(sliceHeightMm) {
   return CV_PDF_MARGIN_MM.top + body + CV_PDF_MARGIN_MM.bottom;
 }
 
-/** Kích thước trang PDF — luôn portrait (cao >= rộng). Trang ngắn (vd. 本人希望記入欄) nếu không ép min height sẽ bị jsPDF/viewer đảo thành dải dọc hẹp. */
+/** Kích thước trang PDF — nội dung khớp slice; ép cao tối thiểu khi trang hẹp hơn rộng (tránh PDF.js vỡ layout). */
 function pdfPageFormatMm(sliceHeightMm) {
   const pageHeight = sliceTotalPageHeightMm(sliceHeightMm);
-  return [CV_PDF_PAGE_WIDTH_MM, Math.max(pageHeight, A4_HEIGHT_MM)];
+  return [CV_PDF_PAGE_WIDTH_MM, Math.max(pageHeight, CV_PDF_PAGE_WIDTH_MM + 1)];
 }
 
 function buildPdfSlices(sourceCanvas, paginationPlan, scale = 2) {
@@ -443,7 +426,7 @@ function buildPdfSlices(sourceCanvas, paginationPlan, scale = 2) {
 
 function renderSliceOnPdf(pdf, slice) {
   pdf.addImage(
-    slice.pageCanvas.toDataURL('image/jpeg', 0.92),
+    slice.pageCanvas.toDataURL('image/jpeg', 0.98),
     'JPEG',
     CV_PDF_MARGIN_MM.left,
     CV_PDF_MARGIN_MM.top,

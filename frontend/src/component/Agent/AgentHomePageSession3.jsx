@@ -26,6 +26,14 @@ function isMarketplaceJobPickup(pickup) {
   return MARKETPLACE_JOB_PICKUP_NAMES.has(name) || MARKETPLACE_JOB_PICKUP_NAMES.has(nameEn);
 }
 
+const NEWS_PREVIEW_MAX_CHARS = 200;
+
+function truncatePreviewText(text, maxLen = NEWS_PREVIEW_MAX_CHARS) {
+  const normalized = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!normalized || normalized.length <= maxLen) return normalized;
+  return `${normalized.slice(0, maxLen).trim()}…`;
+}
+
 const NewsPreview = memo(({ text }) => {
   const textRef = useRef(null);
   const [isTruncated, setIsTruncated] = useState(false);
@@ -46,13 +54,13 @@ const NewsPreview = memo(({ text }) => {
     <div className="relative mt-0.5 flex-1 min-h-[2rem] overflow-hidden">
       <p
         ref={textRef}
-        className="line-clamp-[8] text-[8px] leading-[1.35] text-slate-500 break-words sm:text-[9px] sm:line-clamp-[9]"
+        className="line-clamp-4 text-[10px] leading-[1.45] text-slate-600 break-words sm:text-[11px]"
       >
         {text}
       </p>
       {isTruncated && (
         <span
-          className="pointer-events-none absolute bottom-0 right-0 bg-gradient-to-l from-white from-55% via-white/95 pl-4 text-[8px] font-semibold leading-none text-slate-500 sm:text-[9px]"
+          className="pointer-events-none absolute bottom-0 right-0 bg-gradient-to-l from-white from-55% via-white/95 pl-4 text-[10px] font-semibold leading-none text-slate-500 sm:text-[11px]"
           aria-hidden
         >
           ..
@@ -94,6 +102,28 @@ const AgentHomePageSession3 = () => {
   const [hoveredCardIndex, setHoveredCardIndex] = useState(null);
   const [hoveredRetryButton, setHoveredRetryButton] = useState(false);
   const [hoveredCloseModalButton, setHoveredCloseModalButton] = useState(false);
+  const [listModal, setListModal] = useState({ open: false, type: null, title: '' });
+  const [hoveredCloseListModalButton, setHoveredCloseListModalButton] = useState(false);
+
+  const openListModal = (type, title) => {
+    setListModal({ open: true, type, title });
+  };
+
+  const closeListModal = () => {
+    setListModal({ open: false, type: null, title: '' });
+  };
+
+  const getListModalItems = () => {
+    if (listModal.type === 'job-pickup') return jobPickups;
+    if (listModal.type === 'campaign') return campaigns;
+    if (listModal.type === 'news') return sortedNewsItems;
+    return [];
+  };
+
+  const handleListModalItemClick = (item) => {
+    closeListModal();
+    handleRowClick(item);
+  };
 
   const openAdminChat = () => {
     if (typeof window !== 'undefined') {
@@ -508,12 +538,14 @@ const AgentHomePageSession3 = () => {
 
   const getNewsPreviewText = (item) => {
     const fromMeta = stripHtml(getLocalizedItemDescription(item));
-    if (fromMeta) return fromMeta;
-    return stripHtml(
-      pickByLanguage(
-        item?.content || '',
-        item?.contentEn || item?.content_en || '',
-        item?.contentJp || item?.content_jp || ''
+    if (fromMeta) return truncatePreviewText(fromMeta);
+    return truncatePreviewText(
+      stripHtml(
+        pickByLanguage(
+          item?.content || '',
+          item?.contentEn || item?.content_en || '',
+          item?.contentJp || item?.content_jp || ''
+        )
       )
     );
   };
@@ -731,17 +763,28 @@ const AgentHomePageSession3 = () => {
     { gradient: 'linear-gradient(135deg, #f472b6 0%, #fb7185 50%, #fda4af 100%)', accent: 'rgba(251,207,232,0.5)' },
   ];
 
-  const renderBlock = (title, items, defaultIcon) => (
+  const renderBlock = (title, items, defaultIcon, { onViewAll } = {}) => (
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-slate-100 bg-slate-50/50">
-      <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-100 bg-slate-50 px-2 py-1">
-        <h3 className="text-[8px] sm:text-[9px] md:text-[9px] font-semibold text-slate-700">{title}</h3>
-        {items.length > 0 && (
-          <span className="text-[8px] text-slate-500">{items.length}{language === 'ja' ? '件' : ''}</span>
-        )}
+      <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-100 bg-slate-50 px-3 py-2">
+        <h3 className="text-[13px] sm:text-sm font-bold text-slate-900">{title}</h3>
+        <div className="flex items-center gap-2">
+          {items.length > 0 && (
+            <span className="text-[10px] sm:text-[11px] text-slate-500">{items.length}{language === 'ja' ? '件' : ''}</span>
+          )}
+          {typeof onViewAll === 'function' && items.length > 0 ? (
+            <button
+              type="button"
+              onClick={onViewAll}
+              className="shrink-0 text-[10px] sm:text-[11px] font-semibold text-red-600 hover:text-red-700"
+            >
+              {t.seeAll || 'Xem tất cả'} ›
+            </button>
+          ) : null}
+        </div>
       </div>
       {items.length > 0 ? (
-        <div className="flex-1 min-h-0 max-h-[210px] overflow-y-auto sm:max-h-[230px]">
-          <div className="grid grid-cols-1 gap-1.5 p-1.5">
+        <div className="flex-1 min-h-0 max-h-[280px] overflow-y-auto sm:max-h-[320px]">
+          <div className="grid grid-cols-1 gap-2 p-2">
             {items.map((item) => {
               const iconMap = { 'Star': Star, 'Target': Target, 'FileText': FileText };
               const Icon = iconMap[item.tagIcon] || defaultIcon;
@@ -752,36 +795,36 @@ const AgentHomePageSession3 = () => {
                   onClick={() => handleRowClick(item)}
                   onMouseEnter={() => setHoveredCardIndex(item.id)}
                   onMouseLeave={() => setHoveredCardIndex(null)}
-                  className={`flex flex-col border rounded-md p-1.5 transition-all cursor-pointer bg-white hover:border-blue-200 hover:shadow-sm ${
-                    previewText ? 'min-h-[6.75rem] sm:min-h-[7.25rem]' : ''
-                  } ${hoveredCardIndex === item.id ? 'border-blue-200 shadow-sm' : 'border-slate-100'}`}
+                  className={`flex flex-col border rounded-lg p-2.5 transition-all cursor-pointer bg-white hover:border-red-200 hover:shadow-sm ${
+                    previewText ? 'min-h-[6.5rem] sm:min-h-[7rem]' : ''
+                  } ${hoveredCardIndex === item.id ? 'border-red-200 shadow-sm' : 'border-slate-100'}`}
                 >
-                  <div className="flex flex-shrink-0 items-start gap-1">
+                  <div className="flex flex-shrink-0 items-start gap-2">
                     <div
-                      className="p-0.5 rounded flex-shrink-0 border"
+                      className="p-1 rounded-md flex-shrink-0 border"
                       style={item.type === 'news' ? getCategoryTagStyle(item.categoryColor) : getTagInlineStyle(item.tagColor)}
                     >
-                      <Icon className="w-2.5 h-2.5" />
+                      <Icon className="w-3.5 h-3.5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="mb-0.5 flex items-center gap-1">
+                      <div className="mb-1 flex items-center gap-1.5 flex-wrap">
                         <span
-                          className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[7px] sm:text-[8px] font-bold"
+                          className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] sm:text-[11px] font-bold"
                           style={item.type === 'news' ? getCategoryTagStyle(item.categoryColor) : undefined}
                         >
                           {getItemTag(item)}
                         </span>
-                        <span className="text-[7px] sm:text-[8px] text-slate-400">{item.date}</span>
+                        <span className="text-[10px] sm:text-[11px] text-slate-500">{item.date}</span>
                       </div>
-                      <h4 className={`text-[8px] sm:text-[9px] ${item.isNew ? 'font-semibold' : 'font-medium'} leading-tight text-slate-900`}>
+                      <h4 className={`text-[12px] sm:text-[13px] ${item.isNew ? 'font-bold text-amber-800' : 'font-semibold'} leading-snug text-slate-900`}>
                         {getLocalizedItemTitle(item)}
                       </h4>
                     </div>
                   </div>
-                  <div className={`flex min-h-0 flex-col pl-[1.125rem] ${previewText ? 'flex-1' : ''}`}>
+                  <div className={`flex min-h-0 flex-col pl-[1.625rem] ${previewText ? 'flex-1' : ''}`}>
                     <NewsPreview text={previewText} />
                     {item.isNew && (
-                      <span className="mt-auto inline-block w-fit px-1 py-0.5 text-white text-[7px] font-semibold rounded bg-red-500">{t.new || 'Mới'}</span>
+                      <span className="mt-auto inline-block w-fit px-1.5 py-0.5 text-white text-[9px] font-semibold rounded bg-red-500">{t.new || 'Mới'}</span>
                     )}
                   </div>
                 </div>
@@ -790,8 +833,8 @@ const AgentHomePageSession3 = () => {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center p-2">
-          <p className="text-[9px] sm:text-[10px] text-slate-400">{t.noData || 'Không có dữ liệu'}</p>
+        <div className="flex-1 flex items-center justify-center p-4">
+          <p className="text-[11px] sm:text-xs text-slate-500">{t.noData || 'Không có dữ liệu'}</p>
         </div>
       )}
     </div>
@@ -864,7 +907,11 @@ const AgentHomePageSession3 = () => {
             <h3 className="text-[13px] sm:text-sm font-bold text-slate-900 uppercase tracking-wide">
               {t.agentHomeFeaturedJobsTitle || 'TỔNG HỢP JOB NỔI BẬT DÀNH CHO BẠN'}
             </h3>
-            <button type="button" className="shrink-0 text-[10px] sm:text-[11px] font-semibold text-red-600 hover:text-red-700">
+            <button
+              type="button"
+              onClick={() => openListModal('job-pickup', t.agentHomeFeaturedJobsTitle || 'TỔNG HỢP JOB NỔI BẬT DÀNH CHO BẠN')}
+              className="shrink-0 text-[10px] sm:text-[11px] font-semibold text-red-600 hover:text-red-700"
+            >
               {t.seeAll || 'Xem tất cả'} ›
             </button>
           </div>
@@ -936,7 +983,13 @@ const AgentHomePageSession3 = () => {
             <h3 className="text-[13px] sm:text-sm font-bold text-slate-900">
               {t.agentHomeCampaign}
             </h3>
-            <button type="button" className="text-[10px] font-semibold text-red-600 hover:text-red-700">{t.seeAll || 'Xem tất cả'} ›</button>
+            <button
+              type="button"
+              onClick={() => openListModal('campaign', t.agentHomeCampaign || 'Campaign')}
+              className="text-[10px] sm:text-[11px] font-semibold text-red-600 hover:text-red-700"
+            >
+              {t.seeAll || 'Xem tất cả'} ›
+            </button>
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
             {campaigns.map((item, index) => {
@@ -997,8 +1050,15 @@ const AgentHomePageSession3 = () => {
         </div>
       )}
 
-      <div className="rounded-2xl border border-red-100/70 bg-white p-3">
-        {renderBlock(t.agentHomeNews || t.news || 'News', sortedNewsItems, FileText)}
+      <div className="rounded-2xl border border-red-100/70 bg-white p-3 sm:p-4">
+        {renderBlock(
+          t.agentHomeNews || t.news || 'News',
+          sortedNewsItems.slice(0, 6),
+          FileText,
+          {
+            onViewAll: () => openListModal('news', t.agentHomeNews || t.news || 'Tin tức'),
+          }
+        )}
       </div>
 
       <QuickCreateCandidateDrawer
@@ -1008,6 +1068,111 @@ const AgentHomePageSession3 = () => {
         onCreated={() => setQuickCreateOpen(false)}
         variant="collaborator"
       />
+
+      {/* Popup danh sách đầy đủ (Job pickup / Campaign / Tin tức) */}
+      {listModal.open && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="agent-home-list-modal-title"
+        >
+          <div
+            className="absolute inset-0 bg-slate-900/50"
+            onClick={closeListModal}
+            aria-hidden="true"
+          />
+          <div
+            className="relative flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-2xl sm:max-w-2xl sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3">
+              <div className="min-w-0">
+                <h3 id="agent-home-list-modal-title" className="truncate text-sm font-bold text-slate-900 sm:text-base">
+                  {listModal.title}
+                </h3>
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  {getListModalItems().length} {language === 'ja' ? '件' : language === 'en' ? 'items' : 'mục'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeListModal}
+                onMouseEnter={() => setHoveredCloseListModalButton(true)}
+                onMouseLeave={() => setHoveredCloseListModalButton(false)}
+                className={`rounded-lg p-2 text-slate-600 transition-colors ${hoveredCloseListModalButton ? 'bg-slate-200' : 'hover:bg-slate-200'}`}
+                aria-label={language === 'ja' ? '閉じる' : language === 'en' ? 'Close' : 'Đóng'}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+              {getListModalItems().length === 0 ? (
+                <p className="py-8 text-center text-sm text-slate-500">{t.noData || 'Không có dữ liệu'}</p>
+              ) : (
+                <div className="space-y-2">
+                  {getListModalItems().map((item) => {
+                    const iconMap = { Star, Target, FileText };
+                    const Icon = iconMap[item.tagIcon] || FileText;
+                    const previewText = listModal.type === 'news' ? getNewsPreviewText(item) : getLocalizedItemDescription(item);
+                    const coverSrc = item.coverUrl || item.cover_url;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleListModalItemClick(item)}
+                        className="flex w-full gap-3 rounded-xl border border-slate-100 bg-white p-3 text-left transition-all hover:border-red-200 hover:bg-red-50/30 hover:shadow-sm"
+                      >
+                        {(listModal.type === 'job-pickup' || listModal.type === 'campaign') && coverSrc ? (
+                          <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                            <img
+                              src={normalizePostImageUrl(coverSrc)}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border"
+                            style={item.type === 'news' ? getCategoryTagStyle(item.categoryColor) : getTagInlineStyle(item.tagColor)}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                            <span
+                              className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold"
+                              style={item.type === 'news' ? getCategoryTagStyle(item.categoryColor) : getTagInlineStyle(item.tagColor)}
+                            >
+                              {getItemTag(item)}
+                            </span>
+                            <span className="text-[10px] text-slate-500">{item.date}</span>
+                            {item.isNew ? (
+                              <span className="rounded bg-red-500 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                                {t.new || 'Mới'}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className={`line-clamp-2 text-[13px] font-bold leading-snug text-slate-900 ${item.isNew ? 'text-amber-800' : ''}`}>
+                            {getLocalizedItemTitle(item)}
+                          </p>
+                          {previewText ? (
+                            <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-slate-600">
+                              {previewText}
+                            </p>
+                          ) : null}
+                        </div>
+                        <ExternalLink className="mt-1 h-4 w-4 shrink-0 text-slate-300" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Slide-in panel từ bên trái (thay pop-up) */}
       {selectedItem && (

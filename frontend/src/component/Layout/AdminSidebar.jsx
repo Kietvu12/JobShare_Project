@@ -28,10 +28,17 @@ import {
   Package,
   Factory,
   Coins,
+  Link2,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { translations } from '../../translations/translations';
 import apiService from '../../services/api';
+import {
+  clearCandidatesListSession,
+  RESET_CANDIDATES_LIST_LOCATION_STATE,
+} from '../../utils/routerNavigationHistory';
+
+const ADMIN_CANDIDATES_PATH = '/admin/candidates';
 
 const AdminSidebar = () => {
   const location = useLocation();
@@ -169,6 +176,13 @@ const AdminSidebar = () => {
       icon: Megaphone, 
       path: '/admin/campaigns',
       roles: [1] // Only Super Admin
+    },
+    {
+      id: 'utm-links',
+      label: 'Link UTM',
+      icon: Link2,
+      path: '/admin/utm-links',
+      roles: [1, 2],
     },
     { 
       id: 'quan-ly-bai-viet', 
@@ -323,6 +337,25 @@ const AdminSidebar = () => {
       return location.pathname === '/admin' || location.pathname === '/admin/';
     }
     return location.pathname.startsWith(path);
+  };
+
+  const getAdminSidebarLinkTo = (path) => {
+    if (path === ADMIN_CANDIDATES_PATH) {
+      return { pathname: ADMIN_CANDIDATES_PATH, state: RESET_CANDIDATES_LIST_LOCATION_STATE };
+    }
+    return path;
+  };
+
+  const handleAdminCandidatesSidebarClick = (e) => {
+    clearCandidatesListSession('admin');
+    setMobileSidebarOpen(false);
+    if (location.pathname === ADMIN_CANDIDATES_PATH) {
+      e.preventDefault();
+      navigate(ADMIN_CANDIDATES_PATH, {
+        state: RESET_CANDIDATES_LIST_LOCATION_STATE,
+        replace: true,
+      });
+    }
   };
 
   // Load admin profile
@@ -510,8 +543,14 @@ const AdminSidebar = () => {
             return (
               <Link
                 key={`mobile-${item.id}`}
-                to={item.path}
-                onClick={() => setMobileSidebarOpen(false)}
+                to={getAdminSidebarLinkTo(item.path)}
+                onClick={(e) => {
+                  if (item.path === ADMIN_CANDIDATES_PATH) {
+                    handleAdminCandidatesSidebarClick(e);
+                    return;
+                  }
+                  setMobileSidebarOpen(false);
+                }}
                 className="flex items-center gap-2 rounded-lg px-2 py-2"
                 style={{
                   backgroundColor: active ? SIDEBAR_ACTIVE_BG : 'transparent',
@@ -718,7 +757,8 @@ const AdminSidebar = () => {
             return (
               <Link
                 key={item.id}
-                to={item.path}
+                to={getAdminSidebarLinkTo(item.path)}
+                onClick={item.path === ADMIN_CANDIDATES_PATH ? handleAdminCandidatesSidebarClick : undefined}
                 onMouseEnter={() => setHoveredMenuItemIndex(item.id)}
                 onMouseLeave={() => setHoveredMenuItemIndex(null)}
                 className={`w-full flex ${isExpanded ? 'items-center gap-2' : 'items-center justify-center'} px-2 py-1.5 rounded-lg transition-colors relative`}

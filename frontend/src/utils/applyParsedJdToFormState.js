@@ -1,6 +1,6 @@
 import { BUSINESS_SECTOR_OPTIONS } from './businessSectorOptions';
 import { JOB_HIGHLIGHT_OPTIONS } from './jobHighlightOptions';
-import { normalizeJobSalaryCurrency } from './jobSalaryCurrency.js';
+import { normalizeJobSalaryCurrency, detectCurrencyFromSalaryTexts } from './jobSalaryCurrency.js';
 import { normalizeNumberOfHiresStored } from './numberOfHiresOptions';
 
 function jdDescriptionToText(desc, lang) {
@@ -121,11 +121,14 @@ function jdLocationEntriesFromRaw(locRaw) {
 
 function formatJdSalaryAmount(val, currency) {
   if (val == null || val === '') return '';
+  const raw = String(val).trim();
+  const hasCurrencyMarker = /\b(JPY|VND|USD|Y)\b/i.test(raw) || /万円/u.test(raw);
+  if (hasCurrencyMarker) return raw;
   const cur = currency || 'JPY';
-  const raw = String(val).replace(/,/g, '').trim();
-  const n = Number(raw);
+  const normalized = raw.replace(/,/g, '');
+  const n = Number(normalized);
   if (Number.isFinite(n)) return `${n.toLocaleString('en-US')} ${cur}`.trim();
-  return `${String(val).trim()} ${cur}`.trim();
+  return `${raw} ${cur}`.trim();
 }
 
 function normalizeWorkingLocationField(loc) {
@@ -154,12 +157,36 @@ function generateSlug(title) {
     .replace(/(^-|-$)/g, '');
 }
 
-function localizedTextRow(value, isViTab, isEnTab) {
-  const text = value == null ? '' : String(value).trim();
-  if (!text) return null;
-  if (isViTab) return { content: text, contentEn: '', contentJp: '' };
-  if (isEnTab) return { content: '', contentEn: text, contentJp: '' };
-  return { content: '', contentEn: '', contentJp: text };
+function localizedDetailRows(value, isViTab, isEnTab, isJpTab) {
+  if (value == null || value === '') return [];
+  const entries = jdLocationEntriesFromRaw(value);
+  if (entries.length) {
+    return entries.map((row) => ({
+      content: row.vi != null ? String(row.vi).trim() : '',
+      contentEn: row.en != null ? String(row.en).trim() : '',
+      contentJp: row.ja != null ? String(row.ja).trim() : '',
+    }));
+  }
+  const text = String(value).trim();
+  if (!text) return [];
+  if (isEnTab) return [{ content: '', contentEn: text, contentJp: '' }];
+  if (isJpTab) return [{ content: '', contentEn: '', contentJp: text }];
+  return [{ content: text, contentEn: '', contentJp: '' }];
+}
+
+function localizedSingleField(value, isViTab, isEnTab) {
+  if (value == null || value === '') return { vi: '', en: '', jp: '' };
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    return {
+      vi: String(value.vi ?? '').trim(),
+      en: String(value.en ?? '').trim(),
+      jp: String(value.ja ?? value.jp ?? '').trim(),
+    };
+  }
+  const text = String(value).trim();
+  if (isEnTab) return { vi: '', en: text, jp: '' };
+  if (isJpTab) return { vi: '', en: '', jp: text };
+  return { vi: text, en: '', jp: '' };
 }
 
 function localizedRows(value, reqType, status, isViTab, isEnTab) {
@@ -188,8 +215,10 @@ function localizedRows(value, reqType, status, isViTab, isEnTab) {
   if (typeof value === 'object') {
     return jdLocalizedRequirementRows(value, reqType, status);
   }
-  const row = localizedTextRow(value, isViTab, isEnTab);
-  return row ? [{ ...row, type: reqType, status }] : [];
+  const row = localizedSingleField(value, isViTab, isEnTab);
+  return row.vi || row.en || row.jp
+    ? [{ content: row.vi, contentEn: row.en, contentJp: row.jp, type: reqType, status }]
+    : [];
 }
 
 export function normalizeJdDraft(draft) {
@@ -368,45 +397,72 @@ export function applyParsedJdToFormState(j, options = {}) {
   const raiseText = typeof raiseDetailsRaw === 'object' && raiseDetailsRaw !== null && !Array.isArray(raiseDetailsRaw)
     ? [raiseDetailsRaw.vi, raiseDetailsRaw.en, raiseDetailsRaw.ja].filter(Boolean).join('\n')
     : [raiseDetailsRaw].flat().filter(Boolean).join('\n');
-  const currency = normalizeJobSalaryCurrency(salary.currency);
+  const currencyFromText = detectCurrencyFromSalaryTexts(
+    salary.yearly_salary ?? salary.yearly,
+    salary.monthly_salary ?? salary.monthly,
+    salary.salary_details,
+  );
+  const currency = normalizeJobSalaryCurrency(currencyFromText || salary.currency);
   const yearlySal = salary.yearly_salary ?? salary.yearly ?? salary.yearlySalary;
   const monthlySal = salary.monthly_salary ?? salary.monthly ?? salary.monthlySalary;
   const salaryMin = salary.min_salary ?? salary.min;
   const salaryMax = salary.max_salary ?? salary.max;
   const yStr = formatJdSalaryAmount(yearlySal, currency);
   const mStr = formatJdSalaryAmount(monthlySal, currency);
+  const salaryCell = (val) => {
+    if (!val) return { vi: '', en: '', jp: '' };
+    const s = String(val).trim();
+    if (isEnTab) return { vi: '', en: s, jp: '' };
+    if (isJpTab) return { vi: '', en: '', jp: s };
+    return { vi: s, en: '', jp: '' };
+  };
   let salaryRanges = null;
   const salaryRangeDetails = [];
   if (yStr || mStr) {
+    const yCell = salaryCell(yStr);
+    const mCell = salaryCell(mStr);
     salaryRanges = [
-      { salaryRange: yStr || '', salaryRangeEn: yStr || '', salaryRangeJp: yStr || '', type: 'yearly' },
-      { salaryRange: mStr || '', salaryRangeEn: mStr || '', salaryRangeJp: mStr || '', type: 'monthly' },
+      { salaryRange: yCell.vi, salaryRangeEn: yCell.en, salaryRangeJp: yCell.jp, type: 'yearly' },
+      { salaryRange: mCell.vi, salaryRangeEn: mCell.en, salaryRangeJp: mCell.jp, type: 'monthly' },
     ];
   } else if (salaryMin != null || salaryMax != null) {
     const rangeLabel = [salaryMin, salaryMax].filter((v) => v != null && v !== '').join(' - ');
     if (rangeLabel) {
+      const cell = salaryCell(rangeLabel);
       const isYear = (salary.period ?? 'monthly') === 'yearly';
       salaryRanges = isYear
         ? [
-            { salaryRange: rangeLabel, salaryRangeEn: rangeLabel, salaryRangeJp: rangeLabel, type: 'yearly' },
+            { salaryRange: cell.vi, salaryRangeEn: cell.en, salaryRangeJp: cell.jp, type: 'yearly' },
             { salaryRange: '', salaryRangeEn: '', salaryRangeJp: '', type: 'monthly' },
           ]
         : [
             { salaryRange: '', salaryRangeEn: '', salaryRangeJp: '', type: 'yearly' },
-            { salaryRange: rangeLabel, salaryRangeEn: rangeLabel, salaryRangeJp: rangeLabel, type: 'monthly' },
+            { salaryRange: cell.vi, salaryRangeEn: cell.en, salaryRangeJp: cell.jp, type: 'monthly' },
           ];
     }
   }
   const sd = salary.salary_details;
-  if (sd != null && (typeof sd === 'object' || Array.isArray(sd))) {
-    salaryRangeDetails.push({
-      content: jdDescriptionToText(sd, 'vi'),
-      contentEn: jdDescriptionToText(sd, 'en'),
-      contentJp: jdDescriptionToText(sd, 'jp'),
-    });
+  if (sd != null && sd !== '') {
+    if (typeof sd === 'object' || Array.isArray(sd)) {
+      salaryRangeDetails.push({
+        content: jdDescriptionToText(sd, 'vi'),
+        contentEn: jdDescriptionToText(sd, 'en'),
+        contentJp: jdDescriptionToText(sd, 'jp'),
+      });
+    } else {
+      const text = String(sd).trim();
+      if (text) {
+        salaryRangeDetails.push({
+          content: isViTab ? text : '',
+          contentEn: isEnTab ? text : '',
+          contentJp: isJpTab ? text : '',
+        });
+      }
+    }
   }
 
   const locEntries = jdLocationEntriesFromRaw(j.location);
+  const locationDetailRaw = j.location_detail ?? j.location_details;
   const preservedNumberOfHires = getWorkingLocationsNumberOfHires(prevWorkingLocations);
   const chosenNumberOfHires =
     normalizeNumberOfHiresStored(prevFormData.numberOfHires || '') ||
@@ -427,14 +483,17 @@ export function applyParsedJdToFormState(j, options = {}) {
       : chosenNumberOfHires
         ? [{ location: '', country: 'Japan', numberOfHires: chosenNumberOfHires }]
         : [];
+  const locationDetailRows = localizedDetailRows(locationDetailRaw, isViTab, isEnTab, isJpTab);
   const workingLocationDetails =
-    locEntries.length > 0
-      ? locEntries.map((row) => ({
-          content: row.vi != null ? String(row.vi).trim() : '',
-          contentEn: row.en != null ? String(row.en).trim() : '',
-          contentJp: row.ja != null ? String(row.ja).trim() : '',
-        }))
-      : workingLocations.map(() => ({ content: '', contentEn: '', contentJp: '' }));
+    locationDetailRows.length > 0
+      ? locationDetailRows
+      : locEntries.length > 0 && locationDetailRaw == null
+        ? locEntries.map((row) => ({
+            content: row.vi != null ? String(row.vi).trim() : '',
+            contentEn: row.en != null ? String(row.en).trim() : '',
+            contentJp: row.ja != null ? String(row.ja).trim() : '',
+          }))
+        : workingLocations.map(() => ({ content: '', contentEn: '', contentJp: '' }));
 
   const requirements = [...mustRows, ...prefRows];
   if (j.experience_job || j.experience_industry) {
@@ -479,8 +538,13 @@ export function applyParsedJdToFormState(j, options = {}) {
   const socialInsuranceRaw = j.social_insurance;
   const transportationRaw = j.transportation;
   const breakTimeRaw = j.rest_time;
-  const overtimeRaw = j.overtime_details;
+  const overtimeDetailsRaw = j.overtime_details;
+  const overtimeFeeRaw = j.overtime_fee;
   const contractPeriodRaw = j.contract_period;
+  const hiringReasonRaw = j.hiring_reason;
+  const acceptedVisaTypes = Array.isArray(j.accepted_visa_types)
+    ? j.accepted_visa_types.filter(Boolean).map((v) => String(v).trim()).filter(Boolean)
+    : [];
 
   const formData = {
     ...prevFormData,
@@ -501,6 +565,7 @@ export function applyParsedJdToFormState(j, options = {}) {
     residenceStatus: isViTab ? String(visaVi || prevFormData.residenceStatus || '') : prevFormData.residenceStatus,
     residenceStatusEn: isEnTab ? String(visaEn || prevFormData.residenceStatusEn || '') : prevFormData.residenceStatusEn,
     residenceStatusJp: isJpTab ? String(visaJp || prevFormData.residenceStatusJp || '') : prevFormData.residenceStatusJp,
+    residenceStatuses: acceptedVisaTypes.length ? acceptedVisaTypes : prevFormData.residenceStatuses,
     bonus: isViTab ? bonusText || prevFormData.bonus : prevFormData.bonus,
     bonusEn: isEnTab ? bonusText || prevFormData.bonusEn : prevFormData.bonusEn,
     bonusJp: isJpTab ? bonusText || prevFormData.bonusJp : prevFormData.bonusJp,
@@ -517,9 +582,9 @@ export function applyParsedJdToFormState(j, options = {}) {
     breakTime: isViTab ? String(breakTimeRaw ?? prevFormData.breakTime ?? '') : prevFormData.breakTime,
     breakTimeEn: isEnTab ? String(breakTimeRaw ?? prevFormData.breakTimeEn ?? '') : prevFormData.breakTimeEn,
     breakTimeJp: isJpTab ? String(breakTimeRaw ?? prevFormData.breakTimeJp ?? '') : prevFormData.breakTimeJp,
-    overtime: isViTab ? String(overtimeRaw ?? prevFormData.overtime ?? '') : prevFormData.overtime,
-    overtimeEn: isEnTab ? String(overtimeRaw ?? prevFormData.overtimeEn ?? '') : prevFormData.overtimeEn,
-    overtimeJp: isJpTab ? String(overtimeRaw ?? prevFormData.overtimeJp ?? '') : prevFormData.overtimeJp,
+    overtime: isViTab ? String(overtimeDetailsRaw ?? prevFormData.overtime ?? '') : prevFormData.overtime,
+    overtimeEn: isEnTab ? String(overtimeDetailsRaw ?? prevFormData.overtimeEn ?? '') : prevFormData.overtimeEn,
+    overtimeJp: isJpTab ? String(overtimeDetailsRaw ?? prevFormData.overtimeJp ?? '') : prevFormData.overtimeJp,
     contractPeriod: isViTab ? String(contractPeriodRaw ?? prevFormData.contractPeriod ?? '') : prevFormData.contractPeriod,
     contractPeriodEn: isEnTab ? String(contractPeriodRaw ?? prevFormData.contractPeriodEn ?? '') : prevFormData.contractPeriodEn,
     contractPeriodJp: isJpTab ? String(contractPeriodRaw ?? prevFormData.contractPeriodJp ?? '') : prevFormData.contractPeriodJp,
@@ -538,12 +603,16 @@ export function applyParsedJdToFormState(j, options = {}) {
     recruitmentProcess: isViTab ? String(recruitmentProcessRaw ?? prevFormData.recruitmentProcess ?? '') : prevFormData.recruitmentProcess,
     recruitmentProcessEn: isEnTab ? String(recruitmentProcessRaw ?? prevFormData.recruitmentProcessEn ?? '') : prevFormData.recruitmentProcessEn,
     recruitmentProcessJp: isJpTab ? String(recruitmentProcessRaw ?? prevFormData.recruitmentProcessJp ?? '') : prevFormData.recruitmentProcessJp,
+    recruitmentReason: isViTab ? String(hiringReasonRaw ?? prevFormData.recruitmentReason ?? '') : prevFormData.recruitmentReason,
+    recruitmentReasonEn: isEnTab ? String(hiringReasonRaw ?? prevFormData.recruitmentReasonEn ?? '') : prevFormData.recruitmentReasonEn,
+    recruitmentReasonJp: isJpTab ? String(hiringReasonRaw ?? prevFormData.recruitmentReasonJp ?? '') : prevFormData.recruitmentReasonJp,
     highlights: highlightKeys.length ? JSON.stringify(highlightKeys) : prevFormData.highlights,
   };
 
   let workingHours = [];
   let workingHourDetails = [];
   const whRaw = j.working_hours;
+  const whDetailRaw = j.working_hour_detail ?? j.working_hour_details;
   if (whRaw) {
     const whList = Array.isArray(whRaw) ? whRaw : [whRaw];
     workingHours = whList.map((w) => {
@@ -554,6 +623,12 @@ export function applyParsedJdToFormState(j, options = {}) {
       }
       return { workingHours: String(w).trim() };
     });
+  }
+  const whDetailRows = localizedDetailRows(whDetailRaw, isViTab, isEnTab, isJpTab);
+  if (whDetailRows.length) {
+    workingHourDetails = whDetailRows;
+  } else if (whRaw && whDetailRaw == null) {
+    const whList = Array.isArray(whRaw) ? whRaw : [whRaw];
     workingHourDetails = whList.map((w) => {
       if (w == null) return { content: '', contentEn: '', contentJp: '' };
       if (typeof w === 'string' || typeof w === 'number') {
@@ -574,8 +649,8 @@ export function applyParsedJdToFormState(j, options = {}) {
 
   let overtimeAllowances = [];
   let overtimeAllowanceDetails = [];
-  if (overtimeRaw) {
-    const otList = Array.isArray(overtimeRaw) ? overtimeRaw : [overtimeRaw];
+  if (overtimeFeeRaw) {
+    const otList = Array.isArray(overtimeFeeRaw) ? overtimeFeeRaw : [overtimeFeeRaw];
     overtimeAllowances = otList.map((o) => ({
       overtimeAllowanceRange: typeof o === 'string' ? o : (o?.vi ?? o?.en ?? o?.text ?? ''),
     }));

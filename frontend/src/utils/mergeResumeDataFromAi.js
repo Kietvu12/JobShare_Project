@@ -4,6 +4,7 @@
  */
 
 import { normalizeCvPhone } from './cvPhoneUtils.js';
+import { normalizeCvDateToStorage } from './cvJpDateDisplay.js';
 
 function calculateAge(birthDate) {
   if (!birthDate) return '';
@@ -14,6 +15,16 @@ function calculateAge(birthDate) {
   const monthDiff = today.getMonth() - birth.getMonth();
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
   return age.toString();
+}
+
+function pickVisaExpirationDate(...candidates) {
+  for (const value of candidates) {
+    if (value == null || String(value).trim() === '') continue;
+    const normalized =
+      normalizeCvDateToStorage(value) || normalizeBirthDateFromAi(String(value));
+    if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return normalized;
+  }
+  return '';
 }
 
 function normalizeBirthDateFromAi(value) {
@@ -481,7 +492,23 @@ function normalizeSalaryValue(value) {
   return `${digits}万円`;
 }
 
-export const CV_AI_PARSE_BASE_URL = 'https://test.ws-jobshare.com/api_ai';
+/** job_categories.id — chỉ nhận số nguyên dương, không nhận tên/chữ từ AI. */
+export function isValidJobCategoryId(value) {
+  if (value == null || value === '') return false;
+  const s = String(value).trim();
+  if (!/^\d+$/.test(s)) return false;
+  const n = parseInt(s, 10);
+  return Number.isFinite(n) && n > 0;
+}
+
+function pickValidJobCategoryId(...sources) {
+  for (const raw of sources) {
+    if (isValidJobCategoryId(raw)) return String(parseInt(String(raw).trim(), 10));
+  }
+  return '';
+}
+
+export const CV_AI_PARSE_BASE_URL = 'https://ws-jobshare.com/api_ai';
 export const CV_AI_PARSE_URL = `${CV_AI_PARSE_BASE_URL}/v3/resume/cv`;
 
 function hasV2NestedResumeShape(o) {
@@ -524,7 +551,7 @@ function unwrapAiParsePayload(parsedData) {
 function normalizeV3FlatResumeToLegacyRoot(flat) {
   const f = flat || {};
   return {
-    applied_position: f.applied_position ?? f.jobCategoryId,
+    applied_position: f.applied_position,
     rirekisho: {
       creation_date: f.creation_date,
       full_name: f.full_name,
@@ -540,7 +567,13 @@ function normalizeV3FlatResumeToLegacyRoot(flat) {
       nearest_station: f.nearest_station,
       emergency_contact_address: f.emergency_contact_address,
       residence_status: f.residence_status ?? f.current_visa_type,
-      residence_expiry: f.residence_expiry,
+      residence_expiry:
+        f.residence_expiry ??
+        f.residence_period ??
+        f.visa_expiration_date ??
+        f.visa_expiry ??
+        f.zairyu_kigen ??
+        f.zairyu_kikan,
       education_history: f.education_history,
       work_history: f.work_history,
       licenses_qualifications: f.licenses_qualifications,
@@ -981,7 +1014,17 @@ export function mergeResumeDataFromAi(parsedData, prev = {}) {
     hasSpouse: rr.has_spouse != null ? mapSpouseFlag(rr.has_spouse) : prev.hasSpouse,
     spouseDependent: rr.spouse_support_obligation != null ? mapSpouseFlag(rr.spouse_support_obligation) : prev.spouseDependent,
     jpResidenceStatus: rr.residence_status || prev.jpResidenceStatus,
-    visaExpirationDate: rr.residence_expiry || prev.visaExpirationDate,
+    visaExpirationDate:
+      pickVisaExpirationDate(
+        rr.residence_expiry,
+        rr.residence_period,
+        rr.visa_expiration_date,
+        rr.visa_expiry,
+        rr.zairyu_kigen,
+        rr.zairyu_kikan
+      ) ||
+      pickVisaExpirationDate(prev.visaExpirationDate) ||
+      prev.visaExpirationDate,
     stayPurpose: rr.stay_purpose || rr.stayPurpose || prev.stayPurpose,
     jpConversationLevel: rr.jp_conversation_level || rr.jpConversationLevel || prev.jpConversationLevel,
     enConversationLevel: rr.en_conversation_level || rr.enConversationLevel || prev.enConversationLevel,
@@ -1021,10 +1064,16 @@ export function mergeResumeDataFromAi(parsedData, prev = {}) {
 
     currentSalary: rr.current_salary != null ? String(rr.current_salary) : prev.currentSalary,
     desiredSalary: rr.expected_salary != null ? String(rr.expected_salary) : prev.desiredSalary,
-    desiredPosition: rr.desired_role || prev.desiredPosition,
+    desiredPosition: rr.desired_role || root.applied_position || prev.desiredPosition,
     desiredLocation: rr.desired_location || prev.desiredLocation,
     desiredStartDate: rr.available_start_date || prev.desiredStartDate,
-    jobCategoryId: (root.applied_position != null ? String(root.applied_position) : '') || prev.jobCategoryId || '',
+    jobCategoryId: pickValidJobCategoryId(
+      rawRoot?.jobCategoryId,
+      rawRoot?.job_category_id,
+      root?.jobCategoryId,
+      root?.job_category_id,
+      prev.jobCategoryId
+    ),
     jlptLevel: inferJlptLevelFromParsed(rr, mappedCertificates) || prev.jlptLevel || '',
     cvTableLayout: (() => {
       const v = root.cvTableLayout;
@@ -1056,10 +1105,14 @@ export function mapMergedToQuickCreateVisibleForm(merged, prevVisible = {}) {
     experienceYears: merged.experienceYears != null && String(merged.experienceYears).trim() !== ''
       ? String(merged.experienceYears)
       : (prevVisible.experienceYears || ''),
-    jobCategoryId: merged.jobCategoryId != null && String(merged.jobCategoryId).trim() !== ''
-      ? String(merged.jobCategoryId)
-      : (prevVisible.jobCategoryId || ''),
-    jobCategoryLabel: prevVisible.jobCategoryLabel || '',
+    jobCategoryId: isValidJobCategoryId(merged.jobCategoryId)
+      ? String(parseInt(String(merged.jobCategoryId).trim(), 10))
+      : (isValidJobCategoryId(prevVisible.jobCategoryId)
+        ? String(parseInt(String(prevVisible.jobCategoryId).trim(), 10))
+        : ''),
+    jobCategoryLabel: isValidJobCategoryId(merged.jobCategoryId) || isValidJobCategoryId(prevVisible.jobCategoryId)
+      ? (prevVisible.jobCategoryLabel || '')
+      : '',
     currentSalary: normalizeSalaryValue(merged.currentSalary || prevVisible.currentSalary || ''),
     desiredSalary: normalizeSalaryValue(merged.desiredSalary || prevVisible.desiredSalary || ''),
     desiredPosition: merged.desiredPosition || prevVisible.desiredPosition || '',
@@ -1177,10 +1230,11 @@ export function appendFullCvFieldsToFormData(fd, data = {}) {
   append('strengths', data.strengths || '');
   append('motivation', data.motivation || '');
   append('hobbiesSpecialSkills', data.hobbiesSpecialSkills || '');
+  append('notes', data.notes || data.remarks || data.memo || '');
   append('currentSalary', data.currentSalary || '');
   append('desiredSalary', data.desiredSalary || '');
   append('desiredPosition', data.desiredPosition || '');
-  append('jobCategoryId', data.jobCategoryId || '');
+  append('jobCategoryId', isValidJobCategoryId(data.jobCategoryId) ? String(parseInt(String(data.jobCategoryId).trim(), 10)) : '');
   append('desiredLocation', data.desiredLocation || '');
   append('desiredStartDate', data.desiredStartDate || '');
   const currentResidenceValue = currentResidenceFromLocationCountry(data.currentLocationCountry);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import apiService from '../../services/api';
@@ -8,6 +8,7 @@ import useBusinessUser from '../../hooks/useBusinessUser';
 import useFluidPageScale from '../../hooks/useFluidPageScale.js';
 import { buildAddJobPatchFromJdBuilder, consumeJdBuilderPrefill } from '../../utils/applyJdBuilderPrefill.js';
 import { applyJdFormStatePatch, applyParsedJdToFormState } from '../../utils/applyParsedJdToFormState.js';
+import { parseJdFile } from '../../utils/parseJdFile.js';
 import { BUSINESS_SECTOR_OPTIONS } from '../../utils/businessSectorOptions';
 import { downloadBlobAsFile } from '../../utils/safeFileDownload.js';
 import {
@@ -17,16 +18,23 @@ import {
   getJobCurrencyShortLabel,
   formatFixedAmountWithCurrency,
 } from '../../utils/jobSalaryCurrency.js';
-import {
-  JD_LANGUAGE_TABS,
-  applyTranslatedJd as applyTranslatedJdUtil,
-  buildJdTranslationPayload as buildJdTranslationPayloadUtil,
-  translateJdViaApi,
-} from '../../utils/jdTranslation.js';
 import JdTemplate from '../../component/Admin/AddJob/JdTemplate';
 import { JOB_HIGHLIGHT_OPTIONS } from '../../utils/jobHighlightOptions';
 import { JAPANESE_LEVEL_OPTIONS, EXPERIENCE_YEARS_OPTIONS, DRIVER_LICENSE_OPTIONS } from '../../utils/requirementPresetOptions';
 import { JAPAN_REGIONS, JAPAN_PREFECTURES, fetchJapanCitiesByPrefecture, kanaToRomaji } from '../../utils/japanLocationData';
+import {
+  createAddJobJapanRegionEntry,
+  createAddJobJapanPrefectureEntry,
+  createAddJobJapanCityEntry,
+  createAddJobJapanWardEntry,
+  collapseJapanWorkingLocationsForDisplay,
+  normalizeJapanWorkingLocations,
+  removeJapanWorkingLocationsByMemberJpIds,
+  collectJapanPrefectureCodesForCollapse,
+  getJapanWorkingLocationJpId,
+  isPrefectureFullySelected,
+  isRegionFullySelected,
+} from '../../utils/japanWorkingLocations';
 import {
   getRecruitmentLocationLabel,
   recruitmentLocationLangFromFormTab,
@@ -37,7 +45,6 @@ import {
   getNumberOfHiresDisplayLabel,
 } from '../../utils/numberOfHiresOptions.js';
 import { isPersistableJobValue } from '../../utils/jobCommissionUi';
-import JobCommissionEditor, { validateCommissionForMarketplace } from '../../component/Bussiness/JobCommissionEditor';
 import {
   ArrowLeft,
   Briefcase,
@@ -87,15 +94,12 @@ const countryProvincesData = {
   'Other': [] // Cho phép nhập tùy chỉnh
 };
 
-const PARSE_JD_API_URL = 'https://test.ws-jobshare.com/api_ai/v2/parser/jd';
+const JD_TRANSLATE_API_URL = 'https://ws-jobshare.com/api_ai/v2/parser/jd/translate';
 const TAB_LANG_META = {
   vi: { suffix: '', code: 'vi' },
   en: { suffix: 'En', code: 'en' },
   jp: { suffix: 'Jp', code: 'ja' },
 };
-/** Tên field form-data khi gửi file. Nếu API trả 422, thử đổi thành 'cv_original'. */
-const PARSE_JD_FILE_FIELD = 'file';
-
 /** JD parse: description có thể là string, mảng, hoặc { vi, en, ja } với giá trị string hoặc mảng — mỗi ý một dòng. */
 function jdDescriptionToText(desc, lang) {
   if (desc == null) return '';
@@ -278,8 +282,9 @@ function normalizeWorkingLocationField(loc) {
   return String(loc).trim();
 }
 
-function sanitizeWorkingLocationsForApi(locs) {
-  return (locs || [])
+function sanitizeWorkingLocationsForApi(locs, languageTab = 'vi', prefectureTrees = {}) {
+  const collapsed = normalizeJapanWorkingLocations(locs, languageTab, prefectureTrees);
+  return (collapsed || [])
     .map((wl) => {
       let location = normalizeWorkingLocationField(wl?.location);
       if (!location && wl?.locationJp != null && String(wl.locationJp).trim()) {
@@ -290,7 +295,9 @@ function sanitizeWorkingLocationsForApi(locs) {
         rawHires != null && String(rawHires).trim() !== ''
           ? normalizeNumberOfHiresStored(rawHires)
           : rawHires;
-      return { ...wl, location, numberOfHires };
+      const { locationLevel, jpId, searchTerm, parentPrefectureJp, parentPrefectureEn, _collapseMemberJpIds, ...rest } =
+        wl || {};
+      return { ...rest, location, numberOfHires };
     })
     .filter((wl) => wl.location);
 }
@@ -300,47 +307,6 @@ function getWorkingLocationsNumberOfHires(locs) {
     (locs || []).find((wl) => wl?.numberOfHires != null && String(wl.numberOfHires).trim() !== '')?.numberOfHires || '';
   return normalizeNumberOfHiresStored(raw);
 }
-
-const createAddJobJapanRegionEntry = (region, languageTab) => ({
-  location: languageTab === 'jp' ? region.ja : region.en,
-  locationJp: region.ja,
-  country: 'Japan',
-  jpId: `region|${region.id}`,
-  locationLevel: 'region',
-  searchTerm: region.ja,
-});
-
-const createAddJobJapanPrefectureEntry = (prefCode, languageTab) => {
-  const pref = JAPAN_PREFECTURES[prefCode];
-  if (!pref) return null;
-  return {
-    location: languageTab === 'jp' ? pref.ja : pref.en,
-    locationJp: pref.ja,
-    country: 'Japan',
-    jpId: `pref|${prefCode}`,
-    locationLevel: 'prefecture',
-    searchTerm: pref.ja,
-  };
-};
-
-const createAddJobJapanWardEntry = (prefCode, nameJa, nameKana, languageTab) => {
-  const pref = JAPAN_PREFECTURES[prefCode];
-  const prefJa = pref?.ja || '';
-  const prefEn = pref?.en || '';
-  const toRomaji = (kana, fallback) => (kana ? kanaToRomaji(kana) : fallback);
-  const ja = nameJa.trim();
-  const alpha = (languageTab === 'jp' ? ja : toRomaji(nameKana, nameJa)).trim();
-  return {
-    location: alpha,
-    locationJp: ja,
-    country: 'Japan',
-    jpId: `${prefCode}|${nameJa}`,
-    locationLevel: 'ward',
-    searchTerm: nameJa,
-    parentPrefectureJp: prefJa,
-    parentPrefectureEn: prefEn,
-  };
-};
 
 /** Mã job duy nhất khi tạo mới (backend vẫn bắt buộc jobCode). */
 function generateNewJobCode() {
@@ -354,7 +320,7 @@ function generateNewJobCode() {
   return `WS-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
-const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
+const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { jobId } = useParams();
@@ -638,6 +604,7 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
   const [selectedJapanRegion, setSelectedJapanRegion] = useState(null);
   const [selectedJapanPrefecture, setSelectedJapanPrefecture] = useState(null);
   const [japanLocationData, setJapanLocationData] = useState({ flat: [], tree: [] });
+  const [japanPrefTreeCache, setJapanPrefTreeCache] = useState({});
   const [japanCitiesLoading, setJapanCitiesLoading] = useState(false);
   /** Popup chọn địa điểm (Việt Nam / Nhật Bản) */
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -650,37 +617,372 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
     return `${baseField}${suffix}`;
   }, []);
 
-  const buildJdTranslationPayload = useCallback(() => buildJdTranslationPayloadUtil({
-    languageTab,
-    formData: formDataRef.current,
-    recruitingCompany: recruitingCompanyRef.current,
+  const translateJdViaApi = useCallback(async (payload) => {
+    const response = await fetch(JD_TRANSLATE_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data?.message || data?.error || `HTTP ${response.status}`);
+    }
+    return data;
+  }, []);
+
+  const buildJdTranslationPayload = useCallback(() => {
+    const fd = formDataRef.current || {};
+    const rc = recruitingCompanyRef.current || {};
+    const firstNonEmpty = (...values) => values.find((v) => v != null && String(v).trim() !== '') ?? null;
+    const formAnyLang = (base) => firstNonEmpty(fd[base], fd[`${base}En`], fd[`${base}Jp`]);
+    const rowAnyLang = (row, base = 'content') => firstNonEmpty(row?.[base], row?.[`${base}En`], row?.[`${base}Jp`]);
+    const companyAnyLang = (base) => firstNonEmpty(rc[base], rc[`${base}En`], rc[`${base}Jp`]);
+    const hasJapanese = (text) => /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/.test(String(text || ''));
+
+    const inferContentLanguage = () => {
+      const samples = [
+        fd.title, fd.titleEn, fd.titleJp,
+        fd.description, fd.descriptionEn, fd.descriptionJp,
+        ...requirements.map((row) => rowAnyLang(row)),
+        ...workingLocationDetails.map((row) => rowAnyLang(row)),
+        ...workingHourDetails.map((row) => rowAnyLang(row)),
+        ...jobBenefitRows.map((row) => rowAnyLang(row)),
+      ].filter((v) => v != null && String(v).trim());
+      if (samples.some(hasJapanese)) return 'ja';
+      if (firstNonEmpty(fd.titleJp, fd.descriptionJp)) return 'ja';
+      if (firstNonEmpty(fd.titleEn, fd.descriptionEn)) return 'en';
+      return 'vi';
+    };
+
+    const salaryYearly = firstNonEmpty(
+      salaryRanges.find((sr) => sr.type === 'yearly')?.salaryRange,
+      salaryRanges.find((sr) => sr.type === 'yearly')?.salaryRangeEn,
+      salaryRanges.find((sr) => sr.type === 'yearly')?.salaryRangeJp,
+    );
+    const salaryMonthly = firstNonEmpty(
+      salaryRanges.find((sr) => sr.type === 'monthly')?.salaryRange,
+      salaryRanges.find((sr) => sr.type === 'monthly')?.salaryRangeEn,
+      salaryRanges.find((sr) => sr.type === 'monthly')?.salaryRangeJp,
+    );
+
+    const sourceRequirementsMust = requirements
+      .filter((req) => req.status === 'required')
+      .map((req) => rowAnyLang(req))
+      .filter((v) => String(v).trim());
+    const sourceRequirementsPreferred = requirements
+      .filter((req) => req.status === 'preferred')
+      .map((req) => rowAnyLang(req))
+      .filter((v) => String(v).trim());
+
+    const locationDetailTexts = workingLocationDetails
+      .map((row) => rowAnyLang(row))
+      .filter((v) => String(v).trim());
+    const workingHourDetailTexts = workingHourDetails
+      .map((row) => rowAnyLang(row))
+      .filter((v) => String(v).trim());
+    const workingHourTexts = workingHours
+      .map((row) => firstNonEmpty(row?.workingHours, row?.workingHoursEn, row?.workingHoursJp))
+      .filter((v) => String(v).trim());
+    const overtimeDetailTexts = overtimeAllowanceDetails
+      .map((row) => rowAnyLang(row))
+      .filter((v) => String(v).trim());
+    const salaryDetailTexts = salaryRangeDetails
+      .map((row) => rowAnyLang(row))
+      .filter((v) => String(v).trim());
+    const benefitTexts = jobBenefitRows
+      .map((row) => rowAnyLang(row))
+      .filter((v) => String(v).trim());
+
+    return {
+      job_code: firstNonEmpty(fd.jobCode),
+      job_title: formAnyLang('title'),
+      content_language: inferContentLanguage(),
+      headcount: formAnyLang('numberOfHires'),
+      experience_job: null,
+      experience_industry: null,
+      features: Array.isArray(highlightKeys) ? highlightKeys : [],
+      description: formAnyLang('description'),
+      requirements_must: sourceRequirementsMust,
+      requirements_preferred: sourceRequirementsPreferred,
+      salary: {
+        currency: jobSalaryCurrencyToJdCode(fd.salaryCurrency),
+        monthly: salaryMonthly,
+        yearly: salaryYearly,
+        salary_details: firstNonEmpty(...salaryDetailTexts),
+        bonus_details: formAnyLang('bonus'),
+        raise_details: formAnyLang('salaryReview'),
+      },
+      location: firstNonEmpty(
+        workingLocations
+          .map((wl) => normalizeWorkingLocationField(wl.location || wl.locationEn || wl.locationJp || ''))
+          .filter(Boolean)
+          .join(', '),
+      ),
+      location_detail: firstNonEmpty(...locationDetailTexts, formAnyLang('locationDetail')),
+      working_hours: workingHourTexts,
+      working_hour_detail: firstNonEmpty(...workingHourDetailTexts, formAnyLang('workingHourDetail')),
+      overtime_details: firstNonEmpty(...overtimeDetailTexts, formAnyLang('overtime')),
+      overtime_fee: firstNonEmpty(...overtimeDetailTexts, formAnyLang('overtimeFee'), formAnyLang('overtime')),
+      probation_detail: formAnyLang('probationDetail'),
+      rest_time: formAnyLang('breakTime'),
+      benefits: benefitTexts,
+      holidays: formAnyLang('holidays'),
+      holiday_detail: formAnyLang('holidayDetails'),
+      hiring_reason: formAnyLang('recruitmentReason'),
+      social_insurance: formAnyLang('socialInsurance'),
+      transportation: formAnyLang('transportation'),
+      probation: firstNonEmpty(formAnyLang('probationPeriod'), formAnyLang('probationDetail')),
+      recruitment_process: formAnyLang('recruitmentProcess'),
+      company: {
+        name: companyAnyLang('companyName'),
+        listing_status: null,
+        industry_class: null,
+        revenue: companyAnyLang('revenue'),
+        capital: companyAnyLang('investmentCapital'),
+        employee_count: companyAnyLang('numberOfEmployees'),
+        established_year: companyAnyLang('establishedDate'),
+        headquarter: companyAnyLang('headquarters'),
+        overview: companyAnyLang('companyIntroduction'),
+      },
+    };
+  }, [
     highlightKeys,
     jobBenefitRows,
+    languageTab,
     requirements,
     workingHourDetails,
     workingHours,
-    workingLocations,
     workingLocationDetails,
+    workingLocations,
     salaryRanges,
     salaryRangeDetails,
     overtimeAllowanceDetails,
-  }), [highlightKeys, jobBenefitRows, languageTab, requirements, workingHourDetails, workingHours, workingLocations, workingLocationDetails, salaryRanges, salaryRangeDetails, overtimeAllowanceDetails]);
+  ]);
 
   const applyTranslatedJd = useCallback((translated) => {
-    applyTranslatedJdUtil(translated, {
-      setFormData,
-      setRecruitingCompany,
-      setRequirements,
-      setWorkingLocationDetails,
-      setSalaryRangeDetails,
-      setWorkingHours,
-      setOvertimeAllowanceDetails,
-      setJobBenefitRows,
-      setLanguageTab,
-      setHighlightKeys,
-      setJdTemplateSyncKey,
-      getFormData: () => formDataRef.current,
+    const pick = (obj, keys) => {
+      if (!obj || typeof obj !== 'object') return '';
+      for (const key of keys) {
+        const val = obj[key];
+        if (val != null && String(val).trim() !== '') return val;
+      }
+      return '';
+    };
+
+    const src = {
+      vi: translated?.vi || {},
+      en: translated?.en || {},
+      jp: translated?.jp || translated?.ja || {},
+    };
+    if (!Object.keys(src.vi).length && !Object.keys(src.en).length && !Object.keys(src.jp).length) {
+      throw new Error('Phản hồi dịch không hợp lệ');
+    }
+
+    const text = (obj, keys) => String(pick(obj, keys) || '').trim();
+    const list = (obj, key) => (Array.isArray(obj?.[key]) ? obj[key] : []);
+    const toText = (value) => {
+      if (value == null) return '';
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value).trim();
+      if (Array.isArray(value)) return value.map(toText).filter(Boolean).join(', ');
+      if (typeof value === 'object') {
+        return [value.content, value.contentEn, value.contentJp, value.value, value.text, value.label]
+          .map((v) => (v == null ? '' : String(v).trim()))
+          .find(Boolean) || '';
+      }
+      return String(value).trim();
+    };
+    const mapTriple = (viVal, enVal, jpVal) => ({
+      content: String(viVal ?? '').trim(),
+      contentEn: String(enVal ?? '').trim(),
+      contentJp: String(jpVal ?? '').trim(),
     });
+
+    const applyForTab = (tab, obj) => {
+      const prevForm = formDataRef.current || {};
+      const prefix = tab === 'en' ? 'En' : tab === 'jp' ? 'Jp' : '';
+      setFormData((prev) => ({
+        ...prev,
+        jobCode: text(obj, ['job_code']) || prev.jobCode || '',
+        [`title${prefix}`]: text(obj, ['job_title']) || '',
+        [`description${prefix}`]: text(obj, ['description']) || '',
+        [`instruction${prefix}`]: text(obj, ['instruction']) || '',
+        [`recruitmentReason${prefix}`]: text(obj, ['hiring_reason']) || '',
+        [`bonus${prefix}`]: text(obj?.salary, ['bonus_details']) || '',
+        [`salaryReview${prefix}`]: text(obj?.salary, ['raise_details']) || '',
+        [`overtimeFee${prefix}`]: text(obj, ['overtime_fee']) || text(obj, ['overtime_details']) || '',
+        [`overtime${prefix}`]: text(obj, ['overtime_details']) || '',
+        [`holidays${prefix}`]: text(obj, ['holidays']) || '',
+        [`holidayDetails${prefix}`]: text(obj, ['holiday_detail', 'holiday_details', 'holidayDetails', 'holidays_details']) || '',
+        [`workingHourDetail${prefix}`]: text(obj, ['working_hour_detail']) || '',
+        [`locationDetail${prefix}`]: text(obj, ['location_detail', 'location_details', 'working_location_detail', 'working_location_details']) || '',
+        [`salaryDetail${prefix}`]: text(obj?.salary, ['salary_details', 'salaryDetail', 'salary_detail']) || '',
+        [`breakTime${prefix}`]: toText(pick(obj, ['rest_time', 'break_time', 'breakTime', 'break_time_detail', 'break_detail'])) || '',
+        [`probationDetail${prefix}`]: text(obj, ['probation_detail']) || '',
+        [`socialInsurance${prefix}`]: text(obj, ['social_insurance']) || '',
+        [`transportation${prefix}`]: text(obj, ['transportation']) || '',
+        [`probationPeriod${prefix}`]: text(obj, ['probation']) || '',
+        [`recruitmentProcess${prefix}`]: text(obj, ['recruitment_process']) || '',
+        [`numberOfHires${prefix}`]: String(text(obj, ['headcount']) || ''),
+        businessSectorKey: prev.businessSectorKey,
+        categoryId: prev.categoryId,
+        recruitmentType: prev.recruitmentType,
+        residenceStatus: prevForm.residenceStatus,
+        residenceStatuses: prevForm.residenceStatuses,
+      }));
+    };
+
+    applyForTab('vi', src.vi || {});
+    applyForTab('en', src.en || {});
+    applyForTab('jp', src.jp || src.ja || {});
+
+    const mergeRows = (key, type, status) => {
+      const viList = list(src.vi, key);
+      const enList = list(src.en, key);
+      const jpList = list(src.jp, key);
+      const max = Math.max(viList.length, enList.length, jpList.length);
+      const rows = [];
+      for (let i = 0; i < max; i += 1) {
+        const vi = viList[i] != null ? String(viList[i]).trim() : '';
+        const en = enList[i] != null ? String(enList[i]).trim() : '';
+        const jp = jpList[i] != null ? String(jpList[i]).trim() : '';
+        if (!vi && !en && !jp) continue;
+        rows.push({ content: vi, contentEn: en, contentJp: jp, type, status });
+      }
+      return rows;
+    };
+
+    const reqRows = [...mergeRows('requirements_must', 'technique', 'required'), ...mergeRows('requirements_preferred', 'education', 'preferred')];
+    if (reqRows.length) setRequirements(reqRows);
+
+    const locationDetailRows = mergeRows('location_detail', 'location', 'preferred');
+    if (locationDetailRows.length) {
+      setWorkingLocationDetails(locationDetailRows.map((row, index) => ({ id: index, content: row.content, contentEn: row.contentEn, contentJp: row.contentJp })));
+    }
+
+    const locationDetailFallback = [
+      text(src.vi, ['location_detail', 'location_details', 'working_location_detail', 'working_location_details']),
+      text(src.en, ['location_detail', 'location_details', 'working_location_detail', 'working_location_details']),
+      text(src.jp, ['location_detail', 'location_details', 'working_location_detail', 'working_location_details']),
+    ].map((v) => String(v || '').trim()).filter(Boolean);
+    if (!locationDetailRows.length && locationDetailFallback.length) {
+      setWorkingLocationDetails([{ id: 0, content: locationDetailFallback[0] || '', contentEn: locationDetailFallback[1] || '', contentJp: locationDetailFallback[2] || '' }]);
+    }
+
+    const salaryDetailRows = mergeRows('salary_details', 'salaryDetail', 'preferred');
+    if (salaryDetailRows.length) {
+      setSalaryRangeDetails(salaryDetailRows.map((row, index) => ({ id: index, content: row.content, contentEn: row.contentEn, contentJp: row.contentJp })));
+    }
+
+    const salaryDetailFallback = [
+      text(src.vi?.salary, ['salary_details', 'salaryDetail', 'salary_detail']),
+      text(src.en?.salary, ['salary_details', 'salaryDetail', 'salary_detail']),
+      text(src.jp?.salary, ['salary_details', 'salaryDetail', 'salary_detail']),
+    ].map((v) => String(v || '').trim()).filter(Boolean);
+    if (!salaryDetailRows.length && salaryDetailFallback.length) {
+      setSalaryRangeDetails([{ id: 0, content: salaryDetailFallback[0] || '', contentEn: salaryDetailFallback[1] || '', contentJp: salaryDetailFallback[2] || '' }]);
+    }
+
+    const salaryYearlyVi = text(src.vi?.salary, ['yearly', 'yearly_salary']);
+    const salaryYearlyEn = text(src.en?.salary, ['yearly', 'yearly_salary']);
+    const salaryYearlyJp = text(src.jp?.salary, ['yearly', 'yearly_salary']);
+    const salaryMonthlyVi = text(src.vi?.salary, ['monthly', 'monthly_salary']);
+    const salaryMonthlyEn = text(src.en?.salary, ['monthly', 'monthly_salary']);
+    const salaryMonthlyJp = text(src.jp?.salary, ['monthly', 'monthly_salary']);
+    if (salaryYearlyVi || salaryYearlyEn || salaryYearlyJp || salaryMonthlyVi || salaryMonthlyEn || salaryMonthlyJp) {
+      setSalaryRanges((prev) => {
+        const next = (Array.isArray(prev) ? prev : []).map((sr) => ({ ...sr }));
+        const ensureType = (type) => {
+          let row = next.find((sr) => sr.type === type);
+          if (!row) {
+            row = { salaryRange: '', salaryRangeEn: '', salaryRangeJp: '', type };
+            next.push(row);
+          }
+          return row;
+        };
+        if (salaryYearlyVi || salaryYearlyEn || salaryYearlyJp) {
+          const row = ensureType('yearly');
+          if (salaryYearlyVi) row.salaryRange = salaryYearlyVi;
+          if (salaryYearlyEn) row.salaryRangeEn = salaryYearlyEn;
+          if (salaryYearlyJp) row.salaryRangeJp = salaryYearlyJp;
+        }
+        if (salaryMonthlyVi || salaryMonthlyEn || salaryMonthlyJp) {
+          const row = ensureType('monthly');
+          if (salaryMonthlyVi) row.salaryRange = salaryMonthlyVi;
+          if (salaryMonthlyEn) row.salaryRangeEn = salaryMonthlyEn;
+          if (salaryMonthlyJp) row.salaryRangeJp = salaryMonthlyJp;
+        }
+        return next;
+      });
+    }
+
+    const workingHoursRows = mergeRows('working_hours', 'workingHour', 'preferred');
+    if (workingHoursRows.length) {
+      setWorkingHours(workingHoursRows.map((row, index) => ({ id: index, workingHours: row.content, workingHoursEn: row.contentEn, workingHoursJp: row.contentJp })));
+    }
+
+    const workingHourDetailRows = mergeRows('working_hour_detail', 'workingHourDetail', 'preferred');
+    if (workingHourDetailRows.length) {
+      setWorkingHourDetails(workingHourDetailRows.map((row, index) => ({ id: index, content: row.content, contentEn: row.contentEn, contentJp: row.contentJp })));
+    }
+
+    const workingHourDetailFallback = [
+      text(src.vi, ['working_hour_detail']),
+      text(src.en, ['working_hour_detail']),
+      text(src.jp, ['working_hour_detail']),
+    ].map((v) => String(v || '').trim()).filter(Boolean);
+    if (!workingHourDetailRows.length && workingHourDetailFallback.length) {
+      setWorkingHourDetails([{ id: 0, content: workingHourDetailFallback[0] || '', contentEn: workingHourDetailFallback[1] || '', contentJp: workingHourDetailFallback[2] || '' }]);
+    }
+
+    const overtimeRows = mergeRows('overtime_details', 'overtime', 'preferred');
+    if (overtimeRows.length) {
+      setOvertimeAllowanceDetails(overtimeRows.map((row, index) => ({ id: index, content: row.content, contentEn: row.contentEn, contentJp: row.contentJp })));
+    }
+
+    const overtimeDetailFallback = [
+      text(src.vi, ['overtime_details', 'overtime_fee', 'overtimeDetails']),
+      text(src.en, ['overtime_details', 'overtime_fee', 'overtimeDetails']),
+      text(src.jp, ['overtime_details', 'overtime_fee', 'overtimeDetails']),
+    ].map((v) => String(v || '').trim()).filter(Boolean);
+    if (!overtimeRows.length && overtimeDetailFallback.length) {
+      setOvertimeAllowanceDetails([{ id: 0, content: overtimeDetailFallback[0] || '', contentEn: overtimeDetailFallback[1] || '', contentJp: overtimeDetailFallback[2] || '' }]);
+    }
+
+    const benefitsList = mergeRows('benefits', 'benefit', 'preferred');
+    if (benefitsList.length) setJobBenefitRows(benefitsList.map((row, index) => ({ id: index, content: row.content, contentEn: row.contentEn, contentJp: row.contentJp })));
+
+    setRecruitingCompany((prev) => ({
+      ...prev,
+      companyName: text(src.vi.company, ['name']) || prev.companyName || '',
+      companyNameEn: text(src.en.company, ['name']) || prev.companyNameEn || '',
+      companyNameJp: text(src.jp.company, ['name']) || prev.companyNameJp || '',
+      companyIntroduction: text(src.vi.company, ['overview']) || prev.companyIntroduction || '',
+      companyIntroductionEn: text(src.en.company, ['overview']) || prev.companyIntroductionEn || '',
+      companyIntroductionJp: text(src.jp.company, ['overview']) || prev.companyIntroductionJp || '',
+      headquarters: text(src.vi.company, ['headquarter']) || prev.headquarters || '',
+      headquartersEn: text(src.en.company, ['headquarter']) || prev.headquartersEn || '',
+      headquartersJp: text(src.jp.company, ['headquarter']) || prev.headquartersJp || '',
+      numberOfEmployees: text(src.vi.company, ['employee_count']) || prev.numberOfEmployees || '',
+      numberOfEmployeesEn: text(src.en.company, ['employee_count']) || prev.numberOfEmployeesEn || '',
+      numberOfEmployeesJp: text(src.jp.company, ['employee_count']) || prev.numberOfEmployeesJp || '',
+      establishedDate: text(src.vi.company, ['established_year']) || prev.establishedDate || '',
+      establishedDateEn: text(src.en.company, ['established_year']) || prev.establishedDateEn || '',
+      establishedDateJp: text(src.jp.company, ['established_year']) || prev.establishedDateJp || '',
+      investmentCapital: text(src.vi.company, ['capital']) || prev.investmentCapital || '',
+      investmentCapitalEn: text(src.en.company, ['capital']) || prev.investmentCapitalEn || '',
+      investmentCapitalJp: text(src.jp.company, ['capital']) || prev.investmentCapitalJp || '',
+      revenue: text(src.vi.company, ['revenue']) || prev.revenue || '',
+      revenueEn: text(src.en.company, ['revenue']) || prev.revenueEn || '',
+      revenueJp: text(src.jp.company, ['revenue']) || prev.revenueJp || '',
+    }));
+
+    setLanguageTab('vi');
+
+    const featureKeys = Array.isArray(src.vi.features) ? src.vi.features : Array.isArray(src.en.features) ? src.en.features : Array.isArray(src.jp.features) ? src.jp.features : [];
+    setHighlightKeys(featureKeys);
+    setFormData((prev) => ({ ...prev, highlights: featureKeys.length ? JSON.stringify(featureKeys) : '' }));
+    setJdTemplateSyncKey((k) => k + 1);
   }, []);
 
   const handleTranslateCurrentTabInputs = useCallback(async () => {
@@ -898,12 +1200,45 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
     setJapanCitiesLoading(true);
     fetchJapanCitiesByPrefecture(selectedJapanPrefecture)
       .then((result) => {
-        if (!cancelled) setJapanLocationData(result);
+        if (!cancelled) {
+          setJapanLocationData(result);
+          setJapanPrefTreeCache((prev) => ({ ...prev, [selectedJapanPrefecture]: result.tree || [] }));
+        }
       })
       .catch(() => { if (!cancelled) setJapanLocationData({ flat: [], tree: [] }); })
       .finally(() => { if (!cancelled) setJapanCitiesLoading(false); });
     return () => { cancelled = true; };
   }, [selectedJapanPrefecture]);
+
+  useEffect(() => {
+    const prefCodes = collectJapanPrefectureCodesForCollapse(workingLocations);
+    if (!prefCodes.length) return undefined;
+    let cancelled = false;
+    prefCodes.forEach((code) => {
+      fetchJapanCitiesByPrefecture(code)
+        .then((result) => {
+          if (cancelled) return;
+          setJapanPrefTreeCache((prev) => {
+            if (prev[code]) return prev;
+            return { ...prev, [code]: result.tree || [] };
+          });
+        })
+        .catch(() => {});
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [workingLocations]);
+
+  useEffect(() => {
+    if (!Object.keys(japanPrefTreeCache).length) return;
+    setWorkingLocations((prev) => normalizeJapanWorkingLocations(prev, languageTab, japanPrefTreeCache));
+  }, [japanPrefTreeCache, languageTab]);
+
+  const displayWorkingLocations = useMemo(
+    () => collapseJapanWorkingLocationsForDisplay(workingLocations, languageTab, japanPrefTreeCache),
+    [workingLocations, languageTab, japanPrefTreeCache]
+  );
 
   const loadJobData = async () => {
     try {
@@ -1770,26 +2105,7 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
     setParseJdLoading(true);
     setParseJdError('');
     try {
-      const formDataUpload = new FormData();
-      formDataUpload.append(PARSE_JD_FILE_FIELD, file);
-      const res = await fetch(PARSE_JD_API_URL, {
-        method: 'POST',
-        body: formDataUpload,
-        signal: ac.signal,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const detail = data?.detail;
-        const msg = data?.message || data?.error;
-        const detailStr = Array.isArray(detail)
-          ? detail.map((d) => d.msg || d.loc?.join?.('.') || JSON.stringify(d)).join('; ')
-          : typeof detail === 'string'
-            ? detail
-            : detail != null ? JSON.stringify(detail) : '';
-        const fullMsg = [msg, detailStr].filter(Boolean).join(' — ') || `HTTP ${res.status}`;
-        throw new Error(fullMsg);
-      }
-      const j = data?.data ?? data;
+      const j = await parseJdFile(file, ac.signal);
       const patch = applyParsedJdToFormState(j, {
         prevFormData: formDataRef.current,
         prevRecruitingCompany: recruitingCompanyRef.current,
@@ -1905,14 +2221,7 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
       newErrors.categoryId = t.jobCategoryRequired || 'Danh mục là bắt buộc';
     }
 
-    // Job Values
-    if (isBusinessPortal) {
-      const persistable = jobValues.filter(isPersistableJobValue);
-      if (persistable.length) {
-        const commissionErr = validateCommissionForMarketplace(formData.jobCommissionType, jobValues);
-        if (commissionErr) newErrors.jobValues = commissionErr;
-      }
-    } else {
+    // Job Values: nếu typeId = 2 thì phải chọn valueId
     const invalidJobValues = jobValues.filter(jv => jv.typeId === 2 && !jv.valueId);
     if (invalidJobValues.length > 0) {
       newErrors.jobValues = 'Vui lòng chọn Value cho các Type có ID = 2';
@@ -1929,7 +2238,6 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
           break;
         }
       }
-    }
     }
 
     setErrors(newErrors);
@@ -2007,7 +2315,7 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
       transferAbilityJp: formData.transferAbilityJp || null,
       highlights: formData.highlights || null,
 
-      workingLocations: sanitizeWorkingLocationsForApi(workingLocations),
+      workingLocations: sanitizeWorkingLocationsForApi(workingLocations, languageTab, japanPrefTreeCache),
       workingLocationDetails: workingLocationDetails
         .filter((wld) => (wld.content && wld.content.trim()) || (wld.contentEn && wld.contentEn.trim()) || (wld.contentJp && wld.contentJp.trim()))
         .map((wld) => ({ content: wld.content || null, contentEn: wld.contentEn || null, contentJp: wld.contentJp || null })),
@@ -2292,7 +2600,7 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
         isHot: formData.isHot || false,
         jobCommissionType: formData.jobCommissionType || 'fixed',
         // Related data arrays
-        workingLocations: sanitizeWorkingLocationsForApi(workingLocations),
+        workingLocations: sanitizeWorkingLocationsForApi(workingLocations, languageTab, japanPrefTreeCache),
         workingLocationDetails: workingLocationDetails
           .filter(wld =>
             (wld.content && wld.content.trim()) ||
@@ -2525,13 +2833,8 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
             .catch((err) => console.warn(`[VectorSync] Job ${savedJobId} sync failed:`, err));
         }
         if (hasJdOriginalUpload) setJdFileJp(null);
-        const createdId = !jobId && savedJobId ? savedJobId : null;
-        if (isBusinessPortal && createdId && typeof onBusinessJobCreated === 'function') {
-          onBusinessJobCreated(createdId);
-        } else {
-          alert(jobId ? 'Job đã được cập nhật thành công!' : 'Job đã được lưu thành công!');
-          navigate(jobId ? jobDetailPath(jobId) : jobsListPath);
-        }
+        alert(jobId ? 'Job đã được cập nhật thành công!' : 'Job đã được lưu thành công!');
+        navigate(jobId ? jobDetailPath(jobId) : jobsListPath);
       } else {
         alert(response.message || (jobId ? 'Có lỗi xảy ra khi cập nhật job' : 'Có lỗi xảy ra khi tạo job'));
       }
@@ -2730,7 +3033,11 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
           aria-label={languageTab === 'jp' ? 'フォーム言語' : 'Form language'}
         >
           <div className="flex min-w-0 flex-1 basis-[min(100%,14rem)] gap-1 rounded-lg border bg-gray-50 p-0.5" style={{ borderColor: '#e5e7eb' }}>
-            {JD_LANGUAGE_TABS.map((tab) => (
+            {[
+              { id: 'vi', label: 'Tiếng Việt' },
+              { id: 'en', label: 'English' },
+              { id: 'jp', label: '日本語' },
+            ].map((tab) => (
               <button
                 key={tab.id}
                 type="button"
@@ -4040,7 +4347,12 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
                               <div className="max-h-[50vh] overflow-y-auto border border-gray-200 rounded-lg p-1.5 bg-white">
                                 {JAPAN_REGIONS.map((reg) => {
                                   const regionEntry = createAddJobJapanRegionEntry(reg, languageTab);
-                                  const checked = workingLocations.some((wl) => wl.country === 'Japan' && (wl.jpId || `${wl.location}_${wl.country}`) === regionEntry.jpId);
+                                  const selectedJapanIds = new Set(
+                                    workingLocations
+                                      .filter((wl) => wl.country === 'Japan')
+                                      .map((wl) => wl.jpId || `${wl.location}_${wl.country}`)
+                                  );
+                                  const checked = isRegionFullySelected(reg, selectedJapanIds, japanPrefTreeCache);
                                   return (
                                     <label key={reg.id} className="flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer hover:bg-gray-50">
                                       <input
@@ -4092,7 +4404,13 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
                                   if (!pref) return null;
                                   const label = languageTab === 'jp' ? pref.ja : pref.en;
                                   const prefEntry = createAddJobJapanPrefectureEntry(code, languageTab);
-                                  const checked = !!prefEntry && workingLocations.some((wl) => wl.country === 'Japan' && (wl.jpId || `${wl.location}_${wl.country}`) === prefEntry.jpId);
+                                  const selectedJapanIds = new Set(
+                                    workingLocations
+                                      .filter((wl) => wl.country === 'Japan')
+                                      .map((wl) => wl.jpId || `${wl.location}_${wl.country}`)
+                                  );
+                                  const checked =
+                                    !!prefEntry && isPrefectureFullySelected(code, selectedJapanIds, japanPrefTreeCache);
                                   return (
                                     <label key={code} className="flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer hover:bg-gray-50">
                                       <input
@@ -4125,12 +4443,8 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
                                   type="button"
                                   disabled={!selectedJapanPrefecture || japanCitiesLoading || bulkJapanAdding}
                                   onClick={() => {
-                                    const prefCode = selectedJapanPrefecture;
-                                    const entries = (japanLocationData.tree || []).flatMap((city) => {
-                                      if (city.standalone) return [createAddJobJapanWardEntry(prefCode, city.name, city.nameKana, languageTab)];
-                                      return (city.wards || []).map((w) => createAddJobJapanWardEntry(prefCode, w.fullName, w.fullNameKana, languageTab));
-                                    });
-                                    upsertManyJapanWorkingLocations(entries, true);
+                                    const prefEntry = createAddJobJapanPrefectureEntry(selectedJapanPrefecture, languageTab);
+                                    if (prefEntry) upsertJapanWorkingLocation(prefEntry, true);
                                   }}
                                   className="text-[10px] text-blue-600 hover:text-blue-700 font-medium disabled:text-gray-400"
                                 >
@@ -4154,56 +4468,120 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
                                     return (c.wards || []).map((w) => makeLocObj(w.fullName, w.fullNameKana));
                                   });
 
-                                  const allSelected = allLocs.length > 0 && allLocs.every((loc) => selectedJapanIds.has(loc.id));
+                                  const prefEntry = createAddJobJapanPrefectureEntry(selectedJapanPrefecture, languageTab);
+                                  const allSelected =
+                                    (prefEntry && selectedJapanIds.has(prefEntry.jpId)) ||
+                                    (allLocs.length > 0 && allLocs.every((loc) => selectedJapanIds.has(loc.jpId)));
                                   const toggleAll = (checked) => {
-                                    const existingJapanIds = new Set(
-                                      workingLocations
-                                        .filter((wl) => wl.country === 'Japan')
-                                        .map((wl) => wl.jpId || `${wl.location}_${wl.country}`)
-                                    );
+                                    if (!prefEntry) return;
+                                    const removeIds = new Set(allLocs.map((l) => l.jpId));
                                     if (checked) {
-                                      const toAdd = allLocs
-                                        .filter((loc) => !existingJapanIds.has(loc.jpId));
-                                      setWorkingLocations((prev) => [...prev, ...toAdd]);
+                                      setWorkingLocations((prev) => {
+                                        const filtered = prev.filter(
+                                          (wl) => wl.country !== 'Japan' || !removeIds.has(wl.jpId || `${wl.location}_${wl.country}`)
+                                        );
+                                        const exists = filtered.some(
+                                          (wl) => wl.country === 'Japan' && wl.jpId === prefEntry.jpId
+                                        );
+                                        return exists ? filtered : [...filtered, prefEntry];
+                                      });
                                     } else {
-                                      const removeIds = new Set(allLocs.map((l) => l.jpId));
                                       setWorkingLocations((prev) =>
-                                        prev.filter((wl) => wl.country !== 'Japan' || !removeIds.has(wl.jpId || `${wl.location}_${wl.country}`))
+                                        prev.filter(
+                                          (wl) =>
+                                            wl.country !== 'Japan' ||
+                                            (wl.jpId !== prefEntry.jpId &&
+                                              !removeIds.has(wl.jpId || `${wl.location}_${wl.country}`))
+                                        )
                                       );
                                     }
                                   };
                                   const toggleCity = (city, checked) => {
+                                    const prefCode = selectedJapanPrefecture;
                                     const cityLocs = city.standalone
                                       ? [makeLocObj(city.name, city.nameKana)]
                                       : (city.wards || []).map((w) => makeLocObj(w.fullName, w.fullNameKana));
+                                    const cityEntry = createAddJobJapanCityEntry(prefCode, city, languageTab);
+                                    const removeIds = new Set(cityLocs.map((l) => l.jpId));
+                                    if (cityEntry) removeIds.add(cityEntry.jpId);
                                     if (checked) {
-                                      const existingJapanIds = new Set(
-                                        workingLocations
-                                          .filter((wl) => wl.country === 'Japan')
-                                          .map((wl) => wl.jpId || `${wl.location}_${wl.country}`)
-                                      );
-                                      const toAdd = cityLocs
-                                        .filter((loc) => !existingJapanIds.has(loc.jpId));
-                                      setWorkingLocations((prev) => [...prev, ...toAdd]);
+                                      setWorkingLocations((prev) => {
+                                        const filtered = prev.filter(
+                                          (wl) => wl.country !== 'Japan' || !removeIds.has(wl.jpId || `${wl.location}_${wl.country}`)
+                                        );
+                                        if (cityEntry && !filtered.some((wl) => wl.jpId === cityEntry.jpId)) {
+                                          return [...filtered, cityEntry];
+                                        }
+                                        return filtered;
+                                      });
                                     } else {
-                                      const removeIds = new Set(cityLocs.map((l) => l.jpId));
                                       setWorkingLocations((prev) =>
-                                        prev.filter((wl) => wl.country !== 'Japan' || !removeIds.has(wl.jpId || `${wl.location}_${wl.country}`))
+                                        prev.filter(
+                                          (wl) => wl.country !== 'Japan' || !removeIds.has(wl.jpId || `${wl.location}_${wl.country}`)
+                                        )
                                       );
                                     }
                                   };
                                   const toggleWard = (fullName, fullNameKana, checked) => {
                                     const loc = makeLocObj(fullName, fullNameKana);
-                                    if (checked) {
-                                      if (!workingLocations.some((wl) => wl.country === 'Japan' && (wl.jpId || `${wl.location}_${wl.country}`) === loc.jpId))
-                                        setWorkingLocations((prev) => [...prev, loc]);
-                                    } else {
-                                      setWorkingLocations((prev) =>
-                                        prev.filter((wl) => !(wl.country === 'Japan' && (wl.jpId || `${wl.location}_${wl.country}`) === loc.jpId))
+                                    const prefEntryForWard = createAddJobJapanPrefectureEntry(
+                                      selectedJapanPrefecture,
+                                      languageTab
+                                    );
+                                    const parentCity = tree.find((city) =>
+                                      city.standalone
+                                        ? city.name === fullName
+                                        : (city.wards || []).some((w) => w.fullName === fullName)
+                                    );
+                                    const cityEntryForWard = parentCity
+                                      ? createAddJobJapanCityEntry(selectedJapanPrefecture, parentCity, languageTab)
+                                      : null;
+
+                                    setWorkingLocations((prev) => {
+                                      let next = prev.filter(
+                                        (wl) =>
+                                          !(
+                                            wl.country === 'Japan' &&
+                                            (wl.jpId || `${wl.location}_${wl.country}`) === loc.jpId
+                                          )
                                       );
-                                    }
+
+                                      const hadPref =
+                                        prefEntryForWard &&
+                                        prev.some((wl) => wl.jpId === prefEntryForWard.jpId);
+                                      const hadCity =
+                                        cityEntryForWard &&
+                                        prev.some((wl) => wl.jpId === cityEntryForWard.jpId);
+
+                                      if (hadPref) {
+                                        next = next.filter((wl) => wl.jpId !== prefEntryForWard.jpId);
+                                        const toAdd = allLocs.filter((item) => item.jpId !== loc.jpId);
+                                        toAdd.forEach((item) => {
+                                          if (!next.some((wl) => wl.jpId === item.jpId)) next = [...next, item];
+                                        });
+                                      } else if (hadCity && parentCity) {
+                                        next = next.filter((wl) => wl.jpId !== cityEntryForWard.jpId);
+                                        const cityLocs = parentCity.standalone
+                                          ? [makeLocObj(parentCity.name, parentCity.nameKana)]
+                                          : (parentCity.wards || []).map((w) =>
+                                              makeLocObj(w.fullName, w.fullNameKana)
+                                            );
+                                        cityLocs
+                                          .filter((item) => item.jpId !== loc.jpId)
+                                          .forEach((item) => {
+                                            if (!next.some((wl) => wl.jpId === item.jpId)) next = [...next, item];
+                                          });
+                                      }
+
+                                      if (checked && !next.some((wl) => wl.jpId === loc.jpId)) {
+                                        next = [...next, loc];
+                                      }
+                                      return next;
+                                    });
                                   };
                                   const isCitySelected = (city) => {
+                                    const cityEntry = createAddJobJapanCityEntry(selectedJapanPrefecture, city, languageTab);
+                                    if (cityEntry && selectedJapanIds.has(cityEntry.jpId)) return true;
                                     const locs = city.standalone
                                       ? [makeLocObj(city.name, city.nameKana)]
                                       : (city.wards || []).map((w) => makeLocObj(w.fullName, w.fullNameKana));
@@ -4229,7 +4607,15 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
                                             <div className="ml-4 pl-1 border-l border-gray-200">
                                               {city.wards.map((w) => {
                                                 const loc = makeLocObj(w.fullName, w.fullNameKana);
-                                                const isWardSelected = selectedJapanIds.has(loc.jpId);
+                                                const cityEntryForWard = createAddJobJapanCityEntry(
+                                                  selectedJapanPrefecture,
+                                                  city,
+                                                  languageTab
+                                                );
+                                                const isWardSelected =
+                                                  selectedJapanIds.has(loc.jpId) ||
+                                                  (prefEntry && selectedJapanIds.has(prefEntry.jpId)) ||
+                                                  (cityEntryForWard && selectedJapanIds.has(cityEntryForWard.jpId));
                                                 return (
                                                   <label key={w.fullName} className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
                                                     <input type="checkbox" checked={!!isWardSelected} onChange={(e) => toggleWard(w.fullName, w.fullNameKana, e.target.checked)} className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600" />
@@ -4266,15 +4652,16 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-xs font-semibold text-gray-900">
                     {(t.selectedLocationsLabel || 'Danh sách địa điểm đã chọn ({count})')
-                      .replace('{count}', workingLocations.length)}
+                      .replace('{count}', displayWorkingLocations.length)}
                   </label>
                 </div>
-                {workingLocations.length > 0 ? (
+                {displayWorkingLocations.length > 0 ? (
                   <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {workingLocations.map((wl, index) => {
+                    {displayWorkingLocations.map((wl) => {
                       const isEmpty = !wl.location || !wl.country;
+                      const displayKey = getJapanWorkingLocationJpId(wl) || `${wl.location}_${wl.country}`;
                       return (
-                        <div key={index} className={`flex items-center gap-2 p-2 border rounded-lg ${isEmpty ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200 bg-gray-50'}`}>
+                        <div key={displayKey} className={`flex items-center gap-2 p-2 border rounded-lg ${isEmpty ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200 bg-gray-50'}`}>
                           {isEmpty ? (
                             // Show input fields for empty locations (custom locations)
                             <div className="flex gap-1 flex-1">
@@ -4283,9 +4670,13 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
                           placeholder={t.locationPlaceholder || 'Địa điểm'}
                                 value={wl.location || ''}
                                 onChange={(e) => {
-                                  const newLocs = [...workingLocations];
-                                  newLocs[index].location = e.target.value;
-                                  setWorkingLocations(newLocs);
+                                  setWorkingLocations((prev) =>
+                                    prev.map((item) =>
+                                      getJapanWorkingLocationJpId(item) === displayKey
+                                        ? { ...item, location: e.target.value }
+                                        : item
+                                    )
+                                  );
                                 }}
                                 className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-600"
                               />
@@ -4294,9 +4685,13 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
                           placeholder={t.countryPlaceholder || 'Quốc gia'}
                                 value={wl.country || ''}
                                 onChange={(e) => {
-                                  const newLocs = [...workingLocations];
-                                  newLocs[index].country = e.target.value;
-                                  setWorkingLocations(newLocs);
+                                  setWorkingLocations((prev) =>
+                                    prev.map((item) =>
+                                      getJapanWorkingLocationJpId(item) === displayKey
+                                        ? { ...item, country: e.target.value }
+                                        : item
+                                    )
+                                  );
                                 }}
                                 className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-600"
                               />
@@ -4312,7 +4707,16 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
                           )}
                           <button
                             type="button"
-                            onClick={() => setWorkingLocations(workingLocations.filter((_, i) => i !== index))}
+                            onClick={() => {
+                              const members = wl._collapseMemberJpIds;
+                              if (members?.length) {
+                                setWorkingLocations(removeJapanWorkingLocationsByMemberJpIds(workingLocations, members));
+                              } else {
+                                setWorkingLocations(
+                                  workingLocations.filter((item) => getJapanWorkingLocationJpId(item) !== displayKey)
+                                );
+                              }
+                            }}
                             className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors flex-shrink-0"
                             title="Xóa"
                           >
@@ -5731,30 +6135,13 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
             </div>
           </div>
 
-          {/* Phí giới thiệu nhân sự / Job Values (admin) */}
+          {/* Chi tiết hoa hồng (Job Values) */}
           <div className={sectionCardClass} style={{ borderColor: '#e5e7eb' }}>
             <h2 className={sectionTitleClass} style={{ color: '#111827', borderColor: '#e5e7eb' }}>
               <Money className="w-4 h-4 text-blue-600" />
-              {isBusinessPortal
-                ? 'Phí giới thiệu nhân sự'
-                : (t.jobCommissionDetailSectionTitle || 'Cài đặt phí')}
+              {t.jobCommissionDetailSectionTitle || 'Cài đặt phí'}
             </h2>
             <div className="space-y-3">
-              {isBusinessPortal ? (
-                <>
-                  <JobCommissionEditor
-                    jobCommissionType={formData.jobCommissionType || 'fixed'}
-                    onCommissionTypeChange={(v) => setFormData((prev) => ({ ...prev, jobCommissionType: v }))}
-                    jobValues={jobValues}
-                    onJobValuesChange={setJobValues}
-                    commissionSeedJob={jobId ? { id: jobId, jobCommissionType: formData.jobCommissionType, jobValues } : null}
-                    salaryCurrency={formData.salaryCurrency}
-                    onSalaryCurrencyChange={(v) => setFormData((prev) => ({ ...prev, salaryCurrency: v }))}
-                  />
-                  {errors.jobValues && <p className="text-[10px] text-red-500 mt-2">{errors.jobValues}</p>}
-                </>
-              ) : (
-              <>
               <div className="mb-4 pb-3 border-b border-gray-200">
                 <label className="block text-xs font-semibold text-gray-900 mb-2">
                   {t.jobSalaryCurrencyLabel || 'Đơn vị tiền tệ'}
@@ -5776,7 +6163,7 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
               {/* Commission Type */}
               <div className="mb-4 pb-3 border-b border-gray-200">
                 <label className="block text-xs font-semibold text-gray-900 mb-2">
-                  Loại phí giới thiệu nhân sự <span className="text-red-500">*</span>
+                  Loại hoa hồng <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="jobCommissionType"
@@ -6072,8 +6459,6 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
                 Thêm Job Value
               </button>
               {errors.jobValues && <p className="text-[10px] text-red-500 mt-2">{errors.jobValues}</p>}
-              </>
-              )}
             </div>
           </div>
 
@@ -6133,6 +6518,7 @@ const AdminAddJobPage = ({ portal = 'admin', onBusinessJobCreated } = {}) => {
                   jobValues={jobValues}
                   workingLocations={workingLocations}
                   setWorkingLocations={setWorkingLocations}
+                  japanPrefectureTrees={japanPrefTreeCache}
                   salaryRanges={salaryRanges}
                   setSalaryRanges={setSalaryRanges}
                   salaryRangeDetails={salaryRangeDetails}

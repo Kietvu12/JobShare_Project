@@ -52,6 +52,7 @@ import {
   shouldHideCommissionConditionLabel,
   resolveCtvCommissionDisplayMultiplier,
   resolveCommissionBannerLabel,
+  commissionTierLabelFontClass,
 } from '../../utils/jobCommissionUi';
 import {
   formatJobSalaryDisplay,
@@ -2363,7 +2364,7 @@ const JobDetailPage = ({
                         style={{ borderColor: '#7c3aed' }}
                       >
                         <div
-                          className="flex-[0_0_32%] sm:flex-[0_0_35%] min-w-0 px-1.5 sm:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-medium flex items-center justify-center text-center leading-snug whitespace-normal"
+                          className="flex-[0_0_32%] sm:flex-[0_0_35%] min-w-0 px-1.5 sm:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-medium flex items-start justify-start text-left leading-snug whitespace-normal"
                           style={{
                             backgroundColor: useAdminAPI ? '#5F5F5F' : '#4b4f5a',
                             color: '#ffffff',
@@ -2375,7 +2376,7 @@ const JobDetailPage = ({
                         </div>
                         {hideCommissionConditionLabel && detailCommissionTiers.length > 0 ? (
                           <div
-                            className="flex-1 min-w-0 px-2 py-1.5 text-[10px] sm:text-[12px] font-bold flex items-center justify-center text-center leading-snug"
+                            className="flex-1 min-w-0 px-2 py-1.5 text-[10px] sm:text-[12px] font-bold flex items-start justify-start text-left leading-snug"
                             style={{
                               backgroundColor: '#DF2020',
                               color: '#ffffff',
@@ -2395,16 +2396,18 @@ const JobDetailPage = ({
                                 }}
                               >
                                 <div
-                                  className="w-24 sm:w-28 flex-shrink-0 px-2 py-1.5 text-[10px] sm:text-[11px] font-semibold flex items-center justify-center text-center leading-snug"
+                                  className="w-24 sm:w-28 flex-shrink-0 px-1.5 sm:px-2 py-1.5 font-semibold flex items-start justify-start text-left"
                                   style={{
                                     backgroundColor: '#EB9696',
                                     color: '#ffffff',
                                   }}
                                 >
-                                  <span className="break-words line-clamp-2">{tier.label}</span>
+                                  <span className={`break-words whitespace-normal ${commissionTierLabelFontClass(tier.label)}`}>
+                                    {tier.label}
+                                  </span>
                                 </div>
                                 <div
-                                  className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 text-[10px] sm:text-[12px] font-bold flex items-center justify-center text-center leading-snug"
+                                  className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 text-[10px] sm:text-[12px] font-bold flex items-start justify-start text-left leading-snug"
                                   style={{
                                     backgroundColor: '#DF2020',
                                     color: '#ffffff',
@@ -2417,7 +2420,7 @@ const JobDetailPage = ({
                           </div>
                         ) : (
                           <div
-                            className="flex-1 min-w-0 px-2 py-1.5 text-[10px] sm:text-[11px] font-bold flex items-center justify-center text-center break-words"
+                            className="flex-1 min-w-0 px-2 py-1.5 text-[10px] sm:text-[11px] font-bold flex items-start justify-start text-left break-words"
                             style={{
                               backgroundColor: '#DF2020',
                               color: '#ffffff',

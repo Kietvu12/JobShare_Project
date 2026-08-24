@@ -28,10 +28,6 @@ import { useLanguage } from '../../context/LanguageContext';
 import apiService from '../../services/api';
 import { yearSalaryRangeStringForCommission } from '../../utils/salaryRangeForCommission';
 import {
-  MarketplaceCommissionSplitPanel,
-  computeMarketplaceCommissionSplit,
-} from '../Shared/MarketplaceCommissionSplit';
-import {
   normalizeJobCommissionType,
   resolveCampaignPercentFromJob,
   pickPrimaryCommissionJobValue,
@@ -39,6 +35,7 @@ import {
   shouldHideCommissionConditionLabel,
   resolveCtvCommissionDisplayMultiplier,
   resolveCommissionBannerLabel,
+  commissionTierLabelFontClass,
 } from '../../utils/jobCommissionUi';
 import { localizedJobValueLabel } from '../../utils/jobValueLocalizedLabel';
 import { hasJobAttachment } from '../../utils/jobAttachmentAvailability';
@@ -189,53 +186,6 @@ function AdminJobStatusSelect({ job, language, statusUpdating, onSelect, compact
       {hint ? (
         <p className="mt-0.5 mb-0 text-[8px] text-gray-500 text-center leading-snug">{hint}</p>
       ) : null}
-    </div>
-  );
-}
-
-function formatMarketplacePlatformFeeLine(percent, language) {
-  const n = Number(percent);
-  const pct = Number.isFinite(n) ? n : 20;
-  if (language === 'en') return `${pct}% platform usage fee`;
-  if (language === 'ja') return `${pct}% プラットフォーム利用料`;
-  return `${pct}% phí sử dụng nền tảng`;
-}
-
-function MarketplacePlatformFeeTier({ job, language }) {
-  if (!job?.isMarketplace) return null;
-  const line = formatMarketplacePlatformFeeLine(job.platformFeePercent ?? 20, language);
-  return (
-    <div
-      className="flex min-h-[32px] sm:min-h-[36px]"
-      style={{ borderTop: '1px solid #9ca3af' }}
-    >
-      <div
-        className="w-24 sm:w-28 flex-shrink-0 px-2 py-1.5 text-[10px] sm:text-[11px] font-semibold flex items-center justify-center text-center leading-snug"
-        style={{ backgroundColor: '#EB9696', color: '#ffffff' }}
-      >
-        <span className="break-words line-clamp-2">
-          {language === 'en' ? 'Platform fee' : language === 'ja' ? '利用料' : 'Phí nền tảng'}
-        </span>
-      </div>
-      <div
-        className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 text-[10px] sm:text-[12px] font-bold flex items-center justify-center text-center leading-snug"
-        style={{ backgroundColor: '#DF2020', color: '#ffffff' }}
-      >
-        <span className="break-words">— {line}</span>
-      </div>
-    </div>
-  );
-}
-
-function MarketplacePlatformFeeCompact({ job, language }) {
-  if (!job?.isMarketplace) return null;
-  const line = formatMarketplacePlatformFeeLine(job.platformFeePercent ?? 20, language);
-  return (
-    <div
-      className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 text-[10px] sm:text-[11px] font-bold flex items-center justify-center text-center leading-snug border-t"
-      style={{ backgroundColor: '#DF2020', color: '#ffffff', borderColor: '#9ca3af' }}
-    >
-      <span className="break-words">— {line}</span>
     </div>
   );
 }
@@ -1322,7 +1272,7 @@ const mockJobs = [
       tags.push({
         label:
           language === 'vi'
-            ? 'Tiến cử trực tiếp với doanh nghiệp'
+            ? 'Tuyển dụng trực tiếp'
             : language === 'en'
               ? 'Direct recruitment'
               : '直接採用',
@@ -1433,7 +1383,7 @@ const mockJobs = [
     // Calculate commission based on salary range, job percent, and CTV rank percent
     // Lấy job_values có commission: Phí (typeId 2), JLPT (1), JLPT-range (3), JLPT_range (4) - backend dùng cả những type này
     const jobValues = filterJobValuesForCommission(job.jobValues || job.profits || []);
-    let hideCommissionConditionLabel = shouldHideCommissionConditionLabel(jobValues);
+    const hideCommissionConditionLabel = shouldHideCommissionConditionLabel(jobValues);
     const contactLabel = language === 'vi' ? 'Liên hệ' : language === 'en' ? 'Contact' : 'お問い合わせ';
     let commissionText = contactLabel;
     let commissionTiers = [];
@@ -1697,30 +1647,6 @@ const mockJobs = [
       }
     }
 
-    let marketplaceCommissionSplit = computeMarketplaceCommissionSplit({
-      job,
-      useAdminAPI,
-      jobValues,
-      formatAmountWithCurrency,
-      campaignPercent,
-      language,
-    });
-    if (marketplaceCommissionSplit) {
-      commissionText = marketplaceCommissionSplit.agentFeeText;
-      commissionTiers = [
-        {
-          label:
-            language === 'vi'
-              ? 'Phí bạn nhận'
-              : language === 'en'
-                ? 'Your fee'
-                : '受取額',
-          amount: marketplaceCommissionSplit.agentFeeText,
-        },
-      ];
-      hideCommissionConditionLabel = true;
-    }
-
     const requirements = job.requirements || [];
     const requirementTypeOrder = ['technique', 'experience', 'language', 'certification', 'education', 'skill', 'other', 'application'];
     const requiredRequirements = requirements.filter((req) => {
@@ -1891,21 +1817,8 @@ const mockJobs = [
       jobCode: job.jobCode || job.id,
       status: statusNum,
       isPinned: !!(job.isPinned ?? job.is_pinned),
-      isDirectRecruitment: !!(job.isDirectRecruitment || job.isMarketplace || job.businessId || job.business_id),
-      isMarketplace: !!(
-        job.isMarketplace
-        || job.isDirectRecruitment
-        || job.platformFeePercent != null
-        || job.platform_fee_percent != null
-        || job.businessId != null
-        || job.business_id != null
-      ),
-      platformFeePercent:
-        job.platformFeePercent != null && job.platformFeePercent !== ''
-          ? Number(job.platformFeePercent)
-          : job.platform_fee_percent != null && job.platform_fee_percent !== ''
-            ? Number(job.platform_fee_percent)
-            : (job.businessId != null || job.business_id != null ? 20 : null),
+      isDirectRecruitment: !!(job.isDirectRecruitment || job.isMarketplace),
+      isMarketplace: !!(job.isMarketplace || job.isDirectRecruitment),
       tags,
       title: title || '',
       company: companyName || '',
@@ -1919,7 +1832,6 @@ const mockJobs = [
       commissionTiers,
       commissionBannerLabel: resolveCommissionBannerLabel(job, { useAdminAPI, language }),
       hideCommissionConditionLabel: !!hideCommissionConditionLabel,
-      marketplaceCommissionSplit,
       isCommissionFromCampaign,
       isInCampaign,
       ageRange,
@@ -2396,7 +2308,7 @@ const mockJobs = [
                 </div>
 
                 {/* Side Panel - Right: commission (ẩn trên landing) + Quick Info */}
-                <div className="w-full lg:w-64 xl:w-72 2xl:w-80 flex-shrink-0 flex flex-col gap-1.5 sm:gap-2 overflow-visible">
+                <div className="w-full lg:w-64 xl:w-72 2xl:w-80 flex-shrink-0 flex flex-col gap-1.5 sm:gap-2">
                   {!hideExpectedReferralFee ? (
                     <>
                       {useAdminAPI && (
@@ -2408,28 +2320,17 @@ const mockJobs = [
                           compact={false}
                         />
                       )}
-                      {job.marketplaceCommissionSplit && !useAdminAPI ? (
-                        <MarketplaceCommissionSplitPanel
-                          split={job.marketplaceCommissionSplit}
-                          language={language}
-                        />
-                      ) : job.isMarketplace && !useAdminAPI ? (
-                          <div className="flex-shrink-0 rounded-md border border-amber-200 bg-amber-50 px-2 py-2 text-[10px] text-amber-900">
-                            {language === 'vi'
-                              ? 'Chưa tính được phí tách — cần mức lương năm hoặc phí cố định trên JD.'
-                              : 'Fee split unavailable — job needs annual salary or fixed fee.'}
-                          </div>
-                      ) : job.commissionTiers && job.commissionTiers.length > 0 ? (
+                      {job.commissionTiers && job.commissionTiers.length > 0 ? (
                         <div className="flex-shrink-0 flex flex-col gap-1.5">
                           <div
-                            className="flex rounded-md overflow-hidden shadow-sm border"
+                            className="flex items-stretch rounded-md overflow-hidden shadow-sm border"
                             style={{
                               borderColor: '#7c3aed',
                             }}
                           >
                             {/* Left label spanning rows */}
                             <div
-                              className="flex-[0_0_35%] min-w-0 px-2 py-2 text-[10px] font-medium flex items-center justify-center text-center leading-snug whitespace-normal self-stretch"
+                              className="flex-[0_0_35%] min-w-0 px-2 py-2 text-[10px] font-medium flex items-center justify-start text-left leading-snug whitespace-normal self-stretch"
                               style={{
                                 backgroundColor: useAdminAPI ? '#5F5F5F' : '#4b4f5a',
                                 color: '#ffffff',
@@ -2441,32 +2342,29 @@ const mockJobs = [
                             </div>
                             {/* Right: condition + amount */}
                             {job.hideCommissionConditionLabel ? (
-                              <div className="flex-1 min-w-0 flex flex-col">
-                                <div
-                                  className="flex-1 min-w-0 px-2 sm:px-3 py-2 text-[10px] sm:text-[12px] font-bold flex items-center justify-center text-center leading-snug"
-                                  style={{
-                                    backgroundColor: '#DF2020',
-                                    color: '#ffffff',
-                                  }}
-                                >
-                                  <span className="break-words" title={job.commissionTiers[0]?.amount || job.commission}>
-                                    {job.commissionTiers[0]?.amount || job.commission}
-                                  </span>
-                                </div>
-                                <MarketplacePlatformFeeCompact job={job} language={language} />
+                              <div
+                                className="flex-1 min-w-0 px-2 sm:px-3 py-2 text-[10px] sm:text-[12px] font-bold flex items-center justify-start text-left leading-snug self-stretch"
+                                style={{
+                                  backgroundColor: '#DF2020',
+                                  color: '#ffffff',
+                                }}
+                              >
+                                <span className="break-words" title={job.commissionTiers[0]?.amount || job.commission}>
+                                  {job.commissionTiers[0]?.amount || job.commission}
+                                </span>
                               </div>
                             ) : (
-                              <div className="flex-1 min-w-0 flex flex-col">
+                              <div className="flex-1 min-w-0 flex flex-col self-stretch">
                                 {job.commissionTiers.map((tier, index) => (
                                   <div
                                     key={index}
-                                    className="flex min-h-[36px]"
+                                    className="flex flex-1 min-h-[36px] items-stretch"
                                     style={{
                                       borderTop: index === 0 ? 'none' : '1px solid #9ca3af',
                                     }}
                                   >
                                     <div
-                                      className="w-24 sm:w-28 flex-shrink-0 px-2 py-1.5 text-[10px] sm:text-[11px] font-semibold flex items-center justify-center text-center leading-snug"
+                                      className="w-24 sm:w-28 flex-shrink-0 px-1.5 sm:px-2 py-2 font-semibold flex items-center justify-start text-left self-stretch"
                                       style={{
                                         backgroundColor: useAdminAPI
                                           ? (job.isInCampaign ? '#e5f0fb' : '#EB9696')
@@ -2476,10 +2374,12 @@ const mockJobs = [
                                           : '#ffffff',
                                       }}
                                     >
-                                      <span className="break-words line-clamp-2">{tier.label}</span>
+                                      <span className={`break-words whitespace-normal leading-snug ${commissionTierLabelFontClass(tier.label)}`}>
+                                        {tier.label}
+                                      </span>
                                     </div>
                                     <div
-                                      className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 text-[10px] sm:text-[12px] font-bold flex items-center justify-center text-center leading-snug"
+                                      className="flex-1 min-w-0 px-2 sm:px-3 py-2 text-[10px] sm:text-[12px] font-bold flex items-center justify-start text-left leading-snug self-stretch"
                                       style={{
                                         backgroundColor: '#DF2020',
                                         color: '#ffffff',
@@ -2491,7 +2391,6 @@ const mockJobs = [
                                     </div>
                                   </div>
                                 ))}
-                                <MarketplacePlatformFeeTier job={job} language={language} />
                               </div>
                             )}
                           </div>
@@ -2503,7 +2402,7 @@ const mockJobs = [
                             style={{ borderColor: '#7c3aed' }}
                           >
                             <div
-                              className="flex-[0_0_45%] min-w-0 px-2 py-1 text-[10px] font-medium flex items-center justify-center text-center leading-snug whitespace-normal self-stretch"
+                              className="flex-[0_0_45%] min-w-0 px-2 py-2 text-[10px] font-medium flex items-center justify-start text-left leading-snug whitespace-normal self-stretch"
                               style={{
                                 backgroundColor: useAdminAPI ? '#5F5F5F' : '#4b4f5a',
                                 color: '#ffffff',
@@ -2513,18 +2412,15 @@ const mockJobs = [
                                 {job.commissionBannerLabel ?? resolveCommissionBannerLabel(job, { useAdminAPI, language })}
                               </span>
                             </div>
-                            <div className="flex-1 min-w-0 flex flex-col">
-                              <div
-                                className="flex-1 min-w-0 px-2 py-1.5 text-[10px] sm:text-[11px] font-bold flex items-center justify-center text-center break-words"
-                                style={{
-                                  backgroundColor: '#DF2020',
-                                  color: '#ffffff',
-                                }}
-                                title={job.commission}
-                              >
-                                {job.commission}
-                              </div>
-                              <MarketplacePlatformFeeCompact job={job} language={language} />
+                            <div
+                              className="flex-1 min-w-0 px-2 py-2 text-[10px] sm:text-[11px] font-bold flex items-center justify-start text-left break-words self-stretch"
+                              style={{
+                                backgroundColor: '#DF2020',
+                                color: '#ffffff',
+                              }}
+                              title={job.commission}
+                            >
+                              {job.commission}
                             </div>
                           </div>
                         </div>

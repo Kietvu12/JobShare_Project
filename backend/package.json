@@ -30,6 +30,7 @@
     "migrate:photo-path": "node scripts/add-photo-path-migration.js",
     "migrate:name-en-jp": "node scripts/add-name-en-jp-migration.js",
     "migrate:collaborator-email-verification": "node scripts/add-collaborator-email-verification-columns.js",
+    "migrate:collaborator-acquisition": "node scripts/add-collaborator-acquisition-columns.js",
     "migrate:message-attachments": "node scripts/add-message-attachment-columns.js",
     "migrate:language-skill-remarks": "node scripts/add-language-skill-remarks-column.js",
     "migrate:messages-applicant-chat": "node scripts/apply-messages-applicant-chat-migration.js",

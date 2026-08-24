@@ -55,6 +55,7 @@ import AdminBusinessDetailPage from './page/Admin/AdminBusinessDetailPage';
 import ReportsPage from './page/Admin/ReportsPage';
 import AccountsPage from './page/Admin/AccountsPage';
 import CampaignsPage from './page/Admin/CampaignsPage';
+import UtmLinkBuilderPage from './page/Admin/UtmLinkBuilderPage';
 import AddCampaignPage from './page/Admin/AddCampaignPage';
 import AdminCampaignDetailPage from './page/Admin/AdminCampaignDetailPage';
 import SettingsPage from './page/Admin/SettingsPage';
@@ -295,6 +296,7 @@ function App() {
             <Route path="accounts/new" element={<AddAdminPage />} />
             <Route path="accounts/:id/edit" element={<AddAdminPage />} />
             <Route path="campaigns" element={<CampaignsPage />} />
+            <Route path="utm-links" element={<UtmLinkBuilderPage />} />
             <Route path="campaigns/create" element={<AddCampaignPage />} />
             <Route path="campaigns/:campaignId" element={<AdminCampaignDetailPage />} />
             <Route path="campaigns/:campaignId/edit" element={<AddCampaignPage />} />

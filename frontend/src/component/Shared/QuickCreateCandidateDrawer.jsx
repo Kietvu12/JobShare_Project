@@ -14,8 +14,16 @@ import {
   appendFullCvFieldsToFormData,
   CV_AI_PARSE_URL,
   resolveCurrentLocationAndDesiredFromCv,
+  isValidJobCategoryId,
 } from '../../utils/mergeResumeDataFromAi.js';
 import { isValidCvPhone, normalizeCvPhone } from '../../utils/cvPhoneUtils.js';
+import CvTemplatePickerCards from './CvTemplatePickerCards.jsx';
+import {
+  isCvTemplateId,
+  mergeCvTemplateMeta,
+  CV_TEMPLATE_PREVIEW_MIN,
+  getCvTemplateLabel,
+} from '../../utils/cvTemplateMeta.js';
 
 const jlptOptions = [
   { value: '', labelKey: 'addCandidateSelectJlpt', fallback: 'Chọn JLPT' },
@@ -186,10 +194,16 @@ export default function QuickCreateCandidateDrawer({
     desiredLocation: '',
     desiredStartDate: '',
     jpResidenceStatus: '',
+    memo: '',
   });
   const [cvFile, setCvFile] = useState(null);
   const [existingCvFileName, setExistingCvFileName] = useState('');
   const [shokumuFile, setShokumuFile] = useState(null);
+  const [selectedCvTemplate, setSelectedCvTemplate] = useState('common');
+  const [templatePreviewOpen, setTemplatePreviewOpen] = useState(false);
+  const [templatePreviewLoading, setTemplatePreviewLoading] = useState(false);
+  const [templatePreviewHtml, setTemplatePreviewHtml] = useState('');
+  const [previewTemplateId, setPreviewTemplateId] = useState(null);
   const [aiParseLoading, setAiParseLoading] = useState(false);
   const [aiParseError, setAiParseError] = useState(null);
   const [parseElapsedSec, setParseElapsedSec] = useState(0);
@@ -423,6 +437,7 @@ export default function QuickCreateCandidateDrawer({
       ...resolveCurrentLocationAndDesiredFromCv(initialCandidate),
       desiredStartDate: initialCandidate.desiredStartDate ?? prev.desiredStartDate,
       jpResidenceStatus: initialCandidate.jpResidenceStatus ?? prev.jpResidenceStatus,
+      memo: initialCandidate.notes || initialCandidate.remarks || initialCandidate.memo || prev.memo,
     }));
   }, [open, isEditMode, initialCandidate]);
 
@@ -464,9 +479,15 @@ export default function QuickCreateCandidateDrawer({
       desiredLocation: '',
       desiredStartDate: '',
       jpResidenceStatus: '',
+      memo: '',
     });
     setCvFile(null);
     setShokumuFile(null);
+    setSelectedCvTemplate('common');
+    setTemplatePreviewOpen(false);
+    setTemplatePreviewLoading(false);
+    setTemplatePreviewHtml('');
+    setPreviewTemplateId(null);
     setExistingCvFileName('');
     setErrors({});
     setSaving(false);
@@ -512,6 +533,65 @@ export default function QuickCreateCandidateDrawer({
     });
   }, [open, isEditMode, initialCandidate]);
 
+  const closeTemplatePreviewModal = useCallback(() => {
+    setTemplatePreviewOpen(false);
+    setTemplatePreviewHtml('');
+    setPreviewTemplateId(null);
+  }, []);
+
+  const openTemplatePreview = useCallback(async (templateId) => {
+    if (!isCvTemplateId(templateId)) return;
+    try {
+      setPreviewTemplateId(templateId);
+      setTemplatePreviewLoading(true);
+      setTemplatePreviewOpen(true);
+      setTemplatePreviewHtml('');
+
+      const payload = {
+        ...CV_TEMPLATE_PREVIEW_MIN,
+        cvTemplate: templateId,
+        tab: 'all',
+      };
+
+      const htmlRes = isAdminVariant
+        ? await apiService.previewAdminCVTemplate(payload)
+        : await apiService.previewCTVCVTemplate(payload);
+
+      if (!htmlRes.ok) {
+        notify.error(
+          htmlRes.status === 401 || htmlRes.status === 403
+            ? (language === 'en' ? 'Session expired or no permission.' : language === 'ja' ? 'セッションが切れたか、権限がありません。' : 'Phiên đăng nhập hết hạn hoặc không có quyền xem trước.')
+            : (language === 'en' ? `Preview failed (HTTP ${htmlRes.status}).` : language === 'ja' ? `プレビュー失敗 (HTTP ${htmlRes.status})。` : `Xem trước thất bại (HTTP ${htmlRes.status}).`)
+        );
+        closeTemplatePreviewModal();
+        return;
+      }
+
+      setTemplatePreviewHtml(htmlRes.html || '');
+    } catch (error) {
+      console.error('Template preview error:', error);
+      notify.error(language === 'en' ? 'Failed to load template preview.' : language === 'ja' ? 'テンプレートプレビューの読み込みに失敗しました。' : 'Không tải được preview template.');
+      closeTemplatePreviewModal();
+    } finally {
+      setTemplatePreviewLoading(false);
+    }
+  }, [isAdminVariant, language, notify, closeTemplatePreviewModal]);
+
+  const templatePreviewTitle = useMemo(() => {
+    if (!previewTemplateId) {
+      return language === 'en' ? 'Template preview' : language === 'ja' ? 'テンプレートプレビュー' : 'Xem preview template';
+    }
+    const label = getCvTemplateLabel(previewTemplateId, language);
+    if (language === 'en') return `Preview: ${label}`;
+    if (language === 'ja') return `プレビュー: ${label}`;
+    return `Preview: ${label}`;
+  }, [previewTemplateId, language]);
+
+  const flowStepLabels = useMemo(() => ({
+    upload: language === 'en' ? 'Upload CV & template' : language === 'ja' ? 'CV・テンプレート' : 'Tải CV & chọn template',
+    manual: language === 'en' ? 'Memo & profile' : language === 'ja' ? 'メモ・情報' : 'Memo & thông tin',
+  }), [language]);
+
   if (!open) return null;
 
   const handleClose = () => {
@@ -542,6 +622,15 @@ export default function QuickCreateCandidateDrawer({
     // Only name, email, and CV are required in quick create.
     if (!isEditMode) {
       // Removed from quick-create step: currentSalary, desiredSalary, desiredPosition, desiredStartDate.
+    }
+    if (!isEditMode) {
+      if (!isCvTemplateId(selectedCvTemplate)) {
+        next.cvTemplate = language === 'en'
+          ? 'Please select a CV template'
+          : language === 'ja'
+            ? 'CVテンプレートを選択してください'
+            : 'Vui lòng chọn loại template CV';
+      }
     }
     if (!cvFile && !existingCvFileName) {
       next.cvFile = cvRequiredMessage();
@@ -584,6 +673,7 @@ export default function QuickCreateCandidateDrawer({
     if (errs.experienceYears) labels.push(t.experienceYears || 'Số năm kinh nghiệm');
     if (errs.cvFile) labels.push(t.addCandidateCvLabel || t.cvFile || 'File CV');
     if (errs.shokumuFile) labels.push(t.addCandidateShokumuLabel || 'Shokumu');
+    if (errs.cvTemplate) labels.push(language === 'en' ? 'CV template' : language === 'ja' ? 'CVテンプレート' : 'Loại template CV');
     return labels;
   };
 
@@ -618,6 +708,9 @@ export default function QuickCreateCandidateDrawer({
       desiredLocation: form.desiredLocation || '',
       desiredStartDate: form.desiredStartDate || '',
       jpResidenceStatus: form.jpResidenceStatus || '',
+      memo: form.memo || '',
+      notes: form.memo || '',
+      remarks: form.memo || '',
     };
     const data = {
       ...parsed,
@@ -646,6 +739,11 @@ export default function QuickCreateCandidateDrawer({
     fd.append('quickCreate', '1');
     fd.append('variant', variant || 'collaborator');
     fd.append('skipPdfGeneration', '1');
+    if (isCvTemplateId(selectedCvTemplate)) {
+      fd.append('cvTemplate', selectedCvTemplate);
+      const layout = mergeCvTemplateMeta({}, { primary: selectedCvTemplate, active: [selectedCvTemplate] });
+      fd.append('cvTableLayout', JSON.stringify(layout));
+    }
     appendFullCvFieldsToFormData(fd, buildSubmitCvData());
     const jpStatus = form.jpResidenceStatus || '';
     if (jpStatus) {
@@ -702,6 +800,10 @@ export default function QuickCreateCandidateDrawer({
 
   const mergeParsedAiDataIntoForm = (parsedData) => {
     const { merged, visible } = mapQuickCreateAiData(parsedData);
+    const safeCategoryId = isValidJobCategoryId(visible.jobCategoryId) ? visible.jobCategoryId : '';
+    if (!isValidJobCategoryId(merged.jobCategoryId)) {
+      merged.jobCategoryId = '';
+    }
     parsedFormDataRef.current = merged;
     setForm((prev) => ({
       ...prev,
@@ -716,7 +818,8 @@ export default function QuickCreateCandidateDrawer({
       currentLocationCountry: visible.currentLocationCountry || prev.currentLocationCountry,
       desiredLocation: visible.desiredLocation || prev.desiredLocation,
       desiredStartDate: visible.desiredStartDate || prev.desiredStartDate,
-      jobCategoryLabel: visible.jobCategoryLabel || prev.jobCategoryLabel,
+      jobCategoryId: safeCategoryId,
+      jobCategoryLabel: safeCategoryId ? (visible.jobCategoryLabel || prev.jobCategoryLabel) : '',
     }));
     setFlowStep('manual');
     return merged;
@@ -874,6 +977,11 @@ export default function QuickCreateCandidateDrawer({
   };
 
   const startAiFlow = async () => {
+    const result = validateStepOne();
+    if (!result.valid) {
+      notify.warning(buildValidationNotifyMessage(result.errors));
+      return null;
+    }
     const mapped = await runAiParse();
     if (mapped) {
       setShowSupplementStep(true);
@@ -882,7 +990,43 @@ export default function QuickCreateCandidateDrawer({
     return mapped;
   };
 
+  const validateStepOne = () => {
+    const next = {};
+    if (!cvFile && !existingCvFileName) {
+      next.cvFile = cvRequiredMessage();
+    } else if (cvFile) {
+      if (!isSupportedCvOriginalFile(cvFile)) {
+        next.cvFile =
+          t.invalidOriginalFile || 'Vui lòng chọn file PDF, Word, Excel, PowerPoint, ảnh (JPG/PNG/...), TXT, RTF hoặc ODT/ODS';
+      } else if (cvFile.size > maxCvBytes) {
+        next.cvFile = t.fileTooLarge || 'File CV tối đa 40MB';
+      }
+    }
+    if (shokumuFile) {
+      if (!isSupportedCvOriginalFile(shokumuFile)) {
+        next.shokumuFile =
+          t.invalidOriginalFile || 'Vui lòng chọn file PDF, Word, Excel, PowerPoint, ảnh (JPG/PNG/...), TXT, RTF hoặc ODT/ODS';
+      } else if (shokumuFile.size > maxCvBytes) {
+        next.shokumuFile = t.fileTooLargeShokumu || 'File Shokumu tối đa 40MB';
+      }
+    }
+    if (!isEditMode && !isCvTemplateId(selectedCvTemplate)) {
+      next.cvTemplate = language === 'en'
+        ? 'Please select a CV template'
+        : language === 'ja'
+          ? 'CVテンプレートを選択してください'
+          : 'Vui lòng chọn loại template CV';
+    }
+    setErrors(next);
+    return { valid: Object.keys(next).length === 0, errors: next };
+  };
+
   const handleManualFlow = () => {
+    const result = validateStepOne();
+    if (!result.valid) {
+      notify.warning(buildValidationNotifyMessage(result.errors));
+      return;
+    }
     setShowSupplementStep(true);
     setFlowStep('manual');
   };
@@ -974,9 +1118,71 @@ export default function QuickCreateCandidateDrawer({
   };
 
   const isUploadStep = flowStep === 'upload';
-  const shouldShowSupplementStep = showSupplementStep || flowStep === 'manual';
+  const isManualStep = flowStep === 'manual';
+  const shouldShowSupplementStep = showSupplementStep || isManualStep;
   const activeValidationErrors = getActiveErrors(errors);
   const cvMissingOnManualStep = !isEditMode && !cvFile && !existingCvFileName;
+
+  const renderStepIndicator = () => {
+    if (isEditMode || adminDuplicateResult) return null;
+    const steps = ['upload', 'manual'];
+    const currentIdx = steps.indexOf(flowStep);
+    return (
+      <div className="flex items-center gap-1 sm:gap-2">
+        {steps.map((step, idx) => {
+          const isActive = idx === currentIdx;
+          const isDone = idx < currentIdx;
+          return (
+            <React.Fragment key={step}>
+              {idx > 0 ? (
+                <div className={`hidden h-px w-4 sm:block sm:w-8 ${isDone || isActive ? 'bg-blue-300' : 'bg-gray-200'}`} />
+              ) : null}
+              <div className={`flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold sm:px-3 sm:text-xs ${
+                isActive
+                  ? 'bg-blue-600 text-white'
+                  : isDone
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'bg-gray-100 text-gray-500'
+              }`}
+              >
+                <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] ${
+                  isActive ? 'bg-white/20 text-white' : isDone ? 'bg-blue-100 text-blue-700' : 'bg-white text-gray-500'
+                }`}
+                >
+                  {idx + 1}
+                </span>
+                <span className="truncate">{flowStepLabels[step]}</span>
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const memoFieldLabel = language === 'en' ? 'Candidate memo' : language === 'ja' ? '候補者メモ' : 'Memo ứng viên';
+  const memoFieldPlaceholder = language === 'en'
+    ? 'Internal notes about this candidate...'
+    : language === 'ja'
+      ? '候補者に関するメモ...'
+      : 'Ghi chú nội bộ về ứng viên...';
+
+  const renderMemoField = () => (
+    <div className="rounded-xl border border-gray-200 bg-white p-3 sm:p-4">
+      <label className="block text-xs font-semibold text-gray-700 mb-1.5" htmlFor="quick-create-candidate-memo">
+        {memoFieldLabel}
+        <span className="ml-1 font-normal text-gray-500">({language === 'en' ? 'optional' : language === 'ja' ? '任意' : 'tuỳ chọn'})</span>
+      </label>
+      <textarea
+        id="quick-create-candidate-memo"
+        value={form.memo}
+        onChange={(e) => setForm((prev) => ({ ...prev, memo: e.target.value }))}
+        rows={3}
+        placeholder={memoFieldPlaceholder}
+        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm resize-y outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+      />
+    </div>
+  );
 
   const renderAdminDuplicatePanel = () => {
     if (!adminDuplicateResult) return null;
@@ -1044,7 +1250,7 @@ export default function QuickCreateCandidateDrawer({
               {savedCvId ? (
                 <button
                   type="button"
-                  onClick={() => navigate(`${isAdminVariant ? '/admin' : '/agent'}/candidates/${savedCvId}/edit?view=upload`)}
+                  onClick={() => navigate(`${isAdminVariant ? '/admin' : '/agent'}/candidates/${savedCvId}/edit?view=upload&template=${encodeURIComponent(selectedCvTemplate || 'common')}`)}
                   className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
                 >
                   {adminDuplicateTexts.viewCreated}
@@ -1114,11 +1320,22 @@ export default function QuickCreateCandidateDrawer({
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 space-y-4">
+            {!adminDuplicateResult ? renderStepIndicator() : null}
             {adminDuplicateResult ? (
               renderAdminDuplicatePanel()
             ) : isUploadStep ? (
               <div className="space-y-4">
                 {renderCollaboratorSearchBox()}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">{flowStepLabels.upload}</h3>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    {language === 'en'
+                      ? 'Upload the CV file and choose a template to continue.'
+                      : language === 'ja'
+                        ? 'CVファイルをアップロードし、テンプレートを選択してください。'
+                        : 'Tải file CV và chọn template để tiếp tục.'}
+                  </p>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold mb-1 text-gray-700">
@@ -1130,6 +1347,7 @@ export default function QuickCreateCandidateDrawer({
                       <input ref={cvFileInputRef} type="file" accept={CV_ORIGINAL_ACCEPT} className="hidden" onChange={handleCvFileChange} />
                     </label>
                     {cvFile ? <div className="mt-2 flex items-center gap-2 text-xs text-gray-700 bg-white rounded-lg px-2 py-1.5 border border-gray-100"><span className="flex-1 truncate" title={cvFile.name}>{cvFile.name}</span><span className="text-gray-400 shrink-0">{(cvFile.size / 1024).toFixed(0)} KB</span><button type="button" onClick={removeCvFile} className="p-1 rounded-md hover:bg-red-50 text-red-600 shrink-0 border border-transparent hover:border-red-100" aria-label={t.addCandidateRemoveCvFile || 'Xóa file CV'}><X className="w-4 h-4" strokeWidth={2.5} /></button></div> : existingCvFileName ? <div className="mt-2 flex items-center gap-2 text-xs text-gray-700 bg-blue-50 rounded-lg px-2 py-1.5 border border-blue-100"><span className="flex-1 truncate" title={existingCvFileName}>{existingCvFileName}</span><span className="text-blue-600 shrink-0">Đã có</span></div> : null}
+                    {errors.cvFile ? <p className="mt-1.5 text-xs text-red-600">{errors.cvFile}</p> : null}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold mb-1 text-gray-700">{t.addCandidateShokumuLabel || 'Shokumu'}</label>
@@ -1139,52 +1357,63 @@ export default function QuickCreateCandidateDrawer({
                       <input ref={shokumuFileInputRef} type="file" accept={CV_ORIGINAL_ACCEPT} className="hidden" onChange={handleShokumuFileChange} />
                     </label>
                     {shokumuFile ? <div className="mt-2 flex items-center gap-2 text-xs text-gray-700 bg-white rounded-lg px-2 py-1.5 border border-gray-100"><span className="flex-1 truncate" title={shokumuFile.name}>{shokumuFile.name}</span><span className="text-gray-400 shrink-0">{(shokumuFile.size / 1024).toFixed(0)} KB</span><button type="button" onClick={removeShokumuFile} className="p-1 rounded-md hover:bg-red-50 text-red-600 shrink-0 border border-transparent hover:border-red-100" aria-label={t.addCandidateRemoveShokumuFile || 'Xóa file Shokumu'}><X className="w-4 h-4" strokeWidth={2.5} /></button></div> : null}
+                    {errors.shokumuFile ? <p className="mt-1.5 text-xs text-red-600">{errors.shokumuFile}</p> : null}
                   </div>
                 </div>
-
+                {!isEditMode ? (
+                  <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 sm:p-4 space-y-2">
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900">
+                        {language === 'en' ? 'Choose CV template' : language === 'ja' ? 'CVテンプレートを選択' : 'Chọn loại template CV'}
+                        <span className="text-red-500"> *</span>
+                      </h4>
+                      <p className="mt-0.5 text-[11px] text-gray-500">
+                        {language === 'en'
+                          ? 'Preview images will be updated when QA provides assets.'
+                          : language === 'ja'
+                            ? 'プレビュー画像はQA提供後に更新されます。'
+                            : 'Ảnh preview sẽ được cập nhật khi QA gửi file mẫu.'}
+                      </p>
+                    </div>
+                    <CvTemplatePickerCards
+                      value={selectedCvTemplate}
+                      onChange={(tpl) => {
+                        setSelectedCvTemplate(tpl);
+                        clearFieldError('cvTemplate');
+                      }}
+                      language={language}
+                      onPreview={openTemplatePreview}
+                      previewLoadingId={templatePreviewLoading ? previewTemplateId : null}
+                    />
+                    {errors.cvTemplate ? <p className="text-xs text-red-600">{errors.cvTemplate}</p> : null}
+                  </div>
+                ) : null}
                 {aiParseError ? (
                   <div
                     className="rounded-lg p-3 border flex items-start gap-2"
                     style={{ backgroundColor: '#fef2f2', borderColor: '#fecaca' }}
                   >
-                    <span className="mt-0.5 text-xs" style={{ color: '#dc2626' }} aria-hidden="true">
-                      ⚠️
-                    </span>
-                    <p className="flex-1 text-xs font-medium" style={{ color: '#991b1b' }}>
-                      {aiParseError}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setAiParseError(null)}
-                      className="text-xs shrink-0"
-                      style={{ color: '#dc2626' }}
-                      aria-label={language === 'en' ? 'Dismiss' : language === 'ja' ? '閉じる' : 'Đóng'}
-                    >
-                      ✕
-                    </button>
+                    <span className="mt-0.5 text-xs" style={{ color: '#dc2626' }} aria-hidden="true">⚠️</span>
+                    <p className="flex-1 text-xs font-medium" style={{ color: '#991b1b' }}>{aiParseError}</p>
+                    <button type="button" onClick={() => setAiParseError(null)} className="text-xs shrink-0" style={{ color: '#dc2626' }} aria-label={language === 'en' ? 'Dismiss' : language === 'ja' ? '閉じる' : 'Đóng'}>✕</button>
                   </div>
                 ) : null}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <button type="button" onClick={startAiFlow} disabled={!cvFile || aiParseLoading} className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
-                    {aiParseLoading ? (t.addCandidateParsingCv || 'Đang phân tích...') : (t.addCandidateAiParseButton || 'Phân tích AI')}
-                  </button>
-                  <button type="button" onClick={handleManualFlow} className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                    {language === 'en' ? 'Enter manually' : language === 'ja' ? '手動で入力' : 'Nhập thông tin thủ công'}
-                  </button>
-                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit} noValidate className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-900">{language === 'en' ? 'Manual information' : language === 'ja' ? '手動入力' : 'Nhập thông tin thủ công'}</h3>
+                    <h3 className="text-sm font-semibold text-gray-900">{flowStepLabels.manual}</h3>
                     <p className="text-xs text-gray-500 mt-1">{language === 'en' ? 'Review or complete the candidate profile before saving.' : language === 'ja' ? '保存前に候補者情報を確認・補完してください。' : 'Xem lại hoặc bổ sung thông tin ứng viên trước khi lưu.'}</p>
                   </div>
-                  <button type="button" onClick={handleBackToUpload} className="text-xs font-semibold text-blue-600 hover:underline">{language === 'en' ? 'Back' : language === 'ja' ? '戻る' : 'Quay lại'}</button>
+                  {!isEditMode ? (
+                    <button type="button" onClick={handleBackToUpload} className="text-xs font-semibold text-blue-600 hover:underline">{language === 'en' ? 'Back' : language === 'ja' ? '戻る' : 'Quay lại'}</button>
+                  ) : null}
                 </div>
 
                 {renderCollaboratorSearchBox()}
+
+                {renderMemoField()}
 
                 {activeValidationErrors.length > 0 ? (
                   <div className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs text-amber-900 space-y-1.5">
@@ -1299,7 +1528,19 @@ export default function QuickCreateCandidateDrawer({
             )}
           </div>
 
-          {!isUploadStep && !adminDuplicateResult ? <div className="border-t px-4 py-3 sm:px-5 sm:py-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 shrink-0 bg-white" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}><button type="button" onClick={handleClose} className="px-4 py-2 rounded-lg border text-sm font-medium text-gray-700">{t.cancel || 'Hủy'}</button><button type="button" onClick={handleSubmit} disabled={saving} className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-semibold disabled:opacity-60">{saving ? (t.saving || 'Đang tạo...') : (t.addCandidateSave || 'Tạo hồ sơ')}</button></div> : null}
+          {!adminDuplicateResult && isUploadStep ? (
+            <div className="border-t px-4 py-3 sm:px-5 sm:py-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 shrink-0 bg-white" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+              <button type="button" onClick={handleClose} className="px-4 py-2 rounded-lg border text-sm font-medium text-gray-700">{t.cancel || 'Hủy'}</button>
+              <button type="button" onClick={handleManualFlow} className="px-4 py-2 rounded-lg border text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                {language === 'en' ? 'Enter manually' : language === 'ja' ? '手動で入力' : 'Nhập thủ công'}
+              </button>
+              <button type="button" onClick={startAiFlow} disabled={!cvFile || aiParseLoading} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-50">
+                {aiParseLoading ? (t.addCandidateParsingCv || 'Đang phân tích...') : (t.addCandidateAiParseButton || 'Phân tích AI')}
+              </button>
+            </div>
+          ) : null}
+
+          {isManualStep && !adminDuplicateResult ? <div className="border-t px-4 py-3 sm:px-5 sm:py-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 shrink-0 bg-white" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}><button type="button" onClick={handleClose} className="px-4 py-2 rounded-lg border text-sm font-medium text-gray-700">{t.cancel || 'Hủy'}</button><button type="button" onClick={handleSubmit} disabled={saving} className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-semibold disabled:opacity-60">{saving ? (t.saving || 'Đang tạo...') : (t.addCandidateSave || 'Tạo hồ sơ')}</button></div> : null}
         </div>
       </div>
         </>
@@ -1319,6 +1560,51 @@ export default function QuickCreateCandidateDrawer({
           }));
         }}
       />
+
+      {templatePreviewOpen ? (
+        <div
+          className="fixed inset-0 z-[130] flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}
+          onClick={closeTemplatePreviewModal}
+          role="presentation"
+        >
+          <div
+            className="relative flex max-h-[95vh] w-full max-w-[960px] flex-col overflow-hidden rounded-xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="quick-create-template-preview-title"
+          >
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b px-4 py-3 border-gray-200">
+              <span id="quick-create-template-preview-title" className="truncate text-sm font-semibold text-gray-900 sm:text-base">
+                {templatePreviewTitle}
+              </span>
+              <button
+                type="button"
+                onClick={closeTemplatePreviewModal}
+                className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                aria-label={t.close || t.cancel || 'Đóng'}
+              >
+                <X className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+            {templatePreviewLoading ? (
+              <div className="flex flex-col items-center justify-center gap-3 p-16">
+                <Loader2 className="h-10 w-10 animate-spin text-blue-600" aria-hidden />
+                <p className="text-sm text-gray-600">
+                  {language === 'en' ? 'Loading preview…' : language === 'ja' ? 'プレビューを読み込み中…' : 'Đang tải preview…'}
+                </p>
+              </div>
+            ) : (
+              <iframe
+                title={templatePreviewTitle}
+                srcDoc={templatePreviewHtml}
+                className="min-h-[75vh] w-full flex-1 border-0 bg-white"
+              />
+            )}
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

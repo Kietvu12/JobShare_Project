@@ -16,6 +16,7 @@ import { translations } from '../../translations/translations';
 
 const STATUS_DRAFT = 1;
 const STATUS_PUBLISHED = 2;
+const POST_SHORT_DESCRIPTION_RECOMMENDED = 200;
 
 const LANGS = [
   { key: 'vi', label: 'Tiếng Việt' },
@@ -315,15 +316,15 @@ export default function PostsPage() {
 
     if (!merged.metaDescription?.trim() && merged.content?.trim()) {
       const excerpt = stripHtmlForExcerpt(merged.content);
-      if (excerpt) next.metaDescription = excerpt.length > 160 ? `${excerpt.slice(0, 157)}…` : excerpt;
+      if (excerpt) next.metaDescription = excerpt.length > POST_SHORT_DESCRIPTION_RECOMMENDED ? `${excerpt.slice(0, POST_SHORT_DESCRIPTION_RECOMMENDED - 1)}…` : excerpt;
     }
     if (!merged.metaDescriptionEn?.trim() && merged.contentEn?.trim()) {
       const excerpt = stripHtmlForExcerpt(merged.contentEn);
-      if (excerpt) next.metaDescriptionEn = excerpt.length > 160 ? `${excerpt.slice(0, 157)}…` : excerpt;
+      if (excerpt) next.metaDescriptionEn = excerpt.length > POST_SHORT_DESCRIPTION_RECOMMENDED ? `${excerpt.slice(0, POST_SHORT_DESCRIPTION_RECOMMENDED - 1)}…` : excerpt;
     }
     if (!merged.metaDescriptionJa?.trim() && merged.contentJa?.trim()) {
       const excerpt = stripHtmlForExcerpt(merged.contentJa);
-      if (excerpt) next.metaDescriptionJa = excerpt.length > 160 ? `${excerpt.slice(0, 157)}…` : excerpt;
+      if (excerpt) next.metaDescriptionJa = excerpt.length > POST_SHORT_DESCRIPTION_RECOMMENDED ? `${excerpt.slice(0, POST_SHORT_DESCRIPTION_RECOMMENDED - 1)}…` : excerpt;
     }
 
     return next;
@@ -493,6 +494,11 @@ export default function PostsPage() {
   const previewContent =
     (activeLang === 'vi' ? formData.content : activeLang === 'en' ? formData.contentEn : formData.contentJa) ||
     formData.content || formData.contentEn || formData.contentJa || '';
+  const previewShortDescription =
+    (activeLang === 'vi' ? formData.metaDescription : activeLang === 'en' ? formData.metaDescriptionEn : formData.metaDescriptionJa) ||
+    formData.metaDescription || formData.metaDescriptionEn || formData.metaDescriptionJa || '';
+  const activeShortDescription =
+    activeLang === 'vi' ? formData.metaDescription : activeLang === 'en' ? formData.metaDescriptionEn : formData.metaDescriptionJa;
 
   const handleDelete = async (postId) => {
     if (!confirm(t.postsDeleteConfirm || 'Bạn có chắc muốn xóa bài viết này?')) return;
@@ -620,6 +626,49 @@ export default function PostsPage() {
                       style={{ borderColor: '#e5e7eb', color: '#111827' }}
                       placeholder={t.postsTitlePlaceholder || 'Nhập tiêu đề'}
                     />
+                  </label>
+                </div>
+
+                {/* Mô tả ngắn — hiển thị dashboard / danh sách tin */}
+                <div className="rounded-xl border bg-white p-4" style={{ borderColor: '#e5e7eb' }}>
+                  <label className="block">
+                    <span className="text-xs font-semibold block mb-1.5" style={{ color: '#374151' }}>
+                      {t.postsShortDescriptionLabel || 'Mô tả ngắn'}
+                    </span>
+                    <p className="text-[11px] text-gray-500 mb-2">
+                      {t.postsShortDescriptionHint ||
+                        'Tóm tắt hiển thị trên dashboard CTV và popup tin tức. Nên giữ khoảng 200 ký tự; để trống sẽ tự lấy từ nội dung bài viết.'}
+                    </p>
+                    <textarea
+                      value={activeShortDescription || ''}
+                      onChange={(e) => {
+                        const nextVal = e.target.value;
+                        setFormData((prev) => ({
+                          ...prev,
+                          ...(activeLang === 'vi' && { metaDescription: nextVal }),
+                          ...(activeLang === 'en' && { metaDescriptionEn: nextVal }),
+                          ...(activeLang === 'ja' && { metaDescriptionJa: nextVal }),
+                        }));
+                      }}
+                      rows={4}
+                      maxLength={500}
+                      className="w-full rounded-lg border px-3 py-2 text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-red-500/30 resize-y min-h-[5.5rem]"
+                      style={{ borderColor: '#e5e7eb', color: '#111827' }}
+                      placeholder={
+                        t.postsShortDescriptionPlaceholder ||
+                        'Nhập mô tả ngắn cho bài viết (plain text, không HTML)...'
+                      }
+                    />
+                    <p
+                      className={`mt-1.5 text-[10px] text-right ${
+                        (activeShortDescription || '').length > POST_SHORT_DESCRIPTION_RECOMMENDED
+                          ? 'text-amber-600'
+                          : 'text-gray-400'
+                      }`}
+                    >
+                      {(activeShortDescription || '').length}/{POST_SHORT_DESCRIPTION_RECOMMENDED}{' '}
+                      {language === 'ja' ? '文字（推奨）' : language === 'en' ? 'chars (recommended)' : 'ký tự (khuyến nghị)'}
+                    </p>
                   </label>
                 </div>
 
@@ -1069,24 +1118,10 @@ export default function PostsPage() {
                         style={{ borderColor: '#e5e7eb' }}
                       />
                     </label>
-                    <label className="block">
-                      <span className="text-[11px] font-medium text-gray-600 block mb-0.5">Meta Description</span>
-                      <textarea
-                        value={activeLang === 'vi' ? formData.metaDescription : activeLang === 'en' ? formData.metaDescriptionEn : formData.metaDescriptionJa}
-                        onChange={(e) => {
-                          const nextVal = e.target.value;
-                          setFormData((prev) => ({
-                            ...prev,
-                            ...(activeLang === 'vi' && { metaDescription: nextVal }),
-                            ...(activeLang === 'en' && { metaDescriptionEn: nextVal }),
-                            ...(activeLang === 'ja' && { metaDescriptionJa: nextVal }),
-                          }));
-                        }}
-                        className="w-full rounded-lg border min-h-16 px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-red-500/30"
-                        style={{ borderColor: '#e5e7eb' }}
-                        rows={3}
-                      />
-                    </label>
+                    <p className="text-[10px] text-gray-400">
+                      {t.postsSeoMetaDescriptionNote ||
+                        'Meta Description dùng chung với trường «Mô tả ngắn» phía trên.'}
+                    </p>
                     <label className="block">
                       <span className="text-[11px] font-medium text-gray-600 block mb-0.5">{t.postsSlugLabel || 'URL (slug)'}</span>
                       <input
@@ -1144,7 +1179,12 @@ export default function PostsPage() {
                         onError={(e) => (e.target.style.display = 'none')}
                       />
                     )}
-                    <h1 className="text-lg font-bold text-gray-900 mb-3">{previewTitle || '(Chưa có tiêu đề)'}</h1>
+                    <h1 className="text-lg font-bold text-gray-900 mb-2">{previewTitle || '(Chưa có tiêu đề)'}</h1>
+                    {previewShortDescription ? (
+                      <p className="mb-3 text-sm leading-relaxed text-gray-600 whitespace-pre-wrap">
+                        {previewShortDescription}
+                      </p>
+                    ) : null}
                     <div
                       className="post-preview-content text-gray-700"
                       dangerouslySetInnerHTML={{ __html: previewContent || '<p class="text-gray-400">(Chưa có nội dung)</p>' }}

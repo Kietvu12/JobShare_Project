@@ -19,7 +19,7 @@ export const TECH_EXPERIENCE_TOOLS_GRID = [
 export const TECH_TOOLS_GRID_ROW_COUNT = TECH_LEARNED_TOOLS_GRID.length;
 
 /** 9 cột: tiêu đề | (tên|note)×2 learned | (tên|note)×2 experienced */
-export const TECH_TOOLS_TABLE_COL_PERCENTS = [8, 10, 4, 10, 4, 10, 4, 10, 4];
+export const TECH_TOOLS_TABLE_COL_PERCENTS = [9, 16, 7, 16, 7, 16, 7, 16, 6];
 
 /** Danh sách gộp — đồng bộ dropdown AddCandidateForm */
 export const TECHNICAL_TOOLS_ALL = [

@@ -28,7 +28,6 @@ import {
   JobRecruitingCompanyBusinessSector
 } from '../../models/index.js';
 import { Op } from 'sequelize';
-import { ensureUniqueJobCode, ensureUniqueJobSlug } from '../../utils/jobSlug.js';
 import sequelize from '../../config/database.js';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
@@ -42,12 +41,8 @@ import {
 } from '../../utils/uploadFilename.js';
 import { generateJdPdfBuffer } from '../../services/jdPdfService.js';
 import { parseDateOnlyQuery } from '../../utils/parseDateOnlyQuery.js';
-import {
-  attachMarketplaceDirectRecruitmentFlags,
-  executeJobListQuery,
-  MAX_JOB_LIST_LIMIT,
-} from '../../services/jobListQueryService.js';
-import { mergeJobPickupQueryOptions } from '../../utils/jobPickupSchema.js';
+import { executeJobListQuery, MAX_JOB_LIST_LIMIT } from '../../services/jobListQueryService.js';
+import { loadJobDetailById, loadJobDetailByIdOrSlug } from '../../services/jobDetailQueryService.js';
 import { bumpJobListCacheVersion } from '../../services/jobListCache.js';
 import { buildJdDownloadFilename } from '../../utils/jdDownloadFilename.js';
 import {
@@ -81,12 +76,6 @@ function parseAdminJobBody(req) {
   }
 
   return b;
-}
-
-async function rollbackTransactionIfActive(transaction) {
-  if (transaction && !transaction.finished) {
-    await transaction.rollback();
-  }
 }
 
 const VALID_SALARY_CURRENCIES = new Set(['JPY', 'VND', 'USD']);
@@ -130,35 +119,6 @@ function normalizeBenefitCreateRows(benefitsInput) {
         contentJp
       });
     }
-  }
-  return rows;
-}
-
-/** Yêu cầu ứng viên: `content` NOT NULL; fallback sang EN/JP nếu tab VI trống. */
-function normalizeRequirementCreateRows(requirementsInput) {
-  if (!Array.isArray(requirementsInput)) return [];
-  const rows = [];
-  for (const req of requirementsInput) {
-    if (req == null || typeof req !== 'object') continue;
-    const content = String(req.content ?? '').trim();
-    const contentEn = req.contentEn != null && String(req.contentEn).trim() !== ''
-      ? String(req.contentEn).trim()
-      : (req.content_en != null && String(req.content_en).trim() !== ''
-        ? String(req.content_en).trim()
-        : null);
-    const contentJp = req.contentJp != null && String(req.contentJp).trim() !== ''
-      ? String(req.contentJp).trim()
-      : (req.content_jp != null && String(req.content_jp).trim() !== ''
-        ? String(req.content_jp).trim()
-        : null);
-    if (!content && !contentEn && !contentJp) continue;
-    rows.push({
-      content: content || contentEn || contentJp || '',
-      contentEn,
-      contentJp,
-      type: req.type || null,
-      status: req.status || null,
-    });
   }
   return rows;
 }
@@ -238,42 +198,6 @@ function deriveNumberOfHires(body, workingLocations = []) {
   return raw != null ? String(raw).trim() : null;
 }
 
-/** DB `working_locations.location` NOT NULL — bỏ row trống / map EN/JP → location */
-function normalizeWorkingLocationsForPersist(workingLocations = []) {
-  return (workingLocations || [])
-    .map((loc) => {
-      const location = String(
-        loc?.location || loc?.locationEn || loc?.location_en || loc?.locationJp || loc?.location_jp || '',
-      ).trim();
-      if (!location) return null;
-      return {
-        location,
-        country: loc.country || loc.countryEn || loc.country_en || loc.countryJp || loc.country_jp || null,
-        locationEn: loc.locationEn || loc.location_en || null,
-        locationJp: loc.locationJp || loc.location_jp || null,
-        countryEn: loc.countryEn || loc.country_en || null,
-        countryJp: loc.countryJp || loc.country_jp || null,
-        numberOfHires: loc.numberOfHires || loc.number_of_hires || null,
-      };
-    })
-    .filter(Boolean);
-}
-
-async function buildAdminJobPickupIdsInclude() {
-  const pickupInclude = await mergeJobPickupQueryOptions({
-    model: JobPickup,
-    as: 'pickup',
-    required: false,
-  });
-  return {
-    model: JobPickupId,
-    as: 'jobPickupIds',
-    required: false,
-    separate: true,
-    include: [pickupInclude],
-  };
-}
-
 /**
  * Job Management Controller (Admin)
  */
@@ -317,159 +241,18 @@ export const jobController = {
   getJobById: async (req, res, next) => {
     try {
       const { id } = req.params;
-      const mode = String(req.query.mode || req.query.view || '').toLowerCase();
-      const isEditMode = mode === 'edit' || mode === 'light' || mode === 'form';
+      const jobJson = await loadJobDetailById(id, { scope: 'admin' });
 
-      const include = [
-        {
-          model: JobCategory,
-          as: 'category',
-          required: false
-        },
-        {
-          model: Company,
-          as: 'company',
-          required: false
-        },
-        {
-          model: JobRecruitingCompany,
-          as: 'recruitingCompany',
-          required: false,
-          include: [
-            {
-              model: JobRecruitingCompanyService,
-              as: 'services',
-              required: false,
-              order: [['order', 'ASC']]
-            },
-            {
-              model: JobRecruitingCompanyBusinessSector,
-              as: 'businessSectors',
-              required: false,
-              order: [['order', 'ASC']]
-            }
-          ]
-        },
-        {
-          model: WorkingLocation,
-          as: 'workingLocations',
-          required: false
-        },
-        {
-          model: WorkingLocationDetail,
-          as: 'workingLocationDetails',
-          required: false,
-          separate: true
-        },
-        {
-          model: SalaryRange,
-          as: 'salaryRanges',
-          required: false,
-          separate: true
-        },
-        {
-          model: SalaryRangeDetail,
-          as: 'salaryRangeDetails',
-          required: false,
-          separate: true
-        },
-        {
-          model: OvertimeAllowance,
-          as: 'overtimeAllowances',
-          required: false,
-          separate: true
-        },
-        {
-          model: OvertimeAllowanceDetail,
-          as: 'overtimeAllowanceDetails',
-          required: false,
-          separate: true
-        },
-        {
-          model: Requirement,
-          as: 'requirements',
-          required: false,
-          separate: true
-        },
-        {
-          model: SmokingPolicy,
-          as: 'smokingPolicies',
-          required: false,
-          separate: true
-        },
-        {
-          model: SmokingPolicyDetail,
-          as: 'smokingPolicyDetails',
-          required: false,
-          separate: true
-        },
-        {
-          model: WorkingHour,
-          as: 'workingHours',
-          required: false,
-          separate: true
-        },
-        {
-          model: WorkingHourDetail,
-          as: 'workingHourDetails',
-          required: false,
-          separate: true
-        },
-        {
-          model: Benefit,
-          as: 'benefits',
-          required: false,
-          separate: true,
-          attributes: ['id', 'content', 'contentEn', 'contentJp']
-        },
-        {
-          model: JobValue,
-          as: 'jobValues',
-          required: false,
-          separate: true,
-          include: [
-            {
-              model: Type,
-              as: 'type',
-              required: false
-            },
-            {
-              model: Value,
-              as: 'valueRef',
-              required: false
-            }
-          ]
-        },
-        {
-          model: JobCampaign,
-          as: 'jobCampaigns',
-          required: false,
-          separate: true,
-          include: [
-            {
-              model: Campaign,
-              as: 'campaign',
-              required: false,
-              attributes: ['id', 'name', 'status']
-            }
-          ]
-        }
-      ];
-
-      const job = await Job.findByPk(id, { include });
-
-      if (!job) {
+      if (!jobJson) {
         return res.status(404).json({
           success: false,
           message: 'Không tìm thấy việc làm'
         });
       }
 
-      const jobJson = normalizeJobFilenameFields(typeof job.toJSON === 'function' ? job.toJSON() : { ...job });
-      await attachMarketplaceDirectRecruitmentFlags([jobJson]);
       res.json({
         success: true,
-        data: { job: jobJson }
+        data: { job: normalizeJobFilenameFields(jobJson) }
       });
     } catch (error) {
       next(error);
@@ -483,74 +266,15 @@ export const jobController = {
   getJobBySlug: async (req, res, next) => {
     try {
       const { slug } = req.params;
-      const mode = String(req.query.mode || req.query.view || '').toLowerCase();
-      const isEditMode = mode === 'edit' || mode === 'light' || mode === 'form';
-
-      const include = [
-        {
-          model: JobCategory,
-          as: 'category',
-          required: false
-        },
-        {
-          model: Company,
-          as: 'company',
-          required: false
-        },
-        {
-          model: JobRecruitingCompany,
-          as: 'recruitingCompany',
-          required: false,
-          include: [
-            { model: JobRecruitingCompanyService, as: 'services', required: false, order: [['order', 'ASC']] },
-            { model: JobRecruitingCompanyBusinessSector, as: 'businessSectors', required: false, order: [['order', 'ASC']] }
-          ]
-        },
-        { model: WorkingLocation, as: 'workingLocations', required: false },
-        { model: WorkingLocationDetail, as: 'workingLocationDetails', required: false, separate: true },
-        { model: SalaryRange, as: 'salaryRanges', required: false, separate: true },
-        { model: SalaryRangeDetail, as: 'salaryRangeDetails', required: false, separate: true },
-        { model: OvertimeAllowance, as: 'overtimeAllowances', required: false, separate: true },
-        { model: OvertimeAllowanceDetail, as: 'overtimeAllowanceDetails', required: false, separate: true },
-        { model: Requirement, as: 'requirements', required: false, separate: true },
-        { model: SmokingPolicy, as: 'smokingPolicies', required: false, separate: true },
-        { model: SmokingPolicyDetail, as: 'smokingPolicyDetails', required: false, separate: true },
-        { model: WorkingHour, as: 'workingHours', required: false, separate: true },
-        { model: WorkingHourDetail, as: 'workingHourDetails', required: false, separate: true },
-        {
-          model: Benefit,
-          as: 'benefits',
-          required: false,
-          separate: true,
-          attributes: ['id', 'content', 'contentEn', 'contentJp']
-        },
-        {
-          model: JobValue,
-          as: 'jobValues',
-          required: false,
-          separate: true,
-          include: [
-            { model: Type, as: 'type', required: false },
-            { model: Value, as: 'valueRef', required: false }
-          ]
-        },
-        {
-          model: JobCampaign,
-          as: 'jobCampaigns',
-          required: false,
-          separate: true,
-          include: [{ model: Campaign, as: 'campaign', required: false, attributes: ['id', 'name', 'status'] }]
-        }
-      ];
-
-      const job = await Job.findOne({ where: { slug }, include });
-      if (!job) {
+      const jobJson = await loadJobDetailByIdOrSlug(slug, { scope: 'admin' });
+      if (!jobJson) {
         return res.status(404).json({ success: false, message: 'Không tìm thấy việc làm' });
       }
 
-      const jobJson = normalizeJobFilenameFields(typeof job.toJSON === 'function' ? job.toJSON() : { ...job });
-      await attachMarketplaceDirectRecruitmentFlags([jobJson]);
-      res.json({ success: true, data: { job: jobJson } });
+      res.json({
+        success: true,
+        data: { job: normalizeJobFilenameFields(jobJson) },
+      });
     } catch (error) {
       next(error);
     }
@@ -559,80 +283,9 @@ export const jobController = {
   getJobEditData: async (req, res, next) => {
     try {
       const { id } = req.params;
+      const jobJson = await loadJobDetailById(id, { scope: 'admin' });
 
-      const jobPickupIdsInclude = await buildAdminJobPickupIdsInclude();
-
-      const job = await Job.findByPk(id, {
-        include: [
-          {
-            model: JobCategory,
-            as: 'category',
-            required: false
-          },
-          {
-            model: Company,
-            as: 'company',
-            required: false
-          },
-          {
-            model: JobRecruitingCompany,
-            as: 'recruitingCompany',
-            required: false,
-            include: [
-              {
-                model: JobRecruitingCompanyService,
-                as: 'services',
-                required: false,
-                order: [['order', 'ASC']]
-              },
-              {
-                model: JobRecruitingCompanyBusinessSector,
-                as: 'businessSectors',
-                required: false,
-                order: [['order', 'ASC']]
-              }
-            ]
-          },
-          { model: WorkingLocation, as: 'workingLocations', required: false },
-          { model: WorkingLocationDetail, as: 'workingLocationDetails', required: false, separate: true },
-          { model: SalaryRange, as: 'salaryRanges', required: false, separate: true },
-          { model: SalaryRangeDetail, as: 'salaryRangeDetails', required: false, separate: true },
-          { model: OvertimeAllowance, as: 'overtimeAllowances', required: false, separate: true },
-          { model: OvertimeAllowanceDetail, as: 'overtimeAllowanceDetails', required: false, separate: true },
-          { model: Requirement, as: 'requirements', required: false, separate: true },
-          { model: SmokingPolicy, as: 'smokingPolicies', required: false, separate: true },
-          { model: SmokingPolicyDetail, as: 'smokingPolicyDetails', required: false, separate: true },
-          { model: WorkingHour, as: 'workingHours', required: false, separate: true },
-          { model: WorkingHourDetail, as: 'workingHourDetails', required: false, separate: true },
-          {
-            model: Benefit,
-            as: 'benefits',
-            required: false,
-            separate: true,
-            attributes: ['id', 'content', 'contentEn', 'contentJp']
-          },
-          {
-            model: JobValue,
-            as: 'jobValues',
-            required: false,
-            separate: true,
-            include: [
-              { model: Type, as: 'type', required: false },
-              { model: Value, as: 'valueRef', required: false }
-            ]
-          },
-          jobPickupIdsInclude,
-          {
-            model: JobCampaign,
-            as: 'jobCampaigns',
-            required: false,
-            separate: true,
-            include: [{ model: Campaign, as: 'campaign', required: false, attributes: ['id', 'name', 'status'] }]
-          }
-        ]
-      });
-
-      if (!job) {
+      if (!jobJson) {
         return res.status(404).json({
           success: false,
           message: 'Không tìm thấy việc làm'
@@ -641,7 +294,7 @@ export const jobController = {
 
       res.json({
         success: true,
-        data: { job: typeof job.toJSON === 'function' ? job.toJSON() : job }
+        data: { job: jobJson }
       });
     } catch (error) {
       next(error);
@@ -828,12 +481,12 @@ export const jobController = {
     try {
       const body = parseAdminJobBody(req);
       const {
-        jobCode: inputJobCode,
+        jobCode,
         jobCategoryId,
         title,
         titleEn,
         titleJp,
-        slug: inputSlug,
+        slug,
         description,
         descriptionEn,
         descriptionJp,
@@ -931,7 +584,6 @@ export const jobController = {
       } = body;
 
       const benefitRows = normalizeBenefitCreateRows(benefits);
-      const requirementRows = normalizeRequirementCreateRows(requirements);
       const normalizeJsonField = (value) => {
         if (value == null || value === '') return null;
         if (Array.isArray(value)) return JSON.stringify(value);
@@ -950,18 +602,30 @@ export const jobController = {
       };
 
       // Validate required fields
-      if (!inputJobCode || !jobCategoryId || !title || !inputSlug) {
+      if (!jobCode || !jobCategoryId || !title || !slug) {
         return res.status(400).json({
           success: false,
           message: 'Mã việc làm, danh mục, tiêu đề và slug là bắt buộc'
         });
       }
 
-      // Mã job trùng → tự thêm hậu tố ngẫu nhiên
-      const jobCode = await ensureUniqueJobCode(inputJobCode);
+      // Check if job_code already exists
+      const existingJob = await Job.findOne({ where: { jobCode } });
+      if (existingJob) {
+        return res.status(409).json({
+          success: false,
+          message: 'Mã việc làm đã tồn tại'
+        });
+      }
 
-      // Slug trùng → tự thêm hậu tố ngẫu nhiên
-      const slug = await ensureUniqueJobSlug(inputSlug);
+      // Check if slug already exists
+      const existingSlug = await Job.findOne({ where: { slug } });
+      if (existingSlug) {
+        return res.status(409).json({
+          success: false,
+          message: 'Slug đã tồn tại'
+        });
+      }
 
       // Validate category
       const category = await JobCategory.findByPk(jobCategoryId);
@@ -1073,17 +737,12 @@ export const jobController = {
         }, { transaction });
 
         // Create working locations
-        const locationsToCreate = normalizeWorkingLocationsForPersist(workingLocations);
-        if (locationsToCreate.length > 0) {
+        if (workingLocations.length > 0) {
           await WorkingLocation.bulkCreate(
-            locationsToCreate.map(loc => ({
+            workingLocations.map(loc => ({
               jobId: job.id,
               location: loc.location,
               country: loc.country,
-              locationEn: loc.locationEn,
-              locationJp: loc.locationJp,
-              countryEn: loc.countryEn,
-              countryJp: loc.countryJp,
               numberOfHires: loc.numberOfHires || null
             })),
             { transaction }
@@ -1169,15 +828,15 @@ export const jobController = {
         }
 
         // Create requirements
-        if (requirementRows.length > 0) {
+        if (requirements.length > 0) {
           await Requirement.bulkCreate(
-            requirementRows.map((req) => ({
+            requirements.map(req => ({
               jobId: job.id,
               content: req.content,
-              contentEn: req.contentEn,
-              contentJp: req.contentJp,
+              contentEn: req.contentEn || req.content_en || null,
+              contentJp: req.contentJp || req.content_jp || null,
               type: req.type,
-              status: req.status,
+              status: req.status
             })),
             { transaction }
           );
@@ -1574,7 +1233,7 @@ export const jobController = {
           data: { job }
         });
       } catch (error) {
-        await rollbackTransactionIfActive(transaction);
+        await transaction.rollback();
         throw error;
       }
     } catch (error) {
@@ -1687,10 +1346,17 @@ export const jobController = {
         }
 
         if (jobFields.slug !== undefined) {
-          jobFields.slug = await ensureUniqueJobSlug(jobFields.slug, {
-            excludeId: id,
-            transaction,
+          const existingSlug = await Job.findOne({
+            where: { slug: jobFields.slug, id: { [Op.ne]: id } },
+            transaction
           });
+          if (existingSlug) {
+            await transaction.rollback();
+            return res.status(409).json({
+              success: false,
+              message: 'Slug đã tồn tại'
+            });
+          }
         }
 
         // jdFile / jdOriginal* được set từ JD template PDF generated, không dùng từ body
@@ -1710,17 +1376,12 @@ export const jobController = {
         // Update related data if provided
         if (workingLocations !== undefined) {
           await WorkingLocation.destroy({ where: { jobId: job.id }, transaction });
-          const locationsToUpdate = normalizeWorkingLocationsForPersist(workingLocations);
-          if (locationsToUpdate.length > 0) {
+          if (workingLocations.length > 0) {
             await WorkingLocation.bulkCreate(
-              locationsToUpdate.map(loc => ({
+              workingLocations.map(loc => ({
                 jobId: job.id,
                 location: loc.location,
                 country: loc.country,
-                locationEn: loc.locationEn,
-                locationJp: loc.locationJp,
-                countryEn: loc.countryEn,
-                countryJp: loc.countryJp,
                 numberOfHires: loc.numberOfHires || null
               })),
               { transaction }
@@ -1817,17 +1478,16 @@ export const jobController = {
         }
 
         if (requirements !== undefined) {
-          const requirementRows = normalizeRequirementCreateRows(requirements);
           await Requirement.destroy({ where: { jobId: job.id }, transaction });
-          if (requirementRows.length > 0) {
+          if (requirements.length > 0) {
             await Requirement.bulkCreate(
-              requirementRows.map((req) => ({
+              requirements.map(req => ({
                 jobId: job.id,
                 content: req.content,
-                contentEn: req.contentEn,
-                contentJp: req.contentJp,
+                contentEn: req.contentEn || req.content_en || null,
+                contentJp: req.contentJp || req.content_jp || null,
                 type: req.type,
-                status: req.status,
+                status: req.status
               })),
               { transaction }
             );
@@ -2357,17 +2017,16 @@ export const jobController = {
           await job.reload({ include: [{ model: JobCategory, as: 'category', required: false }, { model: Company, as: 'company', required: false }, { model: JobRecruitingCompany, as: 'recruitingCompany', required: false, include: [{ model: JobRecruitingCompanyService, as: 'services', required: false }, { model: JobRecruitingCompanyBusinessSector, as: 'businessSectors', required: false }] }] });
         }
 
-        if (req.admin?.id) {
-          await ActionLog.create({
-            adminId: req.admin.id,
-            object: 'Job',
-            action: 'edit',
-            ip: req.ip || req.connection.remoteAddress,
-            before: oldData,
-            after: job.toJSON(),
-            description: `Cập nhật việc làm: ${job.title} (${job.jobCode})`
-          });
-        }
+        // Log action
+        await ActionLog.create({
+          adminId: req.admin.id,
+          object: 'Job',
+          action: 'edit',
+          ip: req.ip || req.connection.remoteAddress,
+          before: oldData,
+          after: job.toJSON(),
+          description: `Cập nhật việc làm: ${job.title} (${job.jobCode})`
+        });
 
         await bumpJobListCacheVersion();
 
@@ -2377,7 +2036,7 @@ export const jobController = {
           data: { job }
         });
       } catch (error) {
-        await rollbackTransactionIfActive(transaction);
+        await transaction.rollback();
         throw error;
       }
     } catch (error) {

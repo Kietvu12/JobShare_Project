@@ -15,6 +15,7 @@ import {
 import { useLanguage } from '../../context/LanguageContext';
 import { translations } from '../../translations/translations';
 import apiService from '../../services/api';
+import jsLogoWhite from '../../assets/JS_logo_White.png';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -124,19 +125,29 @@ const Sidebar = () => {
     <div
       className={`hidden lg:flex ${isExpanded ? 'w-52 xl:w-56' : 'w-16 xl:w-20'} h-screen flex-col border-r border-white/10 shadow-xl shadow-red-950/25 transition-all duration-300 relative bg-gradient-to-b from-[#c4121e] via-[#b91c1c] to-[#991b1b] text-white flex-shrink-0`}
     >
-      {/* Logo Section */}
+      {/* Logo Section — asset có padding lớn, scale + căn giữa vùng logo */}
       <div
-        className={`${isExpanded ? 'px-4 py-4' : 'p-3'} border-b border-white/15 flex items-center ${isExpanded ? 'justify-start' : 'justify-center'}`}
+        className={`${isExpanded ? 'px-4 py-4' : 'p-3'} border-b border-white/15 flex items-center justify-center`}
       >
         <Link
           to="/agent"
-          className="flex items-center cursor-pointer overflow-hidden rounded-lg bg-white/10 p-1.5 ring-1 ring-white/20"
+          className="flex w-full items-center justify-center cursor-pointer"
         >
-          <img
-            src="/landing/jobshare-logo.png"
-            alt="JobShare"
-            className={`object-contain ${isExpanded ? 'max-h-9 w-auto' : 'h-8 w-auto max-w-full'}`}
-          />
+          <div
+            className={`flex items-center justify-center overflow-hidden ${isExpanded ? 'h-12 w-full' : 'h-9 w-9'}`}
+          >
+            <img
+              src={jsLogoWhite}
+              alt="JobShare"
+              className="max-w-none select-none"
+              style={{
+                height: '1.75rem',
+                transform: isExpanded ? 'scale(2.05)' : 'scale(1.85)',
+                transformOrigin: 'center center',
+              }}
+              draggable={false}
+            />
+          </div>
         </Link>
       </div>
 

@@ -2,6 +2,7 @@ import sequelize from '../config/database.js';
 
 let adminColumnReady = null;
 let businessColumnReady = null;
+let timestampColumnsReady = null;
 let tableMetaCache = null;
 
 async function loadCollaboratorNotificationTableMeta() {
@@ -43,6 +44,17 @@ export async function hasCollaboratorNotificationBusinessColumn() {
     businessColumnReady = false;
   }
   return businessColumnReady;
+}
+
+export async function hasCollaboratorNotificationTimestampColumns() {
+  if (timestampColumnsReady !== null) return timestampColumnsReady;
+  try {
+    const table = await sequelize.getQueryInterface().describeTable('collaborator_notifications');
+    timestampColumnsReady = Boolean(table.created_at && table.updated_at);
+  } catch {
+    timestampColumnsReady = false;
+  }
+  return timestampColumnsReady;
 }
 
 function mergeAttributeExcludes(baseAttributes, extraExclude = []) {
@@ -87,6 +99,12 @@ export function isMissingCollaboratorNotificationAdminColumnError(error) {
   const msg = String(error?.parent?.sqlMessage || error?.original?.sqlMessage || error?.message || '');
   return /Unknown column ['`]?admin_id['`]?/i.test(msg)
     || /Unknown column ['`]?collaborator_notifications\.admin_id/i.test(msg);
+}
+
+export function isMissingCollaboratorNotificationTimestampColumnError(error) {
+  const msg = String(error?.parent?.sqlMessage || error?.original?.sqlMessage || error?.message || '');
+  return (error?.parent?.errno === 1054 || error?.original?.errno === 1054 || error?.code === 'ER_BAD_FIELD_ERROR')
+    && /Unknown column ['`]?(collaborator_notifications\.)?created_at['`]?/i.test(msg);
 }
 
 export function isMissingCollaboratorNotificationTimestampError(error) {
