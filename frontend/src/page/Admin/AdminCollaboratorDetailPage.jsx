@@ -21,6 +21,7 @@ import {
   FileText,
   ClipboardList,
   Link2,
+  UserCheck,
 } from 'lucide-react';
 import apiService from '../../services/api';
 import { getCVStatusLabel, getCVStatusStyle } from '../../utils/cvStatus';

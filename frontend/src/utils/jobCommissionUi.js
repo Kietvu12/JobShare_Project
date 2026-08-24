@@ -219,9 +219,8 @@ export function formatJobCommissionSummary(job, language = 'vi') {
 /** Thu nhỏ chữ tên điều kiện phí khi quá dài — tránh cắt bằng line-clamp. */
 export function commissionTierLabelFontClass(text) {
   const len = String(text ?? '').trim().length;
-  if (len > 52) return 'text-[6px] sm:text-[7px] leading-[1.15]';
-  if (len > 36) return 'text-[7px] sm:text-[8px] leading-[1.2]';
-  if (len > 24) return 'text-[8px] sm:text-[9px] leading-tight';
-  if (len > 16) return 'text-[9px] sm:text-[10px] leading-tight';
-  return 'text-[10px] sm:text-[11px] leading-snug';
+  if (len > 36) return 'text-[8px] sm:text-[9px]';
+  if (len > 24) return 'text-[9px] sm:text-[10px]';
+  if (len > 16) return 'text-[9px] sm:text-[10px]';
+  return 'text-[10px] sm:text-[11px]';
 }
