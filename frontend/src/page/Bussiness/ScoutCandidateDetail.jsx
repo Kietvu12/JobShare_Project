@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom'
 import {
-  Check, Unlock, Users, Loader2, ArrowLeft, ExternalLink,
+  Check, Unlock, Users, Loader2, ArrowLeft, ExternalLink, Download,
 } from 'lucide-react'
 import ScoutCandidateProfilePanel from '../../component/Bussiness/ScoutCandidateProfilePanel'
 import CreditTopUpModal from '../../component/Bussiness/CreditTopUpModal'
@@ -14,6 +14,7 @@ import {
 import { highlightSearchText } from '../../utils/searchTextHighlight'
 import { getScoutCandidateDetailUrl, getScoutListUrl } from '../../utils/scoutCandidateDetailUrl'
 import { setScoutPerformanceHearingPending } from '../../utils/scoutPerformanceHearingPending'
+import { downloadScoutOriginalCvFiles } from '../../utils/scoutCvDownload'
 import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont'
 import {
   ScoutUnlockOptionCard,
@@ -93,6 +94,7 @@ export default function ScoutCandidateDetail() {
   const [performanceWantsSimilar, setPerformanceWantsSimilar] = useState(false)
   const [performanceRequirementNote, setPerformanceRequirementNote] = useState('')
   const [performanceSuccess, setPerformanceSuccess] = useState(null)
+  const [downloadingCv, setDownloadingCv] = useState(false)
   const [actionModal, setActionModal] = useState({
     open: false,
     kind: null,
@@ -521,6 +523,31 @@ export default function ScoutCandidateDetail() {
     }
   }
 
+  const isScoutCreditUnlock = candidate?.isUnlocked
+    && !isPerformancePartialUnlock
+    && (candidate?.unlockType === 'scout_credit' || !candidate?.unlockType)
+
+  const handleDownloadOriginalCv = async () => {
+    if (!candidate?.id || downloadingCv) return
+    setDownloadingCv(true)
+    try {
+      const count = await downloadScoutOriginalCvFiles(apiService, candidate.id)
+      openNoticeModal(
+        'Đã bắt đầu tải CV',
+        count > 1 ? `Đang tải ${count} file CV gốc.` : 'Đang tải file CV gốc.',
+        'success',
+      )
+    } catch (e) {
+      if (e?.code === 'NO_ORIGINAL_CV' || e?.message === 'NO_ORIGINAL_CV') {
+        openNoticeModal('Không có CV gốc', 'Hồ sơ này chưa có file CV gốc để tải.', 'error')
+      } else {
+        openNoticeModal('Tải CV thất bại', e?.message || 'Không thể tải CV gốc. Vui lòng thử lại.', 'error')
+      }
+    } finally {
+      setDownloadingCv(false)
+    }
+  }
+
   const backToScoutUrl = useMemo(() => getScoutListUrl({
     jobId: selectedJobId,
     performanceRequestId,
@@ -677,7 +704,7 @@ export default function ScoutCandidateDetail() {
                 </div>
               ) : null}
 
-              {candidate.isUnlocked && !isPerformancePartialUnlock && (
+              {isScoutCreditUnlock && (
                 <div className="w-full rounded-xl border border-emerald-100 bg-[#ecfdf5] p-3 sm:p-4">
                   <div className="scout-detail-title mb-2 flex items-center gap-1.5 text-[#047857]">
                     <Check {...SCOUT_DETAIL_ICON_MD} color="#047857" aria-hidden />
@@ -690,6 +717,19 @@ export default function ScoutCandidateDetail() {
                       className="scout-detail-body flex-1 rounded-lg bg-[#0077B6] py-2 font-semibold text-white hover:bg-[#006399]"
                     >
                       Thêm vào pipeline JD
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownloadOriginalCv}
+                      disabled={downloadingCv}
+                      className="scout-detail-body inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#0077B6]/35 bg-white py-2 font-semibold text-[#0077B6] hover:bg-[#e8f4fa]/60 disabled:opacity-60"
+                    >
+                      {downloadingCv ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Download className="h-3.5 w-3.5" />
+                      )}
+                      {downloadingCv ? 'Đang tải...' : 'Tải CV gốc'}
                     </button>
                     <button
                       type="button"

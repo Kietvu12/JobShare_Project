@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ChevronRight, MoreHorizontal, Phone, Mail, Loader2, BadgeCheck, MessageSquare,
-  Copy, ArrowLeft, Briefcase, UserPlus, Sparkles,
+  Copy, ArrowLeft, Briefcase, UserPlus, Sparkles, Download,
 } from 'lucide-react'
 import apiService from '../../services/api'
 import useBusinessUser from '../../hooks/useBusinessUser'
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
+import { downloadScoutOriginalCvFiles } from '../../utils/scoutCvDownload'
 import { useLanguage } from '../../context/LanguageContext'
 import {
   fetchScoutCvBusinessJobMatches,
@@ -588,6 +589,8 @@ function CandidateSidebar({
   onAttachToJob,
   attachingJobId,
   attachedJobIds,
+  onDownloadOriginalCv,
+  downloadingCv,
   copy,
   language,
 }) {
@@ -766,17 +769,30 @@ function CandidateSidebar({
         {candidate.email ? (
           <a
             href={`mailto:${candidate.email}`}
-            className="cand-fs-sm flex w-full items-center justify-center gap-1 rounded-lg border py-1.5 font-semibold"
+            className="cand-fs-sm mb-1 flex w-full items-center justify-center gap-1 rounded-lg border py-1.5 font-semibold"
             style={{ borderColor: BRAND, color: BRAND }}
           >
             <Mail className="cand-icon" />
             {sb.email}
           </a>
         ) : (
-          <button type="button" disabled className="cand-fs-sm w-full rounded-lg border border-slate-200 bg-slate-50 py-1.5 font-semibold text-slate-400">
+          <button type="button" disabled className="cand-fs-sm mb-1 w-full rounded-lg border border-slate-200 bg-slate-50 py-1.5 font-semibold text-slate-400">
             {sb.noEmail}
           </button>
         )}
+        <button
+          type="button"
+          onClick={onDownloadOriginalCv}
+          disabled={downloadingCv}
+          className="cand-fs-sm mt-1 flex w-full items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 py-1.5 font-semibold text-emerald-700 disabled:opacity-60"
+        >
+          {downloadingCv ? (
+            <Loader2 className="cand-icon animate-spin" />
+          ) : (
+            <Download className="cand-icon" />
+          )}
+          {downloadingCv ? 'Đang tải...' : 'Tải CV gốc'}
+        </button>
       </div>
       )}
 
@@ -823,6 +839,7 @@ export default function BusinessUnlockedCandidateDetail() {
   const [error, setError] = useState('')
   const [exploreSubmitting, setExploreSubmitting] = useState(false)
   const [attachingJobId, setAttachingJobId] = useState(null)
+  const [downloadingCv, setDownloadingCv] = useState(false)
   const [attachedJobIds, setAttachedJobIds] = useState(() => new Set())
   const candidateLoadSeqRef = useRef(0)
 
@@ -882,6 +899,22 @@ export default function BusinessUnlockedCandidateDetail() {
       setAttachingJobId(null)
     }
   }, [candidate?.id, d.attachError])
+
+  const handleDownloadOriginalCv = useCallback(async () => {
+    if (!candidate?.id || downloadingCv || isScoutPerformanceUnlock(candidate)) return
+    setDownloadingCv(true)
+    try {
+      await downloadScoutOriginalCvFiles(apiService, candidate.id)
+    } catch (e) {
+      if (e?.code === 'NO_ORIGINAL_CV' || e?.message === 'NO_ORIGINAL_CV') {
+        window.alert('Hồ sơ này chưa có file CV gốc để tải.')
+      } else {
+        window.alert(e?.message || 'Không thể tải CV gốc. Vui lòng thử lại.')
+      }
+    } finally {
+      setDownloadingCv(false)
+    }
+  }, [candidate, downloadingCv])
 
   useEffect(() => {
     if (!numericCandidateId || Number.isNaN(numericCandidateId)) {
@@ -970,6 +1003,8 @@ export default function BusinessUnlockedCandidateDetail() {
                     onAttachToJob={handleAttachToJob}
                     attachingJobId={attachingJobId}
                     attachedJobIds={attachedJobIds}
+                    onDownloadOriginalCv={handleDownloadOriginalCv}
+                    downloadingCv={downloadingCv}
                     copy={candidateCopy}
                     language={language}
                   />

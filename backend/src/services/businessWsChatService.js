@@ -23,6 +23,7 @@ import {
 import { CREDIT_REQUEST_STATUS } from '../constants/businessBilling.js';
 import { getSaiyoBrandingServiceLabel } from '../constants/saiyoBranding.js';
 import { collaboratorNotificationService } from './collaboratorNotificationService.js';
+import { createBusinessReferralInvoice, getBusinessReferralInvoiceForApplication } from './adminBusinessReferralInvoiceService.js';
 
 export const WS_CHAT_SESSION_TYPES = {
   SCOUT_PERFORMANCE: 'scout_performance',
@@ -47,6 +48,8 @@ export const WS_CHAT_MESSAGE_TYPES = {
   SERVICE_REQUEST: 'service_request',
   LISTING_REQUEST: 'listing_request',
   LISTING_DECISION: 'listing_decision',
+  REFERRAL_PAYMENT_DRAFT: 'referral_payment_draft',
+  REFERRAL_PAYMENT_INVOICE: 'referral_payment_invoice',
 };
 
 function buildBusinessWsChatSessionTitle(business) {
@@ -78,7 +81,7 @@ async function resolveShareRequestForSession(session, transaction = null) {
   });
 }
 
-export async function hasWsChatMessageForRequest({ sessionId, messageType, requestId, transaction = null }) {
+export async function hasWsChatMessageForRequest({ sessionId, messageType, requestId, jobApplicationId, transaction = null }) {
   const rows = await BusinessWsChatMessage.findAll({
     where: { sessionId, messageType },
     attributes: ['id', 'requestPayload'],
@@ -86,6 +89,9 @@ export async function hasWsChatMessageForRequest({ sessionId, messageType, reque
   });
   return rows.some((row) => {
     const p = row.requestPayload || {};
+    if (jobApplicationId != null) {
+      return Number(p.jobApplicationId) === Number(jobApplicationId);
+    }
     return Number(p.requestId) === Number(requestId) || Number(p.listingId) === Number(requestId);
   });
 }
@@ -1241,7 +1247,9 @@ export async function listWsChatMessagesForBusiness({ sessionId, businessId }) {
     );
   }
 
-  return messages.map(formatMessageRow);
+  return messages
+    .filter((m) => m.messageType !== WS_CHAT_MESSAGE_TYPES.REFERRAL_PAYMENT_DRAFT)
+    .map(formatMessageRow);
 }
 
 export async function listWsChatMessagesForAdmin({ sessionId }) {
@@ -1616,6 +1624,202 @@ export async function syncWsChatAfterCreditRequestCreated({ businessId, creditRe
   }
 }
 
+async function notifyAdminsReferralPaymentDraftCreated({
+  businessName,
+  candidateName,
+  jobCode,
+  jobApplicationId,
+  sessionId,
+}) {
+  const admins = await Admin.findAll({
+    where: { isActive: true, status: 1, role: { [Op.in]: [1, 2] } },
+    attributes: ['id'],
+  });
+  const safeBusiness = businessName || 'Doanh nghiệp';
+  const safeJobCode = jobCode || 'N/A';
+  const safeCandidate = candidateName || 'Ứng viên';
+  const content = `${safeBusiness} đã chuyển đơn tiến cử ${safeJobCode} (${safeCandidate}) thành Đã vào công ty. Vui lòng nhập số tiền phí giới thiệu trong chat WS.`;
+  const url = sessionId
+    ? `/admin/public-ctv-chat?tab=business&sessionId=${sessionId}`
+    : '/admin/public-ctv-chat?tab=business';
+
+  for (const admin of admins) {
+    await collaboratorNotificationService.createAndEmit({
+      collaboratorId: null,
+      adminId: admin.id,
+      title: 'Đã vào công ty — tạo yêu cầu TT',
+      content,
+      jobId: null,
+      url,
+    });
+  }
+}
+
+/** Khi ứng viên vào công ty: tạo thẻ form phí giới thiệu trong chat WS (không phải chat đơn tiến cử). */
+export async function syncWsChatAfterJoinedCompany({
+  jobApplicationId,
+  businessId,
+  businessName = null,
+  candidateName = null,
+  jobCode = null,
+}) {
+  try {
+    if (!jobApplicationId || !businessId) return null;
+
+    const existingInvoice = await getBusinessReferralInvoiceForApplication(jobApplicationId).catch(() => null);
+    if (existingInvoice) return { sessionId: null, session: null, message: null };
+
+    const business = await Business.findByPk(businessId, {
+      attributes: ['id', 'companyName', 'contactName'],
+    });
+    const session = await ensureWsChatSessionForBusiness({ businessId, business });
+
+    const hasDraft = await hasWsChatMessageForRequest({
+      sessionId: session.id,
+      messageType: WS_CHAT_MESSAGE_TYPES.REFERRAL_PAYMENT_DRAFT,
+      jobApplicationId,
+    });
+    const hasInvoiceMsg = await hasWsChatMessageForRequest({
+      sessionId: session.id,
+      messageType: WS_CHAT_MESSAGE_TYPES.REFERRAL_PAYMENT_INVOICE,
+      jobApplicationId,
+    });
+    if (hasDraft || hasInvoiceMsg) {
+      return { sessionId: session.id, session, message: null };
+    }
+
+    const companyLabel = businessName || business?.companyName || 'Doanh nghiệp';
+    const candidateLabel = candidateName || 'Ứng viên';
+    const jobLabel = jobCode || String(jobApplicationId);
+    const content = `${companyLabel} — ${candidateLabel} đã vào công ty (${jobLabel}). Nhập số tiền phí giới thiệu.`;
+
+    const message = await BusinessWsChatMessage.create({
+      sessionId: session.id,
+      senderType: WS_CHAT_SENDER_TYPES.SYSTEM,
+      businessId,
+      messageType: WS_CHAT_MESSAGE_TYPES.REFERRAL_PAYMENT_DRAFT,
+      requestPayload: {
+        jobApplicationId: Number(jobApplicationId),
+        jobCode: jobCode || null,
+        candidateName: candidateName || null,
+        businessName: companyLabel,
+        status: 'pending_amount',
+        amount: null,
+      },
+      content,
+      isReadByAdmin: false,
+      isReadByBusiness: false,
+    });
+
+    await touchSessionPreview(session, { content: `Phí giới thiệu — ${candidateLabel}` });
+
+    await notifyAdminsReferralPaymentDraftCreated({
+      businessName: companyLabel,
+      candidateName: candidateLabel,
+      jobCode: jobLabel,
+      jobApplicationId,
+      sessionId: session.id,
+    });
+
+    return {
+      sessionId: session.id,
+      session,
+      message: formatMessageRow(message),
+    };
+  } catch (error) {
+    console.error('[WsChat] syncWsChatAfterJoinedCompany failed:', error?.message || error);
+    return null;
+  }
+}
+
+/** Admin nhập số tiền trong chat WS → tạo hóa đơn Billing + gửi yêu cầu TT cho DN. */
+export async function submitReferralPaymentInWsChat({
+  sessionId,
+  adminId,
+  jobApplicationId,
+  amount,
+}) {
+  const session = await loadSessionForAdmin(sessionId);
+  if (!session?.businessId) {
+    const err = new Error('Không tìm thấy phiên chat WS');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const draftRows = await BusinessWsChatMessage.findAll({
+    where: {
+      sessionId,
+      messageType: WS_CHAT_MESSAGE_TYPES.REFERRAL_PAYMENT_DRAFT,
+    },
+    order: [['id', 'DESC']],
+  });
+  const draft = draftRows.find(
+    (row) => Number(row.requestPayload?.jobApplicationId) === Number(jobApplicationId),
+  );
+  if (!draft) {
+    const err = new Error('Không tìm thấy yêu cầu phí giới thiệu trong chat');
+    err.statusCode = 404;
+    throw err;
+  }
+  if (draft.requestPayload?.status !== 'pending_amount') {
+    const err = new Error('Yêu cầu phí giới thiệu đã được xử lý');
+    err.statusCode = 409;
+    throw err;
+  }
+
+  const invoiceResult = await createBusinessReferralInvoice({
+    jobApplicationId,
+    amount,
+    adminId,
+    wsSessionId: sessionId,
+  });
+  const invoice = invoiceResult.invoice;
+  const payload = draft.requestPayload || {};
+
+  draft.requestPayload = {
+    ...payload,
+    status: 'submitted',
+    amount: invoice.amount,
+    invoiceId: invoice.id,
+    invoiceCode: invoice.invoiceCode,
+  };
+  draft.isReadByAdmin = true;
+  await draft.save();
+
+  const invoiceContent = `Yêu cầu thanh toán phí giới thiệu: ${Number(invoice.amount).toLocaleString('vi-VN')} VNĐ (${invoice.invoiceCode})`;
+  const invoiceMessage = await BusinessWsChatMessage.create({
+    sessionId,
+    senderType: WS_CHAT_SENDER_TYPES.SYSTEM,
+    adminId: adminId || null,
+    businessId: session.businessId,
+    messageType: WS_CHAT_MESSAGE_TYPES.REFERRAL_PAYMENT_INVOICE,
+    requestPayload: {
+      jobApplicationId: Number(jobApplicationId),
+      jobCode: payload.jobCode || invoiceResult.jobCode || null,
+      candidateName: payload.candidateName || invoiceResult.candidateName || null,
+      invoiceId: invoice.id,
+      invoiceCode: invoice.invoiceCode,
+      amount: invoice.amount,
+      status: invoice.status || 'unpaid',
+    },
+    content: invoiceContent,
+    isReadByAdmin: true,
+    isReadByBusiness: false,
+  });
+
+  await touchSessionPreview(session, { content: invoiceContent });
+
+  return {
+    invoice,
+    draftMessage: formatMessageRow(await draft.reload({
+      include: [{ model: Admin, as: 'admin', required: false, attributes: ['id', 'name', 'email'] }],
+    })),
+    invoiceMessage: formatMessageRow(await invoiceMessage.reload({
+      include: [{ model: Admin, as: 'admin', required: false, attributes: ['id', 'name', 'email'] }],
+    })),
+  };
+}
+
 export async function syncAllPendingCreditRequestsForBusiness({ businessId }) {
   await ensurePendingCreditRequestsInWsChat({ businessId });
   const session = await BusinessWsChatSession.findOne({
@@ -1942,6 +2146,34 @@ export async function listScoutPerformanceCandidatesForWsSession({ sessionId }) 
   });
 }
 
+export async function listBusinessJobsForWsSession({ sessionId }) {
+  const session = await loadSessionForAdmin(sessionId);
+  const rows = await Job.findAll({
+    where: {
+      businessId: session.businessId,
+      status: 1,
+    },
+    attributes: ['id', 'jobCode', 'title', 'titleEn', 'titleJp', 'slug', 'status', 'updatedAt'],
+    order: [['updated_at', 'DESC'], ['id', 'DESC']],
+    limit: 200,
+  });
+  return {
+    jobs: rows.map((row) => {
+      const json = row.toJSON();
+      return {
+        id: json.id,
+        jobCode: json.jobCode || null,
+        title: json.title || null,
+        titleEn: json.titleEn || null,
+        titleJp: json.titleJp || null,
+        slug: json.slug || null,
+        status: json.status,
+        updatedAt: json.updatedAt || null,
+      };
+    }),
+  };
+}
+
 export async function updateScoutPerformanceApproachStatusInWsChat({
   sessionId,
   adminId,
@@ -2080,6 +2312,7 @@ export default {
   acceptListingRequestInChat,
   rejectListingRequestInChat,
   listScoutPerformanceCandidatesForWsSession,
+  listBusinessJobsForWsSession,
   updateScoutPerformanceApproachStatusInWsChat,
   listWsChatSessionsForBusiness,
   listWsChatSessionsForAdmin,
@@ -2095,6 +2328,8 @@ export default {
   ensurePendingCreditRequestsInWsChat,
   syncAllPendingCreditRequestsForBusiness,
   syncWsChatAfterCreditRequestCreated,
+  syncWsChatAfterJoinedCompany,
+  submitReferralPaymentInWsChat,
   syncWsChatAfterCreditApproval,
   syncWsChatAfterCreditRejection,
   syncWsChatAfterCreditCancellation,

@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Send, Search, ExternalLink, Users, Loader2, X } from 'lucide-react'
+import { Send, Search, ExternalLink, Users, Loader2, X, Plus } from 'lucide-react'
 import apiService from '../../services/api'
+import AdminWsScoutCandidatePickerModal from '../Admin/AdminWsScoutCandidatePickerModal'
 import {
   SCOUT_APPROACH_STATUS_OPTIONS,
   getScoutDisplayName,
@@ -465,6 +466,126 @@ function ListingDecisionEventCard({ message }) {
   )
 }
 
+const REFERRAL_PAYMENT_STATUS_STYLES = {
+  pending_amount: { label: 'Chờ nhập số tiền', color: '#1d4ed8', bg: '#dbeafe' },
+  submitted: { label: 'Đã gửi yêu cầu TT', color: '#166534', bg: '#dcfce7' },
+  unpaid: { label: 'Chưa thanh toán', color: '#dc2626', bg: '#fee2e2' },
+  paid: { label: 'Đã thanh toán', color: '#166534', bg: '#dcfce7' },
+}
+
+function ReferralPaymentDraftEventCard({
+  message,
+  mode,
+  onSubmit,
+  actionJobApplicationId,
+}) {
+  const payload = message.requestPayload || {}
+  const status = payload.status || 'pending_amount'
+  const statusStyle = REFERRAL_PAYMENT_STATUS_STYLES[status] || REFERRAL_PAYMENT_STATUS_STYLES.pending_amount
+  const isPending = status === 'pending_amount'
+  const [amount, setAmount] = useState('')
+  const jobApplicationId = payload.jobApplicationId
+
+  return (
+    <div style={{
+      width: '100%', maxWidth: 320, background: '#fff', border: '1.5px solid #bfdbfe',
+      borderRadius: 10, padding: '10px 12px', boxShadow: '0 2px 8px rgba(37,99,235,0.12)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#1d4ed8' }}>Yêu cầu thanh toán phí giới thiệu</div>
+        <span style={{ fontSize: 7, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: statusStyle.color, background: statusStyle.bg }}>
+          {statusStyle.label}
+        </span>
+      </div>
+
+      <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.65, marginBottom: 8 }}>
+        <div><strong>Doanh nghiệp:</strong> {payload.businessName || '—'}</div>
+        <div><strong>Ứng viên:</strong> {payload.candidateName || '—'}</div>
+        <div><strong>Đơn tiến cử:</strong> {payload.jobCode || `#${jobApplicationId || '—'}`}</div>
+        {!isPending && payload.amount != null && (
+          <div><strong>Số tiền:</strong> {Number(payload.amount).toLocaleString('vi-VN')} VNĐ</div>
+        )}
+        {!isPending && payload.invoiceCode && (
+          <div><strong>Mã hóa đơn:</strong> {payload.invoiceCode}</div>
+        )}
+      </div>
+
+      {mode === 'admin' && isPending && onSubmit && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            onSubmit(jobApplicationId, amount)
+          }}
+          style={{ borderTop: '1px solid #dbeafe', paddingTop: 8 }}
+        >
+          <label style={{ display: 'block', fontSize: 8, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+            Số tiền thanh toán (VNĐ)
+          </label>
+          <input
+            type="number"
+            min={1}
+            required
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="5000000"
+            style={{ width: '100%', border: bd, borderRadius: 6, padding: '6px 8px', fontSize: 8, marginBottom: 8, outline: 'none' }}
+          />
+          <button
+            type="submit"
+            disabled={actionJobApplicationId === jobApplicationId}
+            style={{
+              width: '100%', border: 'none', borderRadius: 6, padding: '7px 8px', fontSize: 8, fontWeight: 700,
+              background: actionJobApplicationId === jobApplicationId ? '#93c5fd' : '#2563eb', color: '#fff', cursor: 'pointer',
+            }}
+          >
+            {actionJobApplicationId === jobApplicationId ? 'Đang gửi...' : 'Gửi yêu cầu TT cho DN'}
+          </button>
+        </form>
+      )}
+    </div>
+  )
+}
+
+function ReferralPaymentInvoiceEventCard({ message, mode }) {
+  const payload = message.requestPayload || {}
+  const status = payload.status || 'unpaid'
+  const statusStyle = REFERRAL_PAYMENT_STATUS_STYLES[status] || REFERRAL_PAYMENT_STATUS_STYLES.unpaid
+  const billingPath = payload.invoiceId
+    ? `/business/billing?invoiceId=${payload.invoiceId}`
+    : '/business/billing'
+
+  return (
+    <div style={{
+      width: '100%', maxWidth: 320, background: '#fff', border: '1.5px solid #bfdbfe',
+      borderRadius: 10, padding: '10px 12px', boxShadow: '0 2px 8px rgba(37,99,235,0.12)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#1d4ed8' }}>Yêu cầu thanh toán phí giới thiệu</div>
+        <span style={{ fontSize: 7, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: statusStyle.color, background: statusStyle.bg }}>
+          {statusStyle.label}
+        </span>
+      </div>
+      <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.65, marginBottom: 8 }}>
+        <div><strong>Ứng viên:</strong> {payload.candidateName || '—'}</div>
+        <div><strong>Đơn tiến cử:</strong> {payload.jobCode || '—'}</div>
+        <div><strong>Mã hóa đơn:</strong> {payload.invoiceCode || '—'}</div>
+        <div><strong>Số tiền:</strong> {Number(payload.amount || 0).toLocaleString('vi-VN')} VNĐ</div>
+      </div>
+      {mode === 'business' && (
+        <a
+          href={billingPath}
+          style={{
+            display: 'inline-block', width: '100%', textAlign: 'center', border: 'none', borderRadius: 6,
+            padding: '7px 8px', fontSize: 8, fontWeight: 700, background: '#2563eb', color: '#fff', textDecoration: 'none',
+          }}
+        >
+          Xem Billing
+        </a>
+      )}
+    </div>
+  )
+}
+
 function ApproachStatusUpdateEventCard({ message, mode, onOpenCv }) {
   const payload = message.requestPayload || {}
   const statusLabel = payload.pipelineStatusLabel || payload.pipelineStatus || '—'
@@ -507,14 +628,17 @@ function ApproachStatusUpdateEventCard({ message, mode, onOpenCv }) {
 
 function WsAdminScoutPerformanceCandidatesPanel({
   open,
+  embedded = false,
   sessionId,
   onClose,
   onStatusUpdated,
+  onCandidatesAdded,
 }) {
   const [loading, setLoading] = useState(false)
   const [candidates, setCandidates] = useState([])
   const [error, setError] = useState('')
   const [updatingCvId, setUpdatingCvId] = useState(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   const load = useCallback(async () => {
     if (!sessionId) return
@@ -538,8 +662,13 @@ function WsAdminScoutPerformanceCandidatesPanel({
   }, [sessionId])
 
   useEffect(() => {
-    if (open && sessionId) load()
-  }, [open, sessionId, load])
+    if (!sessionId) {
+      setCandidates([])
+      setError('')
+      return
+    }
+    if (embedded || open) load()
+  }, [open, embedded, sessionId, load])
 
   const handleChangeStatus = async (cvId, pipelineStatus) => {
     if (!sessionId || !cvId) return
@@ -568,49 +697,68 @@ function WsAdminScoutPerformanceCandidatesPanel({
     }
   }
 
-  if (!open) return null
+  if (!embedded && !open) return null
 
-  return (
-    <div style={{
-      position: 'absolute', inset: 0, zIndex: 30, background: 'rgba(15,23,42,0.35)',
-      display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end',
-    }}
-    >
-      <div style={{
-        width: 'min(100%, 320px)', background: '#fff', borderLeft: bd,
-        display: 'flex', flexDirection: 'column', minHeight: 0, boxShadow: '-4px 0 24px rgba(0,0,0,0.08)',
-      }}
-      >
+  const panelBody = (
+    <>
         <div style={{
-          padding: '10px 12px', borderBottom: bd, display: 'flex', alignItems: 'center', gap: 8,
+          padding: embedded ? '8px 10px' : '10px 12px',
+          borderBottom: bd,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          flexShrink: 0,
         }}
         >
           <Users style={{ width: 14, height: 14, color: '#0077B6' }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#1e293b' }}>Ứng viên Scout Performance</div>
-            <div style={{ fontSize: 8, color: '#64748b' }}>Cập nhật trạng thái tiếp cận — DN nhận tin nhắn tự động</div>
+            {!embedded && (
+              <div style={{ fontSize: 8, color: '#64748b' }}>Cập nhật trạng thái tiếp cận — DN nhận tin nhắn tự động</div>
+            )}
           </div>
-          <button type="button" onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}>
-            <X style={{ width: 14, height: 14, color: '#64748b' }} />
-          </button>
+          {!embedded && onClose && (
+            <button type="button" onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}>
+              <X style={{ width: 14, height: 14, color: '#64748b' }} />
+            </button>
+          )}
+          {sessionId && (
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 3, border: bd, borderRadius: 6,
+                padding: '3px 7px', fontSize: 8, fontWeight: 600, background: '#0077B6',
+                color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap',
+              }}
+            >
+              <Plus style={{ width: 10, height: 10 }} />
+              Thêm
+            </button>
+          )}
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
-          {loading && (
+        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px', minHeight: 0 }}>
+          {!sessionId && (
+            <div style={{ fontSize: 9, color: '#94a3b8', padding: 12, lineHeight: 1.5 }}>
+              Chọn cuộc trò chuyện để xem ứng viên Scout Performance.
+            </div>
+          )}
+          {sessionId && loading && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 9, color: '#64748b', padding: 12 }}>
               <Loader2 style={{ width: 12, height: 12 }} className="animate-spin" />
               Đang tải...
             </div>
           )}
-          {error && !loading && (
+          {sessionId && error && !loading && (
             <div style={{ fontSize: 9, color: '#b91c1c', padding: 8 }}>{error}</div>
           )}
-          {!loading && !error && candidates.length === 0 && (
+          {sessionId && !loading && !error && candidates.length === 0 && (
             <div style={{ fontSize: 9, color: '#94a3b8', padding: 12, lineHeight: 1.5 }}>
               Doanh nghiệp chưa có ứng viên Scout Performance nào.
             </div>
           )}
-          {!loading && candidates.map((c) => {
+          {sessionId && !loading && candidates.map((c) => {
             const approach = getScoutPipelineMeta(c.pipelineStatus)
             return (
               <div
@@ -649,6 +797,42 @@ function WsAdminScoutPerformanceCandidatesPanel({
             )
           })}
         </div>
+      <AdminWsScoutCandidatePickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        sessionId={sessionId}
+        excludeCvIds={candidates.map((c) => c.id).filter(Boolean)}
+        onAdded={() => {
+          load()
+          onCandidatesAdded?.()
+        }}
+      />
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <div
+        className="admin-ws-perf-sidebar hidden min-h-0 flex-col overflow-hidden lg:flex"
+        style={{ display: 'flex', flexDirection: 'column', minHeight: 0, background: '#fff' }}
+      >
+        {panelBody}
+      </div>
+    )
+  }
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 30, background: 'rgba(15,23,42,0.35)',
+      display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end',
+    }}
+    >
+      <div style={{
+        width: 'min(100%, 320px)', background: '#fff', borderLeft: bd,
+        display: 'flex', flexDirection: 'column', minHeight: 0, boxShadow: '-4px 0 24px rgba(0,0,0,0.08)',
+      }}
+      >
+        {panelBody}
       </div>
     </div>
   )
@@ -697,7 +881,7 @@ function ScoutPerformanceEventCard({ message, mode, onOpenCv }) {
   )
 }
 
-function ChatBubble({ message, mode, onOpenCv, onApproveCredit, onRejectCredit, creditActionId, onApproveListing, onRejectListing, listingActionId }) {
+function ChatBubble({ message, mode, onOpenCv, onApproveCredit, onRejectCredit, creditActionId, onApproveListing, onRejectListing, listingActionId, onSubmitReferralPayment, referralPaymentActionId }) {
   const isPerformanceEvent = [
     'performance_opened',
     'similar_candidates_request',
@@ -709,11 +893,52 @@ function ChatBubble({ message, mode, onOpenCv, onApproveCredit, onRejectCredit, 
   const isSaiyoBrandingRequest = message.messageType === 'saiyo_branding_request'
   const isCreditDecision = message.messageType === 'credit_decision'
   const isListingDecision = message.messageType === 'listing_decision'
+  const isReferralPaymentDraft = message.messageType === 'referral_payment_draft'
+  const isReferralPaymentInvoice = message.messageType === 'referral_payment_invoice'
   const isApproachUpdate = message.messageType === 'approach_status_update'
   const isOutgoing = mode === 'admin'
     ? message.senderType === 'admin'
     : message.senderType === 'business'
   const isSystem = message.senderType === 'system'
+
+  if (isReferralPaymentDraft) {
+    return (
+      <div style={{
+        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: 'flex-start',
+        flexDirection: 'row', alignItems: 'flex-end',
+      }}>
+        <WsLogo size={24} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+          <ReferralPaymentDraftEventCard
+            message={message}
+            mode={mode}
+            onSubmit={mode === 'admin' ? onSubmitReferralPayment : undefined}
+            actionJobApplicationId={referralPaymentActionId}
+          />
+          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: 'left' }}>
+            {formatTime(message.createdAt)}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (isReferralPaymentInvoice) {
+    return (
+      <div style={{
+        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-start' : 'flex-end',
+        flexDirection: mode === 'business' ? 'row' : 'row-reverse', alignItems: 'flex-end',
+      }}>
+        {mode === 'business' && <WsLogo size={24} />}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+          <ReferralPaymentInvoiceEventCard message={message} mode={mode} />
+          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'left' : 'right' }}>
+            {formatTime(message.createdAt)}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (isCreditRequest) {
     return (
@@ -1200,6 +1425,7 @@ export function WsChatThread({
   mode = 'business',
   chat,
   showHeader = true,
+  hidePerfPanelTrigger = false,
 }) {
   const navigate = useNavigate()
   const {
@@ -1215,6 +1441,7 @@ export function WsChatThread({
   const [input, setInput] = useState('')
   const [creditActionId, setCreditActionId] = useState(null)
   const [listingActionId, setListingActionId] = useState(null)
+  const [referralPaymentActionId, setReferralPaymentActionId] = useState(null)
   const [perfListOpen, setPerfListOpen] = useState(false)
   const endRef = useRef(null)
 
@@ -1313,6 +1540,32 @@ export function WsChatThread({
     }
   }
 
+  const handleSubmitReferralPayment = async (jobApplicationId, amountRaw) => {
+    if (!activeSessionId || !jobApplicationId) return
+    const amount = parseFloat(amountRaw)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert('Vui lòng nhập số tiền hợp lệ')
+      return
+    }
+    if (!window.confirm(`Gửi yêu cầu thanh toán ${amount.toLocaleString('vi-VN')} VNĐ cho doanh nghiệp?`)) return
+    setReferralPaymentActionId(jobApplicationId)
+    try {
+      const res = await apiService.submitAdminWsChatReferralPayment(activeSessionId, {
+        jobApplicationId,
+        amount,
+      })
+      if (res?.success) {
+        await chat.reloadMessages?.()
+      } else {
+        alert(res?.message || 'Không thể gửi yêu cầu thanh toán')
+      }
+    } catch (e) {
+      alert(e?.message || 'Không thể gửi yêu cầu thanh toán')
+    } finally {
+      setReferralPaymentActionId(null)
+    }
+  }
+
   const headerTitle = mode === 'admin'
     ? (activeSession?.business?.companyName || 'Doanh nghiệp')
     : 'WS Team – Tuyển dụng'
@@ -1339,7 +1592,7 @@ export function WsChatThread({
                 Scout Performance · {requestStatusLabel}
               </div>
             </div>
-            {mode === 'admin' && activeSessionId && (
+            {mode === 'admin' && activeSessionId && !hidePerfPanelTrigger && (
               <button
                 type="button"
                 onClick={() => setPerfListOpen(true)}
@@ -1400,6 +1653,8 @@ export function WsChatThread({
             onApproveListing={mode === 'admin' ? handleApproveListing : undefined}
             onRejectListing={mode === 'admin' ? handleRejectListing : undefined}
             listingActionId={listingActionId}
+            onSubmitReferralPayment={mode === 'admin' ? handleSubmitReferralPayment : undefined}
+            referralPaymentActionId={referralPaymentActionId}
           />
         ))}
         <div ref={endRef} />
@@ -1513,3 +1768,99 @@ export function WsChatPanel({
 }
 
 export default WsChatPanel
+
+const ADMIN_WS_LAYOUT_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
+
+const adminWsLayoutStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+  .admin-ws-chat-layout .msg-scrollbar::-webkit-scrollbar { width: 5px; }
+  .admin-ws-chat-layout .msg-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  .admin-ws-chat-layout .msg-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+`
+
+export function AdminBusinessWsChatLayout({
+  initialSessionId = null,
+  onSessionChange,
+}) {
+  const chat = useWsScoutChat({
+    mode: 'admin',
+    initialSessionId,
+    enabled: true,
+  })
+
+  const onSessionChangeRef = useRef(onSessionChange)
+  onSessionChangeRef.current = onSessionChange
+
+  useEffect(() => {
+    if (!chat.activeSessionId) return
+    onSessionChangeRef.current?.(chat.activeSessionId)
+  }, [chat.activeSessionId])
+
+  const handleSelectSession = (sessionId) => {
+    chat.setActiveSessionId(sessionId)
+    onSessionChangeRef.current?.(sessionId)
+  }
+
+  const searchWrapClass = 'flex items-center gap-2 rounded-lg border border-slate-200 bg-[#f8fafc] px-2.5 py-1.5'
+  const searchInputClass = 'min-w-0 flex-1 border-none bg-transparent text-[10px] outline-none placeholder:text-slate-400'
+
+  return (
+    <>
+      <style>{adminWsLayoutStyles}</style>
+      <div
+        className="admin-ws-chat-layout grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(200px,34vh)_minmax(0,1fr)] overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm md:grid-cols-[minmax(200px,240px)_minmax(0,1fr)] md:grid-rows-1 lg:grid-cols-[minmax(200px,240px)_minmax(0,1fr)_minmax(200px,240px)]"
+        style={{ fontFamily: ADMIN_WS_LAYOUT_FONT }}
+      >
+        <div className="flex min-h-0 flex-col overflow-hidden border-slate-200 lg:border-r">
+          <div className="shrink-0 border-b border-slate-100 px-3 py-2">
+            <div className="text-xs font-bold text-slate-900">Danh sách phiên</div>
+          </div>
+          <div className="shrink-0 border-b border-slate-100 p-2">
+            <div className={searchWrapClass}>
+              <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <input
+                value={chat.search}
+                onChange={(e) => chat.setSearch(e.target.value)}
+                placeholder="Tìm doanh nghiệp, nội dung chat..."
+                className={searchInputClass}
+              />
+            </div>
+          </div>
+          <div className="msg-scrollbar min-h-0 flex-1 overflow-y-auto">
+            {chat.loadingSessions && (
+              <p className="p-3 text-[11px] text-slate-400">Đang tải...</p>
+            )}
+            {!chat.loadingSessions && chat.sessions.length === 0 && (
+              <p className="p-3 text-[11px] leading-relaxed text-slate-400">Chưa có cuộc trò chuyện với doanh nghiệp.</p>
+            )}
+            {chat.sessions.map((session) => (
+              <WsSessionListItem
+                key={session.id}
+                session={session}
+                mode="admin"
+                active={session.id === chat.activeSessionId}
+                onClick={() => handleSelectSession(session.id)}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-slate-200 lg:border-r">
+          <WsChatThread
+            mode="admin"
+            chat={chat}
+            showHeader
+            hidePerfPanelTrigger
+          />
+        </div>
+
+        <WsAdminScoutPerformanceCandidatesPanel
+          embedded
+          sessionId={chat.activeSessionId}
+          onStatusUpdated={() => chat.reloadMessages?.()}
+          onCandidatesAdded={() => chat.reloadMessages?.()}
+        />
+      </div>
+    </>
+  )
+}

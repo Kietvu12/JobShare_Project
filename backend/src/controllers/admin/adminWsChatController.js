@@ -1,3 +1,4 @@
+import { listCvsForAdminRecommendation } from '../../services/scoutPerformanceService.js';
 import {
   getWsChatSessionForAdmin,
   listWsChatMessagesForAdmin,
@@ -13,6 +14,8 @@ import {
   getWsChatSessionByPerformanceRequestId,
   listScoutPerformanceCandidatesForWsSession,
   updateScoutPerformanceApproachStatusInWsChat,
+  listBusinessJobsForWsSession,
+  submitReferralPaymentInWsChat,
 } from '../../services/businessWsChatService.js';
 
 function getAdminId(req) {
@@ -64,6 +67,24 @@ export const adminWsChatController = {
         limit: req.query.limit,
       });
       res.json({ success: true, data: { candidates } });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  listRecommendationCandidates: async (req, res, next) => {
+    try {
+      const excludeRaw = req.query.excludeCvIds;
+      const excludeCvIds = excludeRaw
+        ? String(excludeRaw).split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+      const data = await listCvsForAdminRecommendation({
+        page: req.query.page,
+        limit: req.query.limit,
+        search: req.query.search,
+        excludeCvIds,
+      });
+      res.json({ success: true, data });
     } catch (error) {
       next(error);
     }
@@ -215,6 +236,18 @@ export const adminWsChatController = {
     }
   },
 
+  listBusinessJobs: async (req, res, next) => {
+    try {
+      const data = await listBusinessJobsForWsSession({ sessionId: req.params.id });
+      res.json({ success: true, data });
+    } catch (error) {
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      next(error);
+    }
+  },
+
   updateScoutPerformanceApproachStatus: async (req, res, next) => {
     try {
       const data = await updateScoutPerformanceApproachStatusInWsChat({
@@ -229,6 +262,41 @@ export const adminWsChatController = {
         message: data?.message?.content || 'Đã cập nhật trạng thái tiếp cận',
       });
     } catch (error) {
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      next(error);
+    }
+  },
+
+  submitReferralPayment: async (req, res, next) => {
+    try {
+      const { jobApplicationId, amount } = req.body || {};
+      if (!jobApplicationId || amount == null) {
+        return res.status(400).json({
+          success: false,
+          message: 'jobApplicationId và amount là bắt buộc',
+        });
+      }
+      const data = await submitReferralPaymentInWsChat({
+        sessionId: req.params.id,
+        adminId: getAdminId(req),
+        jobApplicationId,
+        amount,
+      });
+      res.json({
+        success: true,
+        data,
+        message: 'Đã tạo yêu cầu thanh toán cho doanh nghiệp',
+      });
+    } catch (error) {
+      if (error.statusCode === 409) {
+        return res.status(409).json({
+          success: false,
+          message: error.message,
+          data: { invoice: error.existingInvoice || null },
+        });
+      }
       if (error.statusCode) {
         return res.status(error.statusCode).json({ success: false, message: error.message });
       }

@@ -11,6 +11,7 @@ router.get('/', businessJobApplicationController.listApplications);
 router.get('/:id/cv-file-list', businessJobApplicationController.getCvFileList);
 router.get('/:id/cv', businessJobApplicationController.getCv);
 router.patch('/:id/status', businessJobApplicationController.updateStatus);
+router.get('/:id/referral-invoice', businessJobApplicationController.getReferralInvoice);
 router.get('/:id', businessJobApplicationController.getById);
 
 export default router;

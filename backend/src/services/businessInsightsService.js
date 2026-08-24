@@ -135,7 +135,8 @@ function countJobsUntil(jobs, until) {
 }
 
 function appDate(a) {
-  return a?.appliedAt || null;
+  if (!a) return null;
+  return a.appliedAt || a.createdAt || a.applied_at || a.created_at || null;
 }
 
 function countAppsUntil(apps, until, filterFn) {
@@ -726,6 +727,10 @@ export async function getBusinessRecruitmentHealth(businessId) {
 
   if (totalApps === 0 && activeJobs.length > 0) {
     score = Math.min(score, Math.max(15, Math.round(vitalityScore / 2)));
+  }
+
+  if (totalJobs > 0 && score <= 0) {
+    score = activeJobs.length > 0 ? 20 : 8;
   }
 
   return {

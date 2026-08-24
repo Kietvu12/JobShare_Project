@@ -2,9 +2,7 @@ import {
   JobApplication,
   Job,
   CVStorage,
-  Business,
   BusinessInvoice,
-  Message,
 } from '../models/index.js';
 import { STATUS_JOINED_COMPANY } from '../constants/jobApplicationStatus.js';
 import { BILLING_INVOICE_STATUS } from '../constants/businessBilling.js';
@@ -88,40 +86,13 @@ async function findInvoiceByJobApplicationId(businessId, jobApplicationId) {
   }
 }
 
-async function createReferralInvoiceChatMessage({ jobApplicationId, collaboratorId, amount, invoiceCode }) {
-  if (!jobApplicationId) return null;
-  const content = [
-    '💼 **Admin đã tạo yêu cầu thanh toán phí giới thiệu**',
-    invoiceCode ? `**Mã hóa đơn:** ${invoiceCode}` : '',
-    amount != null ? `**Số tiền:** ${Number(amount).toLocaleString('vi-VN')} VNĐ` : '',
-    'Doanh nghiệp vui lòng thanh toán theo hướng dẫn tại mục Billing.',
-    '\n*Tin nhắn tự động từ hệ thống*',
-  ].filter(Boolean).join('\n');
-
-  try {
-    return await Message.create({
-      jobApplicationId,
-      adminId: null,
-      collaboratorId: collaboratorId || null,
-      senderType: 3,
-      content,
-      isReadByAdmin: true,
-      isReadByCollaborator: false,
-      isReadByApplicant: false,
-    });
-  } catch (err) {
-    console.error('[adminBusinessReferralInvoice] create chat message:', err);
-    return null;
-  }
-}
-
 export async function getBusinessReferralInvoiceForApplication(jobApplicationId) {
   const { businessId } = await loadJobApplicationContext(jobApplicationId);
   const row = await findInvoiceByJobApplicationId(businessId, jobApplicationId);
   return row ? formatInvoiceRow(row) : null;
 }
 
-export async function createBusinessReferralInvoice({ jobApplicationId, amount, adminId = null }) {
+export async function createBusinessReferralInvoice({ jobApplicationId, amount, adminId = null, wsSessionId = null }) {
   const parsedAmount = parseFloat(amount);
   if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
     const err = new Error('Vui lòng nhập số tiền thanh toán hợp lệ');
@@ -163,13 +134,6 @@ export async function createBusinessReferralInvoice({ jobApplicationId, amount, 
   invoice.invoiceCode = buildInvoiceCode(invoice.id);
   await invoice.save();
 
-  await createReferralInvoiceChatMessage({
-    jobApplicationId,
-    collaboratorId: jobApplication.collaboratorId,
-    amount: parsedAmount,
-    invoiceCode: invoice.invoiceCode,
-  });
-
   try {
     await collaboratorNotificationService.notifyBusinessReferralInvoiceCreated({
       businessId,
@@ -178,6 +142,7 @@ export async function createBusinessReferralInvoice({ jobApplicationId, amount, 
       candidateName,
       invoiceId: invoice.id,
       jobApplicationId,
+      wsSessionId,
     });
   } catch (notifyErr) {
     console.error('[adminBusinessReferralInvoice] notify business:', notifyErr?.message || notifyErr);
@@ -186,10 +151,28 @@ export async function createBusinessReferralInvoice({ jobApplicationId, amount, 
   return {
     invoice: formatInvoiceRow(invoice),
     adminId,
+    jobCode,
+    candidateName,
+    businessId,
   };
+}
+
+export async function getBusinessReferralInvoiceForOwnedApplication({ businessId, applicationId }) {
+  const owned = await JobApplication.findOne({
+    where: { id: applicationId },
+    include: [{ model: Job, as: 'job', required: true, attributes: ['id', 'businessId'] }],
+  });
+  if (!owned?.job || Number(owned.job.businessId) !== Number(businessId)) {
+    const err = new Error('Không tìm thấy đơn tiến cử');
+    err.statusCode = 404;
+    throw err;
+  }
+  const row = await findInvoiceByJobApplicationId(businessId, applicationId);
+  return row ? formatInvoiceRow(row) : null;
 }
 
 export default {
   getBusinessReferralInvoiceForApplication,
+  getBusinessReferralInvoiceForOwnedApplication,
   createBusinessReferralInvoice,
 };

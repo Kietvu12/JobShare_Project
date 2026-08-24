@@ -205,6 +205,7 @@ import businessBillingRoutes from './routes/businessBillingRoutes.js';
 import businessNotificationRoutes from './routes/businessNotificationRoutes.js';
 import businessJobApplicationRoutes from './routes/businessJobApplicationRoutes.js';
 import businessInsightsRoutes from './routes/businessInsightsRoutes.js';
+import businessKnowledgeRoutes from './routes/businessKnowledgeRoutes.js';
 import businessJobBuilderThreadRoutes from './routes/businessJobBuilderThreadRoutes.js';
 import adminCandidateSharingRoutes from './routes/adminCandidateSharingRoutes.js';
 import ctvCandidateSharingRoutes from './routes/ctvCandidateSharingRoutes.js';
@@ -301,6 +302,7 @@ app.use('/api/business/notifications', businessNotificationRoutes);
 app.use('/api/business/billing', businessBillingRoutes);
 app.use('/api/business/applications', businessJobApplicationRoutes);
 app.use('/api/business/insights', businessInsightsRoutes);
+app.use('/api/business/knowledge', businessKnowledgeRoutes);
 app.use('/api/business/job-builder-threads', businessJobBuilderThreadRoutes);
 
 // OG preview HTML cho crawler chia sẻ link blog (nginx proxy bot → đây)

@@ -1,11 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   X,
-  Download,
   FileText,
-  Paperclip,
-  Send,
-  Smile,
   User,
   Coins,
   Megaphone,
@@ -29,207 +25,88 @@ function getTypeIcon(type) {
   return TYPE_ICON_MAP[type] || { icon: FileText, bg: '#e8f4fa', color: BRAND };
 }
 
-const PLACEHOLDER_ATTACHMENTS = [
-  { name: 'Invoice_PM-2607-001.pdf', meta: 'PDF • 245 KB' },
-  { name: 'Fee_breakdown.xlsx', meta: 'Excel • 18 KB' },
-  { name: 'Contract_appendix.pdf', meta: 'PDF • 512 KB' },
-];
-
-const PLACEHOLDER_MESSAGES = [
-  {
-    id: 1,
-    author: 'Workstation',
-    initials: 'WS',
-    time: '30/07/2026 09:15',
-    text: 'Đã tạo yêu cầu thanh toán phí giới thiệu. Vui lòng xác nhận thông tin ứng viên và số tiền trước deadline.',
-    isWs: true,
-  },
-  {
-    id: 2,
-    author: 'Doanh nghiệp',
-    initials: 'DN',
-    time: '30/07/2026 14:22',
-    text: 'Đã xác nhận thông tin ứng viên. Nhờ WS gửi thêm chi tiết breakdown phí VAT.',
-    isWs: false,
-  },
-];
+export function formatPaymentDescription(description, related) {
+  const raw = String(description || related || '').trim();
+  if (!raw) return '—';
+  const lines = raw.split('\n').map((line) => line.trim()).filter(Boolean);
+  const visible = lines.filter((line) => !line.includes('__wjs_meta__:'));
+  if (visible.length) return visible.join(' · ');
+  return String(related || '—').split('\n')[0] || '—';
+}
 
 export default function BillingPaymentDetailPanel({ payment, onClose }) {
-  const [detailTab, setDetailTab] = useState('info');
-  const [chatInput, setChatInput] = useState('');
-
   if (!payment) {
     return (
-      <aside className="flex h-full min-h-0 flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-        <FileText className="mb-3 h-10 w-10 text-slate-300" />
-        <p className="biz-ui-body font-semibold text-slate-700">Chi tiết yêu cầu thanh toán</p>
-        <p className="biz-ui-caption mt-1 leading-relaxed text-slate-500">
-          Chọn một dòng trong danh sách để xem thông tin, file đính kèm và trao đổi với WS.
+      <aside className="flex h-full min-h-0 flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+        <FileText className="mb-2 h-8 w-8 text-slate-300" />
+        <p className="text-[10px] font-semibold text-slate-700 sm:text-[11px]">Chi tiết yêu cầu thanh toán</p>
+        <p className="mt-1 text-[9px] leading-relaxed text-slate-500 sm:text-[10px]">
+          Chọn một dòng trong danh sách để xem thông tin yêu cầu thanh toán.
         </p>
       </aside>
     );
   }
 
-  const typeMeta = getTypeIcon(payment.type);
-  const TypeIcon = typeMeta.icon;
-  const attachmentCount = PLACEHOLDER_ATTACHMENTS.length;
+  const descriptionLabel = formatPaymentDescription(payment.description, payment.related);
 
   return (
-    <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex shrink-0 items-start justify-between gap-2 border-b border-slate-100 px-4 py-3">
+    <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-[10px] shadow-sm sm:text-[11px]">
+      <div className="flex shrink-0 items-start justify-between gap-2 border-b border-slate-100 px-3 py-2">
         <div className="min-w-0">
-          <div className="biz-ui-body font-bold text-slate-900">{payment.paymentCode}</div>
+          <div className="text-[11px] font-bold text-slate-900 sm:text-xs">{payment.paymentCode}</div>
           <span
-            className="biz-ui-caption mt-1 inline-block rounded-full px-2 py-0.5 font-semibold"
+            className="mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-[9px] font-semibold sm:text-[10px]"
             style={{ background: payment.statusBg, color: payment.statusColor }}
           >
             {payment.statusLabel}
           </span>
         </div>
-        <button type="button" onClick={onClose} className="rounded-lg border-0 bg-slate-50 p-1.5 hover:bg-slate-100">
-          <X className="h-4 w-4 text-slate-500" />
+        <button type="button" onClick={onClose} className="rounded-lg border-0 bg-slate-50 p-1 hover:bg-slate-100">
+          <X className="h-3.5 w-3.5 text-slate-500" />
         </button>
       </div>
 
-      <div className="flex shrink-0 gap-1 border-b border-slate-100 px-3 py-2">
-        {[
-          { key: 'info', label: 'Thông tin' },
-          { key: 'files', label: `File đính kèm (${attachmentCount})` },
-          { key: 'chat', label: 'Trao đổi' },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setDetailTab(tab.key)}
-            className={`biz-ui-caption rounded-lg px-2.5 py-1.5 font-semibold transition-colors ${
-              detailTab === tab.key
-                ? 'bg-[#0077B6] text-white'
-                : 'text-slate-500 hover:bg-slate-50'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="billing-detail-scroll min-h-0 flex-1 overflow-y-auto px-4 py-3">
-        {detailTab === 'info' ? (
-          <div className="space-y-4">
-            <div className="biz-ui-body space-y-2">
-              {[
-                ['Loại thanh toán', payment.type],
-                ['Nguồn tạo', payment.source || 'Workstation'],
-                ['Ngày tạo', payment.createdAt],
-                ['Deadline', payment.deadline],
-                ['Liên quan', payment.related],
-              ].map(([label, value]) => (
-                <div key={label} className="flex gap-2">
-                  <span className="w-28 shrink-0 text-slate-500">{label}</span>
-                  <span className="min-w-0 flex-1 font-medium text-slate-800">{value}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="overflow-hidden rounded-lg border border-slate-200">
-              <div className="biz-ui-body bg-slate-50 px-3 py-2 font-bold text-slate-700">Chi tiết phí</div>
-              <table className="biz-ui-body w-full">
-                <thead>
-                  <tr className="biz-ui-caption border-b border-slate-100 text-left text-slate-400">
-                    {['Hạng mục', 'Giá trị'].map((h) => (
-                      <th key={h} className="px-3 py-2 font-semibold">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-slate-50">
-                    <td className="px-3 py-2 text-slate-600">Mô tả</td>
-                    <td className="px-3 py-2 text-slate-800">{payment.description || payment.related}</td>
-                  </tr>
-                  <tr>
-                    <td className="px-3 py-2 font-semibold text-slate-800">Tổng cộng</td>
-                    <td className="biz-ui-stat px-3 py-2 text-rose-600">{payment.amount}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ) : null}
-
-        {detailTab === 'files' ? (
-          <div className="space-y-2">
-            {PLACEHOLDER_ATTACHMENTS.map((file) => (
-              <div
-                key={file.name}
-                className="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2.5"
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e8f4fa]">
-                  <FileText className="h-4 w-4 text-[#0077B6]" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="biz-ui-body truncate font-semibold text-slate-800">{file.name}</div>
-                  <div className="biz-ui-caption text-slate-400">{file.meta}</div>
-                </div>
-                <button type="button" className="rounded-lg border-0 bg-transparent p-1.5 hover:bg-slate-50">
-                  <Download className="h-4 w-4 text-slate-500" />
-                </button>
-              </div>
-            ))}
-            <p className="biz-ui-caption pt-2 text-slate-400">File thật sẽ hiển thị khi WS đính kèm trên hệ thống.</p>
-          </div>
-        ) : null}
-
-        {detailTab === 'chat' ? (
-          <div className="space-y-3">
-            {PLACEHOLDER_MESSAGES.map((msg) => (
-              <div key={msg.id} className={`flex gap-2 ${msg.isWs ? '' : 'flex-row-reverse'}`}>
-                <div
-                  className={`biz-ui-caption flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-bold ${
-                    msg.isWs ? 'bg-[#e8f4fa] text-[#0077B6]' : 'bg-slate-200 text-slate-600'
-                  }`}
-                >
-                  {msg.initials}
-                </div>
-                <div className={`max-w-[85%] ${msg.isWs ? '' : 'text-right'}`}>
-                  <div className="biz-ui-body font-semibold text-slate-700">{msg.author}</div>
-                  <div
-                    className={`biz-ui-body mt-1 rounded-xl px-3 py-2 leading-relaxed ${
-                      msg.isWs ? 'bg-slate-100 text-slate-700' : 'bg-[#0077B6] text-white'
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
-                  <div className="biz-ui-caption mt-1 text-slate-400">{msg.time}</div>
-                </div>
+      <div className="billing-detail-scroll min-h-0 flex-1 overflow-y-auto px-3 py-2.5">
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            {[
+              ['Loại thanh toán', payment.type],
+              ['Nguồn tạo', payment.source || 'Workstation'],
+              ['Ngày tạo', payment.createdAt],
+              ['Deadline', payment.deadline],
+              ['Liên quan', descriptionLabel],
+            ].map(([label, value]) => (
+              <div key={label} className="flex gap-2 leading-snug">
+                <span className="w-24 shrink-0 text-[9px] text-slate-500 sm:w-28 sm:text-[10px]">{label}</span>
+                <span className="min-w-0 flex-1 font-medium text-slate-800">{value || '—'}</span>
               </div>
             ))}
           </div>
-        ) : null}
-      </div>
 
-      {detailTab === 'chat' ? (
-        <div className="flex shrink-0 items-center gap-2 border-t border-slate-100 px-3 py-2.5">
-          <button type="button" className="rounded-lg border-0 bg-transparent p-1.5 hover:bg-slate-50">
-            <Paperclip className="h-4 w-4 text-slate-400" />
-          </button>
-          <button type="button" className="rounded-lg border-0 bg-transparent p-1.5 hover:bg-slate-50">
-            <Smile className="h-4 w-4 text-slate-400" />
-          </button>
-          <input
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Nhập tin nhắn..."
-            className="biz-ui-body min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-[#0077B6]"
-          />
-          <button
-            type="button"
-            className="biz-ui-body inline-flex items-center gap-1 rounded-lg px-3 py-2 font-bold text-white"
-            style={{ background: BRAND }}
-          >
-            <Send className="h-3.5 w-3.5" />
-            Gửi
-          </button>
+          <div className="overflow-hidden rounded-lg border border-slate-200">
+            <div className="bg-slate-50 px-2.5 py-1.5 text-[10px] font-bold text-slate-700 sm:text-[11px]">Chi tiết phí</div>
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-100 text-left text-[9px] text-slate-400 sm:text-[10px]">
+                  {['Hạng mục', 'Giá trị'].map((h) => (
+                    <th key={h} className="px-2.5 py-1.5 font-semibold">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-slate-50">
+                  <td className="px-2.5 py-1.5 text-slate-600">Mô tả</td>
+                  <td className="px-2.5 py-1.5 text-slate-800">{descriptionLabel}</td>
+                </tr>
+                <tr>
+                  <td className="px-2.5 py-1.5 font-semibold text-slate-800">Tổng cộng</td>
+                  <td className="px-2.5 py-1.5 text-[11px] font-bold text-rose-600 sm:text-xs">{payment.amount}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-      ) : null}
+      </div>
     </aside>
   );
 }
@@ -239,10 +116,10 @@ export function PaymentTypeIcon({ type, className = '' }) {
   const Icon = meta.icon;
   return (
     <div
-      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${className}`}
+      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${className}`}
       style={{ background: meta.bg }}
     >
-      <Icon className="h-4 w-4" style={{ color: meta.color }} strokeWidth={2} />
+      <Icon className="h-3.5 w-3.5" style={{ color: meta.color }} strokeWidth={2} />
     </div>
   );
 }

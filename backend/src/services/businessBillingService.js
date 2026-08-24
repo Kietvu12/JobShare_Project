@@ -77,7 +77,7 @@ async function fetchBillingServiceRequestMessages(businessId) {
 
   const baseQuery = {
     messageType: { [Op.in]: BILLING_WS_SERVICE_MESSAGE_TYPES },
-    order: [['createdAt', 'DESC']],
+    order: [['created_at', 'DESC']],
     limit: 100,
   };
 

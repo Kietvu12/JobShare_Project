@@ -15,6 +15,7 @@ import { getJobApplicationStatus, STATUS_PAID, STATUS_JOINED_COMPANY } from '../
 import { buildUnlockedScoutPayload } from './businessScoutService.js';
 import { statusMessageService } from './statusMessageService.js';
 import { collaboratorNotificationService } from './collaboratorNotificationService.js';
+import { syncWsChatAfterJoinedCompany } from './businessWsChatService.js';
 import { buildCvFileListPayload } from '../controllers/collaborator/cvController.js';
 
 const SENDER_TYPE_BUSINESS = 5;
@@ -623,15 +624,15 @@ export async function updateBusinessJobApplicationStatus({
           const biz = await Business.findByPk(linkedBusinessId, { attributes: ['id', 'companyName'] });
           businessName = biz?.companyName || businessName;
         }
-        await collaboratorNotificationService.notifyAdminsBusinessJoinedCompany({
+        await syncWsChatAfterJoinedCompany({
+          jobApplicationId: jobApplication.id,
+          businessId: linkedBusinessId,
           businessName,
           candidateName: fullJobApplication?.cv?.name || null,
           jobCode: fullJobApplication?.job?.jobCode || String(jobApplication.id),
-          jobApplicationId: jobApplication.id,
-          jobId: jobApplication.jobId || null,
         });
       } catch (adminNotifyError) {
-        console.error('[businessJobApplication] notifyAdminsBusinessJoinedCompany:', adminNotifyError?.message || adminNotifyError);
+        console.error('[businessJobApplication] syncWsChatAfterJoinedCompany:', adminNotifyError?.message || adminNotifyError);
       }
     }
   }

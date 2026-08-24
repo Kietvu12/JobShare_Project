@@ -15,6 +15,7 @@ import {
   canCvBeListedOnScout,
 } from '../constants/scoutCredit.js';
 import { getScoutCreditCost, unlockScoutCvForBusiness } from './scoutCreditService.js';
+import { buildCvFileListPayload } from '../controllers/collaborator/cvController.js';
 async function attachPerformanceRequestMeta(businessId, payload) {
   if (!businessId || !payload?.id) return payload;
   if (payload.isUnlocked && payload.unlockType && payload.unlockType !== SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE) {
@@ -344,7 +345,7 @@ function buildPerformanceUnlockedScoutPayload(cvJson) {
 }
 
 /** Export để Job Application (Sàn CTV) xem full hồ sơ mà không tạo ScoutUnlock */
-export { buildUnlockedScoutPayload, buildPerformanceUnlockedScoutPayload };
+export { buildUnlockedScoutPayload, buildPerformanceUnlockedScoutPayload, formatCurrentLocationRegion };
 
 function buildPublicScoutPayload(cvJson, { isUnlocked = false, unlockType = null, search } = {}) {
   if (!isUnlocked) return buildLockedScoutPayload(cvJson, { search });
@@ -780,6 +781,38 @@ export async function unlockScoutCandidateForBusiness({ businessId, cvId }) {
   };
 }
 
+export async function getScoutUnlockedCvFileList({ businessId, cvId, req }) {
+  const safeCvId = parseInt(cvId, 10);
+  if (!Number.isFinite(safeCvId)) {
+    const err = new Error('ID hồ sơ không hợp lệ');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const unlock = await BusinessScoutUnlock.findOne({
+    where: { businessId, cvId: safeCvId },
+  });
+  if (!unlock) {
+    const err = new Error('Cần mở hồ sơ ứng viên trước khi tải CV');
+    err.statusCode = 403;
+    throw err;
+  }
+  if (unlock.unlockType !== SCOUT_UNLOCK_TYPES.SCOUT_CREDIT) {
+    const err = new Error('Chỉ hồ sơ mở bằng Scout Credit mới được tải CV gốc');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const cv = await CVStorage.findByPk(safeCvId);
+  if (!cv) {
+    const err = new Error('Không tìm thấy hồ sơ ứng viên');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  return buildCvFileListPayload(cv, req);
+}
+
 export default {
   listScoutCandidatesForBusiness,
   listUnlockedCandidatesForBusiness,
@@ -787,5 +820,6 @@ export default {
   getUnlockedCandidateForBusiness,
   unlockScoutCandidateForBusiness,
   attachScoutCandidateToJob,
+  getScoutUnlockedCvFileList,
   buildPublicScoutPayload,
 };

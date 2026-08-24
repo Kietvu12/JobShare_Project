@@ -5,6 +5,7 @@ import {
   POST_VISIBILITY_AGENT_HOME,
   POST_VISIBILITY_PUBLIC_CTV,
   POST_VISIBILITY_PUBLIC_CANDIDATE,
+  POST_VISIBILITY_BUSINESS_KNOWLEDGE,
 } from '../constants/postVisibility.js';
 import {
   buildPostShareImageUrl,
@@ -38,6 +39,13 @@ export function postVisibilityWhereForSurface(surface, { agentHome = false } = {
   if (s === 'collaborator') {
     return sequelize.where(
       sequelize.literal(`(\`Post\`.\`visibility_mask\` & ${POST_VISIBILITY_PUBLIC_CTV})`),
+      Op.gt,
+      0
+    );
+  }
+  if (s === 'business' || s === 'business_knowledge' || s === 'knowledge') {
+    return sequelize.where(
+      sequelize.literal(`(\`Post\`.\`visibility_mask\` & ${POST_VISIBILITY_BUSINESS_KNOWLEDGE})`),
       Op.gt,
       0
     );
@@ -145,4 +153,52 @@ export async function buildPostOgMeta({ slug, lang, surface }) {
     canonicalUrl: `${origin}${canonicalPath}`,
     slug: post.slug || slug,
   };
+}
+
+/** Slug danh mục Knowledge Hub doanh nghiệp */
+export const BUSINESS_KNOWLEDGE_CATEGORY_SLUGS = [
+  'tuyen-dung',
+  'quan-tri-nhan-su',
+  'phat-trien-doi-ngu',
+  'phap-ly-tuan-thu',
+  'ky-nang-nghe-nghiep',
+  'khac',
+];
+
+export async function listBusinessKnowledgeCategories() {
+  const visibilityWhere = postVisibilityWhereForSurface('business');
+  const categories = await Category.findAll({
+    where: {
+      isActive: true,
+      slug: { [Op.in]: BUSINESS_KNOWLEDGE_CATEGORY_SLUGS },
+    },
+    attributes: ['id', 'name', 'slug', 'color', 'sortOrder', 'description'],
+    order: [['sortOrder', 'ASC'], ['id', 'ASC']],
+  });
+
+  const counts = await Post.findAll({
+    where: {
+      status: 2,
+      categoryId: { [Op.in]: categories.map((c) => c.id) },
+      [Op.and]: [visibilityWhere],
+    },
+    attributes: [
+      'categoryId',
+      [sequelize.fn('COUNT', sequelize.col('Post.id')), 'postCount'],
+    ],
+    group: ['categoryId'],
+    raw: true,
+  });
+
+  const countMap = new Map(
+    counts.map((row) => [String(row.categoryId), Number(row.postCount) || 0]),
+  );
+
+  return categories.map((cat) => {
+    const json = cat.toJSON();
+    return {
+      ...json,
+      postCount: countMap.get(String(cat.id)) || 0,
+    };
+  });
 }

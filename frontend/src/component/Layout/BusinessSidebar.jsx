@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -234,28 +234,33 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
   const [health, setHealth] = useState(DEFAULT_RECRUITMENT_HEALTH);
   const [healthLoading, setHealthLoading] = useState(true);
 
-  const loadRecruitmentHealth = useCallback(async () => {
-    try {
-      const res = await apiService.getBusinessRecruitmentHealth();
-      const data = res?.data || {};
-      setHealth({
-        score: Number(data.score) || 0,
-        avgDays: Number(data.avgDays) || 0,
-        rating: data.rating || 'noData',
-      });
-    } catch {
-      setHealth(DEFAULT_RECRUITMENT_HEALTH);
-    } finally {
-      setHealthLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    loadRecruitmentHealth();
-    const onFocus = () => loadRecruitmentHealth();
+    let cancelled = false;
+    setHealthLoading(true);
+    const run = async () => {
+      try {
+        const res = await apiService.getBusinessRecruitmentHealth();
+        if (cancelled) return;
+        const data = res?.data || {};
+        setHealth({
+          score: Number(data.score) || 0,
+          avgDays: Number(data.avgDays) || 0,
+          rating: data.rating || 'noData',
+        });
+      } catch {
+        if (!cancelled) setHealth(DEFAULT_RECRUITMENT_HEALTH);
+      } finally {
+        if (!cancelled) setHealthLoading(false);
+      }
+    };
+    run();
+    const onFocus = () => { run(); };
     window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
-  }, [loadRecruitmentHealth, pathname]);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     try {

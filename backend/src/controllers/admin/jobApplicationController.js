@@ -27,6 +27,7 @@ import {
   getBusinessReferralInvoiceForApplication,
   createBusinessReferralInvoice,
 } from '../../services/adminBusinessReferralInvoiceService.js';
+import { syncWsChatAfterJoinedCompany } from '../../services/businessWsChatService.js';
 
 // Helper function to map model field names to database column names
 const mapOrderField = (fieldName) => {
@@ -1686,6 +1687,29 @@ export const jobApplicationController = {
         } catch (messageError) {
           console.error('[Job Application] Error creating status message:', messageError);
           // Không throw error để không ảnh hưởng đến việc update status
+        }
+
+        if (statusNum === STATUS_JOINED && oldStatus !== STATUS_JOINED) {
+          try {
+            const fullForWs = await JobApplication.findByPk(jobApplication.id, {
+              include: [
+                { model: Job, as: 'job', required: false, attributes: ['id', 'jobCode', 'businessId'] },
+                { model: CVStorage, as: 'cv', required: false, attributes: ['id', 'name'] },
+              ],
+            });
+            const wsBusinessId = fullForWs?.job?.businessId;
+            if (wsBusinessId) {
+              await syncWsChatAfterJoinedCompany({
+                jobApplicationId: parseInt(id, 10),
+                businessId: wsBusinessId,
+                businessName: null,
+                candidateName: fullForWs?.cv?.name || null,
+                jobCode: fullForWs?.job?.jobCode || String(jobApplication.id),
+              });
+            }
+          } catch (paymentMsgError) {
+            console.error('[Job Application] syncWsChatAfterJoinedCompany:', paymentMsgError);
+          }
         }
 
         if (jobApplication.collaboratorId) {

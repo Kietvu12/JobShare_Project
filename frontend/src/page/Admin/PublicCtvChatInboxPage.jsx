@@ -10,7 +10,7 @@ import { fetchAdminSupportUnread } from '../../utils/publicCtvChatUnread';
 import { appendUniqueChatMessage, buildMessagePreview } from '../../utils/publicSupportChatUi';
 import PublicSupportChatComposer from '../../component/Shared/PublicSupportChatComposer';
 import PublicSupportChatMessageBody from '../../component/Shared/PublicSupportChatMessageBody';
-import WsChatPanel from '../../component/Shared/WsScoutPerformanceChat';
+import { AdminBusinessWsChatLayout } from '../../component/Shared/WsScoutPerformanceChat';
 
 function normalizeSearch(s) {
   return String(s || '')
@@ -760,6 +760,20 @@ const PublicCtvChatInboxPage = () => {
         </button>
       </div>
 
+      {tab === 'business' ? (
+        <AdminBusinessWsChatLayout
+          initialSessionId={resolvedBusinessSessionId || selectedId}
+          onSessionChange={(id) => {
+            setSearchParams((prev) => {
+              const p = new URLSearchParams(prev);
+              p.set('tab', 'business');
+              if (id) p.set('sessionId', String(id));
+              else p.delete('sessionId');
+              return p;
+            });
+          }}
+        />
+      ) : (
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] lg:items-stretch">
         <div className={`${selectedId ? 'hidden lg:flex' : 'flex'} min-h-[240px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm`}>
           <div className="border-b border-slate-100 px-3 py-2">
@@ -1003,15 +1017,6 @@ const PublicCtvChatInboxPage = () => {
             <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-slate-500">
               {t.adminMessagesSelectSession}
             </div>
-          ) : tab === 'business' ? (
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <WsChatPanel
-                mode="admin"
-                hideSidebar
-                initialSessionId={selectedId}
-                key={selectedId}
-              />
-            </div>
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2 text-sm font-semibold text-slate-800 sm:px-4">
@@ -1112,6 +1117,7 @@ const PublicCtvChatInboxPage = () => {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 };

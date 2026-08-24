@@ -5,6 +5,7 @@ import {
   POST_VISIBILITY_AGENT_HOME,
   POST_VISIBILITY_PUBLIC_CTV,
   POST_VISIBILITY_PUBLIC_CANDIDATE,
+  POST_VISIBILITY_BUSINESS_KNOWLEDGE,
   POST_VISIBILITY_ALL,
   toggleVisibilityMask
 } from '../../constants/postVisibility';
@@ -898,6 +899,25 @@ export default function PostsPage() {
                         }
                       />
                       <span className="text-xs text-gray-700">{t.postsVisibilityPublicCandidate}</span>
+                    </label>
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 w-3.5 h-3.5 shrink-0"
+                        style={{ accentColor: '#dc2626' }}
+                        checked={(formData.visibilityMask & POST_VISIBILITY_BUSINESS_KNOWLEDGE) !== 0}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            visibilityMask: toggleVisibilityMask(
+                              prev.visibilityMask,
+                              POST_VISIBILITY_BUSINESS_KNOWLEDGE,
+                              e.target.checked
+                            )
+                          }))
+                        }
+                      />
+                      <span className="text-xs text-gray-700">{t.postsVisibilityBusinessKnowledge}</span>
                     </label>
                   </div>
                 </div>

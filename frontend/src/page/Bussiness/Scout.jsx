@@ -69,6 +69,15 @@ const scoutPageStyles = `
   .scout-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
   .scout-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   .scout-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+  .scout-modal-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  .scout-modal-scroll::-webkit-scrollbar { width: 4px; }
+  .scout-modal-scroll::-webkit-scrollbar-track { background: transparent; }
+  .scout-modal-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+  .scout-modal-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  .scout-modal-scroll::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
   .scout-candidates-list-ui {
     --scout-cand-fs-title: 14px;
     --scout-cand-fs-body: 13px;
@@ -983,74 +992,76 @@ function ScoutCreditConfirmModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-[960px] rounded-2xl bg-white shadow-2xl overflow-hidden"
+        className="relative flex w-full max-w-[960px] max-h-[min(92dvh,calc(100dvh-1.5rem))] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+          className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-slate-600 sm:right-4 sm:top-4"
           aria-label={c.close}
         >
           <X className="h-4 w-4" />
         </button>
 
-        <div className="px-6 pt-6 pb-5 sm:px-8 sm:pt-7">
-          <h2 className="pr-10 text-lg font-bold leading-snug text-slate-900 sm:text-xl">
-            {m.title}{' '}
-            <span className="text-[#0077B6]">{m.titleHighlight}</span>
-          </h2>
+        <div className="scout-modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5">
+          <div className="px-5 pt-5 pb-4 sm:px-6 sm:pt-6 lg:px-8 lg:pt-7">
+            <h2 className="pr-10 text-base font-bold leading-snug text-slate-900 sm:text-lg lg:text-xl">
+              {m.title}{' '}
+              <span className="text-[#0077B6]">{m.titleHighlight}</span>
+            </h2>
 
-          <p className="mt-3 text-sm font-medium leading-[1.65] text-slate-700 sm:text-[15px]">
-            {m.intro}
-          </p>
-
-          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-[1fr_minmax(280px,44%)] sm:gap-6 sm:items-center">
-            <ul className="space-y-4">
-              {features.map(({ icon: Icon, title, desc }) => (
-                <li key={title} className="flex gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0077B6] text-white">
-                    <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
-                  </div>
-                  <div className="min-w-0 pt-0.5">
-                    <p className="text-sm font-bold leading-snug text-slate-900 sm:text-[15px]">{title}</p>
-                    <p className="mt-0.5 text-sm font-medium leading-[1.55] text-slate-600 sm:text-[15px]">{desc}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <div className="flex items-center justify-center sm:justify-end">
-              <img
-                src={creditIllustration}
-                alt={m.imageAlt}
-                className="w-full max-w-[380px] object-contain"
-              />
-            </div>
-          </div>
-
-          <div className="mt-6 flex items-start gap-3 rounded-2xl bg-[#e8f4fa] px-5 py-4 sm:px-6 sm:py-[18px]">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0077B6] text-white">
-              <Info className="h-4 w-4" strokeWidth={2.5} />
-            </div>
-            <p className="min-w-0 text-sm font-medium leading-[1.55] text-slate-700 sm:text-[15px]">
-              {m.disclaimer}
+            <p className="mt-2 text-sm font-medium leading-relaxed text-slate-700 lg:mt-3 lg:text-[15px]">
+              {m.intro}
             </p>
-          </div>
 
-          <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-            <input
-              type="checkbox"
-              checked={agreed}
-              onChange={(e) => onAgreedChange?.(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#0077B6] focus:ring-[#0077B6]"
-            />
-            <span className="text-sm font-medium leading-snug text-slate-700 sm:text-[15px]">
-              {m.agree}
-            </span>
-          </label>
+            <div className="mt-4 grid grid-cols-1 gap-4 lg:mt-5 lg:grid-cols-[1fr_minmax(220px,40%)] lg:gap-6 lg:items-center">
+              <ul className="space-y-3 lg:space-y-4">
+                {features.map(({ icon: Icon, title, desc }) => (
+                  <li key={title} className="flex gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0077B6] text-white lg:h-10 lg:w-10">
+                      <Icon className="h-[16px] w-[16px] lg:h-[18px] lg:w-[18px]" strokeWidth={2} />
+                    </div>
+                    <div className="min-w-0 pt-0.5">
+                      <p className="text-sm font-bold leading-snug text-slate-900 lg:text-[15px]">{title}</p>
+                      <p className="mt-0.5 text-sm font-medium leading-snug text-slate-600 lg:text-[15px] lg:leading-[1.55]">{desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex items-center justify-center lg:justify-end">
+                <img
+                  src={creditIllustration}
+                  alt={m.imageAlt}
+                  className="w-full max-w-[220px] object-contain sm:max-w-[260px] lg:max-w-[300px] xl:max-w-[380px]"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-start gap-3 rounded-xl bg-[#e8f4fa] px-4 py-3 sm:rounded-2xl sm:px-5 lg:mt-6 lg:px-6 lg:py-[18px]">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0077B6] text-white lg:h-8 lg:w-8">
+                <Info className="h-3.5 w-3.5 lg:h-4 lg:w-4" strokeWidth={2.5} />
+              </div>
+              <p className="min-w-0 text-sm font-medium leading-snug text-slate-700 lg:text-[15px] lg:leading-[1.55]">
+                {m.disclaimer}
+              </p>
+            </div>
+
+            <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 lg:mt-5">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => onAgreedChange?.(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#0077B6] focus:ring-[#0077B6]"
+              />
+              <span className="text-sm font-medium leading-snug text-slate-700 lg:text-[15px]">
+                {m.agree}
+              </span>
+            </label>
+          </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-6 py-4 sm:px-8">
+        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-100 bg-white px-5 py-3 sm:px-6 sm:py-4 lg:px-8">
           <button
             type="button"
             disabled={loading}
@@ -1141,99 +1152,100 @@ function ScoutPerformanceConfirmModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-[960px] rounded-2xl bg-white shadow-2xl overflow-hidden max-h-[92vh] overflow-y-auto"
+        className="relative flex w-full max-w-[960px] max-h-[min(92dvh,calc(100dvh-1.5rem))] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+          className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-slate-600 sm:right-4 sm:top-4"
           aria-label={c.close}
         >
           <X className="h-4 w-4" />
         </button>
 
-        <div className="px-6 pt-6 pb-5 sm:px-8 sm:pt-7">
-          <h2 className="pr-10 text-lg font-bold leading-snug text-slate-900 sm:text-xl">
-            {step === 'jd' ? (
-              m.jdStepTitle
-            ) : (
+        <div className="scout-modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5">
+          <div className="px-5 pt-5 pb-4 sm:px-6 sm:pt-6 lg:px-8 lg:pt-7">
+            <h2 className="pr-10 text-base font-bold leading-snug text-slate-900 sm:text-lg lg:text-xl">
+              {step === 'jd' ? (
+                m.jdStepTitle
+              ) : (
+                <>
+                  {m.confirmTitle}{' '}
+                  <span className="text-[#E30613]">{m.confirmTitleHighlight}</span>
+                </>
+              )}
+            </h2>
+
+            {step === 'confirm' && (
               <>
-                {m.confirmTitle}{' '}
-                <span className="text-[#E30613]">{m.confirmTitleHighlight}</span>
-              </>
-            )}
-          </h2>
+                {skipJdStep && selectedJob ? (
+                  <div className="mt-2 rounded-lg bg-[#e8f4fa] px-4 py-2.5 text-sm text-[#006399] lg:mt-3">
+                    {m.jdSelected(getLocalizedJobTitle(selectedJob, language))}
+                  </div>
+                ) : null}
 
-          {step === 'confirm' && (
-            <>
-              {skipJdStep && selectedJob ? (
-                <div className="mt-3 rounded-lg bg-[#e8f4fa] px-4 py-2.5 text-sm text-[#006399]">
-                  {m.jdSelected(getLocalizedJobTitle(selectedJob, language))}
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:mt-5 lg:grid-cols-[1fr_minmax(220px,40%)] lg:gap-6 lg:items-start">
+                  <div className="space-y-2 text-sm font-medium leading-relaxed text-slate-700 lg:space-y-3 lg:text-[15px] lg:leading-[1.65]">
+                    <p>{m.intro1}</p>
+                    <p>
+                      {m.intro2Prefix}{' '}
+                      <span className="font-bold text-slate-900">{m.intro2Highlight}</span>
+                      {m.intro2Suffix}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center lg:justify-end">
+                    <img
+                      src={performanceIllustration}
+                      alt={m.imageAlt}
+                      className="w-full max-w-[220px] object-contain sm:max-w-[260px] lg:max-w-[300px] xl:max-w-[380px]"
+                    />
+                  </div>
                 </div>
-              ) : null}
 
-              <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-[1fr_minmax(280px,44%)] sm:gap-6 sm:items-start">
-                <div className="space-y-3 text-sm font-medium leading-[1.65] text-slate-700 sm:text-[15px]">
-                  <p>{m.intro1}</p>
-                  <p>
-                    {m.intro2Prefix}{' '}
-                    <span className="font-bold text-slate-900">{m.intro2Highlight}</span>
-                    {m.intro2Suffix}
+                <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 lg:mt-5">
+                  <div className="bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 sm:px-4">
+                    {m.feeTableTitle}
+                  </div>
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-slate-500">
+                        <th className="px-3 py-1.5 font-semibold sm:px-4 sm:py-2">{m.feeColLevel}</th>
+                        <th className="px-3 py-1.5 font-semibold sm:px-4 sm:py-2">{m.feeColExperience}</th>
+                        <th className="px-3 py-1.5 font-semibold sm:px-4 sm:py-2">{m.feeColFee}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {feeTiers.map((tier, idx) => (
+                        <tr key={tier.level} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
+                          <td className="px-3 py-1.5 font-semibold text-slate-800 sm:px-4 sm:py-2">{tier.level}</td>
+                          <td className="px-3 py-1.5 text-slate-600 sm:px-4 sm:py-2">{tier.range}</td>
+                          <td className="px-3 py-1.5 font-bold text-[#E30613] sm:px-4 sm:py-2">{tier.fee}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="border-t border-slate-100 px-3 py-1.5 text-[11px] text-slate-500 sm:px-4 sm:py-2">
+                    {m.feeFootnote}
                   </p>
                 </div>
-                <div className="flex items-center justify-center sm:justify-end">
-                  <img
-                    src={performanceIllustration}
-                    alt={m.imageAlt}
-                    className="w-full max-w-[380px] object-contain"
+
+                <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 lg:mt-5">
+                  <input
+                    type="checkbox"
+                    checked={agreed}
+                    onChange={(e) => onAgreedChange?.(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#E30613] focus:ring-[#E30613]"
                   />
-                </div>
-              </div>
+                  <span className="text-sm font-medium leading-snug text-slate-700 lg:text-[15px]">
+                    {m.agree}
+                  </span>
+                </label>
+              </>
+            )}
 
-              <div className="mt-5 overflow-hidden rounded-xl border border-slate-200">
-                <div className="bg-slate-50 px-4 py-2 text-xs font-bold text-slate-600">
-                  {m.feeTableTitle}
-                </div>
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-slate-500">
-                      <th className="px-4 py-2 font-semibold">{m.feeColLevel}</th>
-                      <th className="px-4 py-2 font-semibold">{m.feeColExperience}</th>
-                      <th className="px-4 py-2 font-semibold">{m.feeColFee}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {feeTiers.map((tier, idx) => (
-                      <tr key={tier.level} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
-                        <td className="px-4 py-2 font-semibold text-slate-800">{tier.level}</td>
-                        <td className="px-4 py-2 text-slate-600">{tier.range}</td>
-                        <td className="px-4 py-2 font-bold text-[#E30613]">{tier.fee}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500">
-                  {m.feeFootnote}
-                </p>
-              </div>
-
-              <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                <input
-                  type="checkbox"
-                  checked={agreed}
-                  onChange={(e) => onAgreedChange?.(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#E30613] focus:ring-[#E30613]"
-                />
-                <span className="text-sm font-medium leading-snug text-slate-700 sm:text-[15px]">
-                  {m.agree}
-                </span>
-              </label>
-            </>
-          )}
-
-          {step === 'jd' && (
-            <div className="mt-5 space-y-4">
+            {step === 'jd' && (
+              <div className="mt-4 space-y-4 lg:mt-5">
               <p className="text-sm text-slate-600 leading-relaxed">
                 {m.jdStepIntro}
               </p>
@@ -1290,9 +1302,10 @@ function ScoutPerformanceConfirmModal({
               </label>
             </div>
           )}
+          </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-6 py-4 sm:px-8">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-100 bg-white px-5 py-3 sm:px-6 sm:py-4 lg:px-8">
           <div>
             {step === 'jd' ? (
               <button

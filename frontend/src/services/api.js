@@ -449,17 +449,6 @@ async function fetchJobDetailByIdOrSlug(scopePath, jobIdOrSlug, fetchOptions = {
 /**
  * API Service - Centralized API calls
  */
-const RECRUITMENT_HEALTH_UNSUPPORTED_KEY = 'business_recruitment_health_api_unsupported';
-
-const DEFAULT_RECRUITMENT_HEALTH_API_RESPONSE = {
-  success: true,
-  data: {
-    score: 0,
-    avgDays: 0,
-    rating: 'noData',
-  },
-};
-
 const apiService = {
   normalizeCvLanguageLevels: (cv = {}) => ({
     ...cv,
@@ -1049,6 +1038,15 @@ const apiService = {
     return handleResponse(response);
   },
 
+  getBusinessScoutCandidateCvFileList: async (cvId) => {
+    const response = await fetch(`${API_BASE_URL}/business/scout/candidates/${cvId}/cv-file-list`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    const data = await handleResponse(response);
+    return data?.data || { originals: [], templates: [] };
+  },
+
   getBusinessScoutUnlockedCandidates: async (params = {}) => {
     const filtered = Object.fromEntries(
       Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
@@ -1220,6 +1218,18 @@ const apiService = {
     return handleResponse(response);
   },
 
+  listAdminWsChatRecommendationCandidates: async (params = {}) => {
+    const filtered = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
+    );
+    const queryString = new URLSearchParams(filtered).toString();
+    const response = await fetch(
+      `${API_BASE_URL}/admin/ws-chat/candidates${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET', headers: getAuthHeaders() }
+    );
+    return handleResponse(response);
+  },
+
   acceptAdminWsChatPerformanceRequest: async (sessionId, body = {}) => {
     const response = await fetch(`${API_BASE_URL}/admin/ws-chat/sessions/${sessionId}/performance-request/accept`, {
       method: 'POST',
@@ -1274,8 +1284,25 @@ const apiService = {
     return handleResponse(response);
   },
 
+  submitAdminWsChatReferralPayment: async (sessionId, body = {}) => {
+    const response = await fetch(`${API_BASE_URL}/admin/ws-chat/sessions/${sessionId}/referral-payment/submit`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
   getAdminWsChatScoutPerformanceCandidates: async (sessionId) => {
     const response = await fetch(`${API_BASE_URL}/admin/ws-chat/sessions/${sessionId}/scout-performance-candidates`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getAdminWsChatBusinessJobs: async (sessionId) => {
+    const response = await fetch(`${API_BASE_URL}/admin/ws-chat/sessions/${sessionId}/business-jobs`, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
@@ -1485,39 +1512,13 @@ const apiService = {
   },
 
   getBusinessRecruitmentHealth: async () => {
-    try {
-      if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(RECRUITMENT_HEALTH_UNSUPPORTED_KEY) === '1') {
-        return DEFAULT_RECRUITMENT_HEALTH_API_RESPONSE;
-      }
-
-      const url = `${API_BASE_URL}/business/insights/recruitment-health`;
-      const response = await fetchDedupedJson(
-        url,
-        { method: 'GET', headers: getAuthHeaders() },
-        url,
-      );
-
-      if (response.status === 404) {
-        try {
-          sessionStorage.setItem(RECRUITMENT_HEALTH_UNSUPPORTED_KEY, '1');
-        } catch {
-          /* ignore */
-        }
-        return DEFAULT_RECRUITMENT_HEALTH_API_RESPONSE;
-      }
-
-      return handleResponse(response);
-    } catch (err) {
-      if (err?.status === 404) {
-        try {
-          sessionStorage.setItem(RECRUITMENT_HEALTH_UNSUPPORTED_KEY, '1');
-        } catch {
-          /* ignore */
-        }
-        return DEFAULT_RECRUITMENT_HEALTH_API_RESPONSE;
-      }
-      throw err;
-    }
+    const url = `${API_BASE_URL}/business/insights/recruitment-health`;
+    const response = await fetchDedupedJson(
+      url,
+      { method: 'GET', headers: getAuthHeaders() },
+      url,
+    );
+    return handleResponse(response);
   },
 
   getBusinessCandidateSharingDashboard: async () => {
@@ -1643,6 +1644,14 @@ const apiService = {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
+  getBusinessReferralInvoice: async (applicationId) => {
+    const response = await fetch(`${API_BASE_URL}/business/applications/${applicationId}/referral-invoice`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
     });
     return handleResponse(response);
   },
@@ -2573,6 +2582,36 @@ const apiService = {
     const suffix = queryString ? `?${queryString}` : '';
     const response = await fetch(`${API_BASE_URL}/public/posts/${encodeURIComponent(slugOrId)}${suffix}`, {
       method: 'GET'
+    });
+    return handleResponse(response);
+  },
+
+  /**
+   * Business Knowledge Hub — bài viết từ CMS (posts) cho portal doanh nghiệp
+   */
+  getBusinessKnowledgeCategories: async () => {
+    const response = await fetch(`${API_BASE_URL}/business/knowledge/categories`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getBusinessKnowledgePosts: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const suffix = queryString ? `?${queryString}` : '';
+    const url = `${API_BASE_URL}/business/knowledge/posts${suffix}`;
+    const response = await fetchDedupedJson(url, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    }, url);
+    return handleResponse(response);
+  },
+
+  getBusinessKnowledgePostById: async (slugOrId) => {
+    const response = await fetch(`${API_BASE_URL}/business/knowledge/posts/${encodeURIComponent(slugOrId)}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
     });
     return handleResponse(response);
   },

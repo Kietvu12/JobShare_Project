@@ -18,7 +18,7 @@ import apiService from '../../services/api';
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy';
 import { useLanguage } from '../../context/LanguageContext';
 import { getBillingPaymentTabs } from '../../i18n/businessAppI18n';
-import BillingPaymentDetailPanel, { PaymentTypeIcon } from '../../component/Bussiness/BillingPaymentDetailPanel';
+import BillingPaymentDetailPanel, { PaymentTypeIcon, formatPaymentDescription } from '../../component/Bussiness/BillingPaymentDetailPanel';
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif";
 const BRAND = '#0077B6';
@@ -344,7 +344,9 @@ export default function Billing() {
                               <span className="font-medium text-slate-800">{row.type}</span>
                             </div>
                           </td>
-                          <td className="max-w-[160px] truncate px-2 py-2 align-top text-slate-600">{row.related}</td>
+                          <td className="max-w-[160px] truncate px-2 py-2 align-top text-slate-600">
+                            {formatPaymentDescription(row.description, row.related)}
+                          </td>
                           <td className="whitespace-nowrap px-2 py-2 align-top font-semibold text-slate-900">{row.amount}</td>
                           <td className="whitespace-nowrap px-2 py-2 align-top text-slate-600">{row.deadline}</td>
                           <td className="px-2 py-2 align-top">

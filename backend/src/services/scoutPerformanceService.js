@@ -21,7 +21,10 @@ import {
   SCOUT_UNLOCK_TYPES,
   canCvBeListedOnScout,
 } from '../constants/scoutCredit.js';
-import { buildPerformanceUnlockedScoutPayload } from './businessScoutService.js';
+import {
+  buildPerformanceUnlockedScoutPayload,
+  formatCurrentLocationRegion,
+} from './businessScoutService.js';
 import { collaboratorNotificationService } from './collaboratorNotificationService.js';
 import {
   createWsChatPerformanceOpenedMessage,
@@ -520,30 +523,78 @@ export async function getPerformanceRequestMetaForBusiness({
   };
 }
 
-export async function searchCvsForPerformanceRecommendation({ search, limit = 20 }) {
-  const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
+function buildValidCvWhere({ search, excludeCvIds } = {}) {
   const where = {
     status: 1,
     isDuplicate: false,
     duplicateWithCvId: null,
   };
+  if (excludeCvIds?.length) {
+    where.id = { [Op.notIn]: excludeCvIds };
+  }
   if (search && String(search).trim()) {
     const q = String(search).trim();
     const like = `%${q}%`;
-    where[Op.or] = [
-      { code: { [Op.like]: like } },
-      { name: { [Op.like]: like } },
-      { desiredPosition: { [Op.like]: like } },
-      { technicalSkills: { [Op.like]: like } },
-      { email: { [Op.like]: like } },
-      { phone: { [Op.like]: like } },
-      { '$jobCategory.name$': { [Op.like]: like } },
+    where[Op.and] = [
+      {
+        [Op.or]: [
+          { code: { [Op.like]: like } },
+          { name: { [Op.like]: like } },
+          { desiredPosition: { [Op.like]: like } },
+          { desiredWorkLocation: { [Op.like]: like } },
+          { technicalSkills: { [Op.like]: like } },
+          { careerSummary: { [Op.like]: like } },
+          { strengths: { [Op.like]: like } },
+          { scoutPublicSummary: { [Op.like]: like } },
+          { email: { [Op.like]: like } },
+          { phone: { [Op.like]: like } },
+          { '$jobCategory.name$': { [Op.like]: like } },
+        ],
+      },
     ];
   }
+  return where;
+}
 
+function parseTechnicalSkills(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (!raw) return [];
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [raw];
+    } catch {
+      return raw.split(/[,;|/]/).map((s) => s.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
+function formatAdminRecommendationCandidate(cvJson) {
+  const payload = buildPerformanceUnlockedScoutPayload({
+    ...cvJson,
+    jobCategory: cvJson.jobCategory || null,
+  });
+  delete payload.email;
+  delete payload.phone;
+  return {
+    ...payload,
+    currentLocationRegion: formatCurrentLocationRegion(cvJson),
+    source: inferRecommendationSource(cvJson),
+    onScout: Number(cvJson.scoutStatus) === SCOUT_LISTING_STATUS.LISTED,
+    isUnlocked: true,
+    isPerformancePartial: true,
+  };
+}
+
+export async function searchCvsForPerformanceRecommendation({ search, limit = 20 }) {
+  const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
   const rows = await CVStorage.findAll({
-    where,
-    attributes: ['id', 'code', 'name', 'desiredPosition', 'scoutStatus', 'collaboratorId', 'experienceYears', 'technicalSkills'],
+    where: buildValidCvWhere({ search }),
+    attributes: [
+      'id', 'code', 'name', 'desiredPosition', 'scoutStatus', 'collaboratorId',
+      'experienceYears', 'technicalSkills', 'jobCategoryId',
+    ],
     include: [
       {
         model: JobCategory,
@@ -556,20 +607,56 @@ export async function searchCvsForPerformanceRecommendation({ search, limit = 20
     limit: safeLimit,
   });
 
-  return rows.map((cv) => {
-    const json = cv.toJSON();
-    return {
-      id: json.id,
-      code: json.code || null,
-      name: json.name || null,
-      desiredPosition: json.desiredPosition || null,
-      experienceYears: json.experienceYears ?? null,
-      scoutStatus: json.scoutStatus,
-      onScout: Number(json.scoutStatus) === SCOUT_LISTING_STATUS.LISTED,
-      source: inferRecommendationSource(json),
-      jobCategory: json.jobCategory || null,
-    };
+  return rows.map((cv) => formatAdminRecommendationCandidate(cv.toJSON()));
+}
+
+export async function listCvsForAdminRecommendation({
+  page = 1,
+  limit = 20,
+  search,
+  excludeCvIds = [],
+}) {
+  const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
+  const safePage = Math.max(parseInt(page, 10) || 1, 1);
+  const offset = (safePage - 1) * safeLimit;
+  const normalizedExclude = [...new Set(
+    (Array.isArray(excludeCvIds) ? excludeCvIds : [])
+      .map((id) => parseInt(id, 10))
+      .filter((id) => Number.isFinite(id) && id > 0),
+  )];
+
+  const { count, rows } = await CVStorage.findAndCountAll({
+    where: buildValidCvWhere({ search, excludeCvIds: normalizedExclude }),
+    attributes: [
+      'id', 'code', 'name', 'gender', 'birthDate', 'desiredPosition', 'desiredWorkLocation',
+      'currentResidence', 'desiredIncome', 'experienceYears', 'jlptLevel', 'jpResidenceStatus',
+      'jpConversationLevel', 'enConversationLevel', 'otherConversationLevel', 'technicalSkills',
+      'careerSummary', 'strengths', 'motivation', 'scoutPublicSummary', 'scoutStatus', 'scoutListedAt',
+      'avatarPhotoPath', 'collaboratorId', 'jobCategoryId', 'educations', 'workExperiences',
+      'certificates', 'learnedTools', 'experienceTools', 'specialization', 'qualification', 'nyushaTime',
+    ],
+    include: [
+      {
+        model: JobCategory,
+        as: 'jobCategory',
+        required: false,
+        attributes: ['id', 'name', 'nameEn', 'nameJp', 'slug'],
+      },
+    ],
+    order: [['updated_at', 'DESC'], ['id', 'DESC']],
+    limit: safeLimit,
+    offset,
   });
+
+  return {
+    candidates: rows.map((cv) => formatAdminRecommendationCandidate(cv.toJSON())),
+    pagination: {
+      total: count,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(count / safeLimit) || 0,
+    },
+  };
 }
 
 export async function getScoutPerformanceRequestDetail({ requestId, businessId }) {
@@ -1160,6 +1247,7 @@ export default {
   getPendingPerformanceRequestForBusiness,
   getPerformanceRequestMetaForBusiness,
   searchCvsForPerformanceRecommendation,
+  listCvsForAdminRecommendation,
   getScoutPerformanceRequestDetail,
   markScoutPerformanceRequestViewed,
   setScoutPerformanceExploreStatus,

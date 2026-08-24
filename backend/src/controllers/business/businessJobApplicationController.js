@@ -6,6 +6,7 @@ import {
   getBusinessApplicationCvFileList,
   updateBusinessJobApplicationStatus,
 } from '../../services/businessJobApplicationService.js';
+import { getBusinessReferralInvoiceForOwnedApplication } from '../../services/adminBusinessReferralInvoiceService.js';
 
 export const businessJobApplicationController = {
   listApplications: async (req, res, next) => {
@@ -103,6 +104,21 @@ export const businessJobApplicationController = {
         message: 'Cập nhật trạng thái đơn tiến cử thành công',
         data,
       });
+    } catch (error) {
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      next(error);
+    }
+  },
+
+  getReferralInvoice: async (req, res, next) => {
+    try {
+      const invoice = await getBusinessReferralInvoiceForOwnedApplication({
+        businessId: req.business.id,
+        applicationId: parseInt(req.params.id, 10),
+      });
+      res.json({ success: true, data: { invoice } });
     } catch (error) {
       if (error.statusCode) {
         return res.status(error.statusCode).json({ success: false, message: error.message });

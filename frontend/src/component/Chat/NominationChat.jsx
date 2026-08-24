@@ -205,13 +205,6 @@ const NominationChat = ({
   const [ctvPaymentFile, setCtvPaymentFile] = useState(null);
   const [ctvPaymentSubmitting, setCtvPaymentSubmitting] = useState(false);
   const ctvPaymentFileRef = useRef(null);
-
-  // Yêu cầu thanh toán cho DN (Admin — sau khi đã vào công ty)
-  const [businessInvoice, setBusinessInvoice] = useState(null);
-  const [businessInvoiceLoading, setBusinessInvoiceLoading] = useState(false);
-  const [showAdminBusinessInvoiceForm, setShowAdminBusinessInvoiceForm] = useState(false);
-  const [adminBusinessInvoiceAmount, setAdminBusinessInvoiceAmount] = useState('');
-  const [adminBusinessInvoiceSubmitting, setAdminBusinessInvoiceSubmitting] = useState(false);
   
   // Hover states
   const [hoveredInterviewButton, setHoveredInterviewButton] = useState(false);
@@ -327,67 +320,6 @@ const NominationChat = ({
       loadPaymentRequest();
     }
   }, [jobApplicationId, userType, currentStatus]);
-
-  const loadBusinessInvoice = async () => {
-    if (userType !== 'admin' || !jobApplicationId) return;
-    try {
-      setBusinessInvoiceLoading(true);
-      const res = await apiService.getAdminBusinessReferralInvoice(jobApplicationId);
-      setBusinessInvoice(res.success ? (res.data?.invoice || null) : null);
-    } catch {
-      setBusinessInvoice(null);
-    } finally {
-      setBusinessInvoiceLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (userType === 'admin' && jobApplicationId && Number(currentStatus) >= STATUS_JOINED) {
-      loadBusinessInvoice();
-    }
-  }, [jobApplicationId, userType, currentStatus]);
-
-  const canAdminCreateBusinessInvoice =
-    userType === 'admin'
-    && Number(currentStatus) >= STATUS_JOINED
-    && Number(currentStatus) !== STATUS_PAID
-    && !businessInvoice;
-
-  const handleAdminSubmitBusinessInvoice = async (e) => {
-    e?.preventDefault?.();
-    if (!canAdminCreateBusinessInvoice || adminBusinessInvoiceSubmitting) return;
-    const amount = parseFloat(adminBusinessInvoiceAmount);
-    if (Number.isNaN(amount) || amount <= 0) {
-      alert(t.chatErrorPaymentAmountRequired);
-      return;
-    }
-    try {
-      setAdminBusinessInvoiceSubmitting(true);
-      const res = await apiService.createAdminBusinessReferralInvoice(jobApplicationId, amount);
-      if (res.success) {
-        setBusinessInvoice(res.data?.invoice || null);
-        setShowAdminBusinessInvoiceForm(false);
-        setAdminBusinessInvoiceAmount('');
-        await loadMessages();
-        alert(t.chatAdminBusinessInvoiceCreated || res.message || 'Đã tạo yêu cầu thanh toán.');
-      } else {
-        alert(res.message || t.errorGeneric);
-      }
-    } catch (err) {
-      console.error(err);
-      alert(err?.message || t.errorGeneric);
-    } finally {
-      setAdminBusinessInvoiceSubmitting(false);
-    }
-  };
-
-  const businessInvoiceStatusLabel = (status) => {
-    const s = String(status || '').toLowerCase();
-    if (s === 'paid') return t.paymentStatusPaid;
-    if (s === 'processing') return 'Đang xử lý';
-    if (s === 'cancelled') return 'Đã hủy';
-    return 'Chưa thanh toán';
-  };
 
   const canCtvSendPaymentRequest =
     userType === 'ctv'
@@ -1200,84 +1132,6 @@ const NominationChat = ({
                         setCtvPaymentNote('');
                         setCtvPaymentFile(null);
                         if (ctvPaymentFileRef.current) ctvPaymentFileRef.current.value = '';
-                      }}
-                      className="rounded px-3 py-1.5 text-xs font-semibold"
-                      style={{ backgroundColor: '#e5e7eb', color: '#374151' }}
-                    >
-                      {t.cancel}
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Yêu cầu thanh toán cho DN (Admin — sau khi đã vào công ty) */}
-      {userType === 'admin' && Number(currentStatus) >= STATUS_JOINED && Number(currentStatus) !== STATUS_PAID && (
-        <div className="border-b px-3 py-2.5 sm:px-4" style={{ borderColor: CARD_BORDER, backgroundColor: '#eff6ff' }}>
-          {businessInvoiceLoading ? (
-            <p className="text-xs" style={{ color: '#6b7280' }}>{t.chatLoading}</p>
-          ) : businessInvoice ? (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs" style={{ color: '#1d4ed8' }}>
-              <span className="inline-flex items-center gap-1.5 font-semibold">
-                <DollarSign className="h-3.5 w-3.5" />
-                {t.chatAdminCreateBusinessInvoice}
-              </span>
-              <span>{businessInvoice.invoiceCode}</span>
-              <span>{t.chatAmount}: {(businessInvoice.amount ?? 0).toLocaleString(dateLocale)}đ</span>
-              <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ backgroundColor: '#dbeafe', color: '#1d4ed8' }}>
-                {businessInvoiceStatusLabel(businessInvoice.status)}
-              </span>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {!showAdminBusinessInvoiceForm ? (
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs" style={{ color: '#1d4ed8' }}>{t.chatAdminBusinessInvoiceHint}</p>
-                  {canAdminCreateBusinessInvoice && (
-                    <button
-                      type="button"
-                      onClick={() => setShowAdminBusinessInvoiceForm(true)}
-                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white"
-                      style={{ backgroundColor: '#2563eb' }}
-                    >
-                      <DollarSign className="h-3.5 w-3.5" />
-                      {t.chatAdminCreateBusinessInvoice}
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <form onSubmit={handleAdminSubmitBusinessInvoice} className="space-y-2 rounded-lg border bg-white p-3" style={{ borderColor: '#bfdbfe' }}>
-                  <p className="text-xs font-semibold" style={{ color: '#1d4ed8' }}>{t.chatAdminCreateBusinessInvoice}</p>
-                  <div>
-                    <label className="mb-0.5 block text-[10px] font-semibold">{t.chatAmountToPay}</label>
-                    <input
-                      type="number"
-                      value={adminBusinessInvoiceAmount}
-                      onChange={(e) => setAdminBusinessInvoiceAmount(e.target.value)}
-                      placeholder="5000000"
-                      min="0"
-                      required
-                      className="w-full rounded border px-2 py-1.5 text-xs"
-                      style={{ borderColor: '#d1d5db' }}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="submit"
-                      disabled={adminBusinessInvoiceSubmitting}
-                      className="rounded px-3 py-1.5 text-xs font-semibold text-white"
-                      style={{ backgroundColor: '#2563eb', opacity: adminBusinessInvoiceSubmitting ? 0.6 : 1 }}
-                    >
-                      {adminBusinessInvoiceSubmitting ? t.chatSending : t.chatAdminCreateBusinessInvoice}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowAdminBusinessInvoiceForm(false);
-                        setAdminBusinessInvoiceAmount('');
                       }}
                       className="rounded px-3 py-1.5 text-xs font-semibold"
                       style={{ backgroundColor: '#e5e7eb', color: '#374151' }}

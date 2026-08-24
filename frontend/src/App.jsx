@@ -121,6 +121,7 @@ import CandidateSharing from './page/Bussiness/CandidateSharing';
 import AdminCandidateSharingPage from './page/Admin/CandidateSharingPage';
 import CtvMarketplacePage from './page/Agent/CtvMarketplacePage';
 import KnowledgeHub from './page/Bussiness/KnowledgeHub';
+import KnowledgeArticlePage from './page/Bussiness/KnowledgeArticlePage';
 import ReportInsight from './page/Bussiness/ReportInsight';
 import Message from './page/Bussiness/Message';
 import Billing from './page/Bussiness/Billing';
@@ -426,6 +427,7 @@ function App() {
             <Route path="saiyo" element={<Branding />} />
             <Route path="saiyo/pages/:pageId/edit" element={<BusinessLandingPageEditor />} />
             <Route path="knowledge" element={<KnowledgeHub />} />
+            <Route path="knowledge/:postSlug" element={<KnowledgeArticlePage />} />
             <Route path="insights" element={<ReportInsight />} />
             <Route path="messages" element={<Message />} />
             <Route path="requests" element={<Navigate to="/business/messages" replace />} />
@@ -434,7 +436,6 @@ function App() {
             <Route path="candidates" element={<div className="p-6"><h1 className="text-2xl font-bold">Candidates</h1></div>} />
             <Route path="scout-performance" element={<div className="p-6"><h1 className="text-2xl font-bold">Scout Performance</h1></div>} />
             <Route path="partner-ctv" element={<div className="p-6"><h1 className="text-2xl font-bold">Partner CTV</h1></div>} />
-            <Route path="knowledge" element={<div className="p-6"><h1 className="text-2xl font-bold">Knowledge Hub</h1></div>} />
             <Route path="insights" element={<div className="p-6"><h1 className="text-2xl font-bold">Reports & Insights</h1></div>} />
             <Route path="service-requests/credit" element={<CreditTopUpRequest />} />
             <Route path="service-requests/landing-page" element={<LandingPagePremiumRequest />} />

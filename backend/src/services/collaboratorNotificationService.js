@@ -463,6 +463,7 @@ export const collaboratorNotificationService = {
     candidateName,
     invoiceId = null,
     jobApplicationId = null,
+    wsSessionId = null,
   }) {
     if (!businessId) return null;
     const safeJobCode = jobCode || 'N/A';
@@ -473,16 +474,15 @@ export const collaboratorNotificationService = {
     const content = amountText
       ? `WS đã tạo yêu cầu thanh toán phí giới thiệu ${amountText} cho đơn tiến cử ${safeJobCode} — ${safeCandidate}.`
       : `WS đã tạo yêu cầu thanh toán phí giới thiệu cho đơn tiến cử ${safeJobCode} — ${safeCandidate}.`;
+    const wsChatUrl = wsSessionId
+      ? `/business/messages?tab=ws&wsView=chat&sessionId=${wsSessionId}`
+      : '/business/messages?tab=ws&wsView=chat';
     return this.createAndEmit({
       businessId,
       title: 'Yêu cầu thanh toán phí giới thiệu',
       content,
       jobId: null,
-      url: invoiceId
-        ? `/business/billing?invoiceId=${invoiceId}`
-        : jobApplicationId
-          ? `/business/billing?jobApplicationId=${jobApplicationId}`
-          : '/business/billing',
+      url: wsChatUrl,
     });
   },
 

@@ -7,9 +7,13 @@ import {
   postVisibilityWhereForSurface,
 } from '../../services/postPublicService.js';
 
-/** Public list/detail: query surface=collaborator | candidate; omit => either public landing */
+/** Public list/detail: query surface=collaborator | candidate | business; omit on CTV => agent home */
 function postVisibilityWhereForRequest(req) {
-  const isPublic = String(req.baseUrl || '').includes('/public/posts');
+  const base = String(req.baseUrl || '');
+  if (base.includes('/business/knowledge')) {
+    return postVisibilityWhereForSurface('business');
+  }
+  const isPublic = base.includes('/public/posts');
   if (!isPublic) {
     return postVisibilityWhereForSurface(null, { agentHome: true });
   }

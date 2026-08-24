@@ -6,6 +6,7 @@ import {
   listUnlockedCandidatesForBusiness,
   attachScoutCandidateToJob,
   unlockScoutCandidateForBusiness,
+  getScoutUnlockedCvFileList,
 } from '../../services/businessScoutService.js';
 import { getScoutCreditCost } from '../../services/scoutCreditService.js';
 import {
@@ -313,6 +314,27 @@ export const businessScoutController = {
           : 'Đã ghi nhận phản hồi của bạn.',
         data,
       });
+    } catch (error) {
+      return handleServiceError(res, error, next);
+    }
+  },
+
+  /**
+   * GET /api/business/scout/candidates/:id/cv-file-list
+   * GET /api/business/scout/unlocked-candidates/:id/cv-file-list
+   */
+  getCandidateCvFileList: async (req, res, next) => {
+    try {
+      const cvId = parseInt(req.params.id, 10);
+      if (Number.isNaN(cvId)) {
+        return res.status(400).json({ success: false, message: 'ID hồ sơ không hợp lệ' });
+      }
+      const { originals, templates } = await getScoutUnlockedCvFileList({
+        businessId: req.business.id,
+        cvId,
+        req,
+      });
+      res.json({ success: true, data: { originals, templates } });
     } catch (error) {
       return handleServiceError(res, error, next);
     }

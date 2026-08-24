@@ -9,6 +9,7 @@ router.use(authenticate, isSuperAdminOrBackoffice);
 router.get('/sessions/by-performance-request/:requestId', adminWsChatController.getSessionByPerformanceRequest);
 router.get('/sessions', adminWsChatController.listSessions);
 router.get('/cv-search', adminWsChatController.searchCandidates);
+router.get('/candidates', adminWsChatController.listRecommendationCandidates);
 router.get('/sessions/:id', adminWsChatController.getSession);
 router.get('/sessions/:id/messages', adminWsChatController.listMessages);
 router.post('/sessions/:id/messages', adminWsChatController.sendMessage);
@@ -18,7 +19,9 @@ router.post('/sessions/:id/credit-request/accept', adminWsChatController.acceptC
 router.post('/sessions/:id/credit-request/reject', adminWsChatController.rejectCreditRequest);
 router.post('/sessions/:id/listing-request/accept', adminWsChatController.acceptListingRequest);
 router.post('/sessions/:id/listing-request/reject', adminWsChatController.rejectListingRequest);
+router.post('/sessions/:id/referral-payment/submit', adminWsChatController.submitReferralPayment);
 router.get('/sessions/:id/scout-performance-candidates', adminWsChatController.listScoutPerformanceCandidates);
+router.get('/sessions/:id/business-jobs', adminWsChatController.listBusinessJobs);
 router.patch(
   '/sessions/:id/scout-performance-candidates/:cvId/approach-status',
   adminWsChatController.updateScoutPerformanceApproachStatus,
