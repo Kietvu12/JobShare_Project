@@ -1,8 +1,20 @@
-import React, { useMemo } from 'react';
+import React, { useRef, useState } from 'react';
+import { ImagePlus, X } from 'lucide-react';
 import { JOB_HIGHLIGHT_OPTIONS } from '../../../utils/jobHighlightOptions';
 import { BUSINESS_SECTOR_OPTIONS } from '../../../utils/businessSectorOptions';
-import { getNumberOfHiresDisplayLabel } from '../../../utils/numberOfHiresOptions';
-import { collapseJapanWorkingLocationsForDisplay } from '../../../utils/japanWorkingLocations';
+import {
+  NUMBER_OF_HIRES_OPTION_VALUES,
+  getNumberOfHiresDisplayLabel,
+  normalizeNumberOfHiresStored,
+} from '../../../utils/numberOfHiresOptions';
+import JobCategoryPickerModal from '../../Shared/JobCategoryPickerModal';
+import {
+  JdTemplateMultiDropdown,
+  JdTemplatePickerButton,
+  JD_TEMPLATE_EXP_YEARS_OPTIONS,
+  getJdTemplateOptionTypography,
+  jdTemplateOptionControlStyle,
+} from './JdTemplateOptionControl';
 import logoImage from '../../../assets/logo.png';
 
 /** Liên hệ Workstation JobShare - giá trị cố định */
@@ -12,6 +24,18 @@ const HEADER_CONTACT = {
   mail: 'jobshare@work-station.vn',
 };
 const JD_BORDER_COLOR = '#cbd5e1';
+const JD_BUSINESS_NAVY = '#0f2744';
+const JD_BUSINESS_NAVY_MID = '#1e3a5f';
+
+function isYearlySalaryType(type) {
+  const t = String(type ?? '').toLowerCase();
+  return t.includes('year') || t.includes('năm') || t.includes('年');
+}
+
+function isMonthlySalaryType(type) {
+  const t = String(type ?? '').toLowerCase();
+  return t.includes('month') || t.includes('tháng') || t.includes('月');
+}
 
 const LABELS = {
   vi: {
@@ -19,6 +43,8 @@ const LABELS = {
     headerWebsite: 'Trang web',
     headerHotline: 'Đường dây nóng',
     headerMail: 'Email',
+    logoUploadHint: 'Thêm logo công ty',
+    headerInfoPlaceholder: 'Website: www.congty.com\nHotline: (+84) ...\nEmail: hr@congty.com',
     sectionRecruitment: 'THÔNG TIN TUYỂN DỤNG',
     companyName: 'Tên công ty',
     jobTitle: 'Tiêu đề việc làm',
@@ -82,6 +108,8 @@ const LABELS = {
     headerWebsite: 'Website',
     headerHotline: 'Hotline',
     headerMail: 'Mail',
+    logoUploadHint: 'Upload company logo',
+    headerInfoPlaceholder: 'Website: www.company.com\nHotline: (+84) ...\nEmail: hr@company.com',
     sectionRecruitment: 'RECRUITMENT INFORMATION',
     companyName: 'Company name',
     jobTitle: 'Job title',
@@ -144,6 +172,8 @@ const LABELS = {
     headerWebsite: 'ウェブサイト',
     headerHotline: 'ホットライン',
     headerMail: 'メール',
+    logoUploadHint: '会社ロゴを追加',
+    headerInfoPlaceholder: 'Website: www.company.com\nHotline: (+84) ...\nEmail: hr@company.com',
     sectionRecruitment: '募集情報',
     companyName: '会社名',
     jobTitle: '求人タイトル',
@@ -213,7 +243,6 @@ export default function JdTemplate({
   jobValues,
   workingLocations,
   setWorkingLocations,
-  japanPrefectureTrees = {},
   salaryRanges,
   setSalaryRanges,
   salaryRangeDetails,
@@ -230,23 +259,27 @@ export default function JdTemplate({
   setWorkingHourDetails,
   jobBenefitRows = [],
   setJobBenefitRows = () => {},
+  compactPreview = false,
+  businessBranding = false,
 }) {
+  const [jobTypeModalOpen, setJobTypeModalOpen] = useState(false);
+  const logoInputRef = useRef(null);
+  const JD_LABEL_BG = businessBranding ? JD_BUSINESS_NAVY : '#dc2626';
+  const JD_SECTION_BG = businessBranding ? JD_BUSINESS_NAVY_MID : '#4b5563';
+  const focusRingClass = businessBranding ? 'focus:ring-[#1e3a5f]' : 'focus:ring-[#0077B6]';
+  const pickerLang = lang === 'jp' ? 'ja' : lang;
+  const expYearOptions = JD_TEMPLATE_EXP_YEARS_OPTIONS[lang] || JD_TEMPLATE_EXP_YEARS_OPTIONS.vi;
   const suffix = lang === 'vi' ? '' : lang === 'en' ? 'En' : 'Jp';
   const contentKey = lang === 'vi' ? 'content' : lang === 'en' ? 'contentEn' : 'contentJp';
   const L = LABELS[lang] || LABELS.vi;
 
-  const displayWorkingLocations = useMemo(
-    () => collapseJapanWorkingLocationsForDisplay(workingLocations, lang, japanPrefectureTrees),
-    [workingLocations, lang, japanPrefectureTrees]
-  );
-
   const buildEditableProps = (editKey, value, onBlur, className = '', style = {}) => ({
-    key: `${lang}:${editKey}`,
     contentEditable: true,
     suppressContentEditableWarning: true,
     onBlur,
     ref: (node) => {
       if (!node) return;
+      if (document.activeElement === node) return;
       const nextText = String(value ?? '');
       if (node.textContent !== nextText) {
         node.textContent = nextText;
@@ -254,6 +287,7 @@ export default function JdTemplate({
     },
     className: className || 'outline-none block',
     style: { outline: 'none', minHeight: '1.2em', ...style },
+    'data-edit-key': `${lang}:${editKey}`,
   });
 
   const countryLabelByLang = (countryRaw) => {
@@ -350,7 +384,6 @@ export default function JdTemplate({
     5: L.recruitmentType5,
   };
 
-  const recruitmentTypeLabel = formData.recruitmentType ? (recruitmentTypeMap[formData.recruitmentType] || formData.recruitmentType) : null;
   const residenceStatusMap = {
     engineer: { vi: 'Visa kỹ sư / tri thức nhân văn / nghiệp vụ quốc tế', en: 'Engineer / Specialist in Humanities / International Services', jp: '技術・人文知識・国際業務' },
     ssw: { vi: 'Visa kỹ năng đặc định', en: 'Specified Skilled Worker', jp: '特定技能' },
@@ -369,17 +402,136 @@ export default function JdTemplate({
     prspouse: { vi: 'Vợ/chồng thường trú nhân', en: 'Spouse of Permanent Resident', jp: '永住者の配偶者等' },
     no_requirement: { vi: 'Không yêu cầu', en: 'No requirement', jp: '不要' },
   };
-  const getResidenceStatusLabels = () => {
-    const raw = formData.residenceStatuses ?? formData.residenceStatus ?? '';
-    let keys = [];
-    if (Array.isArray(raw)) keys = raw;
-    else if (typeof raw === 'string' && raw.trim().startsWith('[')) {
-      try { const parsed = JSON.parse(raw); if (Array.isArray(parsed)) keys = parsed; } catch { keys = []; }
-    } else if (typeof raw === 'string' && raw.trim()) {
-      keys = raw.split(',').map((s) => s.trim()).filter(Boolean);
-    }
-    return keys.map((k) => residenceStatusMap[k]?.[lang] || k).filter(Boolean);
+  const RESIDENCE_STATUS_KEYS = [
+    'student', 'engineer', 'ssw', 'labor_skill', 'hsp', 'ict', 'entertainer', 'titp',
+    'dependent', 'spouse', 'prspouse', 'ltr', 'pr', 'short', 'no_requirement', 'other',
+  ];
+
+  const optionTypo = getJdTemplateOptionTypography(compactPreview);
+  const selectClassName = `jd-template-option-control w-full min-w-0 border rounded bg-white text-slate-900 outline-none focus:ring-1 ${focusRingClass} border-slate-200 ${optionTypo.padClass}`;
+
+  const jdHeaderInfoKey = lang === 'vi' ? 'jdHeaderInfo' : lang === 'en' ? 'jdHeaderInfoEn' : 'jdHeaderInfoJp';
+
+  const handleLogoUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setRecruitingCompany((prev) => ({ ...prev, jdLogoUrl: String(reader.result || '') }));
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
   };
+
+  const jdHeaderInfoEditable = () => buildEditableProps(
+    `recruit:${jdHeaderInfoKey}`,
+    String(recruitingCompany[jdHeaderInfoKey] ?? '').trim() || L.headerInfoPlaceholder,
+    (e) => {
+      const v = e.currentTarget.textContent || '';
+      setRecruitingCompany((prev) => ({ ...prev, [jdHeaderInfoKey]: v }));
+    },
+    'outline-none block whitespace-pre-wrap text-left sm:text-right',
+    { minHeight: '3em', color: businessBranding ? JD_BUSINESS_NAVY_MID : '#374151', lineHeight: 1.45 },
+  );
+  const optionControlStyle = jdTemplateOptionControlStyle(optionTypo);
+
+  const parseHighlightKeys = () => {
+    const raw = formData.highlights;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.filter(Boolean).map(String);
+    if (typeof raw === 'string' && raw.trim().startsWith('[')) {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.filter(Boolean).map(String) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  const setHighlightKeys = (keys) => {
+    const next = keys.filter(Boolean);
+    setFormData((prev) => ({
+      ...prev,
+      highlights: next.length ? JSON.stringify(next) : '',
+    }));
+  };
+
+  const getResidenceStatusKeys = () => {
+    const raw = formData.residenceStatuses ?? formData.residenceStatus ?? '';
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string' && raw.trim().startsWith('[')) {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    if (typeof raw === 'string' && raw.trim()) {
+      return raw.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    return [];
+  };
+
+  const setResidenceStatusKeys = (keys) => {
+    const next = keys.filter(Boolean);
+    setFormData((prev) => ({
+      ...prev,
+      residenceStatuses: next,
+      residenceStatus: next.length ? JSON.stringify(next) : '',
+      residenceStatusEn: next.length ? JSON.stringify(next) : '',
+      residenceStatusJp: next.length ? JSON.stringify(next) : '',
+    }));
+  };
+
+  const getStoredNumberOfHires = () => normalizeNumberOfHiresStored(
+    formData[getFormKey('numberOfHires')] ?? workingLocations?.[0]?.numberOfHires ?? '',
+  );
+
+  const setNumberOfHiresCanonical = (canonical) => {
+    const v = canonical || '';
+    setFormData((prev) => ({
+      ...prev,
+      numberOfHires: v,
+      numberOfHiresEn: v,
+      numberOfHiresJp: v,
+    }));
+    setWorkingLocations((prev) => {
+      const next = Array.isArray(prev) ? [...prev] : [];
+      if (!next[0]) next[0] = { location: '', country: 'Japan' };
+      next[0] = { ...next[0], numberOfHires: v };
+      return next;
+    });
+  };
+
+  const setExperienceYearsValue = (text) => {
+    const v = String(text ?? '').trim();
+    setRequirements((prev) => {
+      const rest = prev.filter((r) => !(r.type === 'experience' && String(r.status || '').toLowerCase() === 'required'));
+      if (!v) return rest;
+      const existing = prev.find((r) => r.type === 'experience' && String(r.status || '').toLowerCase() === 'required') || {};
+      return [...rest, { ...existing, type: 'experience', status: 'required', [contentKey]: v }];
+    });
+  };
+
+  const highlightOptionLabel = (opt) => {
+    if (lang === 'en') return opt.en;
+    if (lang === 'jp') return opt.jp;
+    return opt.vi;
+  };
+
+  const residenceOptions = RESIDENCE_STATUS_KEYS.map((rsKey) => ({
+    value: rsKey,
+    label: residenceStatusMap[rsKey]?.[lang] || rsKey,
+  }));
+
+  const highlightOptions = JOB_HIGHLIGHT_OPTIONS.map((opt) => ({
+    value: opt.key,
+    label: highlightOptionLabel(opt),
+  }));
+
   const categoryName = (() => {
     const c = formData.categoryId ? categories.find((cat) => cat.id === parseInt(formData.categoryId)) : null;
     if (!c) return null;
@@ -427,36 +579,6 @@ export default function JdTemplate({
       .filter(({ text }) => text && text !== L.preferredConditionsPlaceholder)
       .map(({ text }) => text);
     return parts.length ? parts.join('\n') : L.preferredConditionsPlaceholder;
-  })();
-
-  const highlightsDisplay = (() => {
-    if (!formData.highlights) return L.highlightsPlaceholder;
-    let keys = [];
-    if (typeof formData.highlights === 'string' && formData.highlights.trim().startsWith('[')) {
-      try {
-        const parsed = JSON.parse(formData.highlights);
-        if (Array.isArray(parsed)) keys = parsed;
-      } catch {
-        keys = [];
-      }
-    }
-    if (keys.length > 0) {
-      const labels = keys.map((key) => {
-        const opt = JOB_HIGHLIGHT_OPTIONS.find((o) => o.key === key);
-        if (!opt) return key;
-        if (lang === 'en') return opt.en;
-        if (lang === 'jp') return opt.jp;
-        return opt.vi;
-      });
-      const parts = labels.map((s) => String(s ?? '').trim()).filter(Boolean);
-      return parts.length > 0 ? parts.join(' / ') : L.highlightsPlaceholder;
-    }
-    // Fallback: treat as plain text (cũ), sẽ không đa ngôn ngữ nhưng vẫn hiển thị
-    const parts = String(formData.highlights)
-      .split(/\n+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    return parts.length > 0 ? parts.join(' / ') : L.highlightsPlaceholder;
   })();
 
   const updateRequirementsByType = (type, text) => {
@@ -513,8 +635,29 @@ export default function JdTemplate({
     });
   };
 
-  const salaryYear = salaryRanges.find((sr) => (sr.type || '').toLowerCase().includes('year') || (sr.type || '').toLowerCase().includes('năm'));
-  const salaryMonth = salaryRanges.find((sr) => (sr.type || '').toLowerCase().includes('month') || (sr.type || '').toLowerCase().includes('tháng'));
+  const salaryYear = salaryRanges.find((sr) => isYearlySalaryType(sr.type));
+  const salaryMonth = salaryRanges.find((sr) => isMonthlySalaryType(sr.type));
+
+  const upsertSalaryRangeValue = (kind, text) => {
+    if (typeof setSalaryRanges !== 'function') return;
+    const v = String(text ?? '').trim();
+    setSalaryRanges((prev) => {
+      const next = Array.isArray(prev) ? [...prev] : [];
+      const match = kind === 'year' ? isYearlySalaryType : isMonthlySalaryType;
+      let idx = next.findIndex((sr) => match(sr.type));
+      if (idx < 0) {
+        next.push({
+          type: kind === 'year' ? 'yearly' : 'monthly',
+          salaryRange: '',
+          salaryRangeEn: '',
+          salaryRangeJp: '',
+        });
+        idx = next.length - 1;
+      }
+      next[idx] = { ...next[idx], [salaryRangeKey]: v };
+      return next;
+    });
+  };
 
   const serviceNameKey = lang === 'vi' ? 'serviceName' : lang === 'en' ? 'serviceNameEn' : 'serviceNameJp';
   const servicesDisplay = (recruitingCompany.services || [])
@@ -543,51 +686,128 @@ export default function JdTemplate({
   ];
 
   return (
-    <div className="rounded border bg-white shadow-sm w-full" style={{ borderColor: JD_BORDER_COLOR, fontSize: '11px' }}>
+    <>
+    <div
+      className={`rounded border bg-white shadow-sm w-full ${compactPreview ? 'jd-template-compact' : ''}`}
+      style={{
+        borderColor: JD_BORDER_COLOR,
+        ...(compactPreview ? {} : { fontSize: '11px' }),
+      }}
+    >
       <div
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 px-3 py-2.5 border-b"
-        style={{ borderColor: JD_BORDER_COLOR, backgroundColor: '#ffffff' }}
+        className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 ${compactPreview ? 'px-2 py-1.5' : 'gap-3 sm:gap-4 px-3 py-2.5'} border-b`}
+        style={{
+          borderColor: businessBranding ? '#e2e8f0' : JD_BORDER_COLOR,
+          backgroundColor: businessBranding ? '#f8fafc' : '#ffffff',
+        }}
       >
-        {/* Logo: màn nhỏ đủ lớn (xếp dọc); màn sm+ vẫn rõ, không bị ép nhỏ bởi cột chữ */}
-        <div className="flex justify-center sm:justify-start flex-shrink-0">
-          <img
-            src={logoImage}
-            alt="Logo"
-            className="w-auto object-contain select-none
-              h-10 max-w-[min(160px,84vw)]
-              sm:h-8 sm:max-w-[130px]
-              md:h-10 md:max-w-[150px]"
-          />
-        </div>
-        <div
-          className="w-full sm:flex-1 sm:min-w-0 text-center sm:text-right leading-snug break-words
-            max-sm:text-[9px] text-[10px] md:text-[11px] lg:text-xs"
-          style={{ color: '#374151' }}
-        >
-          <p className="font-semibold mb-1 opacity-95" style={{ lineHeight: 1.35 }}>
-            {L.headerSlogan}
-          </p>
-          <div className="space-y-0.5 opacity-90" style={{ lineHeight: 1.4 }}>
-            <div>
-              {L.headerWebsite}: {HEADER_CONTACT.website}
+        {businessBranding ? (
+          <>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                className="hidden"
+                onChange={handleLogoUpload}
+              />
+              <button
+                type="button"
+                onClick={() => logoInputRef.current?.click()}
+                className={`group relative flex items-center justify-center overflow-hidden rounded border border-dashed transition-colors hover:border-[#1e3a5f] hover:bg-white ${
+                  compactPreview ? 'h-10 w-[110px]' : 'h-12 w-[130px] sm:h-11 sm:w-[120px]'
+                }`}
+                style={{ borderColor: '#cbd5e1', backgroundColor: '#ffffff' }}
+                title={L.logoUploadHint}
+              >
+                {recruitingCompany?.jdLogoUrl ? (
+                  <img
+                    src={recruitingCompany.jdLogoUrl}
+                    alt="Logo công ty"
+                    className="h-full w-full object-contain p-1"
+                  />
+                ) : (
+                  <span className="flex flex-col items-center gap-0.5 px-1 text-[8px] font-medium text-slate-500">
+                    <ImagePlus className="h-3.5 w-3.5 text-[#1e3a5f]" strokeWidth={2} />
+                    {L.logoUploadHint}
+                  </span>
+                )}
+              </button>
+              {recruitingCompany?.jdLogoUrl ? (
+                <button
+                  type="button"
+                  title="Xóa logo"
+                  onClick={() => setRecruitingCompany((prev) => ({ ...prev, jdLogoUrl: '' }))}
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:text-rose-600"
+                >
+                  <X className="h-3 w-3" strokeWidth={2} />
+                </button>
+              ) : null}
             </div>
-            <div>
-              {L.headerHotline}: {HEADER_CONTACT.hotline}
+            <div
+              className={`w-full sm:flex-1 sm:min-w-0 leading-snug break-words ${
+                compactPreview
+                  ? 'text-[8px]'
+                  : 'max-sm:text-[9px] text-[10px] md:text-[11px] lg:text-xs'
+              }`}
+            >
+              <span {...jdHeaderInfoEditable()} />
             </div>
-            <div>
-              {L.headerMail}: {HEADER_CONTACT.mail}
+          </>
+        ) : (
+          <>
+            <div className="flex justify-center sm:justify-start flex-shrink-0">
+              <img
+                src={logoImage}
+                alt="Logo"
+                className={`w-auto object-contain select-none ${
+                  compactPreview
+                    ? 'h-7 max-w-[110px]'
+                    : `h-10 max-w-[min(160px,84vw)] sm:h-8 sm:max-w-[130px] md:h-10 md:max-w-[150px]`
+                }`}
+              />
             </div>
-          </div>
-        </div>
+            <div
+              className={`w-full sm:flex-1 sm:min-w-0 text-center sm:text-right leading-snug break-words ${
+                compactPreview
+                  ? 'text-[8px]'
+                  : 'max-sm:text-[9px] text-[10px] md:text-[11px] lg:text-xs'
+              }`}
+              style={{ color: '#374151' }}
+            >
+              <p className="font-semibold mb-1 opacity-95" style={{ lineHeight: 1.35 }}>
+                {L.headerSlogan}
+              </p>
+              <div className="space-y-0.5 opacity-90" style={{ lineHeight: 1.4 }}>
+                <div>
+                  {L.headerWebsite}: {HEADER_CONTACT.website}
+                </div>
+                <div>
+                  {L.headerHotline}: {HEADER_CONTACT.hotline}
+                </div>
+                <div>
+                  {L.headerMail}: {HEADER_CONTACT.mail}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
-      <div className="px-3 py-2 font-bold text-sm border-b" style={{ color: '#111827', borderColor: JD_BORDER_COLOR }}>
+      <div
+        className={`px-3 py-2 font-bold border-b ${compactPreview ? 'text-[10px]' : 'text-sm'}`}
+        style={{
+          color: businessBranding ? '#ffffff' : '#111827',
+          borderColor: JD_BORDER_COLOR,
+          backgroundColor: businessBranding ? JD_BUSINESS_NAVY : 'transparent',
+        }}
+      >
         {L.sectionRecruitment}
       </div>
       <div className="divide-y" style={{ borderColor: JD_BORDER_COLOR }}>
         {rows.map(([lbl, val, key], i) => (
           <React.Fragment key={i}>
             <div className="flex" style={{ minHeight: '32px' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
                 {lbl}
               </div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
@@ -597,6 +817,61 @@ export default function JdTemplate({
                   <span key="job-title" {...jdEditable('title')} />
                 ) : lbl === L.jobCode ? (
                   <span key="job-code" {...jdEditable('jobCode')} />
+                ) : lbl === L.field ? (
+                  <select
+                    className={selectClassName}
+                    style={optionControlStyle}
+                    value={formData.businessSectorKey || ''}
+                    onChange={(e) => {
+                      setFormData((prev) => ({ ...prev, businessSectorKey: e.target.value }));
+                    }}
+                  >
+                    <option value="">—</option>
+                    {BUSINESS_SECTOR_OPTIONS.map((opt) => (
+                      <option key={opt.key || opt.vi} value={opt.key || opt.vi}>
+                        {lang === 'en' ? opt.en : lang === 'jp' ? opt.ja : opt.vi}
+                      </option>
+                    ))}
+                  </select>
+                ) : lbl === L.jobType ? (
+                  <JdTemplatePickerButton
+                    className={selectClassName}
+                    typography={optionTypo}
+                    label={categoryName || ''}
+                    placeholder="—"
+                    onClick={() => setJobTypeModalOpen(true)}
+                  />
+                ) : lbl === L.expYears ? (
+                  <select
+                    className={selectClassName}
+                    style={optionControlStyle}
+                    value={expYearsVal || ''}
+                    onChange={(e) => setExperienceYearsValue(e.target.value)}
+                  >
+                    <option value="">—</option>
+                    {expYearOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                    {expYearsVal && !expYearOptions.some((o) => o.value === expYearsVal) ? (
+                      <option value={expYearsVal}>{expYearsVal}</option>
+                    ) : null}
+                  </select>
+                ) : lbl === L.numberOfHires ? (
+                  <select
+                    className={selectClassName}
+                    style={optionControlStyle}
+                    value={getStoredNumberOfHires()}
+                    onChange={(e) => setNumberOfHiresCanonical(e.target.value)}
+                  >
+                    <option value="">—</option>
+                    {NUMBER_OF_HIRES_OPTION_VALUES.map((v) => (
+                      <option key={v} value={v}>
+                        {getNumberOfHiresDisplayLabel(v, lang)}
+                      </option>
+                    ))}
+                  </select>
                 ) : (
                   <span
                     {...customEditable(
@@ -615,33 +890,42 @@ export default function JdTemplate({
             {/* Hình thức tuyển dụng + Tư cách lưu trú (ngay dưới Mã tin tuyển dụng) */}
             {lbl === L.jobCode && (
               <div className="flex" style={{ minHeight: '32px' }}>
-                <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+                <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
                   {L.recruitmentForm}
                 </div>
                 <div className="flex-1 min-w-[60px] px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
-                  <span
-                    {...customEditable(
-                      'basic:recruitmentFormDisplay',
-                      recruitmentTypeLabel || '',
-                      (e) => {
-                        const v = (e.currentTarget.textContent || '').trim();
-                        setFormData((prev) => ({ ...prev, recruitmentFormDisplay: v }));
-                      }
-                    )}
-                  />
+                  <select
+                    className={selectClassName}
+                    style={optionControlStyle}
+                    value={formData.recruitmentType ? String(formData.recruitmentType) : ''}
+                    onChange={(e) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        recruitmentType: e.target.value ? parseInt(e.target.value, 10) : '',
+                      }));
+                    }}
+                  >
+                    <option value="">—</option>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <option key={n} value={String(n)}>
+                        {recruitmentTypeMap[n]}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626', borderLeft: `1.25px solid ${JD_BORDER_COLOR}` }}>
+                <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG, borderLeft: `1.25px solid ${JD_BORDER_COLOR}` }}>
                   {L.residenceStatus}
                 </div>
-                <div className="flex-1 min-w-[60px] px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
-                  {(() => {
-                    const labels = getResidenceStatusLabels();
-                    return labels.length ? (
-                      <span className="whitespace-pre-line">{labels.join('\n')}</span>
-                    ) : (
-                      <span />
-                    );
-                  })()}
+                <div className="flex-1 min-w-[60px] px-2 py-1.5 text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
+                  <JdTemplateMultiDropdown
+                    className={selectClassName}
+                    typography={optionTypo}
+                    values={getResidenceStatusKeys()}
+                    onChange={setResidenceStatusKeys}
+                    options={residenceOptions}
+                    placeholder="—"
+                    emptyLabel={lang === 'en' ? 'Select' : lang === 'jp' ? '選択' : 'Chọn'}
+                  />
                 </div>
               </div>
             )}
@@ -649,24 +933,23 @@ export default function JdTemplate({
         ))}
         {/* Điểm nổi bật: 1 hàng ngang, có thể chỉnh sửa trực tiếp */}
         <div className="flex" style={{ minHeight: '32px' }}>
-          <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.highlights}
           </div>
-          <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white', whiteSpace: 'normal' }}>
-            <span
-              {...customEditable(
-                'highlights',
-                highlightsDisplay,
-                (e) => {
-                  const v = (e.currentTarget.textContent || '').trim();
-                  setFormData((prev) => ({ ...prev, highlights: v }));
-                }
-              )}
+          <div className="flex-1 px-2 py-1.5 text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
+            <JdTemplateMultiDropdown
+              className={selectClassName}
+              typography={optionTypo}
+              values={parseHighlightKeys()}
+              onChange={setHighlightKeys}
+              options={highlightOptions}
+              placeholder="—"
+              emptyLabel={lang === 'en' ? 'Select highlights' : lang === 'jp' ? '選択' : 'Chọn điểm nổi bật'}
             />
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.jobDescription}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: `1.25px solid ${JD_BORDER_COLOR}` }}>
@@ -674,7 +957,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.requiredConditions}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: `1.25px solid ${JD_BORDER_COLOR}` }}>
@@ -708,7 +991,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.preferredConditions}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: `1.25px solid ${JD_BORDER_COLOR}` }}>
@@ -742,49 +1025,41 @@ export default function JdTemplate({
           </div>
         </div>
         <div className="flex" style={{ minHeight: '32px' }}>
-          <div className="flex-shrink-0 w-28 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="flex-shrink-0 w-28 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.annualIncome}
           </div>
-          <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
+          <div className="flex-1 min-w-0 px-3 py-2 flex items-stretch text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
             <span
               {...customEditable(
                 'salary-year',
                 salaryYear?.[salaryRangeKey] || '',
                 (e) => {
-                  const v = (e.currentTarget.textContent || '').trim();
-                  setSalaryRanges((prev) => {
-                    const next = Array.isArray(prev) ? [...prev] : [];
-                    if (!next[0]) next[0] = { type: salaryYear?.type || 'year', salaryRange: '', salaryRangeEn: '', salaryRangeJp: '' };
-                    next[0] = { ...(next[0] || {}), [salaryRangeKey]: v };
-                    return next;
-                  });
-                }
+                  upsertSalaryRangeValue('year', e.currentTarget.textContent);
+                },
+                'outline-none block w-full min-h-[1.2em]',
+                { minWidth: '3rem' }
               )}
             />
           </div>
-          <div className="flex-shrink-0 w-24 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626', borderLeft: `1.25px solid ${JD_BORDER_COLOR}` }}>
+          <div className="flex-shrink-0 w-24 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG, borderLeft: `1.25px solid ${JD_BORDER_COLOR}` }}>
             {L.monthlySalary}
           </div>
-          <div className="flex-1 min-w-[80px] px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
+          <div className="flex-1 min-w-[80px] px-3 py-2 flex items-stretch text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
             <span
               {...customEditable(
                 'salary-month',
                 salaryMonth?.[salaryRangeKey] || '',
                 (e) => {
-                  const v = (e.currentTarget.textContent || '').trim();
-                  setSalaryRanges((prev) => {
-                    const next = Array.isArray(prev) ? [...prev] : [];
-                    if (!next[1]) next[1] = { type: salaryMonth?.type || 'month', salaryRange: '', salaryRangeEn: '', salaryRangeJp: '' };
-                    next[1] = { ...(next[1] || {}), [salaryRangeKey]: v };
-                    return next;
-                  });
-                }
+                  upsertSalaryRangeValue('month', e.currentTarget.textContent);
+                },
+                'outline-none block w-full min-h-[1.2em]',
+                { minWidth: '3rem' }
               )}
             />
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.incomeDetails}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: `1.25px solid ${JD_BORDER_COLOR}` }}>
@@ -804,7 +1079,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.bonus}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: `1.25px solid ${JD_BORDER_COLOR}` }}>
@@ -812,7 +1087,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.salaryReview}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: `1.25px solid ${JD_BORDER_COLOR}` }}>
@@ -820,7 +1095,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div className="flex" style={{ minHeight: '32px' }}>
-          <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.transferAbility}
           </div>
           <div className="flex-1 min-w-[60px] px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}>
@@ -828,14 +1103,14 @@ export default function JdTemplate({
               {...jdEditable('transferAbility', 'outline-none block', { minHeight: '1.2em' }, '')}
             />
           </div>
-          <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626', borderLeft: '1px solid #e5e7eb' }}>
+          <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG, borderLeft: '1px solid #e5e7eb' }}>
             {L.workLocation}
           </div>
           <div className="flex-1 min-w-[80px] px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}>
             <span
               {...customEditable(
                 'work-locations',
-                (displayWorkingLocations || [])
+                (workingLocations || [])
                   .map((wl) => {
                     const loc = locationLabelByLang(wl);
                     if (!loc) return '';
@@ -853,7 +1128,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.workLocationDetails}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
@@ -873,7 +1148,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.workingTime}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
@@ -893,7 +1168,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div className="flex" style={{ minHeight: '32px' }}>
-          <div className="flex-shrink-0 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626', minWidth: '140px' }}>
+          <div className="flex-shrink-0 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG, minWidth: '140px' }}>
             {L.overtimeHoursPerMonth}
           </div>
           <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}>
@@ -901,7 +1176,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.overtimeDetails}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
@@ -921,7 +1196,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.benefits}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
@@ -971,7 +1246,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div className="flex" style={{ minHeight: '32px' }}>
-          <div className="flex-shrink-0 w-28 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="flex-shrink-0 w-28 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.holidays}
           </div>
           <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}>
@@ -979,7 +1254,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.holidayDetails}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
@@ -989,7 +1264,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div className="flex" style={{ minHeight: '32px' }}>
-          <div className="flex-shrink-0 w-28 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="flex-shrink-0 w-28 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.probation}
           </div>
           <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}>
@@ -997,7 +1272,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.probationDetails}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
@@ -1007,7 +1282,7 @@ export default function JdTemplate({
           </div>
         </div>
         <div>
-          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>
+          <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
             {L.recruitmentProcess}
           </div>
           <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
@@ -1015,20 +1290,20 @@ export default function JdTemplate({
           </div>
         </div>
         <div className="mt-3">
-          <div className="w-full px-3 py-2 text-sm font-bold text-white" style={{ backgroundColor: '#4b5563' }}>
+          <div className={`w-full px-3 py-2 font-bold text-white ${compactPreview ? 'text-[10px]' : 'text-sm'}`} style={{ backgroundColor: JD_SECTION_BG }}>
             {L.sectionCompany}
           </div>
           <div className="grid grid-cols-2 border-t" style={{ borderColor: '#e5e7eb' }}>
             <div className="flex border-b border-r" style={{ borderColor: '#e5e7eb' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.companyName}</div>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.companyName}</div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}><span {...jdRecruitingEditable('companyName')} /></div>
             </div>
             <div className="flex border-b" style={{ borderColor: '#e5e7eb' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.stockExchangeInfo}</div>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.stockExchangeInfo}</div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}><span {...jdRecruitingEditable('stockExchangeInfo')} /></div>
             </div>
             <div className="flex border-b border-r" style={{ borderColor: '#e5e7eb' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.services}</div>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.services}</div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}>
                 <span
                   {...customEditable(
@@ -1043,7 +1318,7 @@ export default function JdTemplate({
               </div>
             </div>
             <div className="flex border-b" style={{ borderColor: '#e5e7eb' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.businessSectors}</div>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.businessSectors}</div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}>
                 <span
                   {...customEditable(
@@ -1060,28 +1335,28 @@ export default function JdTemplate({
               </div>
             </div>
             <div className="flex border-b border-r" style={{ borderColor: '#e5e7eb' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.revenue}</div>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.revenue}</div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}><span {...jdRecruitingEditable('revenue')} /></div>
             </div>
             <div className="flex border-b" style={{ borderColor: '#e5e7eb' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.investmentCapital}</div>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.investmentCapital}</div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}><span {...jdRecruitingEditable('investmentCapital')} /></div>
             </div>
             <div className="flex border-b border-r" style={{ borderColor: '#e5e7eb' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.numberOfEmployees}</div>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.numberOfEmployees}</div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}><span {...jdRecruitingEditable('numberOfEmployees')} /></div>
             </div>
             <div className="flex border-b" style={{ borderColor: '#e5e7eb' }}>
-              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.established}</div>
+              <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.established}</div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}><span {...jdRecruitingEditable('establishedDate')} /></div>
             </div>
           </div>
           <div className="flex border-b" style={{ borderColor: '#e5e7eb' }}>
-            <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.headquarters}</div>
+            <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.headquarters}</div>
             <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: '#e5e7eb', backgroundColor: 'white' }}><span {...jdRecruitingEditable('headquarters')} /></div>
           </div>
           <div>
-            <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: '#dc2626' }}>{L.companyIntroduction}</div>
+            <div className="w-full px-3 py-2 text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>{L.companyIntroduction}</div>
             <div className="px-3 py-2 min-h-[60px] text-xs whitespace-pre-wrap" style={{ color: '#111827', backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
               <span {...jdRecruitingEditable('companyIntroduction', 'block whitespace-pre-wrap', { minHeight: '60px' }, L.incomeDetailsPlaceholder)} />
             </div>
@@ -1089,5 +1364,19 @@ export default function JdTemplate({
         </div>
       </div>
     </div>
+    <JobCategoryPickerModal
+      open={jobTypeModalOpen}
+      onClose={() => setJobTypeModalOpen(false)}
+      language={pickerLang}
+      useAdminAPI={false}
+      initialLeafId={formData.categoryId}
+      onConfirm={({ id }) => {
+        setFormData((prev) => ({
+          ...prev,
+          categoryId: id != null && id !== '' ? String(id) : '',
+        }));
+      }}
+    />
+    </>
   );
 }
