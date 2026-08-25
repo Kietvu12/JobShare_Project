@@ -4,6 +4,7 @@ import {
   Search, ChevronRight, FileText, Eye, Share2, Filter, BookOpen, Users, Rocket, Shield, Zap,
   MessageSquare, Clock, Loader2,
 } from 'lucide-react'
+import nothingIllustration from '../../assets/Nothing.png'
 import apiService, { normalizePostImageUrl } from '../../services/api'
 import { useLanguage } from '../../context/LanguageContext'
 import {
@@ -265,9 +266,9 @@ const KnowledgeHub = () => {
           </div>
 
           <div className="knowledge-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            <div className="grid w-full min-h-0 grid-cols-1 items-start gap-3 px-3 py-3 sm:px-4 sm:py-4 xl:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] xl:gap-4">
-              <div className="flex min-w-0 flex-col gap-3">
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 sm:gap-2.5">
+            <div className="grid w-full min-h-0 grid-cols-1 items-start gap-3 px-3 py-3 sm:px-4 sm:py-4 xl:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] xl:items-stretch xl:gap-4">
+              <div className="flex min-w-0 flex-col gap-3 xl:min-h-full">
+                <div className="grid shrink-0 grid-cols-3 gap-2 sm:grid-cols-6 sm:gap-2.5">
                   {loadingCategories ? (
                     <div className="col-span-full flex items-center gap-2 py-2 text-[11px] text-slate-500">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -302,18 +303,27 @@ const KnowledgeHub = () => {
                   })}
                 </div>
 
+                <div className="flex min-h-[min(420px,52vh)] flex-1 flex-col gap-3 xl:min-h-[480px]">
                 {loadingPosts ? (
-                  <div className="flex items-center justify-center gap-2 rounded-xl border border-slate-200/90 bg-white py-12 text-[11px] text-slate-500">
+                  <div className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200/90 bg-white text-[11px] text-slate-500">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Đang tải bài viết...
                   </div>
                 ) : loadError ? (
-                  <div className="rounded-xl border border-red-100 bg-white p-4 text-center text-[11px] text-red-600">
+                  <div className="flex flex-1 items-center justify-center rounded-xl border border-red-100 bg-white p-4 text-center text-[11px] text-red-600">
                     {loadError}
                   </div>
                 ) : posts.length === 0 ? (
-                  <div className="rounded-xl border border-slate-200/90 bg-white p-6 text-center text-[11px] text-slate-500">
-                    Chưa có bài viết phù hợp. Admin có thể thêm bài trong mục Posts và bật hiển thị Knowledge Hub.
+                  <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-slate-200/90 bg-white px-5 py-12 text-center sm:py-16">
+                    <img
+                      src={nothingIllustration}
+                      alt=""
+                      className="mb-4 w-full max-w-[220px] object-contain"
+                      draggable={false}
+                    />
+                    <p className="max-w-lg text-xs font-medium leading-relaxed text-slate-700 sm:text-sm">
+                      Chưa có bài viết phù hợp. Admin có thể thêm bài trong mục Posts và bật hiển thị Knowledge Hub.
+                    </p>
                   </div>
                 ) : null}
 
@@ -414,8 +424,9 @@ const KnowledgeHub = () => {
                     </ul>
                   </section>
                 ) : null}
+                </div>
 
-                <section className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
+                <section className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
                   <SectionHeader title="Tài liệu & mẫu biểu hữu ích" actionLabel="Xem tất cả mẫu" />
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 sm:gap-2.5">
                     {templates.map((tpl) => {

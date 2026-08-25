@@ -180,14 +180,14 @@ const NAV_SECTIONS = [
 
 const COLLAPSE_STORAGE_KEY = 'business-sidebar-collapsed';
 
-function RecruitmentDonut({ percent, size, strokeWidth = 7, strokeColor = BRAND.main }) {
+function RecruitmentDonut({ percent, size, strokeWidth = 7, strokeColor = BRAND.main, className = '' }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference - (percent / 100) * circumference;
   const center = size / 2;
 
   return (
-    <svg width={size} height={size} className="-rotate-90 shrink-0" aria-hidden>
+    <svg width={size} height={size} className={`-rotate-90 shrink-0 ${className}`.trim()} aria-hidden>
       <circle
         cx={center}
         cy={center}
@@ -387,7 +387,7 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
         <div key={section.label || `section-${sectionIndex}`}>
           {sectionIndex > 0 && <NavSpacer collapsed={!showExpanded} />}
           {showExpanded && section.label && (
-            <div className="px-2.5 pb-1 pt-0.5 biz-ui-micro font-semibold uppercase tracking-wide text-slate-400">
+            <div className="biz-sidebar-section-label px-2.5 pb-1 pt-0.5 biz-ui-micro font-semibold uppercase tracking-wide text-slate-400">
               {t[section.label]}
             </div>
           )}
@@ -407,7 +407,7 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
     const showExpanded = forceExpanded || !collapsed;
     return (
       <div
-        className={`shrink-0 border-t border-slate-100 bg-white p-2 ${
+        className={`biz-sidebar-footer-block shrink-0 border-t border-slate-100 bg-white p-2 ${
           showExpanded ? '' : 'flex flex-col items-center'
         }`}
       >
@@ -426,15 +426,15 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
     const showExpanded = forceExpanded || !collapsed;
     return (
       <div
-        className={`shrink-0 border-t border-slate-100 bg-white p-2 ${
+        className={`biz-sidebar-footer-block shrink-0 border-t border-slate-100 bg-white p-2 ${
           showExpanded ? '' : 'flex flex-col items-center'
         }`}
       >
         {showExpanded ? (
-          <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 shadow-sm">
+          <div className="biz-sidebar-health-expanded rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 shadow-sm">
             <div className="flex items-center gap-2.5">
               <div className="relative flex shrink-0 items-center justify-center">
-                <RecruitmentDonut percent={healthScore} size={44} strokeWidth={5} />
+                <RecruitmentDonut percent={healthScore} size={44} strokeWidth={5} className="biz-sidebar-health-donut-lg" />
                 <span className="absolute biz-ui-caption font-bold leading-none text-slate-800">
                   {healthLoading ? '…' : healthScore}
                 </span>
@@ -480,16 +480,70 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
         @media (max-height: 840px) {
           .biz-sidebar-health-footnote { display: none; }
         }
+        @media (min-width: 1024px) and (max-width: 1535px) {
+          aside.business-sidebar-desktop.business-sidebar-ui {
+            --biz-fs-section: 0.75rem;
+            --biz-fs-body: 0.75rem;
+            --biz-fs-caption: 0.6875rem;
+            --biz-fs-micro: 0.625rem;
+            --biz-fs-nav: 0.75rem;
+            --biz-fs-stat: 0.875rem;
+          }
+          aside.business-sidebar-desktop .biz-sidebar-logo-wrap {
+            min-height: 44px;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+          }
+          aside.business-sidebar-desktop .biz-sidebar-logo-wrap img {
+            height: 1.375rem;
+          }
+          aside.business-sidebar-desktop .biz-sidebar-nav {
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
+          }
+          aside.business-sidebar-desktop .biz-ui-nav {
+            padding-top: 0.2rem;
+            padding-bottom: 0.2rem;
+          }
+          aside.business-sidebar-desktop .biz-sidebar-nav svg {
+            width: 0.875rem;
+            height: 0.875rem;
+          }
+          aside.business-sidebar-desktop .biz-sidebar-section-label {
+            padding-bottom: 0.125rem;
+          }
+          aside.business-sidebar-desktop .biz-sidebar-health-expanded {
+            padding: 0.5rem;
+          }
+          aside.business-sidebar-desktop .biz-sidebar-health-donut-lg {
+            width: 38px;
+            height: 38px;
+          }
+          aside.business-sidebar-desktop .biz-sidebar-footer-block {
+            padding: 0.375rem;
+          }
+        }
+        @media (min-width: 1024px) and (max-width: 1535px) and (max-height: 860px) {
+          aside.business-sidebar-desktop.business-sidebar-ui {
+            --biz-fs-nav: 0.6875rem;
+            --biz-fs-micro: 0.5625rem;
+            --biz-fs-section: 0.6875rem;
+          }
+          aside.business-sidebar-desktop nav {
+            padding-top: 0.125rem;
+            padding-bottom: 0.125rem;
+          }
+        }
       `}</style>
 
       {/* Desktop sidebar */}
       <aside
-        className={`business-sidebar-ui relative hidden h-screen shrink-0 flex-col border-r border-slate-100 bg-white transition-[width] duration-300 ease-out lg:flex ${
+        className={`business-sidebar-desktop business-sidebar-ui relative hidden h-screen shrink-0 flex-col border-r border-slate-100 bg-white transition-[width] duration-300 ease-out lg:flex ${
           collapsed ? 'w-[56px]' : 'w-[210px]'
         }`}
       >
         <div
-          className={`relative flex shrink-0 items-center justify-center bg-white px-2.5 py-2.5 ${
+          className={`biz-sidebar-logo-wrap relative flex shrink-0 items-center justify-center bg-white px-2.5 py-2.5 ${
             collapsed ? '' : 'min-h-[52px]'
           }`}
         >
@@ -526,7 +580,7 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
           )}
         </div>
 
-        <nav className="business-sidebar-scroll min-h-0 flex-1 space-y-0 overflow-y-auto px-1.5 py-1.5">
+        <nav className="business-sidebar-scroll biz-sidebar-nav min-h-0 flex-1 space-y-0 overflow-y-auto px-1.5 py-1.5">
           {renderSidebarSections()}
         </nav>
 

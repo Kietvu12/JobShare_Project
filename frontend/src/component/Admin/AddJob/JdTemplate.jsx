@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { ImagePlus, X } from 'lucide-react';
 import { JOB_HIGHLIGHT_OPTIONS } from '../../../utils/jobHighlightOptions';
 import { BUSINESS_SECTOR_OPTIONS } from '../../../utils/businessSectorOptions';
@@ -7,6 +7,7 @@ import {
   getNumberOfHiresDisplayLabel,
   normalizeNumberOfHiresStored,
 } from '../../../utils/numberOfHiresOptions';
+import { collapseJapanWorkingLocationsForDisplay } from '../../../utils/japanWorkingLocations';
 import JobCategoryPickerModal from '../../Shared/JobCategoryPickerModal';
 import {
   JdTemplateMultiDropdown,
@@ -243,6 +244,7 @@ export default function JdTemplate({
   jobValues,
   workingLocations,
   setWorkingLocations,
+  japanPrefectureTrees = {},
   salaryRanges,
   setSalaryRanges,
   salaryRangeDetails,
@@ -305,6 +307,11 @@ export default function JdTemplate({
     if (lang === 'en') return String(wl.locationEn ?? wl.location_en ?? '').trim();
     return String(wl.locationJp ?? wl.location_jp ?? '').trim();
   };
+
+  const displayWorkingLocations = useMemo(
+    () => collapseJapanWorkingLocationsForDisplay(workingLocations, lang, japanPrefectureTrees),
+    [workingLocations, lang, japanPrefectureTrees],
+  );
 
   const getFormKey = (field) => {
     // holidays: tách holidays / holidaysEn / holidaysJp theo lang (giống mô tả job)
@@ -1110,7 +1117,7 @@ export default function JdTemplate({
             <span
               {...customEditable(
                 'work-locations',
-                (workingLocations || [])
+                (displayWorkingLocations || [])
                   .map((wl) => {
                     const loc = locationLabelByLang(wl);
                     if (!loc) return '';

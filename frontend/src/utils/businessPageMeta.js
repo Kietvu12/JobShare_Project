@@ -42,6 +42,11 @@ const VIEWPORT_LOCKED_PREFIXES = [
 ];
 
 export function isBusinessViewportLockedPage(pathname) {
+  if (pathname === '/business') return true;
+  if (pathname === '/business/jobs') return true;
+  if (pathname === '/business/candidates') return true;
+  if (pathname === '/business/jobs/create' || pathname === '/business/jobs/manual-create') return true;
+  if (/^\/business\/jobs\/[^/]+\/edit$/.test(pathname)) return true;
   return VIEWPORT_LOCKED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

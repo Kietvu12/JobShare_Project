@@ -1,4 +1,6 @@
 /** Gói credit nạp qua WS — hiển thị trên trang yêu cầu nạp credit. */
+export const FEATURED_CREDIT_PACKAGE_KEY = 'standard';
+
 export const BUSINESS_CREDIT_PACKAGES = [
   {
     key: 'basic',

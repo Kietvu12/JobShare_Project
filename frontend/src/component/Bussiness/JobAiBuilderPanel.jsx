@@ -149,6 +149,15 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   const [jdOriginalFile, setJdOriginalFile] = useState(null);
   const [jdOriginalStored, setJdOriginalStored] = useState(null);
   const [nextStepsModal, setNextStepsModal] = useState({ open: false, jobId: null });
+  const [compactDesktop, setCompactDesktop] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px) and (max-width: 1535px)');
+    const sync = () => setCompactDesktop(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   useEffect(() => { if (activeThreadIdProp) setActiveThreadId(activeThreadIdProp); }, [activeThreadIdProp]);
   useEffect(() => { setSavedJobId(savedJobIdProp ?? null); }, [savedJobIdProp]);
@@ -899,7 +908,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   }
 
   const showEmptyGreeting = messages.length === 0 && !loading && !parseLoading;
-  const compactUi = Boolean(embedded);
+  const compactUi = Boolean(embedded) || compactDesktop;
   const isEditingSavedJob = Boolean(savedJobId);
   const titleCls = compactUi ? 'biz-jd-title' : 'biz-ui-section font-semibold text-slate-800';
   const bodyCls = compactUi ? 'biz-jd-body' : 'biz-ui-body text-slate-800';

@@ -22,8 +22,6 @@ import useBusinessUser from '../../hooks/useBusinessUser'
 import { useLanguage } from '../../context/LanguageContext'
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
 import {
-  getScoutSampleNews,
-  getScoutSampleNotifications,
   getScoutSolutionCards,
   getScoutSolutionCard,
   getScoutFilterCopy,
@@ -38,7 +36,6 @@ import {
 } from '../../i18n/businessAppI18n'
 import { getLocalizedJobTitle } from '../../i18n/businessApp/jdBuilder'
 import { HomepageSidebar } from './Homepage'
-import BusinessQuickActionsPanel, { getDefaultBusinessQuickActions } from '../../component/Bussiness/BusinessQuickActionsPanel.jsx'
 import {
   buildScoreMapFromMatches,
   fetchAllBusinessScoutCandidates,
@@ -79,20 +76,20 @@ const scoutPageStyles = `
   .scout-modal-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   .scout-modal-scroll::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
   .scout-candidates-list-ui {
-    --scout-cand-fs-title: 14px;
-    --scout-cand-fs-body: 13px;
-    --scout-cand-fs-caption: 12px;
-    --scout-cand-icon: 14px;
-    line-height: 1.4;
+    --scout-cand-fs-title: 12px;
+    --scout-cand-fs-body: 12px;
+    --scout-cand-fs-caption: 11px;
+    --scout-cand-icon: 13px;
+    line-height: 1.45;
     color: #334155;
     font-size: var(--scout-cand-fs-body);
   }
   @media (min-width: 1536px) {
     .scout-candidates-list-ui {
-      --scout-cand-fs-title: 15px;
-      --scout-cand-fs-body: 14px;
+      --scout-cand-fs-title: 14px;
+      --scout-cand-fs-body: 13px;
       --scout-cand-fs-caption: 12px;
-      --scout-cand-icon: 15px;
+      --scout-cand-icon: 14px;
     }
   }
   .scout-candidates-list-ui .scout-cand-title {
@@ -195,6 +192,7 @@ const scoutPageStyles = `
       transform: scale(var(--hp-zoom));
       transform-origin: top left;
       width: calc(100% / var(--hp-zoom));
+      height: calc(100% / var(--hp-zoom));
     }
   }
 
@@ -241,18 +239,56 @@ const scoutPageStyles = `
   }
   @media (min-width: 1280px) {
     .scout-workspace-body {
-      grid-template-columns: minmax(0, 1fr) 204px;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
     }
   }
   .scout-workspace-content {
     min-height: 0;
+    min-width: 0;
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     overflow: hidden;
   }
   @media (min-width: 1024px) and (max-width: 1279px) {
     .scout-workspace-aside { display: none; }
+  }
+  @media (min-width: 1024px) and (max-width: 1535px) {
+    .scout-workspace-body { gap: 8px; }
+    .scout-workspace-content { gap: 6px; }
+    .scout-candidates-list-ui {
+      --scout-cand-fs-title: 11px;
+      --scout-cand-fs-body: 11px;
+      --scout-cand-fs-caption: 10px;
+      --scout-cand-icon: 12px;
+    }
+    .scout-filter-scroll {
+      max-height: min(26vh, 210px) !important;
+      padding: 0.5rem !important;
+    }
+    .scout-filter-head {
+      padding: 0.375rem 0.625rem !important;
+    }
+    .scout-filter-head h2 {
+      font-size: 11px !important;
+    }
+    .scout-list-head {
+      padding: 0.375rem 0.625rem !important;
+    }
+    .scout-list-item {
+      padding: 0.5rem 0.625rem !important;
+      gap: 0.5rem !important;
+    }
+    .scout-list-avatar {
+      width: 38px !important;
+      height: 38px !important;
+    }
+  }
+  @media (min-width: 1024px) and (max-width: 1535px) and (max-height: 860px) {
+    .scout-filter-scroll {
+      max-height: min(22vh, 180px) !important;
+    }
   }
 `
 
@@ -333,68 +369,6 @@ function ScoutSolutionCard({ card, onStart, animationDelay = 0, scoutCopy }) {
   )
 }
 
-function ScoutOnboardingSidebar({ onNavigate }) {
-  const { language } = useLanguage()
-  const copy = useBusinessAppCopy()
-  const scoutCopy = copy.scout
-  const quickActions = useMemo(() => getDefaultBusinessQuickActions(language), [language])
-  const scoutNotifications = useMemo(() => getScoutSampleNotifications(language), [language])
-  const scoutNews = useMemo(() => getScoutSampleNews(language), [language])
-
-  const handleAction = (item) => {
-    if (item.path) onNavigate(item.path)
-  }
-
-  return (
-    <div className="flex min-h-0 flex-col gap-3 xl:h-full xl:overflow-y-auto xl:pr-0.5 business-homepage-scroll scrollbar-hide">
-      <BusinessQuickActionsPanel actions={quickActions} onActionClick={handleAction} />
-
-      <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="flex items-center gap-2 text-xs font-bold text-slate-900">
-            {scoutCopy.notifications}
-            <span className="rounded-full bg-[#0077B6] px-1.5 py-0.5 text-[9px] font-bold text-white">4</span>
-          </h2>
-          <button type="button" className="shrink-0 text-[10px] font-semibold text-[#0077B6]">{copy.homepage.viewAll}</button>
-        </div>
-        <div className="flex flex-col divide-y divide-slate-100">
-          {scoutNotifications.map((n) => (
-            <div key={n.text} className="flex items-start gap-2.5 py-3 first:pt-0 last:pb-0">
-              {n.warn ? (
-                <AlertTriangle className="mt-1 h-3.5 w-3.5 shrink-0 text-rose-500" />
-              ) : (
-                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.dot}`} />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] leading-relaxed text-slate-700">{n.text}</p>
-                <p className="mt-1.5 text-[10px] leading-none text-slate-400">{n.time}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="text-xs font-bold text-slate-900">{scoutCopy.newsInsights}</h2>
-          <button type="button" className="shrink-0 text-[10px] font-semibold text-[#0077B6]">{copy.homepage.viewAll}</button>
-        </div>
-        <div className="flex flex-col gap-3">
-          {scoutNews.map((n) => (
-            <div key={n.title} className="flex gap-2.5">
-              <img src={n.img} alt="" className="h-10 w-14 shrink-0 rounded-md object-cover" />
-              <div className="min-w-0">
-                <p className="line-clamp-2 text-[11px] font-medium leading-relaxed text-slate-800">{n.title}</p>
-                <p className="mt-1.5 text-[10px] text-slate-400">{n.date}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function getPreviewCandidateScore(candidate) {
   let score = 0
   if (Number(candidate?.experienceYears) > 0) score += 2
@@ -461,7 +435,7 @@ function ScoutCandidateRowBody({
       ) : null}
       {Number.isFinite(Number(matchScore)) ? (
         <div className="mt-2">
-          <ScoutMatchBadge score={matchScore} language={language} className="scout-cand-meta !text-[12px] !px-2.5 !py-1" iconClassName="scout-cand-icon" />
+          <ScoutMatchBadge score={matchScore} language={language} className="scout-cand-meta !px-2 !py-0.5" iconClassName="scout-cand-icon" />
         </div>
       ) : null}
       {chips.length > 0 ? (
@@ -508,34 +482,34 @@ function ScoutManagedFeeTable() {
 
   return (
     <div className="mt-auto w-full shrink-0 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
-      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-3 py-2.5 sm:px-4">
-        <h2 className="scout-cand-title text-slate-900">{onboarding.feeTableTitle}</h2>
-        <p className="scout-cand-caption mt-0.5 text-slate-500">{onboarding.feeTableNote}</p>
+      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-3 py-3 sm:px-4 sm:py-3.5">
+        <h2 className="text-sm font-bold text-slate-900 sm:text-base">{onboarding.feeTableTitle}</h2>
+        <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-500 sm:text-sm">{onboarding.feeTableNote}</p>
       </div>
-      <div className="overflow-x-auto px-3 py-2 sm:px-4">
-        <table className="w-full text-left text-xs">
+      <div className="overflow-x-auto px-3 py-2.5 sm:px-4 sm:py-3">
+        <table className="w-full text-left text-xs sm:text-sm">
           <thead>
             <tr className="border-b border-slate-100 text-slate-500">
-              <th className="py-2 pr-2 font-semibold">{onboarding.feeTableLevel}</th>
-              <th className="py-2 pr-2 font-semibold">{onboarding.feeTableExperience}</th>
-              <th className="py-2 pr-2 font-semibold">{onboarding.feeTableFee}</th>
-              <th className="py-2 font-semibold">{onboarding.feeTableNoteCol}</th>
+              <th className="py-2.5 pr-3 font-semibold">{onboarding.feeTableLevel}</th>
+              <th className="py-2.5 pr-3 font-semibold">{onboarding.feeTableExperience}</th>
+              <th className="py-2.5 pr-3 font-semibold">{onboarding.feeTableFee}</th>
+              <th className="py-2.5 font-semibold">{onboarding.feeTableNoteCol}</th>
             </tr>
           </thead>
           <tbody>
             {feeTiers.map((tier) => (
               <tr key={tier.level} className="border-b border-slate-50 last:border-0">
-                <td className="py-2 pr-2 font-semibold text-slate-800">{tier.level}</td>
-                <td className="py-2 pr-2 text-slate-600">{tier.range}</td>
-                <td className="py-2 pr-2 font-bold text-[#0077B6]">{tier.fee}</td>
-                <td className="py-2 text-slate-500">{tier.note}</td>
+                <td className="py-2.5 pr-3 font-semibold text-slate-800">{tier.level}</td>
+                <td className="py-2.5 pr-3 text-slate-600">{tier.range}</td>
+                <td className="py-2.5 pr-3 font-bold text-[#0077B6]">{tier.fee}</td>
+                <td className="py-2.5 text-slate-500">{tier.note}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div className="border-t border-slate-100 px-3 py-2.5 sm:px-4">
-        <p className="text-[11px] leading-snug text-slate-600 sm:text-xs">{onboarding.wsSupportHint}</p>
+      <div className="border-t border-slate-100 px-3 py-3 sm:px-4">
+        <p className="max-w-3xl text-xs leading-relaxed text-slate-600 sm:text-sm">{onboarding.wsSupportHint}</p>
       </div>
     </div>
   )
@@ -835,7 +809,7 @@ function ScoutFilterPanel({
 
   return (
     <section className="scout-workspace-filters shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-3 py-2.5">
+      <div className="scout-filter-head flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-3 py-2.5">
         <h2 className="text-xs font-bold text-gray-900">{ws.workspace.filterTitle}</h2>
         <div className="flex items-center gap-2">
           {hasActiveFilters ? (
@@ -861,7 +835,7 @@ function ScoutFilterPanel({
           </button>
         </div>
       </div>
-      <div className="scout-scrollbar custom-scrollbar max-h-[42vh] overflow-y-auto p-3 xl:max-h-none">
+      <div className="scout-filter-scroll scout-scrollbar custom-scrollbar max-h-[38vh] overflow-y-auto p-2 lg:max-h-[42vh] lg:p-3 2xl:max-h-none">
         <ScoutCandidateFilterFields
           leadingBlock={leadingBlock}
           scoutFilters={scoutFilters}
@@ -914,9 +888,9 @@ function ScoutCandidateListItem({
       <button
         type="button"
         onClick={() => onOpenDetail(candidate.id)}
-        className="flex w-full items-start gap-3 rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-left transition hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-sm sm:px-4 sm:py-3.5"
+        className="scout-list-item flex w-full items-start gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-left transition hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-sm lg:gap-2.5 lg:px-3 lg:py-2.5"
       >
-        <AvatarCircle candidate={candidate} size={48} language={language} />
+        <AvatarCircle candidate={candidate} size={44} language={language} className="scout-list-avatar" />
         <div className="min-w-0 flex-1">
           <ScoutCandidateRowBody
             candidate={candidate}
@@ -1590,7 +1564,7 @@ function getPrSummary(candidate) {
   )
 }
 
-function AvatarCircle({ candidate, size = 28, language = 'vi' }) {
+function AvatarCircle({ candidate, size = 28, language = 'vi', className = '' }) {
   const name = getLocalizedScoutDisplayName(candidate, language)
   const seed = candidate?.isUnlocked ? name : `anon-${candidate?.id || 'x'}`
   const src = candidate?.isUnlocked && candidate?.avatarPhotoPath
@@ -1601,6 +1575,7 @@ function AvatarCircle({ candidate, size = 28, language = 'vi' }) {
     <img
       src={src}
       alt=""
+      className={className}
       style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: '#e2e8f0' }}
       onError={(e) => {
         e.currentTarget.src = `${ANONYMOUS_AVATAR}&seed=fallback`
@@ -2111,7 +2086,7 @@ const Scout = ({ variant = 'credit' } = {}) => {
         {sharedModals}
         <div className="business-homepage-shell min-h-0 h-full overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden" style={{ fontFamily: PAGE_FONT }}>
           <div className="business-homepage-ui w-full min-h-0 p-2.5 sm:p-3 xl:h-full xl:flex xl:flex-col">
-            <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:h-full xl:grid-cols-[minmax(0,1fr)_minmax(196px,228px)] xl:gap-3 xl:overflow-hidden">
+            <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:h-full xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] xl:gap-3 xl:overflow-hidden">
               <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col xl:h-full xl:overflow-y-auto xl:pr-0.5">
                 <ScoutOnboardingView
                   variant={variant}
@@ -2123,7 +2098,9 @@ const Scout = ({ variant = 'credit' } = {}) => {
                   language={language}
                 />
               </div>
-              <ScoutOnboardingSidebar onNavigate={navigate} />
+              <div className="business-homepage-scroll scrollbar-hide flex h-full min-h-0 flex-col overflow-y-auto xl:pr-0.5">
+                <HomepageSidebar onNavigate={navigate} />
+              </div>
             </div>
           </div>
         </div>
@@ -2156,7 +2133,7 @@ const Scout = ({ variant = 'credit' } = {}) => {
               />
 
               <div className="scout-candidates-list-ui flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
-              <div className="border-b border-slate-100 px-3 py-2">
+              <div className="scout-list-head border-b border-slate-100 px-3 py-2">
                 <p className="scout-cand-caption text-slate-500">
                   {ws.workspace.creditLabel}: <span className="font-semibold text-slate-600">{formatScoutLocaleNumber(credit, language)}</span>
                   {' · '}
@@ -2278,7 +2255,7 @@ const Scout = ({ variant = 'credit' } = {}) => {
               </div>
             </div>
 
-            <div className="scout-workspace-aside min-h-0 overflow-y-auto scout-scrollbar">
+            <div className="scout-workspace-aside business-homepage-scroll scrollbar-hide flex h-full min-h-0 flex-col overflow-y-auto xl:pr-0.5">
               <HomepageSidebar onNavigate={navigate} />
             </div>
           </div>

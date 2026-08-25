@@ -5594,22 +5594,20 @@ const apiService = {
     const filename = meta?.data?.filename || `${fileType}.pdf`;
     const returnedUrl = meta?.data?.url || '';
     const apiDownloadUrl = `${apiBase}/${scopePath}/jobs/${jobId}/download?fileType=${encodeURIComponent(fileType)}`;
-    const isInternalDownloadApi = (url) =>
-      typeof url === 'string' && /\/jobs\/\d+\/download(?:\?|$)/.test(url);
 
-    // S3 presigned / URL ngoài — tải trực tiếp (không cần route /download)
-    if (returnedUrl && !isInternalDownloadApi(returnedUrl)) {
-      await downloadAuthenticatedFileUrl(returnedUrl, { fallbackName: filename });
-      return;
-    }
-
-    // File local — stream qua API nội bộ
+    // Ưu tiên stream qua API nội bộ để giữ đủ tên file Unicode (đặc biệt jdOriginalFile).
+    // Presigned S3 rút gọn Content-Disposition → tên file bị cắt.
     try {
       await downloadAuthenticatedFileUrl(apiDownloadUrl, {
         headers: getMultipartAuthHeaders(),
         fallbackName: filename,
       });
+      return;
     } catch (err) {
+      if (returnedUrl) {
+        await downloadAuthenticatedFileUrl(returnedUrl, { fallbackName: filename });
+        return;
+      }
       const viewRes = await fetch(
         `${apiBase}/${scopePath}/jobs/${jobId}/view-url?fileType=${encodeURIComponent(fileType)}&purpose=view`,
         { method: 'GET', headers: getAuthHeaders() }

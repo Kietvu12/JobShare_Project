@@ -28,10 +28,121 @@ const builderPageStyles = `
     height: 100%;
     min-height: 0;
     font-family: ${BUSINESS_JOBS_FONT};
+    --jobs-zoom: 1;
+  }
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    .business-jobs-shell { --jobs-zoom: 0.9; }
+  }
+  @media (min-width: 1280px) and (max-width: 1535px) {
+    .business-jobs-shell { --jobs-zoom: 0.86; }
+  }
+  @media (min-width: 1024px) and (max-height: 760px) {
+    .business-jobs-shell { --jobs-zoom: 0.78; }
+  }
+  @media (min-width: 1024px) and (min-height: 761px) and (max-height: 860px) {
+    .business-jobs-shell { --jobs-zoom: 0.84; }
   }
   .business-jobs-ui {
+    zoom: var(--jobs-zoom);
     height: 100%;
     min-height: 0;
+    --jd-fs-title: 11px;
+    --jd-fs-body: 10px;
+    --jd-icon: 14px;
+    --jd-icon-hit: 28px;
+  }
+  @supports not (zoom: 1) {
+    .business-jobs-ui {
+      transform: scale(var(--jobs-zoom));
+      transform-origin: top left;
+      width: calc(100% / var(--jobs-zoom));
+      height: calc(100% / var(--jobs-zoom));
+    }
+  }
+  @media (min-width: 1536px) {
+    .business-jobs-ui {
+      --jd-fs-title: 12px;
+      --jd-fs-body: 11px;
+      --jd-icon: 15px;
+      --jd-icon-hit: 30px;
+    }
+  }
+  .business-jobs-ui .biz-jd-title { font-size: var(--jd-fs-title); line-height: 1.35; font-weight: 600; color: #1e293b; }
+  .business-jobs-ui .biz-jd-body { font-size: var(--jd-fs-body); line-height: 1.45; color: #334155; }
+  .business-jobs-ui .biz-jd-muted { font-size: var(--jd-fs-body); line-height: 1.45; color: #64748b; }
+  .business-jobs-ui .biz-jd-icon { width: var(--jd-icon); height: var(--jd-icon); flex-shrink: 0; }
+  .business-jobs-ui .biz-jd-icon-hit {
+    width: var(--jd-icon-hit); height: var(--jd-icon-hit);
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .business-jobs-ui .biz-jd-icon-hit > svg { width: var(--jd-icon); height: var(--jd-icon); }
+  .business-jobs-ui .business-jd-preview-root {
+    --jobs-jd-extra: 0.62;
+    zoom: calc(var(--jobs-jd-zoom, 1) * var(--jobs-jd-extra));
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar { width: 3px; height: 3px; }
+  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-track { background: transparent; }
+  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-button,
+  .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-corner { display: none; width: 0; height: 0; }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact {
+    font-size: var(--jd-fs-body);
+    line-height: 1.35;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .jd-template-option-control,
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .jd-template-option-control option {
+    font-size: var(--jd-fs-body);
+    line-height: 1.35;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact.text-xs,
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .text-xs {
+    font-size: var(--jd-fs-body);
+    line-height: 1.35;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .text-sm,
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .text-\\[10px\\] {
+    font-size: var(--jd-fs-title);
+    line-height: 1.35;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .px-3 {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .py-2 {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .py-2\\.5 {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .w-36 { width: 6.25rem; }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .w-28 { width: 5rem; }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .w-24 { width: 4.25rem; }
+  .business-jobs-ui .business-jd-preview-root .jd-template-compact .min-h-\\[60px\\] { min-height: 2.25rem; }
+  @supports not (zoom: 1) {
+    .business-jobs-ui .business-jd-preview-root {
+      transform: scale(calc(var(--jobs-jd-zoom, 1) * var(--jobs-jd-extra, 0.62)));
+      transform-origin: top left;
+    }
+  }
+  @media (min-width: 1024px) and (max-width: 1535px) {
+    .biz-jd-builder-page-header {
+      padding: 0.375rem 0.625rem;
+      gap: 0.5rem;
+    }
+    .biz-jd-builder-page-header h1 {
+      font-size: 0.8125rem;
+    }
+    .biz-jd-builder-page-header .biz-jd-page-subtitle {
+      font-size: 10px;
+    }
+    .biz-jd-builder-page-header .biz-jd-page-crumb {
+      font-size: 9px;
+    }
   }
 `
 
@@ -227,19 +338,19 @@ const JobAiBuilderPage = ({ mode = 'create' }) => {
       <style>{builderPageStyles}</style>
       <div className="business-jobs-shell flex h-full min-h-0 flex-col overflow-hidden bg-white">
         <div className="business-jobs-ui flex min-h-0 flex-1 flex-col overflow-hidden">
-          <header className="shrink-0 flex items-center gap-3 border-b border-slate-200 px-3 py-2.5 lg:px-4">
+          <header className="biz-jd-builder-page-header shrink-0 flex items-center gap-2 border-b border-slate-200 px-2.5 py-2 lg:gap-3 lg:px-4 lg:py-2.5">
             <button
               type="button"
               onClick={goBack}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 lg:h-8 lg:w-8"
               aria-label={jdCopy.back}
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
             </button>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{jdCopy.breadcrumb}</p>
+              <p className="biz-jd-page-crumb text-[10px] font-semibold uppercase tracking-wide text-slate-400 lg:text-[11px]">{jdCopy.breadcrumb}</p>
               <h1 className="truncate text-sm font-bold text-slate-900 lg:text-base">{pageTitle}</h1>
-              <p className="text-[11px] text-slate-500">{jdCopy.pageSubtitle}</p>
+              <p className="biz-jd-page-subtitle text-[11px] text-slate-500 lg:text-xs">{jdCopy.pageSubtitle}</p>
             </div>
           </header>
 

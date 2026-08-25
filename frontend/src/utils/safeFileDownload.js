@@ -63,15 +63,46 @@ export async function downloadAuthenticatedFileUrl(url, { headers = {}, fallback
   if (typeof window !== 'undefined' && window.location.protocol === 'https:' && fetchUrl.startsWith('http://')) {
     fetchUrl = fetchUrl.replace(/^http:\/\//i, 'https://');
   }
-  if (shouldNavigateDirectly(fetchUrl, headers)) {
-    openRemoteFileDownloadUrl(fetchUrl);
+
+  const saveFromResponse = async (res) => {
+    if (!res.ok) throw new Error(`Download failed (${res.status})`);
+    const blob = await res.blob();
+    const headerName = parseContentDispositionFilename(res.headers.get('Content-Disposition'), fallbackName);
+    const name = shouldPreferFallbackFilename(headerName, fallbackName) ? fallbackName : headerName;
+    downloadBlobAsFile(blob, name);
+  };
+
+  const hasAuthHeaders = Boolean(headers?.Authorization || headers?.authorization);
+  const directNavigate = shouldNavigateDirectly(fetchUrl, headers);
+
+  if (!directNavigate || hasAuthHeaders) {
+    const res = await fetch(fetchUrl, { method: 'GET', headers });
+    await saveFromResponse(res);
     return;
   }
-  const res = await fetch(fetchUrl, { method: 'GET', headers });
-  if (!res.ok) throw new Error(`Download failed (${res.status})`);
-  const blob = await res.blob();
-  const name = parseContentDispositionFilename(res.headers.get('Content-Disposition'), fallbackName);
-  downloadBlobAsFile(blob, name);
+
+  // Presigned S3: thử fetch blob (CORS) để dùng tên file đầy đủ từ meta API
+  if (isExternalStorageUrl(fetchUrl) && fallbackName) {
+    try {
+      const res = await fetch(fetchUrl, { method: 'GET' });
+      await saveFromResponse(res);
+      return;
+    } catch {
+      // fallback mở link trực tiếp
+    }
+  }
+
+  openRemoteFileDownloadUrl(fetchUrl);
+}
+
+function shouldPreferFallbackFilename(headerName, fallbackName) {
+  const header = String(headerName || '').trim();
+  const fallback = String(fallbackName || '').trim();
+  if (!fallback) return false;
+  if (!header || header === 'download') return true;
+  if (/^download\.[a-z0-9]+$/i.test(header)) return true;
+  if (fallback.length > header.length + 8) return true;
+  return false;
 }
 
 /**

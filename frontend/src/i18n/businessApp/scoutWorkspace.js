@@ -44,6 +44,29 @@ export const scoutWorkspaceI18n = {
         insufficientCreditTitle: 'Chưa đủ credit',
         insufficientCreditMessage: 'Bạn chưa có đủ credit để bắt đầu sử dụng dịch vụ. Bạn có muốn nạp thêm?',
         modalClose: 'Đóng',
+        pricingModal: {
+          eyebrow: 'NẠP CREDIT',
+          headline: 'Khám phá Scout miễn phí và nạp credit khi bạn sẵn sàng mở hồ sơ',
+          priceSuffix: '/ một lần nạp',
+          yenUnit: 'yên',
+          bestDeal: 'Best Deal',
+          choosePlan: 'Chọn gói này',
+          learnMore: 'Tìm hiểu thêm',
+        },
+        pricingPackages: {
+          basic: {
+            description: 'Dành cho doanh nghiệp mới làm quen Scout Trực Tiếp',
+            features: ['1.000 credit', 'Tương đương ~10 lần mở hồ sơ', 'Credit không hết hạn'],
+          },
+          standard: {
+            description: 'Phù hợp doanh nghiệp tuyển dụng thường xuyên',
+            features: ['3.000 credit', 'Tương đương ~30 lần mở hồ sơ', 'Tiết kiệm 10% so với nạp lẻ'],
+          },
+          premium: {
+            description: 'Gói tiết kiệm nhất cho nhu cầu volume lớn',
+            features: ['5.000 credit', 'Tương đương ~50 lần mở hồ sơ', 'Tiết kiệm 15% so với nạp lẻ'],
+          },
+        },
       },
       managed: {
         pageTitle: 'Scout Ủy Thác',
@@ -216,6 +239,29 @@ export const scoutWorkspaceI18n = {
         insufficientCreditTitle: 'Insufficient credits',
         insufficientCreditMessage: 'You do not have enough credits to start using this service. Would you like to top up?',
         modalClose: 'Close',
+        pricingModal: {
+          eyebrow: 'TOP UP',
+          headline: 'Explore Scout for free and unlock credits when you are ready to open profiles',
+          priceSuffix: '/ one-time top-up',
+          yenUnit: 'yen',
+          bestDeal: 'Best Deal',
+          choosePlan: 'Choose this plan',
+          learnMore: 'Learn more',
+        },
+        pricingPackages: {
+          basic: {
+            description: 'For companies new to Direct Scout',
+            features: ['1,000 credits', '~10 profile unlocks', 'Credits never expire'],
+          },
+          standard: {
+            description: 'Best for teams hiring on a regular basis',
+            features: ['3,000 credits', '~30 profile unlocks', 'Save 10% vs. pay-as-you-go'],
+          },
+          premium: {
+            description: 'Best value for high-volume hiring',
+            features: ['5,000 credits', '~50 profile unlocks', 'Save 15% vs. pay-as-you-go'],
+          },
+        },
       },
       managed: {
         pageTitle: 'Managed Scout',
@@ -388,6 +434,29 @@ export const scoutWorkspaceI18n = {
         insufficientCreditTitle: 'クレジット不足',
         insufficientCreditMessage: 'サービスを開始するのに十分なクレジットがありません。チャージしますか？',
         modalClose: '閉じる',
+        pricingModal: {
+          eyebrow: 'チャージ',
+          headline: 'スカウトを無料で試し、プロフィール開示の準備ができたらクレジットをチャージ',
+          priceSuffix: '/ 1回のチャージ',
+          yenUnit: '円',
+          bestDeal: 'Best Deal',
+          choosePlan: 'このプランを選ぶ',
+          learnMore: '詳しく見る',
+        },
+        pricingPackages: {
+          basic: {
+            description: 'ダイレクトスカウトを初めて使う企業向け',
+            features: ['1,000クレジット', '約10回のプロフィール開示', 'クレジットに有効期限なし'],
+          },
+          standard: {
+            description: '継続的に採用する企業に最適',
+            features: ['3,000クレジット', '約30回のプロフィール開示', '都度チャージより10%お得'],
+          },
+          premium: {
+            description: '大量採用向けの最もお得なプラン',
+            features: ['5,000クレジット', '約50回のプロフィール開示', '都度チャージより15%お得'],
+          },
+        },
       },
       managed: {
         pageTitle: '委託スカウト',

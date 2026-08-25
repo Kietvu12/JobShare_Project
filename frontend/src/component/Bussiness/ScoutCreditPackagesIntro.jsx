@@ -55,19 +55,19 @@ export default function ScoutCreditPackagesIntro({
 
   return (
     <div className="w-full shrink-0 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
-      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-3 py-2.5 sm:px-4">
+      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-3 py-3 sm:px-4 sm:py-3.5">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#e8f4fa]">
             <Coins className="h-4 w-4 text-[#0077B6]" strokeWidth={2} />
           </div>
-          <div>
-            <h2 className="biz-ui-section text-slate-900">{copy.creditPackagesTitle}</h2>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-bold text-slate-900 sm:text-base">{copy.creditPackagesTitle}</h2>
           </div>
         </div>
         {showIntro ? (
-          <div className="biz-ui-caption mt-2 space-y-1 text-slate-600">
+          <div className="biz-ui-body mt-2.5 max-w-3xl space-y-2 text-slate-600 sm:leading-relaxed">
             {copy.creditIntroLines.map((line) => (
-              <p key={line} className="leading-snug">{line}</p>
+              <p key={line} className="leading-relaxed">{line}</p>
             ))}
           </div>
         ) : null}

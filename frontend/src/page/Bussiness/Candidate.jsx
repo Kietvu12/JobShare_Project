@@ -65,6 +65,7 @@ const candidatePageStyles = `
       transform: scale(var(--hp-zoom));
       transform-origin: top left;
       width: calc(100% / var(--hp-zoom));
+      height: calc(100% / var(--hp-zoom));
     }
   }
   .candidates-workspace-shell {
@@ -77,7 +78,7 @@ const candidatePageStyles = `
     .candidates-workspace-body { grid-template-columns: minmax(0, 1fr) 204px; }
   }
   .candidates-workspace-content {
-    min-height: 0; display: flex; flex-direction: column; gap: 10px; overflow: hidden;
+    min-height: 0; min-width: 0; display: flex; flex-direction: column; flex: 1; gap: 8px; overflow: hidden;
   }
   @media (min-width: 1024px) and (max-width: 1279px) {
     .candidates-workspace-aside { display: none; }
@@ -91,6 +92,44 @@ const candidatePageStyles = `
   .scout-candidates-list-ui .scout-cand-meta { font-size: var(--scout-cand-fs-body); line-height: 1.35; }
   .scout-candidates-list-ui .scout-cand-caption { font-size: var(--scout-cand-fs-caption); line-height: 1.4; }
   .scout-candidates-list-ui .scout-cand-icon { width: var(--scout-cand-icon); height: var(--scout-cand-icon); flex-shrink: 0; }
+  @media (min-width: 1024px) and (max-width: 1535px) {
+    .candidates-workspace-body { gap: 8px; }
+    .candidates-workspace-content { gap: 6px; }
+    .scout-candidates-list-ui {
+      --scout-cand-fs-title: 11px;
+      --scout-cand-fs-body: 11px;
+      --scout-cand-fs-caption: 10px;
+      --scout-cand-icon: 12px;
+    }
+    .candidates-filter-scroll {
+      max-height: min(26vh, 210px) !important;
+      padding: 0.5rem !important;
+    }
+    .candidates-filter-head {
+      padding: 0.375rem 0.625rem !important;
+    }
+    .candidates-filter-head h2 {
+      font-size: 11px !important;
+    }
+    .candidates-list-head {
+      padding: 0.375rem 0.625rem !important;
+    }
+    .candidates-list-item {
+      padding: 0.5rem 0.625rem !important;
+    }
+    .candidates-list-avatar {
+      width: 38px !important;
+      height: 38px !important;
+    }
+  }
+  @media (min-width: 1280px) and (max-width: 1535px) {
+    .candidates-workspace-body { grid-template-columns: minmax(0, 1fr) 188px; }
+  }
+  @media (min-width: 1024px) and (max-width: 1535px) and (max-height: 860px) {
+    .candidates-filter-scroll {
+      max-height: min(22vh, 180px) !important;
+    }
+  }
   .scout-search-highlight {
     background-color: #fef08a !important; color: #92400e !important;
     padding: 0 2px; border-radius: 2px; font-weight: 600;
@@ -107,7 +146,7 @@ const candidatePageStyles = `
   .scout-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
 `
 
-function AvatarCircle({ candidate, size = 44, language = 'vi' }) {
+function AvatarCircle({ candidate, size = 44, language = 'vi', className = '' }) {
   const name = getLocalizedScoutDisplayName(candidate, language)
   const src = candidate?.avatarPhotoPath
     ? candidate.avatarPhotoPath
@@ -116,6 +155,7 @@ function AvatarCircle({ candidate, size = 44, language = 'vi' }) {
     <img
       src={src}
       alt=""
+      className={className}
       style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: '#e2e8f0' }}
       onError={(e) => { e.currentTarget.src = `${ANONYMOUS_AVATAR}&seed=fallback` }}
     />
@@ -175,9 +215,9 @@ function UnlockedCandidateListItem({ candidate, highlightQuery, onOpenDetail, hl
       <button
         type="button"
         onClick={() => onOpenDetail(candidate.id)}
-        className="flex w-full items-start gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left transition hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-sm"
+        className="candidates-list-item flex w-full items-start gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-left transition hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-sm lg:gap-2.5 lg:px-3 lg:py-2.5"
       >
-        <AvatarCircle candidate={candidate} size={44} language={language} />
+        <AvatarCircle candidate={candidate} size={44} language={language} className="candidates-list-avatar" />
         <div className="min-w-0 flex-1">
           <UnlockedCandidateRowBody candidate={candidate} hl={hl} language={language} />
         </div>
@@ -241,9 +281,9 @@ function UnlockedCandidateFilterPanel({
 
   return (
     <section className="scout-workspace-filters shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-3 py-2.5">
-        <h2 className="text-xs font-bold text-gray-900">{copy.candidates.list.filtersTitle}</h2>
-        <div className="flex items-center gap-2">
+      <div className="candidates-filter-head flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-2.5 py-2">
+        <h2 className="text-[11px] font-bold text-gray-900 lg:text-xs">{copy.candidates.list.filtersTitle}</h2>
+        <div className="flex items-center gap-1.5">
           {hasActiveFilters ? (
             <button type="button" onClick={onClear} className="text-[9px] font-semibold text-[#0077B6] hover:underline">
               {copy.candidates.list.clearConditions}
@@ -253,7 +293,7 @@ function UnlockedCandidateFilterPanel({
             type="button"
             onClick={onApply}
             disabled={listLoading}
-            className="inline-flex h-7 items-center justify-center gap-1 rounded px-2.5 shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-6 items-center justify-center gap-1 rounded px-2 shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 lg:h-7 lg:px-2.5"
             style={{ backgroundColor: '#facc15' }}
           >
             {listLoading ? (
@@ -267,7 +307,7 @@ function UnlockedCandidateFilterPanel({
           </button>
         </div>
       </div>
-      <div className="scout-scrollbar custom-scrollbar max-h-[42vh] overflow-y-auto p-3 xl:max-h-none">
+      <div className="candidates-filter-scroll scout-scrollbar custom-scrollbar max-h-[38vh] overflow-y-auto p-2 lg:max-h-[42vh] lg:p-3 2xl:max-h-none">
         <ScoutCandidateFilterFields
           leadingBlock={leadingBlock}
           scoutFilters={scoutFilters}
@@ -330,7 +370,7 @@ function CandidateListPanel({
 
   return (
     <div className="scout-candidates-list-ui flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-3 py-2">
+      <div className="candidates-list-head border-b border-slate-100 px-2.5 py-1.5 lg:px-3 lg:py-2">
         <h2 className="scout-cand-title text-slate-900">
           {loading ? copy.candidates.list.loading : copy.candidates.list.openedCount(formatCandidateNumber(total, language))}
         </h2>
@@ -592,7 +632,7 @@ const Candidate = () => {
             <CandidatesEmptyState copy={copy} />
           ) : (
             <div className="candidates-workspace-body min-h-0 flex-1">
-              <div className="candidates-workspace-content min-h-0">
+              <div className="candidates-workspace-content">
                 <UnlockedCandidateFilterPanel
                   listFilter={listFilter}
                   onListFilterChange={handleListFilterChange}
