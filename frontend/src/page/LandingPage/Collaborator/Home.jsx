@@ -876,7 +876,7 @@ const Home = () => {
           backgroundImage: `url(${heroSectionBg})`,
         }}
       >
-        <div className="absolute inset-0 z-0 bg-gradient-to-r from-[#020817]/85 via-[#0f172a]/65 to-[#0f172a]/45" />
+        <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#020817]/85 via-[#0f172a]/55 to-[#0f172a]/15 md:bg-gradient-to-r md:from-[#020817]/85 md:via-[#0f172a]/65 md:to-[#0f172a]/45" />
         <div className="relative z-10 mx-auto w-full max-w-[1200px] px-4 pt-16 pb-10 md:px-6 md:pb-16 md:pr-[min(50%,360px)]">
           <div className="max-w-xl">
             <p className="inline-flex items-center rounded-full border border-white/40 bg-white/10 px-4 py-1 text-xs font-semibold tracking-wide text-white backdrop-blur">
@@ -915,12 +915,12 @@ const Home = () => {
         </div>
 
         {/* Desktop: cùng lớp với overlay — inset-0 + flex-col justify-end → đẩy ảnh xuống sát đáy lớp gradient. Mobile: trong luồng dưới chữ. */}
-        <div className="z-[5] mt-6 flex justify-center px-4 pb-0 md:pointer-events-none md:absolute md:inset-0 md:mt-0 md:flex md:flex-col md:justify-end md:px-0 md:pb-0">
+        <div className="relative z-[5] mt-6 flex justify-center px-4 pb-0 md:pointer-events-none md:absolute md:inset-0 md:mt-0 md:flex md:flex-col md:justify-end md:px-0 md:pb-0">
           <div className="w-full max-w-[1200px] px-4 pb-0 text-center md:mx-auto md:flex md:justify-end md:pl-6 md:pr-3 md:pb-0">
             <img
               src={heroPeopleCutout}
               alt=""
-              className="inline-block h-auto w-full max-w-[min(100%,400px)] align-bottom object-contain object-bottom max-md:max-h-[min(52vh,340px)] md:ml-0 md:block md:max-h-[min(82vh,740px)] md:w-auto md:max-w-[min(58vw,640px)] md:translate-x-2"
+              className="inline-block h-auto w-full max-w-[min(100%,400px)] align-bottom object-contain object-bottom brightness-[1.22] contrast-[1.08] saturate-[1.06] mix-blend-lighten max-md:max-h-[min(52vh,340px)] md:ml-0 md:block md:max-h-[min(82vh,740px)] md:w-auto md:max-w-[min(58vw,640px)] md:translate-x-2 md:brightness-[1.16] md:contrast-[1.05]"
               decoding="async"
             />
           </div>
