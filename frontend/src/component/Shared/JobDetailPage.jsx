@@ -2321,11 +2321,11 @@ const JobDetailPage = ({
                         </span>
                       )}
                       <div
-                        className="flex rounded-md overflow-hidden shadow-sm border"
+                        className="flex items-stretch rounded-md overflow-hidden shadow-sm border"
                         style={{ borderColor: '#7c3aed' }}
                       >
                         <div
-                          className="flex-[0_0_32%] sm:flex-[0_0_35%] min-w-0 px-1.5 sm:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-medium flex items-start justify-start text-left leading-snug whitespace-normal"
+                          className="flex-[0_0_32%] sm:flex-[0_0_35%] min-w-0 px-1.5 sm:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-medium flex items-center justify-start text-left leading-snug whitespace-normal self-stretch"
                           style={{
                             backgroundColor: useAdminAPI ? '#5F5F5F' : '#4b4f5a',
                             color: '#ffffff',
@@ -2337,7 +2337,7 @@ const JobDetailPage = ({
                         </div>
                         {hideCommissionConditionLabel && detailCommissionTiers.length > 0 ? (
                           <div
-                            className="flex-1 min-w-0 px-2 py-1.5 text-[10px] sm:text-[12px] font-bold flex items-start justify-start text-left leading-snug"
+                            className="flex-1 min-w-0 px-2 py-1.5 sm:py-2 text-[10px] sm:text-[12px] font-bold flex items-center justify-start text-left leading-snug self-stretch"
                             style={{
                               backgroundColor: '#DF2020',
                               color: '#ffffff',
@@ -2347,28 +2347,28 @@ const JobDetailPage = ({
                             {detailCommissionTiers[0]?.amount || detailCommissionText}
                           </div>
                         ) : detailCommissionTiers.length > 0 ? (
-                          <div className="flex-1 min-w-0 flex flex-col">
+                          <div className="flex-1 min-w-0 flex flex-col self-stretch">
                             {detailCommissionTiers.map((tier, index) => (
                               <div
                                 key={index}
-                                className="flex min-h-[36px]"
+                                className="flex flex-1 min-h-[36px] items-stretch"
                                 style={{
                                   borderTop: index === 0 ? 'none' : '1px solid #9ca3af',
                                 }}
                               >
                                 <div
-                                  className="w-24 sm:w-28 flex-shrink-0 px-1.5 sm:px-2 py-1.5 font-semibold flex items-start justify-start text-left"
+                                  className="w-24 sm:w-28 flex-shrink-0 px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold flex items-center justify-start text-left self-stretch"
                                   style={{
                                     backgroundColor: '#EB9696',
                                     color: '#ffffff',
                                   }}
                                 >
-                                  <span className={`break-words whitespace-normal ${commissionTierLabelFontClass(tier.label)}`}>
+                                  <span className={`break-words whitespace-normal leading-snug ${commissionTierLabelFontClass(tier.label)}`}>
                                     {tier.label}
                                   </span>
                                 </div>
                                 <div
-                                  className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 text-[10px] sm:text-[12px] font-bold flex items-start justify-start text-left leading-snug"
+                                  className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-[12px] font-bold flex items-center justify-start text-left leading-snug self-stretch"
                                   style={{
                                     backgroundColor: '#DF2020',
                                     color: '#ffffff',
@@ -2381,7 +2381,7 @@ const JobDetailPage = ({
                           </div>
                         ) : (
                           <div
-                            className="flex-1 min-w-0 px-2 py-1.5 text-[10px] sm:text-[11px] font-bold flex items-start justify-start text-left break-words"
+                            className="flex-1 min-w-0 px-2 py-1.5 sm:py-2 text-[10px] sm:text-[11px] font-bold flex items-center justify-start text-left break-words self-stretch"
                             style={{
                               backgroundColor: '#DF2020',
                               color: '#ffffff',

@@ -4506,20 +4506,50 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                                     if (cityEntry) removeIds.add(cityEntry.jpId);
                                     if (checked) {
                                       setWorkingLocations((prev) => {
-                                        const filtered = prev.filter(
+                                        const hadPref = prefEntry && prev.some((wl) => wl.jpId === prefEntry.jpId);
+                                        let filtered = prev.filter(
                                           (wl) => wl.country !== 'Japan' || !removeIds.has(wl.jpId || `${wl.location}_${wl.country}`)
                                         );
+                                        if (hadPref) {
+                                          filtered = filtered.filter((wl) => wl.jpId !== prefEntry.jpId);
+                                          allLocs
+                                            .filter((item) => !removeIds.has(item.jpId))
+                                            .forEach((item) => {
+                                              if (!filtered.some((wl) => wl.jpId === item.jpId)) {
+                                                filtered = [...filtered, item];
+                                              }
+                                            });
+                                        }
                                         if (cityEntry && !filtered.some((wl) => wl.jpId === cityEntry.jpId)) {
                                           return [...filtered, cityEntry];
+                                        }
+                                        if (!cityEntry) {
+                                          cityLocs.forEach((loc) => {
+                                            if (!filtered.some((wl) => wl.jpId === loc.jpId)) {
+                                              filtered = [...filtered, loc];
+                                            }
+                                          });
                                         }
                                         return filtered;
                                       });
                                     } else {
-                                      setWorkingLocations((prev) =>
-                                        prev.filter(
+                                      setWorkingLocations((prev) => {
+                                        const hadPref = prefEntry && prev.some((wl) => wl.jpId === prefEntry.jpId);
+                                        if (hadPref) {
+                                          let next = prev.filter((wl) => wl.jpId !== prefEntry.jpId);
+                                          allLocs
+                                            .filter((item) => !removeIds.has(item.jpId))
+                                            .forEach((item) => {
+                                              if (!next.some((wl) => wl.jpId === item.jpId)) {
+                                                next = [...next, item];
+                                              }
+                                            });
+                                          return next;
+                                        }
+                                        return prev.filter(
                                           (wl) => wl.country !== 'Japan' || !removeIds.has(wl.jpId || `${wl.location}_${wl.country}`)
-                                        )
-                                      );
+                                        );
+                                      });
                                     }
                                   };
                                   const toggleWard = (fullName, fullNameKana, checked) => {
@@ -4580,12 +4610,18 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                                     });
                                   };
                                   const isCitySelected = (city) => {
+                                    if (prefEntry && selectedJapanIds.has(prefEntry.jpId)) return true;
                                     const cityEntry = createAddJobJapanCityEntry(selectedJapanPrefecture, city, languageTab);
                                     if (cityEntry && selectedJapanIds.has(cityEntry.jpId)) return true;
                                     const locs = city.standalone
                                       ? [makeLocObj(city.name, city.nameKana)]
                                       : (city.wards || []).map((w) => makeLocObj(w.fullName, w.fullNameKana));
                                     return locs.length > 0 && locs.every((l) => selectedJapanIds.has(l.jpId));
+                                  };
+                                  const getWardDisplayLabel = (ward, language) => {
+                                    if (language === 'jp') return ward.wardName || ward.fullName;
+                                    if (ward.wardName) return toRomaji(ward.fullNameKana, ward.wardName);
+                                    return toRomaji(ward.fullNameKana, ward.fullName);
                                   };
                                   return (
                                     <>
@@ -4620,7 +4656,7 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                                                   <label key={w.fullName} className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
                                                     <input type="checkbox" checked={!!isWardSelected} onChange={(e) => toggleWard(w.fullName, w.fullNameKana, e.target.checked)} className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600" />
                                                     <span className="text-xs text-gray-700">
-                                                      {languageTab === 'jp' ? w.fullName : toRomaji(w.fullNameKana, w.fullName)}
+                                                      {getWardDisplayLabel(w, languageTab)}
                                                     </span>
                                                   </label>
                                                 );
