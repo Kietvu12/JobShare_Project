@@ -47,7 +47,10 @@
     "backfill:cv-overdue-6-months": "node scripts/backfill-cv-overdue-6-months.js",
     "migrate:job-application-status-legacy": "node scripts/migrate-job-applications-status-legacy.js",
     "migrate:jd-thieu-to-s3-jd-original-file": "node scripts/upload-jd-thieu-to-s3-and-update-jd-original-file.js",
-    "puppeteer:install-chrome": "npx puppeteer browsers install chrome"
+    "puppeteer:install-chrome": "npx puppeteer browsers install chrome",
+    "seed:business-knowledge-categories": "node scripts/seed-business-knowledge-categories.js",
+    "crawl:vnexpress-knowledge-recruitment": "node scripts/crawl-vnexpress-knowledge-recruitment.js",
+    "crawl:vnexpress-knowledge-recruitment:dry-run": "node scripts/crawl-vnexpress-knowledge-recruitment.js --dry-run"
   },
   "keywords": [
     "jobshare",
