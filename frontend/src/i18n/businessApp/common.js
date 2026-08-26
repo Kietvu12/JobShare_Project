@@ -14,6 +14,10 @@ export const commonI18n = {
     pagination: {
       showing: (start, end, total) => `Hiển thị ${start} – ${end} trên ${total} kết quả`,
       pageSize: (size) => `Hiển thị ${size}`,
+      itemsCount: (size) => `${size} mục`,
+      perPage: 'mỗi trang',
+      previous: 'Trước',
+      next: 'Sau',
       prevPage: 'Trang trước',
       nextPage: 'Trang sau',
     },
@@ -36,6 +40,10 @@ export const commonI18n = {
     pagination: {
       showing: (start, end, total) => `Showing ${start} – ${end} of ${total}`,
       pageSize: (size) => `Show ${size}`,
+      itemsCount: (size) => `${size} items`,
+      perPage: 'per page',
+      previous: 'Previous',
+      next: 'Next',
       prevPage: 'Previous page',
       nextPage: 'Next page',
     },
@@ -58,6 +66,10 @@ export const commonI18n = {
     pagination: {
       showing: (start, end, total) => `${total}件中 ${start} – ${end}件を表示`,
       pageSize: (size) => `${size}件表示`,
+      itemsCount: (size) => `${size}件`,
+      perPage: '件ずつ',
+      previous: '前へ',
+      next: '次へ',
       prevPage: '前のページ',
       nextPage: '次のページ',
     },

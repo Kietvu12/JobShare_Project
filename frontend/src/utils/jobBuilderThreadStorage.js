@@ -94,7 +94,7 @@ export async function upsertJobBuilderThread(thread) {
 }
 
 export async function deleteJobBuilderThread(threadId) {
-  if (!threadId || !/^\d+$/.test(String(threadId))) return;
+  if (!threadId) return;
   await apiService.deleteBusinessJobBuilderThread(threadId);
 }
 

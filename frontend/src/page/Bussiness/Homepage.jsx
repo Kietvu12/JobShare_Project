@@ -180,15 +180,15 @@ function SolutionCard({ card, onUse, labels, animationDelay }) {
         </button>
       </div>
 
-      <div className="biz-hp-card-title-slot relative z-10 self-start pr-14">
+      <div className="biz-hp-card-title-slot relative z-10 mt-6 self-start pb-7 pr-14 sm:mt-7 sm:pb-8">
         <h3 className="line-clamp-2 text-lg font-bold leading-tight sm:text-xl">{card.title}</h3>
       </div>
 
-      <p className={`biz-hp-card-pain-slot relative z-10 self-start text-sm font-bold leading-snug sm:text-base ${isOnDark ? 'text-white' : 'text-slate-800'}`}>
+      <p className={`biz-hp-card-pain-slot relative z-10 mt-4 self-start text-sm font-bold leading-snug sm:mt-5 sm:text-base ${isOnDark ? 'text-white' : 'text-slate-800'}`}>
         {card.painPoint}
       </p>
 
-      <p className={`biz-hp-card-solution-slot relative z-10 self-start text-xs leading-snug sm:text-sm ${mutedClass}`}>
+      <p className={`biz-hp-card-solution-slot relative z-10 mt-4 self-start text-xs leading-snug sm:mt-5 sm:text-sm ${mutedClass}`}>
         {card.solution}
       </p>
 
@@ -204,7 +204,7 @@ function SolutionCard({ card, onUse, labels, animationDelay }) {
         />
       </div>
 
-      <div className="relative z-10 flex min-h-0 flex-col self-stretch">
+      <div className="relative z-10 mt-6 flex min-h-0 flex-col self-stretch sm:mt-7">
         <ul className={`flex min-h-0 flex-1 flex-col gap-2 text-xs leading-snug sm:text-sm ${bodyClass}`}>
           {card.features.map((line) => (
             <li key={line} className="flex gap-2">

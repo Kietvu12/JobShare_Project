@@ -2,9 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Plus, Search, MoreHorizontal, LayoutList, LayoutGrid,
-  Briefcase, MapPin, Clock,
+  Briefcase,
   Copy, Pause, XCircle, Eye, Pencil, Loader2, ChevronDown, RotateCcw,
-  Star, ChevronLeft, ChevronRight,
+  Trash2,
 } from 'lucide-react'
 import nothingIllustration from '../../assets/Nothing.png'
 import FilterSelectDropdown from '../../component/Shared/FilterSelectDropdown'
@@ -27,6 +27,7 @@ import {
 import {
   importLegacyJobBuilderThreadsFromLocalStorage,
   listJobBuilderThreads,
+  deleteJobBuilderThread,
 } from '../../utils/jobBuilderThreadStorage'
 
 const BUSINESS_JOBS_FONT =
@@ -97,12 +98,207 @@ function getRowIconVariant(jobId) {
   return ROW_ICON_VARIANTS[n % ROW_ICON_VARIANTS.length]
 }
 
-function JobMetricColumn({ value, label }) {
+function JobTableHeader({ jobsCopy, allSelected, onToggleAll, hasItems }) {
   return (
-    <div className="business-jobs-metric-col flex min-w-[56px] flex-col items-center text-center">
-      <span className="text-base font-bold leading-none text-[#0077B6] lg:text-lg">{value}</span>
-      <span className="mt-1 text-[10px] font-medium text-slate-500">{label}</span>
+    <thead>
+      <tr className="border-b border-slate-200 bg-white text-left text-[10px] font-semibold uppercase tracking-wide text-[#0077B6]">
+        <th className="w-10 px-3 py-3">
+          <input
+            type="checkbox"
+            checked={allSelected}
+            disabled={!hasItems}
+            onChange={onToggleAll}
+            aria-label={jobsCopy.table.selectAll}
+            className="h-3.5 w-3.5 rounded border-slate-300 text-[#0077B6] focus:ring-[#0077B6]/30"
+          />
+        </th>
+        <th className="px-3 py-3">{jobsCopy.table.name}</th>
+        <th className="px-3 py-3">{jobsCopy.table.salary}</th>
+        <th className="px-3 py-3">{jobsCopy.table.status}</th>
+        <th className="px-3 py-3">{jobsCopy.table.location}</th>
+        <th className="px-3 py-3">{jobsCopy.table.referrals}</th>
+        <th className="px-3 py-3">{jobsCopy.table.updated}</th>
+        <th className="w-28 px-3 py-3 text-right">{jobsCopy.table.actions}</th>
+      </tr>
+    </thead>
+  )
+}
+
+function JobTableRowActions({ job, menuItems, commonCopy, onMenuAction }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const overflowMenuItems = menuItems.filter((item) => !['edit', 'delete'].includes(item.id))
+
+  return (
+    <div className="flex items-center justify-end gap-0.5">
+      <button
+        type="button"
+        onClick={() => onMenuAction('edit', job)}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#0077B6]/10 text-[#0077B6] opacity-0 transition group-hover:opacity-100 hover:bg-[#0077B6]/20"
+        aria-label={menuItems.find((item) => item.id === 'edit')?.label}
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => onMenuAction('delete', job)}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-600"
+        aria-label={menuItems.find((item) => item.id === 'delete')?.label}
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          aria-label={commonCopy.actions}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+        {menuOpen ? (
+          <JobRowMenu
+            job={job}
+            menuItems={overflowMenuItems}
+            closeMenuLabel={commonCopy.closeMenu}
+            onClose={() => setMenuOpen(false)}
+            onAction={(action) => {
+              setMenuOpen(false)
+              onMenuAction(action, job)
+            }}
+          />
+        ) : null}
+      </div>
     </div>
+  )
+}
+
+function JobTableRow({
+  job,
+  stats,
+  selected,
+  onToggleSelect,
+  onOpen,
+  onMenuAction,
+  language,
+  jobsCopy,
+  commonCopy,
+  menuItems,
+}) {
+  const statusMeta = getJobStatusMeta(job.status, language)
+  const title = getJobTitle(job, language)
+  const iconVariant = getRowIconVariant(job.id)
+  const metrics = stats || EMPTY_JOB_STATS
+  const dateLocale = getDateLocale(language)
+
+  return (
+    <tr
+      className="group cursor-pointer border-b border-slate-100 transition hover:bg-slate-50/90"
+      onClick={() => onOpen(job.id)}
+    >
+      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(job.id)}
+          aria-label={jobsCopy.table.selectRow}
+          className="h-3.5 w-3.5 rounded border-slate-300 text-[#0077B6] focus:ring-[#0077B6]/30"
+        />
+      </td>
+      <td className="px-3 py-3">
+        <div className="flex min-w-[180px] items-center gap-3">
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${iconVariant.bg} ${iconVariant.text}`}>
+            <Briefcase className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-slate-900">{title}</p>
+            <p className="truncate text-xs text-slate-500">{getJobCode(job)}</p>
+          </div>
+        </div>
+      </td>
+      <td className="px-3 py-3">
+        <p className="text-sm font-semibold text-slate-900">{formatJobSalary(job, language)}</p>
+        <p className="text-xs text-slate-500">{getRecruitmentLabel(job, language)}</p>
+      </td>
+      <td className="px-3 py-3">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700">
+          <span className={`h-2 w-2 rounded-full ${statusMeta.dot}`} />
+          {statusMeta.label}
+        </span>
+      </td>
+      <td className="max-w-[160px] truncate px-3 py-3 text-sm text-slate-700">{getJobLocation(job)}</td>
+      <td className="px-3 py-3">
+        <p className="text-sm font-semibold text-slate-900">{metrics.referrals}</p>
+        <p className="text-xs text-slate-500">{jobsCopy.metrics.referrals}</p>
+      </td>
+      <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
+        {formatDate(job.updatedAt || job.updated_at, dateLocale)}
+      </td>
+      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+        <JobTableRowActions
+          job={job}
+          menuItems={menuItems}
+          commonCopy={commonCopy}
+          onMenuAction={onMenuAction}
+        />
+      </td>
+    </tr>
+  )
+}
+
+function DraftTableRow({ thread, onOpen, onDelete, jobsCopy, commonCopy, language }) {
+  const dateLocale = getDateLocale(language)
+  const title = thread.title || jobsCopy.draft.defaultTitle
+
+  return (
+    <tr
+      className="group cursor-pointer border-b border-slate-100 bg-amber-50/40 transition hover:bg-amber-50/70"
+      onClick={() => onOpen(thread.id)}
+    >
+      <td className="px-3 py-3" />
+      <td className="px-3 py-3">
+        <div className="flex min-w-[180px] items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+            <Briefcase className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="truncate text-sm font-semibold text-slate-900">{title}</p>
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                {jobsCopy.draft.badge}
+              </span>
+            </div>
+            <p className="truncate text-xs text-slate-500">{jobsCopy.draft.hint}</p>
+          </div>
+        </div>
+      </td>
+      <td className="px-3 py-3 text-sm text-slate-400">—</td>
+      <td className="px-3 py-3">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700">
+          <span className="h-2 w-2 rounded-full bg-amber-500" />
+          {jobsCopy.status.draft}
+        </span>
+      </td>
+      <td className="px-3 py-3 text-sm text-slate-400">—</td>
+      <td className="px-3 py-3 text-sm text-slate-400">—</td>
+      <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
+        {formatDate(thread.updatedAt, dateLocale)}
+      </td>
+      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-0.5">
+          <button
+            type="button"
+            onClick={() => onDelete(thread)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-600"
+            aria-label={jobsCopy.menu.delete}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+          <span className="inline-flex h-8 w-8 items-center justify-center text-slate-300">
+            <MoreHorizontal className="h-4 w-4" />
+          </span>
+        </div>
+      </td>
+    </tr>
   )
 }
 
@@ -113,75 +309,87 @@ function JobListPagination({
   onPageChange,
   onPageSizeChange,
   paginationCopy,
+  embedded = false,
 }) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
   const safePage = Math.min(page, totalPages)
-  const start = totalItems === 0 ? 0 : (safePage - 1) * pageSize + 1
-  const end = Math.min(safePage * pageSize, totalItems)
 
   const pageNumbers = useMemo(() => {
-    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1)
-    if (safePage <= 3) return [1, 2, 3, 4, 5]
-    if (safePage >= totalPages - 2) {
-      return Array.from({ length: 5 }, (_, i) => totalPages - 4 + i)
+    const maxVisible = 6
+    if (totalPages <= maxVisible) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1)
     }
-    return [safePage - 2, safePage - 1, safePage, safePage + 1, safePage + 2]
+    let startPage = Math.max(1, safePage - 2)
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1)
+    startPage = Math.max(1, endPage - maxVisible + 1)
+    return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i)
   }, [safePage, totalPages])
 
   if (totalItems === 0) return null
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-slate-200/90 bg-white px-3 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:px-4">
-      <p className="text-xs text-slate-500">
-        {paginationCopy.showing(start, end, totalItems)}
-      </p>
-      <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            disabled={safePage <= 1}
-            onClick={() => onPageChange(safePage - 1)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:opacity-40"
-            aria-label={paginationCopy.prevPage}
+    <div
+      className={
+        embedded
+          ? 'flex shrink-0 flex-col gap-2 border-t border-slate-100 bg-white px-3 py-2 sm:flex-row sm:items-center sm:justify-between lg:px-4'
+          : 'flex flex-col gap-2 rounded-xl border border-slate-200/90 bg-white px-3 py-2 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:px-4'
+      }
+    >
+      <div className="flex items-center gap-1.5">
+        <div className="relative">
+          <select
+            value={pageSize}
+            onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            aria-label={paginationCopy.perPage}
+            className="appearance-none rounded-full border border-slate-200 bg-white py-1 pl-3 pr-7 text-xs font-medium text-slate-700 outline-none transition hover:border-slate-300 focus:border-[#0077B6]/40"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
+            {PAGE_SIZE_OPTIONS.map((size) => (
+              <option key={size} value={size}>{paginationCopy.itemsCount(size)}</option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
+        </div>
+        <span className="text-xs text-slate-500">{paginationCopy.perPage}</span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
+        <button
+          type="button"
+          disabled={safePage <= 1}
+          onClick={() => onPageChange(safePage - 1)}
+          aria-label={paginationCopy.prevPage}
+          className="rounded-full bg-[#0077B6]/10 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-[#0077B6]/15 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {paginationCopy.previous}
+        </button>
+
+        <div className="flex items-center gap-0.5">
           {pageNumbers.map((p) => (
             <button
               key={p}
               type="button"
               onClick={() => onPageChange(p)}
-              className={`inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-semibold ${
+              aria-current={p === safePage ? 'page' : undefined}
+              className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition ${
                 p === safePage
-                  ? 'bg-[#0077B6] text-white'
-                  : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  ? 'border border-slate-300 bg-white text-slate-900 shadow-sm'
+                  : 'bg-[#0077B6]/10 text-slate-700 hover:bg-[#0077B6]/15'
               }`}
             >
               {p}
             </button>
           ))}
-          <button
-            type="button"
-            disabled={safePage >= totalPages}
-            onClick={() => onPageChange(safePage + 1)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:opacity-40"
-            aria-label={paginationCopy.nextPage}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
         </div>
-        <div className="relative">
-          <select
-            value={pageSize}
-            onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-2.5 pr-8 text-xs font-medium text-slate-700 outline-none"
-          >
-            {PAGE_SIZE_OPTIONS.map((size) => (
-              <option key={size} value={size}>{paginationCopy.pageSize(size)}</option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-        </div>
+
+        <button
+          type="button"
+          disabled={safePage >= totalPages}
+          onClick={() => onPageChange(safePage + 1)}
+          aria-label={paginationCopy.nextPage}
+          className="rounded-full bg-[#0077B6]/10 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-[#0077B6]/15 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {paginationCopy.next}
+        </button>
       </div>
     </div>
   )
@@ -272,6 +480,12 @@ const jobListStyles = `
   }
   .business-jobs-list-scroll::-webkit-scrollbar { width: 4px; }
   .business-jobs-list-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  .business-jobs-table thead th {
+    white-space: nowrap;
+  }
+  .business-jobs-table tbody tr:last-child td {
+    border-bottom: none;
+  }
   @media (min-width: 1024px) and (max-width: 1535px) {
     .business-jobs-tabs {
       flex-wrap: nowrap;
@@ -306,6 +520,7 @@ const MENU_ICONS = {
   duplicate: Copy,
   pause: Pause,
   close: XCircle,
+  delete: Trash2,
 }
 
 function JobRowMenu({ job, onClose, onAction, menuItems, closeMenuLabel }) {
@@ -315,16 +530,22 @@ function JobRowMenu({ job, onClose, onAction, menuItems, closeMenuLabel }) {
     <>
       <button type="button" className="fixed inset-0 z-30 cursor-default" aria-label={closeMenuLabel} onClick={onClose} />
       <div className="absolute right-0 top-full z-40 mt-1 min-w-[160px] overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-        {items.map(({ id, label }) => {
+        {items.map(({ id, label, danger }) => {
           const Icon = MENU_ICONS[id]
           return (
             <button
               key={id}
               type="button"
               onClick={() => onAction(id)}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs ${
+                danger
+                  ? 'text-rose-600 hover:bg-rose-50'
+                  : 'text-slate-700 hover:bg-slate-50'
+              }`}
             >
-              {Icon ? <Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" /> : null}
+              {Icon ? (
+                <Icon className={`h-3.5 w-3.5 shrink-0 ${danger ? 'text-rose-500' : 'text-slate-400'}`} />
+              ) : null}
               {label}
             </button>
           )
@@ -334,7 +555,7 @@ function JobRowMenu({ job, onClose, onAction, menuItems, closeMenuLabel }) {
   )
 }
 
-function JobListRow({
+function JobGridCard({
   job,
   stats,
   onOpen,
@@ -344,7 +565,6 @@ function JobListRow({
   commonCopy,
   menuItems,
 }) {
-  const [menuOpen, setMenuOpen] = useState(false)
   const statusMeta = getJobStatusMeta(job.status, language)
   const title = getJobTitle(job, language)
   const iconVariant = getRowIconVariant(job.id)
@@ -357,93 +577,50 @@ function JobListRow({
       tabIndex={0}
       onClick={() => onOpen(job.id)}
       onKeyDown={(e) => e.key === 'Enter' && onOpen(job.id)}
-      className="group business-jobs-row-compact relative flex cursor-pointer flex-col gap-3 rounded-xl border border-slate-200/90 bg-white px-3 py-3 transition hover:border-[#0077B6]/25 hover:bg-[#f8fbfd] sm:px-4 2xl:flex-row 2xl:items-center"
+      className="group relative flex cursor-pointer flex-col gap-3 rounded-xl border border-slate-200/90 bg-white p-3 transition hover:border-[#0077B6]/25 hover:bg-[#f8fbfd] sm:p-4"
     >
-      <div className="flex min-w-0 flex-1 items-start gap-3 2xl:items-center 2xl:gap-4">
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${iconVariant.bg} ${iconVariant.text}`}>
-          <Briefcase className="h-5 w-5" />
+      <div className="flex items-start gap-3">
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${iconVariant.bg} ${iconVariant.text}`}>
+          <Briefcase className="h-4 w-4" />
         </div>
-
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-sm font-bold text-slate-900 2xl:text-[15px]">{title}</h3>
-            <Star className="h-3.5 w-3.5 shrink-0 text-amber-400" aria-hidden />
-            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusMeta.color}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dot}`} />
-              {statusMeta.label}
-            </span>
+          <p className="truncate text-sm font-semibold text-slate-900">{title}</p>
+          <p className="mt-0.5 text-xs text-slate-500">{getJobCode(job)}</p>
+          <span className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-slate-700">
+            <span className={`h-2 w-2 rounded-full ${statusMeta.dot}`} />
+            {statusMeta.label}
+          </span>
+        </div>
+        <div onClick={(e) => e.stopPropagation()}>
+          <JobTableRowActions
+            job={job}
+            menuItems={menuItems}
+            commonCopy={commonCopy}
+            onMenuAction={onMenuAction}
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 text-center sm:grid-cols-4">
+        {[
+          [metrics.candidates, jobsCopy.metrics.candidates],
+          [metrics.referrals, jobsCopy.metrics.referrals],
+          [metrics.interviews, jobsCopy.metrics.interviews],
+          [metrics.hired, jobsCopy.metrics.hired],
+        ].map(([value, label]) => (
+          <div key={label}>
+            <p className="text-base font-bold text-[#0077B6]">{value}</p>
+            <p className="mt-0.5 text-[10px] text-slate-500">{label}</p>
           </div>
-          <p className="mt-0.5 text-[11px] font-medium text-slate-500">{getJobCode(job)}</p>
-          <div className="business-jobs-row-meta mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
-            <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3 shrink-0" />{getJobLocation(job)}</span>
-            <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3 shrink-0" />{getRecruitmentLabel(job, language)}</span>
-            <span>{formatJobSalary(job, language)}</span>
-          </div>
-        </div>
-
-        <div className="relative shrink-0 2xl:hidden" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={() => setMenuOpen((v) => !v)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            aria-label={commonCopy.actions}
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
-          {menuOpen ? (
-            <JobRowMenu
-              job={job}
-              menuItems={menuItems}
-              closeMenuLabel={commonCopy.closeMenu}
-              onClose={() => setMenuOpen(false)}
-              onAction={(action) => {
-                setMenuOpen(false)
-                onMenuAction(action, job)
-              }}
-            />
-          ) : null}
-        </div>
+        ))}
       </div>
-
-      <div className="grid grid-cols-4 gap-2 border-t border-slate-100 pt-3 2xl:flex 2xl:shrink-0 2xl:items-center 2xl:gap-5 2xl:border-0 2xl:pt-0">
-        <JobMetricColumn value={metrics.candidates} label={jobsCopy.metrics.candidates} />
-        <JobMetricColumn value={metrics.referrals} label={jobsCopy.metrics.referrals} />
-        <JobMetricColumn value={metrics.interviews} label={jobsCopy.metrics.interviews} />
-        <JobMetricColumn value={metrics.hired} label={jobsCopy.metrics.hired} />
-      </div>
-
-      <div className="hidden shrink-0 flex-col items-end gap-2 2xl:flex">
-        <p className="whitespace-nowrap text-[10px] text-slate-400">
-          {commonCopy.updatedAt(formatDate(job.updatedAt || job.updated_at, dateLocale))}
-        </p>
-        <div className="relative" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={() => setMenuOpen((v) => !v)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            aria-label={commonCopy.actions}
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
-          {menuOpen ? (
-            <JobRowMenu
-              job={job}
-              menuItems={menuItems}
-              closeMenuLabel={commonCopy.closeMenu}
-              onClose={() => setMenuOpen(false)}
-              onAction={(action) => {
-                setMenuOpen(false)
-                onMenuAction(action, job)
-              }}
-            />
-          ) : null}
-        </div>
-      </div>
+      <p className="text-[10px] text-slate-400">
+        {commonCopy.updatedAt(formatDate(job.updatedAt || job.updated_at, dateLocale))}
+      </p>
     </div>
   )
 }
 
-function DraftThreadRow({ thread, onOpen, jobsCopy, commonCopy, language }) {
+function JobGridDraftCard({ thread, onOpen, onDelete, jobsCopy, commonCopy, language }) {
   const dateLocale = getDateLocale(language)
   return (
     <div
@@ -451,18 +628,28 @@ function DraftThreadRow({ thread, onOpen, jobsCopy, commonCopy, language }) {
       tabIndex={0}
       onClick={() => onOpen(thread.id)}
       onKeyDown={(e) => e.key === 'Enter' && onOpen(thread.id)}
-      className="flex cursor-pointer items-start gap-3 rounded-xl border border-dashed border-amber-200 bg-amber-50/50 px-3 py-3 transition hover:border-amber-300 sm:px-4"
+      className="group flex cursor-pointer items-start gap-3 rounded-xl border border-dashed border-amber-200 bg-amber-50/50 p-3 transition hover:border-amber-300 sm:p-4"
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-amber-600">
-        <Briefcase className="h-5 w-5" />
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+        <Briefcase className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="truncate text-sm font-bold text-slate-900">{thread.title || jobsCopy.draft.defaultTitle}</h3>
+          <h3 className="truncate text-sm font-semibold text-slate-900">{thread.title || jobsCopy.draft.defaultTitle}</h3>
           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">{jobsCopy.draft.badge}</span>
         </div>
         <p className="mt-1 text-[11px] text-slate-500">{jobsCopy.draft.hint}</p>
         <p className="mt-1 text-[10px] text-slate-400">{commonCopy.updatedAt(formatDate(thread.updatedAt, dateLocale))}</p>
+      </div>
+      <div className="shrink-0 self-center" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          onClick={() => onDelete(thread)}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-600"
+          aria-label={jobsCopy.menu.delete}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
       </div>
     </div>
   )
@@ -496,6 +683,7 @@ const JobManagement = () => {
   const [jobStatsMap, setJobStatsMap] = useState({})
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [selectedJobIds, setSelectedJobIds] = useState(() => new Set())
   const searchTimerRef = useRef(null)
 
   const loadApplicationStats = useCallback(async () => {
@@ -666,6 +854,35 @@ const JobManagement = () => {
     return listItems.slice(start, start + pageSize)
   }, [listItems, pageSize, safePage])
 
+  const pagedJobIds = useMemo(
+    () => pagedListItems.filter((item) => item.type === 'job').map((item) => String(item.job.id)),
+    [pagedListItems],
+  )
+
+  const allPagedJobsSelected = pagedJobIds.length > 0 && pagedJobIds.every((id) => selectedJobIds.has(id))
+
+  const toggleSelectJob = (jobId) => {
+    const id = String(jobId)
+    setSelectedJobIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAllPagedJobs = () => {
+    setSelectedJobIds((prev) => {
+      const next = new Set(prev)
+      if (allPagedJobsSelected) {
+        pagedJobIds.forEach((id) => next.delete(id))
+      } else {
+        pagedJobIds.forEach((id) => next.add(id))
+      }
+      return next
+    })
+  }
+
   useEffect(() => {
     setPage(1)
   }, [searchInput, statusTab, categoryFilter, locationFilter, dateFilter, sortBy, pageSize])
@@ -688,6 +905,17 @@ const JobManagement = () => {
 
   const openDraftThread = (threadId) => {
     navigate(`/business/jobs/create?threadId=${encodeURIComponent(threadId)}`)
+  }
+
+  const handleDeleteDraftThread = async (thread) => {
+    const title = thread.title || jobsCopy.draft.defaultTitle
+    if (!window.confirm(jobsCopy.alerts.draftDeleteConfirm(title))) return
+    try {
+      await deleteJobBuilderThread(thread.id)
+      await loadDraftThreads()
+    } catch {
+      window.alert(jobsCopy.alerts.draftDeleteFailed)
+    }
   }
 
   const handleMenuAction = async (action, job) => {
@@ -717,6 +945,21 @@ const JobManagement = () => {
         else window.alert(res?.message || jobsCopy.alerts.closeFailed)
       } catch {
         window.alert(jobsCopy.alerts.closeFailed)
+      }
+      return
+    }
+    if (action === 'delete') {
+      if (!window.confirm(jobsCopy.alerts.deleteConfirm(getJobTitle(job, language)))) return
+      try {
+        const res = await apiService.deleteBusinessJob(job.id)
+        if (res?.success) {
+          loadJobs(searchInput.trim())
+          loadApplicationStats()
+        } else {
+          window.alert(res?.message || jobsCopy.alerts.deleteFailed)
+        }
+      } catch {
+        window.alert(jobsCopy.alerts.deleteFailed)
       }
     }
   }
@@ -920,51 +1163,91 @@ const JobManagement = () => {
               </button>
             </div>
           ) : (
-            <>
-              <div
-                className={`business-jobs-list-scroll min-h-0 flex-1 overflow-y-auto pr-0.5 ${
-                  viewMode === 'grid' ? 'grid grid-cols-1 gap-2 md:grid-cols-2' : 'flex flex-col gap-2'
-                }`}
-              >
-                {pagedListItems.map((item) => (
-                  item.type === 'draft' ? (
-                    <DraftThreadRow
-                      key={item.thread.id}
-                      thread={item.thread}
-                      onOpen={openDraftThread}
-                      jobsCopy={jobsCopy}
-                      commonCopy={commonCopy}
-                      language={language}
-                    />
-                  ) : (
-                    <JobListRow
-                      key={item.job.id}
-                      job={item.job}
-                      stats={getJobStats(item.job, jobStatsMap)}
-                      onOpen={openJobDetail}
-                      onMenuAction={handleMenuAction}
-                      language={language}
-                      jobsCopy={jobsCopy}
-                      commonCopy={commonCopy}
-                      menuItems={menuItems}
-                    />
-                  )
-                ))}
-              </div>
-              <div className="mt-2 shrink-0">
-                <JobListPagination
-                  page={safePage}
-                  pageSize={pageSize}
-                  totalItems={totalListItems}
-                  onPageChange={setPage}
-                  onPageSizeChange={(size) => {
-                    setPageSize(size)
-                    setPage(1)
-                  }}
-                  paginationCopy={commonCopy.pagination}
-                />
-              </div>
-            </>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
+              {viewMode === 'grid' ? (
+                <div className="business-jobs-list-scroll grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-y-auto p-2 md:grid-cols-2 lg:p-3">
+                  {pagedListItems.map((item) => (
+                    item.type === 'draft' ? (
+                      <JobGridDraftCard
+                        key={item.thread.id}
+                        thread={item.thread}
+                        onOpen={openDraftThread}
+                        onDelete={handleDeleteDraftThread}
+                        jobsCopy={jobsCopy}
+                        commonCopy={commonCopy}
+                        language={language}
+                      />
+                    ) : (
+                      <JobGridCard
+                        key={item.job.id}
+                        job={item.job}
+                        stats={getJobStats(item.job, jobStatsMap)}
+                        onOpen={openJobDetail}
+                        onMenuAction={handleMenuAction}
+                        language={language}
+                        jobsCopy={jobsCopy}
+                        commonCopy={commonCopy}
+                        menuItems={menuItems}
+                      />
+                    )
+                  ))}
+                </div>
+              ) : (
+                <div className="business-jobs-list-scroll min-h-0 flex-1 overflow-y-auto">
+                  <div className="overflow-x-auto">
+                    <table className="business-jobs-table w-full min-w-[960px] border-collapse">
+                      <JobTableHeader
+                        jobsCopy={jobsCopy}
+                        allSelected={allPagedJobsSelected}
+                        onToggleAll={toggleSelectAllPagedJobs}
+                        hasItems={pagedJobIds.length > 0}
+                      />
+                      <tbody>
+                        {pagedListItems.map((item) => (
+                          item.type === 'draft' ? (
+                            <DraftTableRow
+                              key={item.thread.id}
+                              thread={item.thread}
+                              onOpen={openDraftThread}
+                              onDelete={handleDeleteDraftThread}
+                              jobsCopy={jobsCopy}
+                              commonCopy={commonCopy}
+                              language={language}
+                            />
+                          ) : (
+                            <JobTableRow
+                              key={item.job.id}
+                              job={item.job}
+                              stats={getJobStats(item.job, jobStatsMap)}
+                              selected={selectedJobIds.has(String(item.job.id))}
+                              onToggleSelect={toggleSelectJob}
+                              onOpen={openJobDetail}
+                              onMenuAction={handleMenuAction}
+                              language={language}
+                              jobsCopy={jobsCopy}
+                              commonCopy={commonCopy}
+                              menuItems={menuItems}
+                            />
+                          )
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+              <JobListPagination
+                embedded
+                page={safePage}
+                pageSize={pageSize}
+                totalItems={totalListItems}
+                onPageChange={setPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size)
+                  setPage(1)
+                }}
+                paginationCopy={commonCopy.pagination}
+              />
+            </div>
           )}
         </div>
         </div>
