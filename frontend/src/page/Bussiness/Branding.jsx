@@ -93,6 +93,25 @@ const homepageStyles = `
     .biz-hp-solution-card { transition: none; }
     .biz-hp-solution-card:hover { transform: none; }
   }
+
+  .branding-service-cards-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  @media (min-width: 640px) {
+    .branding-service-cards-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1280px) and (max-width: 1679px) {
+    .branding-service-cards-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1680px) {
+    .branding-service-cards-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
 `
 
 const CARD_SURFACE = {
@@ -127,7 +146,7 @@ function ServiceCardCtaButton({ cta, isOnDark, disabled, onClick }) {
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`flex h-12 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[10px] font-semibold leading-tight transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:text-[11px] ${
+      className={`flex min-h-[2.75rem] w-full items-center gap-2 rounded-lg px-2.5 text-left text-[10px] font-semibold leading-tight transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-[3rem] sm:text-[11px] 2xl:h-12 ${
         isYellow ? yellowClass : whiteClass
       }`}
     >
@@ -161,7 +180,7 @@ function BrandingServiceCard({ card, onCta, loadingKey, copy }) {
 
   return (
     <article
-      className={`biz-hp-solution-card ${isOnDark ? 'biz-hp-solution-card--dark' : ''} relative grid h-full min-h-[300px] grid-rows-[2rem_4.75rem_minmax(0,1fr)_auto] overflow-hidden rounded-[1.25rem] p-3.5 sm:p-4 ${surface}`}
+      className={`biz-hp-solution-card ${isOnDark ? 'biz-hp-solution-card--dark' : ''} relative grid h-full min-h-[260px] grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden rounded-[1.25rem] p-3 sm:p-3.5 xl:min-h-[280px] 2xl:min-h-[300px] 2xl:p-4 ${surface}`}
     >
       <div className="relative z-20 flex items-start justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -203,14 +222,14 @@ function BrandingServiceCard({ card, onCta, loadingKey, copy }) {
         </button>
       </div>
 
-      <div className="relative z-10 mt-2 pr-14">
-        <h3 className="line-clamp-2 text-base font-bold leading-tight sm:text-lg">{card.title}</h3>
-        <p className={`mt-1 line-clamp-2 text-xs leading-snug sm:text-[13px] ${mutedClass}`}>{card.subtitle}</p>
+      <div className="relative z-10 mt-1.5 pr-10 sm:mt-2 sm:pr-14">
+        <h3 className="line-clamp-2 text-sm font-bold leading-tight sm:text-base 2xl:text-lg">{card.title}</h3>
+        <p className={`mt-1 line-clamp-2 text-[11px] leading-snug sm:text-xs 2xl:text-[13px] ${mutedClass}`}>{card.subtitle}</p>
       </div>
 
-      <div className="pointer-events-none absolute right-0 top-[3.25rem] z-0 translate-x-[18%]" aria-hidden>
+      <div className="pointer-events-none absolute right-0 top-[2.75rem] z-0 translate-x-[18%] sm:top-[3.25rem]" aria-hidden>
         <DecoIcon
-          className={`h-[6.5rem] w-[6.5rem] sm:h-28 sm:w-28 ${isOnDark ? 'text-white/30' : 'text-[#0077B6]/22'}`}
+          className={`h-16 w-16 sm:h-[5.5rem] sm:w-[5.5rem] 2xl:h-28 2xl:w-28 ${isOnDark ? 'text-white/30' : 'text-[#0077B6]/22'}`}
           strokeWidth={1.1}
         />
       </div>
@@ -231,8 +250,8 @@ function BrandingServiceCard({ card, onCta, loadingKey, copy }) {
 
       <div className={`relative z-10 mt-3 shrink-0 border-t pt-3 ${isOnDark ? 'border-white/20' : 'border-slate-200/80'}`}>
         <h4 className={`text-xs font-bold sm:text-[13px] ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}>{copy.suitableHeading}</h4>
-        <p className={`mt-1.5 min-h-[2.75rem] text-[11px] leading-snug sm:text-xs ${bodyClass}`}>{card.suitableFor}</p>
-        <div className="mt-2.5 grid grid-cols-1 gap-1.5">
+        <p className={`mt-1.5 min-h-[2.25rem] text-[10px] leading-snug sm:min-h-[2.75rem] sm:text-[11px] 2xl:text-xs ${bodyClass}`}>{card.suitableFor}</p>
+        <div className="mt-2 grid grid-cols-1 gap-1.5">
           {(card.ctas || []).map((cta) => (
             <ServiceCardCtaButton
               key={cta.action}
@@ -248,21 +267,28 @@ function BrandingServiceCard({ card, onCta, loadingKey, copy }) {
   )
 }
 
-function BrandingOverviewMain({ onCardCta, onConsultation, requestLoadingKey, copy, servicePackages }) {
+function BrandingOverviewMain({ onNavigate, onCardCta, onConsultation, requestLoadingKey, copy, servicePackages }) {
   return (
     <div className="flex flex-col gap-2">
-      <header className="shrink-0">
-        <h1 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl">{copy.pageTitle}</h1>
-        <p className="mt-1 text-xs leading-snug text-slate-600 sm:text-sm">
-          {copy.pageSubtitle}
-        </p>
-      </header>
+      <div className="shrink-0">
+        <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
+          <button
+            type="button"
+            onClick={() => onNavigate('/business')}
+            className="transition hover:text-[#0077B6]"
+          >
+            {copy.breadcrumb.home}
+          </button>
+          <span className="mx-1.5 text-slate-400">&gt;</span>
+          <span className="font-medium text-slate-700">{copy.breadcrumb.current}</span>
+        </nav>
+      </div>
 
-      <div className="grid grid-cols-1 items-stretch gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="branding-service-cards-grid grid items-stretch gap-2">
         {servicePackages.map((card, index) => (
           <div
             key={card.num}
-            className="biz-hp-solution-card-wrap"
+            className="biz-hp-solution-card-wrap min-w-0"
             style={{ animationDelay: `${0.06 + index * 0.1}s` }}
           >
             <BrandingServiceCard card={card} onCta={onCardCta} loadingKey={requestLoadingKey} copy={copy} />
@@ -453,6 +479,7 @@ function BrandingStatsSection({
 function BrandingUnifiedMain({
   copy,
   language,
+  onNavigate,
   servicePackages,
   onCardCta,
   onConsultation,
@@ -469,6 +496,7 @@ function BrandingUnifiedMain({
   return (
     <div className="flex min-h-0 flex-col gap-4 pb-2">
       <BrandingOverviewMain
+        onNavigate={onNavigate}
         onCardCta={onCardCta}
         onConsultation={onConsultation}
         requestLoadingKey={requestLoadingKey}
@@ -724,21 +752,22 @@ const Branding = () => {
       />
 
       <div
-        className="business-homepage-shell min-h-0 overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden"
+        className="business-homepage-shell flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto bg-[#f4f6f8] xl:overflow-hidden"
         style={{ fontFamily: PAGE_FONT }}
       >
-        <div className="business-homepage-ui w-full min-h-0 p-2.5 sm:p-3 xl:h-full xl:flex xl:flex-col">
+        <div className="business-homepage-ui flex h-full min-h-0 w-full flex-1 flex-col p-2.5 sm:p-3">
           {loading ? (
             <div className="flex flex-1 items-center justify-center gap-2 py-20 text-slate-500">
               <Loader2 className="h-5 w-5 animate-spin text-[#0077B6]" />
               <span className="text-sm">{copy.loading}</span>
             </div>
           ) : (
-            <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:h-full xl:grid-cols-[minmax(0,1fr)_minmax(196px,228px)] xl:gap-3 xl:overflow-hidden">
-              <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col xl:h-full xl:overflow-y-auto xl:pr-0.5">
+            <div className="grid h-full min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] xl:gap-3 xl:overflow-hidden">
+              <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col overflow-y-auto xl:h-full xl:pr-0.5">
                 <BrandingUnifiedMain
                   copy={copy}
                   language={language}
+                  onNavigate={handleNavigate}
                   servicePackages={servicePackages}
                   onCardCta={handleCardCta}
                   onConsultation={handleConsultation}
@@ -754,7 +783,7 @@ const Branding = () => {
                 />
               </div>
 
-              <div className="business-homepage-scroll scrollbar-hide min-h-0 xl:h-full xl:overflow-y-auto xl:pr-0.5">
+              <div className="business-homepage-scroll scrollbar-hide flex h-full min-h-0 flex-col overflow-y-auto xl:pr-0.5">
                 <HomepageSidebar onNavigate={handleNavigate} />
               </div>
             </div>

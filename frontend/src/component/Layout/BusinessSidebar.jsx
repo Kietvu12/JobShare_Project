@@ -181,13 +181,22 @@ const NAV_SECTIONS = [
 const COLLAPSE_STORAGE_KEY = 'business-sidebar-collapsed';
 
 function RecruitmentDonut({ percent, size, strokeWidth = 7, strokeColor = BRAND.main, className = '' }) {
+  const inset = strokeWidth;
+  const viewSize = size + inset * 2;
+  const center = viewSize / 2;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference - (percent / 100) * circumference;
-  const center = size / 2;
 
   return (
-    <svg width={size} height={size} className={`-rotate-90 shrink-0 ${className}`.trim()} aria-hidden>
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${viewSize} ${viewSize}`}
+      overflow="visible"
+      className={`-rotate-90 shrink-0 overflow-visible ${className}`.trim()}
+      aria-hidden
+    >
       <circle
         cx={center}
         cy={center}
@@ -431,10 +440,10 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
         }`}
       >
         {showExpanded ? (
-          <div className="biz-sidebar-health-expanded rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 shadow-sm">
-            <div className="flex items-center gap-2.5">
-              <div className="relative flex shrink-0 items-center justify-center">
-                <RecruitmentDonut percent={healthScore} size={44} strokeWidth={5} className="biz-sidebar-health-donut-lg" />
+          <div className="biz-sidebar-health-expanded overflow-visible rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="biz-sidebar-health-donut-wrap relative flex h-10 w-10 shrink-0 items-center justify-center overflow-visible">
+                <RecruitmentDonut percent={healthScore} size={40} strokeWidth={4} className="biz-sidebar-health-donut-lg" />
                 <span className="absolute biz-ui-caption font-bold leading-none text-slate-800">
                   {healthLoading ? '…' : healthScore}
                 </span>
@@ -477,6 +486,11 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
       <style>{`
         .business-sidebar-scroll::-webkit-scrollbar { display: none; }
         .business-sidebar-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .biz-sidebar-footer-block { overflow: visible; }
+        .biz-sidebar-health-donut-wrap svg {
+          max-width: none;
+          max-height: none;
+        }
         @media (max-height: 840px) {
           .biz-sidebar-health-footnote { display: none; }
         }
@@ -515,12 +529,17 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
           aside.business-sidebar-desktop .biz-sidebar-health-expanded {
             padding: 0.5rem;
           }
+          aside.business-sidebar-desktop .biz-sidebar-health-donut-wrap {
+            width: 2.25rem;
+            height: 2.25rem;
+          }
           aside.business-sidebar-desktop .biz-sidebar-health-donut-lg {
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
           }
           aside.business-sidebar-desktop .biz-sidebar-footer-block {
             padding: 0.375rem;
+            overflow: visible;
           }
         }
         @media (min-width: 1024px) and (max-width: 1535px) and (max-height: 860px) {

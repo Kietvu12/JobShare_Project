@@ -12,6 +12,7 @@ import {
   pickPublicPostExcerpt,
   pickPublicPostTitle,
 } from '../../utils/publicPostDisplay'
+import { getKnowledgeHubCopy } from '../../i18n/businessApp/knowledgeHub.js'
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 const BRAND = '#0077B6'
@@ -36,6 +37,32 @@ const hubStyles = `
   .knowledge-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
   .knowledge-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   .knowledge-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+  .knowledge-articles-panel {
+    min-height: min(560px, 68vh);
+  }
+  @media (min-width: 1280px) {
+    .knowledge-articles-panel {
+      min-height: 620px;
+    }
+  }
+  @media (min-width: 1536px) {
+    .knowledge-articles-panel {
+      min-height: 680px;
+    }
+  }
+  .knowledge-recent-panel {
+    min-height: min(360px, 42vh);
+  }
+  @media (min-width: 1280px) {
+    .knowledge-recent-panel {
+      min-height: 420px;
+    }
+  }
+  @media (min-width: 1536px) {
+    .knowledge-recent-panel {
+      min-height: 480px;
+    }
+  }
   .business-homepage-shell { --hp-zoom: 1; }
   @media (min-width: 1024px) and (max-width: 1279px) {
     .business-homepage-shell { --hp-zoom: 0.9; }
@@ -136,6 +163,7 @@ function SectionHeader({ title, actionLabel, onAction }) {
 const KnowledgeHub = () => {
   const navigate = useNavigate()
   const { language } = useLanguage()
+  const copy = useMemo(() => getKnowledgeHubCopy(language), [language])
   const [categories, setCategories] = useState([])
   const [selectedCategoryId, setSelectedCategoryId] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -182,7 +210,7 @@ const KnowledgeHub = () => {
 
         const [listRes, sidebarRes] = await Promise.all([
           apiService.getBusinessKnowledgePosts(params),
-          apiService.getBusinessKnowledgePosts({ page: 1, limit: 5, sortBy: 'published_at', sortOrder: 'DESC' }),
+          apiService.getBusinessKnowledgePosts({ page: 1, limit: 12, sortBy: 'published_at', sortOrder: 'DESC' }),
         ])
 
         if (!cancelled) {
@@ -236,19 +264,24 @@ const KnowledgeHub = () => {
         style={{ fontFamily: PAGE_FONT }}
       >
         <div className="business-homepage-ui flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="shrink-0 border-b border-slate-200/90 bg-white px-3 py-2.5 sm:px-4">
-            <div className="mb-2.5 flex flex-wrap items-start justify-between gap-2">
-              <div className="min-w-0">
-                <h1 className="text-sm font-bold text-slate-900 sm:text-base">Knowledge Hub</h1>
-                <p className="text-[10px] text-slate-500 sm:text-[11px]">Bài viết, hướng dẫn và mẫu tài liệu HR</p>
-              </div>
-            </div>
+          <div className="shrink-0 space-y-2 px-3 pt-3 pb-1 sm:px-4 sm:pt-3 sm:pb-1">
+            <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
+              <button
+                type="button"
+                onClick={() => navigate('/business')}
+                className="transition hover:text-[#0077B6]"
+              >
+                {copy.breadcrumb.home}
+              </button>
+              <span className="mx-1.5 text-slate-400">&gt;</span>
+              <span className="font-medium text-slate-700">{copy.breadcrumb.current}</span>
+            </nav>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 focus-within:border-[#0077B6]/40 focus-within:ring-2 focus-within:ring-[#0077B6]/15">
+              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 focus-within:border-[#0077B6]/40 focus-within:ring-2 focus-within:ring-[#0077B6]/15">
                 <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Tìm bài viết, hướng dẫn, mẫu tài liệu..."
+                  placeholder={copy.searchPlaceholder}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="min-w-0 flex-1 border-none bg-transparent text-[11px] text-slate-800 outline-none placeholder:text-slate-400 sm:text-xs"
@@ -260,50 +293,51 @@ const KnowledgeHub = () => {
                 className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[10px] font-semibold text-slate-600 transition-colors hover:border-[#cce5f0] hover:bg-[#e8f4fa]/50 sm:text-[11px]"
               >
                 <Filter className="h-3 w-3" />
-                Tất cả chủ đề
+                {copy.allTopics}
               </button>
             </div>
           </div>
 
           <div className="knowledge-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            <div className="grid w-full min-h-0 grid-cols-1 items-start gap-3 px-3 py-3 sm:px-4 sm:py-4 xl:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] xl:items-stretch xl:gap-4">
-              <div className="flex min-w-0 flex-col gap-3 xl:min-h-full">
-                <div className="grid shrink-0 grid-cols-3 gap-2 sm:grid-cols-6 sm:gap-2.5">
-                  {loadingCategories ? (
-                    <div className="col-span-full flex items-center gap-2 py-2 text-[11px] text-slate-500">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Đang tải danh mục...
-                    </div>
-                  ) : categories.map((cat) => {
-                    const Icon = CATEGORY_ICONS[cat.slug] || FileText
-                    const active = selectedCategoryId === cat.id
-                    return (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => setSelectedCategoryId(active ? null : cat.id)}
-                        className={`flex min-w-0 flex-col items-center gap-1 rounded-xl border px-1.5 py-2.5 transition-colors sm:px-2 sm:py-3 ${
-                          active
-                            ? 'border-[#0077B6] bg-[#e8f4fa] shadow-sm shadow-[#0077B6]/10'
-                            : 'border-slate-200/90 bg-white hover:border-[#cce5f0] hover:bg-slate-50/80'
-                        }`}
-                      >
-                        <Icon
-                          className="h-4 w-4 sm:h-[18px] sm:w-[18px]"
-                          style={{ color: active ? BRAND : '#64748b' }}
-                        />
-                        <span className="text-center text-[9px] font-semibold leading-tight text-slate-800 sm:text-[10px]">
-                          {cat.name}
-                        </span>
-                        <span className="text-[8px] font-medium text-slate-500 sm:text-[9px]">
-                          {cat.postCount ?? 0} bài
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
+            <div className="flex w-full min-h-0 flex-col gap-3 px-3 pb-3 pt-1 sm:px-4 sm:pb-4 sm:pt-1.5">
+              <div className="grid shrink-0 grid-cols-3 gap-2 sm:grid-cols-6 sm:gap-2.5">
+                {loadingCategories ? (
+                  <div className="col-span-full flex items-center gap-2 py-2 text-[11px] text-slate-500">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Đang tải danh mục...
+                  </div>
+                ) : categories.map((cat) => {
+                  const Icon = CATEGORY_ICONS[cat.slug] || FileText
+                  const active = selectedCategoryId === cat.id
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setSelectedCategoryId(active ? null : cat.id)}
+                      className={`flex min-w-0 flex-col items-center gap-1 rounded-xl border px-1.5 py-2.5 transition-colors sm:px-2 sm:py-3 ${
+                        active
+                          ? 'border-[#0077B6] bg-[#e8f4fa] shadow-sm shadow-[#0077B6]/10'
+                          : 'border-slate-200/90 bg-white hover:border-[#cce5f0] hover:bg-slate-50/80'
+                      }`}
+                    >
+                      <Icon
+                        className="h-4 w-4 sm:h-[18px] sm:w-[18px]"
+                        style={{ color: active ? BRAND : '#64748b' }}
+                      />
+                      <span className="text-center text-[9px] font-semibold leading-tight text-slate-800 sm:text-[10px]">
+                        {cat.name}
+                      </span>
+                      <span className="text-[8px] font-medium text-slate-500 sm:text-[9px]">
+                        {cat.postCount ?? 0} bài
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
 
-                <div className="flex min-h-[min(420px,52vh)] flex-1 flex-col gap-3 xl:min-h-[480px]">
+              <div className="grid w-full min-h-0 grid-cols-1 items-start gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] xl:items-stretch xl:gap-4">
+              <div className="flex min-w-0 flex-col gap-3 xl:min-h-full">
+                <div className="knowledge-articles-panel flex flex-1 flex-col gap-3">
                 {loadingPosts ? (
                   <div className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200/90 bg-white text-[11px] text-slate-500">
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -322,7 +356,7 @@ const KnowledgeHub = () => {
                       draggable={false}
                     />
                     <p className="max-w-lg text-xs font-medium leading-relaxed text-slate-700 sm:text-sm">
-                      Chưa có bài viết phù hợp. Admin có thể thêm bài trong mục Posts và bật hiển thị Knowledge Hub.
+                      Chưa có bài viết phù hợp. 
                     </p>
                   </div>
                 ) : null}
@@ -374,9 +408,9 @@ const KnowledgeHub = () => {
                 ) : null}
 
                 {listPosts.length > 0 ? (
-                  <section className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
+                  <section className="flex min-h-0 flex-1 flex-col rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
                     <SectionHeader title="Bài viết nổi bật" actionLabel="Xem tất cả" onAction={resetFilters} />
-                    <ul className="flex flex-col gap-2">
+                    <ul className="knowledge-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-0.5">
                       {listPosts.map((post) => (
                         <li key={post.id}>
                           <button
@@ -453,7 +487,7 @@ const KnowledgeHub = () => {
                 </section>
               </div>
 
-              <aside className="flex min-w-0 flex-col gap-3">
+              <aside className="flex min-w-0 flex-col gap-3 xl:min-h-full">
                 <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
                   <div className="mb-2.5 flex items-center gap-1.5 border-b border-slate-100 pb-2.5">
                     <Zap className="h-3.5 w-3.5 text-amber-500" />
@@ -496,12 +530,12 @@ const KnowledgeHub = () => {
                   </ul>
                 </div>
 
-                <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
-                  <h3 className="mb-2.5 flex items-center gap-1.5 border-b border-slate-100 pb-2.5 text-[11px] font-bold text-slate-900 sm:text-xs">
+                <div className="knowledge-recent-panel flex min-h-0 flex-1 flex-col rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
+                  <h3 className="mb-2.5 flex shrink-0 items-center gap-1.5 border-b border-slate-100 pb-2.5 text-[11px] font-bold text-slate-900 sm:text-xs">
                     <Clock className="h-3.5 w-3.5 text-slate-500" />
                     Bài viết mới cập nhật
                   </h3>
-                  <ul className="flex flex-col gap-2">
+                  <ul className="knowledge-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-0.5">
                     {sidebarPosts.length > 0
                       ? sidebarPosts.map((post) => (
                         <li key={post.id}>
@@ -548,6 +582,7 @@ const KnowledgeHub = () => {
                   </button>
                 </div>
               </aside>
+              </div>
             </div>
           </div>
         </div>

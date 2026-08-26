@@ -118,7 +118,7 @@ function JobTableHeader({ jobsCopy, allSelected, onToggleAll, hasItems }) {
         <th className="px-3 py-3">{jobsCopy.table.location}</th>
         <th className="px-3 py-3">{jobsCopy.table.referrals}</th>
         <th className="px-3 py-3">{jobsCopy.table.updated}</th>
-        <th className="w-28 px-3 py-3 text-right">{jobsCopy.table.actions}</th>
+        <th className="business-jobs-actions-col px-3 py-3 text-right">{jobsCopy.table.actions}</th>
       </tr>
     </thead>
   )
@@ -233,7 +233,7 @@ function JobTableRow({
       <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
         {formatDate(job.updatedAt || job.updated_at, dateLocale)}
       </td>
-      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+      <td className="business-jobs-actions-col px-3 py-3" onClick={(e) => e.stopPropagation()}>
         <JobTableRowActions
           job={job}
           menuItems={menuItems}
@@ -251,7 +251,7 @@ function DraftTableRow({ thread, onOpen, onDelete, jobsCopy, commonCopy, languag
 
   return (
     <tr
-      className="group cursor-pointer border-b border-slate-100 bg-amber-50/40 transition hover:bg-amber-50/70"
+      className="group business-jobs-draft-row cursor-pointer border-b border-slate-100 bg-amber-50/40 transition hover:bg-amber-50/70"
       onClick={() => onOpen(thread.id)}
     >
       <td className="px-3 py-3" />
@@ -283,7 +283,7 @@ function DraftTableRow({ thread, onOpen, onDelete, jobsCopy, commonCopy, languag
       <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
         {formatDate(thread.updatedAt, dateLocale)}
       </td>
-      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+      <td className="business-jobs-actions-col px-3 py-3" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-end gap-0.5">
           <button
             type="button"
@@ -453,38 +453,37 @@ const jobListStyles = `
     min-height: 0;
     font-family: ${BUSINESS_JOBS_FONT};
     background: #f4f6f8;
-    --jobs-zoom: 1;
   }
-  @media (min-width: 1024px) and (max-width: 1279px) {
-    .business-jobs-list-shell { --jobs-zoom: 0.9; }
-  }
-  @media (min-width: 1280px) and (max-width: 1535px) {
-    .business-jobs-list-shell { --jobs-zoom: 0.86; }
-  }
-  @media (min-width: 1024px) and (max-height: 760px) {
-    .business-jobs-list-shell { --jobs-zoom: 0.78; }
-  }
-  @media (min-width: 1024px) and (min-height: 761px) and (max-height: 860px) {
-    .business-jobs-list-shell { --jobs-zoom: 0.84; }
-  }
-  .business-jobs-ui {
-    zoom: var(--jobs-zoom);
-  }
-  @supports not (zoom: 1) {
-    .business-jobs-ui {
-      transform: scale(var(--jobs-zoom));
-      transform-origin: top left;
-      width: calc(100% / var(--jobs-zoom));
-      height: calc(100% / var(--jobs-zoom));
-    }
-  }
-  .business-jobs-list-scroll::-webkit-scrollbar { width: 4px; }
+  .business-jobs-list-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
   .business-jobs-list-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  .business-jobs-list-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
   .business-jobs-table thead th {
     white-space: nowrap;
   }
   .business-jobs-table tbody tr:last-child td {
     border-bottom: none;
+  }
+  .business-jobs-table .business-jobs-actions-col {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    min-width: 7.5rem;
+    padding-right: 0.75rem;
+    background: #ffffff;
+    box-shadow: -6px 0 8px -6px rgba(15, 23, 42, 0.08);
+  }
+  .business-jobs-table thead .business-jobs-actions-col {
+    z-index: 2;
+    background: #ffffff;
+  }
+  .business-jobs-table tbody tr:hover .business-jobs-actions-col {
+    background: rgb(248 250 252 / 0.98);
+  }
+  .business-jobs-table tbody tr.business-jobs-draft-row .business-jobs-actions-col {
+    background: rgb(255 251 235 / 0.98);
+  }
+  .business-jobs-table tbody tr.business-jobs-draft-row:hover .business-jobs-actions-col {
+    background: rgb(254 243 199 / 0.98);
   }
   @media (min-width: 1024px) and (max-width: 1535px) {
     .business-jobs-tabs {
@@ -989,23 +988,17 @@ const JobManagement = () => {
       <div className="business-jobs-list-shell flex h-full min-h-0 flex-col overflow-hidden">
         <div className="business-jobs-ui flex h-full min-h-0 flex-col overflow-hidden">
         <div className="shrink-0 space-y-2 p-3 lg:px-4 lg:pt-3 lg:pb-2">
-          <header className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h1 className="text-base font-bold text-slate-900 lg:text-lg">{jobsCopy.title}</h1>
-              <p className="mt-0.5 text-[11px] text-slate-500 lg:text-xs">
-                {jobsCopy.subtitle}
-              </p>
-            </div>
+          <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
             <button
               type="button"
-              onClick={() => navigate('/business/jobs/create')}
-              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:opacity-95"
-              style={{ backgroundColor: JD_NAVY_MID }}
+              onClick={() => navigate('/business')}
+              className="transition hover:text-[#0077B6]"
             >
-              <Plus className="h-3.5 w-3.5" />
-              {jobsCopy.createJd}
+              {jobsCopy.breadcrumb.home}
             </button>
-          </header>
+            <span className="mx-1.5 text-slate-400">&gt;</span>
+            <span className="font-medium text-slate-700">{jobsCopy.breadcrumb.current}</span>
+          </nav>
 
           <div className="rounded-xl border border-slate-200/90 bg-white p-2 shadow-sm lg:p-2.5">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -1019,6 +1012,15 @@ const JobManagement = () => {
                 />
                 <Search className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-slate-400" />
               </div>
+              <button
+                type="button"
+                onClick={() => navigate('/business/jobs/create')}
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-95"
+                style={{ backgroundColor: JD_NAVY_MID }}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {jobsCopy.createShort}
+              </button>
               <button
                 type="button"
                 onClick={clearFilters}
@@ -1193,9 +1195,8 @@ const JobManagement = () => {
                   ))}
                 </div>
               ) : (
-                <div className="business-jobs-list-scroll min-h-0 flex-1 overflow-y-auto">
-                  <div className="overflow-x-auto">
-                    <table className="business-jobs-table w-full min-w-[960px] border-collapse">
+                <div className="business-jobs-list-scroll min-h-0 flex-1 overflow-auto">
+                    <table className="business-jobs-table w-full min-w-[920px] border-collapse">
                       <JobTableHeader
                         jobsCopy={jobsCopy}
                         allSelected={allPagedJobsSelected}
@@ -1232,7 +1233,6 @@ const JobManagement = () => {
                         ))}
                       </tbody>
                     </table>
-                  </div>
                 </div>
               )}
               <JobListPagination

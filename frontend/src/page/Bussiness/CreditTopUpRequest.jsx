@@ -1,25 +1,32 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Coins, Loader2, X } from 'lucide-react';
 import apiService from '../../services/api';
 import ServiceRequestAccountSidebar from '../../component/Bussiness/ServiceRequestAccountSidebar';
-import CreditPackageCard from '../../component/Bussiness/CreditPackageCard';
+import CreditPricingPackageCard from '../../component/Bussiness/CreditPricingPackageCard';
+import { useLanguage } from '../../context/LanguageContext';
+import { getScoutWorkspaceCopy } from '../../i18n/businessApp/scoutWorkspace';
+import { creditPricingIntroStyles } from '../../utils/creditPricingStyles';
 import {
   BUSINESS_CREDIT_PACKAGES,
+  FEATURED_CREDIT_PACKAGE_KEY,
   formatCreditAmount,
   formatYenAmount,
   getCreditPackageByKey,
 } from '../../utils/businessCreditPackages';
 import { BRAND, BUSINESS_HOMEPAGE_SHELL_STYLES, CARD, PAGE_FONT } from '../../utils/businessHomepageShell';
 
-const INTRO_LINES = [
-  'Credit được nạp để giúp doanh nghiệp có thể tự do mở hồ sơ ứng viên tại dịch vụ Scout\u00A0Credit.',
-  'Để nạp credit, doanh nghiệp gửi yêu cầu và chọn gói phù hợp.',
-  'Yêu cầu nạp sẽ được gửi về bộ phận Admin của Workstation JobShare.',
-  'Chúng tôi sẽ liên hệ lại ngay để làm thủ tục thanh toán phí nạp credit.',
-];
+function getPriceLocale(language) {
+  if (language === 'ja') return 'ja-JP';
+  if (language === 'en') return 'en-US';
+  return 'vi-VN';
+}
 
 export default function CreditTopUpRequest() {
+  const { language } = useLanguage();
+  const scoutCopy = useMemo(() => getScoutWorkspaceCopy(language).onboarding.direct, [language]);
+  const modalCopy = scoutCopy.pricingModal;
+  const priceLocale = getPriceLocale(language);
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState(null);
   const [selectedKey, setSelectedKey] = useState(null);
@@ -46,7 +53,7 @@ export default function CreditTopUpRequest() {
   const handleSubmit = async () => {
     const pkg = getCreditPackageByKey(selectedKey);
     if (!pkg) {
-      setError('Vui lòng chọn gói credit trước khi gửi yêu cầu.');
+      setError(scoutCopy.selectPackageError);
       return;
     }
     setSubmitting(true);
@@ -58,11 +65,7 @@ export default function CreditTopUpRequest() {
       });
       if (res?.success) {
         const code = res.data?.request?.requestCode || res.data?.requestCode || '';
-        setSuccessMsg(
-          code
-            ? `Đã gửi yêu cầu ${code}. WS sẽ liên hệ hướng dẫn thanh toán.`
-            : 'Đã gửi yêu cầu nạp credit. WS sẽ liên hệ hướng dẫn thanh toán.',
-        );
+        setSuccessMsg(scoutCopy.topUpSuccess(code));
         setSelectedKey(null);
         await loadDashboard();
       } else {
@@ -90,6 +93,7 @@ export default function CreditTopUpRequest() {
   return (
     <>
       <style>{BUSINESS_HOMEPAGE_SHELL_STYLES}</style>
+      <style>{creditPricingIntroStyles}</style>
       <div
         className="business-homepage-shell flex h-full min-h-0 flex-col overflow-y-auto bg-[#f4f6f8] lg:overflow-hidden"
         style={{ fontFamily: PAGE_FONT }}
@@ -122,29 +126,45 @@ export default function CreditTopUpRequest() {
                   <h1 className="text-base font-bold text-slate-900 sm:text-[17px]">Yêu cầu nạp credit</h1>
                 </div>
                 <div className="mt-1.5 space-y-1">
-                  {INTRO_LINES.map((line) => (
+                  {scoutCopy.creditIntroLines.map((line) => (
                     <p key={line} className="text-[10px] leading-snug text-slate-600 sm:text-[11px]">{line}</p>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-3.5 flex flex-col gap-2 sm:gap-2.5 lg:min-h-0 lg:flex-1">
-                <p className="shrink-0 text-[11px] font-bold text-slate-900 sm:text-xs">Thông tin các gói credit</p>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-2.5 xl:grid-cols-3 xl:gap-3">
-                  {BUSINESS_CREDIT_PACKAGES.map((pkg) => (
-                    <CreditPackageCard
-                      key={pkg.key}
-                      pkg={pkg}
-                      selected={selectedKey === pkg.key}
-                      onSelect={setSelectedKey}
-                    />
-                  ))}
+              <div className="credit-pricing-intro-shell mt-3.5 flex flex-col gap-2 sm:gap-2.5 lg:min-h-0 lg:flex-1">
+                <p className="shrink-0 text-[11px] font-bold text-slate-900 sm:text-xs">{scoutCopy.creditPackagesTitle}</p>
+                <div className="credit-pricing-panel">
+                  <div className="grid grid-cols-1 items-stretch gap-3 lg:grid-cols-3 lg:gap-3">
+                    {BUSINESS_CREDIT_PACKAGES.map((pkg) => {
+                      const pkgCopy = scoutCopy.pricingPackages?.[pkg.key] || {
+                        description: '',
+                        features: [],
+                      };
+                      return (
+                        <CreditPricingPackageCard
+                          key={pkg.key}
+                          pkg={pkg}
+                          featured={pkg.key === FEATURED_CREDIT_PACKAGE_KEY}
+                          selected={selectedKey === pkg.key}
+                          modalCopy={modalCopy}
+                          pkgCopy={pkgCopy}
+                          onChoose={setSelectedKey}
+                          submitting={submitting}
+                          submittingKey={submitting ? selectedKey : null}
+                          submitCopy={scoutCopy}
+                          priceLocale={priceLocale}
+                          compact
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
               <div className="mt-3.5 flex shrink-0 flex-col gap-2 border-t border-slate-100 pt-3 sm:mt-auto sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:pt-3.5">
                 <p className="min-w-0 flex-1 text-[9px] leading-snug text-slate-500 sm:text-[10px]">
-                  Lưu ý: Credit có hiệu lực ngay sau khi nạp và không có thời hạn sử dụng.
+                  {scoutCopy.creditPackagesNote}
                 </p>
                 <div className="flex w-full shrink-0 flex-col items-stretch gap-1 sm:ml-auto sm:w-auto sm:items-end">
                   {error ? (
@@ -157,7 +177,7 @@ export default function CreditTopUpRequest() {
                     className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-[10px] font-bold text-white disabled:opacity-60 sm:w-auto sm:text-[11px]"
                     style={{ background: BRAND }}
                   >
-                    {submitting ? 'Đang gửi…' : 'Gửi yêu cầu →'}
+                    {submitting ? scoutCopy.submittingTopUp : `${scoutCopy.submitTopUpRequest} →`}
                   </button>
                 </div>
               </div>

@@ -508,7 +508,7 @@ function pickValidJobCategoryId(...sources) {
   return '';
 }
 
-export const CV_AI_PARSE_BASE_URL = 'https://ws-jobshare.com/api_ai';
+export const CV_AI_PARSE_BASE_URL = 'https://test.ws-jobshare.com/api_ai';
 export const CV_AI_PARSE_URL = `${CV_AI_PARSE_BASE_URL}/v3/resume/cv`;
 
 function hasV2NestedResumeShape(o) {

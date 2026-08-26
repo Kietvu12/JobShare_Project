@@ -179,6 +179,10 @@ export const brandingI18n = {
   vi: {
     pageTitle: 'Saiyo Branding',
     pageSubtitle: 'Xây dựng thương hiệu tuyển dụng — gói dịch vụ, landing page, thống kê hiệu quả và form ứng tuyển.',
+    breadcrumb: {
+      home: 'Trang chủ',
+      current: 'Saiyo Branding',
+    },
     featuresHeading: 'Tính năng nổi bật',
     suitableHeading: 'Phù hợp với',
     useCard: (title) => `Sử dụng ${title}`,
@@ -306,6 +310,10 @@ export const brandingI18n = {
   en: {
     pageTitle: 'Saiyo Branding',
     pageSubtitle: 'Build your employer brand — service packages, landing pages, performance stats, and application forms.',
+    breadcrumb: {
+      home: 'Home',
+      current: 'Saiyo Branding',
+    },
     featuresHeading: 'Key features',
     suitableHeading: 'Best for',
     useCard: (title) => `Use ${title}`,
@@ -433,6 +441,10 @@ export const brandingI18n = {
   ja: {
     pageTitle: 'Saiyo Branding',
     pageSubtitle: '採用ブランディング構築 — サービスパッケージ、LP、効果統計、応募フォーム。',
+    breadcrumb: {
+      home: 'ホーム',
+      current: 'Saiyo Branding',
+    },
     featuresHeading: '主な機能',
     suitableHeading: 'こんな企業向け',
     useCard: (title) => `${title}を利用`,

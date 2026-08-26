@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Loader2, Sparkles, RotateCw, Search, Unlock } from 'lucide-react'
+import { Loader2, RotateCw, Search, Unlock } from 'lucide-react'
 import nothingIllustration from '../../assets/Nothing.png'
 import apiService from '../../services/api'
 import FilterBlock from '../../component/Shared/FilterBlock'
@@ -238,10 +238,9 @@ function CandidatesEmptyState({ copy }) {
       <button
         type="button"
         onClick={() => navigate('/business/scout/direct')}
-        className="mt-4 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-95 sm:text-sm"
+        className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-95 sm:text-sm"
         style={{ background: BRAND }}
       >
-        <Sparkles className="h-4 w-4" strokeWidth={2} />
         {copy.candidates.list.emptyCta}
       </button>
     </div>

@@ -3,70 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import CreditPackagesPricingPanel from './CreditPackagesPricingPanel';
 import { getScoutWorkspaceCopy } from '../../i18n/businessApp/scoutWorkspace';
-import { BUSINESS_UI_FONT, BUSINESS_UI_TYPOGRAPHY_STYLES } from '../../utils/businessUiFont';
-
-const creditPricingModalStyles = `
-  ${BUSINESS_UI_TYPOGRAPHY_STYLES}
-  .credit-pricing-modal-shell {
-    font-family: ${BUSINESS_UI_FONT};
-  }
-  .credit-pricing-modal-scroll {
-    scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
-  }
-  .credit-pricing-modal-scroll::-webkit-scrollbar { width: 4px; }
-  .credit-pricing-modal-scroll::-webkit-scrollbar-track { background: transparent; }
-  .credit-pricing-modal-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
-  .credit-pricing-panel .credit-pricing-price {
-    font-size: clamp(1.375rem, 4vw, var(--biz-fs-stat));
-    line-height: 1.1;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-  @media (min-width: 640px) {
-    .credit-pricing-panel .credit-pricing-price {
-      font-size: clamp(1.5rem, 3vw, 1.75rem);
-    }
-  }
-  @media (min-width: 1536px) {
-    .credit-pricing-panel .credit-pricing-price {
-      font-size: 2.75rem;
-    }
-  }
-  @media (min-width: 1024px) and (max-width: 1535px) {
-    .credit-pricing-modal-scroll {
-      padding-top: 1.5rem !important;
-      padding-bottom: 1.5rem !important;
-    }
-    .credit-pricing-modal-shell.business-app-ui {
-      --biz-fs-title: 1.0625rem;
-      --biz-fs-section: 0.75rem;
-      --biz-fs-body: 0.75rem;
-      --biz-fs-caption: 0.6875rem;
-      --biz-fs-micro: 0.625rem;
-      --biz-fs-stat: 0.9375rem;
-    }
-    .credit-pricing-panel .credit-pricing-price {
-      font-size: 1.375rem;
-    }
-  }
-  .credit-pricing-card-featured .biz-ui-section,
-  .credit-pricing-card-featured .credit-pricing-price {
-    color: #ffffff;
-  }
-  .credit-pricing-card-featured .biz-ui-body:not(.credit-pricing-cta) {
-    color: rgba(255, 255, 255, 0.95);
-  }
-  .credit-pricing-card-featured .credit-pricing-cta {
-    color: #0f172a;
-  }
-  .credit-pricing-card-featured .biz-ui-caption {
-    color: rgba(255, 255, 255, 0.88);
-  }
-  .credit-pricing-card-featured .biz-ui-micro {
-    color: rgba(255, 255, 255, 0.72);
-  }
-`;
+import { creditPricingModalStyles } from '../../utils/creditPricingStyles';
 
 export default function ScoutInsufficientCreditModal({
   open,

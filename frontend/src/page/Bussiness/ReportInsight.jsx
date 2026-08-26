@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Calendar, ChevronDown, Download, FileText, TrendingUp, TrendingDown, ArrowRight, ArrowDownRight, Loader2,
 } from 'lucide-react'
@@ -16,6 +17,8 @@ import {
   KpiSparkline,
   TableSparkline,
 } from '../../component/Bussiness/businessInsightsChartTheme'
+import { useLanguage } from '../../context/LanguageContext'
+import { getBusinessAppCopy } from '../../i18n/businessAppI18n'
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 const BRAND = INSIGHTS_BRAND
@@ -88,6 +91,14 @@ function TextLink({ children }) {
 }
 
 const ReportInsight = () => {
+  const navigate = useNavigate()
+  const { language } = useLanguage()
+  const copy = useMemo(() => getBusinessAppCopy(language), [language])
+  const pageTitle = useMemo(() => ({
+    vi: 'Report & insight',
+    en: 'Report & insight',
+    ja: 'Report & insight',
+  }[language] || 'Report & insight'), [language])
   const [trendPeriod, setTrendPeriod] = useState('Tháng')
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -208,14 +219,19 @@ const ReportInsight = () => {
       style={{ fontFamily: PAGE_FONT }}
     >
       <div className="business-homepage-ui flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="shrink-0 border-b border-slate-200/90 bg-white px-3 py-2.5 sm:px-4">
-          <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
-              <h1 className="text-sm font-bold text-slate-900 sm:text-base">Reports &amp; Insights</h1>
-              <p className="text-[10px] text-slate-500 sm:text-[11px]">
-                Dữ liệu tổng quan và phân tích hiệu quả tuyển dụng trên JobShare
-              </p>
-            </div>
+        <div className="shrink-0 px-3 pt-3 pb-2 sm:px-4 sm:pt-3">
+          <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+            <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
+              <button
+                type="button"
+                onClick={() => navigate('/business')}
+                className="transition hover:text-[#0077B6]"
+              >
+                {copy.jobs.breadcrumb.home}
+              </button>
+              <span className="mx-1.5 text-slate-400">&gt;</span>
+              <span className="font-medium text-slate-700">{pageTitle}</span>
+            </nav>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"

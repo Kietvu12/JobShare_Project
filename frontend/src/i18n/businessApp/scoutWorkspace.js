@@ -6,6 +6,9 @@ import { getScoutSkillTags } from '../../utils/scoutCandidateDisplay.js';
 
 export const scoutWorkspaceI18n = {
   vi: {
+    breadcrumb: {
+      home: 'Trang chủ',
+    },
     common: {
       close: 'Đóng',
       cancel: 'Hủy',
@@ -201,6 +204,9 @@ export const scoutWorkspaceI18n = {
     },
   },
   en: {
+    breadcrumb: {
+      home: 'Home',
+    },
     common: {
       close: 'Close',
       cancel: 'Cancel',
@@ -396,6 +402,9 @@ export const scoutWorkspaceI18n = {
     },
   },
   ja: {
+    breadcrumb: {
+      home: 'ホーム',
+    },
     common: {
       close: '閉じる',
       cancel: 'キャンセル',

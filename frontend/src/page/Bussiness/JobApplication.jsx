@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Users, TrendingUp, Award, CheckCircle2, GitBranch,
   Search, ChevronRight, ChevronLeft,
@@ -315,6 +315,7 @@ function ApplicationMobileCard({ app, isSelected, onOpen, tableLabels, language,
 }
 
 const JobApplication = () => {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const urlNominationId = searchParams.get('nominationId')
   const { language } = useLanguage()
@@ -545,13 +546,18 @@ const JobApplication = () => {
         style={{ fontFamily: PAGE_FONT }}
       >
         <div className="business-homepage-ui flex min-h-0 flex-1 flex-col p-0 lg:p-3">
-          <div className="mb-0 hidden shrink-0 items-start justify-between gap-3 px-3 pt-3 lg:mb-3 lg:flex lg:px-0 lg:pt-0">
-            <div>
-              <h1 className="text-sm sm:text-base font-bold text-slate-800 mb-0.5">{appCopy.title}</h1>
-              <p className="text-[10px] sm:text-xs text-slate-500 leading-snug max-w-xl">
-                {appCopy.subtitle}
-              </p>
-            </div>
+          <div className="shrink-0 px-3 pt-3 lg:mb-2 lg:px-0 lg:pt-0">
+            <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
+              <button
+                type="button"
+                onClick={() => navigate('/business')}
+                className="transition hover:text-[#0077B6]"
+              >
+                {appCopy.breadcrumb.home}
+              </button>
+              <span className="mx-1.5 text-slate-400">&gt;</span>
+              <span className="font-medium text-slate-700">{appCopy.breadcrumb.current}</span>
+            </nav>
           </div>
 
           <div

@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import {
-  Search, SlidersHorizontal, ChevronRight, ChevronLeft,
+  Search, SlidersHorizontal, ChevronRight, ChevronLeft, ChevronDown,
   UserCheck, X, Unlock, Users, Check, Loader2, Briefcase,
   Sparkles, FilePlus2, BookOpen, AlertTriangle, ArrowRight, Lock,
   MessageSquare, ArrowUpRight, Coins, UserPlus, IdCard, Send, Info,
@@ -75,6 +76,23 @@ const scoutPageStyles = `
   .scout-modal-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
   .scout-modal-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   .scout-modal-scroll::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
+  .scout-confirm-modal-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  .scout-confirm-modal-scroll::-webkit-scrollbar { width: 4px; }
+  .scout-confirm-modal-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+  @media (max-width: 639px) {
+    .scout-confirm-modal-fee th,
+    .scout-confirm-modal-fee td {
+      padding: 0.375rem 0.5rem;
+      font-size: 0.625rem;
+      line-height: 1.35;
+    }
+    .scout-confirm-modal-fee thead th {
+      font-size: 0.5625rem;
+    }
+  }
   .scout-candidates-list-ui {
     --scout-cand-fs-title: 12px;
     --scout-cand-fs-body: 12px;
@@ -575,7 +593,24 @@ function ScoutOnboardingCandidatePreview({
   )
 }
 
+function ScoutBreadcrumb({ homeLabel, currentLabel, onHomeClick }) {
+  return (
+    <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
+      <button
+        type="button"
+        onClick={onHomeClick}
+        className="transition hover:text-[#0077B6]"
+      >
+        {homeLabel}
+      </button>
+      <span className="mx-1.5 text-slate-400">&gt;</span>
+      <span className="font-medium text-slate-700">{currentLabel}</span>
+    </nav>
+  )
+}
+
 function ScoutOnboardingView({ variant = 'credit', previewCandidates, previewScoreByCvId, scoutCreditCost, onStart, onExplore, language: languageProp }) {
+  const navigate = useNavigate()
   const { language: ctxLanguage } = useLanguage()
   const language = languageProp || ctxLanguage
   const copy = useBusinessAppCopy()
@@ -596,12 +631,13 @@ function ScoutOnboardingView({ variant = 'credit', previewCandidates, previewSco
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2 sm:gap-3">
-      <header className="shrink-0">
-        <h1 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl">{onboarding.pageTitle}</h1>
-        <p className="mt-1 text-xs leading-snug text-slate-600 sm:text-sm">
-          {onboarding.pageSubtitle}
-        </p>
-      </header>
+      <div className="shrink-0">
+        <ScoutBreadcrumb
+          homeLabel={ws.breadcrumb.home}
+          currentLabel={onboarding.pageTitle}
+          onHomeClick={() => navigate('/business')}
+        />
+      </div>
 
       <div className="grid w-full shrink-0 grid-cols-1 items-stretch gap-2 sm:gap-3">
         <ScoutSolutionCard
@@ -919,6 +955,17 @@ function getSkillTags(candidate) {
   return getScoutSkillTags(candidate)
 }
 
+function useScoutConfirmModalLock(open) {
+  useEffect(() => {
+    if (!open) return undefined
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [open])
+}
+
 function ScoutCreditConfirmModal({
   open,
   onClose,
@@ -932,6 +979,8 @@ function ScoutCreditConfirmModal({
   const ws = getScoutWorkspaceCopy(language)
   const m = ws.modals.credit
   const c = ws.common
+
+  useScoutConfirmModalLock(open)
 
   if (!open) return null
 
@@ -959,14 +1008,14 @@ function ScoutCreditConfirmModal({
     },
   ]
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 sm:p-4"
+      className="scout-confirm-modal-overlay fixed inset-0 z-[120] flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4"
       style={{ fontFamily: BUSINESS_UI_FONT }}
       onClick={onClose}
     >
       <div
-        className="relative flex w-full max-w-[960px] max-h-[min(92dvh,calc(100dvh-1.5rem))] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="scout-confirm-modal-shell relative flex w-full max-w-[960px] max-h-[min(94dvh,100dvh)] flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:max-h-[min(92dvh,calc(100dvh-1.5rem))] sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -978,83 +1027,85 @@ function ScoutCreditConfirmModal({
           <X className="h-4 w-4" />
         </button>
 
-        <div className="scout-modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5">
-          <div className="px-5 pt-5 pb-4 sm:px-6 sm:pt-6 lg:px-8 lg:pt-7">
-            <h2 className="pr-10 text-base font-bold leading-snug text-slate-900 sm:text-lg lg:text-xl">
+        <div className="scout-confirm-modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="scout-confirm-modal-body px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4 xl:px-8 xl:pt-7">
+            <h2 className="pr-10 text-sm font-bold leading-snug text-slate-900 sm:text-base xl:text-xl">
               {m.title}{' '}
               <span className="text-[#0077B6]">{m.titleHighlight}</span>
             </h2>
 
-            <p className="mt-2 text-sm font-medium leading-relaxed text-slate-700 lg:mt-3 lg:text-[15px]">
+            <p className="mt-1.5 text-xs font-medium leading-relaxed text-slate-700 sm:mt-2 sm:text-sm">
               {m.intro}
             </p>
 
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:mt-5 lg:grid-cols-[1fr_minmax(220px,40%)] lg:gap-6 lg:items-center">
-              <ul className="space-y-3 lg:space-y-4">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:mt-4 xl:grid-cols-[1fr_minmax(200px,38%)] xl:gap-6 xl:items-center">
+              <ul className="space-y-2 sm:space-y-2.5">
                 {features.map(({ icon: Icon, title, desc }) => (
-                  <li key={title} className="flex gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0077B6] text-white lg:h-10 lg:w-10">
-                      <Icon className="h-[16px] w-[16px] lg:h-[18px] lg:w-[18px]" strokeWidth={2} />
+                  <li key={title} className="flex gap-2.5">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0077B6] text-white xl:h-9 xl:w-9">
+                      <Icon className="h-3.5 w-3.5 xl:h-4 xl:w-4" strokeWidth={2} />
                     </div>
                     <div className="min-w-0 pt-0.5">
-                      <p className="text-sm font-bold leading-snug text-slate-900 lg:text-[15px]">{title}</p>
-                      <p className="mt-0.5 text-sm font-medium leading-snug text-slate-600 lg:text-[15px] lg:leading-[1.55]">{desc}</p>
+                      <p className="text-xs font-bold leading-snug text-slate-900 sm:text-sm">{title}</p>
+                      <p className="mt-0.5 text-xs font-medium leading-snug text-slate-600 sm:text-sm">{desc}</p>
                     </div>
                   </li>
                 ))}
               </ul>
-              <div className="flex items-center justify-center lg:justify-end">
+              <div className="scout-confirm-modal-illus hidden items-center justify-center xl:flex xl:justify-end">
                 <img
                   src={creditIllustration}
                   alt={m.imageAlt}
-                  className="w-full max-w-[220px] object-contain sm:max-w-[260px] lg:max-w-[300px] xl:max-w-[380px]"
+                  className="w-full max-w-[240px] object-contain xl:max-w-[300px]"
                 />
               </div>
             </div>
 
-            <div className="mt-4 flex items-start gap-3 rounded-xl bg-[#e8f4fa] px-4 py-3 sm:rounded-2xl sm:px-5 lg:mt-6 lg:px-6 lg:py-[18px]">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0077B6] text-white lg:h-8 lg:w-8">
-                <Info className="h-3.5 w-3.5 lg:h-4 lg:w-4" strokeWidth={2.5} />
+            <div className="mt-3 flex items-start gap-2.5 rounded-xl bg-[#e8f4fa] px-3 py-2.5 sm:mt-4 sm:rounded-2xl sm:px-4 sm:py-3 xl:px-5">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0077B6] text-white xl:h-7 xl:w-7">
+                <Info className="h-3 w-3 xl:h-3.5 xl:w-3.5" strokeWidth={2.5} />
               </div>
-              <p className="min-w-0 text-sm font-medium leading-snug text-slate-700 lg:text-[15px] lg:leading-[1.55]">
+              <p className="min-w-0 text-xs font-medium leading-snug text-slate-700 sm:text-sm">
                 {m.disclaimer}
               </p>
             </div>
-
-            <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 lg:mt-5">
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={(e) => onAgreedChange?.(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#0077B6] focus:ring-[#0077B6]"
-              />
-              <span className="text-sm font-medium leading-snug text-slate-700 lg:text-[15px]">
-                {m.agree}
-              </span>
-            </label>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-100 bg-white px-5 py-3 sm:px-6 sm:py-4 lg:px-8">
-          <button
-            type="button"
-            disabled={loading}
-            onClick={onClose}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-          >
-            {c.cancel}
-          </button>
-          <button
-            type="button"
-            disabled={loading || !agreed}
-            onClick={onConfirm}
-            className="rounded-lg bg-[#0077B6] px-4 py-2 text-sm font-semibold text-white hover:bg-[#006399] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading ? m.opening : m.confirmUnlock(creditCost)}
-          </button>
+        <div className="scout-confirm-modal-footer flex shrink-0 flex-col gap-2.5 border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4 xl:px-8">
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => onAgreedChange?.(e.target.checked)}
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 text-[#0077B6] focus:ring-[#0077B6] sm:h-4 sm:w-4"
+            />
+            <span className="text-xs font-medium leading-snug text-slate-700 sm:text-sm">
+              {m.agree}
+            </span>
+          </label>
+          <div className="flex items-center justify-end gap-2 sm:gap-3">
+            <button
+              type="button"
+              disabled={loading}
+              onClick={onClose}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
+            >
+              {c.cancel}
+            </button>
+            <button
+              type="button"
+              disabled={loading || !agreed}
+              onClick={onConfirm}
+              className="rounded-lg bg-[#0077B6] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#006399] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
+            >
+              {loading ? m.opening : m.confirmUnlock(creditCost)}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -1080,7 +1131,10 @@ function ScoutPerformanceConfirmModal({
   const feeTiers = getScoutPerformanceFeeTiers(language)
   const [step, setStep] = useState('confirm')
   const [selectedJobId, setSelectedJobId] = useState(initialJobId || '')
+  const [feeExpanded, setFeeExpanded] = useState(false)
   const skipJdStep = !!initialJobId
+
+  useScoutConfirmModalLock(open)
 
   const jobOptions = useMemo(() => jobs.map((job) => ({
     value: String(job.id),
@@ -1091,10 +1145,12 @@ function ScoutPerformanceConfirmModal({
     if (!open) {
       setStep('confirm')
       setSelectedJobId(initialJobId || '')
+      setFeeExpanded(false)
       return
     }
     setStep('confirm')
     setSelectedJobId(initialJobId || '')
+    setFeeExpanded(window.matchMedia('(min-width: 1280px)').matches)
   }, [open, initialJobId])
 
   if (!open) return null
@@ -1119,14 +1175,14 @@ function ScoutPerformanceConfirmModal({
     setStep('jd')
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 sm:p-4"
+      className="scout-confirm-modal-overlay fixed inset-0 z-[120] flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4"
       style={{ fontFamily: BUSINESS_UI_FONT }}
       onClick={onClose}
     >
       <div
-        className="relative flex w-full max-w-[960px] max-h-[min(92dvh,calc(100dvh-1.5rem))] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="scout-confirm-modal-shell relative flex w-full max-w-[960px] max-h-[min(94dvh,100dvh)] flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:max-h-[min(92dvh,calc(100dvh-1.5rem))] sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -1138,9 +1194,9 @@ function ScoutPerformanceConfirmModal({
           <X className="h-4 w-4" />
         </button>
 
-        <div className="scout-modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5">
-          <div className="px-5 pt-5 pb-4 sm:px-6 sm:pt-6 lg:px-8 lg:pt-7">
-            <h2 className="pr-10 text-base font-bold leading-snug text-slate-900 sm:text-lg lg:text-xl">
+        <div className="scout-confirm-modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="scout-confirm-modal-body px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4 xl:px-8 xl:pt-7">
+            <h2 className="pr-10 text-sm font-bold leading-snug text-slate-900 sm:text-base xl:text-xl">
               {step === 'jd' ? (
                 m.jdStepTitle
               ) : (
@@ -1154,13 +1210,13 @@ function ScoutPerformanceConfirmModal({
             {step === 'confirm' && (
               <>
                 {skipJdStep && selectedJob ? (
-                  <div className="mt-2 rounded-lg bg-[#e8f4fa] px-4 py-2.5 text-sm text-[#006399] lg:mt-3">
+                  <div className="mt-1.5 rounded-lg bg-[#e8f4fa] px-3 py-2 text-xs text-[#006399] sm:mt-2 sm:px-4 sm:py-2.5 sm:text-sm">
                     {m.jdSelected(getLocalizedJobTitle(selectedJob, language))}
                   </div>
                 ) : null}
 
-                <div className="mt-4 grid grid-cols-1 gap-4 lg:mt-5 lg:grid-cols-[1fr_minmax(220px,40%)] lg:gap-6 lg:items-start">
-                  <div className="space-y-2 text-sm font-medium leading-relaxed text-slate-700 lg:space-y-3 lg:text-[15px] lg:leading-[1.65]">
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:mt-4 xl:grid-cols-[1fr_minmax(200px,38%)] xl:gap-6 xl:items-start">
+                  <div className="space-y-1.5 text-xs font-medium leading-relaxed text-slate-700 sm:space-y-2 sm:text-sm">
                     <p>{m.intro1}</p>
                     <p>
                       {m.intro2Prefix}{' '}
@@ -1168,166 +1224,183 @@ function ScoutPerformanceConfirmModal({
                       {m.intro2Suffix}
                     </p>
                   </div>
-                  <div className="flex items-center justify-center lg:justify-end">
+                  <div className="scout-confirm-modal-illus hidden items-center justify-center xl:flex xl:justify-end">
                     <img
                       src={performanceIllustration}
                       alt={m.imageAlt}
-                      className="w-full max-w-[220px] object-contain sm:max-w-[260px] lg:max-w-[300px] xl:max-w-[380px]"
+                      className="w-full max-w-[240px] object-contain xl:max-w-[300px]"
                     />
                   </div>
                 </div>
 
-                <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 lg:mt-5">
-                  <div className="bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 sm:px-4">
-                    {m.feeTableTitle}
-                  </div>
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-100 text-slate-500">
-                        <th className="px-3 py-1.5 font-semibold sm:px-4 sm:py-2">{m.feeColLevel}</th>
-                        <th className="px-3 py-1.5 font-semibold sm:px-4 sm:py-2">{m.feeColExperience}</th>
-                        <th className="px-3 py-1.5 font-semibold sm:px-4 sm:py-2">{m.feeColFee}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {feeTiers.map((tier, idx) => (
-                        <tr key={tier.level} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
-                          <td className="px-3 py-1.5 font-semibold text-slate-800 sm:px-4 sm:py-2">{tier.level}</td>
-                          <td className="px-3 py-1.5 text-slate-600 sm:px-4 sm:py-2">{tier.range}</td>
-                          <td className="px-3 py-1.5 font-bold text-[#E30613] sm:px-4 sm:py-2">{tier.fee}</td>
+                <div className="scout-confirm-modal-fee mt-3 overflow-hidden rounded-xl border border-slate-200 sm:mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setFeeExpanded((prev) => !prev)}
+                    className="flex w-full items-center justify-between gap-2 bg-slate-50 px-3 py-2 text-left text-[10px] font-bold text-slate-600 sm:px-4 sm:text-xs xl:cursor-default"
+                    aria-expanded={feeExpanded}
+                  >
+                    <span>{m.feeTableTitle}</span>
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform xl:hidden ${feeExpanded ? 'rotate-180' : ''}`}
+                      aria-hidden
+                    />
+                  </button>
+                  <div className={feeExpanded ? 'block' : 'hidden xl:block'}>
+                    <table className="w-full text-left text-[10px] sm:text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-100 text-slate-500">
+                          <th className="px-2 py-1 font-semibold sm:px-4 sm:py-1.5">{m.feeColLevel}</th>
+                          <th className="px-2 py-1 font-semibold sm:px-4 sm:py-1.5">{m.feeColExperience}</th>
+                          <th className="px-2 py-1 font-semibold sm:px-4 sm:py-1.5">{m.feeColFee}</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <p className="border-t border-slate-100 px-3 py-1.5 text-[11px] text-slate-500 sm:px-4 sm:py-2">
-                    {m.feeFootnote}
-                  </p>
+                      </thead>
+                      <tbody>
+                        {feeTiers.map((tier, idx) => (
+                          <tr key={tier.level} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
+                            <td className="px-2 py-1 font-semibold text-slate-800 sm:px-4 sm:py-1.5">{tier.level}</td>
+                            <td className="px-2 py-1 text-slate-600 sm:px-4 sm:py-1.5">{tier.range}</td>
+                            <td className="px-2 py-1 font-bold text-[#E30613] sm:px-4 sm:py-1.5">{tier.fee}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <p className="border-t border-slate-100 px-2 py-1 text-[10px] text-slate-500 sm:px-4 sm:py-1.5">
+                      {m.feeFootnote}
+                    </p>
+                  </div>
                 </div>
-
-                <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 lg:mt-5">
-                  <input
-                    type="checkbox"
-                    checked={agreed}
-                    onChange={(e) => onAgreedChange?.(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#E30613] focus:ring-[#E30613]"
-                  />
-                  <span className="text-sm font-medium leading-snug text-slate-700 lg:text-[15px]">
-                    {m.agree}
-                  </span>
-                </label>
               </>
             )}
 
             {step === 'jd' && (
-              <div className="mt-4 space-y-4 lg:mt-5">
-              <p className="text-sm text-slate-600 leading-relaxed">
-                {m.jdStepIntro}
-              </p>
-              <label className="block">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs font-semibold text-slate-700">{m.relatedJd}</span>
-                  {onQuickCreateJd ? (
-                    <button
-                      type="button"
-                      disabled={loading}
-                      onClick={() => onQuickCreateJd({
-                        requirementNote,
-                        wantsSimilar,
-                      })}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#0077B6]/25 bg-[#e8f4fa] px-2.5 py-1 text-xs font-semibold text-[#0077B6] transition hover:border-[#0077B6]/40 hover:bg-[#dff0fa] disabled:opacity-50"
-                    >
-                      <FilePlus2 className="h-3.5 w-3.5" aria-hidden />
-                      {m.createJd}
-                    </button>
-                  ) : null}
-                </div>
-                <FilterSelectDropdown
-                  value={selectedJobId}
-                  onChange={setSelectedJobId}
-                  options={jobOptions}
-                  placeholder={ws.workspace.selectJdPlaceholder}
-                  searchable
-                  searchPlaceholder={ws.workspace.searchJdPlaceholder}
-                  optionSize="comfortable"
-                  maxPanelHeight={280}
-                  className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-[#0077B6]"
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs font-semibold text-slate-700">{m.extraRequirements}</span>
-                <textarea
-                  value={requirementNote}
-                  onChange={(e) => onRequirementNoteChange?.(e.target.value)}
-                  rows={3}
-                  placeholder={m.extraRequirementsPlaceholder}
-                  className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-[#0077B6] resize-y"
-                />
-              </label>
-              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                <input
-                  type="checkbox"
-                  checked={!!wantsSimilar}
-                  onChange={(e) => onWantsSimilarChange?.(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-[#E30613] focus:ring-[#E30613]"
-                />
-                <span className="text-sm font-medium leading-snug text-slate-700">
-                  {m.headhuntSimilar}
-                </span>
-              </label>
-            </div>
-          )}
-          </div>
-        </div>
-
-        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-100 bg-white px-5 py-3 sm:px-6 sm:py-4 lg:px-8">
-          <div>
-            {step === 'jd' ? (
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => setStep('confirm')}
-                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-              >
-                {c.back}
-              </button>
-            ) : null}
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              disabled={loading}
-              onClick={onClose}
-              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-            >
-              {c.cancel}
-            </button>
-            {step === 'confirm' ? (
-              <button
-                type="button"
-                disabled={loading || !agreed}
-                onClick={handleConfirmStepContinue}
-                className="rounded-lg bg-[#0077B6] px-4 py-2 text-sm font-semibold text-white hover:bg-[#006399] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {loading
-                  ? m.sending
-                  : skipJdStep
-                    ? m.confirmSend
-                    : c.continue}
-              </button>
-            ) : (
-              <button
-                type="button"
-                disabled={loading || !canProceedJd}
-                onClick={handleConfirm}
-                className="rounded-lg bg-[#E30613] px-4 py-2 text-sm font-semibold text-white hover:bg-[#c90511] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {loading ? m.sending : m.confirmSend}
-              </button>
+              <div className="mt-3 space-y-3 sm:mt-4">
+                <p className="text-xs text-slate-600 leading-relaxed sm:text-sm">
+                  {m.jdStepIntro}
+                </p>
+                <label className="block">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-[10px] font-semibold text-slate-700 sm:text-xs">{m.relatedJd}</span>
+                    {onQuickCreateJd ? (
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => onQuickCreateJd({
+                          requirementNote,
+                          wantsSimilar,
+                        })}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#0077B6]/25 bg-[#e8f4fa] px-2 py-1 text-[10px] font-semibold text-[#0077B6] transition hover:border-[#0077B6]/40 hover:bg-[#dff0fa] disabled:opacity-50 sm:px-2.5 sm:text-xs"
+                      >
+                        <FilePlus2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" aria-hidden />
+                        {m.createJd}
+                      </button>
+                    ) : null}
+                  </div>
+                  <FilterSelectDropdown
+                    value={selectedJobId}
+                    onChange={setSelectedJobId}
+                    options={jobOptions}
+                    placeholder={ws.workspace.selectJdPlaceholder}
+                    searchable
+                    searchPlaceholder={ws.workspace.searchJdPlaceholder}
+                    optionSize="comfortable"
+                    maxPanelHeight={280}
+                    className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-800 outline-none focus:border-[#0077B6] sm:py-2.5 sm:text-sm"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[10px] font-semibold text-slate-700 sm:text-xs">{m.extraRequirements}</span>
+                  <textarea
+                    value={requirementNote}
+                    onChange={(e) => onRequirementNoteChange?.(e.target.value)}
+                    rows={2}
+                    placeholder={m.extraRequirementsPlaceholder}
+                    className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-800 outline-none focus:border-[#0077B6] resize-y sm:py-2.5 sm:text-sm"
+                  />
+                </label>
+              </div>
             )}
           </div>
         </div>
+
+        <div className="scout-confirm-modal-footer flex shrink-0 flex-col gap-2.5 border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4 xl:px-8">
+          {step === 'confirm' ? (
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => onAgreedChange?.(e.target.checked)}
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 text-[#E30613] focus:ring-[#E30613] sm:h-4 sm:w-4"
+              />
+              <span className="text-xs font-medium leading-snug text-slate-700 sm:text-sm">
+                {m.agree}
+              </span>
+            </label>
+          ) : (
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5">
+              <input
+                type="checkbox"
+                checked={!!wantsSimilar}
+                onChange={(e) => onWantsSimilarChange?.(e.target.checked)}
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 text-[#E30613] focus:ring-[#E30613] sm:h-4 sm:w-4"
+              />
+              <span className="text-xs font-medium leading-snug text-slate-700 sm:text-sm">
+                {m.headhuntSimilar}
+              </span>
+            </label>
+          )}
+
+          <div className="flex items-center justify-between gap-2 sm:gap-3">
+            <div>
+              {step === 'jd' ? (
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => setStep('confirm')}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 sm:px-4 sm:py-2 sm:text-sm"
+                >
+                  {c.back}
+                </button>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                type="button"
+                disabled={loading}
+                onClick={onClose}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
+              >
+                {c.cancel}
+              </button>
+              {step === 'confirm' ? (
+                <button
+                  type="button"
+                  disabled={loading || !agreed}
+                  onClick={handleConfirmStepContinue}
+                  className="rounded-lg bg-[#0077B6] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#006399] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
+                >
+                  {loading
+                    ? m.sending
+                    : skipJdStep
+                      ? m.confirmSend
+                      : c.continue}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={loading || !canProceedJd}
+                  onClick={handleConfirm}
+                  className="rounded-lg bg-[#E30613] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#c90511] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
+                >
+                  {loading ? m.sending : m.confirmSend}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -1589,6 +1662,10 @@ const Scout = ({ variant = 'credit' } = {}) => {
   const location = useLocation()
   const { language } = useLanguage()
   const ws = useMemo(() => getScoutWorkspaceCopy(language), [language])
+  const scoutPageTitle = useMemo(() => {
+    const onboardingKey = variant === 'performance' ? 'managed' : 'direct'
+    return ws.onboarding[onboardingKey].pageTitle
+  }, [ws, variant])
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedJobId = searchParams.get('jobId') || ''
   const performanceRequestId = searchParams.get('performanceRequestId') || ''
@@ -2113,6 +2190,13 @@ const Scout = ({ variant = 'credit' } = {}) => {
       <style>{scoutPageStyles}</style>
       <div className="business-homepage-shell scout-workspace-shell flex h-full min-h-0 flex-col overflow-hidden" style={{ fontFamily: PAGE_FONT }}>
         <div className="business-homepage-ui flex min-h-0 flex-1 flex-col overflow-hidden p-2 lg:p-3">
+          <div className="shrink-0 lg:mb-2">
+            <ScoutBreadcrumb
+              homeLabel={ws.breadcrumb.home}
+              currentLabel={scoutPageTitle}
+              onHomeClick={() => navigate('/business')}
+            />
+          </div>
           <div className="scout-workspace-body min-h-0 flex-1">
             <div className="scout-workspace-content min-h-0">
               <ScoutFilterPanel

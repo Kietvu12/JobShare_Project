@@ -20,10 +20,14 @@ const FEE_MODE_SELECT_OPTIONS = [
 const inputClass =
   'biz-ui-body w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/25';
 
+const compactInputClass =
+  'w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[10px] sm:text-[11px] text-slate-900 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/25';
+
 /**
  * Cài đặt phí giới thiệu nhân sự (tối giản) — doanh nghiệp / đưa job lên sàn CTV.
  */
 export default function JobCommissionEditor({
+  compact = false,
   jobCommissionType,
   onCommissionTypeChange,
   jobValues,
@@ -92,17 +96,19 @@ export default function JobCommissionEditor({
         : null;
 
   return (
-    <div className="w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50/80 p-3 sm:p-4 space-y-3">
+    <div className={`w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50/80 ${compact ? 'p-2.5 sm:p-3 space-y-2' : 'p-3 sm:p-4 space-y-3'}`}>
       <div className="min-w-0">
-        <div className="biz-ui-section text-slate-800">Phí giới thiệu nhân sự</div>
-        <p className="biz-ui-caption mt-0.5 leading-snug text-slate-500">
+        <div className={compact ? 'text-[11px] font-bold text-slate-800 sm:text-xs' : 'biz-ui-section text-slate-800'}>
+          Phí giới thiệu nhân sự
+        </div>
+        <p className={compact ? 'mt-0.5 text-[10px] leading-snug text-slate-500 sm:text-[11px]' : 'biz-ui-caption mt-0.5 leading-snug text-slate-500'}>
           {DIRECT_REFERRAL_LABEL}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full min-w-0">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 w-full min-w-0">
         <div className="min-w-0">
-          <label className="biz-ui-body mb-1.5 block font-semibold text-slate-700">
+          <label className={compact ? 'mb-1 block text-[10px] font-semibold text-slate-700 sm:text-[11px]' : 'biz-ui-body mb-1.5 block font-semibold text-slate-700'}>
             Giá trị phí <span className="text-red-500">*</span>
           </label>
           <input
@@ -119,26 +125,26 @@ export default function JobCommissionEditor({
               handleAmountChange(v);
             }}
             placeholder={valuePlaceholder}
-            className={inputClass}
+            className={compact ? compactInputClass : inputClass}
           />
           {feeMode === SIMPLE_FEE_MODES.FIXED ? (
-            <p className="biz-ui-caption mt-1 text-slate-400">
+            <p className={compact ? 'mt-1 text-[9px] text-slate-400 sm:text-[10px]' : 'biz-ui-caption mt-1 text-slate-400'}>
               Đơn vị: {getJobCurrencyShortLabel(salaryCurrency)} (theo JD)
             </p>
           ) : null}
           {valueHint ? (
-            <p className="biz-ui-caption mt-1 text-slate-500">{valueHint}</p>
+            <p className={compact ? 'mt-1 text-[9px] text-slate-500 sm:text-[10px]' : 'biz-ui-caption mt-1 text-slate-500'}>{valueHint}</p>
           ) : null}
         </div>
 
         <div className="min-w-0">
-          <label className="biz-ui-body mb-1.5 block font-semibold text-slate-700">
+          <label className={compact ? 'mb-1 block text-[10px] font-semibold text-slate-700 sm:text-[11px]' : 'biz-ui-body mb-1.5 block font-semibold text-slate-700'}>
             Kiểu phí <span className="text-red-500">*</span>
           </label>
           <select
             value={feeMode}
             onChange={(e) => handleModeChange(e.target.value)}
-            className={inputClass}
+            className={compact ? compactInputClass : inputClass}
           >
             {FEE_MODE_SELECT_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -148,7 +154,9 @@ export default function JobCommissionEditor({
       </div>
 
       {!jobValues.some(isPersistableJobValue) && (
-        <p className="biz-ui-caption text-amber-600">Nhập mức phí để tiếp tục.</p>
+        <p className={compact ? 'text-[9px] text-amber-600 sm:text-[10px]' : 'biz-ui-caption text-amber-600'}>
+          Nhập mức phí để tiếp tục.
+        </p>
       )}
     </div>
   );

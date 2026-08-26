@@ -239,5 +239,6 @@ export * from './messages.js';
 export * from './applications.js';
 export * from './jdBuilder.js';
 export * from './branding.js';
+export * from './knowledgeHub.js';
 export * from './scoutWorkspace.js';
 export * from './candidates.js';

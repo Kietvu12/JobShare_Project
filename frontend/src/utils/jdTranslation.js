@@ -1,6 +1,6 @@
 import { jobSalaryCurrencyToJdCode } from './jobSalaryCurrency.js';
 
-export const JD_TRANSLATE_API_URL = 'https://ws-jobshare.com/api_ai/v2/parser/jd/translate';
+export const JD_TRANSLATE_API_URL = 'https://test.ws-jobshare.com/api_ai/v2/parser/jd/translate';
 
 export const JD_LANGUAGE_TABS = [
   { id: 'vi', label: 'Tiếng Việt' },

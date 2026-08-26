@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import JobAiBuilderPanel from '../../component/Bussiness/JobAiBuilderPanel'
 import {
   ensureJobBuilderThreadForJob,
@@ -18,53 +18,38 @@ import useBusinessUser from '../../hooks/useBusinessUser'
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
 import { useLanguage } from '../../context/LanguageContext'
 import { getLocalizedJobTitle } from '../../i18n/businessAppI18n'
+import { BUSINESS_UI_TYPOGRAPHY_STYLES } from '../../utils/businessUiFont'
 
 const BUSINESS_JOBS_FONT =
   "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 
 const builderPageStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+  ${BUSINESS_UI_TYPOGRAPHY_STYLES}
   .business-jobs-shell {
     height: 100%;
     min-height: 0;
     font-family: ${BUSINESS_JOBS_FONT};
-    --jobs-zoom: 1;
-  }
-  @media (min-width: 1024px) and (max-width: 1279px) {
-    .business-jobs-shell { --jobs-zoom: 0.9; }
-  }
-  @media (min-width: 1280px) and (max-width: 1535px) {
-    .business-jobs-shell { --jobs-zoom: 0.86; }
-  }
-  @media (min-width: 1024px) and (max-height: 760px) {
-    .business-jobs-shell { --jobs-zoom: 0.78; }
-  }
-  @media (min-width: 1024px) and (min-height: 761px) and (max-height: 860px) {
-    .business-jobs-shell { --jobs-zoom: 0.84; }
   }
   .business-jobs-ui {
-    zoom: var(--jobs-zoom);
     height: 100%;
     min-height: 0;
-    --jd-fs-title: 11px;
-    --jd-fs-body: 10px;
-    --jd-icon: 14px;
-    --jd-icon-hit: 28px;
+    --jd-fs-title: 14px;
+    --jd-fs-body: 13px;
+    --jd-icon: 16px;
+    --jd-icon-hit: 32px;
   }
-  @supports not (zoom: 1) {
+  @media (min-width: 640px) {
     .business-jobs-ui {
-      transform: scale(var(--jobs-zoom));
-      transform-origin: top left;
-      width: calc(100% / var(--jobs-zoom));
-      height: calc(100% / var(--jobs-zoom));
+      --jd-fs-title: 15px;
+      --jd-fs-body: 14px;
     }
   }
   @media (min-width: 1536px) {
     .business-jobs-ui {
-      --jd-fs-title: 12px;
-      --jd-fs-body: 11px;
-      --jd-icon: 15px;
-      --jd-icon-hit: 30px;
+      --jd-fs-title: 16px;
+      --jd-fs-body: 14px;
+      --jd-icon: 17px;
+      --jd-icon-hit: 34px;
     }
   }
   .business-jobs-ui .biz-jd-title { font-size: var(--jd-fs-title); line-height: 1.35; font-weight: 600; color: #1e293b; }
@@ -77,7 +62,7 @@ const builderPageStyles = `
   }
   .business-jobs-ui .biz-jd-icon-hit > svg { width: var(--jd-icon); height: var(--jd-icon); }
   .business-jobs-ui .business-jd-preview-root {
-    --jobs-jd-extra: 0.62;
+    --jobs-jd-extra: 0.92;
     zoom: calc(var(--jobs-jd-zoom, 1) * var(--jobs-jd-extra));
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 transparent;
@@ -125,35 +110,16 @@ const builderPageStyles = `
   .business-jobs-ui .business-jd-preview-root .jd-template-compact .min-h-\\[60px\\] { min-height: 2.25rem; }
   @supports not (zoom: 1) {
     .business-jobs-ui .business-jd-preview-root {
-      transform: scale(calc(var(--jobs-jd-zoom, 1) * var(--jobs-jd-extra, 0.62)));
+      transform: scale(calc(var(--jobs-jd-zoom, 1) * var(--jobs-jd-extra, 0.92)));
       transform-origin: top left;
     }
   }
   @media (min-width: 1024px) and (max-width: 1535px) {
-    .biz-jd-builder-page-header {
-      padding: 0.375rem 0.625rem;
-      gap: 0.5rem;
-    }
-    .biz-jd-builder-page-header h1 {
-      font-size: 0.8125rem;
-    }
-    .biz-jd-builder-page-header .biz-jd-page-subtitle {
-      font-size: 10px;
-    }
-    .biz-jd-builder-page-header .biz-jd-page-crumb {
-      font-size: 9px;
+    .business-jobs-ui .business-jd-preview-root {
+      --jobs-jd-extra: 0.88;
     }
   }
 `
-
-const DEFAULT_NEW_TITLE_KEYS = new Set(['JD mới', 'New JD', '新規JD'])
-
-function resolveBuilderPageTitle({ mode, jdCopy, displayName, isDraftThread }) {
-  if (displayName) return jdCopy.editTitleWithName(displayName)
-  if (mode === 'edit') return jdCopy.editTitle
-  if (isDraftThread) return jdCopy.createTitle
-  return jdCopy.createTitle
-}
 
 const JobAiBuilderPage = ({ mode = 'create' }) => {
   const navigate = useNavigate()
@@ -177,30 +143,6 @@ const JobAiBuilderPage = ({ mode = 'create' }) => {
     () => mode === 'create' && Boolean(peekPendingMarketplaceListingDraft()),
   )
   const [marketplaceSubmitting, setMarketplaceSubmitting] = useState(false)
-
-  const displayJobTitle = useMemo(() => {
-    if (loadedJob) return getLocalizedJobTitle(loadedJob, language)
-    if (threadTitle && !DEFAULT_NEW_TITLE_KEYS.has(threadTitle)) return threadTitle
-    return null
-  }, [loadedJob, threadTitle, language])
-
-  const pageTitle = useMemo(
-    () => resolveBuilderPageTitle({
-      mode,
-      jdCopy,
-      displayName: displayJobTitle,
-      isDraftThread,
-    }),
-    [mode, jdCopy, displayJobTitle, isDraftThread],
-  )
-
-  const goBack = useCallback(() => {
-    if (savedJobId) {
-      navigate(`/business/jobs/${savedJobId}`)
-      return
-    }
-    navigate('/business/jobs')
-  }, [navigate, savedJobId])
 
   useEffect(() => {
     if (!businessUser?.id) return undefined
@@ -337,25 +279,9 @@ const JobAiBuilderPage = ({ mode = 'create' }) => {
     <>
       <style>{builderPageStyles}</style>
       <div className="business-jobs-shell flex h-full min-h-0 flex-col overflow-hidden bg-white">
-        <div className="business-jobs-ui flex min-h-0 flex-1 flex-col overflow-hidden">
-          <header className="biz-jd-builder-page-header shrink-0 flex items-center gap-2 border-b border-slate-200 px-2.5 py-2 lg:gap-3 lg:px-4 lg:py-2.5">
-            <button
-              type="button"
-              onClick={goBack}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 lg:h-8 lg:w-8"
-              aria-label={jdCopy.back}
-            >
-              <ArrowLeft className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-            </button>
-            <div className="min-w-0 flex-1">
-              <p className="biz-jd-page-crumb text-[10px] font-semibold uppercase tracking-wide text-slate-400 lg:text-[11px]">{jdCopy.breadcrumb}</p>
-              <h1 className="truncate text-sm font-bold text-slate-900 lg:text-base">{pageTitle}</h1>
-              <p className="biz-jd-page-subtitle text-[11px] text-slate-500 lg:text-xs">{jdCopy.pageSubtitle}</p>
-            </div>
-          </header>
-
+        <div className="business-jobs-ui business-app-ui flex min-h-0 flex-1 flex-col overflow-hidden">
           {marketplaceQuickCreateActive ? (
-            <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+            <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
               {marketplaceSubmitting ? jdCopy.marketplaceSubmitting : jdCopy.marketplaceHint}
             </div>
           ) : null}

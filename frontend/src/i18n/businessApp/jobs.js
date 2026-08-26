@@ -4,7 +4,12 @@ export const jobsI18n = {
   vi: {
     title: 'Quản lý JD',
     subtitle: 'Quản lý các vị trí tuyển dụng và theo dõi tình trạng tuyển dụng',
+    breadcrumb: {
+      home: 'Trang chủ',
+      current: 'Quản lý việc làm',
+    },
     createJd: 'Tạo JD mới',
+    createShort: 'Tạo mới',
     searchPlaceholder: 'Tìm kiếm theo tên vị trí, mã JD, từ khóa...',
     filters: {
       status: 'Trạng thái',
@@ -95,7 +100,12 @@ export const jobsI18n = {
   en: {
     title: 'Job descriptions',
     subtitle: 'Manage open roles and track hiring progress',
+    breadcrumb: {
+      home: 'Home',
+      current: 'Job management',
+    },
     createJd: 'Create new JD',
+    createShort: 'Create new',
     searchPlaceholder: 'Search by role, JD code, keywords...',
     filters: {
       status: 'Status',
@@ -186,7 +196,12 @@ export const jobsI18n = {
   ja: {
     title: 'JD管理',
     subtitle: '求人票を管理し、採用状況を追跡',
+    breadcrumb: {
+      home: 'ホーム',
+      current: '求人管理',
+    },
     createJd: '新規JD作成',
+    createShort: '新規作成',
     searchPlaceholder: '職種名、JDコード、キーワードで検索...',
     filters: {
       status: 'ステータス',

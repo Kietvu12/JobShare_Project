@@ -193,11 +193,18 @@ export default function Billing() {
           </div>
         ) : null}
 
-        <header className="flex shrink-0 flex-wrap items-start justify-between gap-2">
-          <div>
-            <h1 className="text-base font-bold text-slate-900 sm:text-[17px]">{billingCopy.title}</h1>
-            <p className="mt-0.5 text-[10px] text-slate-500 sm:text-[11px]">{billingCopy.subtitle}</p>
-          </div>
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+          <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
+            <button
+              type="button"
+              onClick={() => navigate('/business')}
+              className="transition hover:text-[#0077B6]"
+            >
+              {copy.jobs.breadcrumb.home}
+            </button>
+            <span className="mx-1.5 text-slate-400">&gt;</span>
+            <span className="font-medium text-slate-700">{billingCopy.title}</span>
+          </nav>
           <button
             type="button"
             onClick={() => navigate('/business/service-requests')}

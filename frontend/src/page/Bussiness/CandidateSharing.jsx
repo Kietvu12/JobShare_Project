@@ -3,8 +3,9 @@ import { createPortal } from 'react-dom'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import {
   ChevronRight, Plus, Loader2, X, Network, Handshake, Shield, BarChart3,
-  FileText, Settings, Users, History, BookOpen, AlertTriangle, ArrowRight, Search, Briefcase, Sparkles,
+  FileText, Settings, Users, ArrowRight, Search, Briefcase,
 } from 'lucide-react'
+import nothingIllustration from '../../assets/Nothing.png'
 import apiService from '../../services/api'
 import NominationChat from '../../component/Chat/NominationChat'
 import JobCommissionEditor, { validateCommissionForMarketplace } from '../../component/Bussiness/JobCommissionEditor'
@@ -25,8 +26,9 @@ import {
   simpleCommissionToPayload,
 } from '../../utils/businessSimpleCommission'
 import { normalizeJobSalaryCurrency } from '../../utils/jobSalaryCurrency'
+import { HomepageSidebar } from './Homepage'
 import { useLanguage } from '../../context/LanguageContext'
-import BusinessQuickActionsPanel, { getDefaultBusinessQuickActions } from '../../component/Bussiness/BusinessQuickActionsPanel.jsx'
+import { getBusinessAppCopy, getHomepageSolutionCards } from '../../i18n/businessAppI18n'
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 const BRAND = '#0077B6'
@@ -44,6 +46,9 @@ const scrollbarStyle = `
 
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .business-homepage-scroll::-webkit-scrollbar { width: 4px; }
+  .business-homepage-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
   .business-homepage-shell {
     --hp-zoom: 1;
@@ -102,6 +107,11 @@ const scrollbarStyle = `
     overflow-x: hidden;
     overscroll-behavior: contain;
   }
+  .ctv-marketplace-body {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
 `
 
 const valueCards = [
@@ -153,81 +163,7 @@ const highlightFeatures = [
   { icon: Shield, title: 'Bảo vệ & minh bạch', desc: 'Thanh toán qua JobShare, hợp đồng và lịch sử giao dịch rõ ràng.' },
 ]
 
-const onboardNotifications = [
-  { dot: 'bg-emerald-500', text: 'Chào mừng bạn đến với Sàn HR JobShare!', time: 'Vừa xong' },
-  { dot: 'bg-[#0077B6]', text: 'Đăng job đầu tiên để kết nối với CTV HR Partner', time: '1 phút trước' },
-  { dot: 'bg-blue-500', text: 'Thiết lập phí thưởng CTV trước khi đăng tin', time: '2 phút trước' },
-  { dot: 'bg-rose-500', text: 'WS sẽ duyệt tin trước khi hiển thị trên sàn', time: '3 phút trước', warn: true },
-]
-
-const onboardNews = [
-  { title: 'Mở rộng kết nối tuyển dụng với CTV trên JobShare', date: '20/05/2024', img: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=200&h=150&fit=crop' },
-  { title: 'Hướng dẫn thiết lập phí thưởng CTV hiệu quả', date: '18/05/2024', img: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=200&h=150&fit=crop' },
-  { title: 'Quy trình duyệt tin và tiến cử ứng viên trên Sàn HR', date: '15/05/2024', img: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=200&h=150&fit=crop' },
-]
-
-function OnboardingSidebar({ onNavigate }) {
-  const { language } = useLanguage()
-  const quickActions = useMemo(() => getDefaultBusinessQuickActions(language), [language])
-
-  const handleAction = (item) => {
-    if (item.path) onNavigate(item.path)
-  }
-
-  return (
-    <div className="flex min-h-0 flex-col gap-3 xl:h-full xl:min-h-0 xl:overflow-y-auto xl:pr-0.5 business-homepage-scroll scrollbar-hide">
-      <BusinessQuickActionsPanel
-        actions={quickActions}
-        onActionClick={handleAction}
-      />
-
-      <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="flex items-center gap-2 text-xs font-bold text-slate-900">
-            Thông báo
-            <span className="rounded-full bg-[#0077B6] px-1.5 py-0.5 text-[9px] font-bold text-white">4</span>
-          </h2>
-          <button type="button" className="shrink-0 text-[10px] font-semibold text-[#0077B6]">Xem tất cả</button>
-        </div>
-        <div className="flex flex-col divide-y divide-slate-100">
-          {onboardNotifications.map((n) => (
-            <div key={n.text} className="flex items-start gap-2.5 py-3 first:pt-0 last:pb-0">
-              {n.warn ? (
-                <AlertTriangle className="mt-1 h-3.5 w-3.5 shrink-0 text-rose-500" />
-              ) : (
-                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.dot}`} />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] leading-relaxed text-slate-700">{n.text}</p>
-                <p className="mt-1.5 text-[10px] leading-none text-slate-400">{n.time}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="text-xs font-bold text-slate-900">Tin tức &amp; Insights</h2>
-          <button type="button" className="shrink-0 text-[10px] font-semibold text-[#0077B6]">Xem tất cả</button>
-        </div>
-        <div className="flex flex-col gap-3">
-          {onboardNews.map((n) => (
-            <div key={n.title} className="flex gap-2.5">
-              <img src={n.img} alt="" className="h-10 w-14 shrink-0 rounded-md object-cover" />
-              <div className="min-w-0">
-                <p className="line-clamp-2 text-[11px] font-medium leading-relaxed text-slate-800">{n.title}</p>
-                <p className="mt-1.5 text-[10px] text-slate-400">{n.date}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function OnboardingView({ hasMarketplaceData, onCreate, onViewDetails }) {
+function OnboardingView({ hasMarketplaceData, onCreate, onViewDetails, onNavigate, breadcrumbHome, breadcrumbCurrent }) {
   const handleCta = () => {
     if (hasMarketplaceData) onViewDetails()
     else onCreate()
@@ -236,13 +172,17 @@ function OnboardingView({ hasMarketplaceData, onCreate, onViewDetails }) {
   return (
     <div className="flex flex-col gap-3 sm:gap-4 2xl:gap-5 min-w-0 xl:flex-1 xl:min-h-0 xl:h-full">
       <div className="shrink-0">
-        <h1 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-slate-800 leading-snug">
-          Sàn HR – Kết nối tuyển dụng, Tiên phong hiệu quả
-        </h1>
-        <p className="text-xs sm:text-sm 2xl:text-base text-slate-500 mt-0.5 sm:mt-1 max-w-4xl leading-relaxed">
-          JobShare Sàn HR kết nối doanh nghiệp với hàng nghìn CTV HR Partner chuyên nghiệp trên toàn quốc.
-          Nền tảng trung gian đảm bảo bảo mật thông tin và minh bạch trong suốt quá trình tuyển dụng.
-        </p>
+        <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
+          <button
+            type="button"
+            onClick={() => onNavigate('/business')}
+            className="transition hover:text-[#0077B6]"
+          >
+            {breadcrumbHome}
+          </button>
+          <span className="mx-1.5 text-slate-400">&gt;</span>
+          <span className="font-medium text-slate-700">{breadcrumbCurrent}</span>
+        </nav>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-3 2xl:gap-4 items-stretch shrink-0">
@@ -348,15 +288,15 @@ function formatJobPickerLabel(job) {
   return code ? `${title} (${code})` : title
 }
 
-const businessModalTitleClass = 'text-xs font-bold leading-snug text-slate-900 sm:text-[13px]'
-const businessModalSubtitleClass = 'mt-1 text-[11px] font-medium leading-relaxed text-slate-600 sm:text-xs'
-const businessLabelClass = 'block text-[11px] font-semibold text-slate-700 mb-1.5 sm:text-xs'
+const businessModalTitleClass = 'text-[11px] font-bold leading-snug text-slate-900 sm:text-xs'
+const businessModalSubtitleClass = 'mt-0.5 text-[10px] font-medium leading-relaxed text-slate-600 sm:text-[11px]'
+const businessLabelClass = 'block text-[10px] font-semibold text-slate-700 mb-1 sm:text-[11px]'
 const businessInputClass =
-  'w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[11px] sm:text-xs text-slate-900 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/25'
+  'w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[10px] sm:text-[11px] text-slate-900 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/25'
 const businessBtnSecondaryClass =
-  'w-full sm:w-auto rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50 sm:py-2.5'
+  'w-full sm:w-auto rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50 sm:px-4 sm:py-2 sm:text-[11px]'
 const businessBtnPrimaryClass =
-  'w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-[#0077B6] px-4 py-2 text-xs font-bold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] disabled:opacity-60 sm:py-2.5'
+  'w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] px-3 py-1.5 text-[10px] font-bold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] disabled:opacity-60 sm:px-4 sm:py-2 sm:text-[11px]'
 
 function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
   const navigate = useNavigate()
@@ -375,6 +315,7 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
   const [platformBillingAck, setPlatformBillingAck] = useState(false)
   const [creating, setCreating] = useState(false)
   const [loadingJobMeta, setLoadingJobMeta] = useState(false)
+  const [jobsAvailability, setJobsAvailability] = useState({ loading: false, hasJobs: true })
 
   useEffect(() => {
     if (!open) return undefined
@@ -384,6 +325,26 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose, creating])
+
+  useEffect(() => {
+    if (!open) return undefined
+    if (initialJobId) {
+      setJobsAvailability({ loading: false, hasJobs: true })
+      return undefined
+    }
+    let mounted = true
+    setJobsAvailability({ loading: true, hasJobs: true })
+    apiService.getBusinessJobs({ page: 1, limit: 1 }).then((res) => {
+      if (!mounted) return
+      const jobs = res?.data?.jobs || res?.data?.items || []
+      const total = res?.data?.pagination?.total
+      const hasJobs = typeof total === 'number' ? total > 0 : jobs.length > 0
+      setJobsAvailability({ loading: false, hasJobs: res?.success ? hasJobs : true })
+    }).catch(() => {
+      if (mounted) setJobsAvailability({ loading: false, hasJobs: true })
+    })
+    return () => { mounted = false }
+  }, [open, initialJobId])
 
   useEffect(() => {
     if (!open) return
@@ -518,7 +479,12 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
     }
     savePendingMarketplaceListingDraft(buildListingDraftFromForm())
     onClose?.()
-    navigate('/business/jobs?quickMarketplace=1')
+    navigate('/business/jobs/create?quickMarketplace=1')
+  }
+
+  const handleEmptyQuickCreate = () => {
+    onClose?.()
+    navigate('/business/jobs/create')
   }
 
   const handleCreate = async () => {
@@ -550,6 +516,8 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
 
   if (!open) return null
 
+  const showNoJobsEmpty = !initialJobId && !jobsAvailability.loading && !jobsAvailability.hasJobs
+
   return createPortal(
     <div
       className="fixed inset-0 z-[10050] flex items-center justify-center p-4"
@@ -564,27 +532,28 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
         onClick={() => !creating && onClose?.()}
       />
       <div
-        className="business-homepage-shell relative z-10 flex w-full max-w-3xl max-h-[90vh] min-h-0 justify-center pointer-events-none"
+        className="relative z-10 flex w-full max-w-3xl max-h-[90vh] min-h-0 justify-center pointer-events-none"
         style={{ fontFamily: PAGE_FONT }}
       >
-        <div className="business-homepage-ui pointer-events-auto relative flex w-full max-w-3xl max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl antialiased">
+        <div className="create-listing-modal pointer-events-auto relative flex w-full max-w-3xl max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl antialiased">
         <button
           type="button"
           onClick={() => !creating && onClose?.()}
           disabled={creating}
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"
+          className="absolute right-2.5 top-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"
           aria-label="Đóng hộp thoại"
         >
-          <X className="h-4 w-4" strokeWidth={2} />
+          <X className="h-3.5 w-3.5" strokeWidth={2} />
         </button>
 
-        <div className="shrink-0 border-b border-slate-100 px-5 pb-4 pt-5 pr-12">
-          <div className="flex items-start gap-3">
+        {!showNoJobsEmpty ? (
+        <div className="shrink-0 border-b border-slate-100 px-4 pb-3 pt-4 pr-11">
+          <div className="flex items-start gap-2.5">
             <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#0077B6]/20 bg-[#0077B6]/5"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#0077B6]/20 bg-[#0077B6]/5"
               aria-hidden
             >
-              <Briefcase className="h-4 w-4 text-[#0077B6]" strokeWidth={2} />
+              <Briefcase className="h-3.5 w-3.5 text-[#0077B6]" strokeWidth={2} />
             </div>
             <div className="min-w-0 pt-0.5">
               <h2 id="create-listing-modal-title" className={businessModalTitleClass}>
@@ -596,9 +565,38 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
             </div>
           </div>
         </div>
+        ) : (
+          <h2 id="create-listing-modal-title" className="sr-only">Chưa có job nào</h2>
+        )}
 
-        <div className="ctv-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          <section className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 sm:p-4">
+        <div className={`ctv-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-3 space-y-3 ${showNoJobsEmpty ? 'pt-10' : ''}`}>
+          {!initialJobId && jobsAvailability.loading ? (
+            <div className="flex min-h-[240px] items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-[#0077B6]" />
+            </div>
+          ) : showNoJobsEmpty ? (
+            <div className="flex flex-col items-center justify-center px-2 py-6 text-center sm:py-8">
+              <img
+                src={nothingIllustration}
+                alt=""
+                className="mb-4 w-full max-w-[220px] object-contain"
+                draggable={false}
+              />
+              <p className="text-sm font-semibold text-slate-800">Chưa có job nào</p>
+              <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-slate-500">
+                Tạo JD mới để bắt đầu đăng tin và kết nối với CTV HR Partner trên JobShare.
+              </p>
+              <button
+                type="button"
+                onClick={handleEmptyQuickCreate}
+                className="mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-[#0077B6] px-4 py-2.5 text-xs font-bold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:text-sm"
+              >
+                Tạo nhanh
+              </button>
+            </div>
+          ) : (
+          <>
+          <section className="rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 sm:p-3">
             <div className="relative">
               <label className={businessLabelClass}>
                 Chọn JD cần CTV hỗ trợ <span className="text-red-500">*</span>
@@ -672,6 +670,7 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
           </section>
 
           <JobCommissionEditor
+            compact
             jobCommissionType={jobCommissionType}
             onCommissionTypeChange={setJobCommissionType}
             jobValues={jobValues}
@@ -704,7 +703,7 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
             </section>
           ) : null}
 
-          <section className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 sm:p-4">
+          <section className="rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 sm:p-3">
             <label className={businessLabelClass}>Điểm CTV tối thiểu được tiến cử</label>
             <select
               value={minCtvRating}
@@ -721,7 +720,7 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
             </p>
           </section>
 
-          <section className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 space-y-2">
+          <section className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-3 space-y-1.5">
             <p className="text-[11px] font-bold text-slate-800 sm:text-xs">Quy tắc tiến cử trên Sàn HR</p>
             <ul className="list-disc space-y-1 pl-4 text-[10px] leading-relaxed text-slate-600 sm:text-[11px]">
               <li>Email doanh nghiệp chỉ dùng để <strong>thông báo</strong> — hồ sơ phải ghi nhận trong mục Quản lý tiến cử.</li>
@@ -743,7 +742,7 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
             </label>
           </section>
 
-          <section className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 sm:p-4">
+          <section className="rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 sm:p-3">
             <label className={businessLabelClass}>Hạn tuyển</label>
             <input
               type="date"
@@ -752,10 +751,13 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
               className={businessInputClass}
             />
           </section>
+          </>
+          )}
         </div>
 
-        <div className="shrink-0 flex flex-col gap-2 border-t border-slate-100 bg-slate-50/50 px-5 py-4">
-          <p className="text-[10px] leading-relaxed text-slate-500 sm:text-[11px]">
+        {!showNoJobsEmpty && !jobsAvailability.loading ? (
+        <div className="shrink-0 flex flex-col gap-1.5 border-t border-slate-100 bg-slate-50/50 px-4 py-3">
+          <p className="text-[9px] leading-relaxed text-slate-500 sm:text-[10px]">
             <strong className="font-semibold text-slate-600">Tạo nhanh:</strong>
             {' '}
             Tạo JD mới bằng AI rồi tự gửi WS duyệt đưa lên sàn (dùng phí thưởng &amp; hạn tuyển đã nhập bên trên).
@@ -773,9 +775,8 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
             type="button"
             disabled={creating}
             onClick={handleQuickCreate}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg border border-[#0077B6]/35 bg-[#e8f4fa] px-4 py-2 text-xs font-bold text-[#0077B6] transition-colors hover:bg-[#0077B6]/10 disabled:opacity-60 sm:py-2.5"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#0077B6]/35 bg-[#e8f4fa] px-3 py-1.5 text-[10px] font-bold text-[#0077B6] transition-colors hover:bg-[#0077B6]/10 disabled:opacity-60 sm:px-4 sm:py-2 sm:text-[11px]"
           >
-            <Sparkles className="h-3.5 w-3.5" />
             Tạo nhanh
           </button>
           <button
@@ -795,6 +796,7 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
           </button>
           </div>
         </div>
+        ) : null}
         </div>
       </div>
     </div>,
@@ -851,6 +853,13 @@ function ThreeWayChatPanel({ selectedNomination }) {
 
 const CandidateSharing = () => {
   const navigate = useNavigate()
+  const { language } = useLanguage()
+  const copy = useMemo(() => getBusinessAppCopy(language), [language])
+  const breadcrumbCurrent = useMemo(() => {
+    const card = getHomepageSolutionCards(language).find((c) => c.tagId === 'hr-partner-network')
+    return card?.title || 'Mạng lưới Đối tác Tuyển dụng'
+  }, [language])
+  const breadcrumbHome = copy.jobs.breadcrumb.home
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const urlTab = searchParams.get('tab')
@@ -1148,18 +1157,27 @@ const CandidateSharing = () => {
       />
       <div className="business-homepage-shell ctv-marketplace-dashboard bg-[#f4f6f8]" style={{ fontFamily: PAGE_FONT }}>
         <div className="business-homepage-ui flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-200/90 bg-white px-3 py-2 sm:px-4">
-          <div className="min-w-0">
-            <h1 className="text-sm font-bold leading-tight text-slate-900">Sàn CTV</h1>
-            <p className="hidden text-[10px] text-slate-500 sm:block">Job · tiến cử · chat 3 bên</p>
+        <div className="shrink-0 px-3 pt-3 pb-2 sm:px-4 sm:pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
+              <button
+                type="button"
+                onClick={() => navigate('/business')}
+                className="transition hover:text-[#0077B6]"
+              >
+                {breadcrumbHome}
+              </button>
+              <span className="mx-1.5 text-slate-400">&gt;</span>
+              <span className="font-medium text-slate-700">{breadcrumbCurrent}</span>
+            </nav>
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[#0077B6] px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:px-3 sm:py-1.5 sm:text-[11px]"
+            >
+              <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Đưa job lên sàn
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[#0077B6] px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:px-3 sm:py-1.5 sm:text-[11px]"
-          >
-            <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Đưa job lên sàn
-          </button>
         </div>
         <div className="grid shrink-0 grid-cols-2 gap-1.5 border-b border-slate-200/90 bg-white px-2 py-1.5 sm:grid-cols-4 sm:gap-2 sm:px-3 sm:py-2">
           {statCards.map((card, i) => (
@@ -1201,13 +1219,15 @@ const CandidateSharing = () => {
           </div>
         </div>
 
-        <div
-          className={
-            showChatColumn
-              ? 'grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] items-stretch gap-3 overflow-hidden px-3 pb-3 pt-3 sm:gap-3.5 sm:px-4 sm:pb-4 sm:pt-4 xl:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] xl:grid-rows-1'
-              : 'min-h-0 flex-1 overflow-hidden px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4'
-          }
-        >
+        <div className="ctv-marketplace-body px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4">
+          <div className="grid h-full min-h-0 grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] xl:gap-3">
+            <div
+              className={
+                showChatColumn
+                  ? 'grid min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] items-stretch gap-3 overflow-hidden xl:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] xl:grid-rows-1 xl:gap-3.5'
+                  : 'min-h-0 overflow-hidden'
+              }
+            >
           <div className="ctv-marketplace-col ctv-scrollbar flex min-h-0 flex-col gap-2.5">
             {tab === 'jobs' && (
               <>
@@ -1338,6 +1358,12 @@ const CandidateSharing = () => {
               </div>
             </div>
           )}
+            </div>
+
+            <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col overflow-y-auto xl:pr-0.5">
+              <HomepageSidebar onNavigate={navigate} />
+            </div>
+          </div>
         </div>
         </div>
       </div>
@@ -1374,16 +1400,21 @@ const CandidateSharing = () => {
           initialJobId={createJobId}
         />
         <div className="business-homepage-shell min-h-0 h-full overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden" style={{ fontFamily: PAGE_FONT }}>
-          <div className="business-homepage-ui w-full min-h-0 p-3 sm:p-4 2xl:p-5 xl:h-full xl:flex xl:flex-col">
-            <div className="w-full xl:flex-1 xl:min-h-0 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] gap-3 sm:gap-4 2xl:gap-5 items-stretch">
-              <div className="flex flex-col min-w-0 xl:overflow-y-auto xl:min-h-0 xl:h-full xl:pr-1 scrollbar-hide">
+          <div className="business-homepage-ui flex h-full min-h-0 w-full flex-1 flex-col p-2.5 sm:p-3">
+            <div className="grid h-full min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] xl:gap-3 xl:overflow-hidden">
+              <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col overflow-y-auto xl:h-full xl:pr-0.5">
                 <OnboardingView
                   hasMarketplaceData={hasListings}
                   onCreate={openCreateModal}
                   onViewDetails={enterMarketplaceDashboard}
+                  onNavigate={navigate}
+                  breadcrumbHome={breadcrumbHome}
+                  breadcrumbCurrent={breadcrumbCurrent}
                 />
               </div>
-              <OnboardingSidebar onNavigate={navigate} />
+              <div className="business-homepage-scroll scrollbar-hide flex h-full min-h-0 flex-col overflow-y-auto xl:pr-0.5">
+                <HomepageSidebar onNavigate={navigate} />
+              </div>
             </div>
           </div>
         </div>

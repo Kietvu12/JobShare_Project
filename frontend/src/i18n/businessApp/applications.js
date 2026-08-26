@@ -4,6 +4,10 @@ export const applicationsI18n = {
   vi: {
     title: 'Quản lý tiến cử',
     subtitle: 'Theo dõi đơn tiến cử vào JD của doanh nghiệp từ Scout Credit, Sàn CTV và các nguồn khác',
+    breadcrumb: {
+      home: 'Trang chủ',
+      current: 'Quản lý tiến cử',
+    },
     tabs: {
       all: 'Tất cả',
       ws_ctv: 'Tiến cử (WS/CTV)',
@@ -88,6 +92,10 @@ export const applicationsI18n = {
   en: {
     title: 'Application management',
     subtitle: 'Track nominations to your JDs from Scout Credit, CTV Marketplace, and other sources',
+    breadcrumb: {
+      home: 'Home',
+      current: 'Application management',
+    },
     tabs: {
       all: 'All',
       ws_ctv: 'Referrals (WS/CTV)',
@@ -172,6 +180,10 @@ export const applicationsI18n = {
   ja: {
     title: '推薦管理',
     subtitle: 'Scout Credit、CTVマーケットなど各ソースからのJD推薦を追跡',
+    breadcrumb: {
+      home: 'ホーム',
+      current: '推薦管理',
+    },
     tabs: {
       all: 'すべて',
       ws_ctv: '推薦（WS/CTV）',

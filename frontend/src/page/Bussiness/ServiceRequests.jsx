@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, Info, X } from 'lucide-react';
 import apiService from '../../services/api';
@@ -6,9 +6,20 @@ import ServiceRequestModal from '../../component/Bussiness/ServiceRequestModal';
 import ServiceRequestAccountSidebar from '../../component/Bussiness/ServiceRequestAccountSidebar';
 import { BUSINESS_SERVICE_REQUEST_CATALOG, getServiceByKey } from '../../utils/businessServiceRequestCatalog';
 import { BUSINESS_HOMEPAGE_SHELL_STYLES, CARD, PAGE_FONT } from '../../utils/businessHomepageShell';
+import { useLanguage } from '../../context/LanguageContext';
+import { getBusinessAppCopy } from '../../i18n/businessAppI18n';
+
+const SERVICE_REQUESTS_BREADCRUMB = {
+  vi: 'Yêu cầu dịch vụ',
+  en: 'Service requests',
+  ja: 'サービス依頼',
+};
 
 export default function ServiceRequests() {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const copy = useMemo(() => getBusinessAppCopy(language), [language]);
+  const breadcrumbCurrent = SERVICE_REQUESTS_BREADCRUMB[language] || SERVICE_REQUESTS_BREADCRUMB.vi;
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState(null);
@@ -104,12 +115,17 @@ export default function ServiceRequests() {
             </div>
           ) : null}
 
-          <header className="mb-1.5 shrink-0">
-            <h1 className="text-base font-bold text-slate-900 sm:text-[17px]">Yêu cầu dịch vụ</h1>
-            <p className="mt-0.5 text-[10px] leading-snug text-slate-500 sm:text-[11px]">
-              Chọn dịch vụ bạn cần và gửi yêu cầu tới JobShare. Chúng tôi sẽ liên hệ và hỗ trợ bạn trong thời gian sớm nhất.
-            </p>
-          </header>
+          <nav aria-label="Breadcrumb" className="mb-2 shrink-0 text-[11px] text-slate-500 lg:text-xs">
+            <button
+              type="button"
+              onClick={() => navigate('/business')}
+              className="transition hover:text-[#0077B6]"
+            >
+              {copy.jobs.breadcrumb.home}
+            </button>
+            <span className="mx-1.5 text-slate-400">&gt;</span>
+            <span className="font-medium text-slate-700">{breadcrumbCurrent}</span>
+          </nav>
 
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_260px] xl:grid-cols-[minmax(0,1fr)_280px]">
             <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden lg:overflow-hidden">

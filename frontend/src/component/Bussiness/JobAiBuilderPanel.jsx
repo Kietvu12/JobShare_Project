@@ -149,15 +149,6 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   const [jdOriginalFile, setJdOriginalFile] = useState(null);
   const [jdOriginalStored, setJdOriginalStored] = useState(null);
   const [nextStepsModal, setNextStepsModal] = useState({ open: false, jobId: null });
-  const [compactDesktop, setCompactDesktop] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px) and (max-width: 1535px)');
-    const sync = () => setCompactDesktop(mq.matches);
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
 
   useEffect(() => { if (activeThreadIdProp) setActiveThreadId(activeThreadIdProp); }, [activeThreadIdProp]);
   useEffect(() => { setSavedJobId(savedJobIdProp ?? null); }, [savedJobIdProp]);
@@ -908,7 +899,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   }
 
   const showEmptyGreeting = messages.length === 0 && !loading && !parseLoading;
-  const compactUi = Boolean(embedded) || compactDesktop;
+  const compactUi = Boolean(embedded);
   const isEditingSavedJob = Boolean(savedJobId);
   const titleCls = compactUi ? 'biz-jd-title' : 'biz-ui-section font-semibold text-slate-800';
   const bodyCls = compactUi ? 'biz-jd-body' : 'biz-ui-body text-slate-800';
@@ -918,12 +909,14 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   const hitCls = compactUi ? 'biz-jd-icon-hit' : 'w-7 h-7 lg:w-8 lg:h-8';
 
   const renderMessageContent = (msg) => {
+    if (msg.kind === 'parse_result' && !msg.success) {
+      return null;
+    }
+
     if (msg.kind === 'file_upload') {
       return (
         <div className="flex items-start gap-2">
-          <div className={`${compactUi ? hitCls : 'w-9 h-9'} rounded-lg flex items-center justify-center shrink-0 border ${
-            msg.status === 'error' ? 'border-rose-200 text-rose-600' : 'border-slate-200 text-[#0077B6]'
-          }`}
+          <div className={`${compactUi ? hitCls : 'w-9 h-9'} rounded-lg flex items-center justify-center shrink-0 border border-slate-200 text-[#0077B6]`}
           >
             {msg.status === 'parsing'
               ? <Loader2 className={`${iconCls} animate-spin`} />
@@ -943,9 +936,6 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
             )}
             {msg.status === 'done' && (
               <p className={`${bodyCls} mt-1 text-emerald-600`}>{jdCopy.panel.parseDone}</p>
-            )}
-            {msg.status === 'error' && (
-              <p className={`${bodyCls} mt-1 text-rose-600`}>{jdCopy.panel.parseFailed}</p>
             )}
           </div>
         </div>
@@ -983,10 +973,10 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
         }}
       />
     <div className={`flex flex-col h-full min-h-0 min-w-0 overflow-hidden ${embedded ? 'bg-white' : ''}`}>
-      {/* Toolbar */}
+      {/* Toolbar — ẩn trên desktop khi không còn nội dung (JobAiBuilderPage) */}
       <div className={`shrink-0 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-b border-slate-100 bg-white ${
-        compactUi ? 'px-1.5 py-1' : 'px-3 py-2 lg:px-4 lg:py-2.5 gap-y-1.5 lg:gap-x-3 lg:gap-y-2'
-      }`}
+        hideToolbarTitle ? 'lg:hidden' : ''
+      } ${compactUi ? 'px-1.5 py-1' : 'px-3 py-2 lg:px-4 lg:py-2.5 gap-y-1.5 lg:gap-x-3 lg:gap-y-2'}`}
       >
         {!hideToolbarTitle ? (
           <div className="min-w-0 flex-1">
@@ -997,10 +987,8 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
               {isEditingSavedJob ? jdCopy.panel.editSubheading : jdCopy.panel.createSubheading}
             </p>
           </div>
-        ) : (
-          <div className="min-w-0 flex-1" />
-        )}
-        <div className={`flex flex-wrap items-center justify-end shrink-0 ${compactUi ? 'gap-1' : 'gap-1.5 lg:gap-2'}`}>
+        ) : null}
+        <div className={`flex flex-wrap items-center justify-end shrink-0 ${hideToolbarTitle ? 'w-full' : ''} ${compactUi ? 'gap-1' : 'gap-1.5 lg:gap-2'}`}>
           {isEditingSavedJob && savedJobId ? (
             <button
               type="button"
@@ -1032,7 +1020,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
               {jdCopy.panel.templateTab}
             </button>
           </div>
-          <label className={`inline-flex items-center gap-1 shrink-0 ${compactUi ? '' : 'lg:gap-1.5'}`}>
+          <label className={`inline-flex items-center gap-1 shrink-0 lg:hidden ${compactUi ? '' : 'lg:gap-1.5'}`}>
             <span className={`${mutedCls} font-medium whitespace-nowrap hidden sm:inline`}>{jdCopy.panel.statusLabel}</span>
             <select
               value={String(formData.status ?? 0)}
@@ -1047,25 +1035,8 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
               ))}
             </select>
           </label>
-          <button
-            type="button"
-            disabled={saving || parseLoading}
-            onClick={handleSaveJob}
-            className={`inline-flex items-center gap-1 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold ${
-              `${bodyCls} py-0.5 px-1.5 text-white`
-            }`}
-          >
-            {saving ? <Loader2 className={`${iconCls} animate-spin`} /> : <Save className={iconCls} />}
-            {isEditingSavedJob ? jdCopy.panel.saveUpdate : jdCopy.panel.saveCreate}
-          </button>
         </div>
       </div>
-
-      {error && (
-        <div className={`mx-3 mt-2 shrink-0 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-rose-700 ${bodyCls}`}>
-          {error}
-        </div>
-      )}
 
       <div className={`flex-1 min-h-0 grid grid-cols-1 gap-0 overflow-hidden ${
         compactUi
@@ -1091,6 +1062,9 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
             ) : (
               <div className={`w-full ${compactUi ? 'space-y-2' : 'space-y-2.5 lg:space-y-4'} ${embedded ? '' : 'max-w-2xl mx-auto'}`}>
                 {messages.map((msg) => {
+                  if (msg.kind === 'parse_result' && !msg.success) return null;
+                  const messageContent = renderMessageContent(msg);
+                  if (!messageContent) return null;
                   const isUser = msg.role === 'user';
                   const bubblePad = compactUi ? 'px-2.5 py-1.5 rounded-lg' : 'px-3 py-2 lg:px-4 lg:py-2.5 rounded-xl lg:rounded-2xl';
                   const msgText = bodyCls;
@@ -1114,7 +1088,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                               : `${bubblePad} bg-transparent text-slate-800`
                         }`}
                       >
-                        {renderMessageContent(msg)}
+                        {messageContent}
                       </div>
                     </div>
                   );
@@ -1191,6 +1165,16 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
               />
               <button
                 type="button"
+                disabled={saving || parseLoading}
+                onClick={handleSaveJob}
+                aria-label={isEditingSavedJob ? jdCopy.panel.saveUpdate : jdCopy.panel.saveCreate}
+                title={isEditingSavedJob ? jdCopy.panel.saveUpdate : jdCopy.panel.saveCreate}
+                className={`${hitCls} inline-flex items-center justify-center rounded-full shrink-0 mb-0.5 border border-[#0077B6] bg-[#0077B6] text-white hover:bg-[#006699] disabled:opacity-40 disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400 [&_svg]:block`}
+              >
+                {saving ? <Loader2 className={`${iconCls} animate-spin`} /> : <Save className={iconCls} />}
+              </button>
+              <button
+                type="button"
                 disabled={loading || parseLoading || !input.trim() || !sessionId}
                 onClick={() => sendMessage(input)}
                 className={`${hitCls} inline-flex items-center justify-center rounded-full shrink-0 mb-0.5 border border-[#0077B6]/35 bg-transparent text-[#0077B6] hover:border-[#0077B6]/55 disabled:opacity-40 disabled:border-slate-200 disabled:text-slate-300 [&_svg]:block`}
@@ -1214,47 +1198,73 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
               <div className={`shrink-0 border-b border-slate-100 bg-white space-y-1.5 ${compactUi ? 'px-2 py-1.5' : 'px-2 py-1.5 lg:px-3 lg:py-2 lg:space-y-2'}`}>
                 <div className="flex items-center gap-1.5">
                   <span className={titleCls}>{isEditingSavedJob ? jdCopy.panel.previewEdit : jdCopy.panel.previewCreate}</span>
-                </div>
-                <div
-                  className="flex w-full min-w-0 items-stretch gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5"
-                  role="tablist"
-                  aria-label={jdCopy.panel.formLanguageAria}
-                >
-                  {JD_LANGUAGE_TABS.map((tab) => (
+                  {hideToolbarTitle && isEditingSavedJob && savedJobId ? (
                     <button
-                      key={tab.id}
                       type="button"
-                      role="tab"
-                      aria-selected={languageTab === tab.id}
-                      onClick={() => setLanguageTab(tab.id)}
-                      className={`min-w-0 flex-1 px-1 py-0.5 lg:px-2 lg:py-1.5 rounded-md transition-colors ${tabTextCls} ${
-                        languageTab === tab.id
-                          ? 'bg-white shadow-sm text-[#0077B6]'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-                      }`}
+                      onClick={() => navigate(`/business/jobs/${savedJobId}`)}
+                      className={`ml-auto inline-flex items-center rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-semibold ${bodyCls} py-0.5 px-1.5`}
                     >
-                      {tab.label}
+                      {jdCopy.panel.viewJobDetail}
                     </button>
-                  ))}
-                  <span className="w-px shrink-0 self-stretch bg-slate-200 my-0.5" aria-hidden />
-                  <button
-                    type="button"
-                    onClick={handleTranslateCurrentTabInputs}
-                    disabled={translatingInputs || parseLoading}
-                    className={`shrink-0 inline-flex items-center justify-center gap-1 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${tabTextCls} ${
-                      compactUi ? 'px-1.5 py-0.5' : 'px-2 py-0.5 lg:px-2.5 lg:py-1.5'
-                    } text-slate-600 hover:text-slate-900 hover:bg-white/80 [&_svg]:text-[#0077B6] ${
-                      translatingInputs ? 'bg-white shadow-sm text-[#0077B6]' : ''
-                    }`}
-                    title={jdCopy.panel.translateTitle}
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <div
+                    className="flex min-w-0 flex-1 items-stretch gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+                    role="tablist"
+                    aria-label={jdCopy.panel.formLanguageAria}
                   >
-                    {translatingInputs
-                      ? <Loader2 className={`${iconCls} shrink-0 animate-spin`} />
-                      : <Languages className={`${iconCls} shrink-0 text-[#0077B6]`} />}
-                    <span className="whitespace-nowrap">
-                      {translatingInputs ? jdCopy.panel.translating : jdCopy.panel.translate}
-                    </span>
-                  </button>
+                    {JD_LANGUAGE_TABS.map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={languageTab === tab.id}
+                        onClick={() => setLanguageTab(tab.id)}
+                        className={`min-w-0 flex-1 px-1 py-0.5 lg:px-2 lg:py-1.5 rounded-md transition-colors ${tabTextCls} ${
+                          languageTab === tab.id
+                            ? 'bg-white shadow-sm text-[#0077B6]'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                    <span className="w-px shrink-0 self-stretch bg-slate-200 my-0.5" aria-hidden />
+                    <button
+                      type="button"
+                      onClick={handleTranslateCurrentTabInputs}
+                      disabled={translatingInputs || parseLoading}
+                      className={`shrink-0 inline-flex items-center justify-center gap-1 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${tabTextCls} ${
+                        compactUi ? 'px-1.5 py-0.5' : 'px-2 py-0.5 lg:px-2.5 lg:py-1.5'
+                      } text-slate-600 hover:text-slate-900 hover:bg-white/80 [&_svg]:text-[#0077B6] ${
+                        translatingInputs ? 'bg-white shadow-sm text-[#0077B6]' : ''
+                      }`}
+                      title={jdCopy.panel.translateTitle}
+                    >
+                      {translatingInputs
+                        ? <Loader2 className={`${iconCls} shrink-0 animate-spin`} />
+                        : <Languages className={`${iconCls} shrink-0 text-[#0077B6]`} />}
+                      <span className="whitespace-nowrap">
+                        {translatingInputs ? jdCopy.panel.translating : jdCopy.panel.translate}
+                      </span>
+                    </button>
+                  </div>
+                  <label className={`hidden shrink-0 items-center gap-1 lg:inline-flex ${compactUi ? '' : 'lg:gap-1.5'}`}>
+                    <span className={`${mutedCls} font-medium whitespace-nowrap`}>{jdCopy.panel.statusLabel}</span>
+                    <select
+                      value={String(formData.status ?? 0)}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, status: parseInt(e.target.value, 10) }))}
+                      className={`rounded-md border border-slate-200 bg-white text-slate-800 font-medium max-w-[9rem] truncate ${
+                        `${bodyCls} py-0.5 pl-1 pr-6`
+                      }`}
+                      aria-label={jdCopy.panel.statusAria}
+                    >
+                      {jobStatusOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
               </div>
               <div className={`flex-1 overflow-y-auto min-h-0 min-w-0 bg-white ${compactUi ? 'business-jd-preview-root' : ''}`}>
