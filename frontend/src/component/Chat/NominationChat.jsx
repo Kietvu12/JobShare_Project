@@ -471,7 +471,14 @@ const NominationChat = ({
         setSelectedAttachment(null);
         if (attachmentInputRef.current) attachmentInputRef.current.value = '';
         shouldAutoScrollRef.current = true;
-        loadMessages();
+        const created = response.data?.message;
+        if (created?.id) {
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === created.id)) return prev;
+            return [...prev, created];
+          });
+        }
+        await loadMessages();
       } else {
         alert(response.message || t.chatErrorSendMessage);
       }

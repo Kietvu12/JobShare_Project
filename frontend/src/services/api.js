@@ -4394,11 +4394,17 @@ const apiService = {
     return handleResponse(response);
   },
 
-  getAdminMessagesByJobApplication: async (jobApplicationId) => {
-    const response = await fetch(`${API_BASE_URL}/admin/messages/job-application/${jobApplicationId}`, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
+  getAdminMessagesByJobApplication: async (jobApplicationId, options = {}) => {
+    const params = new URLSearchParams();
+    if (options.limit != null) params.set('limit', String(options.limit));
+    const qs = params.toString();
+    const response = await fetch(
+      `${API_BASE_URL}/admin/messages/job-application/${jobApplicationId}${qs ? `?${qs}` : ''}`,
+      {
+        method: 'GET',
+        headers: getAuthHeaders()
+      }
+    );
     return handleResponse(response);
   },
 

@@ -168,7 +168,10 @@ export const messageController = {
   getMessagesByJobApplication: async (req, res, next) => {
     try {
       const { jobApplicationId } = req.params;
-      const { limit = 50 } = req.query;
+      const limitRaw = req.query.limit;
+      const parsedLimit = limitRaw != null && String(limitRaw).trim() !== ''
+        ? parseInt(limitRaw, 10)
+        : null;
 
       const jobApplication = await JobApplication.findByPk(jobApplicationId, {
         include: [
@@ -226,7 +229,7 @@ export const messageController = {
           }
         ],
         order: [[col('Message.created_at'), 'ASC']],
-        limit: parseInt(limit)
+        ...(Number.isFinite(parsedLimit) && parsedLimit > 0 ? { limit: parsedLimit } : {}),
       });
 
       const enrichedMessages = await Promise.all(
