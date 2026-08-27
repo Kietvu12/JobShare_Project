@@ -2,20 +2,28 @@ import { Op } from 'sequelize';
 import {
   BusinessScoutUnlock,
   BusinessSavedCandidate,
+  BusinessCtvMarketplaceListing,
   CVStorage,
   JobCategory,
   Job,
   JobApplication,
+  Collaborator,
 } from '../models/index.js';
 import {
   SCOUT_LISTING_STATUS,
   SCOUT_PERFORMANCE_PRIVATE_CV_FIELDS,
   SCOUT_PRIVATE_CV_FIELDS,
   SCOUT_UNLOCK_TYPES,
+  CTV_MARKETPLACE_ACCESS_TYPE,
   canCvBeListedOnScout,
 } from '../constants/scoutCredit.js';
 import { getScoutCreditCost, unlockScoutCvForBusiness } from './scoutCreditService.js';
 import { buildCvFileListPayload } from '../controllers/collaborator/cvController.js';
+import {
+  MARKETPLACE_LISTING_STATUS,
+  MARKETPLACE_LISTING_STATUS_LABELS,
+} from '../constants/candidateSharing.js';
+import candidateSharingService from './candidateSharingService.js';
 async function attachPerformanceRequestMeta(businessId, payload) {
   if (!businessId || !payload?.id) return payload;
   if (payload.isUnlocked && payload.unlockType && payload.unlockType !== SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE) {
@@ -388,15 +396,126 @@ function buildUnlockedSearchWhere(search) {
   };
 }
 
-export async function listUnlockedCandidatesForBusiness({
+async function getMarketplaceJobIdSet(businessId) {
+  const listings = await BusinessCtvMarketplaceListing.findAll({
+    where: { businessId },
+    attributes: ['jobId'],
+    raw: true,
+  });
+  return new Set(listings.map((row) => Number(row.jobId)).filter(Boolean));
+}
+
+function buildMarketplaceCandidateMeta(application, saved) {
+  const appliedAt = application.appliedAt || application.createdAt || null;
+  return {
+    unlockId: null,
+    unlockType: CTV_MARKETPLACE_ACCESS_TYPE,
+    unlockedAt: appliedAt,
+    creditCost: null,
+    pipelineStatus: saved?.pipelineStatus || 'new',
+    savedAt: saved?.savedAt || saved?.createdAt || null,
+    savedCandidateId: saved?.id || null,
+    applicationId: application.id,
+    nominationJobId: application.jobId,
+    nominationJobTitle: application.job?.title || null,
+    nominationJobCode: application.job?.jobCode || null,
+    ctvName: application.collaborator?.name || null,
+    ctvId: application.collaboratorId || null,
+  };
+}
+
+async function mapMarketplaceApplicationToCandidate(businessId, application, saved) {
+  const cvJson = application.cv?.toJSON?.() || application.cv;
+  return {
+    ...buildUnlockedScoutPayload(cvJson),
+    ...buildMarketplaceCandidateMeta(application, saved),
+  };
+}
+
+async function fetchMarketplaceNominationApplications(businessId, { cvSearchWhere, pipelineCvIds } = {}) {
+  const jobIds = [...await getMarketplaceJobIdSet(businessId)];
+  if (!jobIds.length) return [];
+
+  const where = {
+    jobId: jobIds.length === 1 ? jobIds[0] : { [Op.in]: jobIds },
+    collaboratorId: { [Op.ne]: null },
+    cvId: { [Op.ne]: null },
+  };
+  if (pipelineCvIds?.length) {
+    where.cvId = pipelineCvIds.length === 1 ? pipelineCvIds[0] : { [Op.in]: pipelineCvIds };
+  }
+
+  const rows = await JobApplication.findAll({
+    where,
+    include: [
+      {
+        model: CVStorage,
+        as: 'cv',
+        required: true,
+        where: cvSearchWhere || undefined,
+        include: [
+          {
+            model: JobCategory,
+            as: 'jobCategory',
+            required: false,
+            attributes: ['id', 'name', 'nameEn', 'nameJp', 'slug'],
+          },
+        ],
+      },
+      { model: Job, as: 'job', required: false, attributes: ['id', 'title', 'jobCode'] },
+      { model: Collaborator, as: 'collaborator', required: false, attributes: ['id', 'name'] },
+    ],
+    order: [['applied_at', 'DESC'], ['id', 'DESC']],
+  });
+
+  const seenCvIds = new Set();
+  const deduped = [];
+  rows.forEach((row) => {
+    const cvId = Number(row.cvId);
+    if (!cvId || seenCvIds.has(cvId)) return;
+    seenCvIds.add(cvId);
+    deduped.push(row);
+  });
+  return deduped;
+}
+
+async function resolvePipelineCvIds(businessId, pipelineStatus) {
+  if (!pipelineStatus || !String(pipelineStatus).trim()) return null;
+  const savedRows = await BusinessSavedCandidate.findAll({
+    where: { businessId, pipelineStatus: String(pipelineStatus).trim() },
+    attributes: ['cvId'],
+  });
+  return savedRows.map((row) => row.cvId);
+}
+
+async function mapScoutUnlockRowsToCandidates(businessId, rows, savedMap) {
+  return Promise.all(rows.map(async (unlock) => {
+    const cvJson = unlock.cv?.toJSON?.() || unlock.cv;
+    const saved = savedMap.get(Number(unlock.cvId));
+    const rowUnlockType = unlock.unlockType || SCOUT_UNLOCK_TYPES.SCOUT_CREDIT;
+    const basePayload = rowUnlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE
+      ? buildPerformanceUnlockedScoutPayload(cvJson)
+      : buildUnlockedScoutPayload(cvJson);
+    let item = {
+      ...basePayload,
+      ...buildUnlockedCandidateMeta(unlock, saved),
+    };
+    if (rowUnlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE) {
+      item = await attachPerformanceRequestMeta(businessId, item);
+    }
+    return item;
+  }));
+}
+
+async function listScoutUnlockCandidatesForBusiness({
   businessId,
-  page = 1,
-  limit = 20,
+  page,
+  limit,
   search,
   pipelineStatus,
   unlockType,
-  sortBy = 'unlockedAt',
-  sortOrder = 'DESC',
+  sortBy,
+  sortOrder,
 }) {
   const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
   const safePage = Math.max(parseInt(page, 10) || 1, 1);
@@ -412,25 +531,15 @@ export async function listUnlockedCandidatesForBusiness({
     unlockWhere.unlockType = normalizedUnlockType;
   }
 
-  if (pipelineStatus && String(pipelineStatus).trim()) {
-    const status = String(pipelineStatus).trim();
-    const savedRows = await BusinessSavedCandidate.findAll({
-      where: { businessId, pipelineStatus: status },
-      attributes: ['cvId'],
-    });
-    const cvIds = savedRows.map((row) => row.cvId);
-    if (!cvIds.length) {
-      return {
-        candidates: [],
-        pagination: {
-          total: 0,
-          page: safePage,
-          limit: safeLimit,
-          totalPages: 0,
-        },
-      };
-    }
-    unlockWhere.cvId = cvIds;
+  const pipelineCvIds = await resolvePipelineCvIds(businessId, pipelineStatus);
+  if (pipelineCvIds && !pipelineCvIds.length) {
+    return {
+      candidates: [],
+      pagination: { total: 0, page: safePage, limit: safeLimit, totalPages: 0 },
+    };
+  }
+  if (pipelineCvIds?.length) {
+    unlockWhere.cvId = pipelineCvIds.length === 1 ? pipelineCvIds[0] : { [Op.in]: pipelineCvIds };
   }
 
   const allowedSort = ['unlockedAt', 'createdAt', 'creditCost'];
@@ -466,23 +575,7 @@ export async function listUnlockedCandidatesForBusiness({
     ? await BusinessSavedCandidate.findAll({ where: { businessId, cvId: cvIds } })
     : [];
   const savedMap = new Map(savedRows.map((row) => [Number(row.cvId), row]));
-
-  const candidates = await Promise.all(rows.map(async (unlock) => {
-    const cvJson = unlock.cv?.toJSON?.() || unlock.cv;
-    const saved = savedMap.get(Number(unlock.cvId));
-    const unlockType = unlock.unlockType || SCOUT_UNLOCK_TYPES.SCOUT_CREDIT;
-    const basePayload = unlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE
-      ? buildPerformanceUnlockedScoutPayload(cvJson)
-      : buildUnlockedScoutPayload(cvJson);
-    let item = {
-      ...basePayload,
-      ...buildUnlockedCandidateMeta(unlock, saved),
-    };
-    if (unlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE) {
-      item = await attachPerformanceRequestMeta(businessId, item);
-    }
-    return item;
-  }));
+  const candidates = await mapScoutUnlockRowsToCandidates(businessId, rows, savedMap);
 
   return {
     candidates,
@@ -493,6 +586,227 @@ export async function listUnlockedCandidatesForBusiness({
       totalPages: Math.ceil(count / safeLimit) || 0,
     },
   };
+}
+
+async function listCtvMarketplaceCandidatesForBusiness({
+  businessId,
+  page,
+  limit,
+  search,
+  pipelineStatus,
+  sortOrder,
+}) {
+  const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
+  const safePage = Math.max(parseInt(page, 10) || 1, 1);
+  const offset = (safePage - 1) * safeLimit;
+  const cvSearchWhere = buildUnlockedSearchWhere(search);
+  const pipelineCvIds = await resolvePipelineCvIds(businessId, pipelineStatus);
+  if (pipelineCvIds && !pipelineCvIds.length) {
+    return {
+      candidates: [],
+      pagination: { total: 0, page: safePage, limit: safeLimit, totalPages: 0 },
+    };
+  }
+
+  const applications = await fetchMarketplaceNominationApplications(businessId, {
+    cvSearchWhere,
+    pipelineCvIds,
+  });
+  const direction = String(sortOrder).toUpperCase() === 'ASC' ? 1 : -1;
+  applications.sort((a, b) => {
+    const ta = new Date(a.appliedAt || a.createdAt || 0).getTime();
+    const tb = new Date(b.appliedAt || b.createdAt || 0).getTime();
+    return direction === 1 ? ta - tb : tb - ta;
+  });
+
+  const total = applications.length;
+  const pageApplications = applications.slice(offset, offset + safeLimit);
+  const cvIds = pageApplications.map((row) => row.cvId);
+  const savedRows = cvIds.length
+    ? await BusinessSavedCandidate.findAll({ where: { businessId, cvId: cvIds } })
+    : [];
+  const savedMap = new Map(savedRows.map((row) => [Number(row.cvId), row]));
+  const candidates = await Promise.all(
+    pageApplications.map((application) => mapMarketplaceApplicationToCandidate(
+      businessId,
+      application,
+      savedMap.get(Number(application.cvId)),
+    )),
+  );
+
+  return {
+    candidates,
+    pagination: {
+      total,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit) || 0,
+    },
+  };
+}
+
+async function fetchScoutUnlockRowsForListing(businessId, { search, pipelineStatus, unlockType }) {
+  const cvSearchWhere = buildUnlockedSearchWhere(search);
+  const unlockWhere = { businessId };
+  const normalizedUnlockType = unlockType != null && String(unlockType).trim()
+    ? String(unlockType).trim()
+    : null;
+  if (normalizedUnlockType) {
+    unlockWhere.unlockType = normalizedUnlockType;
+  }
+
+  const pipelineCvIds = await resolvePipelineCvIds(businessId, pipelineStatus);
+  if (pipelineCvIds && !pipelineCvIds.length) return [];
+  if (pipelineCvIds?.length) {
+    unlockWhere.cvId = pipelineCvIds.length === 1 ? pipelineCvIds[0] : { [Op.in]: pipelineCvIds };
+  }
+
+  return BusinessScoutUnlock.findAll({
+    where: unlockWhere,
+    include: [
+      {
+        model: CVStorage,
+        as: 'cv',
+        required: true,
+        where: cvSearchWhere || undefined,
+        include: [
+          {
+            model: JobCategory,
+            as: 'jobCategory',
+            required: false,
+            attributes: ['id', 'name', 'nameEn', 'nameJp', 'slug'],
+          },
+        ],
+      },
+    ],
+    order: [['unlockedAt', 'DESC'], ['id', 'DESC']],
+  });
+}
+
+async function listAllAccessibleCandidatesForBusiness(params) {
+  const {
+    businessId,
+    page,
+    limit,
+    search,
+    pipelineStatus,
+    sortOrder,
+  } = params;
+  const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
+  const safePage = Math.max(parseInt(page, 10) || 1, 1);
+  const offset = (safePage - 1) * safeLimit;
+  const direction = String(sortOrder).toUpperCase() === 'ASC' ? 1 : -1;
+
+  const [scoutRows, marketplaceApplications] = await Promise.all([
+    fetchScoutUnlockRowsForListing(businessId, { search, pipelineStatus }),
+    (async () => {
+      const pipelineCvIds = await resolvePipelineCvIds(businessId, pipelineStatus);
+      if (pipelineCvIds && !pipelineCvIds.length) return [];
+      return fetchMarketplaceNominationApplications(businessId, {
+        cvSearchWhere: buildUnlockedSearchWhere(search),
+        pipelineCvIds,
+      });
+    })(),
+  ]);
+
+  const allCvIds = [
+    ...scoutRows.map((row) => Number(row.cvId)),
+    ...marketplaceApplications.map((row) => Number(row.cvId)),
+  ].filter(Boolean);
+  const savedRows = allCvIds.length
+    ? await BusinessSavedCandidate.findAll({ where: { businessId, cvId: [...new Set(allCvIds)] } })
+    : [];
+  const savedMap = new Map(savedRows.map((row) => [Number(row.cvId), row]));
+
+  const byCvId = new Map();
+  const scoutCandidates = await mapScoutUnlockRowsToCandidates(businessId, scoutRows, savedMap);
+  scoutCandidates.forEach((candidate) => {
+    byCvId.set(Number(candidate.id), candidate);
+  });
+
+  for (const application of marketplaceApplications) {
+    const cvId = Number(application.cvId);
+    if (!cvId || byCvId.has(cvId)) continue;
+    byCvId.set(
+      cvId,
+      await mapMarketplaceApplicationToCandidate(
+        businessId,
+        application,
+        savedMap.get(cvId),
+      ),
+    );
+  }
+
+  const merged = [...byCvId.values()].sort((a, b) => {
+    const ta = new Date(a.unlockedAt || 0).getTime();
+    const tb = new Date(b.unlockedAt || 0).getTime();
+    return direction === 1 ? ta - tb : tb - ta;
+  });
+
+  const total = merged.length;
+  const candidates = merged.slice(offset, offset + safeLimit);
+
+  return {
+    candidates,
+    pagination: {
+      total,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit) || 0,
+    },
+  };
+}
+
+export async function listUnlockedCandidatesForBusiness({
+  businessId,
+  page = 1,
+  limit = 20,
+  search,
+  pipelineStatus,
+  unlockType,
+  sortBy = 'unlockedAt',
+  sortOrder = 'DESC',
+}) {
+  const normalizedUnlockType = unlockType != null && String(unlockType).trim()
+    ? String(unlockType).trim()
+    : null;
+
+  if (normalizedUnlockType === CTV_MARKETPLACE_ACCESS_TYPE) {
+    return listCtvMarketplaceCandidatesForBusiness({
+      businessId,
+      page,
+      limit,
+      search,
+      pipelineStatus,
+      sortOrder,
+    });
+  }
+
+  if (
+    normalizedUnlockType === SCOUT_UNLOCK_TYPES.SCOUT_CREDIT
+    || normalizedUnlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE
+  ) {
+    return listScoutUnlockCandidatesForBusiness({
+      businessId,
+      page,
+      limit,
+      search,
+      pipelineStatus,
+      unlockType: normalizedUnlockType,
+      sortBy,
+      sortOrder,
+    });
+  }
+
+  return listAllAccessibleCandidatesForBusiness({
+    businessId,
+    page,
+    limit,
+    search,
+    pipelineStatus,
+    sortBy,
+    sortOrder,
+  });
 }
 
 export async function getUnlockedCandidateForBusiness({ businessId, cvId }) {
@@ -515,8 +829,62 @@ export async function getUnlockedCandidateForBusiness({ businessId, cvId }) {
     ],
   });
 
-  if (!unlock?.cv) {
-    const err = new Error('Không tìm thấy hồ sơ đã mở Scout');
+  if (unlock?.cv) {
+    const saved = await BusinessSavedCandidate.findOne({
+      where: { businessId, cvId },
+    });
+
+    const cvJson = unlock.cv.toJSON();
+    const rowUnlockType = unlock.unlockType || SCOUT_UNLOCK_TYPES.SCOUT_CREDIT;
+    const basePayload = rowUnlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE
+      ? buildPerformanceUnlockedScoutPayload(cvJson)
+      : buildUnlockedScoutPayload(cvJson);
+    let candidate = {
+      ...basePayload,
+      ...buildUnlockedCandidateMeta(unlock, saved),
+    };
+    candidate = await attachPerformanceRequestMeta(businessId, candidate);
+    return {
+      candidate,
+      unlockedAt: unlock.unlockedAt || unlock.createdAt || null,
+    };
+  }
+
+  const jobIds = [...await getMarketplaceJobIdSet(businessId)];
+  if (!jobIds.length) {
+    const err = new Error('Không tìm thấy hồ sơ ứng viên');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const application = await JobApplication.findOne({
+    where: {
+      cvId,
+      jobId: jobIds.length === 1 ? jobIds[0] : { [Op.in]: jobIds },
+      collaboratorId: { [Op.ne]: null },
+    },
+    include: [
+      {
+        model: CVStorage,
+        as: 'cv',
+        required: true,
+        include: [
+          {
+            model: JobCategory,
+            as: 'jobCategory',
+            required: false,
+            attributes: ['id', 'name', 'nameEn', 'nameJp', 'slug'],
+          },
+        ],
+      },
+      { model: Job, as: 'job', required: false, attributes: ['id', 'title', 'jobCode'] },
+      { model: Collaborator, as: 'collaborator', required: false, attributes: ['id', 'name'] },
+    ],
+    order: [['applied_at', 'DESC'], ['id', 'DESC']],
+  });
+
+  if (!application?.cv) {
+    const err = new Error('Không tìm thấy hồ sơ ứng viên');
     err.statusCode = 404;
     throw err;
   }
@@ -524,20 +892,10 @@ export async function getUnlockedCandidateForBusiness({ businessId, cvId }) {
   const saved = await BusinessSavedCandidate.findOne({
     where: { businessId, cvId },
   });
-
-  const cvJson = unlock.cv.toJSON();
-  const unlockType = unlock.unlockType || SCOUT_UNLOCK_TYPES.SCOUT_CREDIT;
-  const basePayload = unlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE
-    ? buildPerformanceUnlockedScoutPayload(cvJson)
-    : buildUnlockedScoutPayload(cvJson);
-  let candidate = {
-    ...basePayload,
-    ...buildUnlockedCandidateMeta(unlock, saved),
-  };
-  candidate = await attachPerformanceRequestMeta(businessId, candidate);
+  const candidate = await mapMarketplaceApplicationToCandidate(businessId, application, saved);
   return {
     candidate,
-    unlockedAt: unlock.unlockedAt || unlock.createdAt || null,
+    unlockedAt: candidate.unlockedAt || null,
   };
 }
 
@@ -709,6 +1067,173 @@ export async function getScoutCandidateForBusiness({ businessId, cvId, search })
   };
 }
 
+export async function assertCandidateAccessibleForBusiness({ businessId, cvId }) {
+  const safeCvId = parseInt(cvId, 10);
+  if (!Number.isFinite(safeCvId)) {
+    const err = new Error('ID hồ sơ không hợp lệ');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const unlock = await BusinessScoutUnlock.findOne({ where: { businessId, cvId: safeCvId } });
+  if (unlock) {
+    return {
+      cvId: safeCvId,
+      accessType: unlock.unlockType || SCOUT_UNLOCK_TYPES.SCOUT_CREDIT,
+    };
+  }
+
+  const jobIds = [...await getMarketplaceJobIdSet(businessId)];
+  if (jobIds.length) {
+    const application = await JobApplication.findOne({
+      where: {
+        cvId: safeCvId,
+        jobId: jobIds.length === 1 ? jobIds[0] : { [Op.in]: jobIds },
+        collaboratorId: { [Op.ne]: null },
+      },
+      attributes: ['id'],
+    });
+    if (application) {
+      return { cvId: safeCvId, accessType: CTV_MARKETPLACE_ACCESS_TYPE };
+    }
+  }
+
+  const err = new Error('Không có quyền truy cập hồ sơ ứng viên');
+  err.statusCode = 403;
+  throw err;
+}
+
+export async function listNominationJobsForAccessibleCandidate({ businessId, cvId }) {
+  const { cvId: safeCvId } = await assertCandidateAccessibleForBusiness({ businessId, cvId });
+
+  const jobs = await Job.findAll({
+    where: { businessId },
+    attributes: ['id', 'title', 'jobCode', 'status'],
+    order: [['updated_at', 'DESC'], ['id', 'DESC']],
+  });
+  if (!jobs.length) return { jobs: [] };
+
+  const jobIds = jobs.map((job) => job.id);
+  const listings = await BusinessCtvMarketplaceListing.findAll({
+    where: { businessId, jobId: jobIds },
+    attributes: ['id', 'jobId', 'status'],
+  });
+  const listingByJobId = new Map(listings.map((row) => [Number(row.jobId), row]));
+
+  const existingApps = await JobApplication.findAll({
+    where: {
+      cvId: safeCvId,
+      jobId: jobIds.length === 1 ? jobIds[0] : { [Op.in]: jobIds },
+    },
+    attributes: ['id', 'jobId', 'status'],
+  });
+  const appByJobId = new Map(existingApps.map((row) => [Number(row.jobId), row]));
+
+  return {
+    jobs: jobs.map((job) => {
+      const listing = listingByJobId.get(Number(job.id));
+      const isPublished = listing?.status === MARKETPLACE_LISTING_STATUS.PUBLISHED;
+      const existingApplication = appByJobId.get(Number(job.id));
+      return {
+        id: job.id,
+        title: job.title,
+        jobCode: job.jobCode || null,
+        onMarketplace: isPublished,
+        listingId: listing?.id ?? null,
+        listingStatus: listing?.status ?? null,
+        listingStatusLabel: listing?.status != null
+          ? (MARKETPLACE_LISTING_STATUS_LABELS[listing.status] || String(listing.status))
+          : null,
+        existingApplicationId: existingApplication?.id ?? null,
+        canNominate: isPublished && !existingApplication,
+      };
+    }),
+  };
+}
+
+export async function nominateAccessibleCandidateToJob({ businessId, cvId, jobId, note }) {
+  const safeCvId = parseInt(cvId, 10);
+  const safeJobId = parseInt(jobId, 10);
+  if (!Number.isFinite(safeCvId) || !Number.isFinite(safeJobId)) {
+    const err = new Error('ID hồ sơ hoặc JD không hợp lệ');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const access = await assertCandidateAccessibleForBusiness({ businessId, cvId: safeCvId });
+
+  const job = await Job.findOne({ where: { id: safeJobId, businessId } });
+  if (!job) {
+    const err = new Error('Không tìm thấy JD thuộc doanh nghiệp');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const listing = await BusinessCtvMarketplaceListing.findOne({
+    where: { businessId, jobId: safeJobId },
+  });
+  if (!listing || listing.status !== MARKETPLACE_LISTING_STATUS.PUBLISHED) {
+    const statusLabel = listing?.status != null
+      ? MARKETPLACE_LISTING_STATUS_LABELS[listing.status]
+      : null;
+    const err = new Error(
+      listing
+        ? `JD "${job.title}" chưa được đưa lên Sàn CTV (trạng thái: ${statusLabel}). Vui lòng đăng job lên sàn trước khi tiến cử.`
+        : `JD "${job.title}" chưa được đưa lên Sàn CTV. Vui lòng tạo và đăng job lên sàn tại mục Sàn CTV trước khi tiến cử.`,
+    );
+    err.statusCode = 400;
+    err.code = 'JOB_NOT_ON_MARKETPLACE';
+    throw err;
+  }
+
+  const cv = await CVStorage.findByPk(safeCvId);
+  if (!cv) {
+    const err = new Error('Không tìm thấy hồ sơ ứng viên');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const existing = await JobApplication.findOne({
+    where: { jobId: safeJobId, cvId: safeCvId },
+  });
+  if (existing) {
+    return {
+      application: existing.toJSON(),
+      alreadyExists: true,
+      job: { id: job.id, title: job.title, jobCode: job.jobCode || null },
+      listingId: listing.id,
+    };
+  }
+
+  const application = await JobApplication.create({
+    jobId: safeJobId,
+    cvId: safeCvId,
+    cvCode: cv.code || null,
+    title: cv.name || cv.desiredPosition || 'Ứng viên',
+    status: 5,
+    appliedAt: new Date(),
+    memo: note?.trim() || `Doanh nghiệp tiến cử (${access.accessType})`,
+  });
+
+  await BusinessSavedCandidate.update(
+    { pipelineStatus: 'processing' },
+    { where: { businessId, cvId: safeCvId } },
+  );
+
+  try {
+    await candidateSharingService.syncListingCounters(listing.id);
+  } catch (syncErr) {
+    console.error('[nominateAccessibleCandidateToJob] syncListingCounters:', syncErr?.message || syncErr);
+  }
+
+  return {
+    application: application.toJSON(),
+    alreadyExists: false,
+    job: { id: job.id, title: job.title, jobCode: job.jobCode || null },
+    listingId: listing.id,
+  };
+}
+
 export async function attachScoutCandidateToJob({ businessId, cvId, jobId, note }) {
   const safeCvId = parseInt(cvId, 10);
   const safeJobId = parseInt(jobId, 10);
@@ -792,15 +1317,29 @@ export async function getScoutUnlockedCvFileList({ businessId, cvId, req }) {
   const unlock = await BusinessScoutUnlock.findOne({
     where: { businessId, cvId: safeCvId },
   });
-  if (!unlock) {
-    const err = new Error('Cần mở hồ sơ ứng viên trước khi tải CV');
-    err.statusCode = 403;
-    throw err;
-  }
-  if (unlock.unlockType !== SCOUT_UNLOCK_TYPES.SCOUT_CREDIT) {
-    const err = new Error('Chỉ hồ sơ mở bằng Scout Credit mới được tải CV gốc');
-    err.statusCode = 403;
-    throw err;
+  if (unlock) {
+    if (unlock.unlockType !== SCOUT_UNLOCK_TYPES.SCOUT_CREDIT) {
+      const err = new Error('Chỉ hồ sơ mở bằng Scout Credit mới được tải CV gốc');
+      err.statusCode = 403;
+      throw err;
+    }
+  } else {
+    const jobIds = [...await getMarketplaceJobIdSet(businessId)];
+    const hasMarketplaceAccess = jobIds.length
+      ? await JobApplication.findOne({
+        where: {
+          cvId: safeCvId,
+          jobId: jobIds.length === 1 ? jobIds[0] : { [Op.in]: jobIds },
+          collaboratorId: { [Op.ne]: null },
+        },
+        attributes: ['id'],
+      })
+      : null;
+    if (!hasMarketplaceAccess) {
+      const err = new Error('Cần mở hồ sơ ứng viên trước khi tải CV');
+      err.statusCode = 403;
+      throw err;
+    }
   }
 
   const cv = await CVStorage.findByPk(safeCvId);
@@ -820,6 +1359,8 @@ export default {
   getUnlockedCandidateForBusiness,
   unlockScoutCandidateForBusiness,
   attachScoutCandidateToJob,
+  listNominationJobsForAccessibleCandidate,
+  nominateAccessibleCandidateToJob,
   getScoutUnlockedCvFileList,
   buildPublicScoutPayload,
 };

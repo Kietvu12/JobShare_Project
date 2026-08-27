@@ -98,6 +98,7 @@ export async function hasWsChatMessageForRequest({ sessionId, messageType, reque
 
 function formatCvAttachment(cv) {
   const json = cv?.toJSON ? cv.toJSON() : cv;
+  const owner = json.scoutListedByCollaborator || json.collaborator || null;
   return {
     cvId: json.id,
     code: json.code || null,
@@ -105,7 +106,45 @@ function formatCvAttachment(cv) {
     desiredPosition: json.desiredPosition || null,
     jobCategory: json.jobCategory || null,
     experienceYears: json.experienceYears ?? null,
+    collaboratorId: owner?.id ?? json.collaboratorId ?? null,
+    collaboratorName: owner?.name || null,
   };
+}
+
+function resolveCvOwnerCollaborator(cvJson) {
+  const owner = cvJson?.scoutListedByCollaborator || cvJson?.collaborator || null;
+  return {
+    collaboratorId: owner?.id ?? cvJson?.collaboratorId ?? null,
+    collaboratorName: owner?.name || null,
+  };
+}
+
+function buildPerformanceOpenedPreview({ cvJson, job, business }) {
+  const cvLabel = cvJson?.code || (cvJson?.id ? `CV #${cvJson.id}` : 'ứng viên');
+  const jobLabel = job?.jobCode || job?.title || (job?.id ? `JD #${job.id}` : null);
+  const company = business?.companyName || 'DN';
+  if (jobLabel) return `Scout Ủy Thác · ${company} · ${cvLabel} · ${jobLabel}`;
+  return `Scout Ủy Thác · ${company} · ${cvLabel}`;
+}
+
+function buildPerformanceOpenedContent({ cvJson, job, business, businessNote }) {
+  const cvCode = cvJson?.code ? `Mã ${cvJson.code}` : (cvJson?.id ? `CV #${cvJson.id}` : '—');
+  const cvName = cvJson?.name ? ` · ${cvJson.name}` : '';
+  const owner = resolveCvOwnerCollaborator(cvJson);
+  const lines = [
+    `${business?.companyName || 'Doanh nghiệp'} mở hồ sơ Scout Ủy Thác để WS hearing.`,
+    `Ứng viên: ${cvCode}${cvName}`,
+  ];
+  if (cvJson?.desiredPosition) lines.push(`Vị trí mong muốn: ${cvJson.desiredPosition}`);
+  if (owner.collaboratorName) lines.push(`Hồ sơ thuộc CTV: ${owner.collaboratorName}`);
+  if (job?.id) {
+    const title = job.title || job.titleEn || job.titleJp || `JD #${job.id}`;
+    lines.push(`JD hearing: ${title}${job.jobCode ? ` (${job.jobCode})` : ''}`);
+  } else {
+    lines.push('JD hearing: Chưa chọn — WS cần hearing yêu cầu tuyển dụng với DN');
+  }
+  if (businessNote?.trim()) lines.push(`Ghi chú DN: ${businessNote.trim()}`);
+  return lines.join('\n');
 }
 
 function formatMessageRow(row) {
@@ -354,13 +393,20 @@ export async function createWsChatPerformanceOpenedMessage({
   businessId,
   request,
   cv,
+  business = null,
+  job = null,
+  businessNote = null,
   transaction = null,
 }) {
   const session = await BusinessWsChatSession.findByPk(sessionId, { transaction });
   if (!session) return null;
 
   const cvJson = cv?.toJSON ? cv.toJSON() : cv;
+  const jobJson = job?.toJSON ? job.toJSON() : job;
+  const businessJson = business?.toJSON ? business.toJSON() : business;
+  const owner = resolveCvOwnerCollaborator(cvJson);
   const cvAttachments = cvJson?.id ? [formatCvAttachment(cvJson)] : [];
+  const jobTitle = jobJson?.title || jobJson?.titleEn || jobJson?.titleJp || null;
 
   const message = await BusinessWsChatMessage.create(
     {
@@ -372,18 +418,34 @@ export async function createWsChatPerformanceOpenedMessage({
         requestId: request.id,
         cvId: cvJson?.id,
         cvCode: cvJson?.code || null,
+        cvName: cvJson?.name || null,
         desiredPosition: cvJson?.desiredPosition || null,
         jobCategory: cvJson?.jobCategory || null,
+        collaboratorId: owner.collaboratorId,
+        collaboratorName: owner.collaboratorName,
+        jobId: jobJson?.id ?? null,
+        jobTitle,
+        jobCode: jobJson?.jobCode || null,
+        businessCompanyName: businessJson?.companyName || null,
+        businessNote: businessNote?.trim() || null,
       },
       cvAttachments,
-      content: 'Đã mở hồ sơ bằng Scout Performance',
+      content: buildPerformanceOpenedContent({
+        cvJson,
+        job: jobJson,
+        business: businessJson,
+        businessNote,
+      }),
       isReadByBusiness: true,
       isReadByAdmin: false,
     },
     { transaction },
   );
 
-  await touchSessionPreview(session, { content: 'Đã mở hồ sơ Scout Performance', transaction });
+  await touchSessionPreview(session, {
+    content: buildPerformanceOpenedPreview({ cvJson, job: jobJson, business: businessJson }),
+    transaction,
+  });
   return message;
 }
 

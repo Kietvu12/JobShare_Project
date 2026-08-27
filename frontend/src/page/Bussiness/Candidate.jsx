@@ -46,7 +46,9 @@ const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-
 const LIST_FILTER_ALL = 'all'
 
 function parseListFilter(listParam) {
-  if (listParam === 'scout_credit' || listParam === 'scout_performance') return listParam
+  if (listParam === 'scout_credit' || listParam === 'scout_performance' || listParam === 'ctv_marketplace') {
+    return listParam
+  }
   return LIST_FILTER_ALL
 }
 
@@ -170,7 +172,7 @@ function ScoutMetaChip({ children }) {
   )
 }
 
-function UnlockedCandidateRowBody({ candidate, hl = (t) => t, language }) {
+function UnlockedCandidateRowBody({ candidate, hl = (t) => t, language, listCopy }) {
   const position = getLocalizedCandidateRole(candidate, language)
   const pipeline = getLocalizedScoutPipelineMeta(candidate.pipelineStatus, language)
   const unlockSource = getLocalizedScoutUnlockSourceMeta(candidate.unlockType, language)
@@ -180,6 +182,11 @@ function UnlockedCandidateRowBody({ candidate, hl = (t) => t, language }) {
     <>
       <p className="scout-cand-title truncate text-slate-900">{hl(getLocalizedScoutDisplayName(candidate, language))}</p>
       {position ? <p className="scout-cand-subtitle mt-0.5 truncate text-slate-600">{hl(position)}</p> : null}
+      {candidate.nominationJobTitle ? (
+        <p className="scout-cand-caption mt-1 truncate text-slate-500">
+          {listCopy?.nominatedToJob || 'Tiến cử vào JD'}: {hl(candidate.nominationJobTitle)}
+        </p>
+      ) : null}
       <div className="mt-1.5 flex flex-wrap gap-1">
         <ScoutMetaChip>{formatScoutListLocation(candidate)}</ScoutMetaChip>
         <ScoutMetaChip>{formatScoutExperienceSeniorityLocalized(candidate.experienceYears, language)}</ScoutMetaChip>
@@ -208,7 +215,7 @@ function UnlockedCandidateRowBody({ candidate, hl = (t) => t, language }) {
   )
 }
 
-function UnlockedCandidateListItem({ candidate, highlightQuery, onOpenDetail, hl, language }) {
+function UnlockedCandidateListItem({ candidate, highlightQuery, onOpenDetail, hl, language, listCopy }) {
   const tipCandidate = { ...candidate, isUnlocked: true }
   return (
     <div className="group relative">
@@ -219,7 +226,7 @@ function UnlockedCandidateListItem({ candidate, highlightQuery, onOpenDetail, hl
       >
         <AvatarCircle candidate={candidate} size={44} language={language} className="candidates-list-avatar" />
         <div className="min-w-0 flex-1">
-          <UnlockedCandidateRowBody candidate={candidate} hl={hl} language={language} />
+          <UnlockedCandidateRowBody candidate={candidate} hl={hl} language={language} listCopy={listCopy} />
         </div>
       </button>
       <ScoutCandidateHoverTip candidate={tipCandidate} hl={hl} language={language} />
@@ -393,6 +400,7 @@ function CandidateListPanel({
                 onOpenDetail={onOpenDetail}
                 hl={hl}
                 language={language}
+                listCopy={copy.candidates.list}
               />
             ))}
           </div>

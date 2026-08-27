@@ -411,7 +411,7 @@ export default function ScoutCandidateDetail() {
       message: requirementNote?.trim() || undefined,
     })
     closeActionModal()
-    navigate('/business/jobs/manual-create?from=scout-performance-hearing')
+    navigate('/business/jobs/create?from=scout-performance-hearing')
   }, [candidate?.id, selectedJobId, searchQuery, navigate])
 
   const submitPerformanceUnlock = async (payload = {}) => {
@@ -526,6 +526,12 @@ export default function ScoutCandidateDetail() {
   const isScoutCreditUnlock = candidate?.isUnlocked
     && !isPerformancePartialUnlock
     && (candidate?.unlockType === 'scout_credit' || !candidate?.unlockType)
+
+  const canShowUnlockOptions = Boolean(candidate?.id)
+    && !candidate.isUnlocked
+    && !isPerformancePartialUnlock
+  const showCreditUnlockCard = canShowUnlockOptions
+  const showManagedUnlockCard = canShowUnlockOptions && !performanceDetail
 
   const handleDownloadOriginalCv = async () => {
     if (!candidate?.id || downloadingCv) return
@@ -648,14 +654,17 @@ export default function ScoutCandidateDetail() {
                   : null}
               />
 
-              {(!candidate.isUnlocked && !isPerformancePartialUnlock) ? (
+              {canShowUnlockOptions ? (
                 <ScoutUnlockCompareTable />
               ) : null}
 
-              {((!candidate.isUnlocked && !isPerformancePartialUnlock)
-                || (!performanceDetail && !isPerformancePartialUnlock)) ? (
-                <div className="grid w-full grid-cols-1 items-stretch gap-3 md:grid-cols-2">
-                  {!candidate.isUnlocked && !isPerformancePartialUnlock ? (
+              {(showCreditUnlockCard || showManagedUnlockCard) ? (
+                <div
+                  className={`grid w-full grid-cols-1 items-stretch gap-3 ${
+                    showCreditUnlockCard && showManagedUnlockCard ? 'md:grid-cols-2' : ''
+                  }`.trim()}
+                >
+                  {showCreditUnlockCard ? (
                     <ScoutUnlockOptionCard
                       icon={Unlock}
                       iconWrapClass="bg-[#f3e8ff]"
@@ -676,7 +685,7 @@ export default function ScoutCandidateDetail() {
                     />
                   ) : null}
 
-                  {!performanceDetail && !isPerformancePartialUnlock ? (
+                  {showManagedUnlockCard ? (
                     <ScoutUnlockOptionCard
                       icon={Users}
                       title="Scout Ủy Thác"

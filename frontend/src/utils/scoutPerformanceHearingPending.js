@@ -43,3 +43,36 @@ export function clearScoutPerformanceHearingPending() {
     /* ignore */
   }
 }
+
+export function getScoutPerformanceHearingReturnPath(pending, cvId) {
+  return pending?.returnPath
+    || `/business/scout/candidates/${encodeURIComponent(String(cvId || pending?.cvId || ''))}`;
+}
+
+/** Sau khi tạo JD xong — gửi yêu cầu Scout Ủy Thác hearing. */
+export async function submitScoutPerformanceHearingForJob(apiService, jobId, pending) {
+  if (!pending?.cvId || !jobId) {
+    throw new Error('Thiếu thông tin ứng viên hoặc JD');
+  }
+
+  let jobTitle = '';
+  try {
+    const res = await apiService.getBusinessJobById(jobId);
+    const job = res?.data?.job || res?.data;
+    jobTitle = job?.title || job?.titleEn || job?.titleJp || '';
+  } catch {
+    /* giữ title mặc định */
+  }
+
+  const hearingRes = await apiService.createBusinessScoutPerformanceRequest(pending.cvId, {
+    jobId,
+    jobTitle: jobTitle || undefined,
+    wantsSimilarCandidates: !!pending.wantsSimilarCandidates,
+    message: pending.message,
+  });
+
+  return {
+    hearingRes,
+    returnPath: getScoutPerformanceHearingReturnPath(pending, pending.cvId),
+  };
+}

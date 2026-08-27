@@ -8,6 +8,8 @@ router.use(authenticateBusiness);
 
 router.get('/settings', businessScoutController.getSettings);
 router.get('/unlocked-candidates', businessScoutController.listUnlockedCandidates);
+router.get('/unlocked-candidates/:id/nomination-jobs', businessScoutController.listNominationJobs);
+router.post('/unlocked-candidates/:id/nominate', businessScoutController.nominateCandidate);
 router.get('/unlocked-candidates/:id/cv-file-list', businessScoutController.getCandidateCvFileList);
 router.get('/unlocked-candidates/:id', businessScoutController.getUnlockedCandidate);
 router.post('/performance-requests/:id/similar-candidates', businessScoutController.requestSimilarCandidates);

@@ -5,6 +5,7 @@ import {
   Copy, ArrowLeft, Briefcase, UserPlus, Sparkles, Download,
 } from 'lucide-react'
 import apiService from '../../services/api'
+import BusinessCandidateNominationModal from '../../component/Bussiness/BusinessCandidateNominationModal'
 import useBusinessUser from '../../hooks/useBusinessUser'
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
 import { downloadScoutOriginalCvFiles } from '../../utils/scoutCvDownload'
@@ -586,6 +587,7 @@ function CandidateSidebar({
   businessId,
   exploreSubmitting,
   onExploreStatus,
+  onOpenNomination,
   onAttachToJob,
   attachingJobId,
   attachedJobIds,
@@ -752,6 +754,20 @@ function CandidateSidebar({
 
       {!isPerformanceUnlock && (
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
+        <button
+          type="button"
+          onClick={onOpenNomination}
+          className="cand-fs-sm flex w-full items-center justify-center gap-1 rounded-lg py-2 font-semibold text-white"
+          style={{ background: BRAND }}
+        >
+          <UserPlus className="cand-icon" />
+          {copy.list.nomination?.createNomination || sb.createNomination || 'Tạo tiến cử'}
+        </button>
+      </div>
+      )}
+
+      {!isPerformanceUnlock && (
+      <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
         {candidate.phone ? (
           <a
             href={`tel:${candidate.phone}`}
@@ -841,6 +857,7 @@ export default function BusinessUnlockedCandidateDetail() {
   const [attachingJobId, setAttachingJobId] = useState(null)
   const [downloadingCv, setDownloadingCv] = useState(false)
   const [attachedJobIds, setAttachedJobIds] = useState(() => new Set())
+  const [nominationModalOpen, setNominationModalOpen] = useState(false)
   const candidateLoadSeqRef = useRef(0)
 
   const backToListUrl = useMemo(() => {
@@ -886,19 +903,29 @@ export default function BusinessUnlockedCandidateDetail() {
     if (!candidate?.id || !jobId) return
     setAttachingJobId(jobId)
     try {
-      const res = await apiService.attachScoutCandidateToJob(candidate.id, { jobId })
+      const res = await apiService.nominateBusinessCandidate(candidate.id, { jobId })
       if (res?.success) {
+        if (res.data?.alreadyExists) {
+          window.alert(candidateCopy.list.nomination?.alreadyExists || d.attachError)
+        }
         setAttachedJobIds((prev) => new Set([...prev, String(jobId)]))
       } else {
         window.alert(res?.message || d.attachError)
       }
     } catch (e) {
       console.error(e)
-      window.alert(d.attachError)
+      window.alert(e?.message || d.attachError)
     } finally {
       setAttachingJobId(null)
     }
-  }, [candidate?.id, d.attachError])
+  }, [candidate?.id, candidateCopy.list.nomination?.alreadyExists, d.attachError])
+
+  const handleNominationSuccess = useCallback((data) => {
+    const jobId = data?.job?.id ?? data?.application?.jobId
+    if (jobId != null) {
+      setAttachedJobIds((prev) => new Set([...prev, String(jobId)]))
+    }
+  }, [])
 
   const handleDownloadOriginalCv = useCallback(async () => {
     if (!candidate?.id || downloadingCv || isScoutPerformanceUnlock(candidate)) return
@@ -952,6 +979,21 @@ export default function BusinessUnlockedCandidateDetail() {
     return undefined
   }, [numericCandidateId, d.invalidId, d.notFound, d.loadError])
 
+  useEffect(() => {
+    if (!candidate?.id) return undefined
+    let cancelled = false
+    apiService.getBusinessCandidateNominationJobs(candidate.id)
+      .then((res) => {
+        if (cancelled || !res?.success) return
+        const ids = (res.data?.jobs || [])
+          .filter((job) => job.existingApplicationId)
+          .map((job) => String(job.id))
+        if (ids.length) setAttachedJobIds(new Set(ids))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [candidate?.id])
+
   return (
     <>
       <style>{detailPageStyles}</style>
@@ -1000,6 +1042,7 @@ export default function BusinessUnlockedCandidateDetail() {
                     businessId={user?.id}
                     exploreSubmitting={exploreSubmitting}
                     onExploreStatus={handlePerformanceExplore}
+                    onOpenNomination={() => setNominationModalOpen(true)}
                     onAttachToJob={handleAttachToJob}
                     attachingJobId={attachingJobId}
                     attachedJobIds={attachedJobIds}
@@ -1021,6 +1064,17 @@ export default function BusinessUnlockedCandidateDetail() {
           </div>
         </div>
       </div>
+      {candidate ? (
+        <BusinessCandidateNominationModal
+          open={nominationModalOpen}
+          onClose={() => setNominationModalOpen(false)}
+          cvId={candidate.id}
+          candidateName={getLocalizedScoutDisplayName(candidate, language)}
+          copy={candidateCopy.list}
+          language={language}
+          onSuccess={handleNominationSuccess}
+        />
+      ) : null}
     </>
   )
 }

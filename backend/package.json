@@ -50,7 +50,9 @@
     "puppeteer:install-chrome": "npx puppeteer browsers install chrome",
     "seed:business-knowledge-categories": "node scripts/seed-business-knowledge-categories.js",
     "crawl:vnexpress-knowledge-recruitment": "node scripts/crawl-vnexpress-knowledge-recruitment.js",
-    "crawl:vnexpress-knowledge-recruitment:dry-run": "node scripts/crawl-vnexpress-knowledge-recruitment.js --dry-run"
+    "crawl:vnexpress-knowledge-recruitment:dry-run": "node scripts/crawl-vnexpress-knowledge-recruitment.js --dry-run",
+    "reembed:scout-cvs": "node scripts/reembed-scout-listed-cvs.js",
+    "reembed:scout-cvs:dry-run": "node scripts/reembed-scout-listed-cvs.js --dry-run"
   },
   "keywords": [
     "jobshare",

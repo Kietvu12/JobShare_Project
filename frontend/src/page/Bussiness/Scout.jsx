@@ -405,11 +405,24 @@ function ScoutMetaChip({ label, children }) {
   if (isScoutEmptyDisplayValue(children)) return null
   return (
     <span
-      className="scout-cand-meta inline-flex max-w-full truncate rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700"
+      className="scout-cand-meta inline-flex max-w-full items-center gap-1 truncate rounded-full bg-slate-100 px-2.5 py-1"
       title={label ? `${label}: ${children}` : String(children)}
     >
-      {children}
+      {label ? (
+        <span className="shrink-0 font-semibold text-slate-500">{label}:</span>
+      ) : null}
+      <span className="min-w-0 truncate font-semibold text-slate-700">{children}</span>
     </span>
+  )
+}
+
+function ScoutLabeledRow({ label, children, className = '' }) {
+  if (children == null || children === false) return null
+  return (
+    <div className={`flex min-w-0 items-start gap-1.5 ${className}`.trim()}>
+      <span className="scout-cand-caption shrink-0 font-semibold text-slate-500">{label}:</span>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
   )
 }
 
@@ -422,6 +435,7 @@ function ScoutCandidateRowBody({
   const { language } = useLanguage()
   const copy = useBusinessAppCopy()
   const chipLabels = copy.scout.chips
+  const listCardLabels = copy.scout.listCard
   const newBadgeLabel = copy.scout.newBadge
   const position = getLocalizedCandidateRole(candidate, language)
   const exp = formatScoutExperienceSeniorityLocalized(candidate.experienceYears, language)
@@ -447,26 +461,28 @@ function ScoutCandidateRowBody({
         ) : null}
       </div>
       {position ? (
-        <p className="scout-cand-subtitle mt-1 truncate text-slate-600">
-          {hl(position)}
-        </p>
+        <ScoutLabeledRow label={listCardLabels.position} className="mt-1.5">
+          <p className="scout-cand-subtitle truncate text-slate-700">{hl(position)}</p>
+        </ScoutLabeledRow>
       ) : null}
       {Number.isFinite(Number(matchScore)) ? (
-        <div className="mt-2">
+        <ScoutLabeledRow label={listCardLabels.match} className="mt-1.5">
           <ScoutMatchBadge score={matchScore} language={language} className="scout-cand-meta !px-2 !py-0.5" iconClassName="scout-cand-icon" />
-        </div>
+        </ScoutLabeledRow>
       ) : null}
       {chips.length > 0 ? (
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
           {chips.map((chip) => (
             <ScoutMetaChip key={chip.label} label={chip.label}>{chip.value}</ScoutMetaChip>
           ))}
         </div>
       ) : null}
       {skillExcerpt ? (
-        <p className="scout-cand-caption mt-2 line-clamp-1 text-slate-500" title={skillExcerpt}>
-          {hl(skillExcerpt)}
-        </p>
+        <ScoutLabeledRow label={listCardLabels.skills} className="mt-1.5">
+          <p className="scout-cand-caption line-clamp-2 text-slate-700" title={skillExcerpt}>
+            {hl(skillExcerpt)}
+          </p>
+        </ScoutLabeledRow>
       ) : null}
     </>
   )
@@ -917,6 +933,8 @@ function ScoutCandidateListItem({
   hl,
   language = 'vi',
 }) {
+  const copy = useBusinessAppCopy()
+  const listCardLabels = copy.scout.listCard
   const showNew = isCandidateNew(candidate)
 
   return (
@@ -935,11 +953,13 @@ function ScoutCandidateListItem({
             showNew={showNew}
           />
           {highlightQuery && Array.isArray(candidate.searchSnippets) && candidate.searchSnippets.length > 0 && (
-            <div className="scout-cand-caption mt-1.5 line-clamp-1 rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-amber-900">
-              {candidate.searchSnippets.map((snippet) => (
-                <span key={snippet}>{hl(snippet)} </span>
-              ))}
-            </div>
+            <ScoutLabeledRow label={listCardLabels.searchHit} className="mt-1.5">
+              <div className="scout-cand-caption line-clamp-2 rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-amber-900">
+                {candidate.searchSnippets.map((snippet) => (
+                  <span key={snippet}>{hl(snippet)} </span>
+                ))}
+              </div>
+            </ScoutLabeledRow>
           )}
         </div>
         {!candidate.isUnlocked ? (

@@ -38,12 +38,17 @@ const WsLogo = ({ size = 28 }) => (
 )
 
 function CvAttachmentCard({ cv, mode, onOpen, kind = 'recommendation' }) {
-  const label = cv.code || cv.name || `CV #${cv.cvId}`
-  const sub = [cv.desiredPosition, cv.jobCategory?.name].filter(Boolean).join(' · ')
+  const code = cv.code || (cv.cvId ? `CV #${cv.cvId}` : 'Hồ sơ')
+  const name = cv.name || null
+  const sub = [
+    name,
+    cv.desiredPosition,
+    cv.jobCategory?.name,
+  ].filter(Boolean).join(' · ')
   const footer = kind === 'request'
-    ? (mode === 'admin' ? 'Hồ sơ doanh nghiệp yêu cầu mở' : 'Hồ sơ yêu cầu mở qua Scout Performance')
+    ? (mode === 'admin' ? 'Bấm để xem chi tiết hồ sơ →' : 'Bấm để xem chi tiết hồ sơ →')
     : (mode === 'admin' ? 'Đã gửi vào danh sách Scout DN' : 'Xem hồ sơ trên Scout →')
-  const canOpen = kind === 'recommendation' || (kind === 'request' && mode === 'business' && onOpen)
+  const canOpen = !!onOpen && !!cv.cvId
   return (
     <button
       type="button"
@@ -53,9 +58,41 @@ function CvAttachmentCard({ cv, mode, onOpen, kind = 'recommendation' }) {
         padding: '8px 10px', cursor: canOpen ? 'pointer' : 'default',
       }}
     >
-      <div style={{ fontSize: 9, fontWeight: 700, color: '#1e293b' }}>{label}</div>
+      <div style={{ fontSize: 9, fontWeight: 700, color: '#1e293b' }}>{code}</div>
       {sub && <div style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>{sub}</div>}
-      <div style={{ fontSize: 7, color: '#0077B6', marginTop: 4 }}>{footer}</div>
+      {canOpen ? (
+        <div style={{ fontSize: 7, color: '#0077B6', marginTop: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
+          <ExternalLink width={9} height={9} />
+          {footer}
+        </div>
+      ) : null}
+    </button>
+  )
+}
+
+function JobAttachmentCard({ jobId, jobTitle, jobCode, mode, onOpen }) {
+  if (!jobId) return null
+  const title = jobTitle || `JD #${jobId}`
+  const canOpen = !!onOpen
+  return (
+    <button
+      type="button"
+      onClick={() => (canOpen ? onOpen?.(jobId) : undefined)}
+      style={{
+        width: '100%', textAlign: 'left', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8,
+        padding: '8px 10px', cursor: canOpen ? 'pointer' : 'default',
+      }}
+    >
+      <div style={{ fontSize: 8, fontWeight: 600, color: '#64748b', marginBottom: 2 }}>JD hearing</div>
+      <div style={{ fontSize: 9, fontWeight: 700, color: '#1e40af' }}>
+        {title}{jobCode ? ` · ${jobCode}` : ''}
+      </div>
+      {canOpen ? (
+        <div style={{ fontSize: 7, color: '#0077B6', marginTop: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
+          <ExternalLink width={9} height={9} />
+          Bấm để xem chi tiết JD →
+        </div>
+      ) : null}
     </button>
   )
 }
@@ -68,8 +105,10 @@ function getRequestedCvFromMessage(message) {
   return {
     cvId: payload.cvId,
     code: payload.cvCode || null,
+    name: payload.cvName || null,
     desiredPosition: payload.desiredPosition || null,
     jobCategory: payload.jobCategory || null,
+    collaboratorName: payload.collaboratorName || null,
   }
 }
 
@@ -838,7 +877,7 @@ function WsAdminScoutPerformanceCandidatesPanel({
   )
 }
 
-function ScoutPerformanceEventCard({ message, mode, onOpenCv }) {
+function ScoutPerformanceEventCard({ message, mode, onOpenCv, onOpenJob }) {
   const payload = message.requestPayload || {}
   const requestedCv = getRequestedCvFromMessage(message)
   const type = message.messageType
@@ -846,8 +885,10 @@ function ScoutPerformanceEventCard({ message, mode, onOpenCv }) {
   const meta = type === 'similar_candidates_request'
     ? { label: 'Tìm tương tự', color: '#4338ca', bg: '#e8f4fa', title: 'Yêu cầu tìm thêm ứng viên tương tự' }
     : type === 'performance_opened'
-      ? { label: 'Đã mở', color: '#059669', bg: '#d1fae5', title: 'Đã mở hồ sơ Scout Performance' }
+      ? { label: 'Scout Ủy Thác', color: '#059669', bg: '#d1fae5', title: 'Mở hồ sơ & hearing JD' }
       : { label: 'Scout Performance', color: '#64748b', bg: '#f1f5f9', title: message.content || 'Scout Performance' }
+
+  const note = payload.businessNote || (type !== 'performance_opened' ? payload.businessNote : null)
 
   return (
     <div style={{
@@ -861,27 +902,61 @@ function ScoutPerformanceEventCard({ message, mode, onOpenCv }) {
         </span>
       </div>
 
+      {type === 'performance_opened' ? (
+        <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.65, marginBottom: 8 }}>
+          {payload.businessCompanyName ? (
+            <div><strong>Doanh nghiệp:</strong> {payload.businessCompanyName}</div>
+          ) : null}
+          <div>
+            <strong>Ứng viên:</strong>{' '}
+            {payload.cvCode || (payload.cvId ? `CV #${payload.cvId}` : '—')}
+            {payload.cvName ? ` · ${payload.cvName}` : ''}
+          </div>
+          {payload.desiredPosition ? (
+            <div><strong>Vị trí mong muốn:</strong> {payload.desiredPosition}</div>
+          ) : null}
+          {payload.collaboratorName ? (
+            <div><strong>Thuộc CTV:</strong> {payload.collaboratorName}</div>
+          ) : null}
+          {!payload.jobId ? (
+            <div style={{ color: '#b45309' }}><strong>JD hearing:</strong> Chưa chọn — WS cần hearing yêu cầu tuyển dụng</div>
+          ) : null}
+        </div>
+      ) : null}
+
       {requestedCv && (
         <div style={{ marginBottom: 8 }}>
           <CvAttachmentCard
             cv={requestedCv}
             mode={mode}
             kind="request"
-            onOpen={mode === 'business' ? onOpenCv : undefined}
+            onOpen={onOpenCv}
           />
         </div>
       )}
 
-      {payload.businessNote && (
-        <div style={{ fontSize: 8, color: '#475569', padding: '6px 8px', background: '#f8fafc', borderRadius: 6 }}>
-          <strong>Ghi chú DN:</strong> {payload.businessNote}
+      {type === 'performance_opened' && payload.jobId ? (
+        <div style={{ marginBottom: 8 }}>
+          <JobAttachmentCard
+            jobId={payload.jobId}
+            jobTitle={payload.jobTitle}
+            jobCode={payload.jobCode}
+            mode={mode}
+            onOpen={onOpenJob}
+          />
         </div>
-      )}
+      ) : null}
+
+      {note ? (
+        <div style={{ fontSize: 8, color: '#475569', padding: '6px 8px', background: '#f8fafc', borderRadius: 6, marginTop: note ? 0 : undefined }}>
+          <strong>Ghi chú DN:</strong> {note}
+        </div>
+      ) : null}
     </div>
   )
 }
 
-function ChatBubble({ message, mode, onOpenCv, onApproveCredit, onRejectCredit, creditActionId, onApproveListing, onRejectListing, listingActionId, onSubmitReferralPayment, referralPaymentActionId }) {
+function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRejectCredit, creditActionId, onApproveListing, onRejectListing, listingActionId, onSubmitReferralPayment, referralPaymentActionId }) {
   const isPerformanceEvent = [
     'performance_opened',
     'similar_candidates_request',
@@ -1079,7 +1154,7 @@ function ChatBubble({ message, mode, onOpenCv, onApproveCredit, onRejectCredit, 
       }}>
         {mode !== 'business' && <WsLogo size={24} />}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
-          <ScoutPerformanceEventCard message={message} mode={mode} onOpenCv={onOpenCv} />
+          <ScoutPerformanceEventCard message={message} mode={mode} onOpenCv={onOpenCv} onOpenJob={onOpenJob} />
           <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
             {formatTime(message.createdAt)}
           </div>
@@ -1451,7 +1526,18 @@ export function WsChatThread({
 
   const openCv = (cvId) => {
     if (!cvId) return
-    window.open(`/business/scout/candidates/${cvId}`, '_blank', 'noopener,noreferrer')
+    const path = mode === 'admin'
+      ? `/admin/candidates/${cvId}`
+      : `/business/scout/candidates/${cvId}`
+    window.open(path, '_blank', 'noopener,noreferrer')
+  }
+
+  const openJob = (jobId) => {
+    if (!jobId) return
+    const path = mode === 'admin'
+      ? `/admin/jobs/${jobId}/edit`
+      : `/business/jobs/${jobId}/edit`
+    window.open(path, '_blank', 'noopener,noreferrer')
   }
 
   const handleApproveCredit = async (requestId) => {
@@ -1646,7 +1732,8 @@ export function WsChatThread({
             key={msg.id}
             message={msg}
             mode={mode}
-            onOpenCv={mode === 'business' ? openCv : undefined}
+            onOpenCv={openCv}
+            onOpenJob={openJob}
             onApproveCredit={mode === 'admin' ? handleApproveCredit : undefined}
             onRejectCredit={mode === 'admin' ? handleRejectCredit : undefined}
             creditActionId={creditActionId}

@@ -131,6 +131,12 @@ export const scoutI18n = {
       location: 'Khu vực',
       salary: 'Lương',
     },
+    listCard: {
+      position: 'Vị trí mong muốn',
+      match: 'Điểm phù hợp AI',
+      skills: 'Kỹ năng',
+      searchHit: 'Khớp tìm kiếm',
+    },
     newBadge: 'Mới',
     solutionCards: scoutCardsVi,
     filters: {
@@ -190,6 +196,12 @@ export const scoutI18n = {
       location: 'Location',
       salary: 'Salary',
     },
+    listCard: {
+      position: 'Desired role',
+      match: 'AI match score',
+      skills: 'Skills',
+      searchHit: 'Search match',
+    },
     newBadge: 'New',
     solutionCards: scoutCardsEn,
     filters: {
@@ -248,6 +260,12 @@ export const scoutI18n = {
       experience: '経験',
       location: '地域',
       salary: '給与',
+    },
+    listCard: {
+      position: '希望ポジション',
+      match: 'AIマッチスコア',
+      skills: 'スキル',
+      searchHit: '検索一致',
     },
     newBadge: '新着',
     solutionCards: scoutCardsJa,

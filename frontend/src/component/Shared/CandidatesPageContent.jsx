@@ -48,7 +48,7 @@ import BulkImportCandidatesModal from './BulkImportCandidatesModal';
 import QuickCreateCandidateDrawer from './QuickCreateCandidateDrawer';
 import { shouldRestoreCandidatesListState, CANDIDATES_LIST_STORAGE_PREFIX } from '../../utils/routerNavigationHistory';
 
-const SHOW_SCOUT_UI = false;
+const SHOW_SCOUT_UI = true;
 
 const readCandidatesListSession = (variant) => {
   try {

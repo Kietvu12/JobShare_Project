@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Search, Users, Briefcase, FilePlus2, X, ChevronRight, CheckCircle2,
+  Search, Users, Briefcase, X, ChevronRight, CheckCircle2,
 } from 'lucide-react'
 
 const BRAND = '#0077B6'
@@ -9,23 +9,18 @@ const BRAND = '#0077B6'
 const NEXT_STEP_OPTIONS = [
   {
     num: '①',
-    label: 'Tìm ứng viên bằng Scout Credit',
+    label: 'Tìm ứng viên với Scout Trực Tiếp',
     icon: Search,
   },
   {
     num: '②',
-    label: 'Nhờ WS Scout Performance',
+    label: 'Dùng Scout Ủy Thác',
     icon: Users,
   },
   {
     num: '③',
-    label: 'Đăng lên Sàn HR Partner',
+    label: 'Đăng JD lên Sàn CTV',
     icon: Briefcase,
-  },
-  {
-    num: '④',
-    label: 'Tạo Landing Page tuyển dụng',
-    icon: FilePlus2,
   },
 ]
 
@@ -54,7 +49,7 @@ export default function JobCreatedNextStepsModal({ open, jobId, onClose, onSelec
         className="absolute inset-0 bg-slate-900/45"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-[340px] rounded-2xl border border-slate-200 bg-white shadow-xl">
+      <div className="relative w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-xl">
         <button
           type="button"
           onClick={onClose}
@@ -64,7 +59,7 @@ export default function JobCreatedNextStepsModal({ open, jobId, onClose, onSelec
           <X className="h-4 w-4" strokeWidth={2} />
         </button>
 
-        <div className="px-5 pb-5 pt-6">
+        <div className="px-6 pb-6 pt-7">
           <div className="flex flex-col items-center text-center pr-6">
             <div
               className="mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-[#0077B6]/20 bg-[#0077B6]/5"
@@ -83,7 +78,7 @@ export default function JobCreatedNextStepsModal({ open, jobId, onClose, onSelec
             </p>
           </div>
 
-          <ul className="mt-4 flex flex-col gap-1.5">
+          <ul className="mt-5 flex flex-col gap-2">
             {NEXT_STEP_OPTIONS.map((opt) => {
               const Icon = opt.icon
               return (
@@ -91,7 +86,7 @@ export default function JobCreatedNextStepsModal({ open, jobId, onClose, onSelec
                   <button
                     type="button"
                     onClick={() => onSelect?.(opt.num, jobId)}
-                    className="group w-full flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-left transition-colors hover:border-[#0077B6]/35 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0077B6]/40 focus-visible:ring-offset-1"
+                    className="group w-full flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left transition-colors hover:border-[#0077B6]/35 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0077B6]/40 focus-visible:ring-offset-1"
                   >
                     <span className="biz-ui-caption shrink-0 w-4 font-bold tabular-nums text-slate-400">
                       {opt.num}
@@ -138,16 +133,13 @@ export function navigateJobCreatedNextStep(navigate, stepNum, jobId) {
       break
     case '②':
       navigate(id
-        ? `/business/messages?tab=ws&jobId=${encodeURIComponent(id)}`
-        : '/business/messages?tab=ws')
+        ? `/business/scout/managed?jobId=${encodeURIComponent(id)}`
+        : '/business/scout/managed')
       break
     case '③':
       navigate(id
         ? `/business/candidate-sharing?create=1&jobId=${encodeURIComponent(id)}`
         : '/business/candidate-sharing?create=1')
-      break
-    case '④':
-      navigate('/business/saiyo', { state: id ? { openLandingCreate: true, jobId: id } : { openLandingCreate: true } })
       break
     default:
       break

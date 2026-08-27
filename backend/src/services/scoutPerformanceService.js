@@ -11,6 +11,7 @@ import {
   BusinessWsChatMessage,
   CVStorage,
   Collaborator,
+  Job,
   JobCategory,
 } from '../models/index.js';
 import {
@@ -134,10 +135,17 @@ async function notifySimilarCandidatesRequested({ request, business, cv, session
   }
 }
 
-async function notifyScoutPerformanceRequestCreated({ request, business, cv, sessionId }) {
+async function notifyScoutPerformanceRequestCreated({ request, business, cv, sessionId, job = null }) {
   const companyName = business?.companyName || 'Doanh nghiệp';
-  const cvLabel = cv?.code ? `CV ${cv.code}` : `CV #${cv?.id || request.cvId}`;
-  const content = `${companyName} gửi yêu cầu Scout Performance từ hồ sơ ${cvLabel} trên sàn Scout.`;
+  const cvCode = cv?.code ? `Mã ${cv.code}` : `CV #${cv?.id || request.cvId}`;
+  const cvName = cv?.name ? ` · ${cv.name}` : '';
+  const owner = cv?.scoutListedByCollaborator?.name || cv?.collaborator?.name;
+  const jobTitle = job?.title || job?.titleEn || job?.titleJp;
+  const jobPart = job?.id
+    ? ` · JD hearing: ${jobTitle || `JD #${job.id}`}${job.jobCode ? ` (${job.jobCode})` : ''}`
+    : '';
+  const ownerPart = owner ? ` · CTV: ${owner}` : '';
+  const content = `${companyName} mở Scout Ủy Thác — ${cvCode}${cvName}${ownerPart}${jobPart}.`;
   const adminUrl = sessionId
     ? `/admin/public-ctv-chat?tab=business&sessionId=${sessionId}`
     : `/admin/scout-performance?requestId=${request.id}`;
@@ -235,7 +243,11 @@ export async function createScoutPerformanceRequest({
   wantsSimilarCandidates = false,
 }) {
   const cv = await CVStorage.findByPk(cvId, {
-    include: [{ model: JobCategory, as: 'jobCategory', required: false }],
+    include: [
+      { model: JobCategory, as: 'jobCategory', required: false },
+      { model: Collaborator, as: 'collaborator', required: false, attributes: ['id', 'name'] },
+      { model: Collaborator, as: 'scoutListedByCollaborator', required: false, attributes: ['id', 'name'] },
+    ],
   });
   await assertCvCanRequestPerformance(cv);
   const existingUnlock = await assertNotAlreadyUnlockedViaCredit(businessId, cvId);
@@ -243,6 +255,14 @@ export async function createScoutPerformanceRequest({
   const business = await Business.findByPk(businessId, {
     attributes: ['id', 'companyName', 'contactName'],
   });
+
+  let job = null;
+  if (jobId) {
+    job = await Job.findOne({
+      where: { id: jobId, businessId },
+      attributes: ['id', 'title', 'titleEn', 'titleJp', 'jobCode'],
+    });
+  }
 
   const result = await sequelize.transaction(async (transaction) => {
     let unlock = existingUnlock;
@@ -306,6 +326,9 @@ export async function createScoutPerformanceRequest({
         businessId,
         request: result.request,
         cv,
+        business,
+        job,
+        businessNote: message?.trim() || undefined,
       });
     }
   } catch (chatError) {

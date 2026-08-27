@@ -1067,6 +1067,23 @@ const apiService = {
     return handleResponse(response);
   },
 
+  getBusinessCandidateNominationJobs: async (cvId) => {
+    const response = await fetch(`${API_BASE_URL}/business/scout/unlocked-candidates/${cvId}/nomination-jobs`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  nominateBusinessCandidate: async (cvId, body = {}) => {
+    const response = await fetch(`${API_BASE_URL}/business/scout/unlocked-candidates/${cvId}/nominate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
   createBusinessScoutPerformanceRequest: async (cvId, body = {}) => {
     const response = await fetch(`${API_BASE_URL}/business/scout/candidates/${cvId}/performance-request`, {
       method: 'POST',

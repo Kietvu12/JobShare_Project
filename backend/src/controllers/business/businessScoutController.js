@@ -5,6 +5,8 @@ import {
   listScoutCandidatesForBusiness,
   listUnlockedCandidatesForBusiness,
   attachScoutCandidateToJob,
+  listNominationJobsForAccessibleCandidate,
+  nominateAccessibleCandidateToJob,
   unlockScoutCandidateForBusiness,
   getScoutUnlockedCvFileList,
 } from '../../services/businessScoutService.js';
@@ -188,6 +190,47 @@ export const businessScoutController = {
         message: data.alreadyExists
           ? 'Ứng viên đã có trong pipeline JD này'
           : 'Đã thêm ứng viên vào pipeline JD',
+        data,
+      });
+    } catch (error) {
+      return handleServiceError(res, error, next);
+    }
+  },
+
+  listNominationJobs: async (req, res, next) => {
+    try {
+      const cvId = parseInt(req.params.id, 10);
+      if (Number.isNaN(cvId)) {
+        return res.status(400).json({ success: false, message: 'ID hồ sơ không hợp lệ' });
+      }
+      const data = await listNominationJobsForAccessibleCandidate({
+        businessId: req.business.id,
+        cvId,
+      });
+      res.json({ success: true, data });
+    } catch (error) {
+      return handleServiceError(res, error, next);
+    }
+  },
+
+  nominateCandidate: async (req, res, next) => {
+    try {
+      const cvId = parseInt(req.params.id, 10);
+      if (Number.isNaN(cvId)) {
+        return res.status(400).json({ success: false, message: 'ID hồ sơ không hợp lệ' });
+      }
+      const { jobId, note } = req.body || {};
+      const data = await nominateAccessibleCandidateToJob({
+        businessId: req.business.id,
+        cvId,
+        jobId,
+        note,
+      });
+      res.json({
+        success: true,
+        message: data.alreadyExists
+          ? 'Ứng viên đã có đơn tiến cử cho JD này'
+          : 'Đã tạo đơn tiến cử thành công',
         data,
       });
     } catch (error) {

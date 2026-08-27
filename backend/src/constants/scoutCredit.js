@@ -38,6 +38,9 @@ export const SCOUT_UNLOCK_TYPES = {
   SCOUT_PERFORMANCE: 'scout_performance',
 };
 
+/** Hồ sơ xem qua tiến cử CTV vào JD đăng trên Sàn CTV — không tạo business_scout_unlocks */
+export const CTV_MARKETPLACE_ACCESS_TYPE = 'ctv_marketplace';
+
 /** business_credit_histories.reference_type khi trừ credit mở khóa */
 export const SCOUT_CREDIT_REFERENCE_TYPE = 'scout_unlock';
 

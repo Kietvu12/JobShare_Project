@@ -7,6 +7,7 @@ import { ensureJobBuilderThreadForJob } from '../../utils/jobBuilderThreadStorag
 import {
   consumeScoutPerformanceHearingPending,
   peekScoutPerformanceHearingPending,
+  submitScoutPerformanceHearingForJob,
 } from '../../utils/scoutPerformanceHearingPending';
 import apiService from '../../services/api';
 
@@ -18,24 +19,7 @@ const BusinessAddJobPage = () => {
   const [hearingSubmitting, setHearingSubmitting] = useState(false);
 
   const submitPendingHearing = useCallback(async (jobId, pending) => {
-    let jobTitle = '';
-    try {
-      const res = await apiService.getBusinessJobById(jobId);
-      const job = res?.data?.job || res?.data;
-      jobTitle = job?.title || job?.titleEn || job?.titleJp || '';
-    } catch {
-      /* giữ title mặc định */
-    }
-
-    const hearingRes = await apiService.createBusinessScoutPerformanceRequest(pending.cvId, {
-      jobId,
-      jobTitle: jobTitle || undefined,
-      wantsSimilarCandidates: !!pending.wantsSimilarCandidates,
-      message: pending.message,
-    });
-
-    const returnPath = pending.returnPath
-      || `/business/scout/candidates/${encodeURIComponent(String(pending.cvId))}`;
+    const { hearingRes, returnPath } = await submitScoutPerformanceHearingForJob(apiService, jobId, pending);
 
     if (hearingRes?.success) {
       const req = hearingRes.data?.request;

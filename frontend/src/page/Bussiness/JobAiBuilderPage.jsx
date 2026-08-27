@@ -13,6 +13,11 @@ import {
   createAndSubmitMarketplaceListing,
   peekPendingMarketplaceListingDraft,
 } from '../../utils/marketplaceListingFlow'
+import {
+  consumeScoutPerformanceHearingPending,
+  peekScoutPerformanceHearingPending,
+  submitScoutPerformanceHearingForJob,
+} from '../../utils/scoutPerformanceHearingPending'
 import apiService from '../../services/api'
 import useBusinessUser from '../../hooks/useBusinessUser'
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
@@ -127,6 +132,7 @@ const JobAiBuilderPage = ({ mode = 'create' }) => {
   const [searchParams] = useSearchParams()
   const threadIdParam = searchParams.get('threadId')
   const quickMarketplaceParam = searchParams.get('quickMarketplace') === '1'
+  const scoutHearingParam = searchParams.get('from') === 'scout-performance-hearing'
   const { user: businessUser } = useBusinessUser()
   const { language } = useLanguage()
   const copy = useBusinessAppCopy()
@@ -142,7 +148,11 @@ const JobAiBuilderPage = ({ mode = 'create' }) => {
   const [marketplaceQuickCreateActive, setMarketplaceQuickCreateActive] = useState(
     () => mode === 'create' && Boolean(peekPendingMarketplaceListingDraft()),
   )
+  const [scoutHearingActive, setScoutHearingActive] = useState(
+    () => mode === 'create' && Boolean(peekScoutPerformanceHearingPending()),
+  )
   const [marketplaceSubmitting, setMarketplaceSubmitting] = useState(false)
+  const [hearingSubmitting, setHearingSubmitting] = useState(false)
 
   useEffect(() => {
     if (!businessUser?.id) return undefined
@@ -194,6 +204,12 @@ const JobAiBuilderPage = ({ mode = 'create' }) => {
           return
         }
 
+        if (scoutHearingParam && peekScoutPerformanceHearingPending()) {
+          setScoutHearingActive(true)
+          await builderRef.current?.startNewSession?.()
+          return
+        }
+
         if (threadIdParam) {
           const full = await getJobBuilderThread(threadIdParam)
           if (full) {
@@ -231,7 +247,7 @@ const JobAiBuilderPage = ({ mode = 'create' }) => {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [businessUser?.id, jobIdParam, language, mode, quickMarketplaceParam, threadIdParam])
+  }, [businessUser?.id, jobIdParam, language, mode, quickMarketplaceParam, scoutHearingParam, threadIdParam])
 
   const handleThreadPersist = useCallback((thread) => {
     if (thread?.id) setActiveThreadId(String(thread.id))
@@ -252,6 +268,54 @@ const JobAiBuilderPage = ({ mode = 'create' }) => {
       if (job) setLoadedJob(job)
     } catch {
       /* ignore */
+    }
+
+    const hearingPending = isCreate ? consumeScoutPerformanceHearingPending() : null
+    if (hearingPending?.cvId) {
+      setHearingSubmitting(true)
+      try {
+        const { hearingRes, returnPath } = await submitScoutPerformanceHearingForJob(
+          apiService,
+          jobId,
+          hearingPending,
+        )
+        setScoutHearingActive(false)
+        if (hearingRes?.success) {
+          const req = hearingRes.data?.request
+          navigate(returnPath, {
+            replace: true,
+            state: {
+              performanceSuccess: {
+                requestCode: req?.requestCode,
+                sessionId: req?.sessionId,
+                requestId: req?.id,
+                wantsSimilarCandidates: !!req?.wantsSimilarCandidates,
+                candidate: req?.candidate,
+              },
+            },
+          })
+        } else {
+          navigate(returnPath, {
+            replace: true,
+            state: {
+              performanceError: hearingRes?.message || 'Không thể gửi yêu cầu Scout Ủy Thác.',
+            },
+          })
+        }
+      } catch (err) {
+        console.error(err)
+        const returnPath = hearingPending.returnPath
+          || `/business/scout/candidates/${encodeURIComponent(String(hearingPending.cvId))}`
+        navigate(returnPath, {
+          replace: true,
+          state: {
+            performanceError: 'Không thể gửi yêu cầu Scout Ủy Thác. Vui lòng thử lại.',
+          },
+        })
+      } finally {
+        setHearingSubmitting(false)
+      }
+      return
     }
 
     const pending = peekPendingMarketplaceListingDraft()
@@ -285,10 +349,17 @@ const JobAiBuilderPage = ({ mode = 'create' }) => {
               {marketplaceSubmitting ? jdCopy.marketplaceSubmitting : jdCopy.marketplaceHint}
             </div>
           ) : null}
+          {scoutHearingActive ? (
+            <div className="shrink-0 border-b border-[#0077B6]/20 bg-[#e8f4fa] px-3 py-2 text-sm text-[#006399]">
+              {hearingSubmitting
+                ? 'Đang gửi yêu cầu Scout Ủy Thác...'
+                : 'Bạn đang tạo JD cho Scout Ủy Thác. Chat với AI để hoàn thiện JD — sau khi lưu, hệ thống sẽ tự gửi yêu cầu hearing.'}
+            </div>
+          ) : null}
 
           <div className="relative min-h-0 flex-1">
-            {loading ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+            {loading || hearingSubmitting ? (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80">
                 <Loader2 className="h-6 w-6 animate-spin text-[#0077B6]" />
               </div>
             ) : null}
@@ -300,7 +371,7 @@ const JobAiBuilderPage = ({ mode = 'create' }) => {
               savedJobId={savedJobId}
               onThreadPersist={handleThreadPersist}
               onJobSaved={handleJobSaved}
-              showNextStepsOnCreate={!marketplaceQuickCreateActive}
+              showNextStepsOnCreate={!marketplaceQuickCreateActive && !scoutHearingActive}
             />
           </div>
         </div>
