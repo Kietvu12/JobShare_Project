@@ -58,6 +58,15 @@ export function getStatusCategoryStyle(category) {
   return map[category] || { color: '#64748b', bg: '#f1f5f9' };
 }
 
+/** Scout Credit & Scout Performance — mở drawer chỉ xem hồ sơ, không chat 3 bên */
+export const PROFILE_ONLY_NO_CHAT_SOURCES = new Set(['scout_credit', 'scout_performance']);
+
+export function isApplicationProfileOnly(app) {
+  if (!app) return false;
+  if (app.profileOnlyNoChat === true) return true;
+  return PROFILE_ONLY_NO_CHAT_SOURCES.has(app.sourceType);
+}
+
 export function formatApplicationDate(value) {
   if (!value) return '—';
   try {

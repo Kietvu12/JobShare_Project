@@ -45,12 +45,12 @@ const baseCopy = {
         desc: 'Tạo job description bằng AI trên JobShare',
       },
       scout: {
-        title: 'Tìm kiếm ứng viên phù hợp nhất với JD của bạn',
-        desc: 'Scout trong kho ứng viên chất lượng',
+        title: 'Scout ứng viên phù hợp JD',
+        desc: 'Tìm kiếm trong kho ứng viên chất lượng',
       },
       wsSupport: {
-        title: 'Gửi yêu cầu hỗ trợ tuyển dụng cho Work Station',
-        desc: 'Trao đổi & nhờ WS hỗ trợ tuyển dụng',
+        title: 'Nhờ WS hỗ trợ tuyển dụng',
+        desc: 'Trao đổi và gửi yêu cầu hỗ trợ cho Work Station',
       },
       guide: {
         title: 'Xem hướng dẫn sử dụng',
@@ -102,12 +102,12 @@ const baseCopy = {
         desc: 'Build job descriptions with AI on JobShare',
       },
       scout: {
-        title: 'Find candidates that match your JD',
-        desc: 'Scout from our quality talent pool',
+        title: 'Scout candidates for your JD',
+        desc: 'Search our quality talent pool',
       },
       wsSupport: {
-        title: 'Request hiring support from Work Station',
-        desc: 'Chat and ask WS for recruitment help',
+        title: 'Ask WS for hiring support',
+        desc: 'Chat and send recruitment requests to Work Station',
       },
       guide: {
         title: 'View usage guide',

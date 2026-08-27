@@ -24,7 +24,7 @@ export const JOB_APPLICATION_STATUS = {
     category: 'rejected'
   },
   5: {
-    label: 'Đang tiến cử khách hàng',
+    label: 'Đang kiểm tra hồ sơ',
     value: 'nominating',
     category: 'processing'
   },

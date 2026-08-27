@@ -28,7 +28,7 @@ export const JOB_APPLICATION_STATUS = {
     category: 'rejected'
   },
   5: {
-    label: 'Đang tiến cử khách hàng',
+    label: 'Đang kiểm tra hồ sơ',
     value: 'nominating',
     color: 'bg-blue-100 text-blue-800 border-blue-300',
     category: 'processing'
@@ -124,7 +124,7 @@ export const JOB_APPLICATION_STATUS_LABELS = {
     2: 'Đang đợi xử lý hồ sơ WS',
     3: 'Đang xử lý hồ sơ',
     4: 'Trượt hồ sơ WS',
-    5: 'Đang tiến cử khách hàng',
+    5: 'Đang kiểm tra hồ sơ',
     6: 'Trượt hồ sơ khách hàng',
     7: 'Đang điều chỉnh lịch phỏng vấn',
     8: 'Đang chờ phỏng vấn',
@@ -142,7 +142,7 @@ export const JOB_APPLICATION_STATUS_LABELS = {
     2: 'Waiting for WS processing',
     3: 'Processing profile',
     4: 'Rejected by WS',
-    5: 'Nominating to client',
+    5: 'Reviewing profile',
     6: 'Rejected by client',
     7: 'Scheduling interview',
     8: 'Waiting for interview',
@@ -160,7 +160,7 @@ export const JOB_APPLICATION_STATUS_LABELS = {
     2: 'WS書類審査待ち',
     3: '書類審査中',
     4: 'WS書類不合格',
-    5: 'クライアントへ推薦中',
+    5: '書類確認中',
     6: 'クライアント書類不合格',
     7: '面接調整中',
     8: '面接待ち',

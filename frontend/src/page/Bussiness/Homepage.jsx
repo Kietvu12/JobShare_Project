@@ -294,12 +294,14 @@ function HomepageSidebar({ onNavigate }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
+      <div className="shrink-0">
       <BusinessQuickActionsPanel
         actions={quickActions}
         onActionClick={(a) => {
           if (a.path) onNavigate(a.path);
         }}
       />
+      </div>
 
       <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
         <div className="mb-3 flex shrink-0 items-center justify-between gap-2">

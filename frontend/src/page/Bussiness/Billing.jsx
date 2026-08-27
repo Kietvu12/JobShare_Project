@@ -17,8 +17,9 @@ import {
 import apiService from '../../services/api';
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy';
 import { useLanguage } from '../../context/LanguageContext';
-import { getBillingPaymentTabs } from '../../i18n/businessAppI18n';
+import { getBillingPaymentTabs, getBillingRequestTabs } from '../../i18n/businessAppI18n';
 import BillingPaymentDetailPanel, { PaymentTypeIcon, formatPaymentDescription } from '../../component/Bussiness/BillingPaymentDetailPanel';
+import BillingRequestDetailPanel from '../../component/Bussiness/BillingRequestDetailPanel';
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif";
 const BRAND = '#0077B6';
@@ -73,12 +74,16 @@ export default function Billing() {
   const billingCopy = copy.billing;
   const commonCopy = copy.common;
   const paymentTabDefs = useMemo(() => getBillingPaymentTabs(language), [language]);
+  const requestTabDefs = useMemo(() => getBillingRequestTabs(language), [language]);
+  const [viewMode, setViewMode] = useState('requests');
   const [loading, setLoading] = useState(true);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [requestsLoading, setRequestsLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [dashboard, setDashboard] = useState(null);
   const [payments, setPayments] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [tabCounts, setTabCounts] = useState({});
   const [activeTab, setActiveTab] = useState('all');
@@ -87,6 +92,7 @@ export default function Billing() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const [selectedRequest, setSelectedRequest] = useState(null);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -124,13 +130,44 @@ export default function Billing() {
     }
   }, [page, limit, activeTab, search]);
 
+  const loadRequests = useCallback(async () => {
+    setRequestsLoading(true);
+    try {
+      const res = await apiService.getBusinessBillingRequests({
+        page,
+        limit,
+        tab: activeTab === 'all' ? undefined : activeTab,
+        search: search || undefined,
+      });
+      if (res?.success) {
+        setRequests(res.data?.requests || []);
+        setPagination(res.data?.pagination || null);
+        setTabCounts(res.data?.tabCounts || {});
+      }
+    } catch {
+      setRequests([]);
+    } finally {
+      setRequestsLoading(false);
+    }
+  }, [page, limit, activeTab, search]);
+
   useEffect(() => {
     loadDashboard();
   }, [loadDashboard]);
 
   useEffect(() => {
-    loadPayments();
-  }, [loadPayments]);
+    if (viewMode === 'invoices') loadPayments();
+    else loadRequests();
+  }, [viewMode, loadPayments, loadRequests]);
+
+  useEffect(() => {
+    setActiveTab('all');
+    setPage(1);
+    setSearchInput('');
+    setSearch('');
+    setSelectedPayment(null);
+    setSelectedRequest(null);
+  }, [viewMode]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -141,7 +178,12 @@ export default function Billing() {
   }, [searchInput]);
 
   const paymentSummary = dashboard?.paymentSummary;
+  const requestTabCounts = useMemo(
+    () => ({ ...(dashboard?.requestTabCounts || {}), ...tabCounts }),
+    [dashboard?.requestTabCounts, tabCounts],
+  );
   const totalPages = pagination?.totalPages || 1;
+  const listLoading = viewMode === 'invoices' ? paymentsLoading : requestsLoading;
 
   const pageNumbers = useMemo(() => {
     const pages = [];
@@ -155,9 +197,26 @@ export default function Billing() {
     count: tabCounts[tab.key] ?? 0,
   }));
 
+  const requestTabs = requestTabDefs.map((tab) => ({
+    ...tab,
+    count: tabCounts[tab.key] ?? requestTabCounts[tab.key] ?? 0,
+  }));
+
+  const activeFilterTabs = viewMode === 'invoices' ? paymentTabs : requestTabs;
+
+  const formatRequestContent = (row) => {
+    if (row.candidate && row.candidate !== '—') return row.candidate;
+    if (row.jd && row.jd !== '—') return row.jd;
+    return '—';
+  };
+
   const handleSummaryFilter = (tabKey) => {
     setActiveTab(tabKey);
     setPage(1);
+  };
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
   };
 
   if (loading && !dashboard) {
@@ -205,16 +264,89 @@ export default function Billing() {
             <span className="mx-1.5 text-slate-400">&gt;</span>
             <span className="font-medium text-slate-700">{billingCopy.title}</span>
           </nav>
-          <button
-            type="button"
-            onClick={() => navigate('/business/service-requests')}
-            className="rounded-lg px-3 py-1.5 text-[10px] font-bold text-white sm:text-[11px]"
-            style={{ background: BRAND }}
-          >
-            {billingCopy.createServiceRequest}
-          </button>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => navigate('/business/service-requests/credit')}
+              className="rounded-lg border border-[#0077B6]/35 bg-[#e8f4fa] px-3 py-1.5 text-[10px] font-bold text-[#0077B6] sm:text-[11px]"
+            >
+              {billingCopy.createCreditRequest}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/business/service-requests')}
+              className="rounded-lg px-3 py-1.5 text-[10px] font-bold text-white sm:text-[11px]"
+              style={{ background: BRAND }}
+            >
+              {billingCopy.createServiceRequest}
+            </button>
+          </div>
         </header>
 
+        <div className="flex shrink-0 gap-1 rounded-lg border border-slate-200 bg-white p-1">
+          {[
+            { key: 'requests', label: billingCopy.viewRequests },
+            { key: 'invoices', label: billingCopy.viewInvoices },
+          ].map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => handleViewModeChange(item.key)}
+              className={`flex-1 rounded-md px-3 py-1.5 text-[10px] font-semibold transition-colors sm:text-[11px] ${
+                viewMode === item.key
+                  ? 'bg-[#0077B6] text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {viewMode === 'requests' ? (
+          <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
+            <SummaryCard
+              icon={FilePenLine}
+              iconBg="#fee2e2"
+              iconColor="#dc2626"
+              accent="#dc2626"
+              title={billingCopy.requestSummary.waiting}
+              value={requestTabCounts.waiting ?? 0}
+              linkLabel={commonCopy.viewDetails}
+              onLink={() => handleSummaryFilter('waiting')}
+            />
+            <SummaryCard
+              icon={FilePenLine}
+              iconBg="#ffedd5"
+              iconColor="#ea580c"
+              accent="#ea580c"
+              title={billingCopy.requestSummary.processing}
+              value={requestTabCounts.processing ?? 0}
+              linkLabel={commonCopy.viewDetails}
+              onLink={() => handleSummaryFilter('processing')}
+            />
+            <SummaryCard
+              icon={FileCheck2}
+              iconBg="#dcfce7"
+              iconColor="#16a34a"
+              accent="#16a34a"
+              title={billingCopy.requestSummary.done}
+              value={requestTabCounts.done ?? 0}
+              linkLabel={commonCopy.viewDetails}
+              onLink={() => handleSummaryFilter('done')}
+            />
+            <SummaryCard
+              icon={Wallet}
+              iconBg="#e8f4fa"
+              iconColor="#0077B6"
+              accent="#0077B6"
+              title={billingCopy.requestSummary.total}
+              value={requestTabCounts.all ?? 0}
+              linkLabel={commonCopy.viewDetails}
+              onLink={() => handleSummaryFilter('all')}
+            />
+          </div>
+        ) : (
         <div className="grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
           <SummaryCard
             icon={FileWarning}
@@ -269,12 +401,13 @@ export default function Billing() {
             }
           />
         </div>
+        )}
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-hidden xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="flex min-h-0 flex-col gap-2 overflow-hidden">
             <div className={`${CARD} flex min-h-0 flex-1 flex-col overflow-hidden p-3`}>
               <div className="mb-2 flex shrink-0 flex-wrap gap-1.5">
-                {paymentTabs.map((tab) => (
+                {activeFilterTabs.map((tab) => (
                   <button
                     key={tab.key}
                     type="button"
@@ -296,7 +429,7 @@ export default function Billing() {
                   <input
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder={billingCopy.searchPlaceholder}
+                    placeholder={viewMode === 'invoices' ? billingCopy.searchPlaceholder : billingCopy.requestSearchPlaceholder}
                     className="min-w-0 flex-1 border-0 bg-transparent text-[10px] outline-none sm:text-[11px]"
                   />
                 </div>
@@ -311,11 +444,69 @@ export default function Billing() {
               </div>
 
               <div className="billing-scroll relative min-h-0 flex-1 overflow-auto">
-                {paymentsLoading ? (
+                {listLoading ? (
                   <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70">
                     <Loader2 className="h-5 w-5 animate-spin text-[#0077B6]" />
                   </div>
                 ) : null}
+                {viewMode === 'requests' ? (
+                <table className="w-full min-w-[680px] border-collapse text-[10px] sm:text-[11px]">
+                  <thead className="sticky top-0 z-[1] bg-white">
+                    <tr className="border-b border-slate-200 text-left text-[10px] font-semibold text-slate-400">
+                      {billingCopy.requestTableHeaders.map((h) => (
+                        <th key={h || 'action'} className="px-2 py-2 font-semibold">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {requests.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-2 py-8 text-center text-[11px] text-slate-400">
+                          {billingCopy.emptyRequests}
+                        </td>
+                      </tr>
+                    ) : requests.map((row) => {
+                      const isSelected = selectedRequest?.id === row.id;
+                      const content = formatRequestContent(row);
+                      return (
+                        <tr
+                          key={row.id || row.requestCode}
+                          onClick={() => setSelectedRequest(row)}
+                          className={`cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50 ${
+                            isSelected ? 'bg-[#e8f4fa]/60' : ''
+                          }`}
+                        >
+                          <td className="px-2 py-2 align-top">
+                            <div className="font-semibold text-[#0077B6]">{row.requestCode}</div>
+                            <div className="mt-0.5 text-[9px] text-slate-400 sm:text-[10px]">{row.created}</div>
+                          </td>
+                          <td className="px-2 py-2 align-top">
+                            <div className="flex items-center gap-1.5">
+                              <PaymentTypeIcon type={row.type} />
+                              <span className="font-medium text-slate-800">{row.type}</span>
+                            </div>
+                          </td>
+                          <td className="max-w-[180px] px-2 py-2 align-top text-slate-600">
+                            <span className="line-clamp-2">{content}</span>
+                          </td>
+                          <td className="px-2 py-2 align-top">
+                            <span
+                              className="inline-block rounded-full px-2 py-0.5 text-[9px] font-semibold sm:text-[10px]"
+                              style={{ background: row.statusBg, color: row.statusColor }}
+                            >
+                              {row.status}
+                            </span>
+                          </td>
+                          <td className="whitespace-nowrap px-2 py-2 align-top text-slate-600">{row.ws || '—'}</td>
+                          <td className="px-2 py-2 align-top">
+                            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                ) : (
                 <table className="w-full min-w-[720px] border-collapse text-[10px] sm:text-[11px]">
                   <thead className="sticky top-0 z-[1] bg-white">
                     <tr className="border-b border-slate-200 text-left text-[10px] font-semibold text-slate-400">
@@ -372,6 +563,7 @@ export default function Billing() {
                     })}
                   </tbody>
                 </table>
+                )}
               </div>
 
               <div className="mt-2 flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2">
@@ -448,10 +640,17 @@ export default function Billing() {
             </div>
           </div>
 
-          <BillingPaymentDetailPanel
-            payment={selectedPayment}
-            onClose={() => setSelectedPayment(null)}
-          />
+          {viewMode === 'invoices' ? (
+            <BillingPaymentDetailPanel
+              payment={selectedPayment}
+              onClose={() => setSelectedPayment(null)}
+            />
+          ) : (
+            <BillingRequestDetailPanel
+              request={selectedRequest}
+              onClose={() => setSelectedRequest(null)}
+            />
+          )}
         </div>
       </div>
     </div>

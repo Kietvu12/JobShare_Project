@@ -12,7 +12,7 @@ import {
   JobCategory,
 } from '../models/index.js';
 import { getJobApplicationStatus, STATUS_PAID, STATUS_JOINED_COMPANY } from '../constants/jobApplicationStatus.js';
-import { buildUnlockedScoutPayload } from './businessScoutService.js';
+import { buildUnlockedScoutPayload, buildPerformanceUnlockedScoutPayload } from './businessScoutService.js';
 import { statusMessageService } from './statusMessageService.js';
 import { collaboratorNotificationService } from './collaboratorNotificationService.js';
 import { syncWsChatAfterJoinedCompany } from './businessWsChatService.js';
@@ -24,8 +24,11 @@ const REJECTED_STATUSES = [4, 6, 10, 13, 16];
 const WS_CTV_SOURCE_TYPES = new Set(['ctv_marketplace', 'ctv_nomination', 'scout_performance']);
 const OTHER_SOURCE_TYPES = new Set(['landing', 'other']);
 
-/** Nguồn được xem full hồ sơ mà không cần Scout unlock */
-const FULL_PROFILE_SOURCE_TYPES = new Set(['ctv_marketplace']);
+/** Nguồn được xem full hồ sơ mà không cần Scout unlock qua Sàn CTV */
+const FULL_PROFILE_SOURCE_TYPES = new Set(['ctv_marketplace', 'scout_credit', 'scout_performance']);
+
+/** Scout Credit / Scout Performance: chỉ xem hồ sơ, không chat 3 bên */
+const PROFILE_ONLY_NO_CHAT_SOURCE_TYPES = new Set(['scout_credit', 'scout_performance']);
 
 const CV_PROFILE_ATTRIBUTES = [
   'id', 'code', 'name', 'furigana', 'email', 'phone', 'birthDate', 'gender',
@@ -154,6 +157,7 @@ function formatApplication(row, maps, unreadMap = {}, { withFullProfile = false 
   const cv = j.cv || {};
   const job = j.job || {};
   const canViewFullProfile = FULL_PROFILE_SOURCE_TYPES.has(sourceType);
+  const profileOnlyNoChat = PROFILE_ONLY_NO_CHAT_SOURCE_TYPES.has(sourceType);
 
   const base = {
     id: j.id,
@@ -179,16 +183,32 @@ function formatApplication(row, maps, unreadMap = {}, { withFullProfile = false 
     interviewDate: j.interviewDate,
     unreadCount: unreadMap[String(j.id)] || 0,
     canViewFullProfile,
+    profileOnlyNoChat,
+    hasNominationChat: !profileOnlyNoChat,
     /** Scout vẫn khóa — không tạo unlock khi xem hồ sơ từ tiến cử sàn CTV */
     scoutUnlocked: maps.unlockCvIds.has(Number(j.cvId)),
   };
 
   if (withFullProfile && canViewFullProfile && cv?.id) {
-    base.candidateProfile = {
-      ...buildUnlockedScoutPayload(cv),
-      accessVia: 'ctv_marketplace',
-      scoutStillLocked: !maps.unlockCvIds.has(Number(cv.id)),
-    };
+    if (sourceType === 'scout_performance') {
+      base.candidateProfile = {
+        ...buildPerformanceUnlockedScoutPayload(cv),
+        accessVia: 'scout_performance',
+        scoutStillLocked: !maps.unlockCvIds.has(Number(cv.id)),
+      };
+    } else if (sourceType === 'scout_credit') {
+      base.candidateProfile = {
+        ...buildUnlockedScoutPayload(cv),
+        accessVia: 'scout_credit',
+        scoutStillLocked: false,
+      };
+    } else {
+      base.candidateProfile = {
+        ...buildUnlockedScoutPayload(cv),
+        accessVia: 'ctv_marketplace',
+        scoutStillLocked: !maps.unlockCvIds.has(Number(cv.id)),
+      };
+    }
   }
 
   return base;
@@ -516,6 +536,27 @@ export async function getBusinessApplicationCv({ businessId, applicationId }) {
   cvJson.certificates = parseJsonField(cvJson.certificates);
   cvJson.learnedTools = parseJsonField(cvJson.learnedTools);
   cvJson.experienceTools = parseJsonField(cvJson.experienceTools);
+
+  if (application.sourceType === 'scout_performance') {
+    return {
+      cv: {
+        ...buildPerformanceUnlockedScoutPayload(cvJson),
+        accessVia: 'scout_performance',
+        scoutStillLocked: !application.scoutUnlocked,
+      },
+    };
+  }
+
+  if (application.sourceType === 'scout_credit') {
+    return {
+      cv: {
+        ...buildUnlockedScoutPayload(cvJson),
+        accessVia: 'scout_credit',
+        scoutStillLocked: false,
+      },
+    };
+  }
+
   cvJson.accessVia = 'ctv_marketplace';
   cvJson.scoutStillLocked = application.candidateProfile?.scoutStillLocked ?? !application.scoutUnlocked;
 

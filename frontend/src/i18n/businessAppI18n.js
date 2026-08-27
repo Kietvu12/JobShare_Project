@@ -27,6 +27,7 @@ export {
   getScoutHoverTipCopy,
   getScoutMatchBadgeCopy,
   getBillingPaymentTabs,
+  getBillingRequestTabs,
   getMessageWsViews,
   getApplicationTabs,
   getApplicationSourceOptions,

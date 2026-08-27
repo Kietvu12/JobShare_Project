@@ -1220,7 +1220,7 @@ const CandidateSharing = () => {
         </div>
 
         <div className="ctv-marketplace-body px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4">
-          <div className="grid h-full min-h-0 grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] xl:gap-3">
+          <div className="grid h-full min-h-0 grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] xl:gap-3">
             <div
               className={
                 showChatColumn
@@ -1401,7 +1401,7 @@ const CandidateSharing = () => {
         />
         <div className="business-homepage-shell min-h-0 h-full overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden" style={{ fontFamily: PAGE_FONT }}>
           <div className="business-homepage-ui flex h-full min-h-0 w-full flex-1 flex-col p-2.5 sm:p-3">
-            <div className="grid h-full min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] xl:gap-3 xl:overflow-hidden">
+            <div className="grid h-full min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] xl:gap-3 xl:overflow-hidden">
               <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col overflow-y-auto xl:h-full xl:pr-0.5">
                 <OnboardingView
                   hasMarketplaceData={hasListings}

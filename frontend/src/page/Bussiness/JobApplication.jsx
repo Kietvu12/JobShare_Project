@@ -9,6 +9,7 @@ import apiService from '../../services/api'
 import BusinessApplicationDetailDrawer from '../../component/Bussiness/BusinessApplicationDetailDrawer'
 import {
   getStatusCategoryStyle,
+  isApplicationProfileOnly,
 } from '../../utils/businessApplicationSource'
 import { getJobApplicationStatusOptionsByLanguage } from '../../utils/jobApplicationStatus'
 import {
@@ -254,6 +255,7 @@ const StatCard = ({ icon: Icon, label, value, color, bg, accent }) => (
 
 function ApplicationMobileCard({ app, isSelected, onOpen, tableLabels, language, unreadLabel }) {
   const stageStyle = getStatusCategoryStyle(app.statusCategory)
+  const showChatBadge = !isApplicationProfileOnly(app)
   return (
     <button
       type="button"
@@ -301,7 +303,7 @@ function ApplicationMobileCard({ app, isSelected, onOpen, tableLabels, language,
           </div>
         </div>
 
-        {(app.unreadCount > 0) && (
+        {showChatBadge && (app.unreadCount > 0) && (
           <div className="flex items-center justify-end gap-1 pt-1">
             <span className="rounded-full bg-rose-500 px-1.5 py-px text-[9px] font-bold text-white">
               {unreadLabel(app.unreadCount)}
@@ -709,6 +711,7 @@ const JobApplication = () => {
                         ) : localizedApplications.map((app) => {
                           const stageStyle = getStatusCategoryStyle(app.statusCategory)
                           const isSelected = selectedApp?.id === app.id
+                          const showChatBadge = !isApplicationProfileOnly(app)
                           return (
                             <tr
                               key={app.id}
@@ -745,12 +748,16 @@ const JobApplication = () => {
                               </td>
                               <td className="px-2 py-2 text-right">
                                 <div className="flex items-center justify-end gap-1">
-                                  {app.unreadCount > 0 && (
+                                  {showChatBadge && app.unreadCount > 0 && (
                                     <span className="text-[9px] font-bold text-white bg-rose-500 rounded-full px-1.5 py-px min-w-[18px] text-center">
                                       {app.unreadCount}
                                     </span>
                                   )}
-                                  <MessageSquare className="w-3.5 h-3.5 text-[#0077B6]/70" />
+                                  {showChatBadge ? (
+                                    <MessageSquare className="w-3.5 h-3.5 text-[#0077B6]/70" />
+                                  ) : (
+                                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                                  )}
                                 </div>
                               </td>
                             </tr>

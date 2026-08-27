@@ -5,7 +5,26 @@ export const billingI18n = {
     title: 'Thanh toán & Hóa đơn',
     subtitle: 'Quản lý yêu cầu thanh toán và hóa đơn',
     createServiceRequest: 'Tạo yêu cầu dịch vụ',
+    createCreditRequest: 'Nạp credit',
     loadFailed: 'Không tải được dữ liệu thanh toán',
+    viewRequests: 'Yêu cầu đã tạo',
+    viewInvoices: 'Hóa đơn & thanh toán',
+    requestTabs: {
+      all: 'Tất cả',
+      processing: 'Đang xử lý',
+      waiting: 'Chờ WS',
+      done: 'Hoàn thành',
+      closed: 'Đã đóng',
+    },
+    requestSummary: {
+      waiting: 'Chờ WS xử lý',
+      processing: 'Đang xử lý',
+      done: 'Hoàn thành',
+      total: 'Tổng yêu cầu',
+    },
+    emptyRequests: 'Chưa có yêu cầu nào. Tạo yêu cầu nạp credit hoặc dịch vụ để bắt đầu.',
+    requestTableHeaders: ['Mã yêu cầu', 'Loại', 'Nội dung', 'Trạng thái', 'WS', ''],
+    requestSearchPlaceholder: 'Tìm theo mã, loại, nội dung...',
     tabs: {
       all: 'Tất cả',
       unpaid: 'Thanh toán cần xử lý',
@@ -37,7 +56,26 @@ export const billingI18n = {
     title: 'Billing & Invoices',
     subtitle: 'Manage payment requests and invoices',
     createServiceRequest: 'Create service request',
+    createCreditRequest: 'Top up credit',
     loadFailed: 'Could not load billing data',
+    viewRequests: 'Created requests',
+    viewInvoices: 'Invoices & payments',
+    requestTabs: {
+      all: 'All',
+      processing: 'Processing',
+      waiting: 'Waiting on WS',
+      done: 'Completed',
+      closed: 'Closed',
+    },
+    requestSummary: {
+      waiting: 'Waiting on WS',
+      processing: 'Processing',
+      done: 'Completed',
+      total: 'Total requests',
+    },
+    emptyRequests: 'No requests yet. Create a credit top-up or service request to get started.',
+    requestTableHeaders: ['Request ID', 'Type', 'Content', 'Status', 'WS', ''],
+    requestSearchPlaceholder: 'Search by ID, type, content...',
     tabs: {
       all: 'All',
       unpaid: 'Needs payment',
@@ -69,7 +107,26 @@ export const billingI18n = {
     title: '請求・支払い',
     subtitle: '支払いリクエストと請求書を管理',
     createServiceRequest: 'サービスリクエスト作成',
+    createCreditRequest: 'クレジットチャージ',
     loadFailed: '請求データを読み込めませんでした',
+    viewRequests: '作成済みリクエスト',
+    viewInvoices: '請求書・支払い',
+    requestTabs: {
+      all: 'すべて',
+      processing: '処理中',
+      waiting: 'WS待ち',
+      done: '完了',
+      closed: '終了',
+    },
+    requestSummary: {
+      waiting: 'WS対応待ち',
+      processing: '処理中',
+      done: '完了',
+      total: 'リクエスト合計',
+    },
+    emptyRequests: 'リクエストがありません。クレジットチャージまたはサービスリクエストを作成してください。',
+    requestTableHeaders: ['リクエストID', '種別', '内容', 'ステータス', 'WS', ''],
+    requestSearchPlaceholder: 'ID・種別・内容で検索...',
     tabs: {
       all: 'すべて',
       unpaid: '未払い',
@@ -107,5 +164,16 @@ export function getBillingPaymentTabs(language) {
     { key: 'processing', label: t.processing },
     { key: 'paid', label: t.paid },
     { key: 'draft', label: t.draft },
+  ];
+}
+
+export function getBillingRequestTabs(language) {
+  const t = billingI18n[language]?.requestTabs || billingI18n.vi.requestTabs;
+  return [
+    { key: 'all', label: t.all },
+    { key: 'waiting', label: t.waiting },
+    { key: 'processing', label: t.processing },
+    { key: 'done', label: t.done },
+    { key: 'closed', label: t.closed },
   ];
 }

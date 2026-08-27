@@ -68,18 +68,18 @@ export default function BusinessQuickActionsPanel({ actions, onActionClick, titl
               key={a.id || a.title}
               type="button"
               onClick={() => onActionClick(a)}
-              className="flex w-full items-center gap-2 rounded-lg p-2 text-left transition-colors hover:bg-[#e8f4fa]"
+              className="flex w-full items-start gap-2.5 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-[#e8f4fa]"
             >
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#e8f4fa] text-[#0077B6]">
+              <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#e8f4fa] text-[#0077B6]">
                 <Icon className="h-3.5 w-3.5" strokeWidth={2} />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="biz-ui-body line-clamp-2 font-semibold leading-snug text-slate-800">{a.title}</div>
+                <div className="biz-ui-body font-semibold leading-snug text-slate-800">{a.title}</div>
                 {a.desc ? (
-                  <div className="biz-ui-caption truncate text-slate-500">{a.desc}</div>
+                  <div className="biz-ui-caption mt-0.5 line-clamp-2 leading-snug text-slate-500">{a.desc}</div>
                 ) : null}
               </div>
-              <ArrowUpRight className="h-3 w-3 shrink-0 text-slate-300" />
+              <ArrowUpRight className="mt-1 h-3 w-3 shrink-0 text-slate-300" />
             </button>
           );
         })}
