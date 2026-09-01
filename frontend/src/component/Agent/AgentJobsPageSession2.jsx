@@ -26,16 +26,17 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import apiService from '../../services/api';
-import { yearSalaryRangeStringForCommission } from '../../utils/salaryRangeForCommission';
+import { yearSalaryRangeStringForCommission, parseYearSalaryRangeToYen } from '../../utils/salaryRangeForCommission';
 import {
   normalizeJobCommissionType,
   resolveCampaignPercentFromJob,
   pickPrimaryCommissionJobValue,
   filterJobValuesForCommission,
+  filterJobValuesForCtvCommissionDisplay,
   shouldHideCommissionConditionLabel,
+  shouldUseCollapsedCommissionBanner,
   resolveCtvCommissionDisplayMultiplier,
   resolveCommissionBannerLabel,
-  commissionTierLabelFontClass,
 } from '../../utils/jobCommissionUi';
 import { localizedJobValueLabel } from '../../utils/jobValueLocalizedLabel';
 import { hasJobAttachment } from '../../utils/jobAttachmentAvailability';
@@ -50,6 +51,7 @@ import { getRecruitmentLocationLabel } from '../../utils/recruitmentLocationLabe
 import { hasActiveAgentJobSearchCriteria, hasAdminJobsToolbarListContext } from '../../utils/agentJobSearchCriteria';
 import { formatDisplayDate, jobCreatedUpdatedLabels } from '../../utils/formatDisplayDate';
 import { buildPublicShareJobUrl } from '../../utils/localeRoutes';
+import JobCommissionBanner from '../Shared/JobCommissionBanner.jsx';
 
 const JD_DOWNLOAD_TYPES = ['jdFile', 'jdFileEn', 'jdFileJp', 'jdOriginalFile'];
 
@@ -1296,24 +1298,8 @@ const mockJobs = [
       tags.push({ label: 'Campaign', color: 'blue' });
     }
 
-    // Helper: parse salary range về đơn vị gốc (yen/Y) để nhân đúng với %:
-    // 3.000.000 × 30% = 900.000 (không dùng 3 để nhân)
-    const parseSalaryRangeRaw = (rangeStr) => {
-      if (!rangeStr) return null;
-      const m = String(rangeStr).trim().match(/([\d.,]+)\s*[-–—~〜～]\s*([\d.,]+)/);
-      if (!m) return null;
-      const parseNum = (s) => {
-        const cleaned = String(s).replace(/[.,]/g, '');
-        const num = parseFloat(cleaned) || 0;
-        const digitCount = cleaned.replace(/[^0-9]/g, '').length;
-        if (digitCount >= 7) return num;
-        return num * 1000000;
-      };
-      const min = parseNum(m[1]);
-      const max = parseNum(m[2]);
-      if (min <= 0 || max <= 0) return null;
-      return { min, max };
-    };
+    // Helper: parse salary range về yen (Y) — dùng parseYearSalaryRangeToYen (350-570 = 万円)
+    const parseSalaryRangeRaw = parseYearSalaryRangeToYen;
 
     // Helper function to parse number from string with thousand separators
     // Salary range can be in different formats:
@@ -1383,7 +1369,11 @@ const mockJobs = [
     // Calculate commission based on salary range, job percent, and CTV rank percent
     // Lấy job_values có commission: Phí (typeId 2), JLPT (1), JLPT-range (3), JLPT_range (4) - backend dùng cả những type này
     const jobValues = filterJobValuesForCommission(job.jobValues || job.profits || []);
+    const jobValuesForDisplay = useAdminAPI
+      ? jobValues
+      : filterJobValuesForCtvCommissionDisplay(job.jobValues || job.profits || []);
     const hideCommissionConditionLabel = shouldHideCommissionConditionLabel(jobValues);
+    const useCollapsedCommissionBanner = shouldUseCollapsedCommissionBanner(jobValuesForDisplay);
     const contactLabel = language === 'vi' ? 'Liên hệ' : language === 'en' ? 'Contact' : 'お問い合わせ';
     let commissionText = contactLabel;
     let commissionTiers = [];
@@ -1469,8 +1459,8 @@ const mockJobs = [
         commissionText = formatRangeWithCurrency(ctvMinAmount, ctvMaxAmount, formatCommissionForDisplay);
         commissionTiers = [{ label: 'Campaign', amount: commissionText }];
       }
-    } else if (jobValues.length > 0) {
-      const firstJobValue = pickPrimaryCommissionJobValue(jobValues) ?? jobValues[0];
+    } else if (jobValuesForDisplay.length > 0) {
+      const firstJobValue = pickPrimaryCommissionJobValue(jobValuesForDisplay) ?? jobValuesForDisplay[0];
       const commissionType = normalizeJobCommissionType(job);
       const value = firstJobValue.value;
       const valueId = firstJobValue.valueId || firstJobValue.valueRef?.id;
@@ -1594,7 +1584,7 @@ const mockJobs = [
       } else if (isCommissionFromCampaign && commissionText !== contactLabel) {
         commissionTiers = [{ label: 'Campaign', amount: commissionText }];
       } else {
-      commissionTiers = jobValues.map((jv) => {
+      commissionTiers = jobValuesForDisplay.map((jv) => {
         const tierCommissionType = normalizeJobCommissionType(job);
         const rawValue = jv.value;
         const jvValueId = Number(jv.valueId ?? jv.valueRef?.id ?? 0);
@@ -1832,6 +1822,7 @@ const mockJobs = [
       commissionTiers,
       commissionBannerLabel: resolveCommissionBannerLabel(job, { useAdminAPI, language }),
       hideCommissionConditionLabel: !!hideCommissionConditionLabel,
+      useCollapsedCommissionBanner: !!useCollapsedCommissionBanner,
       isCommissionFromCampaign,
       isInCampaign,
       ageRange,
@@ -2320,109 +2311,16 @@ const mockJobs = [
                           compact={false}
                         />
                       )}
-                      {job.commissionTiers && job.commissionTiers.length > 0 ? (
+                      {(job.commissionTiers?.length > 0 || job.commission) ? (
                         <div className="flex-shrink-0 flex flex-col gap-1.5">
-                          <div
-                            className="flex items-stretch rounded-md overflow-hidden shadow-sm border"
-                            style={{
-                              borderColor: '#7c3aed',
-                            }}
-                          >
-                            {/* Left label spanning rows */}
-                            <div
-                              className="flex-[0_0_35%] min-w-0 px-2 py-2 text-[10px] font-medium flex items-center justify-start text-left leading-snug whitespace-normal self-stretch"
-                              style={{
-                                backgroundColor: useAdminAPI ? '#5F5F5F' : '#4b4f5a',
-                                color: '#ffffff',
-                              }}
-                            >
-                              <span className="line-clamp-3">
-                                {job.commissionBannerLabel ?? resolveCommissionBannerLabel(job, { useAdminAPI, language })}
-                              </span>
-                            </div>
-                            {/* Right: condition + amount */}
-                            {job.hideCommissionConditionLabel ? (
-                              <div
-                                className="flex-1 min-w-0 px-2 sm:px-3 py-2 text-[10px] sm:text-[12px] font-bold flex items-center justify-start text-left leading-snug self-stretch"
-                                style={{
-                                  backgroundColor: '#DF2020',
-                                  color: '#ffffff',
-                                }}
-                              >
-                                <span className="break-words" title={job.commissionTiers[0]?.amount || job.commission}>
-                                  {job.commissionTiers[0]?.amount || job.commission}
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="flex-1 min-w-0 flex flex-col self-stretch">
-                                {job.commissionTiers.map((tier, index) => (
-                                  <div
-                                    key={index}
-                                    className="flex flex-1 min-h-[36px] items-stretch"
-                                    style={{
-                                      borderTop: index === 0 ? 'none' : '1px solid #9ca3af',
-                                    }}
-                                  >
-                                    <div
-                                      className="w-24 sm:w-28 flex-shrink-0 px-1.5 sm:px-2 py-2 font-semibold flex items-center justify-start text-left self-stretch"
-                                      style={{
-                                        backgroundColor: useAdminAPI
-                                          ? (job.isInCampaign ? '#e5f0fb' : '#EB9696')
-                                          : '#EB9696',
-                                        color: useAdminAPI
-                                          ? (job.isInCampaign ? '#0d6bbd' : '#ffffff')
-                                          : '#ffffff',
-                                      }}
-                                    >
-                                      <span className={`break-words whitespace-normal leading-snug ${commissionTierLabelFontClass(tier.label)}`}>
-                                        {tier.label}
-                                      </span>
-                                    </div>
-                                    <div
-                                      className="flex-1 min-w-0 px-2 sm:px-3 py-2 text-[10px] sm:text-[12px] font-bold flex items-center justify-start text-left leading-snug self-stretch"
-                                      style={{
-                                        backgroundColor: '#DF2020',
-                                        color: '#ffffff',
-                                      }}
-                                    >
-                                      <span className="break-words" title={tier.amount || job.commission}>
-                                        {tier.amount || job.commission}
-                                      </span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ) : job.commission ? (
-                        <div className="flex-shrink-0 flex flex-col gap-1.5">
-                          <div
-                            className="flex items-stretch rounded-md overflow-hidden shadow-sm border"
-                            style={{ borderColor: '#7c3aed' }}
-                          >
-                            <div
-                              className="flex-[0_0_45%] min-w-0 px-2 py-2 text-[10px] font-medium flex items-center justify-start text-left leading-snug whitespace-normal self-stretch"
-                              style={{
-                                backgroundColor: useAdminAPI ? '#5F5F5F' : '#4b4f5a',
-                                color: '#ffffff',
-                              }}
-                            >
-                              <span className="line-clamp-2">
-                                {job.commissionBannerLabel ?? resolveCommissionBannerLabel(job, { useAdminAPI, language })}
-                              </span>
-                            </div>
-                            <div
-                              className="flex-1 min-w-0 px-2 py-2 text-[10px] sm:text-[11px] font-bold flex items-center justify-start text-left break-words self-stretch"
-                              style={{
-                                backgroundColor: '#DF2020',
-                                color: '#ffffff',
-                              }}
-                              title={job.commission}
-                            >
-                              {job.commission}
-                            </div>
-                          </div>
+                          <JobCommissionBanner
+                            bannerLabel={job.commissionBannerLabel ?? resolveCommissionBannerLabel(job, { useAdminAPI, language })}
+                            tiers={job.commissionTiers || []}
+                            fallbackAmount={job.commission || ''}
+                            useAdminAPI={useAdminAPI}
+                            useCollapsedCommissionBanner={job.useCollapsedCommissionBanner}
+                            isInCampaign={job.isInCampaign}
+                          />
                         </div>
                       ) : (
                         <div className="h-[52px] rounded-md flex-shrink-0" style={{ backgroundColor: '#f9fafb', border: '1px dashed #e5e7eb' }} />

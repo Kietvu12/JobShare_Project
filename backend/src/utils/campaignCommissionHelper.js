@@ -39,11 +39,14 @@ function parseSalaryRange(str) {
   const parseNum = (s) => {
     const cleaned = String(s).replace(/[.,]/g, '');
     const num = parseFloat(cleaned) || 0;
+    if (num <= 0) return 0;
     const digitCount = cleaned.replace(/[^0-9]/g, '').length;
-    // 7+ chữ số = đơn vị gốc (yen/Y), giữ nguyên
+    // 7+ chữ số = yen gốc (vd. 3500000)
     if (digitCount >= 7) return num;
-    // < 7 chữ số = đang là triệu, nhân 1M ra đơn vị gốc
-    return num * 1000000;
+    // 5-6 chữ số = thường là yen (vd. 350000)
+    if (digitCount >= 5) return num;
+    // 1-4 chữ số = 万円 / vạn yên (vd. 350 → 3.500.000 Y)
+    return num * 10000;
   };
   const min = parseNum(m[1]);
   const max = parseNum(m[2]);

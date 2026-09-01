@@ -600,7 +600,14 @@ export const collaboratorController = {
         }
         collaborator.referredByAdminId = parsedReferredByAdminId;
       }
-      if (status !== undefined) collaborator.status = status;
+      if (status !== undefined) {
+        const nextStatus = Number(status);
+        collaborator.status = nextStatus;
+        // Login CTV yêu cầu approvedAt — tự gán khi admin chuyển sang hoạt động
+        if (nextStatus === 1 && !collaborator.approvedAt) {
+          collaborator.approvedAt = new Date();
+        }
+      }
       if (points !== undefined) collaborator.points = points;
 
       await collaborator.save();
@@ -897,7 +904,11 @@ export const collaboratorController = {
       const oldData = collaborator.toJSON();
 
       // Toggle status
-      collaborator.status = collaborator.status === 1 ? 0 : 1;
+      const nextStatus = collaborator.status === 1 ? 0 : 1;
+      collaborator.status = nextStatus;
+      if (nextStatus === 1 && !collaborator.approvedAt) {
+        collaborator.approvedAt = new Date();
+      }
       await collaborator.save();
 
       // Reload with relations
