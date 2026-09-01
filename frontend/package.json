@@ -5,9 +5,8 @@
   "type": "module",
   "homepage": "/",
   "scripts": {
-    "predev": "node scripts/build-readycrew-landing-template.mjs && node scripts/build-readycrew-subpages.mjs",
     "dev": "vite",
-    "build": "node scripts/build-readycrew-landing-template.mjs && node scripts/build-readycrew-subpages.mjs && node scripts/copy-pdf-worker.mjs && vite build",
+    "build": "node scripts/copy-pdf-worker.mjs && vite build",
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "lint": "eslint .",
     "preview": "vite preview"

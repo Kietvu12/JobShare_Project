@@ -59,10 +59,6 @@ export function switchLocaleInPathname(pathname, newLocale) {
     const rest = pathname.slice('/collaborator'.length) || '';
     return withLocalePath(lang, rest || '/');
   }
-  if (pathname.startsWith('/landing/business')) {
-    const rest = pathname.slice('/landing/business'.length) || '';
-    return withLocalePath(lang, `/business${rest}`);
-  }
   if (pathname === '/') return withLocalePath(lang, '/');
   return withLocalePath(lang, pathname);
 }
@@ -132,19 +128,12 @@ export function resolvePublicBlogPrefix(pathname) {
   return resolveCollaboratorPrefix(pathname);
 }
 
-export function resolveBusinessLandingPrefix(pathname) {
-  const locale = getLocaleFromPathname(pathname);
-  if (locale) return `/${locale}/business`;
-  if (pathname.startsWith('/landing/business')) return '/landing/business';
-  return withLocalePath(getPreferredLocale(), '/business');
-}
-
 export function localizedPersonaHref(locale, persona) {
   const lang = isSupportedLocale(locale) ? locale : getPreferredLocale();
   if (persona === 'candidate') return withLocalePath(lang, '/candidate');
   if (persona === 'collaborator') return withLocalePath(lang, '/');
-  if (persona === 'company' || persona === 'business') return withLocalePath(lang, '/business');
-  return withLocalePath(lang, '/business');
+  if (persona === 'company' || persona === 'business') return '/business/login';
+  return '/business/login';
 }
 
 export function legacyPublicRedirectPath(pathname, search = '', hash = '', persona = 'collaborator') {
@@ -168,8 +157,7 @@ export function legacyPublicRedirectPath(pathname, search = '', hash = '', perso
     return `${withLocalePath(lang, rest || '/')}${search}${hash}`;
   }
   if (pathname.startsWith('/landing/business')) {
-    const rest = pathname.slice('/landing/business'.length) || '';
-    return `${withLocalePath(lang, `/business${rest}`)}${search}${hash}`;
+    return `/business/login${search}${hash}`;
   }
 
   if (persona === 'candidate') {
