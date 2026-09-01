@@ -42,17 +42,17 @@ import {
 import { useLanguage } from '../../context/LanguageContext';
 import apiService from '../../services/api';
 import { getJobApplicationStatus, getJobApplicationStatusLabelByLanguage } from '../../utils/jobApplicationStatus';
-import { yearSalaryRangeStringForCommission, findYearSalaryRangeRow } from '../../utils/salaryRangeForCommission';
+import { yearSalaryRangeStringForCommission, findYearSalaryRangeRow, parseYearSalaryRangeToYen } from '../../utils/salaryRangeForCommission';
 import { formatSalaryValueWithJlptIfRange } from '../../utils/salaryDisplay';
 import {
   normalizeJobCommissionType,
   resolveCampaignPercentFromJob,
   pickPrimaryCommissionJobValue,
   filterJobValuesForCommission,
-  shouldHideCommissionConditionLabel,
+  filterJobValuesForCtvCommissionDisplay,
+  shouldUseCollapsedCommissionBanner,
   resolveCtvCommissionDisplayMultiplier,
   resolveCommissionBannerLabel,
-  commissionTierLabelFontClass,
 } from '../../utils/jobCommissionUi';
 import {
   formatJobSalaryDisplay,
@@ -82,6 +82,7 @@ import {
   MarketplaceCommissionSplitPanel,
   computeMarketplaceCommissionSplit,
 } from './MarketplaceCommissionSplit.jsx';
+import JobCommissionBanner from './JobCommissionBanner.jsx';
 
 const MICROSOFT_TRANSLATOR_ENDPOINT = 'https://api.cognitive.microsofttranslator.com/translate?api-version=3.0';
 const MICROSOFT_TRANSLATOR_KEY = import.meta.env.VITE_MICROSOFT_TRANSLATOR_KEY || '';
@@ -1415,25 +1416,11 @@ const JobDetailPage = ({
   };
 
   // Điều kiện phí: tính commissionTiers + commissionText giống AgentJobsPageSession2 (rankMultiplier = 1)
-  const parseSalaryRangeRaw = (rangeStr) => {
-    if (!rangeStr) return null;
-    const m = String(rangeStr).trim().match(/([\d.,]+)\s*[-–—]\s*([\d.,]+)/);
-    if (!m) return null;
-    const parseNum = (s) => {
-      const cleaned = String(s).replace(/[.,]/g, '');
-      const num = parseFloat(cleaned) || 0;
-      const digitCount = cleaned.replace(/[^0-9]/g, '').length;
-      if (digitCount >= 7) return num;
-      return num * 1000000;
-    };
-    const min = parseNum(m[1]);
-    const max = parseNum(m[2]);
-    if (min <= 0 || max <= 0) return null;
-    return { min, max };
-  };
-
   const jobValuesForCommission = filterJobValuesForCommission(job.jobValues || job.profits || []);
-  const hideCommissionConditionLabel = shouldHideCommissionConditionLabel(jobValuesForCommission);
+  const jobValuesForDisplay = useAdminAPI
+    ? jobValuesForCommission
+    : filterJobValuesForCtvCommissionDisplay(job.jobValues || job.profits || []);
+  const useCollapsedCommissionBanner = shouldUseCollapsedCommissionBanner(jobValuesForDisplay);
 
   const contactLabel = language === 'vi' ? 'Liên hệ' : language === 'en' ? 'Contact' : 'お問い合わせ';
   let detailCommissionText = contactLabel;
@@ -1506,7 +1493,7 @@ const JobDetailPage = ({
 
   const apiSalaryRanges = job.salaryRanges || [];
   const rawRange = yearSalaryRangeStringForCommission(apiSalaryRanges);
-  const salaryRangeData = rawRange ? parseSalaryRangeRaw(rawRange) : null;
+  const salaryRangeData = rawRange ? parseYearSalaryRangeToYen(rawRange) : null;
 
   // Job sàn / DN: ưu tiên layout 2 tầng (% − % sàn), không quy ra tiền từ lương
   const marketplaceCommissionSplit = computeMarketplaceCommissionSplit({
@@ -1536,18 +1523,6 @@ const JobDetailPage = ({
       if (valueId === 34) {
         detailCommissionText = value || contactLabel;
         detailCommissionTiers = [{ label: language === 'vi' ? 'Giá trị nhận' : 'Received Value', amount: value || contactLabel }];
-      } else if (hideCommissionConditionLabel) {
-        if (normalizeJobCommissionType(job) === 'percent' && value != null && value !== '') {
-          const effectivePct = campaignPctUi != null ? campaignPctUi : (parseFloat(value) || 0);
-          detailCommissionText =
-            formatAdminJobsharePercentReceived(effectivePct) || `${value}`;
-        } else if (normalizeJobCommissionType(job) === 'fixed' && value != null && value !== '') {
-          detailCommissionText =
-            formatAdminJobshareFixedAmount(value) || `${value}`;
-        } else {
-          detailCommissionText = value != null && value !== '' ? `${value}` : contactLabel;
-        }
-        detailCommissionTiers = [{ label: '', amount: detailCommissionText }];
       } else {
         detailCommissionTiers = jobValuesForCommission.map((jv) => {
           const rawValue = jv.value;
@@ -1588,8 +1563,8 @@ const JobDetailPage = ({
     const ctvMaxAmount = platformCommissionMax * rankMultiplier;
     detailCommissionText = formatRangeWithCurrency(ctvMinAmount, ctvMaxAmount, formatCommissionForDisplay);
     detailCommissionTiers = [{ label: 'Campaign', amount: detailCommissionText }];
-  } else if (jobValuesForCommission.length > 0) {
-    const firstJv = pickPrimaryCommissionJobValue(jobValuesForCommission) ?? jobValuesForCommission[0];
+  } else if (jobValuesForDisplay.length > 0) {
+    const firstJv = pickPrimaryCommissionJobValue(jobValuesForDisplay) ?? jobValuesForDisplay[0];
     const commissionType = normalizeJobCommissionType(job);
     const value = firstJv.value;
     const valueId = Number(firstJv.valueId ?? firstJv.valueRef?.id ?? 0);
@@ -1675,7 +1650,7 @@ const JobDetailPage = ({
     } else if (isCommissionFromCampaign && detailCommissionText !== contactLabel) {
       detailCommissionTiers = [{ label: 'Campaign', amount: detailCommissionText }];
     } else {
-      detailCommissionTiers = jobValuesForCommission.map((jv) => {
+      detailCommissionTiers = jobValuesForDisplay.map((jv) => {
         const tierCommissionType = normalizeJobCommissionType(job);
         const rawValue = jv.value;
         const jvValueId = Number(jv.valueId ?? jv.valueRef?.id ?? 0);
@@ -2359,78 +2334,14 @@ const JobDetailPage = ({
                           Campaign
                         </span>
                       )}
-                      <div
-                        className="flex items-stretch rounded-md overflow-hidden shadow-sm border"
-                        style={{ borderColor: '#7c3aed' }}
-                      >
-                        <div
-                          className="flex-[0_0_32%] sm:flex-[0_0_35%] min-w-0 px-1.5 sm:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-medium flex items-center justify-start text-left leading-snug whitespace-normal self-stretch"
-                          style={{
-                            backgroundColor: useAdminAPI ? '#5F5F5F' : '#4b4f5a',
-                            color: '#ffffff',
-                          }}
-                        >
-                          <span className="line-clamp-3">
-                            {resolveCommissionBannerLabel(job, { useAdminAPI, language })}
-                          </span>
-                        </div>
-                        {hideCommissionConditionLabel && detailCommissionTiers.length > 0 ? (
-                          <div
-                            className="flex-1 min-w-0 px-2 py-1.5 sm:py-2 text-[10px] sm:text-[12px] font-bold flex items-center justify-start text-left leading-snug self-stretch"
-                            style={{
-                              backgroundColor: '#DF2020',
-                              color: '#ffffff',
-                            }}
-                            title={detailCommissionTiers[0]?.amount || detailCommissionText}
-                          >
-                            {detailCommissionTiers[0]?.amount || detailCommissionText}
-                          </div>
-                        ) : detailCommissionTiers.length > 0 ? (
-                          <div className="flex-1 min-w-0 flex flex-col self-stretch">
-                            {detailCommissionTiers.map((tier, index) => (
-                              <div
-                                key={index}
-                                className="flex flex-1 min-h-[36px] items-stretch"
-                                style={{
-                                  borderTop: index === 0 ? 'none' : '1px solid #9ca3af',
-                                }}
-                              >
-                                <div
-                                  className="w-24 sm:w-28 flex-shrink-0 px-1.5 sm:px-2 py-1.5 sm:py-2 font-semibold flex items-center justify-start text-left self-stretch"
-                                  style={{
-                                    backgroundColor: '#EB9696',
-                                    color: '#ffffff',
-                                  }}
-                                >
-                                  <span className={`break-words whitespace-normal leading-snug ${commissionTierLabelFontClass(tier.label)}`}>
-                                    {tier.label}
-                                  </span>
-                                </div>
-                                <div
-                                  className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-[12px] font-bold flex items-center justify-start text-left leading-snug self-stretch"
-                                  style={{
-                                    backgroundColor: '#DF2020',
-                                    color: '#ffffff',
-                                  }}
-                                >
-                                  <span className="break-words" title={tier.amount}>{tier.amount}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div
-                            className="flex-1 min-w-0 px-2 py-1.5 sm:py-2 text-[10px] sm:text-[11px] font-bold flex items-center justify-start text-left break-words self-stretch"
-                            style={{
-                              backgroundColor: '#DF2020',
-                              color: '#ffffff',
-                            }}
-                            title={detailCommissionText}
-                          >
-                            {detailCommissionText}
-                          </div>
-                        )}
-                      </div>
+                      <JobCommissionBanner
+                        bannerLabel={resolveCommissionBannerLabel(job, { useAdminAPI, language })}
+                        tiers={detailCommissionTiers}
+                        fallbackAmount={detailCommissionText}
+                        useAdminAPI={useAdminAPI}
+                        useCollapsedCommissionBanner={useCollapsedCommissionBanner}
+                        isInCampaign={isInCampaign}
+                      />
                     </div>
                   ) : null}
 

@@ -25,3 +25,30 @@ export function yearSalaryRangeStringForCommission(salaryRanges) {
   if (!row) return '';
   return row.salaryRange ?? row.salary_range ?? '';
 }
+
+/**
+ * Parse chuỗi lương NĂM về đơn vị yen (Y) để nhân % phí.
+ * - "350-570" / "350 - 570" → 万円 (vạn yên): 3.500.000 – 5.700.000 Y
+ * - "3500000-5700000" → yen gốc
+ * Trước đây nhân ×1.000.000 → phí CTV cao ~100 lần.
+ */
+export function parseYearSalaryRangeToYen(rangeStr) {
+  if (!rangeStr) return null;
+  const m = String(rangeStr).trim().match(/([\d.,]+)\s*[-–—~〜～]\s*([\d.,]+)/);
+  if (!m) return null;
+
+  const parseNum = (s) => {
+    const cleaned = String(s).replace(/[.,]/g, '');
+    const num = parseFloat(cleaned) || 0;
+    if (num <= 0) return 0;
+    const digitCount = cleaned.replace(/[^0-9]/g, '').length;
+    if (digitCount >= 7) return num;
+    if (digitCount >= 5) return num;
+    return num * 10000;
+  };
+
+  const min = parseNum(m[1]);
+  const max = parseNum(m[2]);
+  if (min <= 0 || max <= 0) return null;
+  return { min, max };
+}

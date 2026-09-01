@@ -634,116 +634,87 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
   const buildJdTranslationPayload = useCallback(() => {
     const fd = formDataRef.current || {};
     const rc = recruitingCompanyRef.current || {};
-    const firstNonEmpty = (...values) => values.find((v) => v != null && String(v).trim() !== '') ?? null;
-    const formAnyLang = (base) => firstNonEmpty(fd[base], fd[`${base}En`], fd[`${base}Jp`]);
-    const rowAnyLang = (row, base = 'content') => firstNonEmpty(row?.[base], row?.[`${base}En`], row?.[`${base}Jp`]);
-    const companyAnyLang = (base) => firstNonEmpty(rc[base], rc[`${base}En`], rc[`${base}Jp`]);
-    const hasJapanese = (text) => /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/.test(String(text || ''));
+    const tab = languageTab;
+    const suffix = TAB_LANG_META[tab]?.suffix ?? '';
+    const contentLang = TAB_LANG_META[tab]?.code ?? 'vi';
+    const trimVal = (v) => (v != null && String(v).trim() !== '' ? v : null);
+    const formTab = (base) => trimVal(fd[`${base}${suffix}`]);
+    const companyTab = (base) => trimVal(rc[`${base}${suffix}`]);
+    const rowContentKey = tab === 'en' ? 'contentEn' : tab === 'jp' ? 'contentJp' : 'content';
+    const rowTab = (row) => trimVal(row?.[rowContentKey]);
+    const whKey = tab === 'en' ? 'workingHoursEn' : tab === 'jp' ? 'workingHoursJp' : 'workingHours';
+    const salaryKey = tab === 'en' ? 'salaryRangeEn' : tab === 'jp' ? 'salaryRangeJp' : 'salaryRange';
+    const locKey = tab === 'en' ? 'locationEn' : tab === 'jp' ? 'locationJp' : 'location';
 
-    const inferContentLanguage = () => {
-      const samples = [
-        fd.title, fd.titleEn, fd.titleJp,
-        fd.description, fd.descriptionEn, fd.descriptionJp,
-        ...requirements.map((row) => rowAnyLang(row)),
-        ...workingLocationDetails.map((row) => rowAnyLang(row)),
-        ...workingHourDetails.map((row) => rowAnyLang(row)),
-        ...jobBenefitRows.map((row) => rowAnyLang(row)),
-      ].filter((v) => v != null && String(v).trim());
-      if (samples.some(hasJapanese)) return 'ja';
-      if (firstNonEmpty(fd.titleJp, fd.descriptionJp)) return 'ja';
-      if (firstNonEmpty(fd.titleEn, fd.descriptionEn)) return 'en';
-      return 'vi';
-    };
-
-    const salaryYearly = firstNonEmpty(
-      salaryRanges.find((sr) => sr.type === 'yearly')?.salaryRange,
-      salaryRanges.find((sr) => sr.type === 'yearly')?.salaryRangeEn,
-      salaryRanges.find((sr) => sr.type === 'yearly')?.salaryRangeJp,
-    );
-    const salaryMonthly = firstNonEmpty(
-      salaryRanges.find((sr) => sr.type === 'monthly')?.salaryRange,
-      salaryRanges.find((sr) => sr.type === 'monthly')?.salaryRangeEn,
-      salaryRanges.find((sr) => sr.type === 'monthly')?.salaryRangeJp,
-    );
+    const salaryYearly = trimVal(salaryRanges.find((sr) => sr.type === 'yearly')?.[salaryKey]);
+    const salaryMonthly = trimVal(salaryRanges.find((sr) => sr.type === 'monthly')?.[salaryKey]);
 
     const sourceRequirementsMust = requirements
       .filter((req) => req.status === 'required')
-      .map((req) => rowAnyLang(req))
-      .filter((v) => String(v).trim());
+      .map((req) => rowTab(req))
+      .filter(Boolean);
     const sourceRequirementsPreferred = requirements
       .filter((req) => req.status === 'preferred')
-      .map((req) => rowAnyLang(req))
-      .filter((v) => String(v).trim());
+      .map((req) => rowTab(req))
+      .filter(Boolean);
 
-    const locationDetailTexts = workingLocationDetails
-      .map((row) => rowAnyLang(row))
-      .filter((v) => String(v).trim());
-    const workingHourDetailTexts = workingHourDetails
-      .map((row) => rowAnyLang(row))
-      .filter((v) => String(v).trim());
-    const workingHourTexts = workingHours
-      .map((row) => firstNonEmpty(row?.workingHours, row?.workingHoursEn, row?.workingHoursJp))
-      .filter((v) => String(v).trim());
-    const overtimeDetailTexts = overtimeAllowanceDetails
-      .map((row) => rowAnyLang(row))
-      .filter((v) => String(v).trim());
-    const salaryDetailTexts = salaryRangeDetails
-      .map((row) => rowAnyLang(row))
-      .filter((v) => String(v).trim());
-    const benefitTexts = jobBenefitRows
-      .map((row) => rowAnyLang(row))
-      .filter((v) => String(v).trim());
+    const locationDetailTexts = workingLocationDetails.map((row) => rowTab(row)).filter(Boolean);
+    const workingHourDetailTexts = workingHourDetails.map((row) => rowTab(row)).filter(Boolean);
+    const workingHourTexts = workingHours.map((row) => trimVal(row?.[whKey])).filter(Boolean);
+    const overtimeDetailTexts = overtimeAllowanceDetails.map((row) => rowTab(row)).filter(Boolean);
+    const salaryDetailTexts = salaryRangeDetails.map((row) => rowTab(row)).filter(Boolean);
+    const benefitTexts = jobBenefitRows.map((row) => rowTab(row)).filter(Boolean);
 
     return {
-      job_code: firstNonEmpty(fd.jobCode),
-      job_title: formAnyLang('title'),
-      content_language: inferContentLanguage(),
-      headcount: formAnyLang('numberOfHires'),
+      job_code: trimVal(fd.jobCode),
+      job_title: formTab('title'),
+      content_language: contentLang,
+      headcount: formTab('numberOfHires'),
       experience_job: null,
       experience_industry: null,
       features: Array.isArray(highlightKeys) ? highlightKeys : [],
-      description: formAnyLang('description'),
+      description: formTab('description'),
       requirements_must: sourceRequirementsMust,
       requirements_preferred: sourceRequirementsPreferred,
       salary: {
         currency: jobSalaryCurrencyToJdCode(fd.salaryCurrency),
         monthly: salaryMonthly,
         yearly: salaryYearly,
-        salary_details: firstNonEmpty(...salaryDetailTexts),
-        bonus_details: formAnyLang('bonus'),
-        raise_details: formAnyLang('salaryReview'),
+        salary_details: salaryDetailTexts[0] ?? null,
+        bonus_details: formTab('bonus'),
+        raise_details: formTab('salaryReview'),
       },
-      location: firstNonEmpty(
+      location: trimVal(
         workingLocations
-          .map((wl) => normalizeWorkingLocationField(wl.location || wl.locationEn || wl.locationJp || ''))
+          .map((wl) => normalizeWorkingLocationField(wl[locKey] || ''))
           .filter(Boolean)
           .join(', '),
       ),
-      location_detail: firstNonEmpty(...locationDetailTexts, formAnyLang('locationDetail')),
+      location_detail: trimVal(locationDetailTexts[0] ?? formTab('locationDetail')),
       working_hours: workingHourTexts,
-      working_hour_detail: firstNonEmpty(...workingHourDetailTexts, formAnyLang('workingHourDetail')),
-      overtime_details: firstNonEmpty(...overtimeDetailTexts, formAnyLang('overtime')),
-      overtime_fee: firstNonEmpty(...overtimeDetailTexts, formAnyLang('overtimeFee'), formAnyLang('overtime')),
-      probation_detail: formAnyLang('probationDetail'),
-      rest_time: formAnyLang('breakTime'),
+      working_hour_detail: trimVal(workingHourDetailTexts[0] ?? formTab('workingHourDetail')),
+      overtime_details: trimVal(overtimeDetailTexts[0] ?? formTab('overtime')),
+      overtime_fee: trimVal(overtimeDetailTexts[0] ?? formTab('overtimeFee') ?? formTab('overtime')),
+      probation_detail: formTab('probationDetail'),
+      rest_time: formTab('breakTime'),
       benefits: benefitTexts,
-      holidays: formAnyLang('holidays'),
-      holiday_detail: formAnyLang('holidayDetails'),
-      hiring_reason: formAnyLang('recruitmentReason'),
-      social_insurance: formAnyLang('socialInsurance'),
-      transportation: formAnyLang('transportation'),
-      probation: firstNonEmpty(formAnyLang('probationPeriod'), formAnyLang('probationDetail')),
-      recruitment_process: formAnyLang('recruitmentProcess'),
+      holidays: formTab('holidays'),
+      holiday_detail: formTab('holidayDetails'),
+      hiring_reason: formTab('recruitmentReason'),
+      social_insurance: formTab('socialInsurance'),
+      transportation: formTab('transportation'),
+      probation: trimVal(formTab('probationPeriod') ?? formTab('probationDetail')),
+      recruitment_process: formTab('recruitmentProcess'),
       company: {
-        name: companyAnyLang('companyName'),
+        name: companyTab('companyName'),
         listing_status: null,
         industry_class: null,
-        revenue: companyAnyLang('revenue'),
-        capital: companyAnyLang('investmentCapital'),
-        employee_count: companyAnyLang('numberOfEmployees'),
-        established_year: companyAnyLang('establishedDate'),
-        headquarter: companyAnyLang('headquarters'),
-        overview: companyAnyLang('companyIntroduction'),
+        revenue: companyTab('revenue'),
+        capital: companyTab('investmentCapital'),
+        employee_count: companyTab('numberOfEmployees'),
+        established_year: companyTab('establishedDate'),
+        headquarter: companyTab('headquarters'),
+        overview: companyTab('companyIntroduction'),
       },
     };
   }, [
@@ -760,7 +731,7 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
     overtimeAllowanceDetails,
   ]);
 
-  const applyTranslatedJd = useCallback((translated) => {
+  const applyTranslatedJd = useCallback((translated, sourceTab = null) => {
     const pick = (obj, keys) => {
       if (!obj || typeof obj !== 'object') return '';
       for (const key of keys) {
@@ -792,18 +763,13 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
       }
       return String(value).trim();
     };
-    const mapTriple = (viVal, enVal, jpVal) => ({
-      content: String(viVal ?? '').trim(),
-      contentEn: String(enVal ?? '').trim(),
-      contentJp: String(jpVal ?? '').trim(),
-    });
+    const skipTab = (tab) => sourceTab != null && tab === sourceTab;
 
     const applyForTab = (tab, obj) => {
       const prevForm = formDataRef.current || {};
       const prefix = tab === 'en' ? 'En' : tab === 'jp' ? 'Jp' : '';
       setFormData((prev) => ({
         ...prev,
-        jobCode: text(obj, ['job_code']) || prev.jobCode || '',
         [`title${prefix}`]: text(obj, ['job_title']) || '',
         [`description${prefix}`]: text(obj, ['description']) || '',
         [`instruction${prefix}`]: text(obj, ['instruction']) || '',
@@ -832,63 +798,124 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
       }));
     };
 
-    applyForTab('vi', src.vi || {});
-    applyForTab('en', src.en || {});
-    applyForTab('jp', src.jp || src.ja || {});
+    if (!skipTab('vi')) applyForTab('vi', src.vi || {});
+    if (!skipTab('en')) applyForTab('en', src.en || {});
+    if (!skipTab('jp')) applyForTab('jp', src.jp || src.ja || {});
 
-    const mergeRows = (key, type, status) => {
+    const mergeContentRows = (key, type, status, prevRows = []) => {
       const viList = list(src.vi, key);
       const enList = list(src.en, key);
       const jpList = list(src.jp, key);
-      const max = Math.max(viList.length, enList.length, jpList.length);
+      const max = Math.max(viList.length, enList.length, jpList.length, prevRows.length);
       const rows = [];
       for (let i = 0; i < max; i += 1) {
-        const vi = viList[i] != null ? String(viList[i]).trim() : '';
-        const en = enList[i] != null ? String(enList[i]).trim() : '';
-        const jp = jpList[i] != null ? String(jpList[i]).trim() : '';
+        const existing = prevRows[i] || {};
+        const vi = skipTab('vi')
+          ? String(existing.content ?? '').trim()
+          : (viList[i] != null ? String(viList[i]).trim() : String(existing.content ?? '').trim());
+        const en = skipTab('en')
+          ? String(existing.contentEn ?? '').trim()
+          : (enList[i] != null ? String(enList[i]).trim() : String(existing.contentEn ?? '').trim());
+        const jp = skipTab('jp')
+          ? String(existing.contentJp ?? '').trim()
+          : (jpList[i] != null ? String(jpList[i]).trim() : String(existing.contentJp ?? '').trim());
         if (!vi && !en && !jp) continue;
-        rows.push({ content: vi, contentEn: en, contentJp: jp, type, status });
+        rows.push({
+          content: vi,
+          contentEn: en,
+          contentJp: jp,
+          type: existing.type ?? type,
+          status: existing.status ?? status,
+        });
       }
       return rows;
     };
 
-    const reqRows = [...mergeRows('requirements_must', 'technique', 'required'), ...mergeRows('requirements_preferred', 'education', 'preferred')];
-    if (reqRows.length) setRequirements(reqRows);
+    setRequirements((prev) => {
+      const mustPrev = prev.filter((r) => r.status === 'required');
+      const prefPrev = prev.filter((r) => r.status === 'preferred');
+      const must = mergeContentRows('requirements_must', 'technique', 'required', mustPrev);
+      const pref = mergeContentRows('requirements_preferred', 'education', 'preferred', prefPrev);
+      const combined = [...must, ...pref];
+      return combined.length ? combined : prev;
+    });
 
-    const locationDetailRows = mergeRows('location_detail', 'location', 'preferred');
-    if (locationDetailRows.length) {
-      setWorkingLocationDetails(locationDetailRows.map((row, index) => ({ id: index, content: row.content, contentEn: row.contentEn, contentJp: row.contentJp })));
+    const applyContentDetailRows = (key, setter, mapRow) => {
+      setter((prev) => {
+        const merged = mergeContentRows(key, 'detail', 'preferred', prev);
+        if (!merged.length) return prev;
+        return merged.map(mapRow);
+      });
+    };
+
+    applyContentDetailRows('location_detail', setWorkingLocationDetails, (row, index) => ({
+      id: index,
+      content: row.content,
+      contentEn: row.contentEn,
+      contentJp: row.contentJp,
+    }));
+
+    const locationDetailFallback = {
+      vi: skipTab('vi') ? '' : text(src.vi, ['location_detail', 'location_details', 'working_location_detail', 'working_location_details']),
+      en: skipTab('en') ? '' : text(src.en, ['location_detail', 'location_details', 'working_location_detail', 'working_location_details']),
+      jp: skipTab('jp') ? '' : text(src.jp, ['location_detail', 'location_details', 'working_location_detail', 'working_location_details']),
+    };
+    const hasLocationList = list(src.vi, 'location_detail').length || list(src.en, 'location_detail').length || list(src.jp, 'location_detail').length;
+    if (!hasLocationList && (locationDetailFallback.vi || locationDetailFallback.en || locationDetailFallback.jp)) {
+      setWorkingLocationDetails((prev) => {
+        if (prev.length) {
+          const row = { ...prev[0] };
+          if (locationDetailFallback.vi) row.content = locationDetailFallback.vi;
+          if (locationDetailFallback.en) row.contentEn = locationDetailFallback.en;
+          if (locationDetailFallback.jp) row.contentJp = locationDetailFallback.jp;
+          return [{ ...row, id: row.id ?? 0 }, ...prev.slice(1)];
+        }
+        return [{
+          id: 0,
+          content: locationDetailFallback.vi || '',
+          contentEn: locationDetailFallback.en || '',
+          contentJp: locationDetailFallback.jp || '',
+        }];
+      });
     }
 
-    const locationDetailFallback = [
-      text(src.vi, ['location_detail', 'location_details', 'working_location_detail', 'working_location_details']),
-      text(src.en, ['location_detail', 'location_details', 'working_location_detail', 'working_location_details']),
-      text(src.jp, ['location_detail', 'location_details', 'working_location_detail', 'working_location_details']),
-    ].map((v) => String(v || '').trim()).filter(Boolean);
-    if (!locationDetailRows.length && locationDetailFallback.length) {
-      setWorkingLocationDetails([{ id: 0, content: locationDetailFallback[0] || '', contentEn: locationDetailFallback[1] || '', contentJp: locationDetailFallback[2] || '' }]);
+    applyContentDetailRows('salary_details', setSalaryRangeDetails, (row, index) => ({
+      id: index,
+      content: row.content,
+      contentEn: row.contentEn,
+      contentJp: row.contentJp,
+    }));
+
+    const salaryDetailFallback = {
+      vi: skipTab('vi') ? '' : text(src.vi?.salary, ['salary_details', 'salaryDetail', 'salary_detail']),
+      en: skipTab('en') ? '' : text(src.en?.salary, ['salary_details', 'salaryDetail', 'salary_detail']),
+      jp: skipTab('jp') ? '' : text(src.jp?.salary, ['salary_details', 'salaryDetail', 'salary_detail']),
+    };
+    const hasSalaryDetailList = list(src.vi, 'salary_details').length || list(src.en, 'salary_details').length || list(src.jp, 'salary_details').length;
+    if (!hasSalaryDetailList && (salaryDetailFallback.vi || salaryDetailFallback.en || salaryDetailFallback.jp)) {
+      setSalaryRangeDetails((prev) => {
+        if (prev.length) {
+          const row = { ...prev[0] };
+          if (salaryDetailFallback.vi) row.content = salaryDetailFallback.vi;
+          if (salaryDetailFallback.en) row.contentEn = salaryDetailFallback.en;
+          if (salaryDetailFallback.jp) row.contentJp = salaryDetailFallback.jp;
+          return [{ ...row, id: row.id ?? 0 }, ...prev.slice(1)];
+        }
+        return [{
+          id: 0,
+          content: salaryDetailFallback.vi || '',
+          contentEn: salaryDetailFallback.en || '',
+          contentJp: salaryDetailFallback.jp || '',
+        }];
+      });
     }
 
-    const salaryDetailRows = mergeRows('salary_details', 'salaryDetail', 'preferred');
-    if (salaryDetailRows.length) {
-      setSalaryRangeDetails(salaryDetailRows.map((row, index) => ({ id: index, content: row.content, contentEn: row.contentEn, contentJp: row.contentJp })));
-    }
-
-    const salaryDetailFallback = [
-      text(src.vi?.salary, ['salary_details', 'salaryDetail', 'salary_detail']),
-      text(src.en?.salary, ['salary_details', 'salaryDetail', 'salary_detail']),
-      text(src.jp?.salary, ['salary_details', 'salaryDetail', 'salary_detail']),
-    ].map((v) => String(v || '').trim()).filter(Boolean);
-    if (!salaryDetailRows.length && salaryDetailFallback.length) {
-      setSalaryRangeDetails([{ id: 0, content: salaryDetailFallback[0] || '', contentEn: salaryDetailFallback[1] || '', contentJp: salaryDetailFallback[2] || '' }]);
-    }
-
-    const salaryYearlyVi = text(src.vi?.salary, ['yearly', 'yearly_salary']);
-    const salaryYearlyEn = text(src.en?.salary, ['yearly', 'yearly_salary']);
-    const salaryYearlyJp = text(src.jp?.salary, ['yearly', 'yearly_salary']);
-    const salaryMonthlyVi = text(src.vi?.salary, ['monthly', 'monthly_salary']);
-    const salaryMonthlyEn = text(src.en?.salary, ['monthly', 'monthly_salary']);
-    const salaryMonthlyJp = text(src.jp?.salary, ['monthly', 'monthly_salary']);
+    const salaryYearlyVi = skipTab('vi') ? null : text(src.vi?.salary, ['yearly', 'yearly_salary']);
+    const salaryYearlyEn = skipTab('en') ? null : text(src.en?.salary, ['yearly', 'yearly_salary']);
+    const salaryYearlyJp = skipTab('jp') ? null : text(src.jp?.salary, ['yearly', 'yearly_salary']);
+    const salaryMonthlyVi = skipTab('vi') ? null : text(src.vi?.salary, ['monthly', 'monthly_salary']);
+    const salaryMonthlyEn = skipTab('en') ? null : text(src.en?.salary, ['monthly', 'monthly_salary']);
+    const salaryMonthlyJp = skipTab('jp') ? null : text(src.jp?.salary, ['monthly', 'monthly_salary']);
     if (salaryYearlyVi || salaryYearlyEn || salaryYearlyJp || salaryMonthlyVi || salaryMonthlyEn || salaryMonthlyJp) {
       setSalaryRanges((prev) => {
         const next = (Array.isArray(prev) ? prev : []).map((sr) => ({ ...sr }));
@@ -916,68 +943,125 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
       });
     }
 
-    const workingHoursRows = mergeRows('working_hours', 'workingHour', 'preferred');
-    if (workingHoursRows.length) {
-      setWorkingHours(workingHoursRows.map((row, index) => ({ id: index, workingHours: row.content, workingHoursEn: row.contentEn, workingHoursJp: row.contentJp })));
+    const mergeWorkingHours = (prevRows = []) => {
+      const viList = list(src.vi, 'working_hours');
+      const enList = list(src.en, 'working_hours');
+      const jpList = list(src.jp, 'working_hours');
+      const max = Math.max(viList.length, enList.length, jpList.length, prevRows.length);
+      const rows = [];
+      for (let i = 0; i < max; i += 1) {
+        const existing = prevRows[i] || {};
+        const vi = skipTab('vi')
+          ? String(existing.workingHours ?? '').trim()
+          : (viList[i] != null ? String(viList[i]).trim() : String(existing.workingHours ?? '').trim());
+        const en = skipTab('en')
+          ? String(existing.workingHoursEn ?? '').trim()
+          : (enList[i] != null ? String(enList[i]).trim() : String(existing.workingHoursEn ?? '').trim());
+        const jp = skipTab('jp')
+          ? String(existing.workingHoursJp ?? '').trim()
+          : (jpList[i] != null ? String(jpList[i]).trim() : String(existing.workingHoursJp ?? '').trim());
+        if (!vi && !en && !jp) continue;
+        rows.push({ workingHours: vi, workingHoursEn: en, workingHoursJp: jp });
+      }
+      return rows;
+    };
+
+    setWorkingHours((prev) => {
+      const merged = mergeWorkingHours(prev);
+      return merged.length ? merged.map((row, index) => ({ id: index, ...row })) : prev;
+    });
+
+    applyContentDetailRows('working_hour_detail', setWorkingHourDetails, (row, index) => ({
+      id: index,
+      content: row.content,
+      contentEn: row.contentEn,
+      contentJp: row.contentJp,
+    }));
+
+    const workingHourDetailFallback = {
+      vi: skipTab('vi') ? '' : text(src.vi, ['working_hour_detail']),
+      en: skipTab('en') ? '' : text(src.en, ['working_hour_detail']),
+      jp: skipTab('jp') ? '' : text(src.jp, ['working_hour_detail']),
+    };
+    const hasWorkingHourDetailList = list(src.vi, 'working_hour_detail').length || list(src.en, 'working_hour_detail').length || list(src.jp, 'working_hour_detail').length;
+    if (!hasWorkingHourDetailList && (workingHourDetailFallback.vi || workingHourDetailFallback.en || workingHourDetailFallback.jp)) {
+      setWorkingHourDetails((prev) => {
+        if (prev.length) {
+          const row = { ...prev[0] };
+          if (workingHourDetailFallback.vi) row.content = workingHourDetailFallback.vi;
+          if (workingHourDetailFallback.en) row.contentEn = workingHourDetailFallback.en;
+          if (workingHourDetailFallback.jp) row.contentJp = workingHourDetailFallback.jp;
+          return [{ ...row, id: row.id ?? 0 }, ...prev.slice(1)];
+        }
+        return [{
+          id: 0,
+          content: workingHourDetailFallback.vi || '',
+          contentEn: workingHourDetailFallback.en || '',
+          contentJp: workingHourDetailFallback.jp || '',
+        }];
+      });
     }
 
-    const workingHourDetailRows = mergeRows('working_hour_detail', 'workingHourDetail', 'preferred');
-    if (workingHourDetailRows.length) {
-      setWorkingHourDetails(workingHourDetailRows.map((row, index) => ({ id: index, content: row.content, contentEn: row.contentEn, contentJp: row.contentJp })));
+    applyContentDetailRows('overtime_details', setOvertimeAllowanceDetails, (row, index) => ({
+      id: index,
+      content: row.content,
+      contentEn: row.contentEn,
+      contentJp: row.contentJp,
+    }));
+
+    const overtimeDetailFallback = {
+      vi: skipTab('vi') ? '' : text(src.vi, ['overtime_details', 'overtime_fee', 'overtimeDetails']),
+      en: skipTab('en') ? '' : text(src.en, ['overtime_details', 'overtime_fee', 'overtimeDetails']),
+      jp: skipTab('jp') ? '' : text(src.jp, ['overtime_details', 'overtime_fee', 'overtimeDetails']),
+    };
+    const hasOvertimeList = list(src.vi, 'overtime_details').length || list(src.en, 'overtime_details').length || list(src.jp, 'overtime_details').length;
+    if (!hasOvertimeList && (overtimeDetailFallback.vi || overtimeDetailFallback.en || overtimeDetailFallback.jp)) {
+      setOvertimeAllowanceDetails((prev) => {
+        if (prev.length) {
+          const row = { ...prev[0] };
+          if (overtimeDetailFallback.vi) row.content = overtimeDetailFallback.vi;
+          if (overtimeDetailFallback.en) row.contentEn = overtimeDetailFallback.en;
+          if (overtimeDetailFallback.jp) row.contentJp = overtimeDetailFallback.jp;
+          return [{ ...row, id: row.id ?? 0 }, ...prev.slice(1)];
+        }
+        return [{
+          id: 0,
+          content: overtimeDetailFallback.vi || '',
+          contentEn: overtimeDetailFallback.en || '',
+          contentJp: overtimeDetailFallback.jp || '',
+        }];
+      });
     }
 
-    const workingHourDetailFallback = [
-      text(src.vi, ['working_hour_detail']),
-      text(src.en, ['working_hour_detail']),
-      text(src.jp, ['working_hour_detail']),
-    ].map((v) => String(v || '').trim()).filter(Boolean);
-    if (!workingHourDetailRows.length && workingHourDetailFallback.length) {
-      setWorkingHourDetails([{ id: 0, content: workingHourDetailFallback[0] || '', contentEn: workingHourDetailFallback[1] || '', contentJp: workingHourDetailFallback[2] || '' }]);
-    }
-
-    const overtimeRows = mergeRows('overtime_details', 'overtime', 'preferred');
-    if (overtimeRows.length) {
-      setOvertimeAllowanceDetails(overtimeRows.map((row, index) => ({ id: index, content: row.content, contentEn: row.contentEn, contentJp: row.contentJp })));
-    }
-
-    const overtimeDetailFallback = [
-      text(src.vi, ['overtime_details', 'overtime_fee', 'overtimeDetails']),
-      text(src.en, ['overtime_details', 'overtime_fee', 'overtimeDetails']),
-      text(src.jp, ['overtime_details', 'overtime_fee', 'overtimeDetails']),
-    ].map((v) => String(v || '').trim()).filter(Boolean);
-    if (!overtimeRows.length && overtimeDetailFallback.length) {
-      setOvertimeAllowanceDetails([{ id: 0, content: overtimeDetailFallback[0] || '', contentEn: overtimeDetailFallback[1] || '', contentJp: overtimeDetailFallback[2] || '' }]);
-    }
-
-    const benefitsList = mergeRows('benefits', 'benefit', 'preferred');
-    if (benefitsList.length) setJobBenefitRows(benefitsList.map((row, index) => ({ id: index, content: row.content, contentEn: row.contentEn, contentJp: row.contentJp })));
+    setJobBenefitRows((prev) => {
+      const merged = mergeContentRows('benefits', 'benefit', 'preferred', prev);
+      return merged.length ? merged.map((row, index) => ({ id: index, content: row.content, contentEn: row.contentEn, contentJp: row.contentJp })) : prev;
+    });
 
     setRecruitingCompany((prev) => ({
       ...prev,
-      companyName: text(src.vi.company, ['name']) || prev.companyName || '',
-      companyNameEn: text(src.en.company, ['name']) || prev.companyNameEn || '',
-      companyNameJp: text(src.jp.company, ['name']) || prev.companyNameJp || '',
-      companyIntroduction: text(src.vi.company, ['overview']) || prev.companyIntroduction || '',
-      companyIntroductionEn: text(src.en.company, ['overview']) || prev.companyIntroductionEn || '',
-      companyIntroductionJp: text(src.jp.company, ['overview']) || prev.companyIntroductionJp || '',
-      headquarters: text(src.vi.company, ['headquarter']) || prev.headquarters || '',
-      headquartersEn: text(src.en.company, ['headquarter']) || prev.headquartersEn || '',
-      headquartersJp: text(src.jp.company, ['headquarter']) || prev.headquartersJp || '',
-      numberOfEmployees: text(src.vi.company, ['employee_count']) || prev.numberOfEmployees || '',
-      numberOfEmployeesEn: text(src.en.company, ['employee_count']) || prev.numberOfEmployeesEn || '',
-      numberOfEmployeesJp: text(src.jp.company, ['employee_count']) || prev.numberOfEmployeesJp || '',
-      establishedDate: text(src.vi.company, ['established_year']) || prev.establishedDate || '',
-      establishedDateEn: text(src.en.company, ['established_year']) || prev.establishedDateEn || '',
-      establishedDateJp: text(src.jp.company, ['established_year']) || prev.establishedDateJp || '',
-      investmentCapital: text(src.vi.company, ['capital']) || prev.investmentCapital || '',
-      investmentCapitalEn: text(src.en.company, ['capital']) || prev.investmentCapitalEn || '',
-      investmentCapitalJp: text(src.jp.company, ['capital']) || prev.investmentCapitalJp || '',
-      revenue: text(src.vi.company, ['revenue']) || prev.revenue || '',
-      revenueEn: text(src.en.company, ['revenue']) || prev.revenueEn || '',
-      revenueJp: text(src.jp.company, ['revenue']) || prev.revenueJp || '',
+      companyName: skipTab('vi') ? prev.companyName : (text(src.vi.company, ['name']) || prev.companyName || ''),
+      companyNameEn: skipTab('en') ? prev.companyNameEn : (text(src.en.company, ['name']) || prev.companyNameEn || ''),
+      companyNameJp: skipTab('jp') ? prev.companyNameJp : (text(src.jp.company, ['name']) || prev.companyNameJp || ''),
+      companyIntroduction: skipTab('vi') ? prev.companyIntroduction : (text(src.vi.company, ['overview']) || prev.companyIntroduction || ''),
+      companyIntroductionEn: skipTab('en') ? prev.companyIntroductionEn : (text(src.en.company, ['overview']) || prev.companyIntroductionEn || ''),
+      companyIntroductionJp: skipTab('jp') ? prev.companyIntroductionJp : (text(src.jp.company, ['overview']) || prev.companyIntroductionJp || ''),
+      headquarters: skipTab('vi') ? prev.headquarters : (text(src.vi.company, ['headquarter']) || prev.headquarters || ''),
+      headquartersEn: skipTab('en') ? prev.headquartersEn : (text(src.en.company, ['headquarter']) || prev.headquartersEn || ''),
+      headquartersJp: skipTab('jp') ? prev.headquartersJp : (text(src.jp.company, ['headquarter']) || prev.headquartersJp || ''),
+      numberOfEmployees: skipTab('vi') ? prev.numberOfEmployees : (text(src.vi.company, ['employee_count']) || prev.numberOfEmployees || ''),
+      numberOfEmployeesEn: skipTab('en') ? prev.numberOfEmployeesEn : (text(src.en.company, ['employee_count']) || prev.numberOfEmployeesEn || ''),
+      numberOfEmployeesJp: skipTab('jp') ? prev.numberOfEmployeesJp : (text(src.jp.company, ['employee_count']) || prev.numberOfEmployeesJp || ''),
+      establishedDate: skipTab('vi') ? prev.establishedDate : (text(src.vi.company, ['established_year']) || prev.establishedDate || ''),
+      establishedDateEn: skipTab('en') ? prev.establishedDateEn : (text(src.en.company, ['established_year']) || prev.establishedDateEn || ''),
+      establishedDateJp: skipTab('jp') ? prev.establishedDateJp : (text(src.jp.company, ['established_year']) || prev.establishedDateJp || ''),
+      investmentCapital: skipTab('vi') ? prev.investmentCapital : (text(src.vi.company, ['capital']) || prev.investmentCapital || ''),
+      investmentCapitalEn: skipTab('en') ? prev.investmentCapitalEn : (text(src.en.company, ['capital']) || prev.investmentCapitalEn || ''),
+      investmentCapitalJp: skipTab('jp') ? prev.investmentCapitalJp : (text(src.jp.company, ['capital']) || prev.investmentCapitalJp || ''),
+      revenue: skipTab('vi') ? prev.revenue : (text(src.vi.company, ['revenue']) || prev.revenue || ''),
+      revenueEn: skipTab('en') ? prev.revenueEn : (text(src.en.company, ['revenue']) || prev.revenueEn || ''),
+      revenueJp: skipTab('jp') ? prev.revenueJp : (text(src.jp.company, ['revenue']) || prev.revenueJp || ''),
     }));
-
-    setLanguageTab('vi');
 
     const featureKeys = Array.isArray(src.vi.features) ? src.vi.features : Array.isArray(src.en.features) ? src.en.features : Array.isArray(src.jp.features) ? src.jp.features : [];
     setHighlightKeys(featureKeys);
@@ -990,14 +1074,14 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
       setTranslatingInputs(true);
       const payload = buildJdTranslationPayload();
       const translated = await translateJdViaApi(payload);
-      applyTranslatedJd(translated);
+      applyTranslatedJd(translated, languageTab);
     } catch (error) {
       console.error('Translate JD inputs error:', error);
       alert(error?.message || 'Không dịch được dữ liệu.');
     } finally {
       setTranslatingInputs(false);
     }
-  }, [applyTranslatedJd, buildJdTranslationPayload, translateJdViaApi]);
+  }, [applyTranslatedJd, buildJdTranslationPayload, languageTab, translateJdViaApi]);
 
   const upsertJapanWorkingLocation = (entry, checked) => {
     if (!entry?.jpId) return;
@@ -6270,36 +6354,32 @@ const AdminAddJobPage = ({ portal = 'admin' } = {}) => {
                         value={jv.typeId ?? ''}
                         onChange={async (e) => {
                           const selectedTypeId = e.target.value ? parseInt(e.target.value, 10) : null;
+                          const newJobValues = [...jobValues];
                           if (selectedTypeId) {
                             const response = await apiService.getValuesByType(selectedTypeId);
                             if (response.success && response.data) {
-                              const valuesForType = response.data.values || [];
-                              setValuesByType(prev => ({ ...prev, [selectedTypeId]: valuesForType }));
-                              if (selectedTypeId === 2) {
-                                const newJobValues = [...jobValues];
-                                newJobValues[index] = { ...newJobValues[index], typeId: selectedTypeId, valueId: '', value: newJobValues[index].value ?? '', isRequired: newJobValues[index].isRequired ?? false };
-                                setJobValues(newJobValues);
-                              } else if (valuesForType.length > 0) {
-                                const newJobValues = jobValues.filter((_, i) => i !== index);
-                                const newJobValueCards = valuesForType.map(value => ({
-                                  typeId: selectedTypeId,
-                                  valueId: value.id,
-                                  value: '',
-                                  isRequired: false
-                                }));
-                                newJobValues.splice(index, 0, ...newJobValueCards);
-                                setJobValues(newJobValues);
-                              } else {
-                                const newJobValues = [...jobValues];
-                                newJobValues[index] = { ...newJobValues[index], typeId: selectedTypeId, valueId: '', value: newJobValues[index].value ?? '', isRequired: newJobValues[index].isRequired ?? false };
-                                setJobValues(newJobValues);
-                              }
+                              setValuesByType(prev => ({
+                                ...prev,
+                                [selectedTypeId]: response.data.values || []
+                              }));
                             }
+                            newJobValues[index] = {
+                              ...newJobValues[index],
+                              typeId: selectedTypeId,
+                              valueId: '',
+                              value: newJobValues[index].value ?? '',
+                              isRequired: newJobValues[index].isRequired ?? false
+                            };
                           } else {
-                            const newJobValues = [...jobValues];
-                            newJobValues[index] = { ...newJobValues[index], typeId: '', valueId: '', value: newJobValues[index].value ?? '', isRequired: newJobValues[index].isRequired ?? false };
-                            setJobValues(newJobValues);
+                            newJobValues[index] = {
+                              ...newJobValues[index],
+                              typeId: '',
+                              valueId: '',
+                              value: newJobValues[index].value ?? '',
+                              isRequired: newJobValues[index].isRequired ?? false
+                            };
                           }
+                          setJobValues(newJobValues);
                         }}
                         className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-600"
                       >

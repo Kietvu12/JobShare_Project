@@ -53,6 +53,10 @@ export function isActiveContactCommissionJobValue(jv) {
  * Bao gồm cả điều kiện tùy chỉnh (vd. thời gian gia nhập) khi đã có `value`.
  * Bỏ qua valueId=34 rỗng (tránh fallback "Liên hệ" oan).
  */
+export function filterJobValuesForCtvCommissionDisplay(allJobValues) {
+  return filterJobValuesForCommission(allJobValues);
+}
+
 export function filterJobValuesForCommission(allJobValues) {
   const rows = Array.isArray(allJobValues) ? allJobValues : [];
   return rows.filter((jv) => {
@@ -84,6 +88,13 @@ export function shouldHideCommissionConditionLabel(jobValuesForCommission) {
     if (valueId === 34 && isActiveContactCommissionJobValue(jv)) return true;
     return tid === 2 && (valueId === 6 || valueId === 7 || numVal === 6 || numVal === 7);
   });
+}
+
+/** Banner 1 dòng (không tách điều kiện) — chỉ khi có đúng 1 tier và tier đó thuộc loại ẩn nhãn. */
+export function shouldUseCollapsedCommissionBanner(jobValuesForCommission) {
+  const rows = Array.isArray(jobValuesForCommission) ? jobValuesForCommission : [];
+  if (rows.length !== 1) return false;
+  return shouldHideCommissionConditionLabel(rows);
 }
 
 /**
