@@ -1,0 +1,605 @@
+<!-- Google Tag Manager (noscript) -->
+	
+	<!-- End Google Tag Manager (noscript) -->
+
+	
+	
+							
+			<article>
+			<style>
+.footer {
+    margin: 30px auto 20px;
+}
+.form_submit .form_btn{
+    line-height: 50px;
+    width: 40%;
+    margin: auto 30% 3%;
+    background: rgb(230, 0, 57);
+}
+.rc-form-wrapper {
+  max-width: 1200px;
+  margin: 40px auto;
+  font-family: "Noto Sans JP", sans-serif;
+  display: flex;
+  gap: 60px;
+  align-items: flex-start;
+  line-height: 1.8;
+  margin-top: 130px;
+}
+.rc-left-content {
+  flex: 1;
+  padding: 20px;
+  top: 20px;
+}
+.rc-right-form {
+  flex: 0 0 700px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+  overflow: hidden;
+}
+@media (min-width: 768px) {
+  .m-page-form-main__contents {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+}
+.rc-switcher {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.rc-switcher-btn {
+  flex: 1;
+  text-align: center;
+  border-radius: 8px;
+  padding: 10px 0;
+  font-size: 1.6rem;
+  font-weight: bold;
+  border: 2px solid;
+  cursor: pointer;
+  line-height: 1.2;
+  text-decoration: none;
+  display: block;
+}
+.rc-switcher-btn.is-current {
+  background: #0576b6;
+  color: #fff;
+  border-color: #0576b6;
+}
+.rc-switcher-btn.is-other {
+  background: #fff;
+  color: #888;
+  border-color: #ddd;
+}
+.rc-switcher-sub {
+  font-size: 1.3rem;
+  font-weight: normal;
+}
+.rc-badge {
+    display: inline-block;
+    background: #0576b61c;
+    color: #0576b6;
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 15px;
+}
+.rc-title {
+  font-size: 2.8rem;
+  line-height: 1.4;
+  color: #0576b6;
+  margin-bottom: 25px;
+  font-weight: bold;
+}
+.rc-description {
+  color: #333;
+  font-size: 1.3rem;
+  margin-bottom: 30px;
+}
+.rc-trust-box {
+  background: #0576b60a;
+  border-radius: 12px;
+  padding: 15px 30px;
+  border:1px solid #f0e1e1;
+}
+.rc-trust-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 0px;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #333;
+  line-height: 2.4;
+}
+.rc-trust-item:first-child {
+  font-size: 1.6rem;
+  color: #0576b6;
+  border-bottom: 1px solid #f0e1e1;
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+  line-height: 2.0;
+}
+.rc-trust-item:first-child .rc-trust-icon {
+  font-size: 1.6rem;
+}
+.rc-trust-icon {
+  color: #0576b6;
+  font-size: 1.4rem;
+}
+.rc-flow-heading {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #0576b6;
+  margin-top: 24px;
+  margin-bottom: 10px;
+  padding-left: 7px;
+  border-left: 3px solid #0576b6;
+}
+.rc-flow {
+  margin-top: 24px;
+}
+.rc-flow-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #f0e1e1;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+.rc-flow-step {
+  background: #0576b6;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  margin-top: 3px;
+}
+.rc-flow-title {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #111;
+  line-height: 1.4;
+}
+.rc-flow-text {
+  font-size: 1.2rem;
+  color: #666;
+  line-height: 1.5;
+}
+.rc-flow-arrow {
+  text-align: center;
+  color: #0576b6;
+  font-size: 0.85rem;
+  margin: 4px 0;
+}
+.rc-price-info {
+  margin-top: 16px;
+  padding: 20px;
+  background: #fff0f0;
+  border: 1px solid #f5c0c0;
+  border-radius: 10px;
+  font-size: 1.2rem;
+  color: #7a1a1a;
+}
+.rc-tab-group {
+  display: flex;
+  background: #f0f2f5;
+}
+.rc-tab-item {
+  flex: 1;
+  padding: 20px 10px;
+  text-align: center;
+  cursor: pointer;
+  border-bottom: 5px solid #d9d9d9;
+  transition: 0.3s;
+  color: #888;
+  font-weight: bold;
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+.rc-tab-item input {
+  display: none;
+}
+.rc-tab-item:has(input:checked) {
+  background: #fff;
+  color: #0576b6;
+  border-bottom-color: #0576b6;
+}
+.rc-form-block {
+  display: none;
+  padding: 25px 50px;
+  animation: rcFadeIn 0.2s ease;
+}
+.rc-form-block.is-active {
+  display: block;
+}
+@keyframes rcFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rc-skeleton {
+  padding: 20px 0;
+}
+.rc-skeleton-line {
+  height: 14px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: rcShimmer 1.2s infinite;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+@keyframes rcShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.rc-msg {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 25px;
+  font-size: 1.8rem;
+  color: #333;
+  padding-bottom: 20px;
+  border-bottom: 2px dashed #eee;
+}
+.form-group {
+  margin: 10px 0 0;
+  margin-bottom: 15px !important;
+}
+.formHeading label, .rc-form-block .formHeading label {
+  background: none !important;
+  padding: 0 !important;
+  border: none !important;
+  margin-bottom: 10px !important;
+  color: #000 !important;
+  font-size: 1.3rem !important;
+  font-weight: bold !important;
+}
+.rc-form-block .input-group label,
+.rc-form-block label:has(input[type="radio"]),
+.rc-form-block label:has(input[type="checkbox"]) {
+  display: inline-flex !important;
+  align-items: center !important;
+  background: #f8f9fa !important;
+  border: 2px solid #e9ecef !important;
+  padding: 10px !important;
+  border-radius: 8px !important;
+  margin: 0 1% 11px 1% !important;
+  font-size: 1.05rem !important;
+  cursor: pointer !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  position: static !important;
+  width: 46% !important;
+  box-sizing: border-box !important;
+  vertical-align: top !important;
+  min-height: 48px !important;
+}
+.rc-form-block .input-group label.rc-checked {
+  background: #fff0f0 !important;
+  border-color: #0576b6 !important;
+  color: #c00020 !important;
+}
+.form-control {
+  width: 100% !important;
+  padding: 7px !important;
+  font-size: 1.3rem !important;
+  border-radius: 8px !important;
+  border: 2px solid #ddd !important;
+  box-sizing: border-box !important;
+}
+.rc-form-block input[type="radio"],
+.rc-form-block input[type="checkbox"] {
+  width: 20px !important;
+  height: 20px !important;
+  margin: 0 10px 0 0 !important;
+  position: static !important;
+  flex-shrink: 0 !important;
+}
+@media (max-width: 1000px) {
+  .rc-form-wrapper {
+    flex-direction: column;
+    padding: 20px;
+    gap: 30px;
+    margin-top: 20px;
+  }
+  .rc-right-form {
+    flex: none;
+    width: 100%;
+  }
+  .rc-left-content {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 30px;
+  }
+  .rc-form-block {
+    padding: 24px 20px;
+  }
+  .form_submit .form_btn {
+    width: 90% !important;
+    margin: 0 auto 3% !important;
+    display: block !important;
+  }
+  .rc-form-block .input-group label,
+  .rc-form-block label:has(input[type="radio"]),
+  .rc-form-block label:has(input[type="checkbox"]) {
+    width: 46% !important;
+  }
+}
+[data-engage-block="engage"],
+#optemo__main,
+.mod_btnList,
+.footer-top,
+.common-nav-info,
+.header-nav,
+.header-sub__contents,
+.common-nav-row,
+.common-nav-sns{
+  display: none !important;
+}
+</style>
+<div class="rc-form-wrapper">
+<div class="rc-left-content">
+<div class="rc-switcher">
+      <span class="rc-switcher-btn is-current">発注したい<br><span class="rc-switcher-sub">外注先をお探しの方</span></span><br>
+      <a href="/contact_sl_form/" class="rc-switcher-btn is-other">受注したい<br><span class="rc-switcher-sub">パートナー企業様</span></a>
+    </div>
+<p>    <span class="rc-badge">ビジネスマッチング業界 No.1</span></p>
+<h1 class="rc-title">最適な外注先を<br>プロが無料で厳選。</h1>
+<p class="rc-description">Ready Crew（レディクル）は、独自のネットワークから貴社の課題に最適なパートナーを精査してご紹介します。</p>
+<p><img decoding="async" src="https://web.archive.org/web/20250220090925im_//assets/images/pages/page-contact-support.png" style="width: 80%; margin: auto; margin-bottom: 20px;"></p>
+<div class="rc-trust-box">
+<div class="rc-trust-item"><span class="rc-trust-icon">✔</span><span class="rc-trust-text">上場企業の70%以上が導入</span></div>
+<div class="rc-trust-item"><span class="rc-trust-icon">✔</span><span class="rc-trust-text">累計マッチング 14万件超の知見</span></div>
+<div class="rc-trust-item"><span class="rc-trust-icon">✔</span><span class="rc-trust-text">相談から紹介まで完全無料</span></div>
+<div class="rc-trust-item"><span class="rc-trust-icon">✔</span><span class="rc-trust-text">最短当日中のスピード回答</span></div>
+<p></p></div>
+<div class="rc-flow-heading">ご利用の流れ</div>
+<div class="rc-flow">
+<div class="rc-flow-item">
+<div class="rc-flow-step">STEP 1</div>
+<div class="rc-flow-body">
+<div class="rc-flow-title">お問い合わせ</div>
+<div class="rc-flow-text">要件が決まっていなくてもOK。まずはお気軽に。</div>
+<p></p></div>
+<p></p></div>
+<div class="rc-flow-arrow">▼</div>
+<div class="rc-flow-item">
+<div class="rc-flow-step">STEP 2</div>
+<div class="rc-flow-body">
+<div class="rc-flow-title">ヒアリング</div>
+<div class="rc-flow-text">課題・予算・アウトプットイメージを整理します。</div>
+<p></p></div>
+<p></p></div>
+<div class="rc-flow-arrow">▼</div>
+<div class="rc-flow-item">
+<div class="rc-flow-step">STEP 3</div>
+<div class="rc-flow-body">
+<div class="rc-flow-title">ビジネスマッチング</div>
+<div class="rc-flow-text">最適な企業をご紹介。商談日程まで調整します。</div>
+<p></p></div>
+<p></p></div>
+<p></p></div>
+<div class="rc-price-info"><strong>※ 費用は一切かかりません</strong><br><u>外注先企業からの広告費で運営</u>しているため、発注側企業様は全ての機能を無料でご利用いただけます。</div>
+<p></p></div>
+<div class="rc-right-form">
+<div class="rc-tab-group">
+      <label class="rc-tab-item"><input type="radio" name="type" value="hot" checked="">🔥すぐに動きたい<br><small style="font-weight:normal;"></small></label><br>
+      <label class="rc-tab-item"><input type="radio" name="type" value="mid">📝じっくり相談したい<br><small style="font-weight:normal;"></small></label><br>
+      <label class="rc-tab-item"><input type="radio" name="type" value="light">🌱まずは資料請求したい<br><small style="font-weight:normal;"></small></label>
+    </div>
+<div id="hot" class="rc-form-block">
+<div class="rc-msg hot">🔥 本日・明日中に、担当よりお電話いたします</div>
+<div id="select_form_contentA" class="m-page-form-main__contents">
+<div class="rc-skeleton">
+<div class="rc-skeleton-line" style="width:60%"></div>
+<div class="rc-skeleton-line" style="width:100%"></div>
+<div class="rc-skeleton-line" style="width:100%"></div>
+<div class="rc-skeleton-line" style="width:80%"></div>
+</div>
+</div></div>
+<div id="mid" class="rc-form-block">
+<div class="rc-msg mid">📝 まず相談するだけでOK</div>
+<div id="select_form_contentB" class="m-page-form-main__contents">
+<div class="rc-skeleton">
+<div class="rc-skeleton-line" style="width:60%"></div>
+<div class="rc-skeleton-line" style="width:100%"></div>
+<div class="rc-skeleton-line" style="width:100%"></div>
+<div class="rc-skeleton-line" style="width:80%"></div>
+</div>
+</div></div>
+<div id="light" class="rc-form-block">
+<div class="rc-msg light">🌱 資料をお送りします</div>
+<div id="select_form_contentC" class="m-page-form-main__contents">
+<div class="rc-skeleton">
+<div class="rc-skeleton-line" style="width:60%"></div>
+<div class="rc-skeleton-line" style="width:100%"></div>
+<div class="rc-skeleton-line" style="width:100%"></div>
+<div class="rc-skeleton-line" style="width:80%"></div>
+</div>
+</div></div>
+<p></p></div>
+</div>
+<p><br>
+<!-- ===== 追加：疑似プルダウン（フォーム部品を一切増やさない方式） ここから ===== --></p>
+<style>
+.rc-form-block .input-group label.rc-rh,
+.input-group label.rc-rh,
+label.rc-rh {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.rc-dd {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 13px 44px 13px 14px;
+  min-height: 48px;
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: #9aa3ab;
+  line-height: 1.4;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+.rc-dd:hover { border-color: #f0c4cc; }
+.rc-dd.is-filled {
+  background: #fff0f0;
+  border-color: #0576b6;
+  color: #c00020;
+}
+.rc-dd.is-open {
+  border-color: #0576b6;
+  box-shadow: 0 0 0 3px rgba(5, 118, 182,.12);
+}
+.rc-dd::after {
+  content: "";
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin-top: -7px;
+  border-right: 2px solid #0576b6;
+  border-bottom: 2px solid #0576b6;
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+.rc-dd.is-open::after {
+  transform: rotate(-135deg);
+  margin-top: -3px;
+}
+.rc-dd-list {
+  display: none;
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  top: calc(100% + 4px);
+  z-index: 50;
+  max-height: 280px;
+  overflow-y: auto;
+  background: #fff;
+  border: 2px solid #0576b6;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.14);
+  padding: 4px;
+  margin: 0;
+  list-style: none;
+}
+.rc-dd.is-open .rc-dd-list { display: block; }
+.rc-dd-item {
+  padding: 11px 14px;
+  border-radius: 6px;
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: #333;
+  cursor: pointer;
+  line-height: 1.4;
+}
+.rc-dd-item:hover { background: #fff0f0; }
+.rc-dd-item.is-selected {
+  background: #0576b6;
+  color: #fff;
+  font-weight: 500;
+}
+textarea.form-control {
+  min-height: 150px !important;
+  padding: 12px 14px !important;
+  line-height: 1.7;
+  resize: vertical;
+}
+@media (max-width: 1000px) {
+  .rc-dd { font-size: 1.5rem; }
+  .rc-dd-item { font-size: 1.4rem; }
+}
+</style>
+<p><br>
+<!-- ===== 追加：ここまで ===== --></p>
+
+<!-- /home/ladycrew/readycrew.jp/public_html/cms/wp-content/themes/readycrew2023/page.php -->
+  <div class="mod_btnList isAnim">
+    <div class="inner">
+      <ul>
+        <li class="mod_linkButton f_bold anim-fadeInUp"><a href="/contact/">お問い合わせ<span class="arrow"><img src="/landing/business/assets/images/common/icon_arrow_medium.svg" class="svg" alt=""></span></a></li>
+        <li class="mod_linkButton f_bold anim-fadeInUp delay1"><a href="/inquiry_docs/">簡単1分! 資料請求<span class="arrow"><img src="/landing/business/assets/images/common/icon_arrow_medium.svg" class="svg" alt=""></span></a></li>
+      </ul>
+    </div>
+  </div>
+<!-- /home/ladycrew/readycrew.jp/public_html/cms/wp-content/themes/readycrew2023/page.php -->
+
+	<section class="footer-top l-section">
+		<div class="footer-top-conversion">
+			<div class="footer-top-conversion__contents l-contents--large">
+				<div class="footer-top-conversion__upper">
+					<picture class="footer-top-conversion__picture">
+						<source media="(max-width: 767px)" srcset="/landing/business/assets/images/common/footer-top-people-sp.png">
+						<img class="footer-top-conversion__picture-body" src="/landing/business/assets/images/common/footer-top-people.png" alt="Ready Crew(レディクル)公式アンバサダー 広瀬アリス" loading="lazy">
+					</picture>
+				</div>
+				<div class="footer-top-conversion__body">
+					<div class="footer-top-conversion__text-area">
+						<p class="footer-top-conversion__main-text">ビジネスマッチングで<br>圧倒的、解決力！</p>
+						<p class="footer-top-conversion__desc">ReadyCrew（レディクル）は完全無料で外注先を紹介する<br class="u-br-hd u-br-spu">ビジネスマッチングサービスです。お気軽にお問い合わせください。</p>
+						<div class="footer-top-conversion__contact">
+							<div class="footer-top-conversion__btn-group">
+								<a class="footer-top-conversion__download-btn o-btn-bg o-btn-bg--hover-border m-element-side-space" href="/inquiry_docs_rc/">
+									<span class="footer-top-conversion__btn-text o-btn-bg__text">資料ダウンロード</span>
+								</a>
+								<a class="footer-top-conversion__contact-btn o-btn-bg o-btn-bg--white m-element-side-space" href="/contact_rc/">
+									<span class="footer-top-conversion__btn-text o-btn-bg__text">外注先を無料で相談する</span>
+								</a>
+							</div>
+							<a class="footer-top-conversion__tel" href="tel:097-289-97-28">
+								<span class="footer-top-conversion__tel-icon">
+									<svg class="footer-top-conversion__tel-icon-body" width="13" height="18" viewBox="0 0 13 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+										<path d="M10.7416 17.118L9.98504 17.5794C5.54731 20.1493 -2.15198 5.16317 2.17132 2.33065L2.89611 1.87631L5.26756 6.4694L4.54278 6.91664C3.22671 7.80402 6.29753 13.8098 7.64538 12.9863L8.38288 12.532L10.7416 17.118ZM4.50463 0.839844L3.44288 1.54975L5.80798 6.13574L6.87608 5.42584L4.50463 0.839844ZM9.97869 11.4884L8.91058 12.1983L11.2757 16.7914L12.3438 16.0815L9.97869 11.4884Z" fill="#0576b6"></path>
+									</svg>
+								</span>
+								<span class="footer-top-conversion__tel-text">097-289-97-28</span>
+								<span class="footer-top-conversion__time">10:00 〜 18:00 (平日)</span>
+							</a>
+						</div>
+						<a href="/partner/" class="header-sub__anchor o-anchor-text">
+							<span class="o-anchor-text__icon--white"><svg width="11" height="10" viewBox="0 0 11 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+									<path d="M10.3333 4.84082L0.333313 9.17095L0.333313 0.510693L10.3333 4.84082Z" fill="white"></path>
+								</svg></span>
+							<span class="o-anchor-text__text c-text-white">受注企業様はこちら</span>
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="footer-top-topic-path">
+			<div class="footer-top-topic-path__contents">
+				<ol class="footer-top-topic-path__list">
+					<li class="footer-top-topic-path__item"><a class="footer-top-topic-path__anchor" href="https://readycrew.jp">ビジネスマッチングのレディクルTOP</a></li><li class="footer-top-topic-path__item"><a class="footer-top-topic-path__anchor" href="/news/">ニュース</a></li><li class="footer-top-topic-path__item"><a class="footer-top-topic-path__anchor" href="https://"></a></li><li class="footer-top-topic-path__item">発注企業様向けお問い合わせフォーム</li>				</ol>
+			</div>
+		</div>
+	</section>
+	</article>
+	
+	
+
+
+
+<!-- HM TAG -->
+
+<!-- HM TAG -->

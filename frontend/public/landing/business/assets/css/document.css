@@ -1,0 +1,533 @@
+/*-------------------------------------------
+	お役立ち資料
+------------------------------------------- */
+/* 共通 */
+.page-document,
+.page-document-single-article {
+    font-family: "Noto Sans JP", sans-serif;
+    font-weight: bold;
+}
+
+
+/* 記事一覧 */
+.page-document-visual__picture {
+    align-items: center;
+    margin-right: 60px;
+}
+
+.page-document-visual__catch {
+    font-size: 34px;
+    line-height: 1.5;
+}
+
+.page-document-visual__catch .br-sp {
+    display: none;
+}
+
+.page-document-main {
+    padding: 100px 0 180px;
+}
+
+.page-document-archive__list {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 88px 4%;
+    padding: 55px 20px 80px;
+}
+
+.page-document-archive__item {
+    display: flex;
+    flex-direction: column;
+}
+
+.page-document-archive__item .link {
+    display: block;
+    aspect-ratio: 390 / 290;
+    margin: 0 0 25px;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+}
+
+.page-document-archive__item .link:hover .image {
+    transform: scale(1.1);
+}
+
+.page-document-archive__item .new-icon {
+    position: absolute;
+    top: 15px;
+    background-color: #0576b6;
+    color: #fff;
+    padding: 4px 20px;
+    z-index: 3;
+}
+
+.page-document-archive__item .image {
+    width: 100%;
+    height: 100%;
+    transition: .3s;
+}
+
+.page-document-archive__item img {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}
+
+.page-document-archive__title,
+.page-document-archive__main-text {
+    overflow: hidden;
+    display: -webkit-box;
+    text-overflow: ellipsis;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+
+.page-document-archive__title {
+    font-weight: 900;
+}
+
+.page-document-archive__tag {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3%;
+    margin: 14px 0 10px;
+}
+
+.page-document-archive__tag a {
+    border: solid 1px #0576b6;
+    border-radius: 20px;
+    padding: 5px 15px;
+    color: #0576b6;
+    white-space: nowrap;
+    margin-bottom: 6px;
+    font-weight: bold;
+    transition: .3s;
+    font-size: 12px;
+}
+
+.page-document-archive__tag a:hover {
+    background-color: #0576b6;
+    color: #fff;
+}
+
+.page-document-archive__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: auto;
+}
+
+.page-document-archive__button .link-button {
+    display: block;
+    text-align: center;
+    font-weight: 900;
+    background-color: #282C32;
+    color: #fff;
+    padding: 18px 0;
+    width: 80%;
+    margin-top: 25px;
+    border-radius: 6px;
+    transition: .3s;
+}
+
+.page-document-archive__button .link-button:hover {
+    background-color: #0576b6;
+}
+
+@media (max-width: 1279px) {
+    .page-document-main {
+        padding: 100px 0 100px;
+    }
+}
+
+@media (max-width: 1260px) {
+    .page-document-visual__catch {
+        font-size: 2.4vw;
+    }
+
+    .page-document-visual__catch .br-sp {
+        display: block;
+    }
+
+    .page-document-visual__picture {
+        margin-right: 40px;
+    }
+}
+
+
+@media (max-width: 1023px) {
+    .page-document-archive__list {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 990px) {
+    .page-document-visual {
+        padding: 0;
+    }
+
+    .page-document-visual__contents.l-article-mv__contents {
+        display: block;
+        padding: 100px 6.667vw 34px;
+        height: unset;
+        /* height: -webkit-fill-available;
+        height: -moz-available;
+        height: fill-available; */
+    }
+
+    .page-document-visual__page-title.l-article-mv__title {
+        padding: 0;
+    }
+
+    .page-document-visual__picture {
+        padding: 0;
+        margin: 42px 0 0;
+    }
+
+    .page-document-visual__catch-block {
+        position: relative;
+        bottom: 0;
+        margin: 35px 0 0;
+    }
+
+    .page-document-visual__catch {
+        font-size: 34px;
+    }
+
+    .page-document-visual__catch .br-sp {
+        display: none;
+    }
+}
+
+@media (max-width: 767px) {
+    .page-document-main {
+        padding: 40px 0 60px;
+    }
+
+    .page-document-visual__page-title-jp {
+        font-size: min(6.5vw, 30px);
+    }
+
+    .page-document-visual__picture {
+        display: none;
+    }
+
+    .page-document-visual__catch {
+        font-size: 3.75vw;
+        line-height: 1.7;
+    }
+
+    .page-document-archive__list {
+        padding: 30px 20px 100px;
+        grid-template-columns: 1fr;
+        gap: 60px 4%;
+    }
+
+    .page-document-archive__title {
+        font-size: 16px;
+    }
+    .page-document-archive__tag {
+        margin: 12px 0 8px;
+    }
+
+    .page-document-archive__tag a {
+        font-size: 10px;
+    }
+
+    .page-document-archive__item .link {
+        margin: 0 0 20px;
+    }
+
+    .page-document-archive__main-text {
+        font-size: 14px;
+    }
+
+    .page-document-archive__button .link-button {
+        font-size: 14px;
+        margin-top: 20px;
+    }
+}
+
+
+/* 記事詳細 */
+.page-document-single-article-header-bg {
+    background-color: #0576b6;
+    width: 100%;
+    padding-top: 132px;
+}
+
+.header-main--only.-document {
+    top: 27px;
+}
+
+.header-main--only.-document.js-hamburger-menu__wrapper--scroll {
+    top: 0;
+}
+
+.page-document-single-article {
+    padding: 100px 20px 0;
+    overflow: unset;
+}
+
+.page-document-single-article-flex {
+    display: flex;
+    max-width: 1130px;
+    margin: 0 auto;
+}
+
+.page-document-single-article-left {
+    flex: 1;
+    padding-right: 3%;
+}
+
+.page-document-single-article-right {
+    width: 370px;
+    padding-left: 3vw;
+}
+
+.page-document-single-main__tag {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1%;
+    margin-top: 20px;
+    margin-bottom: 30px;
+}
+
+.page-document-single-main__tag .c-tag {
+    display: inline-block;
+    background-color: #0576b6;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-weight: 900;
+    margin-bottom: 6px;
+}
+
+.page-document-single-main__title {
+    font-size: 3.5rem;
+    font-weight: 900;
+    line-height: 1.6;
+}
+
+.page-document-single-main__main-text {
+    line-height: 2;
+    padding-bottom: 35px;
+}
+
+.page-document-single-main__cont-title {
+    font-size: 2.8rem;
+    font-weight: 900;
+    border-bottom: 3px solid #d3d6d8;
+    padding: 35px 0 20px;
+    margin-bottom: 15px;
+    position: relative;
+    line-height: 1.6;
+}
+
+.page-document-single-main__cont-title::after {
+    content: "";
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    height: 3px;
+    width: 40px;
+    background-color: #0576b6;
+}
+
+.page-document-single-main__cont-text {
+    font-size: 2rem;
+    line-height: 2;
+    padding: 15px 0 35px;
+}
+
+.page-document-single-main__image {
+    aspect-ratio: 600 / 450;
+    border-radius: 8px;
+    overflow: hidden;
+    width: 75%;
+    margin: 0 auto 50px;
+}
+
+.page-document-single-main__image img {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}
+
+.page-document-single-main__cont-image {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 22px 4%;
+    padding: 35px 0;
+}
+
+.page-document-single-main__contents-image-item {
+    width: 48%;
+    aspect-ratio: 280 / 210;
+}
+
+.contents-image-pic {
+    width: 100%;
+    height: 100%;
+}
+
+.contents-image-pic img {
+    object-fit: contain;
+    object-position: center;
+    width: 100%;
+    height: 100%;
+}
+
+.page-document-single-formarea {
+    border-radius: 20px;
+    box-shadow: 0px 0px 35px 0px rgba(0, 0, 0, 0.1);
+    padding: 40px 30px;
+}
+
+.page-document-single-formarea .form_title {
+    font-size: 22px;
+}
+
+@media (max-width: 1024px) {
+    .page-document-single-article-header-bg {
+        padding-top: 84px;
+    }
+    .header-main--only.-document {
+        top: 13px;
+    }
+}
+
+@media (max-width: 920px) {
+    .page-document-single-article {
+        padding: 40px 20px 0;
+    }
+
+    .page-document-single-article-flex {
+        display: block;
+    }
+
+    .page-document-single-article-left,
+    .page-document-single-article-right {
+        padding: 0;
+    }
+
+    .page-document-single-article-right {
+        width: 100%;
+    }
+
+    .page-document-single-formarea {
+        border-radius: 0px;
+        box-shadow: none;
+        padding: 0px;
+    }
+
+    .page-document-single-formarea .form_title {
+        font-size: 28px;
+    }
+
+    .page-document-single-main__main-text,
+    .page-document-single-main__contents,
+    .page-document-single-main__sub-image {
+        display: none;
+    }
+}
+
+@media (max-width: 767px) {
+    .page-document-single-main__title {
+        font-size: 1.8rem;
+    }
+
+    .page-document-single-main__tag {
+        margin-top: 12px;
+        margin-bottom: 16px;
+    }
+
+    .page-document-single-main__tag .c-tag {
+        font-size: 1.2rem;
+        padding: 6px 15px;
+    }
+}
+
+/* カテゴリ */
+.p-document-tags {
+    padding: 0 20px;
+}
+
+.p-document-tags__list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 1%;
+}
+
+.p-document-tags__link {
+    color: #fff;
+    background-color: #D3D6D8;
+    border-radius: 5px;
+    padding: 8px 15px;
+    margin-bottom: 6px;
+    display: block;
+    transition: .3s;
+}
+
+.p-document-tags__link:hover,
+.p-document-tags__link.is-active {
+    background-color: #0576b6;
+}
+
+.p-document-tags__link:hover:after,
+.p-document-tags__link.is-active:after {
+    opacity: 1;
+}
+
+@media (max-width: 767px) {
+    .p-document-tags__list {
+        justify-content: left;
+        gap: 0 8px;
+    }
+
+    .p-document-tags__link {
+        font-size: 12px;
+        padding: 7px 10px;
+    }
+}
+
+
+/* infinite scroll */
+
+.c-infinite {
+    padding: 0 0 6rem;
+}
+
+.c-infinite .scroller-status {
+    display: none;
+    text-align: center;
+    font-weight: 200;
+    letter-spacing: 2px;
+}
+
+.c-infinite .infinite-scroll-last {
+    text-align: center;
+    font-weight: 200;
+    letter-spacing: 2px;
+}
+
+.infinite-scroll-request img {
+    margin: 0 auto;
+    width: 70px;
+    animation: rotation 4s linear infinite;
+}
+
+/* アニメーション */
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}

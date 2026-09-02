@@ -87,6 +87,7 @@ import AgentEventDetailPage from './page/Agent/EventDetailPage';
 import AgentEventsPage from './page/Agent/AgentEventsPage';
 import CollaboratorLandingHome from './page/LandingPage/Collaborator/Home';
 import CandidateLandingHome from './page/LandingPage/Candidate/Home';
+import BusinessLandingHome from './page/LandingPage/Business/Home';
 import CandidateLoginPage from './page/LandingPage/Candidate/CandidateLoginPage';
 import CandidateRegisterPage from './page/LandingPage/Candidate/CandidateRegisterPage';
 import CandidateResetPasswordPage from './page/LandingPage/Candidate/CandidateResetPasswordPage';
@@ -328,9 +329,9 @@ function App() {
             <Route path="settings" element={<SettingsPage />} />
           </Route>
 
-          {/* Legacy business marketing URLs → login */}
-          <Route path="/template/jobshare_business_landing/*" element={<Navigate to="/business/login" replace />} />
-          <Route path="/landing/business/*" element={<Navigate to="/business/login" replace />} />
+          {/* Business marketing landing (ReadyCrew template) */}
+          <Route path="/template/jobshare_business_landing/*" element={<Navigate to="/landing/business" replace />} />
+          <Route path="/landing/business/*" element={<BusinessLandingHome />} />
 
           {/* Legacy public URLs → /{lang}/... */}
           <Route path="/landing/collaborator/*" element={<LegacyPublicRedirect persona="collaborator" />} />
@@ -361,7 +362,7 @@ function App() {
 
           {/* Localized collaborator landing: /{lang}/... */}
           <Route path="/:lang" element={<LocaleGuard />}>
-            <Route path="business/*" element={<Navigate to="/business/login" replace />} />
+            <Route path="business/*" element={<BusinessLandingHome />} />
             <Route path="collaborator/jobs/:jobId" element={<LegacyLocaleCollaboratorJobRedirect />} />
             <Route element={<CollaboratorLayout />}>
               <Route index element={<CollaboratorLandingHome />} />

@@ -19,6 +19,7 @@
     "date-fns": "^4.1.0",
     "docx-preview": "^0.3.7",
     "framer-motion": "^12.23.13",
+    "html-react-parser": "^6.1.7",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "jszip": "^3.10.1",

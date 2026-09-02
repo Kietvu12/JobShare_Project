@@ -1,0 +1,168 @@
+export const SEMINAR_TABS = [
+  {
+    href: '#ancseminar',
+    label: 'セミナー',
+  },
+  {
+    href: '#ancsponsored-seminar',
+    label: '共催セミナー',
+  },
+  {
+    href: '#ancevent',
+    label: 'イベント',
+  },
+]
+
+export const SEMINAR_SECTIONS = [
+  {
+    id: 'ancseminar',
+    title: 'JobShare Business セミナー',
+    listHref: '/seminar/seminar/',
+    listLabel: 'セミナー一覧',
+    items: [
+      {
+        href: '/seminar/seminar/20260918-2/',
+        image: '/cms/wp-content/uploads/2026/08/20260918bnr7.jpg',
+        status: '受付中',
+        time: '2026年9月18日（金）10：00～12：00',
+        title: '外国人エンジニア採用の始め方 〜JobShare Business活用セミナー〜',
+      },
+      {
+        href: '/seminar/seminar/20260916-2/',
+        image: '/cms/wp-content/uploads/2026/08/85f085a583892b3a6ebd5de3be5c6195.jpg',
+        status: '受付中',
+        time: '2026年9月16日（水）11：00 - 12：00',
+        title: 'AI求人票作成で採用効率を高める 〜JobShare Business実践講座〜',
+      },
+      {
+        href: '/seminar/seminar/20260904-2/',
+        image: '/cms/wp-content/uploads/2026/08/e0e96a69f4b5281adf50ad4762c97b31.jpg',
+        status: '受付中',
+        time: '2026年9月4日（金）11：00～12：00',
+        title: '外国人人材の採用が初めての企業向け 基礎セミナー',
+      },
+      {
+        href: '/seminar/seminar/20260828-2/',
+        image: '/cms/wp-content/uploads/2026/07/122df86c0bf0e56ee027fc58bb1b9d77.jpg',
+        status: '受付終了',
+        time: '2026年8月28日（金）12：00～13：00',
+        title: 'ダイレクトスカウト vs 委託スカウト 〜自社に合った採用方法の選び方〜',
+      },
+      {
+        href: '/seminar/seminar/resource-strategy/',
+        image: '/cms/wp-content/uploads/2026/07/4-1.jpg',
+        status: '無料公開中',
+        time: '',
+        title: '900社の採用現場から学ぶ 外国人材採用で失敗しないリソース戦略',
+      },
+      {
+        href: '/seminar/seminar/20260728-2/',
+        image: '/cms/wp-content/uploads/2026/06/20260728.jpg',
+        status: '受付終了',
+        time: '2026年7月28日（火）11：00 - 12：00',
+        title: '採用ブランディングで優秀な外国人材を惹きつける方法',
+      },
+    ],
+  },
+  {
+    id: 'ancsponsored-seminar',
+    title: '共催セミナー',
+    listHref: '/seminar/sponsored-seminar/',
+    listLabel: '共催セミナー一覧',
+    items: [
+      {
+        href: '/seminar/sponsored-seminar/20260910-2/',
+        image: '/cms/wp-content/uploads/2026/08/1920_1080-1.jpg',
+        status: '受付中',
+        time: '2026年9月10日（木）13:00〜16:00',
+        title: 'Global Talent Hiring Conference 2026 〜外国人高度人材採用の最前線〜',
+      },
+      {
+        href: '/seminar/sponsored-seminar/20260908-2/',
+        image: '/cms/wp-content/uploads/2026/08/image-9.jpg',
+        status: '受付中',
+        time: '2026年9月8日 - 2026年9月10日',
+        title: 'Foreign Talent Summit Online 〜グローバル採用で成長速度を変える〜',
+      },
+      {
+        href: '/seminar/sponsored-seminar/20260818-2/',
+        image: '/cms/wp-content/uploads/2026/08/20260730_08conference.jpg',
+        status: '受付終了',
+        time: '2026年8月18日（火）～8月21日（金）（4日間）',
+        title: 'HR Tech & AI Recruiting Week 〜AI時代の外国人材採用戦略〜',
+      },
+      {
+        href: '/seminar/sponsored-seminar/20260721-2/',
+        image: '/cms/wp-content/uploads/2026/07/1b9e458461841f3df027cc22289c0721.jpg',
+        status: '受付終了',
+        time: '7月21日（火） 19:00 - 21:00',
+        title: '採用リーダーMeetup 〜外国人材採用の成功事例を語る夜〜',
+      },
+      {
+        href: '/seminar/sponsored-seminar/20260728-3/',
+        image: '/cms/wp-content/uploads/2026/06/e1caa9d9de05ae718be3793944df348c.jpg',
+        status: '受付終了',
+        time: '2026年7月28日（火）～2026年7月31日（金）',
+        title: 'HR Leaders 100 〜外国人材採用で組織を加速させる〜',
+      },
+      {
+        href: '/seminar/sponsored-seminar/20260730-2/',
+        image: '/cms/wp-content/uploads/2026/06/ff8ee03774ade28b647a272f79122590.jpg',
+        status: '受付終了',
+        time: '2026年07月30日（木）',
+        title: '採用成功率を高める候補者アプローチ戦略 〜JobShare Business活用事例〜',
+      },
+    ],
+  },
+  {
+    id: 'ancevent',
+    title: 'イベント',
+    listHref: '/seminar/event/',
+    listLabel: 'イベント一覧',
+    hasTagFilter: true,
+    items: [
+      {
+        href: '/seminar/event/sl_networking/',
+        image: '/cms/wp-content/uploads/2026/07/32d316db86adc7ae56bacf22f0fa93f4.jpg',
+        status: '開催終了',
+        time: '2026年7月16日（木） 19:00～21:00',
+        title: '外国人材採用担当者向け 異業種交流会',
+      },
+      {
+        href: '/seminar/event/20260310-2/',
+        image: '/cms/wp-content/uploads/2026/02/e895cf5b7a8d6cd408026de5e02a8c10.jpg',
+        status: '開催終了',
+        time: '2026年3月10日(火) 18:00～20:00（受付開始17:40～）',
+        title: 'なぜ外国人材の応募が集まらないのか？ 採用ブランディング戦略',
+      },
+      {
+        href: '/seminar/event/2026-01-27/',
+        image: '/cms/wp-content/uploads/2025/12/233cd82e8138a03473c4dc345cc1ee1f.png',
+        status: '開催終了',
+        time: '2026年1月27日(火) 18:00～20:00（受付開始17:40～）',
+        title: '候補者獲得から採用成功まで 外国人材採用ファネルの構築とは？',
+      },
+      {
+        href: '/seminar/event/20260122-2/',
+        image: '/cms/wp-content/uploads/2025/12/d328e039af65038c061aa9dfe247b33f.png',
+        status: '開催終了',
+        time: '2026年1月22日(木) 18:00～20:00（受付開始17:40～）',
+        title: '外国人材採用を設計して成果につなげる実務メソッド講座',
+      },
+      {
+        href: '/seminar/event/20251217-2/',
+        image: '/cms/wp-content/uploads/2025/07/85ff0e5b423c06afda227fd0c57e972d.jpg',
+        status: '受付終了',
+        time: '2025年12月17日（水）18:00～20:30（17:30受付開始）',
+        title: '🎄JobShare Business 年末ネットワーキング 2025🎄',
+      },
+      {
+        href: '/seminar/event/20151119-2/',
+        image: '/cms/wp-content/uploads/2025/10/769b10bc70276445e9b5c25b07701f53.png',
+        status: '受付終了',
+        time: '2025年11月20日(木) 18:00～20:00（受付開始17:40～）',
+        title: '採用チームの自己変革 〜外国人材採用で化学反応を生み出す方法〜',
+      },
+    ],
+  },
+]
