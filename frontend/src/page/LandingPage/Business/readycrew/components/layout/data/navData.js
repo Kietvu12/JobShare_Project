@@ -32,6 +32,6 @@ export const SOCIAL_LINKS = [
 export const COMPANY_INFO = {
   name: 'フロンティア株式会社',
   address: ['〒150-6017', '東京都渋谷区恵比寿4丁目20番3号', '恵比寿ガーデンプレイスタワー17階'],
-  tel: '097-289-97-28',
+  tel: '080-9441-1975',
   hours: '10:00 〜 18:00 (平日)',
 }

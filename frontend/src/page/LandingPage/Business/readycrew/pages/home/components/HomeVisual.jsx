@@ -1,5 +1,6 @@
 import SiteLink from '../../../components/layout/SiteLink'
 import heroVisualImage from '../../../../../../../assets/template_business/hero_bg_icon.png'
+import heroBadgeImage from '../../../../../../../assets/template_business/hero_icon_JP.png'
 
 export default function HomeVisual() {
   return (
@@ -95,13 +96,13 @@ export default function HomeVisual() {
         <div className="front-page-visual__contents">
           <div className="front-page-visual__badge-group">
             <img
-              src="/landing/business/assets/images/front-page/front-page-visual-badge_2026.png"
-              alt="総合ビジネスマッチングプラットフォーム売り上げシェアNO.1 ビジネスマッチングプラットフォーム商談件数NO.1 発注企業における大企業売上NO.1"
+              src={heroBadgeImage}
+              alt="技術系外国人材データベース40,000+ HRパートナーネットワーク500+ 東南アジア初AI外国人採用プラットフォーム"
             />
           </div>
           <ol className="front-page-visual__caption-list">
             <li className="front-page-visual__caption">
-              ※掲載数値は、2026年6月時点におけるJobShareの運営実績および登録データをもとに算出しています。
+              掲載数値は、2026年6月時点におけるJobShareの運営実績および登録データをもとに算出しています。
             </li>
           </ol>
         </div>

@@ -84,12 +84,12 @@ export default function PriceFlowSection() {
                       <SiteLink className="front-page-flow__contact-subject o-btn-bg o-btn-bg--red" to="/contact_rc/">
                         <p className="front-page-flow__contact-subject-text o-btn-bg__text">お問い合わせ</p>
                       </SiteLink>
-                      <a className="front-page-flow__contact-info" href="tel:097-289-97-28">
+                      <a className="front-page-flow__contact-info" href="tel:080-9441-1975">
                         <div className="front-page-flow__contact-tel">
                           <p className="front-page-flow__contact-icon">
                             <PhoneIcon />
                           </p>
-                          <p className="front-page-flow__contact-tel-text">097-289-97-28</p>
+                          <p className="front-page-flow__contact-tel-text">080-9441-1975</p>
                         </div>
                         <p className="front-page-flow__contact-time">10:00 〜 18:00 (平日)</p>
                       </a>
@@ -101,11 +101,11 @@ export default function PriceFlowSection() {
           </div>
           <div className="front-page-flow__lower">
             <div className="front-page-flow__tel-item">
-              <a className="front-page-flow__tel m-element-side-space" href="tel:097-289-97-28">
+              <a className="front-page-flow__tel m-element-side-space" href="tel:080-9441-1975">
                 <span className="front-page-flow__tel-icon">
                   <PhoneIcon className="front-page-flow__tel-icon-body" />
                 </span>
-                <span className="front-page-flow__tel-text">097-289-97-28</span>
+                <span className="front-page-flow__tel-text">080-9441-1975</span>
                 <span className="front-page-flow__time">10:00 〜 18:00 (平日)</span>
               </a>
             </div>

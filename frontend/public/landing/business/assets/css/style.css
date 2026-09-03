@@ -16305,9 +16305,78 @@ a.c-badge.-red:hover {
   }
 }
 
-.page-news-visual__logo .business-brand-logo {
+.page-news-visual__logo .business-brand-logo:not(.seminar-visual__brand):not(.news-visual__brand) {
   color: #fff;
-  font-size: clamp(13px, 1.6vw, 18px);
+  font-size: clamp(24px, 4vw, 48px);
   white-space: nowrap;
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.business-landing-page .header-sub.js-loading-hide {
+  display: block;
+}
+
+@media (max-width: 1023px) {
+  .business-landing-page .header-sub.js-loading-hide {
+    display: none !important;
+  }
+}
+
+.header--past-visual .header-main__contents,
+.header-main__contents--past-visual {
+  border: 2px solid #0576b6 !important;
+  box-shadow: 0 10px 10px 0 rgba(0, 0, 0, 0.08);
+}
+
+@media (min-width: 1024px) {
+  .header--past-visual .header-sub {
+    position: fixed;
+    top: 10px;
+    right: 21px;
+    z-index: 6;
+    display: block !important;
+  }
+
+  .header--past-visual .header-sub__tel,
+  .header--past-visual .header-sub__time {
+    color: #0576b6 !important;
+    transition: color 0.3s cubic-bezier(0.26, 0.16, 0.1, 1);
+  }
+
+  .header--past-visual .header-sub__tel-icon path {
+    fill: #0576b6 !important;
+    transition: fill 0.3s cubic-bezier(0.26, 0.16, 0.1, 1);
+  }
+}
+
+.seminar-visual .page-news-visual__logo .business-brand-logo {
+  color: #fff;
+  font-size: clamp(36px, 6.5vw, 88px);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  white-space: nowrap;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+@media (max-width: 767px) {
+  .seminar-visual .page-news-visual__logo .business-brand-logo {
+    font-size: clamp(22px, 6.5vw, 40px);
+  }
+}
+
+.news-visual .page-news-visual__logo .business-brand-logo {
+  color: #fff;
+  font-size: clamp(36px, 6.5vw, 88px);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  white-space: nowrap;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+@media (max-width: 767px) {
+  .news-visual .page-news-visual__logo .business-brand-logo {
+    font-size: clamp(22px, 6.5vw, 40px);
+  }
 }

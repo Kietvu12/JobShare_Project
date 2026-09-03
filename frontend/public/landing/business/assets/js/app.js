@@ -6,9 +6,34 @@ $(function () {
 
 	var $gnav = $(".js-gnav"),
 		$gnavContainer = $(".js-gnav-container");
-	$(window).on("load scroll", function () {
-		var $windowScrollValue = $(this).scrollTop();
-		if ($windowScrollValue > 0) {
+
+	function isPastPageVisual() {
+		var visual = document.querySelector(
+			".front-page-visual, .l-article-mv-plus-lower, .page-price-visual, .page-proposal-visual, .page-news-visual, .page-document-visual, .page-results-visual, .page-manga-visual, .l-article-mv"
+		);
+		var headerMain = document.querySelector(".header-main");
+
+		if (!visual) {
+			return $(window).scrollTop() > 80;
+		}
+
+		var headerHeight = headerMain ? headerMain.offsetHeight : 70;
+		var headerTop = headerMain
+			? headerMain.getBoundingClientRect().top
+			: 0;
+		var visualBottom = visual.offsetTop + visual.offsetHeight;
+
+		return (
+			$(window).scrollTop() + headerTop + headerHeight >=
+			visualBottom - 8
+		);
+	}
+
+	function updateHeaderScrollState() {
+		var pastVisual = isPastPageVisual();
+		$(".header").toggleClass("header--past-visual", pastVisual);
+
+		if (pastVisual) {
 			$gnav.addClass("js-gnav-active");
 			$gnavContainer.addClass("js-gnav-max-width");
 			$(".js-hamburger-menu__wrapper").addClass(
@@ -23,7 +48,10 @@ $(function () {
 			);
 			$(".js-hamburger-menu").removeClass("js-hamburger-menu--scroll");
 		}
-	});
+	}
+
+	$(window).on("load scroll resize", updateHeaderScrollState);
+	updateHeaderScrollState();
 
 	$(".js-hamburger-menu").on(clickEventType, function () {
 		let $menuClassName = "js-hamburger-menu",

@@ -44,11 +44,11 @@ export default function SeminarFooterTop() {
                     <span className="footer-top-conversion__btn-text o-btn-bg__text">無料で登録する</span>
                   </SiteLink>
                 </div>
-                <a className="footer-top-conversion__tel" href="tel:097-289-97-28">
+                <a className="footer-top-conversion__tel" href="tel:080-9441-1975">
                   <span className="footer-top-conversion__tel-icon">
                     <PhoneIcon className="footer-top-conversion__tel-icon-body" />
                   </span>
-                  <span className="footer-top-conversion__tel-text">097-289-97-28</span>
+                  <span className="footer-top-conversion__tel-text">080-9441-1975</span>
                   <span className="footer-top-conversion__time">10:00 〜 18:00 (平日)</span>
                 </a>
               </div>

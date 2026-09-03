@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { ensureSiteScripts } from '../../../lib/siteHtml'
 
-export const NEWS_PAGE_TITLE = 'ニュース | Ready Crew（レディクル）'
+export const NEWS_PAGE_TITLE = 'お知らせ | JobShare for Business'
 
 export function useNewsPage() {
   useEffect(() => {

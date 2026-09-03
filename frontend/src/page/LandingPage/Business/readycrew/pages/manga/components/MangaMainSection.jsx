@@ -44,12 +44,12 @@ export default function MangaMainSection() {
               <Link to="/contact_rc" className="o-btn-bg o-btn-bg--white page-manga-fin-contact__btn">
                 <span className="o-btn-bg__text">お問い合わせ</span>
               </Link>
-              <a className="m-contact__info m-contact__info--center page-manga-fin-contact__info" href="tel:097-289-97-28">
+              <a className="m-contact__info m-contact__info--center page-manga-fin-contact__info" href="tel:080-9441-1975">
                 <div className="m-contact__tel">
                   <p className="m-contact__icon--white">
                     <PhoneIcon />
                   </p>
-                  <p className="m-contact__tel-text--white">097-289-97-28</p>
+                  <p className="m-contact__tel-text--white">080-9441-1975</p>
                 </div>
                 <p className="m-contact__time--white">10:00 〜 18:00 (平日)</p>
               </a>

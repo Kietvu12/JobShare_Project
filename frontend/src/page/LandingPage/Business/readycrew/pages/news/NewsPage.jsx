@@ -3,6 +3,7 @@ import NewsList from './components/NewsList'
 import NewsTabs from './components/NewsTabs'
 import NewsVisual from './components/NewsVisual'
 import { useNewsPage } from './hooks/useNewsPage'
+import './news.css'
 
 export default function NewsPage() {
   useNewsPage()
