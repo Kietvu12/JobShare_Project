@@ -2,7 +2,7 @@ import { commissionTierLabelFontClass } from '../../utils/jobCommissionUi';
 
 /**
  * Banner phí job — admin (raw %) vs CTV (ước tính tiền).
- * CTV nhiều điều kiện: xếp dọc (nhãn full-width) thay vì 3 cột chật.
+ * Nhiều điều kiện: mỗi tier một hàng ngang (nhãn | số tiền), banner title bên trái.
  */
 export default function JobCommissionBanner({
   bannerLabel,
@@ -22,49 +22,6 @@ export default function JobCommissionBanner({
   const tierLabelBg = useAdminAPI && isInCampaign ? '#e5f0fb' : '#EB9696';
   const tierLabelColor = useAdminAPI && isInCampaign ? '#0d6bbd' : '#ffffff';
   const amountBg = '#DF2020';
-
-  /** CTV + nhiều tier: header trên, từng điều kiện xếp dọc */
-  const useStackedCtvLayout = !useAdminAPI && !useCollapsedCommissionBanner && rows.length > 1;
-
-  if (useStackedCtvLayout) {
-    return (
-      <div
-        className="flex flex-col rounded-md overflow-hidden shadow-sm border"
-        style={{ borderColor: '#7c3aed' }}
-      >
-        <div
-          className="px-2 py-2 text-[10px] sm:text-[11px] font-medium leading-snug text-left"
-          style={{ backgroundColor: bannerBg, color: '#ffffff' }}
-        >
-          {bannerLabel}
-        </div>
-        {rows.map((tier, index) => (
-          <div
-            key={index}
-            className="flex flex-col"
-            style={{ borderTop: index === 0 ? 'none' : '1px solid #d1d5db' }}
-          >
-            {tier.label ? (
-              <div
-                className="px-2 py-1.5 text-[10px] sm:text-[11px] font-medium leading-snug text-left"
-                style={{ backgroundColor: '#fce7e7', color: '#7f1d1d' }}
-                title={tier.label}
-              >
-                <span className="line-clamp-3">{tier.label}</span>
-              </div>
-            ) : null}
-            <div
-              className="px-2 py-2 text-[11px] sm:text-[12px] font-bold leading-snug text-left break-words"
-              style={{ backgroundColor: amountBg, color: '#ffffff' }}
-              title={tier.amount}
-            >
-              {tier.amount}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
 
   return (
     <div
