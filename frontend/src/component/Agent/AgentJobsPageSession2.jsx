@@ -32,7 +32,7 @@ import {
   resolveCampaignPercentFromJob,
   pickPrimaryCommissionJobValue,
   filterJobValuesForCommission,
-  filterJobValuesForCtvCommissionDisplay,
+  filterJobValuesForCommissionBannerDisplay,
   shouldHideCommissionConditionLabel,
   shouldUseCollapsedCommissionBanner,
   resolveCtvCommissionDisplayMultiplier,
@@ -1369,11 +1369,9 @@ const mockJobs = [
     // Calculate commission based on salary range, job percent, and CTV rank percent
     // Lấy job_values có commission: Phí (typeId 2), JLPT (1), JLPT-range (3), JLPT_range (4) - backend dùng cả những type này
     const jobValues = filterJobValuesForCommission(job.jobValues || job.profits || []);
-    const jobValuesForDisplay = useAdminAPI
-      ? jobValues
-      : filterJobValuesForCtvCommissionDisplay(job.jobValues || job.profits || []);
-    const hideCommissionConditionLabel = shouldHideCommissionConditionLabel(jobValues);
-    const useCollapsedCommissionBanner = shouldUseCollapsedCommissionBanner(jobValuesForDisplay);
+    const jobValuesForDisplay = filterJobValuesForCommissionBannerDisplay(job.jobValues || job.profits || []);
+    const hideCommissionConditionLabel = shouldHideCommissionConditionLabel(jobValues, job);
+    const useCollapsedCommissionBanner = shouldUseCollapsedCommissionBanner(jobValuesForDisplay, job);
     const contactLabel = language === 'vi' ? 'Liên hệ' : language === 'en' ? 'Contact' : 'お問い合わせ';
     let commissionText = contactLabel;
     let commissionTiers = [];

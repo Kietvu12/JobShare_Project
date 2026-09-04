@@ -49,7 +49,7 @@ import {
   resolveCampaignPercentFromJob,
   pickPrimaryCommissionJobValue,
   filterJobValuesForCommission,
-  filterJobValuesForCtvCommissionDisplay,
+  filterJobValuesForCommissionBannerDisplay,
   shouldUseCollapsedCommissionBanner,
   resolveCtvCommissionDisplayMultiplier,
   resolveCommissionBannerLabel,
@@ -1402,10 +1402,8 @@ const JobDetailPage = ({
 
   // Điều kiện phí: tính commissionTiers + commissionText giống AgentJobsPageSession2 (rankMultiplier = 1)
   const jobValuesForCommission = filterJobValuesForCommission(job.jobValues || job.profits || []);
-  const jobValuesForDisplay = useAdminAPI
-    ? jobValuesForCommission
-    : filterJobValuesForCtvCommissionDisplay(job.jobValues || job.profits || []);
-  const useCollapsedCommissionBanner = shouldUseCollapsedCommissionBanner(jobValuesForDisplay);
+  const jobValuesForDisplay = filterJobValuesForCommissionBannerDisplay(job.jobValues || job.profits || []);
+  const useCollapsedCommissionBanner = shouldUseCollapsedCommissionBanner(jobValuesForDisplay, job);
 
   const contactLabel = language === 'vi' ? 'Liên hệ' : language === 'en' ? 'Contact' : 'お問い合わせ';
   let detailCommissionText = contactLabel;

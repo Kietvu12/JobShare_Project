@@ -33,6 +33,36 @@ const tidOf = (jv) => Number(jv?.typeId ?? jv?.id_typename ?? jv?.type?.id ?? 0)
 const vidOf = (jv) => Number(jv?.valueId ?? jv?.valueRef?.id ?? 0);
 const tnameOf = (jv) => String(jv?.type?.typename || '').toLowerCase();
 
+const feeValueNameOf = (jv) =>
+  String(
+    jv?.valueRef?.valuename ??
+      jv?.valueRef?.valuenameEn ??
+      jv?.valueRef?.valuename_en ??
+      jv?.valueRef?.valuenameJp ??
+      jv?.valueRef?.valuename_jp ??
+      jv?.valueRef?.name ??
+      ''
+  ).toLowerCase();
+
+/** Phí qua sàn JobShare (vd. «Phí thông qua sàn») — không phải phí trực tiếp cho CTV. */
+export function isPlatformFeeJobValue(jv) {
+  const name = feeValueNameOf(jv);
+  if (
+    name.includes('thông qua sàn') ||
+    name.includes('qua sàn') ||
+    name.includes('through platform') ||
+    name.includes('jobshare nhận') ||
+    name.includes('sàn ctv')
+  ) {
+    return true;
+  }
+  const vid = vidOf(jv);
+  if (vid === 6 && !name.includes('trực tiếp') && !name.includes('direct')) {
+    return true;
+  }
+  return false;
+}
+
 /** Dòng job_values có % hoặc số tiền phí đã nhập (field `value`). */
 export function hasJobValueCommissionAmount(jv) {
   const v = jv?.value;
@@ -49,12 +79,19 @@ export function isActiveContactCommissionJobValue(jv) {
 }
 
 /**
- * Lọc job_values dùng để hiển thị/tính phí.
+ * Lọc job_values hiển thị trên banner phí (card/chi tiết) — giữ đủ mọi điều kiện.
+ */
+export function filterJobValuesForCommissionBannerDisplay(allJobValues) {
+  return filterJobValuesForCommission(allJobValues);
+}
+
+/**
+ * Lọc job_values dùng để hiển thị/tính phí CTV.
  * Bao gồm cả điều kiện tùy chỉnh (vd. thời gian gia nhập) khi đã có `value`.
  * Bỏ qua valueId=34 rỗng (tránh fallback "Liên hệ" oan).
  */
 export function filterJobValuesForCtvCommissionDisplay(allJobValues) {
-  return filterJobValuesForCommission(allJobValues);
+  return filterJobValuesForCommissionBannerDisplay(allJobValues);
 }
 
 export function filterJobValuesForCommission(allJobValues) {
@@ -78,36 +115,35 @@ export function filterJobValuesForCommission(allJobValues) {
 }
 
 /** Ẩn cột tên điều kiện phí (chỉ hiện số tiền/%). */
-export function shouldHideCommissionConditionLabel(jobValuesForCommission) {
+export function shouldHideCommissionConditionLabel(jobValuesForCommission, job = null) {
   const rows = Array.isArray(jobValuesForCommission) ? jobValuesForCommission : [];
   return rows.some((jv) => {
-    const tid = tidOf(jv);
-    const valueId = vidOf(jv);
-    const val = jv.value;
-    const numVal = val !== null && val !== undefined && val !== '' ? Number(val) : null;
-    if (valueId === 34 && isActiveContactCommissionJobValue(jv)) return true;
-    return tid === 2 && (valueId === 6 || valueId === 7 || numVal === 6 || numVal === 7);
+    if (vidOf(jv) === 34 && isActiveContactCommissionJobValue(jv)) return true;
+    if (job && isDirectFixedCtvCommissionJobValue(jv, job)) return true;
+    if (isPlatformFeeJobValue(jv)) return rows.length === 1;
+    const name = feeValueNameOf(jv);
+    if (name.includes('trực tiếp') || name.includes('direct')) return true;
+    return vidOf(jv) === 7;
   });
 }
 
 /** Banner 1 dòng (không tách điều kiện) — chỉ khi có đúng 1 tier và tier đó thuộc loại ẩn nhãn. */
-export function shouldUseCollapsedCommissionBanner(jobValuesForCommission) {
+export function shouldUseCollapsedCommissionBanner(jobValuesForCommission, job = null) {
   const rows = Array.isArray(jobValuesForCommission) ? jobValuesForCommission : [];
   if (rows.length !== 1) return false;
-  return shouldHideCommissionConditionLabel(rows);
+  return shouldHideCommissionConditionLabel(rows, job);
 }
 
 /**
- * valueId 6/7 (Trực tiếp cho CTV): phí cố định hiển thị đúng số đã nhập, không nhân % level CTV.
+ * Phí cố định trực tiếp cho CTV: hiển thị đúng số đã nhập, không nhân % level CTV.
+ * valueId 6 mặc định là phí qua sàn — chỉ coi trực tiếp khi tên ghi rõ hoặc valueId 7 (legacy).
  */
 export function isDirectFixedCtvCommissionJobValue(jv, job) {
   if (normalizeJobCommissionType(job) !== 'fixed') return false;
-  const vid = vidOf(jv);
-  if (vid === 6 || vid === 7) return true;
-  const name = String(
-    jv?.valueRef?.valuename ?? jv?.valueRef?.valuenameEn ?? jv?.valueRef?.name ?? ''
-  ).toLowerCase();
-  return name.includes('trực tiếp') || name.includes('direct');
+  if (isPlatformFeeJobValue(jv)) return false;
+  const name = feeValueNameOf(jv);
+  if (name.includes('trực tiếp') || name.includes('direct')) return true;
+  return vidOf(jv) === 7;
 }
 
 /** Hệ số nhân khi hiển thị phí cho CTV (admin luôn = 1). */
