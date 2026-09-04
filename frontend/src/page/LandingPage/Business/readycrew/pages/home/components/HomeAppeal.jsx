@@ -1,28 +1,44 @@
 import SiteLink from '../../../components/layout/SiteLink'
+import { useLanguage } from '../../../../../../../context/LanguageContext'
+import { getHomeAppealCopy } from '../../../../../../../i18n/businessApp/homeAppeal'
 
 const APPEAL_VIDEO_ID = 's-qy-EaoOXg'
 const APPEAL_VIDEO_THUMBNAIL = `https://img.youtube.com/vi/${APPEAL_VIDEO_ID}/maxresdefault.jpg`
 
+const JA_MAIN_TEXT_STYLE = {
+  fontSize: 'clamp(18px, 3.2vw, 34px)',
+}
+
 export default function HomeAppeal() {
+  const { language } = useLanguage()
+  const copy = getHomeAppealCopy(language)
+  const isJapanese = language === 'ja'
+
   return (
-    <section className="front-page-appeal">
+    <section className={`front-page-appeal${isJapanese ? '' : ` front-page-appeal--${language}`}`}>
       <div className="front-page-appeal__contents">
         <div className="front-page-appeal__text-area">
           <h2
-            className="front-page-appeal__main-text"
-            style={{ fontSize: 'clamp(18px, 3.2vw, 34px)' }}
+            className={`front-page-appeal__main-text${isJapanese ? '' : ' front-page-appeal__main-text--i18n'}`}
+            style={isJapanese ? JA_MAIN_TEXT_STYLE : undefined}
           >
             <span className="c-text-red-4">
-              外国人材採用に必要なすべてを、
-              <br />
-              ひとつのプラットフォームに。
+              {copy.titleLines.map((line, index) => (
+                <span key={`${line}-${index}`}>
+                  {line}
+                  {copy.alwaysBreakAfter?.includes(index) ? <br /> : null}
+                  {!isJapanese && index < copy.titleLines.length - 1 && !copy.alwaysBreakAfter?.includes(index) ? (
+                    <br />
+                  ) : null}
+                </span>
+              ))}
             </span>
           </h2>
-          <p className="front-page-appeal__desc">
-            JobShare Businessは、外国人高度人材の採用に必要な機能とサービスを一元化した、企業向け採用支援プラットフォームです。AIによる求人票作成、候補者検索・マッチング、スカウト、採用支援、採用ブランディング、採用パートナーネットワークまで、採用活動を一つの画面から進められます。企業ごとの採用課題や社内体制に合わせて、必要な機能・サービスだけを選択して利用できます。
+          <p className={`front-page-appeal__desc${isJapanese ? '' : ' front-page-appeal__desc--i18n'}`}>
+            {copy.desc}
           </p>
           <SiteLink to="/contact_rc2/" className="button">
-            外国人材採用について相談する
+            {copy.cta}
             <span className="arrow" />
           </SiteLink>
         </div>
@@ -36,7 +52,7 @@ export default function HomeAppeal() {
                     className="front-page-appeal-movie__first-thumbnail-body"
                     src={APPEAL_VIDEO_THUMBNAIL}
                     loading="lazy"
-                    alt="JobShare Business 紹介動画"
+                    alt={copy.videoAlt}
                   />
                 </div>
                 <div className="front-page-appeal-movie__btn js-movie-gallery-btn" data-video-id={APPEAL_VIDEO_ID}>
@@ -52,7 +68,7 @@ export default function HomeAppeal() {
               <div className="js-movie-gallery-player" id="yt_player" />
             </div>
             <div className="front-page-appeal-movie__thumbnail-area">
-              <span className="txt_white">CM放映中</span>
+              <span className="txt_white">{copy.videoBadge}</span>
             </div>
           </div>
         </div>

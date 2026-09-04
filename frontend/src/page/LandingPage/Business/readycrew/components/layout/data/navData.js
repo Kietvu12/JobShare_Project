@@ -1,3 +1,6 @@
+const PRIMARY_NAV_PATHS = ['/price', '/proposal', '/seminar', '/news', '/about-us']
+
+/** @deprecated Use getLandingHeaderCopy() for localized labels */
 const PRIMARY_NAV_LINKS = [
   { path: '/price', label: 'JobShare Businessとは', en: 'About JobShare Business' },
   { path: '/proposal', label: '各サービス', en: 'Services' },
@@ -5,6 +8,8 @@ const PRIMARY_NAV_LINKS = [
   { path: '/news', label: 'ニュース', en: 'News' },
   { path: '/about-us', label: '会社概要', en: 'Company Profile' },
 ]
+
+export { PRIMARY_NAV_PATHS }
 
 export const HEADER_NAV_LINKS = PRIMARY_NAV_LINKS.map(({ path, label }) => ({ path, label }))
 

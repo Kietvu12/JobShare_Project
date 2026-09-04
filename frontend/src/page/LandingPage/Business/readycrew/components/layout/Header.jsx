@@ -1,16 +1,46 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
+import { useLanguage } from '../../../../../../context/LanguageContext'
+import { getLandingHeaderCopy } from '../../../../../../i18n/businessApp/landingHeader'
+import { getLocaleFromPathname } from '../../../../../../utils/localeRoutes'
 import { ensureSiteScripts } from '../../lib/siteHtml'
 import CommonNavPanel from './CommonNavPanel'
-import { COMPANY_INFO, HEADER_NAV_LINKS } from './data/navData'
+import BusinessLandingLanguageSwitcher from './BusinessLandingLanguageSwitcher'
+import { COMPANY_INFO } from './data/navData'
 import BrandLogo from './BrandLogo'
 import { useHeaderPastVisual } from './hooks/useHeaderPastVisual'
 import { PhoneIcon } from './icons'
 import SiteLink from './SiteLink'
 
+function HeaderNavButtonLabel({ lines, className }) {
+  const safeLines = lines?.filter(Boolean)?.length ? lines.filter(Boolean) : ['']
+
+  if (safeLines.length === 1) {
+    return <span className={className}>{safeLines[0]}</span>
+  }
+
+  return (
+    <span className={className}>
+      {safeLines.map((line, index) => (
+        <span key={`${line}-${index}`}>
+          {index > 0 ? <br /> : null}
+          {line}
+        </span>
+      ))}
+    </span>
+  )
+}
+
 export default function Header() {
   const { pathname } = useLocation()
+  const { language, syncFromUrl } = useLanguage()
+  const copy = getLandingHeaderCopy(language)
   const pastVisual = useHeaderPastVisual(pathname)
+  const localeFromUrl = getLocaleFromPathname(pathname)
+
+  useEffect(() => {
+    if (localeFromUrl) syncFromUrl(localeFromUrl)
+  }, [localeFromUrl, syncFromUrl])
 
   useEffect(() => {
     ensureSiteScripts()
@@ -21,7 +51,7 @@ export default function Header() {
   }, [])
 
   return (
-    <header className={`header${pastVisual ? ' header--past-visual' : ''}`}>
+    <header className={`header header--lang-${language}${pastVisual ? ' header--past-visual' : ''}`}>
       <div className="header-sub js-loading-hide">
         <div className="header-sub__contents">
           <a href={`tel:${COMPANY_INFO.tel}`} className="header-sub__tel">
@@ -30,7 +60,7 @@ export default function Header() {
             </span>
             <span className="header-sub__tel-text">{COMPANY_INFO.tel}</span>
           </a>
-          <p className="header-sub__time">{COMPANY_INFO.hours}</p>
+          <BusinessLandingLanguageSwitcher />
         </div>
       </div>
 
@@ -49,12 +79,12 @@ export default function Header() {
 
             <a className="header-main-hamburger js-hamburger-menu" href="#" onClick={(e) => e.preventDefault()}>
               <div className="header-main-hamburger__icon js-hamburger-menu__icon" />
-              <p className="header-main-hamburger__text js-hamburger-menu__text">Menu</p>
+              <p className="header-main-hamburger__text js-hamburger-menu__text">{copy.menu}</p>
             </a>
 
             <nav className="header-nav">
               <ol className="header-nav__list">
-                {HEADER_NAV_LINKS.map((item) => (
+                {copy.navLinks.map((item) => (
                   <li key={item.path} className="header-nav__item">
                     <SiteLink to={item.path} className="header-nav__anchor">
                       {item.label}
@@ -65,12 +95,12 @@ export default function Header() {
               <ol className="header-nav__btn-group">
                 <li className="header-nav__btn-item">
                   <SiteLink to="/business/register" className="header-nav__btn o-btn-bg">
-                    <span className="o-btn-bg__text">無料登録</span>
+                    <HeaderNavButtonLabel lines={copy.registerLines} className="o-btn-bg__text" />
                   </SiteLink>
                 </li>
                 <li className="header-nav__btn-item">
                   <SiteLink to="/business/login" className="header-nav__btn o-btn-border">
-                    <span className="o-btn-border__text">ログイン</span>
+                    <HeaderNavButtonLabel lines={copy.loginLines} className="o-btn-border__text" />
                   </SiteLink>
                 </li>
               </ol>

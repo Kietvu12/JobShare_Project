@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 const STYLES = [
+  'https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,700;0,800&display=swap',
   'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100;300;400;500;700;900&display=swap',
   'https://use.typekit.net/ofq0clf.css',
   '/landing/business/assets/css/swiper-bundle.min.css',

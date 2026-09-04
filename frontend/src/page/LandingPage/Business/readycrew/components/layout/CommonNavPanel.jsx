@@ -1,5 +1,7 @@
+import { useLanguage } from '../../../../../../context/LanguageContext'
+import { getLandingHeaderCopy } from '../../../../../../i18n/businessApp/landingHeader'
 import BrandLogo from './BrandLogo'
-import { COMPANY_INFO, FOOTER_SITEMAP_LINKS, LEGAL_LINKS, MOBILE_SITEMAP_LINKS, SOCIAL_LINKS } from './data/navData'
+import { COMPANY_INFO, LEGAL_LINKS, SOCIAL_LINKS } from './data/navData'
 import { ArrowIcon, FacebookIcon, InstagramIcon, NoteIcon, PhoneIcon, TwitterIcon } from './icons'
 import SiteLink from './SiteLink'
 
@@ -7,19 +9,9 @@ function SitemapList({ items, listClass }) {
   return (
     <ol className={listClass}>
       {items.map((item) => (
-        <li key={item.path + item.en} className="common-nav-sitemap__item">
+        <li key={item.path} className="common-nav-sitemap__item">
           <SiteLink to={item.path} className="common-nav-sitemap__anchor">
-            <span className="common-nav-sitemap__jp">
-              {item.jp}
-              {item.sub ? (
-                <>
-                  {'\u2002'}
-                  <br className="n-br" />
-                  <small>{item.sub}</small>
-                </>
-              ) : null}
-            </span>
-            <span className="common-nav-sitemap__en">{item.en}</span>
+            <span className="common-nav-sitemap__jp">{item.label}</span>
           </SiteLink>
         </li>
       ))}
@@ -27,7 +19,7 @@ function SitemapList({ items, listClass }) {
   )
 }
 
-function CommonNavInfo() {
+function CommonNavInfo({ copy }) {
   return (
     <div className="common-nav-info">
       <p className="common-nav-info__logo">
@@ -35,7 +27,7 @@ function CommonNavInfo() {
       </p>
       <dl className="common-nav-info__detail">
         <dt className="common-nav-info__corp">
-          <span className="common-nav-info__corp--small">運営会社</span>
+          <span className="common-nav-info__corp--small">{copy.operatorLabel}</span>
           <br />
           <strong className="common-nav-info__corp--bold">{COMPANY_INFO.name}</strong>
         </dt>
@@ -59,7 +51,7 @@ function CommonNavInfo() {
             <span className="o-anchor-text__icon">
               <ArrowIcon />
             </span>
-            <span className="o-anchor-text__text">Corporate Site</span>
+            <span className="o-anchor-text__text">{copy.corporateSite}</span>
           </a>
         </li>
         <li className="common-nav-info__item">
@@ -72,7 +64,7 @@ function CommonNavInfo() {
             <span className="o-anchor-text__icon">
               <ArrowIcon />
             </span>
-            <span className="o-anchor-text__text">Recruiting Site</span>
+            <span className="o-anchor-text__text">{copy.recruitingSite}</span>
           </a>
         </li>
       </ol>
@@ -108,15 +100,15 @@ function CommonNavLower() {
   )
 }
 
-function CommonNavContact() {
+function CommonNavContact({ copy }) {
   return (
     <div className="common-nav__contact">
       <div className="common-nav__btn-group">
         <SiteLink to="/inquiry_docs_rc/" className="common-nav__contact-btn o-btn-bg m-element-side-space">
-          <span className="common-nav__btn-text o-btn-bg__text">資料ダウンロード</span>
+          <span className="common-nav__btn-text o-btn-bg__text">{copy.downloadMaterials}</span>
         </SiteLink>
         <SiteLink to="/contact_rc/" className="common-nav__contact-btn o-btn-border m-element-side-space">
-          <span className="common-nav__btn-text o-btn-border__text">お問い合わせ</span>
+          <span className="common-nav__btn-text o-btn-border__text">{copy.contact}</span>
         </SiteLink>
       </div>
       <a className="common-nav__tel" href={`tel:${COMPANY_INFO.tel}`}>
@@ -124,7 +116,7 @@ function CommonNavContact() {
           <PhoneIcon className="common-nav__tel-icon-body" />
         </span>
         <span className="common-nav__tel-text">{COMPANY_INFO.tel}</span>
-        <span className="common-nav__time">{COMPANY_INFO.hours}</span>
+        <span className="common-nav__time">{copy.businessHours}</span>
       </a>
     </div>
   )
@@ -150,21 +142,22 @@ function CommonNavSns() {
 }
 
 export default function CommonNavPanel({ variant }) {
-  const sitemapLinks = variant === 'mobile' ? MOBILE_SITEMAP_LINKS : FOOTER_SITEMAP_LINKS
+  const { language } = useLanguage()
+  const copy = getLandingHeaderCopy(language)
   const listClass = variant === 'mobile' ? 'common-nav-sitemap__list-ham' : 'common-nav-sitemap__list'
 
   return (
     <>
       <div className="common-nav-row">
         <div className="common-nav-sitemap">
-          <SitemapList items={sitemapLinks} listClass={listClass} />
+          <SitemapList items={copy.navLinks} listClass={listClass} />
         </div>
-        <CommonNavInfo />
+        <CommonNavInfo copy={copy} />
         <CommonNavLower />
-        <CommonNavContact />
+        <CommonNavContact copy={copy} />
       </div>
       <CommonNavSns />
-      <p className="common-nav-copyright">© FRONTIER Co. Ltd. All Rights Reserved.</p>
+      <p className="common-nav-copyright">{copy.copyright}</p>
     </>
   )
 }
