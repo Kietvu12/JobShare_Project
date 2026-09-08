@@ -30,6 +30,21 @@ export function formatApplicationDateLocalized(value, language = 'vi') {
   }
 }
 
+export function formatApplicationDateTimeLocalized(value, language = 'vi') {
+  if (!value) return '—';
+  try {
+    return new Date(value).toLocaleString(getDateLocale(language), {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '—';
+  }
+}
+
 export function formatApplicationRelativeTimeLocalized(value, language = 'vi') {
   return formatBusinessRelativeTime(value, language);
 }

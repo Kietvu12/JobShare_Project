@@ -1644,7 +1644,7 @@ const apiService = {
     return data?.data || { originals: [], templates: [] };
   },
 
-  updateBusinessApplicationStatus: async (applicationId, { status, rejectNote = null, paymentAmount = null, interviewDate = null, forceClearRejectNote = false } = {}) => {
+  updateBusinessApplicationStatus: async (applicationId, { status, rejectNote = null, paymentAmount = null, interviewDate = null, memo = undefined, forceClearRejectNote = false } = {}) => {
     const statusNum = typeof status === 'number' ? status : parseInt(status, 10);
     const body = { status: statusNum };
     if (forceClearRejectNote) {
@@ -1657,6 +1657,7 @@ const apiService = {
       if (!Number.isNaN(amount)) body.paymentAmount = amount;
     }
     if (interviewDate) body.interviewDate = interviewDate;
+    if (memo !== undefined) body.memo = memo;
     const response = await fetch(`${API_BASE_URL}/business/applications/${applicationId}/status`, {
       method: 'PATCH',
       headers: getAuthHeaders(),

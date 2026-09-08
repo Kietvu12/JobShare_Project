@@ -89,6 +89,7 @@ export default function ScoutCandidateProfilePanel({
   showLockedHint = false,
   matchScore = null,
   matchJobTitle = null,
+  belowNameContent = null,
   className = '',
 }) {
   const { language } = useLanguage()
@@ -169,6 +170,7 @@ export default function ScoutCandidateProfilePanel({
               <span style={{ color: '#94a3b8' }}>{position ? ' · ' : ''}{candidate.code}</span>
             ) : null}
           </div>
+          {belowNameContent}
           {Number.isFinite(Number(matchScore)) ? (
             <div className="mt-1.5 flex flex-wrap items-center gap-2">
               <ScoutMatchBadge score={matchScore} />

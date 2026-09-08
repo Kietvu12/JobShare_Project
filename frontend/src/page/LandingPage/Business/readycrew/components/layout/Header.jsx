@@ -77,9 +77,17 @@ export default function Header() {
               </h1>
             </div>
 
-            <a className="header-main-hamburger js-hamburger-menu" href="#" onClick={(e) => e.preventDefault()}>
+            <div className="header-main__lang-switch header-main__lang-switch--mobile">
+              <BusinessLandingLanguageSwitcher />
+            </div>
+
+            <a
+              className="header-main-hamburger js-hamburger-menu"
+              href="#"
+              onClick={(e) => e.preventDefault()}
+              aria-label={copy.menu}
+            >
               <div className="header-main-hamburger__icon js-hamburger-menu__icon" />
-              <p className="header-main-hamburger__text js-hamburger-menu__text">{copy.menu}</p>
             </a>
 
             <nav className="header-nav">

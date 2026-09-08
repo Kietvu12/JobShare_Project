@@ -181,6 +181,8 @@ function formatApplication(row, maps, unreadMap = {}, { withFullProfile = false 
     ctvId: j.collaboratorId,
     appliedAt: j.appliedAt || j.createdAt,
     interviewDate: j.interviewDate,
+    memo: j.memo || null,
+    rejectNote: j.rejectNote || null,
     unreadCount: unreadMap[String(j.id)] || 0,
     canViewFullProfile,
     profileOnlyNoChat,
@@ -586,6 +588,7 @@ export async function updateBusinessJobApplicationStatus({
   rejectNote,
   paymentAmount,
   interviewDate,
+  memo,
 }) {
   const statusNum = parseInt(status, 10);
   if (Number.isNaN(statusNum) || statusNum < 1 || statusNum > 17) {
@@ -612,6 +615,11 @@ export async function updateBusinessJobApplicationStatus({
   }
   if (interviewDate) {
     jobApplication.interviewDate = interviewDate;
+  }
+  if (memo !== undefined) {
+    jobApplication.memo = memo != null && String(memo).trim() !== ''
+      ? String(memo).trim()
+      : null;
   }
   await jobApplication.save();
 

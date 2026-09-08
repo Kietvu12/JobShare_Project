@@ -117,11 +117,6 @@ export default {
   /** Email nhận thông báo khi có đơn tiến cử mới (phân tách bằng dấu phẩy; ghi đè bằng NOMINATION_NEW_ADMIN_EMAILS) */
   nominationNewAdminEmails: (() => {
     const raw = process.env.NOMINATION_NEW_ADMIN_EMAILS || [
-      'hung.nguyen@work-station.vn',
-      'linh.bui@work-station.vn',
-      'huyen.vu@work-station.vn',
-      'anh.tran@work-station.vn',
-      'tung.nguyen@work-station.vn',
       'tuanvukiet04@gmail.com'
     ].join(',');
     return raw

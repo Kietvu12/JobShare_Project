@@ -335,8 +335,22 @@ export async function createScoutPerformanceRequest({
     console.error('[ScoutPerformance] ws chat sync after open failed:', chatError);
   }
 
-  const { getUnlockedCandidateForBusiness } = await import('./businessScoutService.js');
+  const { getUnlockedCandidateForBusiness, attachScoutCandidateToJob } = await import('./businessScoutService.js');
   const detail = await getUnlockedCandidateForBusiness({ businessId, cvId });
+
+  let nomination = null;
+  if (jobId && job) {
+    try {
+      nomination = await attachScoutCandidateToJob({
+        businessId,
+        cvId,
+        jobId: Number(jobId),
+        note: 'Tạo từ Scout Ủy Thác — hearing JD',
+      });
+    } catch (attachErr) {
+      console.error('[ScoutPerformance] attach job after hearing failed:', attachErr?.message || attachErr);
+    }
+  }
 
   let wantsSimilar = !!result.request.wantsSimilarCandidates;
   if (wantsSimilarCandidates && !wantsSimilar) {
@@ -368,6 +382,7 @@ export async function createScoutPerformanceRequest({
     candidate: detail.candidate,
     wantsSimilarCandidates: wantsSimilar,
     expectedResponseHours: 24,
+    nomination,
   };
 }
 

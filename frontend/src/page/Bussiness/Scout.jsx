@@ -986,10 +986,29 @@ function useScoutConfirmModalLock(open) {
   }, [open])
 }
 
+function ScoutAlternatePromoLine({ promo, onSwitch, className = 'mt-2.5' }) {
+  if (!promo?.link || !onSwitch) return null
+
+  return (
+    <p className={`${className} text-xs font-medium leading-snug text-slate-600 sm:text-sm`}>
+      {promo.prefix}
+      <button
+        type="button"
+        onClick={onSwitch}
+        className="font-semibold text-[#0077B6] underline decoration-[#0077B6]/40 underline-offset-2 transition-colors hover:text-[#006399] hover:decoration-[#006399]"
+      >
+        {promo.link}
+      </button>
+      {promo.suffix}
+    </p>
+  )
+}
+
 function ScoutCreditConfirmModal({
   open,
   onClose,
   onConfirm,
+  onAlternateScoutSwitch,
   loading = false,
   agreed,
   onAgreedChange,
@@ -1089,6 +1108,13 @@ function ScoutCreditConfirmModal({
                 {m.disclaimer}
               </p>
             </div>
+
+            {m.alternateScoutPromo ? (
+              <ScoutAlternatePromoLine
+                promo={m.alternateScoutPromo}
+                onSwitch={onAlternateScoutSwitch}
+              />
+            ) : null}
           </div>
         </div>
 
@@ -1134,6 +1160,7 @@ function ScoutPerformanceConfirmModal({
   onClose,
   onConfirm,
   onQuickCreateJd,
+  onAlternateScoutSwitch,
   loading = false,
   agreed,
   onAgreedChange,
@@ -1243,6 +1270,13 @@ function ScoutPerformanceConfirmModal({
                       <span className="font-bold text-slate-900">{m.intro2Highlight}</span>
                       {m.intro2Suffix}
                     </p>
+                    {m.alternateScoutPromo ? (
+                      <ScoutAlternatePromoLine
+                        promo={m.alternateScoutPromo}
+                        onSwitch={onAlternateScoutSwitch}
+                        className="mt-0"
+                      />
+                    ) : null}
                   </div>
                   <div className="scout-confirm-modal-illus hidden items-center justify-center xl:flex xl:justify-end">
                     <img
@@ -1431,6 +1465,9 @@ function ScoutPerformanceSuccessModal({
   sessionId,
   requestId,
   wantsSimilarCandidates,
+  nominationCreated = false,
+  nominationAlreadyExists = false,
+  nominationJobTitle = '',
   onGoApplications,
   onGoChat,
 }) {
@@ -1438,6 +1475,12 @@ function ScoutPerformanceSuccessModal({
   const m = getScoutWorkspaceCopy(language).modals.performanceSuccess
   const c = getScoutWorkspaceCopy(language).common
   if (!open) return null
+
+  const nominationMessage = nominationCreated && nominationJobTitle
+    ? (nominationAlreadyExists
+      ? m.nominationExists(nominationJobTitle)
+      : m.nominationCreated(nominationJobTitle))
+    : ''
 
   return (
     <div
@@ -1457,6 +1500,11 @@ function ScoutPerformanceSuccessModal({
           {m.body}
           {wantsSimilarCandidates ? m.bodySimilar : ''}
         </p>
+        {nominationMessage ? (
+          <p className="mt-2 text-sm font-medium text-[#006399] leading-relaxed">
+            {nominationMessage}
+          </p>
+        ) : null}
         {requestCode && (
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{m.requestCode}</div>
@@ -1810,6 +1858,7 @@ const Scout = ({ variant = 'credit' } = {}) => {
     const url = getScoutCandidateDetailUrl(cvIdParam, {
       jobId: selectedJobId,
       performanceRequestId,
+      mode: variant === 'performance' ? 'performance' : 'credit',
     })
     window.open(url, '_blank', 'noopener,noreferrer')
     setSearchParams((prev) => {
@@ -1817,7 +1866,7 @@ const Scout = ({ variant = 'credit' } = {}) => {
       next.delete('cvId')
       return next
     })
-  }, [cvIdParam, selectedJobId, performanceRequestId, setSearchParams])
+  }, [cvIdParam, selectedJobId, performanceRequestId, setSearchParams, variant])
 
   useEffect(() => {
     if (performanceRequestId || selectedJobId) return
@@ -2058,9 +2107,10 @@ const Scout = ({ variant = 'credit' } = {}) => {
       jobId: selectedJobId,
       performanceRequestId,
       search: searchQuery,
+      mode: variant === 'performance' ? 'performance' : 'credit',
     })
     window.open(url, '_blank', 'noopener,noreferrer')
-  }, [selectedJobId, performanceRequestId, searchQuery])
+  }, [selectedJobId, performanceRequestId, searchQuery, variant])
 
   const handlePerformanceExplore = async (action) => {
     if (!performanceDetail?.id) return
@@ -2277,6 +2327,7 @@ const Scout = ({ variant = 'credit' } = {}) => {
                         performanceRequestId,
                         jobId: selectedJobId,
                         search: searchQuery,
+                        mode: 'performance',
                       })
                       return (
                         <button
@@ -2382,6 +2433,7 @@ export {
   ScoutAttachJobModal,
   ScoutActionModal,
   ScoutMatchBadge,
+  ScoutAlternatePromoLine,
   getLocalizedScoutDisplayName as getScoutDisplayName,
 }
 

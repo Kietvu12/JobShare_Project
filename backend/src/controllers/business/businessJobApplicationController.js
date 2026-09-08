@@ -87,7 +87,7 @@ export const businessJobApplicationController = {
 
   updateStatus: async (req, res, next) => {
     try {
-      const { status, rejectNote, paymentAmount, interviewDate } = req.body;
+      const { status, rejectNote, paymentAmount, interviewDate, memo } = req.body;
       if (status === undefined) {
         return res.status(400).json({ success: false, message: 'Trạng thái là bắt buộc' });
       }
@@ -98,6 +98,7 @@ export const businessJobApplicationController = {
         rejectNote,
         paymentAmount,
         interviewDate,
+        memo,
       });
       res.json({
         success: true,

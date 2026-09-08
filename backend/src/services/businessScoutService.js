@@ -11,7 +11,6 @@ import {
 } from '../models/index.js';
 import {
   SCOUT_LISTING_STATUS,
-  SCOUT_PERFORMANCE_PRIVATE_CV_FIELDS,
   SCOUT_PRIVATE_CV_FIELDS,
   SCOUT_UNLOCK_TYPES,
   CTV_MARKETPLACE_ACCESS_TYPE,
@@ -337,19 +336,9 @@ function buildUnlockedScoutPayload(cvJson) {
   };
 }
 
-/** Scout Performance — profile mở một phần, không email/SĐT */
+/** Scout Performance — hồ sơ đầy đủ sau khi DN mở khóa (contact giống Scout Credit) */
 function buildPerformanceUnlockedScoutPayload(cvJson) {
-  const payload = buildUnlockedScoutPayload(cvJson);
-  delete payload.email;
-  delete payload.phone;
-  payload.isPerformancePartial = true;
-  payload.hideContact = true;
-  return {
-    ...payload,
-    ...pickFields(cvJson, SCOUT_PERFORMANCE_PRIVATE_CV_FIELDS),
-    email: undefined,
-    phone: undefined,
-  };
+  return buildUnlockedScoutPayload(cvJson);
 }
 
 /** Export để Job Application (Sàn CTV) xem full hồ sơ mà không tạo ScoutUnlock */
@@ -1318,8 +1307,10 @@ export async function getScoutUnlockedCvFileList({ businessId, cvId, req }) {
     where: { businessId, cvId: safeCvId },
   });
   if (unlock) {
-    if (unlock.unlockType !== SCOUT_UNLOCK_TYPES.SCOUT_CREDIT) {
-      const err = new Error('Chỉ hồ sơ mở bằng Scout Credit mới được tải CV gốc');
+    const canDownloadCv = unlock.unlockType === SCOUT_UNLOCK_TYPES.SCOUT_CREDIT
+      || unlock.unlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE;
+    if (!canDownloadCv) {
+      const err = new Error('Chỉ hồ sơ mở bằng Scout mới được tải CV gốc');
       err.statusCode = 403;
       throw err;
     }

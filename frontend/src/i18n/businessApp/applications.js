@@ -77,6 +77,7 @@ export const applicationsI18n = {
       nominatedBy: 'Tiến cử bởi',
       status: 'Trạng thái',
       appliedAt: 'Ngày tiến cử',
+      interviewDate: 'Ngày phỏng vấn',
     },
     kanbanUpdating: 'Đang cập nhật...',
     nominatedBy: {
@@ -165,6 +166,7 @@ export const applicationsI18n = {
       nominatedBy: 'Nominated by',
       status: 'Status',
       appliedAt: 'Applied',
+      interviewDate: 'Interview date',
     },
     kanbanUpdating: 'Updating...',
     nominatedBy: {
@@ -253,6 +255,7 @@ export const applicationsI18n = {
       nominatedBy: '推薦者',
       status: 'ステータス',
       appliedAt: '推薦日',
+      interviewDate: '面接日',
     },
     kanbanUpdating: '更新中...',
     nominatedBy: {

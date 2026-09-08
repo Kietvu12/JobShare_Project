@@ -12,6 +12,19 @@ function delay(ms) {
  */
 export async function downloadScoutOriginalCvFiles(apiService, cvId) {
   const { originals } = await apiService.getBusinessScoutCandidateCvFileList(cvId);
+  return downloadOriginalCvFilesFromList(originals);
+}
+
+/**
+ * Tải CV gốc từ đơn tiến cử (Quản lý tiến cử).
+ * @returns {Promise<number>} số file đã tải
+ */
+export async function downloadApplicationOriginalCvFiles(apiService, applicationId) {
+  const { originals } = await apiService.getBusinessApplicationCvFileList(applicationId);
+  return downloadOriginalCvFilesFromList(originals);
+}
+
+async function downloadOriginalCvFilesFromList(originals) {
   const files = (originals || []).filter((f) => f?.downloadUrl);
   if (!files.length) {
     const err = new Error('NO_ORIGINAL_CV');

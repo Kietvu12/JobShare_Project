@@ -752,7 +752,6 @@ function CandidateSidebar({
         </div>
       </div>
 
-      {!isPerformanceUnlock && (
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
         <button
           type="button"
@@ -764,9 +763,7 @@ function CandidateSidebar({
           {copy.list.nomination?.createNomination || sb.createNomination || 'Tạo tiến cử'}
         </button>
       </div>
-      )}
 
-      {!isPerformanceUnlock && (
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
         {candidate.phone ? (
           <a
@@ -810,7 +807,6 @@ function CandidateSidebar({
           {downloadingCv ? 'Đang tải...' : 'Tải CV gốc'}
         </button>
       </div>
-      )}
 
       {businessId && candidate?.id ? (
         <MatchedJobsRecommendations
@@ -928,7 +924,7 @@ export default function BusinessUnlockedCandidateDetail() {
   }, [])
 
   const handleDownloadOriginalCv = useCallback(async () => {
-    if (!candidate?.id || downloadingCv || isScoutPerformanceUnlock(candidate)) return
+    if (!candidate?.id || downloadingCv) return
     setDownloadingCv(true)
     try {
       await downloadScoutOriginalCvFiles(apiService, candidate.id)

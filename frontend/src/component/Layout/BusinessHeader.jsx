@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronDown, Bell, Mail, HelpCircle, MoreVertical, LogOut, Settings, Coins, Menu, X } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { localizeNotification } from '../../utils/notificationI18n';
+import { isCreditTopUpApprovedNotification, CREDIT_TOPUP_SCOUT_DIRECT_PATH } from '../../utils/businessNotificationActions';
+import CreditTopUpApprovedModal from '../Bussiness/CreditTopUpApprovedModal';
 import { getBusinessPageMeta } from '../../utils/businessPageMeta';
 import apiService from '../../services/api';
 import BusinessAppLanguageSwitcher from './BusinessAppLanguageSwitcher';
@@ -70,6 +72,7 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
   const [notifUnread, setNotifUnread] = useState(0);
   const [notifList, setNotifList] = useState([]);
   const [notifLoading, setNotifLoading] = useState(false);
+  const [creditApprovedModalOpen, setCreditApprovedModalOpen] = useState(false);
   const [credit, setCredit] = useState(() => Number(businessUser?.credit) || 0);
   const companyDropdownRef = useRef(null);
   const mobileUserMenuRef = useRef(null);
@@ -282,9 +285,20 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
       // ignore
     }
     setNotifOpen(false);
+    if (isCreditTopUpApprovedNotification(notification)) {
+      await refreshCredit();
+      window.dispatchEvent(new Event('business-credit:updated'));
+      setCreditApprovedModalOpen(true);
+      return;
+    }
     if (url && typeof url === 'string' && url.startsWith('/')) {
       navigate(url);
     }
+  };
+
+  const handleStartDirectScoutAfterTopUp = () => {
+    setCreditApprovedModalOpen(false);
+    navigate(CREDIT_TOPUP_SCOUT_DIRECT_PATH);
   };
 
   const userMenuPanel = userMenuOpen && (
@@ -351,6 +365,7 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
   );
 
   return (
+    <>
     <header className="sticky top-0 z-40 shrink-0 border-b-0 bg-transparent lg:border-b lg:border-gray-200 lg:bg-white">
       {/* Mobile header — menu | title | avatar */}
       <div className="flex h-12 items-center justify-between gap-2 px-3 lg:hidden">
@@ -603,6 +618,14 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
         </div>
       )}
     </header>
+    <CreditTopUpApprovedModal
+      open={creditApprovedModalOpen}
+      onClose={() => setCreditApprovedModalOpen(false)}
+      onStartScout={handleStartDirectScoutAfterTopUp}
+      credit={credit}
+      language={language}
+    />
+    </>
   );
 };
 

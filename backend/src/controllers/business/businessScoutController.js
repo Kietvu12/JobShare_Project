@@ -188,8 +188,8 @@ export const businessScoutController = {
       res.json({
         success: true,
         message: data.alreadyExists
-          ? 'Ứng viên đã có trong pipeline JD này'
-          : 'Đã thêm ứng viên vào pipeline JD',
+          ? 'Ứng viên đã có đơn tiến cử cho JD này'
+          : 'Đã tạo đơn tiến cử cho hồ sơ này',
         data,
       });
     } catch (error) {

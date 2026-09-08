@@ -29,10 +29,10 @@ function CommonNavInfo({ copy }) {
         <dt className="common-nav-info__corp">
           <span className="common-nav-info__corp--small">{copy.operatorLabel}</span>
           <br />
-          <strong className="common-nav-info__corp--bold">{COMPANY_INFO.name}</strong>
+          <strong className="common-nav-info__corp--bold">{copy.companyName}</strong>
         </dt>
         <dd className="common-nav-info__desc">
-          {COMPANY_INFO.address.map((line) => (
+          {copy.addressLines.map((line) => (
             <span key={line}>
               {line}
               <br />
