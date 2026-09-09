@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { cpSync, existsSync } from 'node:fs'
+import { cpSync, existsSync, writeFileSync } from 'node:fs'
+import { execSync } from 'node:child_process'
 import sirv from 'sirv'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -35,6 +36,52 @@ function copyPdfWorkerPlugin() {
   }
 }
 
+function generateBuildId() {
+  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14)
+  try {
+    const hash = execSync('git rev-parse --short HEAD', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+    if (hash) return `${hash}-${stamp}`
+  } catch {
+    /* not a git repo or git unavailable */
+  }
+  return stamp
+}
+
+/** Ghi version.json + embed build id — client reload khi deploy bản mới. */
+function appBuildVersionPlugin() {
+  let buildId = 'dev'
+  return {
+    name: 'app-build-version',
+    config(_config, { command }) {
+      buildId = command === 'build' ? generateBuildId() : 'dev'
+      return {
+        define: {
+          'import.meta.env.VITE_APP_BUILD_ID': JSON.stringify(buildId),
+        },
+      }
+    },
+    transformIndexHtml(html) {
+      if (buildId === 'dev') return html
+      return html.replace(
+        '</head>',
+        `    <meta name="app-build-id" content="${buildId}" />\n  </head>`,
+      )
+    },
+    closeBundle() {
+      if (buildId === 'dev') return
+      const outDir = path.resolve(__dirname, 'dist')
+      writeFileSync(
+        path.join(outDir, 'version.json'),
+        `${JSON.stringify({ version: buildId, builtAt: new Date().toISOString() }, null, 2)}\n`,
+        'utf8',
+      )
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -50,7 +97,7 @@ export default defineConfig(({ mode }) => {
   const localApi = env.VITE_DEV_API_PROXY || 'http://localhost:3000'
 
   return {
-    plugins: [copyPdfWorkerPlugin(), react(), tailwindcss(), serveTemplateAssets()],
+    plugins: [copyPdfWorkerPlugin(), appBuildVersionPlugin(), react(), tailwindcss(), serveTemplateAssets()],
     resolve: {
       dedupe: ['react', 'react-dom'],
     },
