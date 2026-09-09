@@ -321,6 +321,29 @@ export default function BusinessApplicationDetailDrawer({
 
   const canDownloadCv = Boolean(selectedApp?.canViewFullProfile || profileOnly)
 
+  const cvDownloadAction = canDownloadCv ? (
+    <div className="flex flex-col items-end gap-1">
+      <button
+        type="button"
+        onClick={handleDownloadOriginalCv}
+        disabled={downloadingCv || drawerLoading}
+        className="biz-ui-caption inline-flex items-center gap-1 rounded-md border border-[#0077B6]/35 bg-[#e8f4fa]/50 px-2 py-1 font-semibold text-[#0077B6] transition hover:bg-[#e8f4fa] disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {downloadingCv ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : (
+          <Download className="h-3 w-3" />
+        )}
+        {downloadingCv ? 'Đang tải...' : 'Tải CV gốc'}
+      </button>
+      {cvDownloadNotice ? (
+        <p className={`biz-ui-caption max-w-[10rem] text-right ${cvDownloadNotice.includes('Không') || cvDownloadNotice.includes('chưa') ? 'text-amber-700' : 'text-emerald-700'}`}>
+          {cvDownloadNotice}
+        </p>
+      ) : null}
+    </div>
+  ) : null
+
   const profileEvaluationControls = (
     <div className="mt-2 flex flex-wrap items-center gap-2">
       <div
@@ -373,14 +396,7 @@ export default function BusinessApplicationDetailDrawer({
         style={{ width: 'min(100vw, 560px)', fontFamily: BUSINESS_UI_FONT }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 bg-[#f4f6f8]/50 px-4 py-3">
-          <div className="min-w-0 flex-1">
-            <div className="biz-ui-body min-w-0 font-bold text-slate-800">{selectedApp.candidateName}</div>
-            <div className="biz-ui-caption mt-0.5 text-slate-500">
-              {selectedApp.jobTitle} ({selectedApp.jobCode || '—'}) · {selectedApp.sourceLabel}
-              {selectedApp.statusLabel ? ` · ${selectedApp.statusLabel}` : ''}
-            </div>
-          </div>
+        <div className="flex shrink-0 justify-end border-b border-slate-200 bg-white px-3 py-2">
           <button type="button" onClick={onClose} className="rounded-lg p-1.5 transition-colors hover:bg-slate-100">
             <X className="h-4 w-4 text-slate-500" />
           </button>
@@ -409,12 +425,6 @@ export default function BusinessApplicationDetailDrawer({
           </div>
         )}
 
-        {profileOnly && (
-          <div className="biz-ui-caption shrink-0 border-b border-slate-100 bg-slate-50 px-4 py-2 text-slate-600">
-            Hồ sơ mở qua {selectedApp.sourceLabel} — không có chat 3 bên trên đơn này.
-          </div>
-        )}
-
         {drawerLoading && (
           <div className="biz-ui-caption flex items-center gap-2 border-b border-slate-100 bg-[#e8f4fa]/40 px-4 py-2 text-slate-500">
             <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0077B6]" /> Đang tải hồ sơ...
@@ -424,28 +434,6 @@ export default function BusinessApplicationDetailDrawer({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {activeTab === 'profile' && showProfileView ? (
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              {canDownloadCv && (
-                <div className="shrink-0 border-b border-slate-100 bg-white px-3 py-2.5">
-                  <button
-                    type="button"
-                    onClick={handleDownloadOriginalCv}
-                    disabled={downloadingCv || drawerLoading}
-                    className="biz-ui-body inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-[#0077B6]/35 bg-[#e8f4fa]/50 py-2 font-semibold text-[#0077B6] transition hover:bg-[#e8f4fa] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {downloadingCv ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Download className="h-3.5 w-3.5" />
-                    )}
-                    {downloadingCv ? 'Đang tải...' : 'Tải CV gốc'}
-                  </button>
-                  {cvDownloadNotice ? (
-                    <p className={`biz-ui-caption mt-1.5 text-center ${cvDownloadNotice.includes('Không') || cvDownloadNotice.includes('chưa') ? 'text-amber-700' : 'text-emerald-700'}`}>
-                      {cvDownloadNotice}
-                    </p>
-                  ) : null}
-                </div>
-              )}
               <div className="flex-1 overflow-y-auto p-3 business-homepage-scroll">
                 {selectedApp.interviewDate ? (
                   <div className="mb-3 rounded-xl border border-amber-100 bg-amber-50/80 p-3">
@@ -476,6 +464,7 @@ export default function BusinessApplicationDetailDrawer({
                     accessLabel={profileMeta.accessLabel}
                     accessLabelColor={profileMeta.accessLabelColor}
                     footerNote={profileMeta.footerNote}
+                    nameActions={cvDownloadAction}
                     belowNameContent={profileEvaluationControls}
                   />
                 )}

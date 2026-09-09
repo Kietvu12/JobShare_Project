@@ -515,7 +515,7 @@ function ScoutManagedFeeTable() {
   const feeTiers = getScoutPerformanceFeeTiers(language)
 
   return (
-    <div className="mt-auto w-full shrink-0 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
+    <div className="w-full shrink-0 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
       <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-3 py-3 sm:px-4 sm:py-3.5">
         <h2 className="text-sm font-bold text-slate-900 sm:text-base">{onboarding.feeTableTitle}</h2>
         <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-500 sm:text-sm">{onboarding.feeTableNote}</p>
@@ -668,6 +668,8 @@ function ScoutOnboardingView({ variant = 'credit', previewCandidates, previewSco
         <ScoutCreditPackagesIntro language={language} showIntro showSubmit />
       ) : (
         <>
+          <ScoutManagedFeeTable />
+
           <ScoutOnboardingCandidatePreview
             onboarding={onboarding}
             rankedPreviewCandidates={rankedPreviewCandidates}
@@ -678,18 +680,15 @@ function ScoutOnboardingView({ variant = 'credit', previewCandidates, previewSco
             showExploreFooter={false}
           />
 
-          <div className="flex w-full min-h-0 flex-1 flex-col gap-2 sm:gap-3">
-            <ScoutManagedFeeTable />
-            <div className="shrink-0">
-              <button
-                type="button"
-                onClick={onExplore}
-                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] py-2.5 text-xs font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:text-sm"
-              >
-                {onboarding.exploreAll}
-                <ArrowRight className="h-4 w-4 shrink-0" />
-              </button>
-            </div>
+          <div className="shrink-0">
+            <button
+              type="button"
+              onClick={onExplore}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] py-2.5 text-xs font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:text-sm"
+            >
+              {onboarding.exploreAll}
+              <ArrowRight className="h-4 w-4 shrink-0" />
+            </button>
           </div>
         </>
       )}

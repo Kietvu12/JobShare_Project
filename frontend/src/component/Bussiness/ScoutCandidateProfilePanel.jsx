@@ -90,6 +90,7 @@ export default function ScoutCandidateProfilePanel({
   matchScore = null,
   matchJobTitle = null,
   belowNameContent = null,
+  nameActions = null,
   className = '',
 }) {
   const { language } = useLanguage()
@@ -163,7 +164,12 @@ export default function ScoutCandidateProfilePanel({
           )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="scout-detail-title text-slate-800">{hl(displayName)}</div>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="scout-detail-title min-w-0 flex-1 text-slate-800">{hl(displayName)}</div>
+            {nameActions ? (
+              <div className="flex shrink-0 items-center gap-1.5">{nameActions}</div>
+            ) : null}
+          </div>
           <div className="scout-detail-body text-slate-500">
             {position ? hl(position) : null}
             {isUnlocked && candidate.code ? (
