@@ -3,6 +3,7 @@
  * Tránh 404 "Route not found" khi VITE_API_BASE_URL thiếu /api (vd: http://localhost:3000).
  */
 import { downloadAuthenticatedFileUrl } from '../utils/safeFileDownload.js';
+import { applyBusinessStaticUiMocks } from '../mocks/business/applyMocks.js';
 
 function ensureApiSuffix(url) {
   if (!url || typeof url !== 'string') return url;
@@ -5159,5 +5160,7 @@ const apiService = {
   },
 
 };
+
+applyBusinessStaticUiMocks(apiService);
 
 export default apiService;

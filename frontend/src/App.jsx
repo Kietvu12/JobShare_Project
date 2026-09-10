@@ -121,6 +121,7 @@ import BusinessLogin from './page/Bussiness/Login';
 import BusinessVerifyEmail from './page/Bussiness/VerifyEmail';
 import BusinessResetPassword from './page/Bussiness/ResetPassword';
 import { LocaleGuard, LegacyPublicRedirect, PublicRootRedirect, LegacyLocaleCollaboratorJobRedirect } from './component/LocaleRoute';
+import { isBusinessStaticUi } from './config/businessStaticUi';
 
 // Admin Job Detail: phân quyền Chỉnh sửa (chỉ SuperAdmin role=1, AdminBackOffice role=2)
 const AdminJobDetailWrapper = () => {
@@ -360,13 +361,46 @@ function App() {
           <Route path="/lp/:slug" element={<PublicLandingPage />} />
 
           {/* Business auth - không dùng sidebar */}
-          {/* <Route path="/business/register" element={<BusinessRegister />} />
-          <Route path="/business/login" element={<BusinessLogin />} />
-          <Route path="/business/verify-email" element={<BusinessVerifyEmail />} />
-          <Route path="/business/reset-password" element={<BusinessResetPassword />} /> */}
+          {isBusinessStaticUi ? (
+            <Route path="/business/login" element={<Navigate to="/business" replace />} />
+          ) : (
+            <>
+              <Route path="/business/register" element={<BusinessRegister />} />
+              <Route path="/business/login" element={<BusinessLogin />} />
+              <Route path="/business/verify-email" element={<BusinessVerifyEmail />} />
+              <Route path="/business/reset-password" element={<BusinessResetPassword />} />
+            </>
+          )}
 
-          {/* Business Page - with Sidebar Layout (yêu cầu đăng nhập) */}
-   
+          {/* Business portal — Static UI dùng mock data qua VITE_BUSINESS_STATIC_UI */}
+          <Route
+            path="/business"
+            element={(
+              <ProtectedRoute requiredUserType="business">
+                <BusinessLayoutWrapper />
+              </ProtectedRoute>
+            )}
+          >
+            <Route index element={<BusinessHomepage />} />
+            <Route path="jobs" element={<JobManagement />} />
+            <Route path="jobs/create" element={<BusinessAddJobPage />} />
+            <Route path="jobs/ai-builder" element={<JdBuilderChatPage />} />
+            <Route path="jobs/:id/edit" element={<BusinessAddJobPage />} />
+            <Route path="jobs/:id" element={<JobDetail />} />
+            <Route path="applications" element={<JobApplication />} />
+            <Route path="candidates" element={<Candidate />} />
+            <Route path="scout" element={<Scout />} />
+            <Route path="saiyo" element={<Branding />} />
+            <Route path="saiyo/pages/:id/edit" element={<BusinessLandingPageEditor />} />
+            <Route path="candidate-sharing" element={<CandidateSharing />} />
+            <Route path="messages" element={<Message />} />
+            <Route path="billing" element={<Billing />} />
+            <Route path="service-billing" element={<Navigate to="/business/billing" replace />} />
+            <Route path="knowledge" element={<KnowledgeHub />} />
+            <Route path="insights" element={<ReportInsight />} />
+            <Route path="settings" element={<Navigate to="/business" replace />} />
+          </Route>
+
         </Routes>
       </BrowserRouter>
       </CandidateAuthProvider>

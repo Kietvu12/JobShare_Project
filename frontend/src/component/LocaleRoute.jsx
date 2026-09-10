@@ -7,6 +7,7 @@ import {
   legacyPublicRedirectPath,
   stripLocaleFromPathname,
 } from '../utils/localeRoutes';
+import { isBusinessStaticUi } from '../config/businessStaticUi';
 
 export function LocaleSync({ urlLocale }) {
   const { language, syncFromUrl } = useLanguage();
@@ -45,6 +46,9 @@ export function PublicRootRedirect() {
 
   const token = localStorage.getItem('token');
   const userType = localStorage.getItem('userType');
+  if (isBusinessStaticUi() || (token && userType === 'business')) {
+    return <Navigate to="/business" replace />;
+  }
   if (token && userType === 'ctv') return <Navigate to="/agent" replace />;
   if (token && userType === 'admin') return <Navigate to="/admin" replace />;
 

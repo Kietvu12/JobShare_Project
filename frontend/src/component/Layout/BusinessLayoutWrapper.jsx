@@ -3,12 +3,18 @@ import { Outlet } from 'react-router-dom';
 import BusinessSidebar from './BusinessSidebar';
 import BusinessHeader from './BusinessHeader';
 import useBusinessUser from '../../hooks/useBusinessUser';
+import { isBusinessStaticUi } from '../../config/businessStaticUi';
 
 const BusinessLayoutWrapper = () => {
   const businessUser = useBusinessUser();
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {isBusinessStaticUi() ? (
+        <div className="fixed bottom-3 left-1/2 z-[60] -translate-x-1/2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-semibold text-amber-900 shadow-sm">
+          Static UI — mock data (không gọi API thật)
+        </div>
+      ) : null}
       <style>{`
         /* Custom scrollbar cho main content */
         main::-webkit-scrollbar {

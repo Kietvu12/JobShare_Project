@@ -1,4 +1,5 @@
 import { Navigate } from 'react-router-dom';
+import { bootstrapBusinessStaticUi, isBusinessStaticUi } from '../config/businessStaticUi';
 
 /**
  * ProtectedRoute - Bảo vệ route yêu cầu đăng nhập
@@ -7,6 +8,11 @@ import { Navigate } from 'react-router-dom';
  * @param {string} props.requiredUserType - Loại user: 'ctv' | 'admin' | 'business'
  */
 const ProtectedRoute = ({ children, requiredUserType }) => {
+  if (isBusinessStaticUi() && requiredUserType === 'business') {
+    bootstrapBusinessStaticUi();
+    return children;
+  }
+
   const token = localStorage.getItem('token');
   const userType = localStorage.getItem('userType');
 
