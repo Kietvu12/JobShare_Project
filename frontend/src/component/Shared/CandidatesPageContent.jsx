@@ -145,6 +145,8 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
   const [isAdminFilterOpen, setIsAdminFilterOpen] = useState(false);
   const [adminFilterOptions, setAdminFilterOptions] = useState([]);
   const [adminFilterOptionsLoading, setAdminFilterOptionsLoading] = useState(false);
+  const [adminFilterSearchQuery, setAdminFilterSearchQuery] = useState('');
+  const adminFilterOptionsLoadedRef = useRef(false);
   const [bulkImportModalOpen, setBulkImportModalOpen] = useState(false);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [hoveredBulkImportButton, setHoveredBulkImportButton] = useState(false);
@@ -166,6 +168,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
     setSelectedStatuses([]);
     setSelectedAdminFilter('');
     setIsAdminFilterOpen(false);
+    setAdminFilterSearchQuery('');
     setSortColumn('createdAt');
     setSortDirection('desc');
     setCurrentPage(1);
@@ -394,28 +397,47 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
     loadFailedHistoryCandidates();
   }, [failedHistoryOpen, failedHistoryPage, failedHistorySearchQuery, itemsPerPage, sortColumn, sortDirection]);
 
-  useEffect(() => {
+  const loadAdminFilterOptions = useCallback(async () => {
     if (!isAdmin) return;
-    const loadAdminFilterOptions = async () => {
-      try {
-        setAdminFilterOptionsLoading(true);
-        const res = await apiService.getAdmins({ role: 2, status: 1, limit: 500 });
-        const list = res?.success && res?.data ? (res.data.admins || []) : [];
-        setAdminFilterOptions(list);
-      } catch (e) {
-        console.error('Error loading admin filter options:', e);
-        setAdminFilterOptions([]);
-      } finally {
-        setAdminFilterOptionsLoading(false);
-      }
-    };
+    try {
+      setAdminFilterOptionsLoading(true);
+      let all = [];
+      let page = 1;
+      let totalPages = 1;
+      const limit = 100;
+      do {
+        const res = await apiService.getAdmins({ page, limit });
+        if (!res?.success || !res?.data) break;
+        all = all.concat(res.data.admins || []);
+        totalPages = res.data.pagination?.totalPages || 1;
+        page += 1;
+      } while (page <= totalPages);
+
+      all.sort((a, b) => {
+        const aName = String(a?.name || a?.fullName || a?.email || '').trim();
+        const bName = String(b?.name || b?.fullName || b?.email || '').trim();
+        return aName.localeCompare(bName, language === 'ja' ? 'ja' : language === 'en' ? 'en' : 'vi');
+      });
+      setAdminFilterOptions(all);
+      adminFilterOptionsLoadedRef.current = true;
+    } catch (e) {
+      console.error('Error loading admin filter options:', e);
+      setAdminFilterOptions([]);
+    } finally {
+      setAdminFilterOptionsLoading(false);
+    }
+  }, [isAdmin, language]);
+
+  useEffect(() => {
+    if (!isAdmin || adminFilterOptionsLoadedRef.current) return;
     loadAdminFilterOptions();
-  }, [isAdmin]);
+  }, [isAdmin, loadAdminFilterOptions]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest('.candidates-admin-filter-container')) {
         setIsAdminFilterOpen(false);
+        setAdminFilterSearchQuery('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -1037,8 +1059,19 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
   const selectedAdminFilterName = useMemo(() => {
     if (!selectedAdminFilter) return '';
     const match = adminFilterOptions.find((a) => String(a.id) === String(selectedAdminFilter));
-    return match?.name || match?.fullName || '';
+    return match?.name || match?.fullName || match?.email || '';
   }, [selectedAdminFilter, adminFilterOptions]);
+
+  const filteredAdminFilterOptions = useMemo(() => {
+    const q = adminFilterSearchQuery.trim().toLowerCase();
+    if (!q) return adminFilterOptions;
+    return adminFilterOptions.filter((admin) => {
+      const name = String(admin?.name || admin?.fullName || '').toLowerCase();
+      const email = String(admin?.email || '').toLowerCase();
+      const id = String(admin?.id || '');
+      return name.includes(q) || email.includes(q) || id.includes(q);
+    });
+  }, [adminFilterOptions, adminFilterSearchQuery]);
 
   const renderAdminFilterMenu = ({ className = '' } = {}) => (
     <div
@@ -1046,6 +1079,27 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
       style={{ borderColor: '#e5e7eb' }}
       onClick={(e) => e.stopPropagation()}
     >
+      <div className="mb-2 flex items-center rounded-lg border bg-white px-2 py-1.5" style={{ borderColor: '#e5e7eb' }}>
+        <Search className="mr-1.5 h-3 w-3 flex-shrink-0 text-gray-400" />
+        <input
+          type="text"
+          value={adminFilterSearchQuery}
+          onChange={(e) => setAdminFilterSearchQuery(e.target.value)}
+          placeholder={t.searchPlaceholderAdmin || 'Tìm tên admin, email...'}
+          className="w-full bg-transparent text-[9px] outline-none placeholder:text-gray-400 sm:text-[10px]"
+          autoFocus
+        />
+        {adminFilterSearchQuery ? (
+          <button
+            type="button"
+            onClick={() => setAdminFilterSearchQuery('')}
+            className="ml-1 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            aria-label="Clear search"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        ) : null}
+      </div>
       <label className="flex cursor-pointer items-center gap-1.5 py-0.5">
         <input
           type="radio"
@@ -1055,6 +1109,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
             setSelectedAdminFilter('');
             setCurrentPage(1);
             setIsAdminFilterOpen(false);
+            setAdminFilterSearchQuery('');
           }}
           className="h-3.5 w-3.5"
           style={{ accentColor: '#2563eb' }}
@@ -1063,9 +1118,9 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
       </label>
       {adminFilterOptionsLoading ? (
         <div className="px-1 py-2 text-gray-500">{t.loadingCandidates || 'Đang tải...'}</div>
-      ) : adminFilterOptions.length > 0 ? (
+      ) : filteredAdminFilterOptions.length > 0 ? (
         <div className="mt-1 max-h-52 overflow-y-auto">
-          {adminFilterOptions.map((admin) => (
+          {filteredAdminFilterOptions.map((admin) => (
             <label key={admin.id} className="flex cursor-pointer items-center gap-1.5 py-0.5">
               <input
                 type="radio"
@@ -1075,18 +1130,26 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                   setSelectedAdminFilter(String(admin.id));
                   setCurrentPage(1);
                   setIsAdminFilterOpen(false);
+                  setAdminFilterSearchQuery('');
                 }}
                 className="h-3.5 w-3.5"
                 style={{ accentColor: '#2563eb' }}
               />
-              <span className="truncate" title={admin.name || admin.fullName || ''}>
-                {admin.name || admin.fullName || `Admin #${admin.id}`}
+              <span className="min-w-0 flex-1 truncate" title={[admin.name || admin.fullName, admin.email].filter(Boolean).join(' • ')}>
+                <span className="font-medium text-gray-900">{admin.name || admin.fullName || `Admin #${admin.id}`}</span>
+                {admin.email ? (
+                  <span className="ml-1 text-[8px] text-gray-500 sm:text-[9px]">({admin.email})</span>
+                ) : null}
               </span>
             </label>
           ))}
         </div>
       ) : (
-        <div className="px-1 py-2 text-gray-500">{t.noCandidatesFound || 'Không có admin'}</div>
+        <div className="px-1 py-2 text-gray-500">
+          {adminFilterSearchQuery.trim()
+            ? (t.noCandidatesFound || 'Không tìm thấy admin phù hợp')
+            : (t.noCandidatesFound || 'Không có admin')}
+        </div>
       )}
     </div>
   );

@@ -3,11 +3,15 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { cpSync, existsSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { execSync } from 'node:child_process'
 import sirv from 'sirv'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const deployGuardInlineScript = readFileSync(
+  path.resolve(__dirname, 'src/utils/deployGuard.inline.js'),
+  'utf8',
+).trim()
 const templateDir = path.resolve(__dirname, 'template')
 
 function serveTemplateAssets() {
@@ -65,10 +69,11 @@ function appBuildVersionPlugin() {
     },
     transformIndexHtml(html) {
       if (buildId === 'dev') return html
-      return html.replace(
+      const withMeta = html.replace(
         '</head>',
-        `    <meta name="app-build-id" content="${buildId}" />\n  </head>`,
+        `    <meta name="app-build-id" content="${buildId}" />\n    <script>${deployGuardInlineScript}</script>\n  </head>`,
       )
+      return withMeta
     },
     closeBundle() {
       if (buildId === 'dev') return
