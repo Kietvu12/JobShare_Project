@@ -138,6 +138,13 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
   const [hoveredEditButtonIndex, setHoveredEditButtonIndex] = useState(null);
   const [hoveredDeleteButtonIndex, setHoveredDeleteButtonIndex] = useState(null);
   const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
+  const [selectedAdminFilter, setSelectedAdminFilter] = useState(() => {
+    const raw = candidatesListSnap?.selectedAdminFilter;
+    return raw != null && raw !== '' ? String(raw) : '';
+  });
+  const [isAdminFilterOpen, setIsAdminFilterOpen] = useState(false);
+  const [adminFilterOptions, setAdminFilterOptions] = useState([]);
+  const [adminFilterOptionsLoading, setAdminFilterOptionsLoading] = useState(false);
   const [bulkImportModalOpen, setBulkImportModalOpen] = useState(false);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [hoveredBulkImportButton, setHoveredBulkImportButton] = useState(false);
@@ -157,6 +164,8 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
   const resetCandidatesListState = useCallback(() => {
     setSearchQuery('');
     setSelectedStatuses([]);
+    setSelectedAdminFilter('');
+    setIsAdminFilterOpen(false);
     setSortColumn('createdAt');
     setSortDirection('desc');
     setCurrentPage(1);
@@ -196,6 +205,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
     sortDirection,
     searchQuery,
     viewMode,
+    selectedAdminFilter,
   ]);
 
   useEffect(() => {
@@ -207,6 +217,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
           JSON.stringify({
             searchQuery,
             selectedStatuses,
+            selectedAdminFilter,
             viewMode,
             sortColumn,
             sortDirection,
@@ -225,6 +236,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
     listSessionKey,
     searchQuery,
     selectedStatuses,
+    selectedAdminFilter,
     viewMode,
     sortColumn,
     sortDirection,
@@ -258,6 +270,9 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
         params.status = statusFilters.length > 0 ? statusFilters.join(',') : adminTabStatuses.join(',');
         params.sortBy = activeSortColumn === 'name' ? 'name' : activeSortColumn === 'applicationsCount' ? 'applicationsCount' : 'createdAt';
         params.sortOrder = String(activeSortDirection).toUpperCase();
+        if (selectedAdminFilter) {
+          params.adminId = selectedAdminFilter;
+        }
         const response = await apiService.getAdminCVs(params);
         if (response.success && response.data) {
           let list = response.data.cvs || [];
@@ -378,6 +393,34 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
   useEffect(() => {
     loadFailedHistoryCandidates();
   }, [failedHistoryOpen, failedHistoryPage, failedHistorySearchQuery, itemsPerPage, sortColumn, sortDirection]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const loadAdminFilterOptions = async () => {
+      try {
+        setAdminFilterOptionsLoading(true);
+        const res = await apiService.getAdmins({ role: 2, status: 1, limit: 500 });
+        const list = res?.success && res?.data ? (res.data.admins || []) : [];
+        setAdminFilterOptions(list);
+      } catch (e) {
+        console.error('Error loading admin filter options:', e);
+        setAdminFilterOptions([]);
+      } finally {
+        setAdminFilterOptionsLoading(false);
+      }
+    };
+    loadAdminFilterOptions();
+  }, [isAdmin]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.candidates-admin-filter-container')) {
+        setIsAdminFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -991,6 +1034,63 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
   };
 
   /** Dùng chung cho bảng desktop và card mobile */
+  const selectedAdminFilterName = useMemo(() => {
+    if (!selectedAdminFilter) return '';
+    const match = adminFilterOptions.find((a) => String(a.id) === String(selectedAdminFilter));
+    return match?.name || match?.fullName || '';
+  }, [selectedAdminFilter, adminFilterOptions]);
+
+  const renderAdminFilterMenu = ({ className = '' } = {}) => (
+    <div
+      className={`rounded-xl border bg-white p-2.5 text-[9px] shadow-lg sm:text-[10px] lg:p-2 lg:text-[9px] xl:p-3 xl:text-[10px] ${className}`}
+      style={{ borderColor: '#e5e7eb' }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <label className="flex cursor-pointer items-center gap-1.5 py-0.5">
+        <input
+          type="radio"
+          name="candidates-admin-filter"
+          checked={selectedAdminFilter === ''}
+          onChange={() => {
+            setSelectedAdminFilter('');
+            setCurrentPage(1);
+            setIsAdminFilterOpen(false);
+          }}
+          className="h-3.5 w-3.5"
+          style={{ accentColor: '#2563eb' }}
+        />
+        <span>{t.allStatus || 'Tất cả'}</span>
+      </label>
+      {adminFilterOptionsLoading ? (
+        <div className="px-1 py-2 text-gray-500">{t.loadingCandidates || 'Đang tải...'}</div>
+      ) : adminFilterOptions.length > 0 ? (
+        <div className="mt-1 max-h-52 overflow-y-auto">
+          {adminFilterOptions.map((admin) => (
+            <label key={admin.id} className="flex cursor-pointer items-center gap-1.5 py-0.5">
+              <input
+                type="radio"
+                name="candidates-admin-filter"
+                checked={String(selectedAdminFilter) === String(admin.id)}
+                onChange={() => {
+                  setSelectedAdminFilter(String(admin.id));
+                  setCurrentPage(1);
+                  setIsAdminFilterOpen(false);
+                }}
+                className="h-3.5 w-3.5"
+                style={{ accentColor: '#2563eb' }}
+              />
+              <span className="truncate" title={admin.name || admin.fullName || ''}>
+                {admin.name || admin.fullName || `Admin #${admin.id}`}
+              </span>
+            </label>
+          ))}
+        </div>
+      ) : (
+        <div className="px-1 py-2 text-gray-500">{t.noCandidatesFound || 'Không có admin'}</div>
+      )}
+    </div>
+  );
+
   const getCandidateRowUi = (candidate) => {
     const isPromotedInactive = isCvPromotedInactive(candidate);
     const s = getCvDisplayStatusStyle(candidate);
@@ -1105,7 +1205,10 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                   <button
                     type="button"
                     title={t.candidatesPageStatusFilterLabel}
-                    onClick={() => setIsStatusFilterOpen(!isStatusFilterOpen)}
+                    onClick={() => {
+                      setIsStatusFilterOpen(!isStatusFilterOpen);
+                      setIsAdminFilterOpen(false);
+                    }}
                     className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-white px-2.5 py-1.5 text-[8px] font-semibold sm:text-[10px] lg:gap-1 lg:px-2 lg:py-1 lg:text-[9px] xl:gap-1.5 xl:px-3 xl:py-1.5 xl:text-[10px]"
                     style={{
                       color: selectedStatuses.length > 0 ? '#1d4ed8' : '#374151',
@@ -1168,6 +1271,34 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                     </div>
                   )}
                 </div>
+                {isAdmin && (
+                  <div className="relative candidates-admin-filter-container lg:hidden">
+                    <button
+                      type="button"
+                      title={t.colAdminName}
+                      onClick={() => {
+                        setIsAdminFilterOpen(!isAdminFilterOpen);
+                        setIsStatusFilterOpen(false);
+                      }}
+                      className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1.5 text-[8px] font-semibold sm:text-[10px] lg:px-2 lg:py-1 lg:text-[9px] xl:px-3 xl:py-1.5 xl:text-[10px]"
+                      style={{
+                        color: selectedAdminFilter ? '#1d4ed8' : '#374151',
+                        backgroundColor: selectedAdminFilter ? '#eff6ff' : 'white',
+                        border: selectedAdminFilter ? '1px solid #bfdbfe' : '1px solid transparent',
+                      }}
+                    >
+                      <span className="max-w-[88px] truncate sm:max-w-[120px]">
+                        {selectedAdminFilter ? (selectedAdminFilterName || t.colAdminName) : t.colAdminName}
+                      </span>
+                      <ChevronDown className="h-2.5 w-2.5 xl:h-3 xl:w-3" />
+                    </button>
+                    {isAdminFilterOpen && (
+                      <div className="absolute right-0 z-20 mt-2 w-52">
+                        {renderAdminFilterMenu()}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {isAdmin && (
                   <button
                     type="button"
@@ -1683,7 +1814,44 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                     <th className="min-w-[52px] py-1.5 pl-0 pr-px text-left text-[8px] font-bold xl:min-w-[74px] xl:pl-0 xl:pr-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>{t.colEmail}</th>
                     <th className="min-w-[48px] px-px py-1.5 text-left text-[8px] font-bold xl:min-w-[70px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>{t.colPhone}</th>
                     <th className="min-w-[100px] whitespace-nowrap px-px py-1.5 text-left text-[8px] font-bold xl:min-w-[140px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>Phân loại</th>
-                    <th className="min-w-[48px] whitespace-nowrap px-px py-1.5 text-left text-[8px] font-bold xl:min-w-[70px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>{t.colAdminName}</th>
+                    <th className="candidates-admin-filter-container relative min-w-[48px] whitespace-nowrap px-px py-1.5 text-left text-[8px] font-bold xl:min-w-[70px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsAdminFilterOpen(!isAdminFilterOpen);
+                          setIsStatusFilterOpen(false);
+                        }}
+                        className="inline-flex max-w-full items-center gap-0.5 rounded px-0.5 py-0.5 transition-colors hover:bg-gray-100 xl:gap-1"
+                        style={{
+                          color: selectedAdminFilter ? '#1d4ed8' : '#111827',
+                          backgroundColor: hoveredTableHeader === 'adminName' ? '#f3f4f6' : 'transparent',
+                        }}
+                        onMouseEnter={() => setHoveredTableHeader('adminName')}
+                        onMouseLeave={() => setHoveredTableHeader(null)}
+                        title={t.colAdminName}
+                      >
+                        <span className="truncate">{t.colAdminName}</span>
+                        {selectedAdminFilter && (
+                          <span
+                            className="inline-flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-full text-[7px] font-bold leading-none"
+                            style={{ backgroundColor: '#2563eb', color: 'white' }}
+                            aria-hidden
+                          >
+                            1
+                          </span>
+                        )}
+                        <ChevronDown
+                          className={`h-2.5 w-2.5 flex-shrink-0 transition-transform xl:h-3 xl:w-3 ${isAdminFilterOpen ? 'rotate-180' : ''}`}
+                          style={{ color: selectedAdminFilter ? '#2563eb' : '#6b7280' }}
+                        />
+                      </button>
+                      {isAdminFilterOpen && (
+                        <div className="absolute left-0 top-full z-30 mt-1 w-52">
+                          {renderAdminFilterMenu()}
+                        </div>
+                      )}
+                    </th>
                   </>
                 )}
                 <th className="min-w-[80px] px-px py-1.5 text-center text-[8px] font-bold xl:min-w-[100px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>{t.actions}</th>
