@@ -3,11 +3,15 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { cpSync, existsSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { execSync } from 'node:child_process'
 import sirv from 'sirv'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const deployGuardInlineScript = readFileSync(
+  path.resolve(__dirname, 'src/utils/deployGuard.inline.js'),
+  'utf8',
+).trim()
 const templateDir = path.resolve(__dirname, 'template')
 
 function serveTemplateAssets() {
@@ -63,12 +67,22 @@ function appBuildVersionPlugin() {
         },
       }
     },
-    transformIndexHtml(html) {
-      if (buildId === 'dev') return html
-      return html.replace(
-        '</head>',
-        `    <meta name="app-build-id" content="${buildId}" />\n  </head>`,
-      )
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        if (buildId === 'dev') return html
+
+        const cssLink = html.match(/<link rel="stylesheet"[^>]*>/i)?.[0]
+        const jsScript = html.match(/<script type="module"[^>]*><\/script>/i)?.[0]
+        if (cssLink && jsScript && html.indexOf(cssLink) > html.indexOf(jsScript)) {
+          html = html.replace(cssLink, '').replace(jsScript, `${cssLink}\n    ${jsScript}`)
+        }
+
+        return html.replace(
+          '</head>',
+          `    <meta name="app-build-id" content="${buildId}" />\n    <script>${deployGuardInlineScript}</script>\n  </head>`,
+        )
+      },
     },
     closeBundle() {
       if (buildId === 'dev') return

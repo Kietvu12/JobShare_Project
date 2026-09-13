@@ -1,27 +1,11 @@
-const STORAGE_KEY = 'wjs_app_version'
-const RELOAD_FLAG_KEY = 'wjs_app_version_reload'
-
-function readStoredVersion() {
+function readEmbeddedVersion() {
+  if (import.meta.env.DEV) return null
+  const fromEnv = import.meta.env.VITE_APP_BUILD_ID
+  if (fromEnv) return String(fromEnv)
   try {
-    return localStorage.getItem(STORAGE_KEY)
+    return document.querySelector('meta[name="app-build-id"]')?.getAttribute('content') || null
   } catch {
     return null
-  }
-}
-
-function writeStoredVersion(version) {
-  try {
-    localStorage.setItem(STORAGE_KEY, version)
-  } catch {
-    /* ignore quota / private mode */
-  }
-}
-
-function clearReloadFlag() {
-  try {
-    sessionStorage.removeItem(RELOAD_FLAG_KEY)
-  } catch {
-    /* ignore */
   }
 }
 
@@ -35,76 +19,74 @@ async function fetchRemoteVersion() {
   return data?.version ? String(data.version) : null
 }
 
-function reloadForVersion(version) {
-  const reloadFlag = sessionStorage.getItem(RELOAD_FLAG_KEY)
-  if (reloadFlag === version) {
-    clearReloadFlag()
-    writeStoredVersion(version)
+function promptVersionUpdate() {
+  if (typeof window.__wjsShowUpdateBanner === 'function') {
+    window.__wjsShowUpdateBanner()
     return
   }
-
-  try {
-    sessionStorage.setItem(RELOAD_FLAG_KEY, version)
-  } catch {
-    /* ignore */
+  if (typeof window.__wjsShowBootRecover === 'function') {
+    window.__wjsShowBootRecover()
   }
-
-  writeStoredVersion(version)
-  const url = new URL(window.location.href)
-  url.searchParams.set('_v', version)
-  window.location.replace(url.toString())
 }
 
-function applyVersion(version) {
-  if (!version) return false
-  const stored = readStoredVersion()
-  if (stored && stored !== version) {
-    reloadForVersion(version)
-    return true
-  }
-  if (!stored) writeStoredVersion(version)
-  clearReloadFlag()
-  return false
-}
-
-/** So sánh build id baked-in (bundle hiện tại) với bản server. */
-export function checkEmbeddedAppVersion() {
-  if (import.meta.env.DEV) return false
-  const version = import.meta.env.VITE_APP_BUILD_ID
-  return applyVersion(version)
-}
-
-/** Poll version.json — bắt user đang mở tab cũ sau khi deploy. */
+/** Tab đang mở lúc deploy — báo user bấm tải lại, không tự reload. */
 export async function checkRemoteAppVersion() {
   if (import.meta.env.DEV) return false
+
+  const embedded = readEmbeddedVersion()
+  if (!embedded) return false
+
   try {
-    const remoteVersion = await fetchRemoteVersion()
-    return applyVersion(remoteVersion)
+    const remote = await fetchRemoteVersion()
+    if (!remote || remote === embedded) return false
+    promptVersionUpdate()
+    return true
   } catch {
     return false
   }
 }
 
-export function startAppVersionWatcher() {
+/** Chunk lỗi sau deploy — hiện banner, user tự bấm tải lại. */
+export function setupDeployRecovery() {
   if (import.meta.env.DEV) return undefined
 
-  checkEmbeddedAppVersion()
+  window.addEventListener('vite:preloadError', () => {
+    promptVersionUpdate()
+  })
+
+  window.addEventListener('unhandledrejection', (event) => {
+    const message = String(event?.reason?.message || event?.reason || '')
+    if (
+      /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(
+        message,
+      )
+    ) {
+      promptVersionUpdate()
+    }
+  })
+
+  return undefined
+}
+
+export function startAppVersionWatcher() {
+  if (import.meta.env.DEV) return undefined
 
   const runRemoteCheck = () => {
     checkRemoteAppVersion()
   }
 
   runRemoteCheck()
+  const intervalId = window.setInterval(runRemoteCheck, 30 * 1000)
 
   const onVisible = () => {
     if (document.visibilityState === 'visible') runRemoteCheck()
   }
   document.addEventListener('visibilitychange', onVisible)
-
-  const intervalId = window.setInterval(runRemoteCheck, 5 * 60 * 1000)
+  window.addEventListener('focus', runRemoteCheck)
 
   return () => {
     document.removeEventListener('visibilitychange', onVisible)
+    window.removeEventListener('focus', runRemoteCheck)
     window.clearInterval(intervalId)
   }
 }

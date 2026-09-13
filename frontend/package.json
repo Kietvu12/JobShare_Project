@@ -6,7 +6,7 @@
   "homepage": "/",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/copy-pdf-worker.mjs && vite build",
+    "build": "node scripts/copy-pdf-worker.mjs && vite build && node scripts/prepare-deploy.mjs",
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
