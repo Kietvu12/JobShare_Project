@@ -336,13 +336,106 @@ function buildUnlockedScoutPayload(cvJson) {
   };
 }
 
-/** Scout Performance — hồ sơ đầy đủ sau khi DN mở khóa (contact giống Scout Credit) */
-function buildPerformanceUnlockedScoutPayload(cvJson) {
-  return buildUnlockedScoutPayload(cvJson);
+const SCOUT_PERFORMANCE_PRE_NOMINATION_STATUSES = new Set([2, 3, 4]);
+
+/** Scout Performance — full profile; contact/CV file chỉ khi WS đã tiến cử (status ≥ 5) */
+function buildPerformanceUnlockedScoutPayload(cvJson, { releaseContact = false } = {}) {
+  const full = buildUnlockedScoutPayload(cvJson);
+  if (releaseContact) {
+    return {
+      ...full,
+      performanceContactReleased: true,
+      isPerformancePartial: false,
+      hideContact: false,
+    };
+  }
+  const partial = { ...full };
+  delete partial.email;
+  delete partial.phone;
+  return {
+    ...partial,
+    performanceContactReleased: false,
+    isPerformancePartial: true,
+    hideContact: true,
+  };
+}
+
+export async function resolvePerformancePipelineMeta({ businessId, cvId }) {
+  const unlock = await BusinessScoutUnlock.findOne({
+    where: {
+      businessId,
+      cvId,
+      unlockType: SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE,
+    },
+  });
+  if (!unlock) return null;
+
+  const application = await JobApplication.findOne({
+    where: { cvId },
+    include: [
+      {
+        model: Job,
+        as: 'job',
+        required: true,
+        where: { businessId },
+        attributes: ['id', 'title', 'jobCode'],
+      },
+    ],
+    order: [['applied_at', 'DESC'], ['id', 'DESC']],
+  });
+
+  const status = application ? Number(application.status) : null;
+  const releaseContact = status != null
+    && status >= 5
+    && !SCOUT_PERFORMANCE_PRE_NOMINATION_STATUSES.has(status);
+
+  let stage = 'awaiting_contract';
+  if (application) {
+    if (status === 2) stage = 'awaiting_contract';
+    else if (status === 3) stage = 'ws_hearing';
+    else if (status === 4) stage = 'hearing_rejected';
+    else if (status >= 5) stage = 'common_pipeline';
+  }
+
+  return {
+    releaseContact,
+    applicationId: application?.id ?? null,
+    applicationStatus: status,
+    jobId: application?.jobId ?? null,
+    jobTitle: application?.job?.title ?? null,
+    stage,
+  };
+}
+
+async function applyPerformanceUnlockPayload(businessId, cvJson, unlockType) {
+  if (unlockType !== SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE) {
+    return buildUnlockedScoutPayload(cvJson);
+  }
+  const pipeline = await resolvePerformancePipelineMeta({ businessId, cvId: cvJson.id });
+  const payload = buildPerformanceUnlockedScoutPayload(cvJson, {
+    releaseContact: !!pipeline?.releaseContact,
+  });
+  if (pipeline) payload.performancePipeline = pipeline;
+  return payload;
 }
 
 /** Export để Job Application (Sàn CTV) xem full hồ sơ mà không tạo ScoutUnlock */
 export { buildUnlockedScoutPayload, buildPerformanceUnlockedScoutPayload, formatCurrentLocationRegion };
+
+async function buildPublicScoutPayloadAsync(cvJson, { businessId, isUnlocked = false, unlockType = null, search } = {}) {
+  if (!isUnlocked) return buildLockedScoutPayload(cvJson, { search });
+  let payload;
+  if (unlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE && businessId) {
+    payload = await applyPerformanceUnlockPayload(businessId, cvJson, unlockType);
+  } else {
+    payload = unlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE
+      ? buildPerformanceUnlockedScoutPayload(cvJson)
+      : buildUnlockedScoutPayload(cvJson);
+  }
+  const snippets = extractSearchSnippets(cvJson, search);
+  if (snippets.length) payload.searchSnippets = snippets;
+  return payload;
+}
 
 function buildPublicScoutPayload(cvJson, { isUnlocked = false, unlockType = null, search } = {}) {
   if (!isUnlocked) return buildLockedScoutPayload(cvJson, { search });
@@ -483,7 +576,7 @@ async function mapScoutUnlockRowsToCandidates(businessId, rows, savedMap) {
     const saved = savedMap.get(Number(unlock.cvId));
     const rowUnlockType = unlock.unlockType || SCOUT_UNLOCK_TYPES.SCOUT_CREDIT;
     const basePayload = rowUnlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE
-      ? buildPerformanceUnlockedScoutPayload(cvJson)
+      ? await applyPerformanceUnlockPayload(businessId, cvJson, rowUnlockType)
       : buildUnlockedScoutPayload(cvJson);
     let item = {
       ...basePayload,
@@ -826,7 +919,7 @@ export async function getUnlockedCandidateForBusiness({ businessId, cvId }) {
     const cvJson = unlock.cv.toJSON();
     const rowUnlockType = unlock.unlockType || SCOUT_UNLOCK_TYPES.SCOUT_CREDIT;
     const basePayload = rowUnlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE
-      ? buildPerformanceUnlockedScoutPayload(cvJson)
+      ? await applyPerformanceUnlockPayload(businessId, cvJson, rowUnlockType)
       : buildUnlockedScoutPayload(cvJson);
     let candidate = {
       ...basePayload,
@@ -1038,11 +1131,14 @@ export async function getScoutCandidateForBusiness({ businessId, cvId, search })
 
   const isUnlocked = Boolean(unlock);
   const json = cv.toJSON();
-  let payload = buildPublicScoutPayload(json, {
-    isUnlocked,
-    unlockType: unlock?.unlockType || null,
-    search,
-  });
+  let payload = isUnlocked
+    ? await buildPublicScoutPayloadAsync(json, {
+      businessId,
+      isUnlocked,
+      unlockType: unlock?.unlockType || null,
+      search,
+    })
+    : buildPublicScoutPayload(json, { isUnlocked: false, search });
   payload = await attachPerformanceRequestMeta(businessId, payload);
   if (unlock) payload.unlockType = unlock.unlockType;
 
@@ -1223,7 +1319,13 @@ export async function nominateAccessibleCandidateToJob({ businessId, cvId, jobId
   };
 }
 
-export async function attachScoutCandidateToJob({ businessId, cvId, jobId, note }) {
+export async function attachScoutCandidateToJob({
+  businessId,
+  cvId,
+  jobId,
+  note,
+  initialStatus = 5,
+}) {
   const safeCvId = parseInt(cvId, 10);
   const safeJobId = parseInt(jobId, 10);
   if (!Number.isFinite(safeCvId) || !Number.isFinite(safeJobId)) {
@@ -1264,12 +1366,13 @@ export async function attachScoutCandidateToJob({ businessId, cvId, jobId, note 
     };
   }
 
+  const safeInitialStatus = Number.isFinite(Number(initialStatus)) ? Number(initialStatus) : 5;
   const application = await JobApplication.create({
     jobId: safeJobId,
     cvId: safeCvId,
     cvCode: cv.code || null,
     title: cv.name || cv.desiredPosition || 'Ứng viên Scout',
-    status: 5,
+    status: safeInitialStatus,
     appliedAt: new Date(),
     memo: note?.trim() || `Thêm từ Scout (${unlock.unlockType || 'scout_credit'})`,
   });
@@ -1313,6 +1416,14 @@ export async function getScoutUnlockedCvFileList({ businessId, cvId, req }) {
       const err = new Error('Chỉ hồ sơ mở bằng Scout mới được tải CV gốc');
       err.statusCode = 403;
       throw err;
+    }
+    if (unlock.unlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE) {
+      const pipeline = await resolvePerformancePipelineMeta({ businessId, cvId: safeCvId });
+      if (!pipeline?.releaseContact) {
+        const err = new Error('CV gốc sẽ mở sau khi WS chính thức tiến cử ứng viên vào JD');
+        err.statusCode = 403;
+        throw err;
+      }
     }
   } else {
     const jobIds = [...await getMarketplaceJobIdSet(businessId)];

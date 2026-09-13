@@ -38,10 +38,19 @@ const builderPageStyles = `
   .business-jobs-ui {
     height: 100%;
     min-height: 0;
+    --jobs-jd-page-zoom: 0.9;
+    zoom: var(--jobs-jd-page-zoom);
     --jd-fs-title: 14px;
     --jd-fs-body: 13px;
     --jd-icon: 16px;
     --jd-icon-hit: 32px;
+  }
+  @supports not (zoom: 1) {
+    .business-jobs-ui {
+      transform: scale(var(--jobs-jd-page-zoom));
+      transform-origin: top left;
+      width: calc(100% / var(--jobs-jd-page-zoom));
+    }
   }
   @media (min-width: 640px) {
     .business-jobs-ui {
@@ -120,8 +129,16 @@ const builderPageStyles = `
     }
   }
   @media (min-width: 1024px) and (max-width: 1535px) {
+    .business-jobs-ui {
+      --jobs-jd-page-zoom: 0.86;
+    }
     .business-jobs-ui .business-jd-preview-root {
       --jobs-jd-extra: 0.88;
+    }
+  }
+  @media (min-width: 1536px) {
+    .business-jobs-ui {
+      --jobs-jd-page-zoom: 0.92;
     }
   }
 `

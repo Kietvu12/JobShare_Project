@@ -149,6 +149,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   const [jdOriginalFile, setJdOriginalFile] = useState(null);
   const [jdOriginalStored, setJdOriginalStored] = useState(null);
   const [nextStepsModal, setNextStepsModal] = useState({ open: false, jobId: null });
+  const [lastSavedAt, setLastSavedAt] = useState(null);
 
   useEffect(() => { if (activeThreadIdProp) setActiveThreadId(activeThreadIdProp); }, [activeThreadIdProp]);
   useEffect(() => { setSavedJobId(savedJobIdProp ?? null); }, [savedJobIdProp]);
@@ -219,6 +220,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       } else {
         onThreadPersist?.(payload);
       }
+      setLastSavedAt(Date.now());
       return saved;
     } catch (err) {
       console.error('Lưu phiên JD builder thất bại:', err);
@@ -706,12 +708,16 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     }
   };
 
-  const handleSaveJob = async () => {
+  const handleSaveJob = async ({ targetStatus } = {}) => {
     if (saving) return;
     setError('');
     setSaving(true);
     try {
       const snapshot = getFormSnapshot();
+      if (targetStatus !== undefined && snapshot.formData) {
+        snapshot.formData = { ...snapshot.formData, status: targetStatus };
+        setFormData((prev) => ({ ...prev, status: targetStatus }));
+      }
       const requestData = buildBusinessJobPayloadFromFormState(snapshot);
       let jdFile = jdOriginalFile;
       if (!jdFile && jdOriginalStored) {
@@ -733,14 +739,67 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
         setSavedJobId(newJobId);
         const thread = await persistThread({ jobId: newJobId });
         onJobSaved?.({ jobId: newJobId, thread, isCreate });
-        if (isCreate && showNextStepsOnCreate) {
+        if (isCreate && showNextStepsOnCreate && targetStatus !== 0) {
           setNextStepsModal({ open: true, jobId: newJobId });
         }
       }
+      setLastSavedAt(Date.now());
     } catch (err) {
       setError(err?.message || jdCopyRef.current.errors.saveJob);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleStarterPrompt = async (prompt) => {
+    if (prompt.action === 'upload') {
+      handleFileUploadClick();
+      return;
+    }
+    const message = String(prompt.message || '').trim();
+    if (!message) return;
+    let sid = sessionId || readStoredSessionId();
+    if (!sid) {
+      const started = await startSession();
+      sid = started?.sessionId || readStoredSessionId() || '';
+      if (started?.sessionId) {
+        setSessionId(started.sessionId);
+        storeSessionId(started.sessionId);
+      }
+    }
+    if (!sid || loading || parseLoading) return;
+    setError('');
+    setInput('');
+    setMessages((prev) => [...prev, {
+      id: createMessageId(),
+      role: 'user',
+      kind: 'text',
+      content: message,
+      ts: Date.now(),
+    }]);
+    setLoading(true);
+    try {
+      const data = await apiService.jdBuilderChat({ session_id: sid, message });
+      applySessionResponse(data);
+      persistThread().catch(() => {});
+    } catch (err) {
+      setError(err?.message || jdCopyRef.current.errors.sendMessage);
+    } finally {
+      setLoading(false);
+      inputRef.current?.focus();
+    }
+  };
+
+  const formatSavedTime = (ts) => {
+    if (!ts) return '';
+    const locale = uiLanguage === 'ja' ? 'ja-JP' : uiLanguage === 'en' ? 'en-US' : 'vi-VN';
+    return new Date(ts).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const focusPreviewPane = () => {
+    setMobileBuilderPane('preview');
+    if (typeof document !== 'undefined') {
+      document.querySelector('.business-jd-preview-root')?.scrollTo?.({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -1040,8 +1099,8 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
 
       <div className={`flex-1 min-h-0 grid grid-cols-1 gap-0 overflow-hidden ${
         compactUi
-          ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]'
-          : 'lg:grid-cols-[minmax(320px,2fr)_minmax(0,3fr)]'
+          ? 'lg:grid-cols-[minmax(0,0.38fr)_minmax(0,0.62fr)]'
+          : 'lg:grid-cols-[minmax(280px,38%)_minmax(0,62%)]'
       }`}
       >
         {/* Chat column */}
@@ -1049,15 +1108,33 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
           mobileBuilderPane === 'preview' ? 'hidden lg:flex' : 'flex'
         }`}
         >
-          <div className={`flex-1 min-h-0 overflow-y-auto ${compactUi ? 'px-2.5 py-2.5' : 'px-2 py-3 lg:px-4 lg:py-5'}`}>
+          <div className={`flex-1 min-h-0 overflow-y-auto ${compactUi ? 'px-2.5 py-2.5' : 'px-2 py-3 lg:px-4 lg:py-4'}`}>
             {showEmptyGreeting ? (
-              <div className="h-full flex flex-col items-center justify-center text-center px-3 lg:px-4">
-                <h3 className={`${titleCls} mb-1.5 ${compactUi ? '' : 'lg:mb-2'}`}>
+              <div className="flex min-h-full flex-col items-center justify-center px-3 py-6 text-center lg:px-4">
+                <div className={`mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-[#0077B6]/25 bg-[#e8f4fa] text-[#0077B6] ${compactUi ? '' : 'lg:mb-4'}`}>
+                  <Bot className={iconCls} />
+                </div>
+                <h3 className={`${titleCls} mb-1.5`}>
                   {isEditingSavedJob ? jdCopy.panel.greetingEdit : jdCopy.panel.greetingCreate}
                 </h3>
                 <p className={`${mutedCls} max-w-md leading-relaxed`}>
                   {isEditingSavedJob ? jdCopy.panel.greetingBodyEdit : jdCopy.panel.greetingBodyCreate}
                 </p>
+                {!isEditingSavedJob && Array.isArray(jdCopy.panel.starterPrompts) ? (
+                  <div className="mt-4 grid w-full max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
+                    {jdCopy.panel.starterPrompts.map((prompt) => (
+                      <button
+                        key={prompt.id}
+                        type="button"
+                        disabled={bootLoading || parseLoading || loading}
+                        onClick={() => handleStarterPrompt(prompt)}
+                        className={`rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left font-medium text-slate-700 shadow-sm transition hover:border-[#0077B6]/30 hover:bg-[#f8fbfd] disabled:opacity-50 ${bodyCls}`}
+                      >
+                        {prompt.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ) : (
               <div className={`w-full ${compactUi ? 'space-y-2' : 'space-y-2.5 lg:space-y-4'} ${embedded ? '' : 'max-w-2xl mx-auto'}`}>
@@ -1123,7 +1200,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
           )}
 
           {/* ChatGPT-style input pill */}
-          <div className={`shrink-0 min-w-0 ${compactUi ? 'px-2 pb-2 pt-0.5' : 'p-2 pt-0.5 lg:p-3 lg:pt-1'}`}>
+          <div className={`shrink-0 min-w-0 border-t border-slate-100 bg-white ${compactUi ? 'px-2 pb-2 pt-2' : 'p-2.5 pt-2 lg:p-3 lg:pt-2.5'}`}>
             <input
               ref={fileInputRef}
               type="file"
@@ -1134,7 +1211,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
             <div className={`w-full min-w-0 ${embedded ? '' : 'max-w-2xl mx-auto'}`}>
               <div
                 className={`w-full flex items-end gap-1.5 border border-slate-200 bg-white shadow-sm focus-within:border-slate-300 focus-within:shadow-md transition-shadow ${
-                  compactUi ? 'rounded-2xl px-2 py-1' : 'rounded-2xl lg:rounded-3xl px-2 py-1.5 lg:px-3 lg:py-2 gap-1.5 lg:gap-2'
+                  compactUi ? 'rounded-2xl px-2.5 py-2' : 'rounded-2xl lg:rounded-3xl px-2.5 py-2 lg:px-3 lg:py-2.5 gap-1.5 lg:gap-2'
                 }`}
               >
               <button
@@ -1150,11 +1227,11 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                rows={1}
+                rows={2}
                 placeholder={jdCopy.panel.inputPlaceholder}
                 disabled={parseLoading}
-                className={`flex-1 min-w-0 resize-none bg-transparent outline-none placeholder:text-slate-400 max-h-28 disabled:opacity-50 leading-normal ${
-                  `${bodyCls} py-1.5 text-slate-800`
+                className={`flex-1 min-w-0 resize-none bg-transparent outline-none placeholder:text-slate-400 max-h-32 disabled:opacity-50 leading-normal ${
+                  `${bodyCls} py-2 text-slate-800`
                 }`}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -1166,7 +1243,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
               <button
                 type="button"
                 disabled={saving || parseLoading}
-                onClick={handleSaveJob}
+                onClick={() => handleSaveJob()}
                 aria-label={isEditingSavedJob ? jdCopy.panel.saveUpdate : jdCopy.panel.saveCreate}
                 title={isEditingSavedJob ? jdCopy.panel.saveUpdate : jdCopy.panel.saveCreate}
                 className={`${hitCls} inline-flex items-center justify-center rounded-full shrink-0 mb-0.5 border border-[#0077B6] bg-[#0077B6] text-white hover:bg-[#006699] disabled:opacity-40 disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400 [&_svg]:block`}
@@ -1177,14 +1254,13 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 type="button"
                 disabled={loading || parseLoading || !input.trim() || !sessionId}
                 onClick={() => sendMessage(input)}
+                title={jdCopy.panel.sendTitle}
+                aria-label={jdCopy.panel.sendTitle}
                 className={`${hitCls} inline-flex items-center justify-center rounded-full shrink-0 mb-0.5 border border-[#0077B6]/35 bg-transparent text-[#0077B6] hover:border-[#0077B6]/55 disabled:opacity-40 disabled:border-slate-200 disabled:text-slate-300 [&_svg]:block`}
               >
                 <Send className={iconCls} />
               </button>
               </div>
-              <p className={`${mutedCls} mt-1 px-2 text-center leading-tight lg:mt-1.5`}>
-                {jdCopy.panel.inputHint}
-              </p>
             </div>
           </div>
         </div>
@@ -1208,9 +1284,10 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                     </button>
                   ) : null}
                 </div>
-                <div className="flex flex-wrap items-center gap-1.5">
+                <p className={`${mutedCls} leading-snug`}>{jdCopy.panel.languagePreviewHint}</p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div
-                    className="flex min-w-0 flex-1 items-stretch gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+                    className="inline-flex items-stretch gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5"
                     role="tablist"
                     aria-label={jdCopy.panel.formLanguageAria}
                   >
@@ -1221,7 +1298,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                         role="tab"
                         aria-selected={languageTab === tab.id}
                         onClick={() => setLanguageTab(tab.id)}
-                        className={`min-w-0 flex-1 px-1 py-0.5 lg:px-2 lg:py-1.5 rounded-md transition-colors ${tabTextCls} ${
+                        className={`min-w-0 px-2 py-1 lg:px-3 lg:py-1.5 rounded-md transition-colors ${tabTextCls} ${
                           languageTab === tab.id
                             ? 'bg-white shadow-sm text-[#0077B6]'
                             : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
@@ -1230,47 +1307,44 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                         {tab.label}
                       </button>
                     ))}
-                    <span className="w-px shrink-0 self-stretch bg-slate-200 my-0.5" aria-hidden />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={handleTranslateCurrentTabInputs}
                       disabled={translatingInputs || parseLoading}
-                      className={`shrink-0 inline-flex items-center justify-center gap-1 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${tabTextCls} ${
-                        compactUi ? 'px-1.5 py-0.5' : 'px-2 py-0.5 lg:px-2.5 lg:py-1.5'
-                      } text-slate-600 hover:text-slate-900 hover:bg-white/80 [&_svg]:text-[#0077B6] ${
-                        translatingInputs ? 'bg-white shadow-sm text-[#0077B6]' : ''
-                      }`}
+                      className={`inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#0077B6]/25 bg-[#e8f4fa] px-2.5 py-1 font-semibold text-[#0077B6] transition-colors hover:bg-[#dceef8] disabled:cursor-not-allowed disabled:opacity-50 ${tabTextCls}`}
                       title={jdCopy.panel.translateTitle}
                     >
                       {translatingInputs
                         ? <Loader2 className={`${iconCls} shrink-0 animate-spin`} />
-                        : <Languages className={`${iconCls} shrink-0 text-[#0077B6]`} />}
+                        : <Languages className={`${iconCls} shrink-0`} />}
                       <span className="whitespace-nowrap">
-                        {translatingInputs ? jdCopy.panel.translating : jdCopy.panel.translate}
+                        {translatingInputs ? jdCopy.panel.translating : jdCopy.panel.translateAi}
                       </span>
                     </button>
+                    <label className={`inline-flex shrink-0 items-center gap-1 ${compactUi ? '' : 'lg:gap-1.5'}`}>
+                      <span className={`${mutedCls} font-medium whitespace-nowrap hidden sm:inline`}>{jdCopy.panel.statusLabel}</span>
+                      <select
+                        value={String(formData.status ?? 0)}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, status: parseInt(e.target.value, 10) }))}
+                        className={`rounded-md border border-slate-200 bg-white text-slate-800 font-medium max-w-[9rem] truncate ${
+                          `${bodyCls} py-0.5 pl-1 pr-6`
+                        }`}
+                        aria-label={jdCopy.panel.statusAria}
+                      >
+                        {jobStatusOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
-                  <label className={`hidden shrink-0 items-center gap-1 lg:inline-flex ${compactUi ? '' : 'lg:gap-1.5'}`}>
-                    <span className={`${mutedCls} font-medium whitespace-nowrap`}>{jdCopy.panel.statusLabel}</span>
-                    <select
-                      value={String(formData.status ?? 0)}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, status: parseInt(e.target.value, 10) }))}
-                      className={`rounded-md border border-slate-200 bg-white text-slate-800 font-medium max-w-[9rem] truncate ${
-                        `${bodyCls} py-0.5 pl-1 pr-6`
-                      }`}
-                      aria-label={jdCopy.panel.statusAria}
-                    >
-                      {jobStatusOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </label>
                 </div>
               </div>
-              <div className={`flex-1 overflow-y-auto min-h-0 min-w-0 bg-white ${compactUi ? 'business-jd-preview-root' : ''}`}>
+              <div className={`business-jd-preview-root flex-1 overflow-y-auto min-h-0 min-w-0 bg-white ${compactUi ? '' : ''}`}>
                 <JdTemplate
                   key={jdTemplateSyncKey}
-                  compactPreview={compactUi}
+                  compactPreview={compactUi || !embedded}
                   businessBranding
                   lang={languageTab}
                   formData={formData}
@@ -1298,6 +1372,40 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                   jobBenefitRows={jobBenefitRows}
                   setJobBenefitRows={setJobBenefitRows}
                 />
+              </div>
+              <div className="shrink-0 border-t border-slate-200 bg-white px-2.5 py-2.5 lg:px-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className={`${mutedCls} text-xs sm:text-sm`}>
+                    {lastSavedAt
+                      ? jdCopy.panel.savedAt(formatSavedTime(lastSavedAt))
+                      : (Number(formData.status) === 0 ? jdCopy.panel.savedDraft : '')}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={saving || parseLoading}
+                      onClick={() => handleSaveJob({ targetStatus: 0 })}
+                      className={`rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 ${bodyCls}`}
+                    >
+                      {jdCopy.panel.saveDraft}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={focusPreviewPane}
+                      className={`rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 ${bodyCls}`}
+                    >
+                      {jdCopy.panel.previewJd}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={saving || parseLoading}
+                      onClick={() => handleSaveJob({ targetStatus: 1 })}
+                      className={`rounded-lg bg-[#0077B6] px-4 py-1.5 font-bold text-white shadow-sm hover:bg-[#006399] disabled:opacity-50 ${bodyCls}`}
+                    >
+                      {jdCopy.panel.publishJob}
+                    </button>
+                  </div>
+                </div>
               </div>
             </>
         </div>

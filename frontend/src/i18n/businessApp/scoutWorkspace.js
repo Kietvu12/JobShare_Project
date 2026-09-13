@@ -44,6 +44,32 @@ export const scoutWorkspaceI18n = {
         topUpSuccess: (code) => (code
           ? `Đã gửi yêu cầu ${code}. WS sẽ liên hệ hướng dẫn thanh toán.`
           : 'Đã gửi yêu cầu nạp credit. WS sẽ liên hệ hướng dẫn thanh toán.'),
+        topUpRequestSent: (code) => (code
+          ? `Yêu cầu nạp Credit đã được gửi (${code}). WS/Admin sẽ duyệt sau khi thanh toán — credit chưa được cộng ngay.`
+          : 'Yêu cầu nạp Credit đã được gửi. WS/Admin sẽ duyệt sau khi thanh toán — credit chưa được cộng ngay.'),
+        howItWorksTitle: 'Lợi ích & cách sử dụng',
+        creditBalanceBanner: (credit, opens) => `Credit hiện có: ${credit} · ~${opens} lượt mở hồ sơ`,
+        creditLowWarning: 'Credit sắp hết — nên nạp thêm để tiếp tục mở hồ sơ.',
+        topUpMore: 'Nạp thêm Credit',
+        collapsePackages: 'Thu gọn gói',
+        topUpMoreHint: 'Bạn có thể nạp thêm credit bất cứ lúc nào.',
+        ctaStartScout: 'Bắt đầu Scout ứng viên',
+        ctaChoosePackage: 'Chọn gói và bắt đầu',
+        currentBalanceHint: (credit, cost) => `(Số dư ${credit} · ${cost} credit/lần mở hồ sơ)`,
+        packageConfirm: {
+          confirmTitle: 'Xác nhận chọn gói Credit',
+          confirmSubtitle: 'WS sẽ liên hệ hướng dẫn thanh toán sau khi bạn xác nhận.',
+          packageName: 'Gói',
+          creditsAmount: 'Số Credit',
+          priceLabel: 'Giá',
+          yenUnit: 'yên',
+          opensEstimate: 'Lượt mở hồ sơ ước tính',
+          opensEstimateValue: (opens, cost) => `~${opens} lần (${cost} credit/lần)`,
+          paymentTotal: 'Số tiền thanh toán',
+          pendingNote: 'Credit chỉ được cộng sau khi WS/Admin xác nhận thanh toán — không cộng ngay lập tức.',
+          cancel: 'Hủy',
+          confirm: 'Xác nhận chọn gói',
+        },
         insufficientCreditTitle: 'Chưa đủ credit',
         insufficientCreditMessage: 'Bạn chưa có đủ credit để bắt đầu sử dụng dịch vụ. Bạn có muốn nạp thêm?',
         modalClose: 'Đóng',
@@ -74,18 +100,45 @@ export const scoutWorkspaceI18n = {
       managed: {
         pageTitle: 'Scout Ủy Thác',
         pageSubtitle: 'Workstation tìm kiếm, đánh giá và tiếp cận ứng viên thay doanh nghiệp — không tốn credit mở hồ sơ.',
+        noCreditLine: 'Không tốn Credit mở hồ sơ — chỉ phát sinh phí giới thiệu khi tuyển thành công.',
+        diffVsDirectTitle: 'Khác với Scout Trực Tiếp',
+        diffVsDirect: [
+          'WS chủ động tìm kiếm, sàng lọc và tiếp cận ứng viên thay bạn',
+          'Hỗ trợ hearing, phỏng vấn và cập nhật tiến độ qua hệ thống',
+          'Không trừ Credit — phí success fee khi ứng viên vào công ty',
+        ],
         previewTitle: 'Ứng viên tiềm năng gợi ý cho bạn',
-        previewSubtitle: 'Xem trước hồ sơ ẩn danh trong kho Scout',
+        previewSubtitle: 'Xem trước hồ sơ ẩn danh — chọn ứng viên để ủy thác WS tiếp cận',
         anonymousBadge: 'Hồ sơ đang được ẩn danh',
-        previewEmpty: 'Chưa có gợi ý ứng viên — bấm "Khám phá ứng viên & gửi yêu cầu WS" để vào kho Scout.',
+        previewEmpty: 'Chưa có gợi ý — bấm CTA cuối trang để vào kho Scout và gửi yêu cầu WS.',
         feeTableTitle: 'Phí giới thiệu khi tuyển thành công',
-        feeTableNote: 'Phí tính theo % thu nhập năm của ứng viên, tùy cấp kinh nghiệm.',
+        feeTableNote: 'Phí tính theo % trên thu nhập năm của ứng viên (chỉ khi tuyển thành công), tùy cấp kinh nghiệm.',
         feeTableLevel: 'Cấp bậc',
         feeTableExperience: 'Kinh nghiệm',
-        feeTableFee: 'Phí',
+        feeTableFee: 'Phí (% thu nhập năm)',
         feeTableNoteCol: 'Ghi chú',
         exploreAll: 'Khám phá ứng viên & gửi yêu cầu WS',
-        wsSupportHint: 'Sau khi chọn ứng viên, WS sẽ hearing JD và tiếp cận thay bạn.',
+        wsSupportHint: 'Sau khi chọn ứng viên: xác nhận phí → hợp đồng ủy thác (WS/Admin) → gắn hoặc tạo JD → WS hearing.',
+        ctaStartManaged: 'Bắt đầu với Scout Ủy Thác',
+        listRowCta: 'Xem hồ sơ · Ủy thác WS',
+        processHint: 'Hiểu dịch vụ → Xem phí → Xem gợi ý → Scout ứng viên → Ủy thác WS',
+        fairProcessSteps: [
+          'Xác nhận phí giới thiệu',
+          'Hoàn tất hợp đồng ủy thác (WS/Admin)',
+          'Gắn JD có sẵn hoặc tạo JD mới',
+          'WS hearing ứng viên & cập nhật kết quả',
+        ],
+        contractPendingNote: 'Dịch vụ sẽ bắt đầu sau khi hoàn tất hợp đồng ủy thác.',
+        pipeline: {
+          title: 'Tiến độ Scout Ủy Thác',
+          awaiting_contract: 'Chờ hoàn tất hợp đồng ủy thác',
+          ws_hearing: 'WS đang hearing ứng viên',
+          hearing_rejected: 'Đã hearing — ứng viên từ chối / không phù hợp',
+          common_pipeline: 'Đã tiến cử — quy trình tuyển chọn chung',
+          contactLocked: 'Liên hệ & CV gốc sẽ mở sau khi WS chính thức tiến cử vào JD.',
+          contactReleased: 'Đã mở đầy đủ thông tin liên hệ và CV theo hồ sơ tiến cử.',
+          viewApplications: 'Xem tại Quản lý ứng viên',
+        },
       },
     },
     workspace: {
@@ -96,10 +149,19 @@ export const scoutWorkspaceI18n = {
       allScoutCandidates: 'Tất cả ứng viên Scout',
       searchJdPlaceholder: 'Tìm theo tên JD...',
       selectJdPlaceholder: '— Tìm hoặc chọn JD —',
-      creditLabel: 'Credit',
-      unlockLabel: 'Mở hồ sơ',
+      creditLabel: 'Số dư Credit',
+      unlockLabel: 'Chi phí mỗi lần mở hồ sơ',
       creditUnit: 'credit',
-      topUpCredit: 'Nạp credit',
+      topUpCredit: 'Nạp thêm Credit',
+      sortLabel: 'Sắp xếp',
+      sortMatch: 'Match cao nhất',
+      sortNewest: 'Mới nhất',
+      sortExperience: 'Kinh nghiệm',
+      sortJlpt: 'JLPT',
+      perPage: 'Hiển thị',
+      perPageOption: (n) => `${n} / trang`,
+      unlockCta: (cost) => `Mở hồ sơ – ${cost} Credit`,
+      matchNoJd: 'Chưa chọn JD',
       loading: 'Đang tải...',
       candidatesFound: (n, locale = 'vi-VN') => `${Number(n).toLocaleString(locale)} ứng viên tìm thấy`,
       aiSuggestFor: (title) => `AI gợi ý cho ${title}`,
@@ -190,7 +252,7 @@ export const scoutWorkspaceI18n = {
       },
       performanceSuccess: {
         title: 'Đã gửi yêu cầu Scout Ủy Thác',
-        body: 'WS sẽ phản hồi trong vòng 24 giờ làm việc.',
+        body: 'Tiếp theo: WS/Admin hoàn tất hợp đồng ủy thác → WS hearing theo JD → cập nhật kết quả trên Quản lý ứng viên. WS phản hồi trong 48h làm việc.',
         bodySimilar: ' Đồng thời WS sẽ tìm thêm ứng viên tương tự.',
         nominationCreated: (title) => `Đã tạo đơn tiến cử cho hồ sơ này vào JD "${title}".`,
         nominationExists: (title) => `Ứng viên đã có đơn tiến cử cho JD "${title}".`,
@@ -641,8 +703,25 @@ function resolveLang(language) {
   return scoutWorkspaceI18n[language] ? language : 'vi';
 }
 
+function deepMerge(base, override) {
+  if (!override || typeof override !== 'object') return base;
+  const out = { ...base };
+  Object.keys(override).forEach((key) => {
+    const b = base[key];
+    const o = override[key];
+    if (o && typeof o === 'object' && !Array.isArray(o) && b && typeof b === 'object' && !Array.isArray(b)) {
+      out[key] = deepMerge(b, o);
+    } else if (o !== undefined) {
+      out[key] = o;
+    }
+  });
+  return out;
+}
+
 export function getScoutWorkspaceCopy(language = 'vi') {
-  return scoutWorkspaceI18n[resolveLang(language)];
+  const lang = resolveLang(language);
+  if (lang === 'vi') return scoutWorkspaceI18n.vi;
+  return deepMerge(scoutWorkspaceI18n.vi, scoutWorkspaceI18n[lang]);
 }
 
 export function getScoutCompareTableRows(language = 'vi') {

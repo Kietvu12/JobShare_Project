@@ -32,6 +32,9 @@ const baseCopy = {
       consultTitle: 'Không chắc giải pháp nào phù hợp?',
       consultBody: 'JobShare tư vấn miễn phí cho doanh nghiệp của bạn.',
       consultCta: 'Nhận tư vấn ngay',
+      solutionsHeading: 'Giải pháp tuyển dụng dành cho doanh nghiệp',
+      accessService: 'Truy cập dịch vụ',
+      quickActionsShort: 'Thao tác nhanh',
       notifications: 'Thông báo',
       viewAll: 'Xem tất cả',
       noNotifications: 'Không có thông báo.',
@@ -41,7 +44,7 @@ const baseCopy = {
     },
     quickActions: {
       createJd: {
-        title: 'Tạo JD mới nhanh chóng',
+        title: 'Tạo JD mới',
         desc: 'Tạo job description bằng AI trên JobShare',
       },
       scout: {
@@ -89,6 +92,9 @@ const baseCopy = {
       consultTitle: 'Not sure which solution fits?',
       consultBody: 'JobShare offers free consultation for your hiring needs.',
       consultCta: 'Get free consultation',
+      solutionsHeading: 'Recruitment solutions for your business',
+      accessService: 'Open service',
+      quickActionsShort: 'Quick actions',
       notifications: 'Notifications',
       viewAll: 'View all',
       noNotifications: 'No notifications.',
@@ -98,7 +104,7 @@ const baseCopy = {
     },
     quickActions: {
       createJd: {
-        title: 'Create a new JD quickly',
+        title: 'Create new JD',
         desc: 'Build job descriptions with AI on JobShare',
       },
       scout: {
@@ -146,6 +152,9 @@ const baseCopy = {
       consultTitle: 'どのサービスが最適かお悩みですか？',
       consultBody: 'JobShareが無料でご相談に応じます。',
       consultCta: '無料相談を受ける',
+      solutionsHeading: '企業向け採用ソリューション',
+      accessService: 'サービスを開く',
+      quickActionsShort: 'クイック操作',
       notifications: '通知',
       viewAll: 'すべて見る',
       noNotifications: '通知はありません。',
@@ -155,7 +164,7 @@ const baseCopy = {
     },
     quickActions: {
       createJd: {
-        title: 'JDを素早く作成',
+        title: '新規JD作成',
         desc: 'JobShareのAIで求人票を作成',
       },
       scout: {

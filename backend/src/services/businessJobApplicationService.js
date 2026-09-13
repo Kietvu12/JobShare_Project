@@ -229,6 +229,9 @@ function matchesTab(sourceType, status, tab) {
 
 function matchesSourceFilter(sourceType, sourceTypeFilter) {
   if (!sourceTypeFilter) return true;
+  if (sourceTypeFilter === 'ctv_marketplace') {
+    return sourceType === 'ctv_marketplace' || sourceType === 'ctv_nomination';
+  }
   return sourceType === sourceTypeFilter;
 }
 
@@ -236,6 +239,8 @@ export async function listBusinessJobApplications({
   businessId,
   page = 1,
   limit = 20,
+  appliedFrom,
+  appliedTo,
   search,
   jobId,
   status,
@@ -264,6 +269,18 @@ export async function listBusinessJobApplications({
 
   if (status != null && status !== '') {
     where.status = parseInt(status, 10);
+  }
+
+  if (appliedFrom || appliedTo) {
+    where.appliedAt = {};
+    if (appliedFrom) where.appliedAt[Op.gte] = new Date(appliedFrom);
+    if (appliedTo) {
+      const end = new Date(appliedTo);
+      if (!Number.isNaN(end.getTime())) {
+        end.setHours(23, 59, 59, 999);
+        where.appliedAt[Op.lte] = end;
+      }
+    }
   }
 
   if (tab === 'hired') where.status = { [Op.in]: HIRED_STATUSES };

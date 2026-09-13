@@ -15,6 +15,7 @@ const I18N = {
     notifications: 'Thông báo',
     messages: 'Tin nhắn',
     help: 'Trợ giúp',
+    helpTitle: 'Hướng dẫn / Help Center',
     settings: 'Cài đặt',
     logout: 'Đăng xuất',
     markAllRead: 'Đọc hết',
@@ -29,6 +30,7 @@ const I18N = {
     notifications: 'Notifications',
     messages: 'Messages',
     help: 'Help',
+    helpTitle: 'Guide / Help Center',
     settings: 'Settings',
     logout: 'Log Out',
     markAllRead: 'Mark all read',
@@ -43,6 +45,7 @@ const I18N = {
     notifications: '通知',
     messages: 'メッセージ',
     help: 'ヘルプ',
+    helpTitle: 'ガイド / ヘルプセンター',
     settings: '設定',
     logout: 'ログアウト',
     markAllRead: 'すべて既読',
@@ -541,8 +544,10 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
 
         <button
           type="button"
+          onClick={() => navigate('/business/knowledge')}
           className="hidden p-1.5 rounded-md hover:bg-gray-100 transition-colors sm:inline-flex lg:p-1.5"
-          title={t.help}
+          title={t.helpTitle}
+          aria-label={t.helpTitle}
         >
           <HelpCircle className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-gray-600" />
         </button>

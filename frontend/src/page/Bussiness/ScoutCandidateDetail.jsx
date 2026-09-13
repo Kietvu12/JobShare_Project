@@ -31,6 +31,7 @@ import {
   SCOUT_DETAIL_ICON_SM,
   SCOUT_DETAIL_ICON_MD,
 } from './Scout'
+import ScoutPerformancePipelineBar from '../../component/Bussiness/ScoutPerformancePipelineBar'
 
 const PAGE_FONT = BUSINESS_UI_FONT
 
@@ -231,7 +232,12 @@ export default function ScoutCandidateDetail() {
     return () => { cancelled = true }
   }, [selectedJobId, numericCvId, user?.id])
 
-  const selectedJobMatchScore = selectedJobId ? jobScoreById[String(selectedJobId)] : null
+  const selectedJobMatchScore = useMemo(() => {
+    if (!selectedJobId) return null
+    const s = jobScoreById[String(selectedJobId)]
+    if (s == null || Number(s) <= 0) return null
+    return s
+  }, [selectedJobId, jobScoreById])
 
   const needsJobList = attachJobOpen
     || (actionModal.open && actionModal.kind === 'performance-confirm')
@@ -490,6 +496,7 @@ export default function ScoutCandidateDetail() {
           nominationAlreadyExists: !!nomination?.alreadyExists,
           nominationJobTitle: nomination?.job?.title || selectedJob?.title || '',
         })
+        loadCandidate()
       } else {
         openNoticeModal('Gửi yêu cầu thất bại', res?.message || 'Không thể gửi yêu cầu Scout Performance.', 'error')
       }
@@ -570,10 +577,16 @@ export default function ScoutCandidateDetail() {
 
   const canShowUnlockOptions = Boolean(candidate?.id) && !candidate.isUnlocked
   const showUnlockCompareTable = canShowUnlockOptions && !scoutMode
-  const showCreditUnlockCard = canShowUnlockOptions && (!scoutMode || scoutMode === 'credit')
-  const showManagedUnlockCard = canShowUnlockOptions
-    && !performanceDetail
-    && (!scoutMode || scoutMode === 'performance')
+  const showDualServiceCards = canShowUnlockOptions && !scoutMode && !performanceDetail
+  const showCreditUnlockCard = showDualServiceCards
+  const showManagedUnlockCard = showDualServiceCards
+  const showManagedSoftPromo = canShowUnlockOptions && scoutMode === 'credit'
+  const showCreditSoftPromo = canShowUnlockOptions && scoutMode === 'performance' && !candidate?.isUnlocked
+  const hasPerformanceRequest = candidate?.unlockType === 'scout_performance'
+    || Boolean(candidate?.performanceRequest?.id)
+  const showManagedStickyCta = canShowUnlockOptions && scoutMode === 'performance' && !hasPerformanceRequest
+  const showPerformancePipeline = (scoutMode === 'performance' || isPerformanceUnlock)
+    && candidate?.performancePipeline
 
   const handleDownloadOriginalCv = async () => {
     if (!candidate?.id || downloadingCv) return
@@ -599,7 +612,8 @@ export default function ScoutCandidateDetail() {
   const backToScoutUrl = useMemo(() => getScoutListUrl({
     jobId: selectedJobId,
     performanceRequestId,
-  }), [selectedJobId, performanceRequestId])
+    mode: scoutMode || undefined,
+  }), [selectedJobId, performanceRequestId, scoutMode])
 
   return (
     <>
@@ -681,12 +695,23 @@ export default function ScoutCandidateDetail() {
                 </div>
               )}
 
+              {showPerformancePipeline ? (
+                <ScoutPerformancePipelineBar
+                  pipeline={candidate.performancePipeline}
+                  language={language}
+                  onViewApplications={() => navigate('/business/applications')}
+                />
+              ) : null}
+
               <ScoutCandidateProfilePanel
                 candidate={candidate}
                 highlightQuery={highlightQuery}
                 className="scout-detail-ui w-full"
                 showLockedHint={!candidate.isUnlocked}
-                hideContact={!candidate.isUnlocked}
+                hideContact={
+                  !candidate.isUnlocked
+                  || (candidate.unlockType === 'scout_performance' && !candidate.performanceContactReleased)
+                }
                 matchScore={selectedJobMatchScore}
                 matchJobTitle={selectedJob?.title || null}
                 accessLabel={candidate.isUnlocked
@@ -699,7 +724,7 @@ export default function ScoutCandidateDetail() {
                 <ScoutUnlockCompareTable />
               ) : null}
 
-              {(showCreditUnlockCard || showManagedUnlockCard) ? (
+              {showCreditUnlockCard || showManagedUnlockCard ? (
                 <div
                   className={`grid w-full grid-cols-1 items-stretch gap-3 ${
                     showCreditUnlockCard && showManagedUnlockCard ? 'md:grid-cols-2' : ''
@@ -768,6 +793,73 @@ export default function ScoutCandidateDetail() {
                 </div>
               ) : null}
 
+              {showManagedSoftPromo ? (
+                <div className="w-full rounded-lg border border-slate-100 bg-slate-50/90 px-3 py-2.5 text-xs text-slate-600">
+                  Chưa tự tin tự liên hệ ứng viên?{' '}
+                  <button
+                    type="button"
+                    onClick={handlePerformanceRequestClick}
+                    className="font-semibold text-[#0077B6] underline decoration-[#0077B6]/30 underline-offset-2 hover:text-[#006399]"
+                  >
+                    Nhờ WS hỗ trợ tiếp cận →
+                  </button>
+                </div>
+              ) : null}
+
+              {showCreditSoftPromo ? (
+                <div className="w-full rounded-lg border border-slate-100 bg-slate-50/90 px-3 py-2.5 text-xs text-slate-600">
+                  Muốn tự liên hệ ứng viên?{' '}
+                  <button
+                    type="button"
+                    onClick={switchToCreditScoutOnDetail}
+                    className="font-semibold text-[#0077B6] underline decoration-[#0077B6]/30 underline-offset-2 hover:text-[#006399]"
+                  >
+                    Chuyển sang Scout Trực Tiếp →
+                  </button>
+                </div>
+              ) : null}
+
+              {showManagedStickyCta ? (
+                <div className="sticky bottom-0 z-20 -mx-2.5 border-t border-slate-200 bg-white/95 px-2.5 py-2.5 shadow-[0_-4px_16px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:-mx-3 sm:px-3 lg:static lg:mx-0 lg:border lg:rounded-xl lg:shadow-sm">
+                  <button
+                    type="button"
+                    onClick={handlePerformanceRequestClick}
+                    disabled={
+                      performanceRequesting
+                      || (candidate?.isUnlocked && candidate?.unlockType !== 'scout_performance')
+                      || candidate?.unlockType === 'scout_performance'
+                    }
+                    className="scout-detail-body w-full rounded-xl bg-[#0077B6] py-3 font-bold text-white hover:bg-[#006399] disabled:cursor-not-allowed disabled:bg-slate-300"
+                  >
+                    {performanceRequesting
+                      ? 'Đang gửi yêu cầu...'
+                      : candidate?.unlockType === 'scout_performance'
+                        ? 'Đã gửi yêu cầu WS'
+                        : 'Ủy thác WS'}
+                  </button>
+                  <p className="scout-detail-caption mt-1.5 text-center text-slate-500">
+                    Không tốn Credit · Phí giới thiệu khi tuyển thành công
+                  </p>
+                </div>
+              ) : null}
+
+              {showCreditUnlockCard && scoutMode === 'credit' && !candidate.isUnlocked ? (
+                <div className="sticky bottom-0 z-20 -mx-2.5 border-t border-slate-200 bg-white/95 px-2.5 py-2.5 shadow-[0_-4px_16px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:-mx-3 sm:px-3 lg:static lg:mx-0 lg:border lg:rounded-xl lg:shadow-sm">
+                  <button
+                    type="button"
+                    onClick={handleUnlockClick}
+                    disabled={credit < scoutCreditCost || unlocking}
+                    className="scout-detail-body w-full rounded-xl bg-[#0077B6] py-3 font-bold text-white hover:bg-[#006399] disabled:cursor-not-allowed disabled:bg-[#94c5e0]"
+                  >
+                    {unlocking ? 'Đang mở...' : `Mở thông tin liên hệ – ${scoutCreditCost} Credit`}
+                  </button>
+                  <p className="scout-detail-caption mt-1.5 text-center text-slate-500">
+                    Số dư: {credit} credit
+                    {credit >= scoutCreditCost ? ` · Còn lại sau mở: ${credit - scoutCreditCost}` : ' · Chưa đủ credit'}
+                  </p>
+                </div>
+              ) : null}
+
               {isScoutCreditUnlock && (
                 <div className="w-full rounded-xl border border-emerald-100 bg-[#ecfdf5] p-3 sm:p-4">
                   <div className="scout-detail-title mb-2 flex items-center gap-1.5 text-[#047857]">
@@ -810,36 +902,35 @@ export default function ScoutCandidateDetail() {
                 <div className="w-full rounded-xl border border-blue-100 bg-[#e8f4fa] p-3 sm:p-4">
                   <div className="scout-detail-title mb-2 flex items-center gap-1.5 text-[#006399]">
                     <Check {...SCOUT_DETAIL_ICON_MD} color="#006399" aria-hidden />
-                    Đã mở hồ sơ bằng Scout Ủy Thác
+                    Scout Ủy Thác — đang theo dõi tiến độ
                   </div>
                   <div className="flex flex-col gap-1.5 sm:flex-row">
                     <button
                       type="button"
-                      onClick={() => setAttachJobOpen(true)}
+                      onClick={() => navigate('/business/applications')}
                       className="scout-detail-body flex-1 rounded-lg bg-[#0077B6] py-2 font-semibold text-white hover:bg-[#006399]"
                     >
-                      Tạo đơn tiến cử cho hồ sơ này
+                      Quản lý ứng viên
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleDownloadOriginalCv}
-                      disabled={downloadingCv}
-                      className="scout-detail-body inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#0077B6]/35 bg-white py-2 font-semibold text-[#0077B6] hover:bg-[#e8f4fa]/60 disabled:opacity-60"
-                    >
-                      {downloadingCv ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Download className="h-3.5 w-3.5" />
-                      )}
-                      {downloadingCv ? 'Đang tải...' : 'Tải CV gốc'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => navigate('/business/applications')}
-                      className="scout-detail-body flex-1 rounded-lg border border-slate-200 py-2 font-semibold text-slate-700 hover:bg-slate-50"
-                    >
-                      Xem Quản lý tiến cử
-                    </button>
+                    {candidate.performanceContactReleased ? (
+                      <button
+                        type="button"
+                        onClick={handleDownloadOriginalCv}
+                        disabled={downloadingCv}
+                        className="scout-detail-body inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#0077B6]/35 bg-white py-2 font-semibold text-[#0077B6] hover:bg-[#e8f4fa]/60 disabled:opacity-60"
+                      >
+                        {downloadingCv ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Download className="h-3.5 w-3.5" />
+                        )}
+                        {downloadingCv ? 'Đang tải...' : 'Tải CV gốc'}
+                      </button>
+                    ) : (
+                      <p className="scout-detail-caption flex flex-1 items-center text-slate-600">
+                        Liên hệ & CV sẽ mở sau khi WS tiến cử vào JD.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -854,6 +945,7 @@ export default function ScoutCandidateDetail() {
         onConfirm={submitPerformanceUnlock}
         onQuickCreateJd={handleQuickCreateJdForHearing}
         onAlternateScoutSwitch={switchToCreditScoutFromPerformanceModal}
+        hideAlternatePromo={scoutMode === 'performance'}
         loading={performanceRequesting}
         agreed={performanceTermsAgreed}
         onAgreedChange={setPerformanceTermsAgreed}

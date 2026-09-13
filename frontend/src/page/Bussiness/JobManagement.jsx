@@ -52,7 +52,7 @@ const HIRED_STATUSES = new Set([14, 15])
 const EMPTY_JOB_STATS = { candidates: 0, referrals: 0, interviews: 0, hired: 0 }
 
 const FILTER_SELECT_CLASS =
-  'w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-[#0077B6]/40'
+  'w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 outline-none focus:border-[#0077B6]/40'
 
 function buildJobStatsMap(applications = []) {
   const map = {}
@@ -102,7 +102,7 @@ function JobTableHeader({ jobsCopy, allSelected, onToggleAll, hasItems }) {
   return (
     <thead>
       <tr className="border-b border-slate-200 bg-white text-left text-[10px] font-semibold uppercase tracking-wide text-[#0077B6]">
-        <th className="w-10 px-3 py-3">
+        <th className="w-9 px-2 py-2">
           <input
             type="checkbox"
             checked={allSelected}
@@ -112,13 +112,13 @@ function JobTableHeader({ jobsCopy, allSelected, onToggleAll, hasItems }) {
             className="h-3.5 w-3.5 rounded border-slate-300 text-[#0077B6] focus:ring-[#0077B6]/30"
           />
         </th>
-        <th className="px-3 py-3">{jobsCopy.table.name}</th>
-        <th className="px-3 py-3">{jobsCopy.table.salary}</th>
-        <th className="px-3 py-3">{jobsCopy.table.status}</th>
-        <th className="px-3 py-3">{jobsCopy.table.location}</th>
-        <th className="px-3 py-3">{jobsCopy.table.referrals}</th>
-        <th className="px-3 py-3">{jobsCopy.table.updated}</th>
-        <th className="business-jobs-actions-col px-3 py-3 text-right">{jobsCopy.table.actions}</th>
+        <th className="business-jobs-col-name px-2 py-2">{jobsCopy.table.name}</th>
+        <th className="business-jobs-col-salary px-2 py-2">{jobsCopy.table.salary}</th>
+        <th className="business-jobs-col-status px-2 py-2">{jobsCopy.table.status}</th>
+        <th className="business-jobs-col-location px-2 py-2">{jobsCopy.table.location}</th>
+        <th className="business-jobs-col-referrals px-2 py-2 text-center">{jobsCopy.table.referrals}</th>
+        <th className="business-jobs-col-updated px-2 py-2">{jobsCopy.table.updated}</th>
+        <th className="business-jobs-actions-col px-2 py-2 text-right">{jobsCopy.table.actions}</th>
       </tr>
     </thead>
   )
@@ -126,14 +126,19 @@ function JobTableHeader({ jobsCopy, allSelected, onToggleAll, hasItems }) {
 
 function JobTableRowActions({ job, menuItems, commonCopy, onMenuAction }) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const overflowMenuItems = menuItems.filter((item) => !['edit', 'delete'].includes(item.id))
+  const overflowMenuItems = useMemo(
+    () => menuItems
+      .filter((item) => !['edit', 'delete'].includes(item.id))
+      .filter((item) => !item.hiddenStatus?.(job.status)),
+    [menuItems, job.status],
+  )
 
   return (
     <div className="flex items-center justify-end gap-0.5">
       <button
         type="button"
         onClick={() => onMenuAction('edit', job)}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#0077B6]/10 text-[#0077B6] opacity-0 transition group-hover:opacity-100 hover:bg-[#0077B6]/20"
+        className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#0077B6]/10 text-[#0077B6] opacity-0 transition group-hover:opacity-100 hover:bg-[#0077B6]/20"
         aria-label={menuItems.find((item) => item.id === 'edit')?.label}
       >
         <Pencil className="h-3.5 w-3.5" />
@@ -141,33 +146,36 @@ function JobTableRowActions({ job, menuItems, commonCopy, onMenuAction }) {
       <button
         type="button"
         onClick={() => onMenuAction('delete', job)}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-600"
+        className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-400 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-600"
         aria-label={menuItems.find((item) => item.id === 'delete')?.label}
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setMenuOpen((v) => !v)}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-          aria-label={commonCopy.actions}
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </button>
-        {menuOpen ? (
-          <JobRowMenu
-            job={job}
-            menuItems={overflowMenuItems}
-            closeMenuLabel={commonCopy.closeMenu}
-            onClose={() => setMenuOpen(false)}
-            onAction={(action) => {
-              setMenuOpen(false)
-              onMenuAction(action, job)
-            }}
-          />
-        ) : null}
-      </div>
+      {overflowMenuItems.length > 0 ? (
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            aria-label={commonCopy.actions}
+            aria-expanded={menuOpen}
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" />
+          </button>
+          {menuOpen ? (
+            <JobRowMenu
+              job={job}
+              menuItems={overflowMenuItems}
+              closeMenuLabel={commonCopy.closeMenu}
+              onClose={() => setMenuOpen(false)}
+              onAction={(action) => {
+                setMenuOpen(false)
+                onMenuAction(action, job)
+              }}
+            />
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -195,7 +203,7 @@ function JobTableRow({
       className="group cursor-pointer border-b border-slate-100 transition hover:bg-slate-50/90"
       onClick={() => onOpen(job.id)}
     >
-      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+      <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
         <input
           type="checkbox"
           checked={selected}
@@ -204,36 +212,39 @@ function JobTableRow({
           className="h-3.5 w-3.5 rounded border-slate-300 text-[#0077B6] focus:ring-[#0077B6]/30"
         />
       </td>
-      <td className="px-3 py-3">
-        <div className="flex min-w-[180px] items-center gap-3">
-          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${iconVariant.bg} ${iconVariant.text}`}>
-            <Briefcase className="h-4 w-4" />
+      <td className="business-jobs-col-name px-2 py-2">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${iconVariant.bg} ${iconVariant.text}`}>
+            <Briefcase className="h-3.5 w-3.5" />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-900">{title}</p>
-            <p className="truncate text-xs text-slate-500">{getJobCode(job)}</p>
+            <p className="truncate text-xs font-semibold text-slate-900 sm:text-sm">{title}</p>
+            <p className="truncate text-[11px] text-slate-500">
+              {getJobCode(job)}
+              <span className="text-slate-300"> · </span>
+              {getRecruitmentLabel(job, language)}
+            </p>
           </div>
         </div>
       </td>
-      <td className="px-3 py-3">
-        <p className="text-sm font-semibold text-slate-900">{formatJobSalary(job, language)}</p>
-        <p className="text-xs text-slate-500">{getRecruitmentLabel(job, language)}</p>
+      <td className="business-jobs-col-salary px-2 py-2">
+        <p className="text-xs font-semibold text-slate-900 sm:text-sm">{formatJobSalary(job, language)}</p>
       </td>
-      <td className="px-3 py-3">
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700">
-          <span className={`h-2 w-2 rounded-full ${statusMeta.dot}`} />
+      <td className="business-jobs-col-status px-2 py-2">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-700 sm:text-xs">
+          <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dot}`} />
           {statusMeta.label}
         </span>
       </td>
-      <td className="max-w-[160px] truncate px-3 py-3 text-sm text-slate-700">{getJobLocation(job)}</td>
-      <td className="px-3 py-3">
-        <p className="text-sm font-semibold text-slate-900">{metrics.referrals}</p>
-        <p className="text-xs text-slate-500">{jobsCopy.metrics.referrals}</p>
+      <td className="business-jobs-col-location max-w-[9rem] truncate px-2 py-2 text-xs text-slate-700">{getJobLocation(job)}</td>
+      <td className="business-jobs-col-referrals px-2 py-2 text-center">
+        <span className="text-base font-bold tabular-nums text-[#0077B6]">{metrics.referrals}</span>
+        <span className="sr-only">{jobsCopy.metrics.referrals}</span>
       </td>
-      <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
+      <td className="business-jobs-col-updated whitespace-nowrap px-2 py-2 text-[11px] text-slate-500">
         {formatDate(job.updatedAt || job.updated_at, dateLocale)}
       </td>
-      <td className="business-jobs-actions-col px-3 py-3" onClick={(e) => e.stopPropagation()}>
+      <td className="business-jobs-actions-col px-2 py-2" onClick={(e) => e.stopPropagation()}>
         <JobTableRowActions
           job={job}
           menuItems={menuItems}
@@ -251,51 +262,58 @@ function DraftTableRow({ thread, onOpen, onDelete, jobsCopy, commonCopy, languag
 
   return (
     <tr
-      className="group business-jobs-draft-row cursor-pointer border-b border-slate-100 bg-amber-50/40 transition hover:bg-amber-50/70"
+      className="group business-jobs-draft-row cursor-pointer border-b border-slate-100 bg-amber-50/15 transition hover:bg-amber-50/30"
       onClick={() => onOpen(thread.id)}
     >
-      <td className="px-3 py-3" />
-      <td className="px-3 py-3">
-        <div className="flex min-w-[180px] items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-            <Briefcase className="h-4 w-4" />
+      <td className="px-2 py-2" />
+      <td className="business-jobs-col-name px-2 py-2">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100/80 text-amber-700">
+            <Briefcase className="h-3.5 w-3.5" />
           </div>
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="truncate text-sm font-semibold text-slate-900">{title}</p>
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <p className="truncate text-xs font-semibold text-slate-900 sm:text-sm">{title}</p>
+              <span className="rounded-full bg-amber-100/90 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
                 {jobsCopy.draft.badge}
               </span>
             </div>
-            <p className="truncate text-xs text-slate-500">{jobsCopy.draft.hint}</p>
+            <p className="truncate text-[11px] text-slate-500">{jobsCopy.draft.hint}</p>
           </div>
         </div>
       </td>
-      <td className="px-3 py-3 text-sm text-slate-400">—</td>
-      <td className="px-3 py-3">
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700">
-          <span className="h-2 w-2 rounded-full bg-amber-500" />
+      <td className="business-jobs-col-salary px-2 py-2 text-xs text-slate-400">—</td>
+      <td className="business-jobs-col-status px-2 py-2">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-amber-700 sm:text-xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
           {jobsCopy.status.draft}
         </span>
       </td>
-      <td className="px-3 py-3 text-sm text-slate-400">—</td>
-      <td className="px-3 py-3 text-sm text-slate-400">—</td>
-      <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
+      <td className="business-jobs-col-location px-2 py-2 text-xs text-slate-400">—</td>
+      <td className="business-jobs-col-referrals px-2 py-2 text-center text-xs text-slate-400">—</td>
+      <td className="business-jobs-col-updated whitespace-nowrap px-2 py-2 text-[11px] text-slate-500">
         {formatDate(thread.updatedAt, dateLocale)}
       </td>
-      <td className="business-jobs-actions-col px-3 py-3" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-end gap-0.5">
+      <td className="business-jobs-actions-col px-2 py-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-1">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onOpen(thread.id)
+            }}
+            className="rounded-md bg-[#0077B6] px-2 py-1 text-[10px] font-semibold text-white hover:bg-[#006399] sm:text-[11px]"
+          >
+            {jobsCopy.draft.continueCta}
+          </button>
           <button
             type="button"
             onClick={() => onDelete(thread)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-600"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-400 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-600"
             aria-label={jobsCopy.menu.delete}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
-          <span className="inline-flex h-8 w-8 items-center justify-center text-slate-300">
-            <MoreHorizontal className="h-4 w-4" />
-          </span>
         </div>
       </td>
     </tr>
@@ -331,7 +349,7 @@ function JobListPagination({
     <div
       className={
         embedded
-          ? 'flex shrink-0 flex-col gap-2 border-t border-slate-100 bg-white px-3 py-2 sm:flex-row sm:items-center sm:justify-between lg:px-4'
+          ? 'flex shrink-0 flex-col gap-2 border-t border-slate-100 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between lg:px-4'
           : 'flex flex-col gap-2 rounded-xl border border-slate-200/90 bg-white px-3 py-2 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:px-4'
       }
     >
@@ -416,7 +434,7 @@ function jobMatchesDateFilter(job, dateFilter) {
 function JobFilterField({ label, children }) {
   return (
     <label className="block min-w-0">
-      <span className="mb-0.5 block text-[10px] font-semibold text-slate-500">{label}</span>
+      <span className="mb-0 block text-[10px] font-semibold leading-tight text-slate-500">{label}</span>
       {children}
     </label>
   )
@@ -453,6 +471,29 @@ const jobListStyles = `
     min-height: 0;
     font-family: ${BUSINESS_JOBS_FONT};
     background: #f4f6f8;
+    --jobs-zoom: 1;
+  }
+  @media (min-width: 1024px) and (max-width: 1535px) {
+    .business-jobs-list-shell { --jobs-zoom: 0.88; }
+  }
+  @media (min-width: 1536px) and (max-width: 1919px) {
+    .business-jobs-list-shell { --jobs-zoom: 0.92; }
+  }
+  @media (min-width: 1024px) and (max-height: 860px) {
+    .business-jobs-list-shell { --jobs-zoom: 0.86; }
+  }
+  .business-jobs-ui {
+    zoom: var(--jobs-zoom);
+    height: 100%;
+    min-height: 0;
+  }
+  @supports not (zoom: 1) {
+    .business-jobs-ui {
+      transform: scale(var(--jobs-zoom));
+      transform-origin: top left;
+      width: calc(100% / var(--jobs-zoom));
+      height: calc(100% / var(--jobs-zoom));
+    }
   }
   .business-jobs-list-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
   .business-jobs-list-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -480,11 +521,17 @@ const jobListStyles = `
     background: rgb(248 250 252 / 0.98);
   }
   .business-jobs-table tbody tr.business-jobs-draft-row .business-jobs-actions-col {
-    background: rgb(255 251 235 / 0.98);
+    background: rgb(255 251 235 / 0.85);
   }
   .business-jobs-table tbody tr.business-jobs-draft-row:hover .business-jobs-actions-col {
-    background: rgb(254 243 199 / 0.98);
+    background: rgb(254 249 235 / 0.95);
   }
+  .business-jobs-table .business-jobs-col-name { width: 28%; min-width: 10rem; }
+  .business-jobs-table .business-jobs-col-salary { width: 13%; min-width: 5.5rem; }
+  .business-jobs-table .business-jobs-col-status { width: 11%; min-width: 4.75rem; }
+  .business-jobs-table .business-jobs-col-location { width: 14%; min-width: 5rem; }
+  .business-jobs-table .business-jobs-col-referrals { width: 6%; min-width: 3rem; }
+  .business-jobs-table .business-jobs-col-updated { width: 11%; min-width: 4.5rem; }
   @media (min-width: 1024px) and (max-width: 1535px) {
     .business-jobs-tabs {
       flex-wrap: nowrap;
@@ -524,6 +571,7 @@ const MENU_ICONS = {
 
 function JobRowMenu({ job, onClose, onAction, menuItems, closeMenuLabel }) {
   const items = menuItems.filter((item) => !item.hiddenStatus?.(job.status))
+  if (items.length === 0) return null
 
   return (
     <>
@@ -627,7 +675,7 @@ function JobGridDraftCard({ thread, onOpen, onDelete, jobsCopy, commonCopy, lang
       tabIndex={0}
       onClick={() => onOpen(thread.id)}
       onKeyDown={(e) => e.key === 'Enter' && onOpen(thread.id)}
-      className="group flex cursor-pointer items-start gap-3 rounded-xl border border-dashed border-amber-200 bg-amber-50/50 p-3 transition hover:border-amber-300 sm:p-4"
+      className="group flex cursor-pointer items-start gap-3 rounded-xl border border-dashed border-amber-200/80 bg-amber-50/25 p-3 transition hover:border-amber-300/80 sm:p-3.5"
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
         <Briefcase className="h-4 w-4" />
@@ -638,13 +686,23 @@ function JobGridDraftCard({ thread, onOpen, onDelete, jobsCopy, commonCopy, lang
           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">{jobsCopy.draft.badge}</span>
         </div>
         <p className="mt-1 text-[11px] text-slate-500">{jobsCopy.draft.hint}</p>
-        <p className="mt-1 text-[10px] text-slate-400">{commonCopy.updatedAt(formatDate(thread.updatedAt, dateLocale))}</p>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onOpen(thread.id)
+          }}
+          className="mt-2 rounded-md bg-[#0077B6] px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-[#006399]"
+        >
+          {jobsCopy.draft.continueCta}
+        </button>
+        <p className="mt-1.5 text-[10px] text-slate-400">{commonCopy.updatedAt(formatDate(thread.updatedAt, dateLocale))}</p>
       </div>
-      <div className="shrink-0 self-center" onClick={(e) => e.stopPropagation()}>
+      <div className="shrink-0 self-start" onClick={(e) => e.stopPropagation()}>
         <button
           type="button"
           onClick={() => onDelete(thread)}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-600"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-400 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-600"
           aria-label={jobsCopy.menu.delete}
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -987,8 +1045,8 @@ const JobManagement = () => {
       <style>{jobListStyles}</style>
       <div className="business-jobs-list-shell flex h-full min-h-0 flex-col overflow-hidden">
         <div className="business-jobs-ui flex h-full min-h-0 flex-col overflow-hidden">
-        <div className="shrink-0 space-y-2 p-3 lg:px-4 lg:pt-3 lg:pb-2">
-          <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
+        <div className="shrink-0 space-y-1.5 p-2.5 lg:px-3 lg:pt-2.5 lg:pb-1.5">
+          <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500">
             <button
               type="button"
               onClick={() => navigate('/business')}
@@ -1000,23 +1058,22 @@ const JobManagement = () => {
             <span className="font-medium text-slate-700">{jobsCopy.breadcrumb.current}</span>
           </nav>
 
-          <div className="rounded-xl border border-slate-200/90 bg-white p-2 shadow-sm lg:p-2.5">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="relative flex flex-1 items-center rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
+          <div className="rounded-xl border border-slate-200/90 bg-white p-2 shadow-sm">
+            <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
+              <div className="relative flex flex-1 items-center rounded-md border border-slate-200 bg-white px-2 py-1">
                 <input
                   type="text"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder={jobsCopy.searchPlaceholder}
-                  className="min-w-0 flex-1 bg-transparent pr-7 text-xs text-slate-800 outline-none placeholder:text-slate-400"
+                  className="min-w-0 flex-1 bg-transparent pr-7 text-[11px] text-slate-800 outline-none placeholder:text-slate-400 sm:text-xs"
                 />
-                <Search className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-slate-400" />
+                <Search className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-slate-400" />
               </div>
               <button
                 type="button"
                 onClick={() => navigate('/business/jobs/create')}
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-95"
-                style={{ backgroundColor: JD_NAVY_MID }}
+                className="inline-flex shrink-0 items-center justify-center gap-1 rounded-md bg-[#0077B6] px-3 py-1 text-[11px] font-bold text-white shadow-md shadow-[#0077B6]/20 ring-1 ring-[#0077B6]/25 transition hover:bg-[#006399] sm:text-xs"
               >
                 <Plus className="h-3.5 w-3.5" />
                 {jobsCopy.createShort}
@@ -1025,14 +1082,14 @@ const JobManagement = () => {
                 type="button"
                 onClick={clearFilters}
                 disabled={!hasActiveFilters}
-                className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex shrink-0 items-center justify-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35"
               >
                 <RotateCcw className="h-3 w-3" />
                 {commonCopy.clearFilters}
               </button>
             </div>
 
-            <div className="mt-2 grid grid-cols-2 gap-2 xl:grid-cols-4">
+            <div className="mt-1.5 grid grid-cols-2 gap-1.5 xl:grid-cols-4">
               <JobFilterField label={jobsCopy.filters.status}>
                 <FilterSelectDropdown
                   value={statusTab}
@@ -1079,17 +1136,17 @@ const JobManagement = () => {
               </JobFilterField>
             </div>
 
-            <div className="business-jobs-toolbar mt-2 flex flex-wrap items-end justify-between gap-2 border-t border-slate-100 pt-2 2xl:flex-row">
-              <div className="business-jobs-tabs flex flex-wrap gap-3">
+            <div className="business-jobs-toolbar mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+              <div className="business-jobs-tabs flex flex-wrap items-center gap-1 sm:gap-1.5">
                 {statusTabs.map((tab) => (
                   <button
                     key={tab.id}
                     type="button"
                     onClick={() => handleStatusTab(tab.id)}
-                    className={`border-b-2 pb-1 text-[10px] font-semibold transition lg:text-[11px] ${
+                    className={`rounded-md px-2 py-0.5 text-[10px] font-semibold transition sm:text-[11px] ${
                       statusTab === tab.id
-                        ? 'border-[#0077B6] text-[#0077B6]'
-                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                        ? 'bg-[#0077B6]/12 text-[#0077B6] ring-1 ring-[#0077B6]/25'
+                        : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
                     }`}
                   >
                     {tab.label} ({tabCounts[tab.id] ?? 0})
@@ -1097,37 +1154,37 @@ const JobManagement = () => {
                 ))}
               </div>
               <div className="business-jobs-toolbar-controls flex items-center gap-1.5">
-                <div className="relative flex items-center gap-1.5">
-                  <span className="whitespace-nowrap text-[10px] font-medium text-slate-500">{commonCopy.sortLabel}</span>
+                <div className="relative flex items-center gap-1">
                   <div className="relative">
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="appearance-none rounded-lg border border-slate-200 bg-white py-1 pl-2 pr-6 text-[10px] font-medium text-slate-700 outline-none"
+                      aria-label={commonCopy.sortLabel}
+                      className="appearance-none rounded-md border border-slate-200 bg-white py-0.5 pl-2 pr-5 text-[10px] font-medium text-slate-700 outline-none"
                     >
                       {sortOptions.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
-                    <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
+                    <ChevronDown className="pointer-events-none absolute right-1 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
                   </div>
                 </div>
-                <div className="flex rounded-lg border border-slate-200 p-0.5">
+                <div className="flex rounded-md border border-slate-200 p-px">
                   <button
                     type="button"
                     onClick={() => setViewMode('list')}
-                    className={`rounded-md p-1 ${viewMode === 'list' ? 'bg-[#0077B6] text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                    className={`rounded p-0.5 ${viewMode === 'list' ? 'bg-[#0077B6] text-white' : 'text-slate-400 hover:text-slate-600'}`}
                     aria-label={commonCopy.listView}
                   >
-                    <LayoutList className="h-3.5 w-3.5" />
+                    <LayoutList className="h-3 w-3" />
                   </button>
                   <button
                     type="button"
                     onClick={() => setViewMode('grid')}
-                    className={`rounded-md p-1 ${viewMode === 'grid' ? 'bg-[#0077B6] text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                    className={`rounded p-0.5 ${viewMode === 'grid' ? 'bg-[#0077B6] text-white' : 'text-slate-400 hover:text-slate-600'}`}
                     aria-label={commonCopy.gridView}
                   >
-                    <LayoutGrid className="h-3.5 w-3.5" />
+                    <LayoutGrid className="h-3 w-3" />
                   </button>
                 </div>
               </div>
@@ -1135,7 +1192,7 @@ const JobManagement = () => {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col px-3 pb-3 lg:px-4">
+        <div className="flex min-h-0 flex-1 flex-col px-2.5 pb-3 lg:px-3">
           {loading ? (
             <div className="flex flex-1 items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-[#0077B6]" />

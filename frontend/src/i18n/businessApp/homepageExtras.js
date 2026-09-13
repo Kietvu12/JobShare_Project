@@ -15,6 +15,7 @@ const solutionCardsVi = [
       'Chủ động chat & tiếp cận ứng viên',
     ],
     suitableFor: 'Doanh nghiệp chủ động tìm ứng viên',
+    ctaLabel: 'Tìm ứng viên',
     path: '/business/scout/direct',
   },
   {
@@ -31,6 +32,7 @@ const solutionCardsVi = [
       'Báo cáo tiến độ minh bạch thường xuyên',
     ],
     suitableFor: 'Doanh nghiệp bận rộn, thiếu thời gian tuyển dụng',
+    ctaLabel: 'Yêu cầu Scout',
     path: '/business/scout/managed',
   },
   {
@@ -38,7 +40,7 @@ const solutionCardsVi = [
     tagId: 'employer-branding',
     title: 'Thương hiệu Tuyển dụng',
     subtitle: 'Thương hiệu tuyển dụng',
-    variant: 'primary',
+    variant: 'neutral',
     painPoint: 'Ứng viên chất lượng không biết đến thương hiệu tuyển dụng của bạn',
     solution: 'Xây dựng trang tuyển dụng chuyên nghiệp và quảng bá đa kênh',
     features: [
@@ -47,13 +49,14 @@ const solutionCardsVi = [
       'Báo cáo phân tích hiệu quả thương hiệu',
     ],
     suitableFor: 'Doanh nghiệp muốn nâng cao thương hiệu tuyển dụng',
+    ctaLabel: 'Xây dựng thương hiệu',
     path: '/business/saiyo',
   },
   {
     num: '04',
     tagId: 'hr-partner-network',
-    title: 'Mạng lưới Đối tác Tuyển dụng',
-    subtitle: 'Mạng lưới mở rộng',
+    title: 'Sàn cộng tác viên tuyển dụng WS',
+    subtitle: 'Sàn CTV',
     variant: 'neutral',
     painPoint: 'Cần tuyển số lượng lớn nhưng kênh tuyển dụng hiện tại quá hẹp',
     solution: 'Mở rộng kênh qua mạng lưới CTV HR Partner trên toàn quốc',
@@ -63,6 +66,7 @@ const solutionCardsVi = [
       'Thanh toán theo kết quả ứng viên đạt yêu cầu',
     ],
     suitableFor: 'Doanh nghiệp tuyển số lượng lớn hoặc mở rộng kênh nhanh',
+    ctaLabel: 'Mở rộng kênh tuyển dụng',
     path: '/business/candidate-sharing',
   },
 ];
@@ -82,6 +86,7 @@ const solutionCardsEn = [
       'Proactively chat & engage candidates',
     ],
     suitableFor: 'Companies that actively source candidates',
+    ctaLabel: 'Find candidates',
     path: '/business/scout/direct',
   },
   {
@@ -98,6 +103,7 @@ const solutionCardsEn = [
       'Regular transparent progress reports',
     ],
     suitableFor: 'Busy teams with limited hiring bandwidth',
+    ctaLabel: 'Request Managed Scout',
     path: '/business/scout/managed',
   },
   {
@@ -105,7 +111,7 @@ const solutionCardsEn = [
     tagId: 'employer-branding',
     title: 'Employer Branding',
     subtitle: 'Build your hiring brand',
-    variant: 'primary',
+    variant: 'neutral',
     painPoint: 'Quality candidates do not know your employer brand',
     solution: 'Build a professional careers page and promote across channels',
     features: [
@@ -114,13 +120,14 @@ const solutionCardsEn = [
       'Brand performance analytics',
     ],
     suitableFor: 'Companies strengthening employer brand',
+    ctaLabel: 'Build employer brand',
     path: '/business/saiyo',
   },
   {
     num: '04',
     tagId: 'hr-partner-network',
-    title: 'HR Partner Network',
-    subtitle: 'Expand your channels',
+    title: 'WS CTV Marketplace',
+    subtitle: 'CTV marketplace',
     variant: 'neutral',
     painPoint: 'Need volume hiring but current channels are too narrow',
     solution: 'Expand via nationwide CTV HR Partner network',
@@ -130,6 +137,7 @@ const solutionCardsEn = [
       'Pay for successful candidate outcomes',
     ],
     suitableFor: 'High-volume or fast channel expansion hiring',
+    ctaLabel: 'Expand hiring channels',
     path: '/business/candidate-sharing',
   },
 ];
@@ -149,6 +157,7 @@ const solutionCardsJa = [
       '能動的にチャット・スカウト',
     ],
     suitableFor: '自社で候補者探索する企業',
+    ctaLabel: '候補者を探す',
     path: '/business/scout/direct',
   },
   {
@@ -165,6 +174,7 @@ const solutionCardsJa = [
       '定期的な透明な進捗レポート',
     ],
     suitableFor: '採用リソースが限られる企業',
+    ctaLabel: 'スカウトを依頼',
     path: '/business/scout/managed',
   },
   {
@@ -172,7 +182,7 @@ const solutionCardsJa = [
     tagId: 'employer-branding',
     title: '採用ブランディング',
     subtitle: '採用ブランドを構築',
-    variant: 'primary',
+    variant: 'neutral',
     painPoint: '優秀な候補者に自社の採用ブランドが知られていない',
     solution: 'プロの採用ページを構築し多チャネルで発信',
     features: [
@@ -181,13 +191,14 @@ const solutionCardsJa = [
       'ブランド効果分析レポート',
     ],
     suitableFor: '採用ブランド強化を目指す企業',
+    ctaLabel: '採用ブランドを構築',
     path: '/business/saiyo',
   },
   {
     num: '04',
     tagId: 'hr-partner-network',
-    title: 'HRパートナーネットワーク',
-    subtitle: 'チャネル拡大',
+    title: 'WS CTVマーケット',
+    subtitle: 'CTVマーケット',
     variant: 'neutral',
     painPoint: '大量採用が必要だが既存チャネルが限定的',
     solution: '全国のCTV HRパートナーネットワークでチャネル拡大',
@@ -197,6 +208,7 @@ const solutionCardsJa = [
       '成果に応じた支払い',
     ],
     suitableFor: '大量採用・迅速なチャネル拡大',
+    ctaLabel: '採用チャネルを拡大',
     path: '/business/candidate-sharing',
   },
 ];

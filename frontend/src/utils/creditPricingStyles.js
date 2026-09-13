@@ -128,4 +128,27 @@ export const creditPricingIntroStyles = `
     margin-top: 0;
     margin-bottom: 0;
   }
+  .credit-pricing-card-interactive {
+    cursor: pointer;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  }
+  .credit-pricing-card-interactive:hover {
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1);
+    transform: translateY(-1px);
+  }
+  .credit-pricing-card-interactive:not(.credit-pricing-card-featured):hover {
+    border-color: rgba(0, 119, 182, 0.45);
+  }
+  .credit-pricing-card-interactive .credit-pricing-hover-hint {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .credit-pricing-card-interactive:hover .credit-pricing-hover-hint,
+  .credit-pricing-card-interactive:focus-within .credit-pricing-hover-hint,
+  .credit-pricing-card-interactive.credit-pricing-card-selected .credit-pricing-hover-hint {
+    opacity: 1;
+  }
+  .credit-pricing-intro-shell.credit-packages-deemphasized .credit-pricing-panel {
+    opacity: 0.92;
+  }
 `;

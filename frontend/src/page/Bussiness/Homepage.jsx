@@ -21,6 +21,7 @@ import {
 import { localizeNotification } from '../../utils/notificationI18n';
 import apiService from '../../services/api';
 import BusinessQuickActionsPanel, { getDefaultBusinessQuickActions } from '../../component/Bussiness/BusinessQuickActionsPanel.jsx';
+import BusinessFloatingQuickActions from '../../component/Bussiness/BusinessFloatingQuickActions.jsx';
 import { getBusinessServiceTag } from '../../component/Bussiness/BusinessServiceCardTag.jsx';
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif";
@@ -102,7 +103,6 @@ const homepageStyles = `
     }
   }
   .biz-hp-solution-card-wrap {
-    height: 100%;
     animation: biz-hp-card-slide-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
   }
   .biz-hp-solution-card {
@@ -129,18 +129,43 @@ const homepageStyles = `
   }
 
   .biz-hp-cards-grid {
-    grid-template-rows: 2.5rem auto auto auto minmax(0, 1fr) auto;
+    align-items: stretch;
   }
-  .biz-hp-card-subgrid {
-    grid-row: span 6;
-    grid-template-rows: subgrid;
+  @supports (grid-template-rows: subgrid) {
+    .biz-hp-cards-grid {
+      grid-template-rows: repeat(7, auto);
+    }
+    .biz-hp-card-subgrid {
+      grid-row: span 7;
+      grid-template-rows: subgrid;
+      row-gap: 0.625rem;
+    }
   }
   @supports not (grid-template-rows: subgrid) {
-    .biz-hp-card-title-slot { min-height: 3.25rem; }
-    .biz-hp-card-pain-slot { min-height: 2.75rem; }
-    .biz-hp-card-solution-slot { min-height: 2.5rem; }
-    .biz-hp-card-footer-slot { min-height: 2.5rem; }
+    .biz-hp-card-subgrid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.625rem;
+      min-height: 100%;
+    }
+    .biz-hp-slot-title { min-height: 2.875rem; }
+    .biz-hp-slot-subtitle { min-height: 1.375rem; }
+    .biz-hp-slot-desc { min-height: 4.5rem; }
+    .biz-hp-slot-features { min-height: 7rem; flex: 1; }
+    .biz-hp-slot-suitable { min-height: 2.75rem; }
+    .biz-hp-slot-cta { margin-top: auto; }
   }
+  .biz-hp-slot-title,
+  .biz-hp-slot-subtitle,
+  .biz-hp-slot-desc,
+  .biz-hp-slot-features,
+  .biz-hp-slot-suitable {
+    align-self: start;
+  }
+  .biz-hp-slot-features ul {
+    height: 100%;
+  }
+
 `;
 
 function SolutionCard({ card, onUse, labels, animationDelay }) {
@@ -152,15 +177,16 @@ function SolutionCard({ card, onUse, labels, animationDelay }) {
 
   const bodyClass = isOnDark ? 'text-white/95' : 'text-slate-600';
   const mutedClass = isOnDark ? 'text-white/85' : 'text-slate-500';
+  const ctaLabel = card.ctaLabel || labels.accessService;
 
   return (
     <article
-      className={`biz-hp-solution-card-wrap biz-hp-solution-card biz-hp-card-subgrid ${isOnDark ? 'biz-hp-solution-card--dark' : ''} relative grid h-full min-h-[320px] gap-y-2 overflow-hidden rounded-[1.25rem] border-2 p-3.5 sm:p-4 ${surface}`}
+      className={`biz-hp-solution-card-wrap biz-hp-solution-card biz-hp-card-subgrid ${isOnDark ? 'biz-hp-solution-card--dark' : ''} relative grid h-full w-full overflow-hidden rounded-[1.15rem] border-2 p-3 sm:p-3.5 ${surface}`}
       style={{ borderColor: frameColor, animationDelay }}
     >
-      <div className="relative z-20 flex items-start justify-between gap-2 self-start">
+      <div className="biz-hp-slot-header relative z-20 flex items-start justify-between gap-2">
         <span
-          className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold ${
+          className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold sm:h-8 sm:w-8 sm:text-[11px] ${
             isOnDark ? 'bg-white/20 text-white' : 'bg-white text-slate-800 shadow-sm ring-1 ring-slate-100'
           }`}
         >
@@ -169,47 +195,55 @@ function SolutionCard({ card, onUse, labels, animationDelay }) {
         <button
           type="button"
           onClick={() => onUse(card.path)}
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
+          className={`inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold transition-colors sm:px-2.5 sm:py-1.5 sm:text-xs ${
             isOnDark
               ? 'bg-white/15 text-white hover:bg-white/25'
-              : 'bg-white text-slate-600 shadow-sm ring-1 ring-slate-100 hover:text-[#0077B6]'
+              : 'bg-white text-[#0077B6] shadow-sm ring-1 ring-slate-100 hover:bg-[#e8f4fa]'
           }`}
           aria-label={labels.openCard(card.title)}
         >
-          <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
+          <span className="hidden min-[380px]:inline">{labels.accessService}</span>
+          <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2.25} />
         </button>
       </div>
 
-      <div className="biz-hp-card-title-slot relative z-10 mt-6 self-start pb-7 pr-14 sm:mt-7 sm:pb-8">
-        <h3 className="line-clamp-2 text-lg font-bold leading-tight sm:text-xl">{card.title}</h3>
+      <div className="biz-hp-slot-title relative z-10 pr-12 sm:pr-14">
+        <h3 className="line-clamp-2 text-base font-bold leading-tight sm:text-lg">{card.title}</h3>
       </div>
 
-      <p className={`biz-hp-card-pain-slot relative z-10 mt-4 self-start text-sm font-bold leading-snug sm:mt-5 sm:text-base ${isOnDark ? 'text-white' : 'text-slate-800'}`}>
-        {card.painPoint}
+      <p
+        className={`biz-hp-slot-subtitle relative z-10 line-clamp-1 text-xs font-semibold leading-snug sm:text-sm ${
+          isOnDark ? 'text-white/90' : 'text-[#0077B6]'
+        }`}
+      >
+        {card.subtitle}
       </p>
 
-      <p className={`biz-hp-card-solution-slot relative z-10 mt-4 self-start text-xs leading-snug sm:mt-5 sm:text-sm ${mutedClass}`}>
-        {card.solution}
-      </p>
+      <div className={`biz-hp-slot-desc relative z-10 space-y-1.5 text-sm leading-snug sm:text-[0.9375rem] ${mutedClass}`}>
+        <p className={`font-bold leading-snug ${isOnDark ? 'text-white' : 'text-slate-800'}`}>
+          {card.painPoint}
+        </p>
+        <p>{card.solution}</p>
+      </div>
 
       <div
-        className="pointer-events-none absolute right-0 top-11 z-0 translate-x-[18%] sm:top-12"
+        className="pointer-events-none absolute right-0 top-8 z-0 translate-x-[16%] sm:top-9"
         aria-hidden
       >
         <DecoIcon
-          className={`h-[6.5rem] w-[6.5rem] sm:h-28 sm:w-28 ${
-            isOnDark ? 'text-white/30' : 'text-[#0077B6]/22'
+          className={`h-[5rem] w-[5rem] sm:h-[5.5rem] sm:w-[5.5rem] ${
+            isOnDark ? 'text-white/30' : 'text-[#0077B6]/20'
           }`}
           strokeWidth={1.1}
         />
       </div>
 
-      <div className="relative z-10 mt-6 flex min-h-0 flex-col self-stretch sm:mt-7">
-        <ul className={`flex min-h-0 flex-1 flex-col gap-2 text-xs leading-snug sm:text-sm ${bodyClass}`}>
+      <div className="biz-hp-slot-features relative z-10 min-h-0">
+        <ul className={`flex flex-col gap-1.5 text-sm leading-snug sm:gap-2 sm:text-[0.9375rem] ${bodyClass}`}>
           {card.features.map((line) => (
             <li key={line} className="flex gap-2">
               <Check
-                className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}
+                className={`mt-0.5 h-4 w-4 shrink-0 ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}
                 strokeWidth={2.5}
               />
               <span>{line}</span>
@@ -218,21 +252,62 @@ function SolutionCard({ card, onUse, labels, animationDelay }) {
         </ul>
       </div>
 
-      <div
-        className="biz-hp-card-footer-slot relative z-10 shrink-0 self-stretch border-t pt-3"
-        style={{ borderColor: `${frameColor}66` }}
-      >
-        <p className={`text-[11px] leading-snug sm:text-xs ${isOnDark ? 'text-white/90' : 'text-slate-600'}`}>
-          <span className={`font-semibold ${isOnDark ? 'text-white' : 'text-slate-700'}`}>{labels.suitableFor}</span>
-          {' '}
-          {card.suitableFor}
-        </p>
+      <p className={`biz-hp-slot-suitable relative z-10 text-xs leading-snug sm:text-sm ${isOnDark ? 'text-white/90' : 'text-slate-600'}`}>
+        <span className={`font-semibold ${isOnDark ? 'text-white' : 'text-slate-700'}`}>{labels.suitableFor}</span>
+        {' '}
+        {card.suitableFor}
+      </p>
+
+      <div className="biz-hp-slot-cta relative z-10">
+        <button
+          type="button"
+          onClick={() => onUse(card.path)}
+          className={`w-full rounded-lg px-3 py-2 text-xs font-bold transition-colors sm:text-sm ${
+            isOnDark
+              ? 'bg-white text-[#0077B6] hover:bg-white/90'
+              : 'bg-[#0077B6] text-white hover:bg-[#006399]'
+          }`}
+        >
+          {ctaLabel}
+        </button>
       </div>
     </article>
   );
 }
 
-function HomepageSidebar({ onNavigate }) {
+function HomepageNewsSection() {
+  const { language } = useLanguage();
+  const copy = useBusinessAppCopy();
+  const news = useMemo(() => getHomepageNews(language), [language]);
+
+  return (
+    <section className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="text-sm font-bold text-slate-900 sm:text-base">{copy.homepage.newsInsights}</h2>
+        <button type="button" className="shrink-0 text-xs font-semibold text-[#0077B6] sm:text-sm">
+          {copy.homepage.viewAll}
+        </button>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-2">
+        {news.map((n) => (
+          <div key={n.title} className="flex gap-2.5">
+            <img src={n.img} alt="" className="h-11 w-16 shrink-0 rounded-md object-cover sm:h-12 sm:w-[4.5rem]" />
+            <div className="min-w-0">
+              <p className="line-clamp-2 text-xs font-medium leading-relaxed text-slate-800 sm:text-sm">{n.title}</p>
+              <p className="mt-1 text-[11px] text-slate-400 sm:text-xs">{n.date}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function HomepageSidebar({
+  onNavigate,
+  showQuickActions = true,
+  showNews = true,
+}) {
   const { language } = useLanguage();
   const copy = useBusinessAppCopy();
   const news = useMemo(() => getHomepageNews(language), [language]);
@@ -294,28 +369,30 @@ function HomepageSidebar({ onNavigate }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="shrink-0">
-      <BusinessQuickActionsPanel
-        actions={quickActions}
-        onActionClick={(a) => {
-          if (a.path) onNavigate(a.path);
-        }}
-      />
-      </div>
+      {showQuickActions ? (
+        <div className="shrink-0">
+          <BusinessQuickActionsPanel
+            actions={quickActions}
+            onActionClick={(a) => {
+              if (a.path) onNavigate(a.path);
+            }}
+          />
+        </div>
+      ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
+      <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-3.5">
         <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
-          <h2 className="flex items-center gap-2 text-xs font-bold text-slate-900">
+          <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900">
             {copy.homepage.notifications}
             {notifUnread > 0 ? (
-              <span className="rounded-full bg-[#0077B6] px-1.5 py-0.5 text-[9px] font-bold text-white">
+              <span className="rounded-full bg-[#0077B6] px-1.5 py-0.5 text-[10px] font-bold text-white">
                 {notifUnread > 99 ? '99+' : notifUnread}
               </span>
             ) : null}
           </h2>
           <button
             type="button"
-            className="shrink-0 text-[10px] font-semibold text-[#0077B6]"
+            className="shrink-0 text-xs font-semibold text-[#0077B6]"
             onClick={() => window.dispatchEvent(new CustomEvent('business-notifications:open'))}
           >
             {copy.homepage.viewAll}
@@ -327,7 +404,7 @@ function HomepageSidebar({ onNavigate }) {
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           ) : notifList.length === 0 ? (
-            <p className="py-6 text-center text-[10px] text-slate-400">{copy.homepage.noNotifications}</p>
+            <p className="py-6 text-center text-xs text-slate-400">{copy.homepage.noNotifications}</p>
           ) : notifList.map((n) => {
             const localized = localizeNotification(n, language);
             const visual = getNotificationVisual(n, localized);
@@ -341,14 +418,14 @@ function HomepageSidebar({ onNavigate }) {
                 className={`flex w-full items-start gap-2.5 py-3 text-left first:pt-0 last:pb-0 transition-colors hover:bg-slate-50/80 ${!n.isRead ? 'bg-[#f8fbfd]/60' : ''}`}
               >
                 {visual.warn ? (
-                  <AlertTriangle className="mt-1 h-3.5 w-3.5 shrink-0 text-rose-500" />
+                  <AlertTriangle className="mt-1 h-4 w-4 shrink-0 text-rose-500" />
                 ) : (
                   <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${visual.dot}`} />
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-[11px] leading-relaxed text-slate-700">{displayText}</p>
+                  <p className="line-clamp-2 text-xs leading-relaxed text-slate-700 sm:text-sm">{displayText}</p>
                   {timeLabel ? (
-                    <p className="mt-1.5 text-[10px] leading-none text-slate-400">{timeLabel}</p>
+                    <p className="mt-1.5 text-[11px] leading-none text-slate-400 sm:text-xs">{timeLabel}</p>
                   ) : null}
                 </div>
               </button>
@@ -357,32 +434,34 @@ function HomepageSidebar({ onNavigate }) {
         </div>
       </div>
 
-      <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="text-xs font-bold text-slate-900">{copy.homepage.newsInsights}</h2>
-          <button type="button" className="shrink-0 text-[10px] font-semibold text-[#0077B6]">
-            {copy.homepage.viewAll}
-          </button>
-        </div>
-        <div className="flex flex-col gap-3">
-          {news.map((n) => (
-            <div key={n.title} className="flex gap-2.5">
-              <img src={n.img} alt="" className="h-10 w-14 shrink-0 rounded-md object-cover" />
-              <div className="min-w-0">
-                <p className="line-clamp-2 text-[11px] font-medium leading-relaxed text-slate-800">{n.title}</p>
-                <p className="mt-1.5 text-[10px] text-slate-400">{n.date}</p>
+      {showNews ? (
+        <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="text-sm font-bold text-slate-900">{copy.homepage.newsInsights}</h2>
+            <button type="button" className="shrink-0 text-xs font-semibold text-[#0077B6]">
+              {copy.homepage.viewAll}
+            </button>
+          </div>
+          <div className="flex flex-col gap-3">
+            {news.map((n) => (
+              <div key={n.title} className="flex gap-2.5">
+                <img src={n.img} alt="" className="h-10 w-14 shrink-0 rounded-md object-cover" />
+                <div className="min-w-0">
+                  <p className="line-clamp-2 text-xs font-medium leading-relaxed text-slate-800">{n.title}</p>
+                  <p className="mt-1.5 text-[11px] text-slate-400">{n.date}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
 
 function HomepageMain({ displayName, onNavigate, copy, cardLabels, solutionCards }) {
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
+    <div className="flex h-full min-h-0 flex-col gap-3 sm:gap-3.5">
       <header className="shrink-0">
         <h1 className="text-xl font-bold leading-tight text-slate-900 sm:text-2xl">{copy.homepage.greeting(displayName)}</h1>
         <p className="mt-1 text-sm leading-snug text-slate-600 sm:text-base">
@@ -390,7 +469,11 @@ function HomepageMain({ displayName, onNavigate, copy, cardLabels, solutionCards
         </p>
       </header>
 
-      <div className="biz-hp-cards-grid grid min-h-0 flex-1 grid-cols-1 items-stretch gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="shrink-0">
+        <h2 className="text-base font-bold text-slate-900 sm:text-lg">{copy.homepage.solutionsHeading}</h2>
+      </div>
+
+      <div className="biz-hp-cards-grid grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 xl:grid-cols-4 xl:gap-2.5">
         {solutionCards.map((card, index) => (
           <SolutionCard
             key={card.num}
@@ -402,7 +485,7 @@ function HomepageMain({ displayName, onNavigate, copy, cardLabels, solutionCards
         ))}
       </div>
 
-      <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex shrink-0 flex-col gap-3 rounded-xl border border-[#0077B6]/15 bg-white px-3 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4 sm:py-3.5">
         <p className="min-w-0 flex-1 text-sm leading-snug text-slate-700">
           <span className="font-semibold text-slate-900">{copy.homepage.consultTitle}</span>
           {' '}
@@ -411,10 +494,14 @@ function HomepageMain({ displayName, onNavigate, copy, cardLabels, solutionCards
         <button
           type="button"
           onClick={() => onNavigate('/business/messages?tab=ws')}
-          className="shrink-0 rounded-lg bg-[#0077B6] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#006399]"
+          className="shrink-0 rounded-lg bg-[#0077B6] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-[#0077B6]/25 transition-colors hover:bg-[#006399] sm:px-6"
         >
           {copy.homepage.consultCta}
         </button>
+      </div>
+
+      <div className="shrink-0 pb-1">
+        <HomepageNewsSection />
       </div>
     </div>
   );
@@ -436,6 +523,7 @@ const Homepage = () => {
     () => ({
       suitableFor: copy.homepage.suitableFor,
       openCard: copy.homepage.openCard,
+      accessService: copy.homepage.accessService,
     }),
     [copy],
   );
@@ -450,7 +538,7 @@ const Homepage = () => {
         style={{ fontFamily: PAGE_FONT }}
       >
         <div className="business-homepage-ui flex h-full min-h-0 w-full flex-1 flex-col p-2.5 sm:p-3">
-          <div className="grid h-full min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] xl:gap-3 xl:overflow-hidden">
+          <div className="grid h-full min-h-0 flex-1 grid-cols-1 items-stretch gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(220px,252px)] xl:gap-3.5 xl:overflow-hidden">
             <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col overflow-y-auto xl:h-full xl:pr-0.5">
               <HomepageMain
                 displayName={displayName}
@@ -461,11 +549,23 @@ const Homepage = () => {
               />
             </div>
 
-            <div className="business-homepage-scroll scrollbar-hide flex h-full min-h-0 flex-col overflow-y-auto xl:pr-0.5">
-              <HomepageSidebar onNavigate={handleNavigate} />
+            <div className="flex h-full min-h-0 flex-col gap-2.5 xl:gap-3">
+              <div className="business-homepage-scroll scrollbar-hide min-h-0 flex-1 overflow-y-auto xl:pr-0.5">
+                <HomepageSidebar
+                  onNavigate={handleNavigate}
+                  showQuickActions={false}
+                  showNews={false}
+                />
+              </div>
+              <div className="hidden shrink-0 xl:block">
+                <BusinessFloatingQuickActions onNavigate={handleNavigate} placement="sidebar" />
+              </div>
             </div>
           </div>
         </div>
+      </div>
+      <div className="xl:hidden">
+        <BusinessFloatingQuickActions onNavigate={handleNavigate} placement="fixed" />
       </div>
     </>
   );

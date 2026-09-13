@@ -2,11 +2,11 @@
 
 export const applicationsI18n = {
   vi: {
-    title: 'Quản lý tiến cử',
-    subtitle: 'Theo dõi đơn tiến cử vào JD của doanh nghiệp từ Scout Credit, Sàn CTV và các nguồn khác',
+    title: 'Quản lý ứng viên',
+    subtitle: 'Theo dõi ứng viên theo JD từ Scout Credit, Scout Ủy Thác và Sàn CTV — cập nhật quy trình tuyển chọn',
     breadcrumb: {
       home: 'Trang chủ',
-      current: 'Quản lý tiến cử',
+      current: 'Quản lý ứng viên',
     },
     tabs: {
       all: 'Tất cả',
@@ -17,11 +17,10 @@ export const applicationsI18n = {
       other: 'Khác',
     },
     stats: {
-      total: 'Tổng ứng viên vào JD',
-      wsCtv: 'Tiến cử (WS/CTV, Sàn CTV)',
-      scoutCredit: 'Scout Credit',
-      hired: 'Đã tuyển dụng',
-      pipeline: 'Đang xử lý',
+      total: 'Tổng',
+      processing: 'Đang xử lý',
+      interview: 'Phỏng vấn',
+      success: 'Thành công',
     },
     stageLabels: {
       processing: 'Đang xử lý',
@@ -42,8 +41,8 @@ export const applicationsI18n = {
     sources: {
       all: 'Nguồn: Tất cả',
       ctv_marketplace: 'Sàn CTV',
-      ctv_nomination: 'Tiến cử CTV',
-      scout_performance: 'Scout Performance',
+      ctv_nomination: 'Sàn CTV',
+      scout_performance: 'Scout Ủy Thác',
       scout_credit: 'Scout Credit',
       landing: 'Branding LP',
       other: 'Khác',
@@ -52,32 +51,45 @@ export const applicationsI18n = {
       searchPlaceholder: 'Tìm ứng viên, JD...',
       allJobs: 'JD: Tất cả',
       allStatus: 'Trạng thái: Tất cả',
+      appliedFrom: 'Từ ngày',
+      appliedTo: 'Đến ngày',
     },
     view: {
       list: 'Danh sách',
-      kanban: 'Kanban pipeline',
+      kanban: 'Quy trình tuyển chọn',
     },
-    loading: 'Đang tải đơn tiến cử...',
-    empty: 'Chưa có đơn tiến cử phù hợp',
+    loading: 'Đang tải danh sách ứng viên...',
+    empty: 'Chưa có ứng viên phù hợp',
     sidebar: {
       notifications: 'Thông báo gần đây',
-      pipeline: 'Pipeline theo giai đoạn',
+      selectionProcess: 'Quy trình tuyển chọn',
       noNotifications: 'Không có thông báo mới',
       noData: 'Chưa có dữ liệu',
       noActivity: 'Chưa có hoạt động',
-      sourceRatio: 'Tỷ lệ nguồn ứng viên',
-      statusBreakdown: 'Trạng thái tiến cử',
+      sourceRatio: 'Tỷ lệ nguồn',
+      statusBreakdown: 'Trạng thái',
       recentActivity: 'Hoạt động gần đây',
+      viewAllActivity: 'Xem tất cả',
       total: 'Tổng',
     },
     table: {
       candidate: 'Ứng viên',
       job: 'JD / Vị trí',
       source: 'Nguồn',
-      nominatedBy: 'Tiến cử bởi',
       status: 'Trạng thái',
-      appliedAt: 'Ngày tiến cử',
+      appliedAt: 'Ngày ứng tuyển',
       interviewDate: 'Ngày phỏng vấn',
+    },
+    profileReview: {
+      title: 'Đánh giá hồ sơ',
+      pass: 'Đạt hồ sơ',
+      fail: 'Không đạt hồ sơ',
+      failConfirmTitle: 'Xác nhận không đạt hồ sơ',
+      failConfirmBody: 'Ứng viên sẽ kết thúc quy trình tuyển chọn tại JD này.',
+      failReasonPlaceholder: 'Lý do không đạt (tuỳ chọn)',
+      cancel: 'Hủy',
+      confirmFail: 'Xác nhận không đạt',
+      wsTrackingOnly: 'Trạng thái Scout Ủy Thác trước tiến cử do WS xử lý — doanh nghiệp chỉ theo dõi.',
     },
     kanbanUpdating: 'Đang cập nhật...',
     nominatedBy: {
@@ -86,16 +98,16 @@ export const applicationsI18n = {
       selfApplied: 'Ứng viên tự ứng tuyển',
     },
     pagination: {
-      showing: (start, end, total) => `${start} - ${end} / ${total} tiến cử`,
+      showing: (start, end, total) => `${start} - ${end} / ${total} ứng viên`,
     },
     unreadMessages: (n) => `${n} tin mới`,
   },
   en: {
-    title: 'Application management',
-    subtitle: 'Track nominations to your JDs from Scout Credit, CTV Marketplace, and other sources',
+    title: 'Candidate selection',
+    subtitle: 'Track candidates by JD from Scout Credit, Scout Performance, and CTV Marketplace — update the selection process',
     breadcrumb: {
       home: 'Home',
-      current: 'Application management',
+      current: 'Candidate selection',
     },
     tabs: {
       all: 'All',
@@ -106,11 +118,10 @@ export const applicationsI18n = {
       other: 'Other',
     },
     stats: {
-      total: 'Total candidates on JDs',
-      wsCtv: 'Referrals (WS/CTV, Marketplace)',
-      scoutCredit: 'Scout Credit',
-      hired: 'Hired',
-      pipeline: 'In pipeline',
+      total: 'Total',
+      processing: 'In progress',
+      interview: 'Interview',
+      success: 'Success',
     },
     stageLabels: {
       processing: 'In progress',
@@ -132,7 +143,7 @@ export const applicationsI18n = {
       all: 'Source: All',
       ctv_marketplace: 'CTV Marketplace',
       ctv_nomination: 'CTV referral',
-      scout_performance: 'Scout Performance',
+      scout_performance: 'Scout Performance (delegated)',
       scout_credit: 'Scout Credit',
       landing: 'Branding LP',
       other: 'Other',
@@ -141,32 +152,45 @@ export const applicationsI18n = {
       searchPlaceholder: 'Search candidate, JD...',
       allJobs: 'JD: All',
       allStatus: 'Status: All',
+      appliedFrom: 'From date',
+      appliedTo: 'To date',
     },
     view: {
       list: 'List',
-      kanban: 'Kanban pipeline',
+      kanban: 'Selection process',
     },
-    loading: 'Loading applications...',
-    empty: 'No matching applications',
+    loading: 'Loading candidates...',
+    empty: 'No matching candidates',
     sidebar: {
       notifications: 'Recent notifications',
-      pipeline: 'Pipeline by stage',
+      selectionProcess: 'Selection process',
       noNotifications: 'No new notifications',
       noData: 'No data yet',
       noActivity: 'No activity yet',
-      sourceRatio: 'Candidate source mix',
-      statusBreakdown: 'Application status',
+      sourceRatio: 'Source mix',
+      statusBreakdown: 'Status',
       recentActivity: 'Recent activity',
+      viewAllActivity: 'View all',
       total: 'Total',
     },
     table: {
       candidate: 'Candidate',
       job: 'JD / Role',
       source: 'Source',
-      nominatedBy: 'Nominated by',
       status: 'Status',
       appliedAt: 'Applied',
       interviewDate: 'Interview date',
+    },
+    profileReview: {
+      title: 'Profile review',
+      pass: 'Pass screening',
+      fail: 'Fail screening',
+      failConfirmTitle: 'Confirm profile rejection',
+      failConfirmBody: 'This candidate will exit the selection process for this JD.',
+      failReasonPlaceholder: 'Reason (optional)',
+      cancel: 'Cancel',
+      confirmFail: 'Confirm rejection',
+      wsTrackingOnly: 'Pre-nomination Scout Performance steps are handled by WS — view only for your company.',
     },
     kanbanUpdating: 'Updating...',
     nominatedBy: {
@@ -180,11 +204,11 @@ export const applicationsI18n = {
     unreadMessages: (n) => `${n} new message${n === 1 ? '' : 's'}`,
   },
   ja: {
-    title: '推薦管理',
-    subtitle: 'Scout Credit、CTVマーケットなど各ソースからのJD推薦を追跡',
+    title: '選考管理',
+    subtitle: 'Scout Credit・Scout委託・CTVマーケット各ソースの候補者をJD別に追跡し、選考プロセスを更新',
     breadcrumb: {
       home: 'ホーム',
-      current: '推薦管理',
+      current: '選考管理',
     },
     tabs: {
       all: 'すべて',
@@ -195,11 +219,10 @@ export const applicationsI18n = {
       other: 'その他',
     },
     stats: {
-      total: 'JDへの候補者合計',
-      wsCtv: '推薦（WS/CTV、マーケット）',
-      scoutCredit: 'Scout Credit',
-      hired: '採用済み',
-      pipeline: '処理中',
+      total: '合計',
+      processing: '処理中',
+      interview: '面接',
+      success: '成功',
     },
     stageLabels: {
       processing: '処理中',
@@ -221,7 +244,7 @@ export const applicationsI18n = {
       all: 'ソース: すべて',
       ctv_marketplace: 'CTVマーケット',
       ctv_nomination: 'CTV推薦',
-      scout_performance: 'Scout Performance',
+      scout_performance: 'Scout委託',
       scout_credit: 'Scout Credit',
       landing: 'Branding LP',
       other: 'その他',
@@ -230,32 +253,45 @@ export const applicationsI18n = {
       searchPlaceholder: '候補者、JDを検索...',
       allJobs: 'JD: すべて',
       allStatus: 'ステータス: すべて',
+      appliedFrom: '開始日',
+      appliedTo: '終了日',
     },
     view: {
       list: 'リスト',
-      kanban: 'Kanban pipeline',
+      kanban: '選考プロセス',
     },
-    loading: '推薦を読み込み中...',
-    empty: '該当する推薦がありません',
+    loading: '候補者を読み込み中...',
+    empty: '該当する候補者がありません',
     sidebar: {
       notifications: '最近の通知',
-      pipeline: 'ステージ別パイプライン',
+      selectionProcess: '選考プロセス',
       noNotifications: '新しい通知はありません',
       noData: 'データがありません',
       noActivity: 'アクティビティがありません',
-      sourceRatio: '候補者ソース比率',
-      statusBreakdown: '推薦ステータス',
+      sourceRatio: 'ソース比率',
+      statusBreakdown: 'ステータス',
       recentActivity: '最近のアクティビティ',
+      viewAllActivity: 'すべて見る',
       total: '合計',
     },
     table: {
       candidate: '候補者',
       job: 'JD / ポジション',
       source: 'ソース',
-      nominatedBy: '推薦者',
       status: 'ステータス',
-      appliedAt: '推薦日',
+      appliedAt: '応募日',
       interviewDate: '面接日',
+    },
+    profileReview: {
+      title: '書類評価',
+      pass: '書類合格',
+      fail: '書類不合格',
+      failConfirmTitle: '書類不合格の確認',
+      failConfirmBody: 'このJDでの選考プロセスを終了します。',
+      failReasonPlaceholder: '理由（任意）',
+      cancel: 'キャンセル',
+      confirmFail: '不合格を確定',
+      wsTrackingOnly: 'Scout委託の推薦前ステータスはWSが処理します — 企業は閲覧のみです。',
     },
     kanbanUpdating: '更新中...',
     nominatedBy: {
@@ -286,12 +322,9 @@ export function getApplicationSourceOptions(language) {
   const s = applicationsI18n[language]?.sources || applicationsI18n.vi.sources;
   return [
     { value: '', label: s.all },
-    { value: 'ctv_marketplace', label: s.ctv_marketplace },
-    { value: 'ctv_nomination', label: s.ctv_nomination },
-    { value: 'scout_performance', label: s.scout_performance },
     { value: 'scout_credit', label: s.scout_credit },
-    { value: 'landing', label: s.landing },
-    { value: 'other', label: s.other },
+    { value: 'scout_performance', label: s.scout_performance },
+    { value: 'ctv_marketplace', label: s.ctv_marketplace },
   ];
 }
 
@@ -309,6 +342,10 @@ export function getKanbanColumns(language) {
 
 export function getApplicationStageLabels(language) {
   return applicationsI18n[language]?.stageLabels || applicationsI18n.vi.stageLabels;
+}
+
+export function getApplicationProfileReviewCopy(language) {
+  return applicationsI18n[language]?.profileReview || applicationsI18n.vi.profileReview;
 }
 
 export function getApplicationSourceLabel(sourceType, language = 'vi') {

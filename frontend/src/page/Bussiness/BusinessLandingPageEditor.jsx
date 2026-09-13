@@ -2,6 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Loader2, Save, Send } from 'lucide-react';
 import apiService from '../../services/api';
+import { scanLandingPagePublishReadiness } from '../../utils/landingPagePublishReadiness';
+import LandingPagePublishWarningModal from '../../component/BusinessBranding/LandingPagePublishWarningModal';
+import { useLanguage } from '../../context/LanguageContext';
+import { getBrandingCopy } from '../../i18n/businessAppI18n';
 
 const STATUS_COLORS = {
   0: { label: 'Nháp', color: '#64748b', bg: '#f1f5f9' },
@@ -13,6 +17,8 @@ const STATUS_COLORS = {
 function BusinessLandingPageEditor() {
   const { pageId } = useParams();
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const publishReadinessCopy = useMemo(() => getBrandingCopy(language).publishReadiness, [language]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -22,6 +28,12 @@ function BusinessLandingPageEditor() {
   const [metaTitle, setMetaTitle] = useState('');
   const [metaDescription, setMetaDescription] = useState('');
   const [metaKeywords, setMetaKeywords] = useState('');
+  const [publishWarningOpen, setPublishWarningOpen] = useState(false);
+
+  const publishScan = useMemo(
+    () => scanLandingPagePublishReadiness(content, { pageTitle: title }),
+    [content, title],
+  );
 
   const loadPage = useCallback(async () => {
     try {
@@ -124,14 +136,14 @@ function BusinessLandingPageEditor() {
     }
   };
 
-  const handlePublish = async () => {
-    if (!window.confirm('Phát hành landing page? Link public sẽ có thể truy cập và dùng cho quảng cáo.')) return;
+  const runPublish = async () => {
     setPublishing(true);
     try {
       await apiService.updateBusinessLandingPage(pageId, { title, content, metaTitle, metaDescription, metaKeywords });
       const res = await apiService.publishBusinessLandingPage(pageId);
       if (res?.success) {
         setPage(res.data.landingPage);
+        setPublishWarningOpen(false);
         alert('Đã phát hành! Sao chép link public để chạy quảng cáo.');
       } else {
         alert(res?.message || 'Publish thất bại');
@@ -142,6 +154,15 @@ function BusinessLandingPageEditor() {
     } finally {
       setPublishing(false);
     }
+  };
+
+  const handlePublish = () => {
+    if (publishScan.issues.length > 0) {
+      setPublishWarningOpen(true);
+      return;
+    }
+    if (!window.confirm('Phát hành landing page? Link public sẽ có thể truy cập và dùng cho quảng cáo.')) return;
+    runPublish();
   };
 
   if (loading) {
@@ -252,6 +273,12 @@ function BusinessLandingPageEditor() {
         </div>
       </div>
 
+      {publishScan.issues.length > 0 && (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          {publishReadinessCopy.editorBanner(publishScan.issues.length)}
+        </p>
+      )}
+
       <div className="flex gap-2">
         <button
           type="button"
@@ -272,6 +299,16 @@ function BusinessLandingPageEditor() {
           {publishing ? 'Đang publish...' : 'Publish'}
         </button>
       </div>
+
+      <LandingPagePublishWarningModal
+        open={publishWarningOpen}
+        issues={publishScan.issues}
+        copy={publishReadinessCopy}
+        publishing={publishing}
+        onClose={() => setPublishWarningOpen(false)}
+        onEdit={() => setPublishWarningOpen(false)}
+        onPublishAnyway={runPublish}
+      />
     </div>
   );
 }

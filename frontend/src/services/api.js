@@ -1538,6 +1538,14 @@ const apiService = {
     return handleResponse(response);
   },
 
+  getBusinessCandidateSharingPlatformOverview: async () => {
+    const response = await fetch(`${API_BASE_URL}/business/candidate-sharing/platform-overview`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   getBusinessCandidateSharingDashboard: async () => {
     const response = await fetch(`${API_BASE_URL}/business/candidate-sharing/dashboard`, {
       method: 'GET',

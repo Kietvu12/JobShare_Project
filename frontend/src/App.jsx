@@ -114,6 +114,7 @@ import AdminWsChatPage from './page/Admin/AdminWsChatPage';
 import AdminCreditRequestsPage from './page/Admin/AdminCreditRequestsPage';
 import AgentScoutPerformancePage from './page/Agent/ScoutPerformancePage';
 import Branding from './page/Bussiness/Branding';
+import BrandingLandingPages from './page/Bussiness/BrandingLandingPages';
 import BusinessLandingPageEditor from './page/Bussiness/BusinessLandingPageEditor';
 import BusinessLandingPageBuilder from './page/Bussiness/BusinessLandingPageBuilder';
 import PublicLandingPage from './page/LandingPage/PublicLandingPage';
@@ -422,6 +423,7 @@ function App() {
             <Route path="scout/candidates/:cvId" element={<ScoutCandidateDetail />} />
             <Route path="scout" element={<Navigate to="/business/scout/direct" replace />} />
             <Route path="saiyo" element={<Branding />} />
+            <Route path="saiyo/landing-pages" element={<BrandingLandingPages />} />
             <Route path="saiyo/pages/:pageId/edit" element={<BusinessLandingPageEditor />} />
             <Route path="knowledge" element={<KnowledgeHub />} />
             <Route path="knowledge/:postSlug" element={<KnowledgeArticlePage />} />

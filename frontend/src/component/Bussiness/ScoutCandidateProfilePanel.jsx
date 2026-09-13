@@ -95,6 +95,8 @@ export default function ScoutCandidateProfilePanel({
 }) {
   const { language } = useLanguage()
   const isUnlocked = treatAsUnlocked || Boolean(candidate?.isUnlocked)
+  const showIdentity = isUnlocked && !candidate?.isPerformancePartial
+  const useFullProfileSections = isUnlocked || Boolean(candidate?.isPerformancePartial)
   const shouldHideContact = hideContact || candidate?.hideContact || candidate?.isPerformancePartial
 
   const hl = useMemo(
@@ -122,7 +124,7 @@ export default function ScoutCandidateProfilePanel({
   const languageSummary = formatScoutJlptSummary(candidate)
   const experienceYears = formatScoutExperienceYears(candidate.experienceYears)
 
-  const workExperiences = isUnlocked
+  const workExperiences = useFullProfileSections
     ? normalizeScoutWorkExperiences(candidate.workExperiences)
     : normalizeScoutWorkExperiencesTier2(candidate.workExperiences)
 
@@ -148,7 +150,7 @@ export default function ScoutCandidateProfilePanel({
     ['Hộ chiếu', formatScoutYesNo(candidate.passport)],
   ].filter(([, v]) => v && v !== '—')
 
-  const displayName = (isUnlocked && candidate.name)
+  const displayName = (showIdentity && candidate.name)
     ? candidate.name
     : getLocalizedScoutDisplayName(candidate, language)
 
@@ -157,7 +159,7 @@ export default function ScoutCandidateProfilePanel({
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #e2e8f0' }}>
         <div style={{ position: 'relative', flexShrink: 0 }}>
           <AvatarCircle candidate={candidate} size={40} unlocked={isUnlocked} />
-          {isUnlocked && (
+          {showIdentity && (
             <div style={{ position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: '#10b981', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
               <BadgeCheck {...ICON_SM} color="#fff" aria-hidden />
             </div>
@@ -172,7 +174,7 @@ export default function ScoutCandidateProfilePanel({
           </div>
           <div className="scout-detail-body text-slate-500">
             {position ? hl(position) : null}
-            {isUnlocked && candidate.code ? (
+            {showIdentity && candidate.code ? (
               <span style={{ color: '#94a3b8' }}>{position ? ' · ' : ''}{candidate.code}</span>
             ) : null}
           </div>

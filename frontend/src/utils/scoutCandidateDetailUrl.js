@@ -16,8 +16,9 @@ export function getScoutCandidateDetailUrl(cvId, { jobId, performanceRequestId, 
   return `/business/scout/candidates/${cvId}${qs ? `?${qs}` : ''}`
 }
 
-export function getScoutListUrl({ jobId, performanceRequestId } = {}) {
-  const base = performanceRequestId ? '/business/scout/managed' : '/business/scout/direct'
+export function getScoutListUrl({ jobId, performanceRequestId, mode } = {}) {
+  const resolved = resolveScoutEntryMode({ mode, performanceRequestId })
+  const base = resolved === 'performance' ? '/business/scout/managed' : '/business/scout/direct'
   const params = new URLSearchParams()
   if (jobId) params.set('jobId', String(jobId))
   if (performanceRequestId) params.set('performanceRequestId', String(performanceRequestId))

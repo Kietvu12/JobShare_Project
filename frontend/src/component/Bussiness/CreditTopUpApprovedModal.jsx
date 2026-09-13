@@ -5,10 +5,10 @@ import { BUSINESS_UI_FONT } from '../../utils/businessUiFont'
 
 const COPY = {
   vi: {
-    title: 'Bạn đã nạp thành công',
-    body: 'Credit đã được cộng vào tài khoản của bạn. Bạn có thể bắt đầu mở hồ sơ ứng viên ngay.',
+    title: 'Nạp Credit thành công',
+    body: 'Credit đã được cộng vào tài khoản. Bạn có thể bắt đầu mở hồ sơ ứng viên ngay.',
     creditLabel: 'Credit hiện tại',
-    startScout: 'Bắt đầu sử dụng Scout Trực Tiếp',
+    startScout: 'Bắt đầu với Scout Trực Tiếp',
     later: 'Để sau',
     close: 'Đóng',
   },

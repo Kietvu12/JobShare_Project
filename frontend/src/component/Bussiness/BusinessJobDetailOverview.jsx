@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  ArrowRight, Calendar, Info, Loader2, MapPin, Sparkles, Target, User,
+  ArrowRight, Building2, Calendar, Info, Loader2, MapPin, Search, Sparkles, Star, Target, User,
 } from 'lucide-react';
 
 function truncateText(text, maxLen = 96) {
@@ -25,34 +25,62 @@ export function pickShortSkillLabels(skills, maxTags = 4) {
   return uniq.slice(0, maxTags);
 }
 
+export function getHealthRatingBadgeClass(rating) {
+  const r = String(rating || '').toLowerCase();
+  if (r.includes('tốt') || r === 'excellent' || r.includes('良好')) {
+    return 'bg-emerald-100 text-emerald-800';
+  }
+  if (r.includes('khá') || r === 'good' || r.includes('やや')) {
+    return 'bg-sky-100 text-sky-800';
+  }
+  if (r.includes('trung bình') || r === 'average' || r === '普通') {
+    return 'bg-amber-100 text-amber-800';
+  }
+  if (r.includes('cải thiện') || r.includes('improvement') || r.includes('改善')) {
+    return 'bg-orange-100 text-orange-800';
+  }
+  if (r.includes('chưa') || r.includes('no data') || r.includes('データ')) {
+    return 'bg-slate-100 text-slate-600';
+  }
+  return 'bg-slate-100 text-slate-600';
+}
+
 export function HealthOverviewGrid({ cards, title = 'Recruitment Health' }) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white">
-      <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-3 py-2">
-        <h2 className="biz-jd-title text-slate-800">{title}</h2>
-        <Info className="biz-jd-icon text-slate-300 shrink-0" aria-hidden />
+    <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-2.5 py-1.5">
+        <h2 className="text-xs font-semibold text-slate-800 sm:text-sm">{title}</h2>
+        <span className="text-[10px] text-slate-400">Di chuột vào điểm để xem cách tính</span>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 p-2">
-        {cards.map((c, i) => {
+      <div className="grid grid-cols-2 gap-1.5 p-1.5 lg:grid-cols-4">
+        {cards.map((c) => {
           const Icon = c.icon;
+          const showScore = c.showScore !== false;
           return (
             <div
               key={c.label}
-              className={`rounded-md border border-slate-100 bg-slate-50/60 p-2 min-w-0 ${i > 0 ? 'lg:border-l lg:border-slate-100 lg:rounded-none lg:border-0 lg:bg-transparent lg:pl-3' : ''}`}
+              className="min-w-0 rounded-md border border-slate-100 bg-slate-50/50 p-1.5"
+              title={c.tooltip || ''}
             >
-              <div className="flex items-center gap-1.5 mb-1 min-w-0">
-                <div className="biz-jd-icon-hit rounded-md bg-violet-50 text-violet-600 shrink-0">
-                  <Icon className="biz-jd-icon" />
+              <div className="mb-0.5 flex min-w-0 items-center gap-1">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-violet-50 text-violet-600">
+                  <Icon className="h-3 w-3" />
                 </div>
-                <span className="biz-jd-muted font-medium truncate">{c.label}</span>
+                <span className="truncate text-[10px] font-medium text-slate-600">{c.label}</span>
               </div>
-              <p className="biz-jd-title text-indigo-600 leading-none">
-                {c.score}
-                <span className="biz-jd-muted font-normal">/100</span>
-              </p>
-              <p className="biz-jd-body font-semibold text-amber-600 mt-0.5">{c.rating}</p>
+              {showScore ? (
+                <p className="text-sm font-bold leading-none text-indigo-600">
+                  {c.score}
+                  <span className="text-[10px] font-normal text-slate-500">/100</span>
+                </p>
+              ) : (
+                <p className="text-[11px] font-semibold leading-snug text-slate-600">{c.scoreDisplay}</p>
+              )}
+              <span className={`mt-0.5 inline-block rounded-full px-1.5 py-px text-[10px] font-semibold ${getHealthRatingBadgeClass(c.rating)}`}>
+                {c.rating}
+              </span>
               {c.lines?.filter(Boolean).slice(0, 2).map((line) => (
-                <p key={line} className="biz-jd-muted leading-snug truncate">{line}</p>
+                <p key={line} className="mt-0.5 truncate text-[10px] leading-snug text-slate-500">{line}</p>
               ))}
             </div>
           );
@@ -70,44 +98,44 @@ export function AiMatchOverviewCard({
   aiInsights,
 }) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-2">
-        <Target className="biz-jd-icon text-[#0077B6] shrink-0" />
-        <span className="biz-jd-body font-semibold text-slate-800">AI gợi ý ứng viên</span>
-        <span className="ml-auto rounded-full bg-[#0077B6]/10 text-[#0077B6] biz-jd-body font-semibold px-2 py-0.5">
+    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/80 px-2.5 py-1.5">
+        <Target className="h-3.5 w-3.5 shrink-0 text-[#0077B6]" />
+        <span className="text-xs font-semibold text-slate-800">AI gợi ý ứng viên</span>
+        <span className="ml-auto rounded-full bg-[#0077B6]/10 px-2 py-0.5 text-[10px] font-semibold text-[#0077B6]">
           Scout
         </span>
       </div>
-      <div className="p-3 space-y-3 min-w-0">
-        <p className="biz-jd-title text-slate-900">
+      <div className="min-w-0 space-y-2 p-2.5">
+        <p className="text-xs font-semibold text-slate-900 sm:text-sm">
           {matchLoading
             ? 'Đang phân tích ứng viên phù hợp...'
             : `Có ${matchedTotal.toLocaleString('vi-VN')} hồ sơ phù hợp với JD này`}
         </p>
         {matchError ? (
-          <p className="biz-jd-body text-amber-700 rounded-md bg-amber-50 border border-amber-100 px-2 py-1.5">
+          <p className="rounded-md border border-amber-100 bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
             {matchError}
           </p>
         ) : null}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-1.5">
           {matchStats.map((m) => (
-            <div key={m.label} className="rounded-md bg-slate-50 px-2 py-1.5 min-w-0">
-              <p className="biz-jd-title text-slate-900">{matchLoading ? '…' : m.value}</p>
-              <p className="biz-jd-muted leading-snug line-clamp-2">{m.label}</p>
+            <div key={m.label} className="min-w-0 rounded-md bg-slate-50 px-1.5 py-1">
+              <p className="text-sm font-bold text-slate-900">{matchLoading ? '…' : m.value}</p>
+              <p className="line-clamp-2 text-[10px] leading-snug text-slate-500">{m.label}</p>
             </div>
           ))}
         </div>
-        <div className="border-t border-slate-100 pt-2 space-y-2">
+        <div className="space-y-1.5 border-t border-slate-100 pt-1.5">
           {aiInsights.map((item) => {
             const Icon = item.icon;
             return (
-              <div key={item.label} className="grid grid-cols-1 sm:grid-cols-[minmax(0,9rem)_1fr] gap-0.5 sm:gap-2 items-start">
-                <span className="biz-jd-muted flex items-center gap-1 min-w-0">
-                  <Icon className="biz-jd-icon text-slate-400 shrink-0" />
+              <div key={item.label} className="grid grid-cols-1 items-start gap-0.5 sm:grid-cols-[minmax(0,9rem)_1fr] sm:gap-2">
+                <span className="flex min-w-0 items-center gap-1 text-[10px] text-slate-500">
+                  <Icon className="h-3 w-3 shrink-0 text-slate-400" />
                   <span className="truncate">{item.label}</span>
                 </span>
                 <span
-                  className={`biz-jd-body font-medium min-w-0 break-words line-clamp-2 sm:text-right ${item.valueColor ? '' : 'text-slate-800'}`}
+                  className={`min-w-0 break-words text-[11px] font-medium line-clamp-2 sm:text-right ${item.valueColor ? '' : 'text-slate-800'}`}
                   style={item.valueColor ? { color: item.valueColor } : undefined}
                 >
                   {truncateText(item.value, 120)}
@@ -127,64 +155,59 @@ export function TopCandidatesOverview({
   onViewAll,
 }) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white">
-      <div className="flex items-center gap-1.5 border-b border-slate-100 px-3 py-2">
-        <h2 className="biz-jd-title text-slate-800">Top ứng viên phù hợp</h2>
-        <Info className="biz-jd-icon text-slate-300 shrink-0" />
+    <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center gap-1.5 border-b border-slate-100 px-2.5 py-1.5">
+        <h2 className="text-xs font-semibold text-slate-800 sm:text-sm">Top ứng viên phù hợp</h2>
+        <Info className="h-3 w-3 shrink-0 text-slate-300" />
       </div>
-      <div className="p-3">
+      <div className="p-2.5">
         {matchLoading ? (
-          <div className="flex items-center justify-center gap-2 text-slate-500 py-8 biz-jd-body">
-            <Loader2 className="biz-jd-icon animate-spin" />
+          <div className="flex items-center justify-center gap-2 py-6 text-[11px] text-slate-500">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Đang tải gợi ý AI...
           </div>
         ) : topCandidates.length === 0 ? (
-          <p className="text-center biz-jd-muted py-8">Chưa có ứng viên phù hợp hoặc JD chưa đồng bộ vector.</p>
+          <p className="py-6 text-center text-[11px] text-slate-500">Chưa có ứng viên phù hợp hoặc JD chưa đồng bộ vector.</p>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-1.5">
             {topCandidates.map((c, i) => {
               const tags = pickShortSkillLabels(c.skills, 4);
               return (
                 <li
                   key={c.id || i}
-                  className="rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 min-w-0"
+                  className="min-w-0 rounded-lg border border-slate-200 bg-slate-50/50 p-2"
                 >
-                  <div className="flex flex-wrap items-start gap-2 justify-between">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <div className="biz-jd-icon-hit rounded-full bg-violet-100 text-violet-600 shrink-0">
-                        <User className="biz-jd-icon" />
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-100 text-violet-600">
+                        <User className="h-3.5 w-3.5" />
                       </div>
                       <div className="min-w-0">
-                        <p className="biz-jd-body font-semibold text-slate-900 truncate">{c.name}</p>
-                        <p className="biz-jd-muted line-clamp-1">{truncateText(c.role, 80)}</p>
+                        <p className="truncate text-xs font-semibold text-slate-900">{c.name}</p>
+                        <p className="line-clamp-1 text-[10px] text-slate-500">{truncateText(c.role, 80)}</p>
                       </div>
                     </div>
-                    <span className="rounded-full bg-emerald-100 text-emerald-700 biz-jd-body font-semibold px-2 py-0.5 shrink-0">
+                    <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
                       {c.match}% match
                     </span>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 biz-jd-muted">
+                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500">
                     <span className="inline-flex items-center gap-1">
-                      <Calendar className="biz-jd-icon shrink-0" />
+                      <Calendar className="h-3 w-3 shrink-0" />
                       {c.exp}
                     </span>
-                    <span className="inline-flex items-center gap-1 min-w-0">
-                      <MapPin className="biz-jd-icon shrink-0" />
+                    <span className="inline-flex min-w-0 items-center gap-1">
+                      <MapPin className="h-3 w-3 shrink-0" />
                       <span className="truncate">{c.location}</span>
                     </span>
                   </div>
                   {tags.length > 0 ? (
-                    <div className="mt-2 flex flex-wrap gap-1">
+                    <div className="mt-1.5 flex flex-wrap gap-1">
                       {tags.map((sk) => (
-                        <span key={sk} className="rounded bg-white border border-slate-200 text-slate-600 biz-jd-muted px-1.5 py-0.5">
+                        <span key={sk} className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] text-slate-600">
                           {sk}
                         </span>
                       ))}
-                      {c.extra > 0 ? (
-                        <span className="rounded bg-white border border-slate-200 text-slate-500 biz-jd-muted px-1.5 py-0.5">
-                          +{c.extra}
-                        </span>
-                      ) : null}
                     </div>
                   ) : null}
                 </li>
@@ -192,14 +215,14 @@ export function TopCandidatesOverview({
             })}
           </ul>
         )}
-        <div className="mt-3 flex justify-center">
+        <div className="mt-2 flex justify-center">
           <button
             type="button"
             onClick={onViewAll}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#0077B6]/25 bg-[#0077B6]/5 text-[#0077B6] hover:bg-[#0077B6]/10 biz-jd-body font-semibold px-3 py-1.5 transition-colors"
+            className="inline-flex items-center gap-1 rounded-lg border border-[#0077B6]/25 bg-[#0077B6]/5 px-2.5 py-1 text-[11px] font-semibold text-[#0077B6] transition-colors hover:bg-[#0077B6]/10"
           >
             Xem tất cả ứng viên match
-            <ArrowRight className="biz-jd-icon" />
+            <ArrowRight className="h-3 w-3" />
           </button>
         </div>
       </div>
@@ -207,55 +230,59 @@ export function TopCandidatesOverview({
   );
 }
 
-export function ServicesActivityOverview({ services, activities, jobId, navigate }) {
+const SERVICE_STATUS_ACTIVE = 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200/80';
+const SERVICE_STATUS_IDLE = 'bg-slate-100 text-slate-600 ring-1 ring-slate-200/80';
+
+export function ServicesActivityOverview({ serviceButtons, activities }) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-      <section className="rounded-lg border border-slate-200 bg-white p-3">
-        <h2 className="biz-jd-title text-slate-800 mb-2">Dịch vụ cho JD này</h2>
-        <ul className="space-y-2">
-          {services.map((sv) => {
+    <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+      <section className="rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm">
+        <h2 className="mb-2 text-xs font-semibold text-slate-800 sm:text-sm">Dịch vụ cho JD này</h2>
+        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
+          {serviceButtons.map((sv) => {
             const Icon = sv.icon;
+            const active = sv.active;
             return (
-              <li key={sv.name} className="flex items-center gap-2 min-w-0">
-                <div className={`biz-jd-icon-hit rounded-lg shrink-0 ${sv.iconBg}`}>
-                  <Icon className={`biz-jd-icon ${sv.iconColor}`} />
+              <button
+                key={sv.id}
+                type="button"
+                onClick={sv.onClick}
+                className="flex flex-col items-start gap-1.5 rounded-lg border border-slate-200 bg-slate-50/80 p-2 text-left transition hover:border-[#0077B6]/30 hover:bg-[#f8fbfd]"
+              >
+                <div className="flex w-full items-center justify-between gap-1">
+                  <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${sv.iconBg}`}>
+                    <Icon className={`h-3.5 w-3.5 ${sv.iconColor}`} />
+                  </span>
+                  <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${active ? SERVICE_STATUS_ACTIVE : SERVICE_STATUS_IDLE}`}>
+                    {active ? 'Đang dùng' : 'Chưa dùng'}
+                  </span>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-1">
-                    <span className="biz-jd-body font-semibold text-slate-800">{sv.name}</span>
-                    <span className={`rounded-full biz-jd-muted font-medium px-1.5 py-0.5 ${sv.statusColor}`}>{sv.status}</span>
-                  </div>
-                  <p className="biz-jd-muted truncate">{sv.detail}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => sv.name === 'Scout Credit' && jobId && navigate(`/business/scout/direct?jobId=${jobId}`)}
-                  className="biz-jd-body font-semibold text-[#0077B6] shrink-0 hover:underline"
-                >
-                  {sv.action}
-                </button>
-              </li>
+                <span className="text-[11px] font-semibold leading-snug text-slate-800">{sv.label}</span>
+                {sv.hint ? (
+                  <span className="text-[10px] leading-snug text-slate-500">{sv.hint}</span>
+                ) : null}
+              </button>
             );
           })}
-        </ul>
+        </div>
       </section>
-      <section className="rounded-lg border border-slate-200 bg-white p-3">
-        <h2 className="biz-jd-title text-slate-800 mb-2">Hoạt động gần đây</h2>
+      <section className="rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm">
+        <h2 className="mb-2 text-xs font-semibold text-slate-800 sm:text-sm">Hoạt động gần đây</h2>
         {activities.length === 0 ? (
-          <p className="biz-jd-muted">Chưa có hoạt động.</p>
+          <p className="text-[11px] text-slate-500">Chưa có hoạt động.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="max-h-36 space-y-1.5 overflow-y-auto">
             {activities.map((a) => {
               const Icon = a.icon;
               return (
-                <li key={a.text} className="flex items-center justify-between gap-2 min-w-0">
-                  <span className="flex items-center gap-2 min-w-0">
-                    <span className={`biz-jd-icon-hit rounded-md shrink-0 ${a.iconBg}`}>
-                      <Icon className={`biz-jd-icon ${a.iconColor}`} />
+                <li key={`${a.text}-${a.time}`} className="flex min-w-0 items-start justify-between gap-2">
+                  <span className="flex min-w-0 items-start gap-1.5">
+                    <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${a.iconBg}`}>
+                      <Icon className={`h-3 w-3 ${a.iconColor}`} />
                     </span>
-                    <span className="biz-jd-body text-slate-600 truncate">{a.text}</span>
+                    <span className="text-[11px] leading-snug text-slate-600">{a.text}</span>
                   </span>
-                  <span className="biz-jd-muted shrink-0">{a.time}</span>
+                  <span className="shrink-0 text-[10px] text-slate-400">{a.time}</span>
                 </li>
               );
             })}
@@ -265,3 +292,9 @@ export function ServicesActivityOverview({ services, activities, jobId, navigate
     </div>
   );
 }
+
+export const SERVICE_ICON_MAP = {
+  scout: { icon: Search, iconColor: 'text-blue-600', iconBg: 'bg-blue-50' },
+  branding: { icon: Star, iconColor: 'text-amber-600', iconBg: 'bg-amber-50' },
+  marketplace: { icon: Building2, iconColor: 'text-violet-600', iconBg: 'bg-violet-50' },
+};

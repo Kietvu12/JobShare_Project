@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Loader2, RotateCw, Search, Unlock } from 'lucide-react'
+import { Loader2, RotateCw, Search, Unlock, X } from 'lucide-react'
 import nothingIllustration from '../../assets/Nothing.png'
 import apiService from '../../services/api'
 import FilterBlock from '../../component/Shared/FilterBlock'
@@ -8,20 +8,27 @@ import FilterSelectDropdown from '../../component/Shared/FilterSelectDropdown'
 import ScoutCandidateFilterFields, { SCOUT_FILTER_INPUT_CLASS } from '../../component/Bussiness/ScoutCandidateFilterFields.jsx'
 import WorkLocationFilterModal from '../../component/Shared/WorkLocationFilterModal'
 import JobCategoryPickerModal from '../../component/Shared/JobCategoryPickerModal'
-import { HomepageSidebar } from './Homepage'
+import BusinessFloatingQuickActions from '../../component/Bussiness/BusinessFloatingQuickActions.jsx'
+import { CandidateListMatchCorner } from '../../component/Bussiness/ScoutMatchBadge'
 import { highlightSearchText } from '../../utils/searchTextHighlight'
 import { getBusinessUnlockedCandidateDetailUrl } from '../../utils/businessUnlockedCandidateDetailUrl'
 import { fetchAllBusinessUnlockedCandidates } from '../../utils/businessUnlockedCandidates'
 import {
+  EXPERIENCE_YEARS_OPTIONS,
+  JAPANESE_LEVEL_FILTER_OPTIONS,
   getDefaultScoutFilters,
+  getLocalizedOptionLabel,
   hasActiveScoutFilters,
   passesScoutCandidateFilters,
 } from '../../utils/scoutFilterOptions'
+import { getWorkLocationsDisplayText } from '../../utils/workLocationFilter'
+import { getScoutFilterCopy, getScoutVisaFilterOptions } from '../../i18n/businessAppI18n'
 import ScoutCandidateHoverTip from '../../component/Bussiness/ScoutCandidateHoverTip'
 import {
-  getScoutSkillTags,
   formatScoutDesiredSalary,
-  formatScoutListLocation,
+  getScoutListSkillChips,
+  isScoutEmptyDisplayValue,
+  resolveCandidateMatchScore,
 } from '../../utils/scoutCandidateDisplay'
 import { getLocalizedCandidateRole } from '../../utils/jobCategoryDisplay'
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
@@ -39,7 +46,7 @@ import {
 } from '../../i18n/businessAppI18n'
 
 const ANONYMOUS_AVATAR = 'https://api.dicebear.com/7.x/shapes/svg?seed=scout-unlocked'
-const PAGE_SIZE = 20
+const PAGE_SIZE = 10
 const BRAND = '#0077B6'
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 
@@ -76,14 +83,13 @@ const candidatePageStyles = `
   .candidates-workspace-body {
     flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr; gap: 10px; overflow: hidden;
   }
-  @media (min-width: 1280px) {
-    .candidates-workspace-body { grid-template-columns: minmax(0, 1fr) 204px; }
-  }
   .candidates-workspace-content {
     min-height: 0; min-width: 0; display: flex; flex-direction: column; flex: 1; gap: 8px; overflow: hidden;
   }
-  @media (min-width: 1024px) and (max-width: 1279px) {
-    .candidates-workspace-aside { display: none; }
+  .candidates-filter-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 20;
   }
   .scout-candidates-list-ui {
     --scout-cand-fs-title: 12px; --scout-cand-fs-body: 12px; --scout-cand-fs-caption: 11px; --scout-cand-icon: 13px;
@@ -117,15 +123,12 @@ const candidatePageStyles = `
       padding: 0.375rem 0.625rem !important;
     }
     .candidates-list-item {
-      padding: 0.5rem 0.625rem !important;
+      padding: 0.375rem 0.5rem !important;
     }
     .candidates-list-avatar {
-      width: 38px !important;
-      height: 38px !important;
+      width: 34px !important;
+      height: 34px !important;
     }
-  }
-  @media (min-width: 1280px) and (max-width: 1535px) {
-    .candidates-workspace-body { grid-template-columns: minmax(0, 1fr) 188px; }
   }
   @media (min-width: 1024px) and (max-width: 1535px) and (max-height: 860px) {
     .candidates-filter-scroll {
@@ -165,8 +168,9 @@ function AvatarCircle({ candidate, size = 44, language = 'vi', className = '' })
 }
 
 function ScoutMetaChip({ children }) {
+  if (isScoutEmptyDisplayValue(children)) return null
   return (
-    <span className="scout-cand-meta inline-flex max-w-full truncate rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600">
+    <span className="scout-cand-caption inline-flex max-w-full truncate rounded-md border border-slate-200/80 bg-slate-50 px-1.5 py-px font-medium text-slate-600">
       {children}
     </span>
   )
@@ -176,60 +180,99 @@ function UnlockedCandidateRowBody({ candidate, hl = (t) => t, language, listCopy
   const position = getLocalizedCandidateRole(candidate, language)
   const pipeline = getLocalizedScoutPipelineMeta(candidate.pipelineStatus, language)
   const unlockSource = getLocalizedScoutUnlockSourceMeta(candidate.unlockType, language)
-  const skillExcerpt = getScoutSkillTags(candidate).join(' · ')
+  const exp = formatScoutExperienceSeniorityLocalized(candidate.experienceYears, language)
+  const salary = formatScoutDesiredSalary(candidate)
+  const jlpt = formatScoutLanguageSummaryLocalized(candidate, language)
+  const { visible: skillTags, extra: skillExtra, title: skillTitle } = getScoutListSkillChips(candidate, 5)
+  const positionLine = [position, !isScoutEmptyDisplayValue(exp) ? exp : ''].filter(Boolean).join(' · ')
 
   return (
     <>
-      <p className="scout-cand-title truncate text-slate-900">{hl(getLocalizedScoutDisplayName(candidate, language))}</p>
-      {position ? <p className="scout-cand-subtitle mt-0.5 truncate text-slate-600">{hl(position)}</p> : null}
+      <p className="scout-cand-title truncate pr-24 text-slate-900">{hl(getLocalizedScoutDisplayName(candidate, language))}</p>
+      {positionLine ? (
+        <p className="scout-cand-subtitle mt-0.5 truncate text-slate-600">{hl(positionLine)}</p>
+      ) : null}
       {candidate.nominationJobTitle ? (
-        <p className="scout-cand-caption mt-1 truncate text-slate-500">
+        <p className="scout-cand-caption mt-0.5 truncate text-slate-500">
           {listCopy?.nominatedToJob || 'Tiến cử vào JD'}: {hl(candidate.nominationJobTitle)}
         </p>
       ) : null}
-      <div className="mt-1.5 flex flex-wrap gap-1">
-        <ScoutMetaChip>{formatScoutListLocation(candidate)}</ScoutMetaChip>
-        <ScoutMetaChip>{formatScoutExperienceSeniorityLocalized(candidate.experienceYears, language)}</ScoutMetaChip>
-        <ScoutMetaChip>{formatScoutDesiredSalary(candidate)}</ScoutMetaChip>
-        <ScoutMetaChip>{formatScoutLanguageSummaryLocalized(candidate, language)}</ScoutMetaChip>
+      <div className="mt-1 flex flex-wrap gap-1">
+        <ScoutMetaChip>{jlpt}</ScoutMetaChip>
+        <ScoutMetaChip>{salary}</ScoutMetaChip>
       </div>
-      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+      {skillTags.length > 0 ? (
+        <div className="mt-1 flex flex-wrap items-center gap-1" title={skillTitle}>
+          {skillTags.map((sk) => (
+            <span key={sk} className="scout-cand-caption max-w-[8rem] truncate rounded border border-slate-200/80 bg-white px-1.5 py-px text-slate-600">
+              {hl(sk)}
+            </span>
+          ))}
+          {skillExtra > 0 ? (
+            <span className="scout-cand-caption font-semibold text-slate-500">+{skillExtra}</span>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="mt-1 flex flex-wrap items-center gap-1.5">
         <span
-          className="scout-cand-caption rounded-full px-2 py-0.5 font-semibold"
-          style={{ color: unlockSource.color, background: `${unlockSource.color}18` }}
+          className="scout-cand-caption rounded-full px-2 py-0.5 font-semibold ring-1 ring-inset ring-black/5"
+          style={{ color: unlockSource.color, background: unlockSource.bg || `${unlockSource.color}14` }}
         >
           {unlockSource.label}
         </span>
         <span
-          className="scout-cand-caption rounded-full px-2 py-0.5 font-semibold"
+          className="scout-cand-caption rounded-full px-2 py-0.5 font-semibold ring-1 ring-inset ring-black/5"
           style={{ color: pipeline.color, background: pipeline.bg }}
         >
           {pipeline.label}
         </span>
-        <span className="scout-cand-caption text-slate-400">{formatCandidateListDate(candidate.unlockedAt, language)}</span>
+        {candidate.unlockedAt ? (
+          <span className="scout-cand-caption text-slate-400">{formatCandidateListDate(candidate.unlockedAt, language)}</span>
+        ) : null}
       </div>
-      {skillExcerpt ? (
-        <p className="scout-cand-meta mt-1.5 line-clamp-1 text-slate-500" title={skillExcerpt}>{hl(skillExcerpt)}</p>
-      ) : null}
     </>
   )
 }
 
-function UnlockedCandidateListItem({ candidate, highlightQuery, onOpenDetail, hl, language, listCopy }) {
+function UnlockedCandidateListItem({ candidate, onOpenDetail, hl, language, listCopy }) {
   const tipCandidate = { ...candidate, isUnlocked: true }
+  const matchScore = resolveCandidateMatchScore(candidate)
   return (
     <div className="group relative">
       <button
         type="button"
         onClick={() => onOpenDetail(candidate.id)}
-        className="candidates-list-item flex w-full items-start gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-left transition hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-sm lg:gap-2.5 lg:px-3 lg:py-2.5"
+        className="candidates-list-item relative flex w-full items-start gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-left transition hover:border-slate-300 hover:bg-slate-50/80 lg:gap-2 lg:px-2.5 lg:py-2"
       >
-        <AvatarCircle candidate={candidate} size={44} language={language} className="candidates-list-avatar" />
+        <AvatarCircle candidate={candidate} size={40} language={language} className="candidates-list-avatar" />
         <div className="min-w-0 flex-1">
           <UnlockedCandidateRowBody candidate={candidate} hl={hl} language={language} listCopy={listCopy} />
         </div>
+        <div className="pointer-events-none absolute right-2 top-2 z-[1] max-w-[42%]">
+          <CandidateListMatchCorner score={matchScore} language={language} />
+        </div>
       </button>
-      <ScoutCandidateHoverTip candidate={tipCandidate} hl={hl} language={language} />
+      <ScoutCandidateHoverTip candidate={tipCandidate} hl={hl} matchScore={matchScore} language={language} />
+    </div>
+  )
+}
+
+function CandidateFilterChips({ chips }) {
+  if (!chips?.length) return null
+  return (
+    <div className="flex flex-wrap gap-1 border-t border-slate-100 bg-slate-50/60 px-2 py-1.5">
+      {chips.map((chip) => (
+        <button
+          key={chip.id}
+          type="button"
+          onClick={chip.onRemove}
+          className="inline-flex max-w-full items-center gap-1 rounded-full border border-slate-200 bg-white py-0.5 pl-2 pr-1 text-[10px] font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+          title="Bỏ điều kiện"
+        >
+          <span className="truncate">{chip.label}</span>
+          <X className="h-3 w-3 shrink-0 text-slate-400" aria-hidden />
+        </button>
+      ))}
     </div>
   )
 }
@@ -269,6 +312,7 @@ function UnlockedCandidateFilterPanel({
   copy,
   language,
   unlockSourceOptions,
+  filterChips,
 }) {
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [showJobCategoryModal, setShowJobCategoryModal] = useState(false)
@@ -285,34 +329,40 @@ function UnlockedCandidateFilterPanel({
     </FilterBlock>
   )
 
+  const listCopy = copy.candidates.list
   return (
-    <section className="scout-workspace-filters shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <section className="candidates-filter-sticky scout-workspace-filters shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
       <div className="candidates-filter-head flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-2.5 py-2">
-        <h2 className="text-[11px] font-bold text-gray-900 lg:text-xs">{copy.candidates.list.filtersTitle}</h2>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h2 className="text-[11px] font-bold text-gray-900 lg:text-xs">{listCopy.filtersTitle}</h2>
+          {!listLoading ? (
+            <span className="text-[10px] font-semibold text-slate-500">
+              {listCopy.resultCount(formatCandidateNumber(displayCount || 0, language))}
+            </span>
+          ) : null}
+        </div>
         <div className="flex items-center gap-1.5">
           {hasActiveFilters ? (
             <button type="button" onClick={onClear} className="text-[9px] font-semibold text-[#0077B6] hover:underline">
-              {copy.candidates.list.clearConditions}
+              {listCopy.clearConditions}
             </button>
           ) : null}
           <button
             type="button"
             onClick={onApply}
             disabled={listLoading}
-            className="inline-flex h-6 items-center justify-center gap-1 rounded px-2 shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 lg:h-7 lg:px-2.5"
-            style={{ backgroundColor: '#facc15' }}
+            className="inline-flex h-6 items-center justify-center gap-1 rounded bg-[#facc15] px-2.5 shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 lg:h-7"
           >
             {listLoading ? (
               <RotateCw className="h-3 w-3 animate-spin text-gray-800" />
             ) : (
               <Search className="h-3 w-3 text-gray-800" />
             )}
-            <span className="text-[9px] font-semibold text-gray-800">
-              {copy.candidates.list.searchCount(formatCandidateNumber(displayCount || 0, language))}
-            </span>
+            <span className="text-[9px] font-semibold text-gray-800">{listCopy.searchButton}</span>
           </button>
         </div>
       </div>
+      <CandidateFilterChips chips={filterChips} />
       <div className="candidates-filter-scroll scout-scrollbar custom-scrollbar max-h-[38vh] overflow-y-auto p-2 lg:max-h-[42vh] lg:p-3 2xl:max-h-none">
         <ScoutCandidateFilterFields
           leadingBlock={leadingBlock}
@@ -624,6 +674,105 @@ const Candidate = () => {
 
   const hl = useCallback((text) => highlightSearchText(text, highlightQuery), [highlightQuery])
 
+  const filterChips = useMemo(() => {
+    const chips = []
+    const fc = getScoutFilterCopy(language)
+    const list = copy.candidates.list
+    const visaOptions = getScoutVisaFilterOptions(language)
+
+    if (listFilter !== LIST_FILTER_ALL) {
+      const sourceLabel = unlockSourceOptions.find((o) => o.value === listFilter)?.label || listFilter
+      chips.push({
+        id: 'source',
+        label: `${list.unlockSourceLabel}: ${sourceLabel}`,
+        onRemove: () => handleListFilterChange(LIST_FILTER_ALL),
+      })
+    }
+
+    const q = searchQuery.trim()
+    if (q) {
+      chips.push({
+        id: 'search',
+        label: `${fc.keyword}: "${q}"`,
+        onRemove: () => {
+          setSearchInput('')
+          setSearchQuery('')
+          setPage(1)
+        },
+      })
+    }
+
+    if (Array.isArray(scoutFilters.locations) && scoutFilters.locations.length > 0) {
+      chips.push({
+        id: 'locations',
+        label: `${fc.location}: ${getWorkLocationsDisplayText(scoutFilters.locations, language)}`,
+        onRemove: () => setScoutFilters((prev) => ({ ...prev, locations: [] })),
+      })
+    }
+
+    if (scoutFilters.jobCategoryId) {
+      chips.push({
+        id: 'jobCategory',
+        label: `${fc.jobCategory}: ${scoutFilters.jobCategoryLabel || scoutFilters.jobCategoryId}`,
+        onRemove: () => setScoutFilters((prev) => ({ ...prev, jobCategoryId: '', jobCategoryLabel: '' })),
+      })
+    }
+
+    if (scoutFilters.experience) {
+      const opt = EXPERIENCE_YEARS_OPTIONS.find((o) => o.value === scoutFilters.experience)
+      chips.push({
+        id: 'experience',
+        label: `${fc.experience}: ${getLocalizedOptionLabel(opt, language)}`,
+        onRemove: () => setScoutFilters((prev) => ({ ...prev, experience: '' })),
+      })
+    }
+
+    if (scoutFilters.japaneseLevel) {
+      const opt = JAPANESE_LEVEL_FILTER_OPTIONS.find((o) => o.value === scoutFilters.japaneseLevel)
+      chips.push({
+        id: 'japaneseLevel',
+        label: `${fc.japaneseLevel}: ${getLocalizedOptionLabel(opt, language)}`,
+        onRemove: () => setScoutFilters((prev) => ({ ...prev, japaneseLevel: '' })),
+      })
+    }
+
+    if (scoutFilters.visa) {
+      const opt = visaOptions.find((o) => o.value === scoutFilters.visa)
+      chips.push({
+        id: 'visa',
+        label: `${fc.visa}: ${opt?.label || scoutFilters.visa}`,
+        onRemove: () => setScoutFilters((prev) => ({ ...prev, visa: '' })),
+      })
+    }
+
+    const min = scoutFilters.salaryMin
+    const max = scoutFilters.salaryMax
+    if (min !== '' && min != null) {
+      chips.push({
+        id: 'salaryMin',
+        label: `${fc.salaryFrom}: ${min}`,
+        onRemove: () => setScoutFilters((prev) => ({ ...prev, salaryMin: '' })),
+      })
+    }
+    if (max !== '' && max != null) {
+      chips.push({
+        id: 'salaryMax',
+        label: `${fc.salaryTo}: ${max}`,
+        onRemove: () => setScoutFilters((prev) => ({ ...prev, salaryMax: '' })),
+      })
+    }
+
+    return chips
+  }, [
+    listFilter,
+    searchQuery,
+    scoutFilters,
+    language,
+    unlockSourceOptions,
+    copy.candidates.list,
+    handleListFilterChange,
+  ])
+
   return (
     <>
       <style>{candidatePageStyles}</style>
@@ -655,6 +804,7 @@ const Candidate = () => {
                   copy={copy}
                   language={language}
                   unlockSourceOptions={unlockSourceOptions}
+                  filterChips={filterChips}
                 />
                 <CandidateListPanel
                   candidates={listForRender}
@@ -670,12 +820,12 @@ const Candidate = () => {
                   language={language}
                 />
               </div>
-              <div className="candidates-workspace-aside candidate-scrollbar min-h-0 overflow-y-auto business-homepage-scroll">
-                <HomepageSidebar onNavigate={navigate} />
-              </div>
             </div>
           )}
         </div>
+        {!showGlobalEmpty ? (
+          <BusinessFloatingQuickActions onNavigate={navigate} placement="fixed" />
+        ) : null}
       </div>
     </>
   )

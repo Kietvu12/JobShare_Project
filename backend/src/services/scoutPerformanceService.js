@@ -345,7 +345,8 @@ export async function createScoutPerformanceRequest({
         businessId,
         cvId,
         jobId: Number(jobId),
-        note: 'Tạo từ Scout Ủy Thác — hearing JD',
+        note: 'Tạo từ Scout Ủy Thác — chờ hợp đồng & WS hearing',
+        initialStatus: 2,
       });
     } catch (attachErr) {
       console.error('[ScoutPerformance] attach job after hearing failed:', attachErr?.message || attachErr);

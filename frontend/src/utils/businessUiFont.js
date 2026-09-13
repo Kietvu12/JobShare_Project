@@ -35,12 +35,21 @@ export const BUSINESS_UI_TYPOGRAPHY_STYLES = `
     .business-app-ui,
     .business-sidebar-ui {
       --biz-fs-title: 1.25rem;
-      --biz-fs-section: 0.875rem;
-      --biz-fs-body: 0.875rem;
-      --biz-fs-caption: 0.8125rem;
-      --biz-fs-micro: 0.75rem;
-      --biz-fs-nav: 0.875rem;
+      --biz-fs-section: 0.9375rem;
+      --biz-fs-body: 0.9375rem;
+      --biz-fs-caption: 0.875rem;
+      --biz-fs-micro: 0.8125rem;
+      --biz-fs-nav: 0.9375rem;
       --biz-fs-stat: 1.125rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .business-app-ui,
+    .business-sidebar-ui {
+      --biz-fs-section: 0.9375rem;
+      --biz-fs-body: 0.9375rem;
+      --biz-fs-caption: 0.875rem;
+      --biz-fs-nav: 0.9375rem;
     }
   }
 

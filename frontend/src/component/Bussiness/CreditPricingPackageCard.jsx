@@ -14,12 +14,32 @@ export default function CreditPricingPackageCard({
   submitCopy,
   priceLocale = 'vi-VN',
   compact = false,
+  interactive = false,
 }) {
   const isSubmitting = submitting && submittingKey === pkg.key;
 
+  const handleCardClick = () => {
+    if (submitting) return
+    onChoose(pkg.key)
+  }
+
+  const handleKeyDown = (e) => {
+    if (!interactive) return
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      handleCardClick()
+    }
+  }
+
   return (
     <article
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onClick={interactive ? handleCardClick : undefined}
+      onKeyDown={interactive ? handleKeyDown : undefined}
       className={`credit-pricing-card relative flex min-w-0 flex-col rounded-2xl ${
+        interactive ? 'credit-pricing-card-interactive' : ''
+      } ${selected ? 'credit-pricing-card-selected' : ''} ${
         compact ? 'p-3.5 sm:p-4' : 'p-4 sm:p-5 2xl:p-7'
       } ${
         featured
@@ -93,9 +113,16 @@ export default function CreditPricingPackageCard({
         ))}
       </ul>
 
+      <p className={`credit-pricing-hover-hint biz-ui-micro text-center font-semibold ${featured ? 'text-white/90' : 'text-[#0077B6]'}`}>
+        {modalCopy.choosePlan}
+      </p>
+
       <button
         type="button"
-        onClick={() => onChoose(pkg.key)}
+        onClick={(e) => {
+          e.stopPropagation()
+          onChoose(pkg.key)
+        }}
         disabled={submitting}
         className={`credit-pricing-cta biz-ui-body w-full rounded-xl font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
           compact ? 'mt-4 py-2 sm:py-2.5' : 'mt-5 py-2.5 sm:py-3 2xl:mt-8'

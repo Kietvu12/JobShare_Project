@@ -50,6 +50,8 @@ const LABELS = {
     companyName: 'Tên công ty',
     jobTitle: 'Tiêu đề việc làm',
     jobCode: 'Mã tin tuyển dụng',
+    jobCodeAutoPlaceholder: 'Hệ thống tự sinh khi lưu',
+    selectPlaceholder: 'Chọn...',
     recruitmentForm: 'Hình thức tuyển dụng',
     residenceStatus: 'Tư cách lưu trú',
     field: 'Lĩnh vực',
@@ -115,6 +117,8 @@ const LABELS = {
     companyName: 'Company name',
     jobTitle: 'Job title',
     jobCode: 'Job code',
+    jobCodeAutoPlaceholder: 'Auto-generated on save',
+    selectPlaceholder: 'Select...',
     recruitmentForm: 'Recruitment type',
     residenceStatus: 'Residence status',
     field: 'Field',
@@ -179,6 +183,8 @@ const LABELS = {
     companyName: '会社名',
     jobTitle: '求人タイトル',
     jobCode: '求人コード',
+    jobCodeAutoPlaceholder: '保存時に自動生成',
+    selectPlaceholder: '選択...',
     recruitmentForm: '雇用形態',
     residenceStatus: '在留資格',
     field: '分野',
@@ -680,6 +686,17 @@ export default function JdTemplate({
     .filter(Boolean)
     .join('\n');
 
+  const requiredFieldKeys = new Set(['companyName', 'title', 'jobTypeDisplay']);
+  const renderRowLabel = (lbl, key) => (
+    <>
+      {lbl}
+      {businessBranding && requiredFieldKeys.has(key) ? (
+        <span className="text-rose-400" aria-hidden> *</span>
+      ) : null}
+    </>
+  );
+  const emptySelectLabel = businessBranding ? L.selectPlaceholder : '—';
+
   const rows = [
     [L.companyName, recruitingCompany.companyName, 'companyName'],
     [L.jobTitle, formData[getFormKey('title')], 'title'],
@@ -815,7 +832,7 @@ export default function JdTemplate({
           <React.Fragment key={i}>
             <div className="flex" style={{ minHeight: '32px' }}>
               <div className="flex-shrink-0 w-36 px-3 py-2 flex items-center text-xs font-medium text-white" style={{ backgroundColor: JD_LABEL_BG }}>
-                {lbl}
+                {renderRowLabel(lbl, key)}
               </div>
               <div className="flex-1 px-3 py-2 flex items-center text-xs border-l" style={{ color: '#111827', borderColor: JD_BORDER_COLOR, backgroundColor: 'white' }}>
                 {lbl === L.companyName ? (
@@ -823,7 +840,17 @@ export default function JdTemplate({
                 ) : lbl === L.jobTitle ? (
                   <span key="job-title" {...jdEditable('title')} />
                 ) : lbl === L.jobCode ? (
-                  <span key="job-code" {...jdEditable('jobCode')} />
+                  businessBranding ? (
+                    <span
+                      key="job-code"
+                      className="block w-full cursor-not-allowed rounded-md border border-dashed border-slate-200 bg-slate-50 px-2 py-1 text-slate-500"
+                      title={L.jobCodeAutoPlaceholder}
+                    >
+                      {String(formData.jobCode || '').trim() || L.jobCodeAutoPlaceholder}
+                    </span>
+                  ) : (
+                    <span key="job-code" {...jdEditable('jobCode')} />
+                  )
                 ) : lbl === L.field ? (
                   <select
                     className={selectClassName}
@@ -833,7 +860,7 @@ export default function JdTemplate({
                       setFormData((prev) => ({ ...prev, businessSectorKey: e.target.value }));
                     }}
                   >
-                    <option value="">—</option>
+                    <option value="">{emptySelectLabel}</option>
                     {BUSINESS_SECTOR_OPTIONS.map((opt) => (
                       <option key={opt.key || opt.vi} value={opt.key || opt.vi}>
                         {lang === 'en' ? opt.en : lang === 'jp' ? opt.ja : opt.vi}
@@ -845,7 +872,7 @@ export default function JdTemplate({
                     className={selectClassName}
                     typography={optionTypo}
                     label={categoryName || ''}
-                    placeholder="—"
+                    placeholder={emptySelectLabel}
                     onClick={() => setJobTypeModalOpen(true)}
                   />
                 ) : lbl === L.expYears ? (
@@ -855,7 +882,7 @@ export default function JdTemplate({
                     value={expYearsVal || ''}
                     onChange={(e) => setExperienceYearsValue(e.target.value)}
                   >
-                    <option value="">—</option>
+                    <option value="">{emptySelectLabel}</option>
                     {expYearOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
@@ -872,7 +899,7 @@ export default function JdTemplate({
                     value={getStoredNumberOfHires()}
                     onChange={(e) => setNumberOfHiresCanonical(e.target.value)}
                   >
-                    <option value="">—</option>
+                    <option value="">{emptySelectLabel}</option>
                     {NUMBER_OF_HIRES_OPTION_VALUES.map((v) => (
                       <option key={v} value={v}>
                         {getNumberOfHiresDisplayLabel(v, lang)}
@@ -912,7 +939,7 @@ export default function JdTemplate({
                       }));
                     }}
                   >
-                    <option value="">—</option>
+                    <option value="">{emptySelectLabel}</option>
                     {[1, 2, 3, 4, 5].map((n) => (
                       <option key={n} value={String(n)}>
                         {recruitmentTypeMap[n]}

@@ -35,6 +35,10 @@ import {
   isHtmlBuilderContent,
   mergeHtmlTemplateContent,
 } from '../../utils/companyLandingPageSchema';
+import { scanLandingPagePublishReadiness } from '../../utils/landingPagePublishReadiness';
+import LandingPagePublishWarningModal from '../../component/BusinessBranding/LandingPagePublishWarningModal';
+import { useLanguage } from '../../context/LanguageContext';
+import { getBrandingCopy } from '../../i18n/businessAppI18n';
 
 const STATUS_COLORS = {
   0: { label: 'Nháp', color: '#64748b', bg: '#f1f5f9' },
@@ -215,6 +219,9 @@ function SectionPropsEditor({ section, onChange, pages, allSections }) {
 
 export default function BusinessLandingPageBuilder() {
   const { pageId } = useParams();
+  const { language } = useLanguage();
+  const brandingCopy = useMemo(() => getBrandingCopy(language), [language]);
+  const publishReadinessCopy = brandingCopy.publishReadiness;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -235,6 +242,7 @@ export default function BusinessLandingPageBuilder() {
   const [scrollToSectionId, setScrollToSectionId] = useState(null);
   const [dragSectionId, setDragSectionId] = useState(null);
   const [mediaUploading, setMediaUploading] = useState(false);
+  const [publishWarningOpen, setPublishWarningOpen] = useState(false);
 
   const loadPage = useCallback(async () => {
     try {
@@ -313,6 +321,13 @@ export default function BusinessLandingPageBuilder() {
     if (!page || !content) return null;
     return { ...page, content };
   }, [page, content]);
+
+  const publishScan = useMemo(
+    () => scanLandingPagePublishReadiness(content, { pageTitle: title }),
+    [content, title],
+  );
+  const incompleteSectionIds = publishScan.sectionIds;
+  const headerNeedsReview = publishScan.issues.some((i) => i.type === 'sampleCompany' && !i.sectionId);
 
   const templateRegistry = htmlMode ? getTemplatePageRegistry(templateKey) : null;
   const htmlGlobals = useMemo(() => ({
@@ -706,14 +721,14 @@ export default function BusinessLandingPageBuilder() {
     }
   };
 
-  const handlePublish = async () => {
-    if (!window.confirm('Phát hành trang giới thiệu? Link public sẽ có thể truy cập.')) return;
+  const runPublish = async () => {
     setPublishing(true);
     try {
       await apiService.updateBusinessLandingPage(pageId, { title, content, ...seoPayload });
       const res = await apiService.publishBusinessLandingPage(pageId);
       if (res?.success) {
         setPage(res.data.landingPage);
+        setPublishWarningOpen(false);
         alert('Đã phát hành!');
       } else {
         alert(res?.message || 'Publish thất bại');
@@ -724,6 +739,16 @@ export default function BusinessLandingPageBuilder() {
     } finally {
       setPublishing(false);
     }
+  };
+
+  const handlePublish = () => {
+    const { issues } = scanLandingPagePublishReadiness(content, { pageTitle: title });
+    if (issues.length > 0) {
+      setPublishWarningOpen(true);
+      return;
+    }
+    if (!window.confirm('Phát hành trang giới thiệu? Link public sẽ có thể truy cập.')) return;
+    runPublish();
   };
 
   if (loading) {
@@ -800,6 +825,12 @@ export default function BusinessLandingPageBuilder() {
         </div>
       )}
 
+      {publishScan.issues.length > 0 && (
+        <div className="shrink-0 border-b border-amber-100 bg-amber-50/90 px-4 py-1.5 text-[10px] text-amber-900">
+          {publishReadinessCopy.editorBanner(publishScan.issues.length)}
+        </div>
+      )}
+
       <div className="flex-1 flex min-h-0">
         {/* Left: pages + sections */}
         <aside className="w-56 shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden">
@@ -849,7 +880,7 @@ export default function BusinessLandingPageBuilder() {
 
             {htmlMode && (
               <div
-                className={`flex items-center gap-1 mb-1 rounded-lg border ${isHeaderSelected ? 'border-blue-400 bg-blue-50' : 'border-slate-100'}`}
+                className={`flex items-center gap-1 mb-1 rounded-lg border ${isHeaderSelected ? 'border-blue-400 bg-blue-50' : headerNeedsReview ? 'border-amber-300 bg-amber-50/80' : 'border-slate-100'}`}
               >
                 <button
                   type="button"
@@ -857,6 +888,9 @@ export default function BusinessLandingPageBuilder() {
                   className="flex-1 text-left text-[11px] px-2 py-1.5 truncate"
                 >
                   Logo / Tên công ty
+                  {headerNeedsReview ? (
+                    <span className="ml-1 text-[9px] font-bold text-amber-600">{publishReadinessCopy.sectionFlag}</span>
+                  ) : null}
                 </button>
               </div>
             )}
@@ -870,11 +904,14 @@ export default function BusinessLandingPageBuilder() {
                   onDragStart={htmlMode ? () => setDragSectionId(s.id) : undefined}
                   onDragOver={htmlMode ? (e) => e.preventDefault() : undefined}
                   onDrop={htmlMode ? () => handleSectionDrop(s.id) : undefined}
-                  className={`flex items-center gap-0.5 mb-1 rounded-lg border ${selectedSectionId === s.id ? 'border-blue-400 bg-blue-50' : 'border-slate-100'} ${htmlMode ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                  className={`flex items-center gap-0.5 mb-1 rounded-lg border ${selectedSectionId === s.id ? 'border-blue-400 bg-blue-50' : incompleteSectionIds.has(s.id) ? 'border-amber-300 bg-amber-50/70' : 'border-slate-100'} ${htmlMode ? 'cursor-grab active:cursor-grabbing' : ''}`}
                 >
                   {htmlMode && <GripVertical className="w-3 h-3 text-slate-300 shrink-0 ml-0.5" />}
                   <button type="button" onClick={() => selectSection(s.id, { scroll: true })} className="flex-1 text-left text-[11px] px-1 py-1.5 truncate">
                     {s.label || meta?.label || s.type}
+                    {incompleteSectionIds.has(s.id) ? (
+                      <span className="ml-1 text-[9px] font-bold text-amber-600">{publishReadinessCopy.sectionFlag}</span>
+                    ) : null}
                   </button>
                   <button type="button" onClick={() => moveSection(s.id, -1)} className="p-0.5 text-slate-400 hover:text-slate-600" title="Lên">
                     <ChevronUp className="w-3 h-3" />
@@ -1139,6 +1176,16 @@ export default function BusinessLandingPageBuilder() {
           )}
         </aside>
       </div>
+
+      <LandingPagePublishWarningModal
+        open={publishWarningOpen}
+        issues={publishScan.issues}
+        copy={publishReadinessCopy}
+        publishing={publishing}
+        onClose={() => setPublishWarningOpen(false)}
+        onEdit={() => setPublishWarningOpen(false)}
+        onPublishAnyway={runPublish}
+      />
     </div>
   );
 }

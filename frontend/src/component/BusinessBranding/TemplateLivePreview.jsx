@@ -7,7 +7,7 @@ import CompanyLandingRenderer from '../../page/LandingPage/CompanyLandingRendere
 /**
  * Xem trước live toàn bộ trang chủ template (iframe HTML hoặc React renderer).
  */
-export default function TemplateLivePreview({ templateKey, companyName = '', className = '' }) {
+export default function TemplateLivePreview({ templateKey, companyName = '', className = '', compact = false }) {
   const isHtml = isHtmlTemplate(templateKey);
 
   const previewContent = useMemo(
@@ -44,7 +44,11 @@ export default function TemplateLivePreview({ templateKey, companyName = '', cla
 
   return (
     <div className={`overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}>
-      <div className="max-h-[min(70vh,640px)] overflow-y-auto business-homepage-scroll bg-slate-100">
+      <div
+        className={`overflow-y-auto business-homepage-scroll bg-slate-100 ${
+          compact ? 'max-h-[min(42vh,400px)]' : 'max-h-[min(70vh,640px)]'
+        }`}
+      >
         {isHtml ? (
           <HtmlTemplatePageViewer
             templateKey={templateKey}

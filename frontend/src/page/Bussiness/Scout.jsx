@@ -27,6 +27,7 @@ import {
   getScoutSolutionCard,
   getScoutFilterCopy,
   formatScoutExperienceSeniorityLocalized,
+  formatScoutLanguageSummaryLocalized,
   getLocalizedScoutDisplayName,
   getScoutWorkspaceCopy,
   getScoutCompareTableRows,
@@ -36,7 +37,7 @@ import {
   getDateLocale,
 } from '../../i18n/businessAppI18n'
 import { getLocalizedJobTitle } from '../../i18n/businessApp/jdBuilder'
-import { HomepageSidebar } from './Homepage'
+import BusinessFloatingQuickActions from '../../component/Bussiness/BusinessFloatingQuickActions'
 import {
   buildScoreMapFromMatches,
   fetchAllBusinessScoutCandidates,
@@ -51,9 +52,14 @@ import ScoutInsufficientCreditModal from '../../component/Bussiness/ScoutInsuffi
 import creditIllustration from '../../assets/scout_credit_vi.png'
 import performanceIllustration from '../../assets/scout_per_vi.png'
 import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont'
-import { getScoutSkillTags, formatScoutDesiredSalary, formatScoutListLocation, isScoutEmptyDisplayValue, getScoutListSkillExcerpt } from '../../utils/scoutCandidateDisplay'
+import {
+  formatScoutDesiredSalary,
+  formatScoutListLocation,
+  isScoutEmptyDisplayValue,
+  getScoutListSkillChips,
+} from '../../utils/scoutCandidateDisplay'
 import { getLocalizedCandidateRole } from '../../utils/jobCategoryDisplay'
-import ScoutMatchBadge from '../../component/Bussiness/ScoutMatchBadge'
+import ScoutMatchBadge, { CandidateListMatchCorner } from '../../component/Bussiness/ScoutMatchBadge'
 
 const ICON_SM = { width: 10, height: 10 }
 const ICON_MD = { width: 12, height: 12 }
@@ -257,7 +263,7 @@ const scoutPageStyles = `
   }
   @media (min-width: 1280px) {
     .scout-workspace-body {
-      grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+      grid-template-columns: minmax(0, 1fr);
     }
   }
   .scout-workspace-content {
@@ -320,7 +326,7 @@ const SCOUT_CARD_ICONS = {
   performance: UserPlus,
 }
 
-function ScoutSolutionCard({ card, onStart, animationDelay = 0, scoutCopy }) {
+function ScoutSolutionCard({ card, onStart, animationDelay = 0, scoutCopy, hidePrimaryCta = false }) {
   const surface = CARD_SURFACE[card.variant] || CARD_SURFACE.neutral
   const DecoIcon = SCOUT_CARD_ICONS[card.mode] || Coins
   const bodyClass = 'text-slate-600'
@@ -371,16 +377,18 @@ function ScoutSolutionCard({ card, onStart, animationDelay = 0, scoutCopy }) {
             ))}
           </ul>
 
-          <div className="mt-3 shrink-0 border-t border-slate-200/80 pt-3 lg:mt-auto">
-            <button
-              type="button"
-              onClick={() => onStart(card.mode)}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] py-2.5 text-xs font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:text-sm"
-            >
-              {scoutCopy.startWith(card.title)}
-              <ArrowRight className="h-4 w-4 shrink-0" />
-            </button>
-          </div>
+          {!hidePrimaryCta ? (
+            <div className="mt-3 shrink-0 border-t border-slate-200/80 pt-3 lg:mt-auto">
+              <button
+                type="button"
+                onClick={() => onStart(card.mode)}
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] py-2.5 text-xs font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:text-sm"
+              >
+                {scoutCopy.startWith(card.title)}
+                <ArrowRight className="h-4 w-4 shrink-0" />
+              </button>
+            </div>
+          ) : null}
         </div>
       </article>
     </div>
@@ -399,6 +407,37 @@ function getPreviewCandidateScore(candidate) {
 
 function rankPreviewCandidates(candidates) {
   return [...candidates].sort((a, b) => getPreviewCandidateScore(b) - getPreviewCandidateScore(a))
+}
+
+function jlptSortKey(candidate) {
+  const raw = String(candidate?.jlptLevel || candidate?.japaneseLevel || '').toUpperCase()
+  const m = raw.match(/N(\d)/)
+  return m ? Number(m[1]) : 99
+}
+
+function sortScoutCandidateList(list, sortBy, scoreByCvId, selectedJobId) {
+  const copy = [...list]
+  if (sortBy === 'experience') {
+    return copy.sort((a, b) => (Number(b.experienceYears) || 0) - (Number(a.experienceYears) || 0))
+  }
+  if (sortBy === 'jlpt') {
+    return copy.sort((a, b) => jlptSortKey(a) - jlptSortKey(b))
+  }
+  if (sortBy === 'newest') {
+    return copy.sort(
+      (a, b) => new Date(b.scoutListedAt || b.createdAt || 0).getTime()
+        - new Date(a.scoutListedAt || a.createdAt || 0).getTime(),
+    )
+  }
+  if (selectedJobId) {
+    return copy.sort(
+      (a, b) => (scoreByCvId[String(b.id)] || 0) - (scoreByCvId[String(a.id)] || 0),
+    )
+  }
+  return copy.sort(
+    (a, b) => new Date(b.scoutListedAt || b.createdAt || 0).getTime()
+      - new Date(a.scoutListedAt || a.createdAt || 0).getTime(),
+  )
 }
 
 function ScoutMetaChip({ label, children }) {
@@ -428,61 +467,59 @@ function ScoutLabeledRow({ label, children, className = '' }) {
 
 function ScoutCandidateRowBody({
   candidate,
-  matchScore,
   hl = (text) => text,
   showNew = false,
 }) {
   const { language } = useLanguage()
   const copy = useBusinessAppCopy()
-  const chipLabels = copy.scout.chips
-  const listCardLabels = copy.scout.listCard
   const newBadgeLabel = copy.scout.newBadge
   const position = getLocalizedCandidateRole(candidate, language)
   const exp = formatScoutExperienceSeniorityLocalized(candidate.experienceYears, language)
   const salary = formatScoutDesiredSalary(candidate)
   const location = formatScoutListLocation(candidate)
-  const skillExcerpt = getScoutListSkillExcerpt(candidate)
-  const chips = [
-    { label: chipLabels.experience, value: exp },
-    { label: chipLabels.location, value: location },
-    { label: chipLabels.salary, value: salary },
-  ].filter((chip) => !isScoutEmptyDisplayValue(chip.value))
+  const jlpt = formatScoutLanguageSummaryLocalized(candidate, language)
+  const { visible: skillTags, extra: skillExtra, title: skillTitle } = getScoutListSkillChips(candidate, 6)
+  const headline = !candidate?.isUnlocked && !isScoutEmptyDisplayValue(position)
+    ? position
+    : getLocalizedScoutDisplayName(candidate, language)
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="scout-cand-title truncate text-slate-900">
-          {hl(getLocalizedScoutDisplayName(candidate, language))}
+      <div className="flex flex-wrap items-center gap-2 pr-28">
+        <p className="scout-cand-title min-w-0 truncate text-slate-900">
+          {hl(headline)}
         </p>
         {showNew ? (
-          <span className="scout-cand-caption rounded-full bg-emerald-100 px-2 py-0.5 font-bold text-emerald-700">
+          <span className="scout-cand-caption shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-bold text-emerald-800">
             {newBadgeLabel}
           </span>
         ) : null}
       </div>
-      {position ? (
-        <ScoutLabeledRow label={listCardLabels.position} className="mt-1.5">
-          <p className="scout-cand-subtitle truncate text-slate-700">{hl(position)}</p>
-        </ScoutLabeledRow>
-      ) : null}
-      {Number.isFinite(Number(matchScore)) ? (
-        <ScoutLabeledRow label={listCardLabels.match} className="mt-1.5">
-          <ScoutMatchBadge score={matchScore} language={language} className="scout-cand-meta !px-2 !py-0.5" iconClassName="scout-cand-icon" />
-        </ScoutLabeledRow>
-      ) : null}
-      {chips.length > 0 ? (
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {chips.map((chip) => (
-            <ScoutMetaChip key={chip.label} label={chip.label}>{chip.value}</ScoutMetaChip>
+      <div className="mt-1 flex flex-wrap gap-1">
+        {!isScoutEmptyDisplayValue(exp) ? (
+          <ScoutMetaChip label="KN">{exp}</ScoutMetaChip>
+        ) : null}
+        {!isScoutEmptyDisplayValue(jlpt) ? (
+          <ScoutMetaChip label="JLPT">{jlpt}</ScoutMetaChip>
+        ) : null}
+        {!isScoutEmptyDisplayValue(location) ? (
+          <ScoutMetaChip label="">{location}</ScoutMetaChip>
+        ) : null}
+        {!isScoutEmptyDisplayValue(salary) ? (
+          <ScoutMetaChip label="">{salary}</ScoutMetaChip>
+        ) : null}
+      </div>
+      {skillTags.length > 0 ? (
+        <div className="mt-1 flex flex-wrap items-center gap-1" title={skillTitle}>
+          {skillTags.map((sk) => (
+            <span key={sk} className="scout-cand-caption max-w-[8rem] truncate rounded border border-slate-200/80 bg-white px-1.5 py-px text-slate-600">
+              {hl(sk)}
+            </span>
           ))}
+          {skillExtra > 0 ? (
+            <span className="scout-cand-caption font-semibold text-slate-500">+{skillExtra}</span>
+          ) : null}
         </div>
-      ) : null}
-      {skillExcerpt ? (
-        <ScoutLabeledRow label={listCardLabels.skills} className="mt-1.5">
-          <p className="scout-cand-caption line-clamp-2 text-slate-700" title={skillExcerpt}>
-            {hl(skillExcerpt)}
-          </p>
-        </ScoutLabeledRow>
       ) : null}
     </>
   )
@@ -490,11 +527,15 @@ function ScoutCandidateRowBody({
 
 function ScoutPreviewCandidateRow({ candidate, matchScore, scoutCreditCost, onExplore, language = 'vi' }) {
   const ws = getScoutWorkspaceCopy(language)
+  const cornerScore = Number.isFinite(Number(matchScore)) ? Number(matchScore) : null
   return (
-    <div className="group flex gap-3 px-3 py-3 transition-colors hover:bg-slate-50/80 sm:gap-3.5 sm:px-4 sm:py-3.5">
+    <div className="group relative flex gap-3 px-3 py-3 transition-colors hover:bg-slate-50/80 sm:gap-3.5 sm:px-4 sm:py-3.5">
       <AvatarCircle candidate={candidate} size={40} language={language} />
       <div className="min-w-0 flex-1">
-        <ScoutCandidateRowBody candidate={candidate} matchScore={matchScore} />
+        <ScoutCandidateRowBody candidate={candidate} />
+      </div>
+      <div className="absolute right-3 top-3 z-[1] max-w-[42%] sm:right-4">
+        <CandidateListMatchCorner score={cornerScore} language={language} />
       </div>
       <button
         type="button"
@@ -508,44 +549,127 @@ function ScoutPreviewCandidateRow({ candidate, matchScore, scoutCreditCost, onEx
   )
 }
 
-function ScoutManagedFeeTable() {
+function ScoutManagedFeeTableBody({ compact = false }) {
   const { language } = useLanguage()
-  const ws = getScoutWorkspaceCopy(language)
-  const onboarding = ws.onboarding.managed
+  const onboarding = getScoutWorkspaceCopy(language).onboarding.managed
   const feeTiers = getScoutPerformanceFeeTiers(language)
 
   return (
-    <div className="w-full shrink-0 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
-      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-3 py-3 sm:px-4 sm:py-3.5">
-        <h2 className="text-sm font-bold text-slate-900 sm:text-base">{onboarding.feeTableTitle}</h2>
-        <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-500 sm:text-sm">{onboarding.feeTableNote}</p>
-      </div>
-      <div className="overflow-x-auto px-3 py-2.5 sm:px-4 sm:py-3">
+    <>
+      <div className={`overflow-x-auto ${compact ? 'px-0 py-1' : 'px-3 py-2.5 sm:px-4 sm:py-3'}`}>
         <table className="w-full text-left text-xs sm:text-sm">
           <thead>
             <tr className="border-b border-slate-100 text-slate-500">
-              <th className="py-2.5 pr-3 font-semibold">{onboarding.feeTableLevel}</th>
-              <th className="py-2.5 pr-3 font-semibold">{onboarding.feeTableExperience}</th>
-              <th className="py-2.5 pr-3 font-semibold">{onboarding.feeTableFee}</th>
-              <th className="py-2.5 font-semibold">{onboarding.feeTableNoteCol}</th>
+              <th className="py-2 pr-3 font-semibold">{onboarding.feeTableLevel}</th>
+              <th className="py-2 pr-3 font-semibold">{onboarding.feeTableExperience}</th>
+              <th className="py-2 pr-3 font-semibold">{onboarding.feeTableFee}</th>
+              <th className="py-2 font-semibold">{onboarding.feeTableNoteCol}</th>
             </tr>
           </thead>
           <tbody>
             {feeTiers.map((tier) => (
               <tr key={tier.level} className="border-b border-slate-50 last:border-0">
-                <td className="py-2.5 pr-3 font-semibold text-slate-800">{tier.level}</td>
-                <td className="py-2.5 pr-3 text-slate-600">{tier.range}</td>
-                <td className="py-2.5 pr-3 font-bold text-[#0077B6]">{tier.fee}</td>
-                <td className="py-2.5 text-slate-500">{tier.note}</td>
+                <td className="py-2 pr-3 font-semibold text-slate-800">{tier.level}</td>
+                <td className="py-2 pr-3 text-slate-600">{tier.range}</td>
+                <td className="py-2 pr-3 font-bold text-[#0077B6]">{tier.fee}</td>
+                <td className="py-2 text-slate-500">{tier.note}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div className="border-t border-slate-100 px-3 py-3 sm:px-4">
-        <p className="max-w-3xl text-xs leading-relaxed text-slate-600 sm:text-sm">{onboarding.wsSupportHint}</p>
+      {!compact ? (
+        <p className="border-t border-slate-100 px-3 py-2.5 text-xs leading-relaxed text-slate-600 sm:px-4 sm:text-sm">
+          {onboarding.wsSupportHint}
+        </p>
+      ) : null}
+    </>
+  )
+}
+
+function ScoutManagedIntroBlock({ scoutCard }) {
+  const { language } = useLanguage()
+  const onboarding = getScoutWorkspaceCopy(language).onboarding.managed
+
+  if (!scoutCard) return null
+
+  return (
+    <article className="w-full shrink-0 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
+      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-3 py-3 sm:px-4 sm:py-4">
+        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white text-[11px] font-bold text-slate-800 shadow-sm ring-1 ring-slate-100">
+          {scoutCard.num}
+        </span>
+        <h2 className="mt-2 text-base font-bold text-slate-900 sm:text-lg">{scoutCard.title}</h2>
+        <p className="mt-1 text-xs font-bold text-slate-800 sm:text-sm">{scoutCard.painPoint}</p>
+        <p className="mt-1 text-[11px] leading-snug text-slate-600 sm:text-xs">{scoutCard.solution}</p>
+        <p className="mt-2 inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 sm:text-xs">
+          {onboarding.noCreditLine}
+        </p>
+        <ul className="mt-3 space-y-1.5 text-[11px] leading-snug text-slate-600 sm:text-xs">
+          {scoutCard.features.map((line) => (
+            <li key={line} className="flex gap-2">
+              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0077B6]" strokeWidth={2.5} />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+        {scoutCard.slaLine ? (
+          <p className="mt-2 text-[10px] font-bold text-emerald-700 sm:text-[11px]">{scoutCard.slaLine}</p>
+        ) : null}
       </div>
-    </div>
+
+      <div className="border-b border-slate-100 px-3 py-3 sm:px-4 sm:py-3.5">
+        <h3 className="text-sm font-bold text-slate-900">{onboarding.feeTableTitle}</h3>
+        <p className="mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm">{onboarding.feeTableNote}</p>
+        <div className="mt-2 rounded-lg border border-slate-100 bg-slate-50/50">
+          <ScoutManagedFeeTableBody compact />
+        </div>
+      </div>
+
+      <div className="px-3 py-3 sm:px-4 sm:pb-4">
+        <h3 className="text-sm font-bold text-slate-900">{onboarding.diffVsDirectTitle}</h3>
+        <ul className="mt-2 space-y-1.5 text-xs text-slate-600">
+          {(onboarding.diffVsDirect || []).map((line) => (
+            <li key={line} className="flex gap-2">
+              <span className="text-[#0077B6]">•</span>
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </article>
+  )
+}
+
+function ScoutManagedPreviewRow({ candidate, matchScore, onExplore, language = 'vi' }) {
+  const position = getLocalizedCandidateRole(candidate, language)
+  const exp = formatScoutExperienceSeniorityLocalized(candidate.experienceYears, language)
+  const jlpt = formatScoutLanguageSummaryLocalized(candidate, language)
+  const cornerScore = Number.isFinite(Number(matchScore)) ? Number(matchScore) : null
+
+  return (
+    <button
+      type="button"
+      onClick={onExplore}
+      className="group relative flex w-full gap-3 px-3 py-2.5 text-left transition-colors hover:bg-slate-50/90 sm:px-4 sm:py-3"
+    >
+      <AvatarCircle candidate={candidate} size={36} language={language} />
+      <div className="min-w-0 flex-1 pr-20">
+        {!isScoutEmptyDisplayValue(position) ? (
+          <p className="scout-cand-subtitle truncate font-bold text-slate-800">{position}</p>
+        ) : null}
+        <div className="mt-1 flex flex-wrap gap-1">
+          <CandidateListMatchCorner score={cornerScore} language={language} />
+          {!isScoutEmptyDisplayValue(exp) ? (
+            <ScoutMetaChip label="KN">{exp}</ScoutMetaChip>
+          ) : null}
+          {!isScoutEmptyDisplayValue(jlpt) ? (
+            <ScoutMetaChip label="JLPT">{jlpt}</ScoutMetaChip>
+          ) : null}
+        </div>
+      </div>
+      <Lock className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300 group-hover:text-[#0077B6]" aria-hidden />
+    </button>
   )
 }
 
@@ -557,7 +681,10 @@ function ScoutOnboardingCandidatePreview({
   onExplore,
   language,
   showExploreFooter = true,
+  variant = 'credit',
 }) {
+  const isManaged = variant === 'performance'
+
   return (
     <div className="scout-candidates-list-ui w-full shrink-0 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
       <div className="flex flex-col gap-1 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
@@ -572,23 +699,33 @@ function ScoutOnboardingCandidatePreview({
       </div>
 
       {rankedPreviewCandidates.length === 0 ? (
-        <div className="px-3 py-8 text-center sm:px-4 sm:py-10">
-          <Users className="mx-auto h-8 w-8 text-slate-300" />
-          <p className="mt-3 text-xs text-slate-500 sm:text-sm">
+        <div className={`px-3 text-center sm:px-4 ${isManaged ? 'py-4 sm:py-5' : 'py-8 sm:py-10'}`}>
+          <Users className={`mx-auto text-slate-300 ${isManaged ? 'h-6 w-6' : 'h-8 w-8'}`} />
+          <p className={`mt-2 text-slate-500 ${isManaged ? 'text-[11px] sm:text-xs' : 'mt-3 text-xs sm:text-sm'}`}>
             {onboarding.previewEmpty}
           </p>
         </div>
       ) : (
         <div className="scout-candidates-list-ui divide-y divide-slate-100">
           {rankedPreviewCandidates.map((candidate) => (
-            <ScoutPreviewCandidateRow
-              key={candidate.id}
-              candidate={candidate}
-              matchScore={previewScoreByCvId[String(candidate.id)]}
-              scoutCreditCost={scoutCreditCost}
-              onExplore={onExplore}
-              language={language}
-            />
+            isManaged ? (
+              <ScoutManagedPreviewRow
+                key={candidate.id}
+                candidate={candidate}
+                matchScore={previewScoreByCvId[String(candidate.id)]}
+                onExplore={onExplore}
+                language={language}
+              />
+            ) : (
+              <ScoutPreviewCandidateRow
+                key={candidate.id}
+                candidate={candidate}
+                matchScore={previewScoreByCvId[String(candidate.id)]}
+                scoutCreditCost={scoutCreditCost}
+                onExplore={onExplore}
+                language={language}
+              />
+            )
           ))}
         </div>
       )}
@@ -625,7 +762,16 @@ function ScoutBreadcrumb({ homeLabel, currentLabel, onHomeClick }) {
   )
 }
 
-function ScoutOnboardingView({ variant = 'credit', previewCandidates, previewScoreByCvId, scoutCreditCost, onStart, onExplore, language: languageProp }) {
+function ScoutOnboardingView({
+  variant = 'credit',
+  previewCandidates,
+  previewScoreByCvId,
+  scoutCreditCost,
+  creditBalance = 0,
+  onStart,
+  onExplore,
+  language: languageProp,
+}) {
   const navigate = useNavigate()
   const { language: ctxLanguage } = useLanguage()
   const language = languageProp || ctxLanguage
@@ -634,14 +780,41 @@ function ScoutOnboardingView({ variant = 'credit', previewCandidates, previewSco
   const ws = getScoutWorkspaceCopy(language)
   const onboardingKey = variant === 'performance' ? 'managed' : 'direct'
   const onboarding = ws.onboarding[onboardingKey]
+  const managedCopy = ws.onboarding.managed
+  const directCopy = ws.onboarding.direct
+  const packagesRef = useRef(null)
+  const [packagesExpanded, setPackagesExpanded] = useState(() => {
+    const opens = Math.floor(Number(creditBalance) / Math.max(1, scoutCreditCost))
+    const low = Number(creditBalance) > 0 && opens < 3
+    return Number(creditBalance) <= 0 || low
+  })
   const scoutCard = useMemo(
     () => getScoutSolutionCard(language, variant === 'performance' ? 'performance' : 'credit'),
     [language, variant],
   )
   const rankedPreviewCandidates = useMemo(
-    () => rankPreviewCandidates(previewCandidates).slice(0, 5),
-    [previewCandidates],
+    () => rankPreviewCandidates(previewCandidates).slice(0, variant === 'performance' ? 5 : 5),
+    [previewCandidates, variant],
   )
+
+  const hasEnoughCredit = Number(creditBalance) >= Number(scoutCreditCost)
+  const opensRemaining = Math.floor(Number(creditBalance) / Math.max(1, scoutCreditCost))
+  const creditLow = Number(creditBalance) > 0 && opensRemaining < 3
+
+  useEffect(() => {
+    if (creditLow) setPackagesExpanded(true)
+  }, [creditLow])
+
+  const handleBottomCta = () => {
+    if (variant === 'credit' && !hasEnoughCredit) {
+      setPackagesExpanded(true)
+      requestAnimationFrame(() => {
+        packagesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+      return
+    }
+    onStart(variant === 'performance' ? 'performance' : 'credit')
+  }
 
   if (!scoutCard) return null
 
@@ -655,42 +828,101 @@ function ScoutOnboardingView({ variant = 'credit', previewCandidates, previewSco
         />
       </div>
 
-      <div className="grid w-full shrink-0 grid-cols-1 items-stretch gap-2 sm:gap-3">
-        <ScoutSolutionCard
-          card={scoutCard}
-          onStart={onStart}
-          animationDelay={0.06}
-          scoutCopy={scoutCopy}
-        />
-      </div>
+      {variant === 'credit' && Number(creditBalance) > 0 ? (
+        <div className="shrink-0 rounded-xl border border-[#cce5f0] bg-gradient-to-r from-[#e8f4fa] to-white px-3 py-2.5 sm:px-4">
+          <p className="text-sm font-bold text-[#006399]">
+            {directCopy.creditBalanceBanner(formatScoutLocaleNumber(creditBalance, language), opensRemaining)}
+          </p>
+          {creditLow ? (
+            <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-amber-800">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              {directCopy.creditLowWarning}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {variant === 'performance' ? (
+        <ScoutManagedIntroBlock scoutCard={scoutCard} />
+      ) : (
+        <div className="grid w-full shrink-0 grid-cols-1 items-stretch gap-2 sm:gap-3">
+          <ScoutSolutionCard
+            card={scoutCard}
+            onStart={onStart}
+            animationDelay={0.06}
+            scoutCopy={scoutCopy}
+            hidePrimaryCta
+          />
+        </div>
+      )}
 
       {variant === 'credit' ? (
-        <ScoutCreditPackagesIntro language={language} showIntro showSubmit />
+        <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
+          <h2 className="text-sm font-bold text-slate-900">{directCopy.howItWorksTitle}</h2>
+          <ul className="mt-2 space-y-2 text-xs leading-snug text-slate-600 sm:text-[13px]">
+            {scoutCard.features.map((line) => (
+              <li key={line} className="flex gap-2">
+                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0077B6]" strokeWidth={2.5} />
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {variant === 'credit' ? (
+        <ScoutCreditPackagesIntro
+          language={language}
+          showIntro
+          unlockCost={scoutCreditCost}
+          creditBalance={creditBalance}
+          collapsible={hasEnoughCredit}
+          expanded={packagesExpanded}
+          onToggleExpanded={() => setPackagesExpanded((v) => !v)}
+          deemphasized={hasEnoughCredit && !creditLow}
+          sectionRef={packagesRef}
+        />
       ) : (
-        <>
-          <ScoutManagedFeeTable />
+        <ScoutOnboardingCandidatePreview
+          onboarding={onboarding}
+          rankedPreviewCandidates={rankedPreviewCandidates}
+          previewScoreByCvId={previewScoreByCvId}
+          scoutCreditCost={scoutCreditCost}
+          onExplore={onExplore}
+          language={language}
+          showExploreFooter={false}
+          variant="performance"
+        />
+      )}
 
-          <ScoutOnboardingCandidatePreview
-            onboarding={onboarding}
-            rankedPreviewCandidates={rankedPreviewCandidates}
-            previewScoreByCvId={previewScoreByCvId}
-            scoutCreditCost={scoutCreditCost}
-            onExplore={onExplore}
-            language={language}
-            showExploreFooter={false}
-          />
-
-          <div className="shrink-0">
-            <button
-              type="button"
-              onClick={onExplore}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] py-2.5 text-xs font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:text-sm"
-            >
-              {onboarding.exploreAll}
-              <ArrowRight className="h-4 w-4 shrink-0" />
-            </button>
-          </div>
-        </>
+      {variant === 'credit' ? (
+        <div className="sticky bottom-0 z-10 shrink-0 border-t border-slate-200/80 bg-[#f4f6f8]/95 pb-1 pt-2 backdrop-blur-sm">
+          <button
+            type="button"
+            onClick={handleBottomCta}
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0077B6] py-3 text-sm font-bold text-white shadow-md shadow-[#0077B6]/20 transition-colors hover:bg-[#006399]"
+          >
+            {hasEnoughCredit ? directCopy.ctaStartScout : directCopy.ctaChoosePackage}
+            <ArrowRight className="h-4 w-4 shrink-0" />
+          </button>
+        </div>
+      ) : (
+        <div className="sticky bottom-0 z-10 shrink-0 border-t border-slate-200/80 bg-[#f4f6f8]/95 pb-1 pt-2 backdrop-blur-sm">
+          {scoutCard?.slaLine ? (
+            <p className="mb-1.5 text-center text-[11px] font-bold text-emerald-700 sm:text-xs">{scoutCard.slaLine}</p>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => onStart('performance')}
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0077B6] py-3 text-sm font-bold text-white shadow-md shadow-[#0077B6]/20 transition-colors hover:bg-[#006399]"
+          >
+            {managedCopy.ctaStartManaged}
+            <ArrowRight className="h-4 w-4 shrink-0" />
+          </button>
+          <p className="mt-1.5 text-center text-[10px] leading-snug text-slate-500 sm:text-[11px]">
+            {managedCopy.processHint}
+          </p>
+        </div>
       )}
     </div>
   )
@@ -843,19 +1075,21 @@ function ScoutFilterPanel({
   ], [jobs, language, ws.workspace.allScoutCandidates])
 
   const leadingBlock = (
-    <FilterBlock icon={Briefcase} label={ws.workspace.attachJd} compact>
-      <FilterSelectDropdown
-        value={selectedJobId || ''}
-        onChange={onJobChange}
-        options={jobOptions}
-        placeholder={ws.workspace.allScoutCandidates}
-        searchable
-        searchPlaceholder={ws.workspace.searchJdPlaceholder}
-        disabled={jobsLoading}
-        className={SCOUT_FILTER_INPUT_CLASS}
-        maxPanelHeight={220}
-      />
-    </FilterBlock>
+    <div className="rounded-lg border-2 border-[#0077B6]/25 bg-[#f8fbfd]/80 p-2">
+      <FilterBlock icon={Briefcase} label={ws.workspace.attachJd} compact>
+        <FilterSelectDropdown
+          value={selectedJobId || ''}
+          onChange={onJobChange}
+          options={jobOptions}
+          placeholder={ws.workspace.allScoutCandidates}
+          searchable
+          searchPlaceholder={ws.workspace.searchJdPlaceholder}
+          disabled={jobsLoading}
+          className={SCOUT_FILTER_INPUT_CLASS}
+          maxPanelHeight={220}
+        />
+      </FilterBlock>
+    </div>
   )
 
   return (
@@ -886,7 +1120,7 @@ function ScoutFilterPanel({
           </button>
         </div>
       </div>
-      <div className="scout-filter-scroll scout-scrollbar custom-scrollbar max-h-[38vh] overflow-y-auto p-2 lg:max-h-[42vh] lg:p-3 2xl:max-h-none">
+      <div className="scout-filter-scroll scout-scrollbar custom-scrollbar max-h-[26vh] overflow-y-auto p-2 lg:max-h-[30vh] lg:p-2.5 2xl:max-h-[34vh]">
         <ScoutCandidateFilterFields
           leadingBlock={leadingBlock}
           scoutFilters={scoutFilters}
@@ -927,6 +1161,9 @@ function ScoutFilterPanel({
 function ScoutCandidateListItem({
   candidate,
   matchScore,
+  matchPendingLabel,
+  scoutCreditCost = 5,
+  listActionLabel,
   highlightQuery,
   onOpenDetail,
   hl,
@@ -934,20 +1171,22 @@ function ScoutCandidateListItem({
 }) {
   const copy = useBusinessAppCopy()
   const listCardLabels = copy.scout.listCard
+  const ws = getScoutWorkspaceCopy(language)
   const showNew = isCandidateNew(candidate)
+
+  const cornerScore = Number.isFinite(Number(matchScore)) ? Number(matchScore) : null
 
   return (
     <div className="group relative">
       <button
         type="button"
         onClick={() => onOpenDetail(candidate.id)}
-        className="scout-list-item flex w-full items-start gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-left transition hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-sm lg:gap-2.5 lg:px-3 lg:py-2.5"
+        className="scout-list-item relative flex w-full items-start gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-left transition hover:border-[#0077B6]/35 hover:bg-[#f8fbfd]/80 hover:shadow-sm lg:gap-2 lg:px-2.5 lg:py-2"
       >
-        <AvatarCircle candidate={candidate} size={44} language={language} className="scout-list-avatar" />
+        <AvatarCircle candidate={candidate} size={40} language={language} className="scout-list-avatar" />
         <div className="min-w-0 flex-1">
           <ScoutCandidateRowBody
             candidate={candidate}
-            matchScore={matchScore}
             hl={hl}
             showNew={showNew}
           />
@@ -961,11 +1200,20 @@ function ScoutCandidateListItem({
             </ScoutLabeledRow>
           )}
         </div>
-        {!candidate.isUnlocked ? (
-          <Lock className="mt-1 h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} aria-hidden />
-        ) : null}
+        <div className="absolute right-2 top-2 z-[1] flex max-w-[48%] flex-col items-end gap-1">
+          <CandidateListMatchCorner
+            score={cornerScore}
+            language={language}
+            pendingLabel={matchPendingLabel}
+          />
+          {!candidate.isUnlocked ? (
+            <span className="scout-cand-caption hidden max-w-full truncate rounded-md bg-[#0077B6] px-2 py-0.5 font-bold text-white shadow-sm group-hover:inline-flex sm:inline-flex sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+              {listActionLabel || ws.workspace.unlockCta(scoutCreditCost)}
+            </span>
+          ) : null}
+        </div>
       </button>
-      <ScoutCandidateHoverTip candidate={candidate} hl={hl} matchScore={matchScore} language={language} />
+      <ScoutCandidateHoverTip candidate={candidate} hl={hl} matchScore={cornerScore} language={language} />
     </div>
   )
 }
@@ -1160,6 +1408,7 @@ function ScoutPerformanceConfirmModal({
   onConfirm,
   onQuickCreateJd,
   onAlternateScoutSwitch,
+  hideAlternatePromo = false,
   loading = false,
   agreed,
   onAgreedChange,
@@ -1175,6 +1424,7 @@ function ScoutPerformanceConfirmModal({
   const m = ws.modals.performance
   const c = ws.common
   const feeTiers = getScoutPerformanceFeeTiers(language)
+  const managedOnboarding = ws.onboarding.managed
   const [step, setStep] = useState('confirm')
   const [selectedJobId, setSelectedJobId] = useState(initialJobId || '')
   const [feeExpanded, setFeeExpanded] = useState(false)
@@ -1269,12 +1519,27 @@ function ScoutPerformanceConfirmModal({
                       <span className="font-bold text-slate-900">{m.intro2Highlight}</span>
                       {m.intro2Suffix}
                     </p>
-                    {m.alternateScoutPromo ? (
+                    {!hideAlternatePromo && m.alternateScoutPromo ? (
                       <ScoutAlternatePromoLine
                         promo={m.alternateScoutPromo}
                         onSwitch={onAlternateScoutSwitch}
                         className="mt-0"
                       />
+                    ) : null}
+                    {hideAlternatePromo && Array.isArray(managedOnboarding.fairProcessSteps) ? (
+                      <ol className="mt-3 space-y-1.5 rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-[11px] text-slate-700 sm:text-xs">
+                        {managedOnboarding.fairProcessSteps.map((label, idx) => (
+                          <li key={label} className="flex gap-2">
+                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#0077B6] text-[10px] font-bold text-white">
+                              {idx + 1}
+                            </span>
+                            <span>{label}</span>
+                          </li>
+                        ))}
+                        <li className="mt-1 border-t border-slate-200/80 pt-2 text-[10px] italic text-slate-500">
+                          {managedOnboarding.contractPendingNote}
+                        </li>
+                      </ol>
                     ) : null}
                   </div>
                   <div className="scout-confirm-modal-illus hidden items-center justify-center xl:flex xl:justify-end">
@@ -1743,7 +2008,8 @@ const Scout = ({ variant = 'credit' } = {}) => {
   const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
-  const [limit] = useState(20)
+  const [limit, setLimit] = useState(20)
+  const [sortBy, setSortBy] = useState('match')
   const [pagination, setPagination] = useState({ total: 0, totalPages: 0 })
   const [credit, setCredit] = useState(userCredit || 0)
   const [scoutCreditCost, setScoutCreditCost] = useState(5)
@@ -2028,7 +2294,10 @@ const Scout = ({ variant = 'credit' } = {}) => {
   const displayedCandidates = useMemo(() => {
     let base
     if (selectedJobId) {
-      base = allScoutCandidates.filter((c) => scoreByCvId[String(c.id)] != null)
+      base = allScoutCandidates.filter((c) => {
+        const s = scoreByCvId[String(c.id)]
+        return s != null && Number(s) > 0
+      })
     } else if (hasActiveFilters) {
       base = filterAllCandidates
     } else {
@@ -2052,13 +2321,8 @@ const Scout = ({ variant = 'credit' } = {}) => {
 
     filtered = filtered.filter((c) => passesScoutCandidateFilters(c, scoutFilters))
 
-    if (selectedJobId) {
-      return [...filtered].sort(
-        (a, b) => (scoreByCvId[String(b.id)] || 0) - (scoreByCvId[String(a.id)] || 0),
-      )
-    }
-    return filtered
-  }, [selectedJobId, candidates, allScoutCandidates, scoreByCvId, searchQuery, scoutFilters, hasActiveFilters, filterAllCandidates])
+    return sortScoutCandidateList(filtered, sortBy, scoreByCvId, selectedJobId)
+  }, [selectedJobId, candidates, allScoutCandidates, scoreByCvId, searchQuery, scoutFilters, hasActiveFilters, filterAllCandidates, sortBy])
 
   const pagedCandidates = useMemo(() => {
     if (!selectedJobId && !hasActiveFilters) return displayedCandidates
@@ -2077,7 +2341,7 @@ const Scout = ({ variant = 'credit' } = {}) => {
 
   useEffect(() => {
     setPage(1)
-  }, [scoutFilters.locations, scoutFilters.jobCategoryId, scoutFilters.experience, scoutFilters.japaneseLevel, scoutFilters.visa, scoutFilters.salaryMin, scoutFilters.salaryMax])
+  }, [scoutFilters.locations, scoutFilters.jobCategoryId, scoutFilters.experience, scoutFilters.japaneseLevel, scoutFilters.visa, scoutFilters.salaryMin, scoutFilters.salaryMax, sortBy, limit])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -2230,25 +2494,22 @@ const Scout = ({ variant = 'credit' } = {}) => {
       <>
         <style>{scoutPageStyles}</style>
         {sharedModals}
-        <div className="business-homepage-shell min-h-0 h-full overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden" style={{ fontFamily: PAGE_FONT }}>
+        <div className="business-homepage-shell relative min-h-0 h-full overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden" style={{ fontFamily: PAGE_FONT }}>
           <div className="business-homepage-ui w-full min-h-0 p-2.5 sm:p-3 xl:h-full xl:flex xl:flex-col">
-            <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:h-full xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] xl:gap-3 xl:overflow-hidden">
-              <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col xl:h-full xl:overflow-y-auto xl:pr-0.5">
-                <ScoutOnboardingView
-                  variant={variant}
-                  previewCandidates={previewCandidates}
-                  previewScoreByCvId={previewScoreByCvId}
-                  scoutCreditCost={scoutCreditCost}
-                  onStart={handleOnboardingStart}
-                  onExplore={enterScoutDashboard}
-                  language={language}
-                />
-              </div>
-              <div className="business-homepage-scroll scrollbar-hide flex h-full min-h-0 flex-col overflow-y-auto xl:pr-0.5">
-                <HomepageSidebar onNavigate={navigate} />
-              </div>
+            <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col xl:h-full xl:overflow-y-auto xl:pr-0.5">
+              <ScoutOnboardingView
+                variant={variant}
+                previewCandidates={previewCandidates}
+                previewScoreByCvId={previewScoreByCvId}
+                scoutCreditCost={scoutCreditCost}
+                creditBalance={credit}
+                onStart={handleOnboardingStart}
+                onExplore={enterScoutDashboard}
+                language={language}
+              />
             </div>
           </div>
+          <BusinessFloatingQuickActions onNavigate={navigate} placement="fixed" />
         </div>
       </>
     )
@@ -2287,23 +2548,56 @@ const Scout = ({ variant = 'credit' } = {}) => {
 
               <div className="scout-candidates-list-ui flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
               <div className="scout-list-head border-b border-slate-100 px-3 py-2">
-                <p className="scout-cand-caption text-slate-500">
-                  {ws.workspace.creditLabel}: <span className="font-semibold text-slate-600">{formatScoutLocaleNumber(credit, language)}</span>
-                  {' · '}
-                  {ws.workspace.unlockLabel}: <span className="font-semibold text-[#0077B6]">{scoutCreditCost} {ws.workspace.creditUnit}</span>
+                <div className="flex flex-wrap items-stretch gap-2 rounded-lg border border-[#cce5f0]/80 bg-[#f8fbfd] px-2.5 py-2">
+                  <div className="min-w-[8rem] flex-1">
+                    <div className="scout-cand-caption font-semibold uppercase tracking-wide text-slate-500">{ws.workspace.creditLabel}</div>
+                    <div className="scout-cand-title text-[#0077B6]">{formatScoutLocaleNumber(credit, language)}</div>
+                  </div>
+                  <div className="min-w-[8rem] flex-1 border-l border-[#cce5f0]/60 pl-2.5">
+                    <div className="scout-cand-caption font-semibold uppercase tracking-wide text-slate-500">{ws.workspace.unlockLabel}</div>
+                    <div className="scout-cand-title text-slate-800">{scoutCreditCost} {ws.workspace.creditUnit}</div>
+                  </div>
                   {credit < scoutCreditCost ? (
                     <button
                       type="button"
                       onClick={() => setCreditTopUpOpen(true)}
-                      className="ml-1 font-semibold text-[#0077B6] hover:underline"
+                      className="scout-cand-caption self-center font-bold text-[#0077B6] hover:underline"
                     >
                       {ws.workspace.topUpCredit}
                     </button>
                   ) : null}
-                </p>
-                <h2 className="scout-cand-title mt-1 text-slate-900">
-                  {listLoading ? ws.workspace.loading : ws.workspace.candidatesFound(totalItems, getDateLocale(language))}
-                </h2>
+                </div>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="scout-cand-title text-slate-900">
+                    {listLoading ? ws.workspace.loading : ws.workspace.candidatesFound(totalItems, getDateLocale(language))}
+                  </h2>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="scout-cand-caption flex items-center gap-1 text-slate-500">
+                      <span className="font-semibold">{ws.workspace.sortLabel}</span>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="scout-cand-caption rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-semibold text-slate-700"
+                      >
+                        <option value="match">{ws.workspace.sortMatch}</option>
+                        <option value="newest">{ws.workspace.sortNewest}</option>
+                        <option value="experience">{ws.workspace.sortExperience}</option>
+                        <option value="jlpt">{ws.workspace.sortJlpt}</option>
+                      </select>
+                    </label>
+                    <label className="scout-cand-caption flex items-center gap-1 text-slate-500">
+                      <span className="font-semibold">{ws.workspace.perPage}</span>
+                      <select
+                        value={limit}
+                        onChange={(e) => setLimit(Number(e.target.value))}
+                        className="scout-cand-caption rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-semibold text-slate-700"
+                      >
+                        <option value={20}>{ws.workspace.perPageOption(20)}</option>
+                        <option value={50}>{ws.workspace.perPageOption(50)}</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
                 {selectedJobId && !matchLoading ? (
                   <p className="scout-cand-caption mt-0.5 text-slate-500">
                     {ws.workspace.aiSuggestFor(getLocalizedJobTitle(selectedJob, language) || `JD #${selectedJobId}`)}
@@ -2360,6 +2654,9 @@ const Scout = ({ variant = 'credit' } = {}) => {
                         key={c.id}
                         candidate={c}
                         matchScore={selectedJobId ? scoreByCvId[String(c.id)] : null}
+                        matchPendingLabel={selectedJobId ? undefined : ws.workspace.matchNoJd}
+                        scoutCreditCost={scoutCreditCost}
+                        listActionLabel={variant === 'performance' ? ws.onboarding.managed.listRowCta : undefined}
                         highlightQuery={highlightQuery}
                         onOpenDetail={openCandidateDetail}
                         hl={hl}
@@ -2409,11 +2706,9 @@ const Scout = ({ variant = 'credit' } = {}) => {
               </div>
             </div>
 
-            <div className="scout-workspace-aside business-homepage-scroll scrollbar-hide flex h-full min-h-0 flex-col overflow-y-auto xl:pr-0.5">
-              <HomepageSidebar onNavigate={navigate} />
-            </div>
           </div>
         </div>
+        <BusinessFloatingQuickActions onNavigate={navigate} placement="fixed" />
       </div>
 
       {sharedModals}

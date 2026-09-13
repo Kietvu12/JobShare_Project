@@ -833,6 +833,32 @@ export async function getCtvMarketplaceStats({ collaboratorId }) {
   return { interestedJobs: interests, myNominations: nominations, publishedJobs };
 }
 
+/** Số liệu tổng quan nền tảng — hiển thị trên màn giới thiệu Sàn CTV (business). */
+export async function getMarketplacePlatformOverview() {
+  const [activeCtv, activeListings, aggRow] = await Promise.all([
+    Collaborator.count({ where: { status: 1 } }),
+    BusinessCtvMarketplaceListing.count({ where: { status: MARKETPLACE_LISTING_STATUS.PUBLISHED } }),
+    BusinessCtvMarketplaceListing.findOne({
+      attributes: [
+        [sequelize.fn('SUM', sequelize.col('nominations_count')), 'totalNominations'],
+        [sequelize.fn('SUM', sequelize.col('hired_count')), 'totalHired'],
+      ],
+      raw: true,
+    }),
+  ]);
+  const totalNominations = Number(aggRow?.totalNominations || 0);
+  const totalHired = Number(aggRow?.totalHired || 0);
+  const successRatePercent = totalNominations > 0
+    ? Math.round((totalHired / totalNominations) * 100)
+    : null;
+  return {
+    activeCtv,
+    activeListings,
+    totalNominations,
+    successRatePercent,
+  };
+}
+
 export default {
   getBusinessDashboard,
   listBusinessListings,
@@ -851,5 +877,6 @@ export default {
   listCtvMarketplaceJobs,
   expressCtvInterest,
   getCtvMarketplaceStats,
+  getMarketplacePlatformOverview,
   syncListingCounters,
 };

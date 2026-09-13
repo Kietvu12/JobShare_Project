@@ -81,7 +81,8 @@ export const jobsI18n = {
     draft: {
       defaultTitle: 'JD mới',
       badge: 'Nháp chat',
-      hint: 'Phiên chat chưa lưu thành JD · Bấm để tiếp tục tạo',
+      hint: 'Phiên chat chưa lưu thành JD',
+      continueCta: 'Tiếp tục tạo',
     },
     empty: {
       title: 'Chưa có JD nào',
@@ -177,7 +178,8 @@ export const jobsI18n = {
     draft: {
       defaultTitle: 'New JD',
       badge: 'Chat draft',
-      hint: 'Unsaved chat session · Click to continue creating',
+      hint: 'Unsaved chat session',
+      continueCta: 'Continue creating',
     },
     empty: {
       title: 'No job descriptions yet',
@@ -273,7 +275,8 @@ export const jobsI18n = {
     draft: {
       defaultTitle: '新規JD',
       badge: 'チャット下書き',
-      hint: '未保存のチャットセッション · クリックして続行',
+      hint: '未保存のチャットセッション',
+      continueCta: '作成を続ける',
     },
     empty: {
       title: 'JDがありません',

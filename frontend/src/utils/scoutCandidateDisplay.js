@@ -6,6 +6,56 @@ import {
 import { getLocalizedScoutDisplayName } from '../i18n/businessApp/scout.js';
 import { getJlptDisplay } from './cvFixedCertDisplay.js';
 
+const PLACEHOLDER_TEXTS = new Set(['system', 'unknown', 'n/a', 'null', 'undefined', 'test']);
+
+export function isPlaceholderCandidateValue(value) {
+  if (value == null) return true;
+  const text = String(value).trim();
+  if (!text || text === '—' || text === '-' || text === '–') return true;
+  if (PLACEHOLDER_TEXTS.has(text.toLowerCase())) return true;
+  return false;
+}
+
+export function isInvalidCandidateDateValue(value) {
+  if (!value) return true;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return true;
+  const y = d.getFullYear();
+  const now = new Date().getFullYear();
+  return y < 1900 || y > now + 1;
+}
+
+export function sanitizeCandidateDisplayText(value) {
+  if (isPlaceholderCandidateValue(value)) return null;
+  const text = String(value).trim();
+  if (/^system$/i.test(text)) return null;
+  return text;
+}
+
+export function formatCandidateDetailDate(value, language = 'vi') {
+  if (isInvalidCandidateDateValue(value)) return null;
+  try {
+    return new Date(value).toLocaleDateString(language === 'ja' ? 'ja-JP' : language === 'en' ? 'en-US' : 'vi-VN');
+  } catch {
+    return null;
+  }
+}
+
+export function formatCandidateJlptSummary(candidate) {
+  const jlpt = getJlptDisplay(candidate?.jlptLevel);
+  const parts = [];
+  if (jlpt && /^N[1-5]$/i.test(jlpt)) parts.push(jlpt);
+  const jp = candidate?.jpConversationLevel;
+  const en = candidate?.enConversationLevel;
+  if (jp != null && String(jp).trim() && !/^system$/i.test(String(jp))) {
+    parts.push(`JP: ${String(jp).trim()}`);
+  }
+  if (en != null && String(en).trim() && !/^system$/i.test(String(en))) {
+    parts.push(`EN: ${String(en).trim()}`);
+  }
+  return parts.length ? parts.join(' · ') : null;
+}
+
 const RESIDENCE_STATUS_LABELS = {
   '1': '技術・人文知識・国際業務',
   '2': '特定技能',
@@ -313,6 +363,24 @@ export function getScoutSkillTags(candidate) {
 }
 
 /** Trích kỹ năng 1 dòng cho card danh sách Scout — không dùng PR/CV thô dài. */
+export function getScoutListSkillChips(candidate, maxVisible = 5) {
+  const all = getScoutSkillTags(candidate);
+  if (!all.length) return { visible: [], extra: 0, title: '' };
+  const visible = all.slice(0, maxVisible);
+  const extra = Math.max(0, all.length - maxVisible);
+  return { visible, extra, title: all.join(' · ') };
+}
+
+export function resolveCandidateMatchScore(candidate) {
+  if (!candidate) return null;
+  const raw = candidate.matchScore ?? candidate.match_score ?? candidate.bestMatchScore
+    ?? candidate.best_match_score ?? candidate.aiMatchScore ?? candidate.ai_match_score;
+  if (raw == null || raw === '') return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  return Math.round(n);
+}
+
 export function getScoutListSkillExcerpt(candidate, maxLen = 96) {
   const tags = getScoutSkillTags(candidate);
   if (tags.length) {

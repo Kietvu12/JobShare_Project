@@ -23,6 +23,8 @@ export const businessJobApplicationController = {
         sortBy: req.query.sortBy,
         sortOrder: req.query.sortOrder,
         onlyUnreadMessages: req.query.onlyUnreadMessages,
+        appliedFrom: req.query.appliedFrom,
+        appliedTo: req.query.appliedTo,
       });
       res.json({ success: true, data });
     } catch (error) {

@@ -25,9 +25,9 @@ export const BUSINESS_SERVICE_TAGS = [
   {
     id: 'hr-partner-network',
     frameColor: '#F97316',
-    labelJa: 'HRパートナーネットワーク',
-    labelEn: 'HR Partner Network',
-    labelVi: 'Mạng lưới Đối tác Tuyển dụng',
+    labelJa: 'WS CTVマーケット',
+    labelEn: 'WS CTV Marketplace',
+    labelVi: 'Sàn cộng tác viên tuyển dụng WS',
   },
 ];
 

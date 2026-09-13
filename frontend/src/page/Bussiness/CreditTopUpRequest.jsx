@@ -4,6 +4,7 @@ import { ChevronRight, Coins, Loader2, X } from 'lucide-react';
 import apiService from '../../services/api';
 import ServiceRequestAccountSidebar from '../../component/Bussiness/ServiceRequestAccountSidebar';
 import CreditPricingPackageCard from '../../component/Bussiness/CreditPricingPackageCard';
+import CreditPackageConfirmModal from '../../component/Bussiness/CreditPackageConfirmModal';
 import { useLanguage } from '../../context/LanguageContext';
 import { getScoutWorkspaceCopy } from '../../i18n/businessApp/scoutWorkspace';
 import { creditPricingIntroStyles } from '../../utils/creditPricingStyles';
@@ -14,7 +15,7 @@ import {
   formatYenAmount,
   getCreditPackageByKey,
 } from '../../utils/businessCreditPackages';
-import { BRAND, BUSINESS_HOMEPAGE_SHELL_STYLES, CARD, PAGE_FONT } from '../../utils/businessHomepageShell';
+import { BUSINESS_HOMEPAGE_SHELL_STYLES, CARD, PAGE_FONT } from '../../utils/businessHomepageShell';
 
 function getPriceLocale(language) {
   if (language === 'ja') return 'ja-JP';
@@ -26,13 +27,20 @@ export default function CreditTopUpRequest() {
   const { language } = useLanguage();
   const scoutCopy = useMemo(() => getScoutWorkspaceCopy(language).onboarding.direct, [language]);
   const modalCopy = scoutCopy.pricingModal;
+  const confirmCopy = scoutCopy.packageConfirm;
   const priceLocale = getPriceLocale(language);
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState(null);
-  const [selectedKey, setSelectedKey] = useState(null);
+  const [pendingKey, setPendingKey] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  const pendingPkg = useMemo(
+    () => (pendingKey ? getCreditPackageByKey(pendingKey) : null),
+    [pendingKey],
+  );
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -50,8 +58,14 @@ export default function CreditTopUpRequest() {
     loadDashboard();
   }, [loadDashboard]);
 
-  const handleSubmit = async () => {
-    const pkg = getCreditPackageByKey(selectedKey);
+  const handleChoose = (key) => {
+    setError('');
+    setPendingKey(key);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirm = async () => {
+    const pkg = getCreditPackageByKey(pendingKey);
     if (!pkg) {
       setError(scoutCopy.selectPackageError);
       return;
@@ -66,7 +80,8 @@ export default function CreditTopUpRequest() {
       if (res?.success) {
         const code = res.data?.request?.requestCode || res.data?.requestCode || '';
         setSuccessMsg(scoutCopy.topUpSuccess(code));
-        setSelectedKey(null);
+        setConfirmOpen(false);
+        setPendingKey(null);
         await loadDashboard();
       } else {
         setError(res?.message || 'Không thể gửi yêu cầu nạp credit');
@@ -134,6 +149,9 @@ export default function CreditTopUpRequest() {
 
               <div className="credit-pricing-intro-shell mt-3.5 flex flex-col gap-2 sm:gap-2.5 lg:min-h-0 lg:flex-1">
                 <p className="shrink-0 text-[11px] font-bold text-slate-900 sm:text-xs">{scoutCopy.creditPackagesTitle}</p>
+                {error ? (
+                  <p className="shrink-0 text-[10px] text-rose-600 sm:text-[11px]">{error}</p>
+                ) : null}
                 <div className="credit-pricing-panel">
                   <div className="grid grid-cols-1 items-stretch gap-3 lg:grid-cols-3 lg:gap-3">
                     {BUSINESS_CREDIT_PACKAGES.map((pkg) => {
@@ -146,12 +164,12 @@ export default function CreditTopUpRequest() {
                           key={pkg.key}
                           pkg={pkg}
                           featured={pkg.key === FEATURED_CREDIT_PACKAGE_KEY}
-                          selected={selectedKey === pkg.key}
+                          selected={pendingKey === pkg.key && confirmOpen}
                           modalCopy={modalCopy}
                           pkgCopy={pkgCopy}
-                          onChoose={setSelectedKey}
+                          onChoose={handleChoose}
                           submitting={submitting}
-                          submittingKey={submitting ? selectedKey : null}
+                          submittingKey={submitting ? pendingKey : null}
                           submitCopy={scoutCopy}
                           priceLocale={priceLocale}
                           compact
@@ -160,26 +178,9 @@ export default function CreditTopUpRequest() {
                     })}
                   </div>
                 </div>
-              </div>
-
-              <div className="mt-3.5 flex shrink-0 flex-col gap-2 border-t border-slate-100 pt-3 sm:mt-auto sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:pt-3.5">
-                <p className="min-w-0 flex-1 text-[9px] leading-snug text-slate-500 sm:text-[10px]">
+                <p className="mt-1 shrink-0 text-[9px] leading-snug text-slate-500 sm:text-[10px]">
                   {scoutCopy.creditPackagesNote}
                 </p>
-                <div className="flex w-full shrink-0 flex-col items-stretch gap-1 sm:ml-auto sm:w-auto sm:items-end">
-                  {error ? (
-                    <p className="text-[9px] text-rose-600 sm:max-w-xs sm:text-right sm:text-[10px]">{error}</p>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={submitting}
-                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-[10px] font-bold text-white disabled:opacity-60 sm:w-auto sm:text-[11px]"
-                    style={{ background: BRAND }}
-                  >
-                    {submitting ? scoutCopy.submittingTopUp : `${scoutCopy.submitTopUpRequest} →`}
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -187,6 +188,17 @@ export default function CreditTopUpRequest() {
           </div>
         </div>
       </div>
+
+      <CreditPackageConfirmModal
+        open={confirmOpen}
+        onClose={() => !submitting && setConfirmOpen(false)}
+        onConfirm={handleConfirm}
+        loading={submitting}
+        pkg={pendingPkg}
+        unlockCost={5}
+        copy={confirmCopy}
+        priceLocale={priceLocale}
+      />
     </>
   );
 }

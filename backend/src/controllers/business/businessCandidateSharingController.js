@@ -3,6 +3,7 @@ import {
   closeBusinessListing,
   createBusinessListing,
   getBusinessDashboard,
+  getMarketplacePlatformOverview,
   listAdminListings,
   listBusinessListings,
   listBusinessNominations,
@@ -22,6 +23,15 @@ export const businessCandidateSharingController = {
     try {
       const data = await getBusinessDashboard({ businessId: req.business.id });
       res.json({ success: true, data });
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  getPlatformOverview: async (req, res, next) => {
+    try {
+      const stats = await getMarketplacePlatformOverview();
+      res.json({ success: true, data: stats });
     } catch (e) {
       next(e);
     }

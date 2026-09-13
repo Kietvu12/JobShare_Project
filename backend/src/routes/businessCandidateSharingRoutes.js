@@ -6,6 +6,7 @@ const router = express.Router();
 router.use(authenticateBusiness);
 
 router.get('/dashboard', businessCandidateSharingController.getDashboard);
+router.get('/platform-overview', businessCandidateSharingController.getPlatformOverview);
 router.get('/listings', businessCandidateSharingController.listListings);
 router.post('/listings', businessCandidateSharingController.createListing);
 router.put('/listings/:id', businessCandidateSharingController.updateListing);

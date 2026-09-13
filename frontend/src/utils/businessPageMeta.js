@@ -14,13 +14,14 @@ import {
 } from 'lucide-react';
 
 const PAGE_META = [
-  { path: '/business/applications', end: false, icon: GitBranch, title: { vi: 'Quản lý tiến cử', en: 'Applications', ja: 'エントリー管理' } },
+  { path: '/business/applications', end: false, icon: GitBranch, title: { vi: 'Quản lý ứng viên', en: 'Candidate selection', ja: '選考管理' } },
   { path: '/business/jobs', end: false, icon: ClipboardCheck, title: { vi: 'Quản lý JD', en: 'Job Management', ja: 'JD管理' } },
   { path: '/business/candidates', end: false, icon: User, title: { vi: 'Hồ sơ ứng viên', en: 'Candidates', ja: '候補者' } },
   { path: '/business/scout/direct', end: false, icon: Search, title: { vi: 'Scout Trực Tiếp', en: 'Direct Scout', ja: 'ダイレクトスカウト' } },
   { path: '/business/scout/managed', end: false, icon: Search, title: { vi: 'Scout Ủy Thác', en: 'Managed Scout', ja: '委託スカウト' } },
   { path: '/business/saiyo', end: false, icon: Users, title: { vi: 'Saiyo Branding', en: 'Saiyo Branding', ja: 'Saiyo ブランディング' } },
-  { path: '/business/candidate-sharing', end: false, icon: Users2, title: { vi: 'Sàn CTV', en: 'CTV Marketplace', ja: 'CTVマーケット' } },
+  { path: '/business/saiyo/landing-pages', end: true, icon: Users, title: { vi: 'Quản lý Landing Page', en: 'Landing page management', ja: 'LP管理' } },
+  { path: '/business/candidate-sharing', end: false, icon: Users2, title: { vi: 'Sàn CTV', en: 'WS CTV Marketplace', ja: 'WS CTVマーケット' } },
   { path: '/business/knowledge', end: false, icon: BookOpen, title: { vi: 'Knowledge Hub', en: 'Knowledge Hub', ja: 'ナレッジハブ' } },
   { path: '/business/insights', end: false, icon: PieChart, title: { vi: 'Report & insight', en: 'Report & insight', ja: 'Report & insight' } },
   { path: '/business/messages', end: false, icon: MessageSquare, title: { vi: 'Tin nhắn', en: 'Messages', ja: 'メッセージ' } },

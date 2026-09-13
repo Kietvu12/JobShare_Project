@@ -2,10 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ChevronRight, MoreHorizontal, Phone, Mail, Loader2, BadgeCheck, MessageSquare,
-  Copy, ArrowLeft, Briefcase, UserPlus, Sparkles, Download,
+  Copy, Briefcase, UserPlus, Sparkles, Download, ChevronLeft,
 } from 'lucide-react'
 import apiService from '../../services/api'
 import BusinessCandidateNominationModal from '../../component/Bussiness/BusinessCandidateNominationModal'
+import BusinessCandidateAttachJobConfirmModal from '../../component/Bussiness/BusinessCandidateAttachJobConfirmModal'
 import useBusinessUser from '../../hooks/useBusinessUser'
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
 import { downloadScoutOriginalCvFiles } from '../../utils/scoutCvDownload'
@@ -22,8 +23,13 @@ import {
   formatScoutIncome,
   getScoutSkillTags,
   getScoutPrSummary,
-  getScoutMatchBadgeClass,
+  sanitizeCandidateDisplayText,
+  formatCandidateDetailDate,
+  formatCandidateJlptSummary,
+  formatScoutDesiredSalary,
+  isScoutEmptyDisplayValue,
 } from '../../utils/scoutCandidateDisplay'
+import ScoutMatchBadge from '../../component/Bussiness/ScoutMatchBadge'
 import { getLocalizedCandidateRole } from '../../utils/jobCategoryDisplay'
 import {
   formatCandidateAgeGender,
@@ -112,7 +118,11 @@ const detailPageStyles = `
   }
   .business-candidates-ui .cand-surface {
     border-radius: var(--cand-radius);
-    padding: 10px;
+    padding: 8px;
+  }
+  .business-candidates-ui .cand-prose {
+    max-width: 42rem;
+    line-height: 1.65;
   }
   .business-candidates-ui .cand-metrics {
     display: grid;
@@ -149,7 +159,7 @@ async function loadBusinessJobsByIds(jobIds) {
 function MatchedJobsRecommendations({
   cvId,
   businessId,
-  onAttach,
+  onRequestAttach,
   attachingJobId,
   attachedJobIds,
   copy,
@@ -179,6 +189,7 @@ function MatchedJobsRecommendations({
           .map((row) => ({
             jobId: row.job_id ?? row.jobId ?? row.id,
             score: getMatchScorePercent(row),
+            reasoning: row.reasoning || row.reason || null,
           }))
           .filter((item) => item.jobId != null && item.score >= 40)
           .sort((a, b) => b.score - a.score)
@@ -249,24 +260,27 @@ function MatchedJobsRecommendations({
                     <Briefcase className="h-3.5 w-3.5" aria-hidden />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="cand-fs-sm line-clamp-2 font-semibold text-slate-900">{title}</p>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="cand-fs-sm line-clamp-2 font-semibold text-slate-900">{title}</p>
+                      <ScoutMatchBadge
+                        score={score}
+                        language={language}
+                        className="!shrink-0 !text-[10px]"
+                        iconClassName="h-2.5 w-2.5"
+                      />
+                    </div>
                     {job.jobCode || job.job_code ? (
                       <p className="cand-fs-2xs mt-0.5 text-slate-400">
                         {mj.jobCode(job.jobCode || job.job_code)}
                       </p>
                     ) : null}
-                    <span
-                      className={`cand-fs-2xs mt-1 inline-flex rounded-full px-1.5 py-0.5 font-semibold ${getScoutMatchBadgeClass(score)}`}
-                    >
-                      {mj.match(Math.round(score))}
-                    </span>
                   </div>
                 </div>
                 <button
                   type="button"
                   disabled={isAttached || isSubmitting}
-                  onClick={() => onAttach?.(jobId)}
-                  className="cand-fs-xs mt-2 flex w-full items-center justify-center gap-1 rounded-md border border-[#0077B6]/30 bg-white px-2 py-1.5 font-semibold text-[#0077B6] transition-colors hover:bg-[#e8f4fa] disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                  onClick={() => onRequestAttach?.({ jobId, job, score })}
+                  className="cand-fs-xs mt-2 flex w-full items-center justify-center gap-1 rounded-md bg-[#0077B6] px-2 py-1.5 font-semibold text-white transition-colors hover:bg-[#006699] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
                 >
                   {isSubmitting ? (
                     <>
@@ -311,21 +325,105 @@ function AvatarCircle({ candidate, size, language = 'vi' }) {
 }
 
 function MetricCard({ label, value, sub }) {
+  if (!value || value === '—') return null
   return (
-    <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
-      <p className="cand-fs-xs font-medium text-slate-500">{label}</p>
-      <p className="cand-fs-md mt-0.5 font-bold tracking-tight text-slate-900">{value}</p>
-      {sub ? <p className="cand-fs-2xs mt-0.5 text-slate-400">{sub}</p> : null}
+    <div className="rounded-lg border border-slate-200/80 bg-white px-2 py-1.5 shadow-sm">
+      <p className="cand-fs-2xs font-medium text-slate-400">{label}</p>
+      <p className="cand-fs-sm font-bold tracking-tight text-slate-900">{value}</p>
+      {sub ? <p className="cand-fs-2xs text-slate-400">{sub}</p> : null}
     </div>
   )
 }
 
 function DetailField({ label, value }) {
-  if (!value || value === '—') return null
+  const text = sanitizeCandidateDisplayText(value)
+  if (!text) return null
   return (
     <div>
       <p className="cand-fs-xs font-medium text-slate-400">{label}</p>
-      <p className="cand-fs-sm mt-0.5 font-medium text-slate-900 [overflow-wrap:anywhere]">{value}</p>
+      <p className="cand-fs-sm mt-0.5 font-medium text-slate-900 [overflow-wrap:anywhere]">{text}</p>
+    </div>
+  )
+}
+
+function SkillsChipSection({ skills, hl = (t) => t }) {
+  const [expanded, setExpanded] = useState(false)
+  if (!skills?.length) return null
+  const visible = expanded ? skills : skills.slice(0, 6)
+  const extra = Math.max(0, skills.length - 6)
+  return (
+    <div className="flex flex-wrap gap-1">
+      {visible.map((sk) => (
+        <span key={sk} className="cand-fs-xs rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-slate-700">
+          {hl(sk)}
+        </span>
+      ))}
+      {!expanded && extra > 0 ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="cand-fs-xs font-semibold text-[#0077B6] hover:underline"
+        >
+          +{extra}
+        </button>
+      ) : null}
+      {expanded && skills.length > 6 ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="cand-fs-xs font-semibold text-slate-500 hover:underline"
+        >
+          Thu gọn
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+function CandidateHeaderMenu({ detailCopy, onDownloadCv, onScrollStatus, onComingSoon }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const hm = detailCopy.headerMenu || {}
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (!ref.current?.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [])
+
+  const items = [
+    { id: 'status', label: hm.updateStatus, onClick: () => { onScrollStatus?.(); setOpen(false) } },
+    { id: 'note', label: hm.addNote, onClick: () => { onComingSoon?.(); setOpen(false) } },
+    { id: 'cv', label: hm.downloadCv, onClick: () => { onDownloadCv?.(); setOpen(false) } },
+    { id: 'hide', label: hm.hideProfile, onClick: () => { onComingSoon?.(); setOpen(false) } },
+  ]
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50"
+        aria-label={detailCopy.moreActions}
+      >
+        <MoreHorizontal className="cand-icon" />
+      </button>
+      {open ? (
+        <div className="absolute right-0 top-8 z-20 min-w-[160px] overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+          {items.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={item.onClick}
+              className="cand-fs-xs flex w-full px-3 py-1.5 text-left font-medium text-slate-700 hover:bg-slate-50"
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -339,7 +437,15 @@ function SectionCard({ title, children, className = '' }) {
   )
 }
 
-function CandidateDetail({ candidate, loading, copy, language }) {
+function CandidateDetail({
+  candidate,
+  loading,
+  copy,
+  language,
+  onDownloadCv,
+  onScrollToPipelineControl,
+  onHeaderMenuComingSoon,
+}) {
   const d = copy.detail
   const f = d.fields
   const s = d.sections
@@ -379,28 +485,39 @@ function CandidateDetail({ candidate, loading, copy, language }) {
 
   const isPerformanceUnlock = isScoutPerformanceUnlock(candidate)
 
-  const overviewMetrics = isPerformanceUnlock
-    ? [
-        { label: m.approachStatus, value: pipeline.label, sub: m.pipeline },
-        {
-          label: m.wsRequest,
-          value: perfStatusMeta?.label || '—',
-          sub: perfReq?.recommendationCount ? m.recommendations(perfReq.recommendationCount) : undefined,
-        },
-        { label: m.experience, value: formatCandidateExperienceYears(candidate.experienceYears, language), sub: m.overview },
-        { label: m.profileUnlock, value: formatCandidateListDate(candidate.unlockedAt, language), sub: source.label },
-      ]
-    : [
-        { label: m.approachStatus, value: pipeline.label, sub: m.pipeline },
-        { label: m.creditUsed, value: candidate.creditCost != null ? String(candidate.creditCost) : '—', sub: m.scoutCredit },
-        { label: m.experience, value: formatCandidateExperienceYears(candidate.experienceYears, language), sub: m.overview },
-        { label: m.profileUnlock, value: formatCandidateListDate(candidate.unlockedAt, language), sub: source.label },
-      ]
+  const expYears = formatCandidateExperienceYears(candidate.experienceYears, language)
+  const jlptSummary = formatCandidateJlptSummary(candidate)
+  const salaryText = formatScoutDesiredSalary(candidate)
+  const role = getLocalizedCandidateRole(candidate, language)
+  const locationText = sanitizeCandidateDisplayText(candidate.desiredWorkLocation)
+  const unlockDate = formatCandidateDetailDate(candidate.unlockedAt, language)
+    || formatCandidateListDate(candidate.unlockedAt, language)
+
+  const isScoutCreditUnlock = candidate.unlockType === 'scout_credit'
+  const creditCost = Number(candidate.creditCost)
+  const showCreditMetric = isScoutCreditUnlock && Number.isFinite(creditCost) && creditCost > 0
+
+  const overviewMetrics = [
+    ...(isPerformanceUnlock
+      ? [{
+        label: m.wsRequest,
+        value: perfStatusMeta?.label || null,
+        sub: perfReq?.recommendationCount ? m.recommendations(perfReq.recommendationCount) : undefined,
+      }]
+      : []),
+    { label: m.experience, value: expYears !== '—' ? expYears : null, sub: m.overview },
+    { label: m.profileUnlock, value: unlockDate !== '—' ? unlockDate : null, sub: source.label },
+    ...(showCreditMetric
+      ? [{ label: m.creditUsed, value: String(creditCost), sub: m.scoutCredit }]
+      : []),
+  ]
+
+  const prText = sanitizeCandidateDisplayText(getScoutPrSummary(candidate))
 
   return (
-    <div className="candidate-scrollbar flex min-h-0 flex-col gap-3 pb-1">
+    <div className="candidate-scrollbar flex min-h-0 flex-col gap-2 pb-1">
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-2.5">
           <div className="relative shrink-0">
             <AvatarCircle candidate={candidate} size={40} language={language} />
             <div className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white bg-emerald-500 text-white">
@@ -408,63 +525,48 @@ function CandidateDetail({ candidate, loading, copy, language }) {
             </div>
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <h2 className="cand-fs-lg font-bold text-slate-900">{getLocalizedScoutDisplayName({ ...candidate, isUnlocked: true }, language)}</h2>
+            <div className="flex items-start justify-between gap-2">
+              <h2 className="cand-fs-lg font-bold text-slate-900">
+                {getLocalizedScoutDisplayName({ ...candidate, isUnlocked: true }, language)}
+              </h2>
+              <CandidateHeaderMenu
+                detailCopy={d}
+                onDownloadCv={onDownloadCv}
+                onScrollStatus={onScrollToPipelineControl}
+                onComingSoon={onHeaderMenuComingSoon}
+              />
+            </div>
+            {role ? <p className="cand-fs-md mt-0.5 font-semibold text-slate-800">{role}</p> : null}
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
               <span
-                className="cand-fs-xs rounded-full px-1.5 py-0.5 font-semibold"
+                className="cand-fs-xs rounded-full px-2 py-0.5 font-semibold ring-1 ring-inset ring-black/5"
                 style={{ color: pipeline.color, background: pipeline.bg }}
               >
                 {pipeline.label}
               </span>
+              <span
+                className="cand-fs-xs rounded-full px-2 py-0.5 font-semibold ring-1 ring-inset ring-black/5"
+                style={{ color: source.color, background: source.bg || `${source.color}14` }}
+              >
+                {source.label}
+              </span>
+              {unlockDate && unlockDate !== '—' ? (
+                <span className="cand-fs-2xs text-slate-400">Mở {unlockDate}</span>
+              ) : null}
             </div>
-            <p className="cand-fs-sm mt-0.5 text-slate-500">
-              {getLocalizedCandidateRole(candidate, language)}
-            </p>
-            <p className="cand-fs-xs mt-0.5 text-slate-400">
-              {formatCandidateAgeGender(candidate, language)}
-              {candidate.desiredWorkLocation ? ` · ${candidate.desiredWorkLocation}` : ''}
-            </p>
-            <p className="cand-fs-xs mt-1 font-medium" style={{ color: source.color }}>
-              {d.unlockedLine(source.label, formatCandidateListDate(candidate.unlockedAt, language))}
-            </p>
-          </div>
-          <div className="flex shrink-0 items-start gap-1.5">
-            <span
-              className="cand-fs-xs rounded-full border border-slate-200 px-1.5 py-0.5 font-semibold"
-              style={{ color: source.color, background: `${source.color}12` }}
-            >
-              {source.label}
-            </span>
-            <button
-              type="button"
-              className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-400 hover:bg-slate-50"
-              aria-label={d.moreActions}
-            >
-              <MoreHorizontal className="cand-icon" />
-            </button>
           </div>
         </div>
       </div>
 
-      <div>
-        <div className="mb-1.5 flex items-center justify-between px-0.5">
-          <h3 className="cand-fs-sm font-bold text-slate-900">{d.overview}</h3>
-        </div>
-        <div className="cand-metrics">
-          {overviewMetrics.map((m) => (
-            <MetricCard key={m.label} label={m.label} value={m.value} sub={m.sub} />
-          ))}
-        </div>
+      <div className="cand-metrics">
+        {overviewMetrics.map((item) => (
+          <MetricCard key={item.label} label={item.label} value={item.value} sub={item.sub} />
+        ))}
       </div>
 
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <h3 className="cand-fs-sm font-bold text-slate-900">{d.profileInfo}</h3>
-            <span className="cand-fs-2xs rounded-full bg-emerald-50 px-1.5 py-0.5 font-semibold text-emerald-700">
-              {d.unlockedBadge}
-            </span>
-          </div>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="cand-fs-sm font-bold text-slate-900">{d.profileInfo}</h3>
           {candidate.code ? (
             <button
               type="button"
@@ -476,36 +578,36 @@ function CandidateDetail({ candidate, loading, copy, language }) {
             </button>
           ) : null}
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <DetailField label={f.desiredPosition} value={role} />
+          <DetailField label={f.experience} value={expYears !== '—' ? expYears : null} />
+          <DetailField label={f.jlptLanguages} value={jlptSummary} />
+          <DetailField label={f.desiredLocation} value={locationText} />
+          <DetailField
+            label={f.desiredSalary}
+            value={!isScoutEmptyDisplayValue(salaryText) ? salaryText : null}
+          />
+        </div>
+        <div className="grid gap-2 border-t border-slate-100 pt-2 sm:grid-cols-2 lg:grid-cols-3">
           <DetailField label={f.email} value={candidate.email} />
           <DetailField label={f.phone} value={candidate.phone} />
           <DetailField label={f.furigana} value={candidate.furigana} />
-          <DetailField label={f.birthDate} value={formatCandidateListDate(candidate.birthDate, language)} />
+          <DetailField label={f.birthDate} value={formatCandidateDetailDate(candidate.birthDate, language)} />
           <DetailField label={f.gender} value={formatCandidateGender(candidate.gender, language)} />
-          <DetailField label={f.desiredLocation} value={candidate.desiredWorkLocation} />
-          <DetailField label={f.experience} value={formatCandidateExperienceYears(candidate.experienceYears, language)} />
-          <DetailField label={f.desiredPosition} value={getLocalizedCandidateRole(candidate, language)} />
-          <DetailField label={f.desiredSalary} value={candidate.desiredIncome} />
-          <DetailField
-            label={f.jlptLanguages}
-            value={[candidate.jlptLevel, candidate.jpConversationLevel, candidate.enConversationLevel].filter(Boolean).join(' · ') || null}
-          />
         </div>
       </div>
 
-      {getScoutPrSummary(candidate) && (
+      {prText && (
         <SectionCard title={s.pr}>
-          <p className="cand-fs-sm whitespace-pre-wrap leading-relaxed text-slate-600">
-            {getScoutPrSummary(candidate)}
+          <p className="cand-fs-sm cand-prose whitespace-pre-wrap text-slate-600">
+            {prText}
           </p>
         </SectionCard>
       )}
 
       {skills.length > 0 && (
         <SectionCard title={s.skills}>
-          <p className="cand-fs-sm leading-relaxed text-slate-600">
-            {skills.join(' · ')}
-          </p>
+          <SkillsChipSection skills={skills} />
         </SectionCard>
       )}
 
@@ -528,7 +630,7 @@ function CandidateDetail({ candidate, loading, copy, language }) {
           <div className="flex flex-col gap-2">
             {workExperiences.map((work, i) => (
               <div key={i} className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
-                <div className="cand-fs-sm font-bold text-slate-900">{work.companyName}</div>
+                <div className="cand-fs-sm font-bold text-slate-900">{sanitizeCandidateDisplayText(work.companyName) || work.companyName}</div>
                 <div className="cand-fs-xs mt-0.5 text-slate-500">{work.period}</div>
                 {work.description !== '—' && (
                   <div className="cand-fs-sm mt-1 whitespace-pre-wrap leading-relaxed text-slate-600">
@@ -582,17 +684,20 @@ function CandidateDetail({ candidate, loading, copy, language }) {
   )
 }
 
+const PIPELINE_OPTIONS = ['new', 'processing', 'interview', 'contact', 'hired', 'rejected']
+
 function CandidateSidebar({
   candidate,
   businessId,
   exploreSubmitting,
   onExploreStatus,
   onOpenNomination,
-  onAttachToJob,
+  onRequestAttach,
   attachingJobId,
   attachedJobIds,
   onDownloadOriginalCv,
   downloadingCv,
+  pipelineControlRef,
   copy,
   language,
 }) {
@@ -612,36 +717,53 @@ function CandidateSidebar({
     : null
   const canSetExplore = perfReq?.status === 'approved' && !perfReq?.businessExploreStatus
 
-  const timeline = [
+  const timelineRaw = [
     {
-      date: formatCandidateListDate(candidate.unlockedAt, language),
+      ts: candidate.unlockedAt,
+      date: formatCandidateDetailDate(candidate.unlockedAt, language) || formatCandidateListDate(candidate.unlockedAt, language),
       action: tl.unlockProfile(source.label),
     },
     ...(candidate.savedAt && candidate.savedAt !== candidate.unlockedAt
-      ? [{ date: formatCandidateListDate(candidate.savedAt, language), action: tl.addToCandidates }]
+      ? [{
+        ts: candidate.savedAt,
+        date: formatCandidateDetailDate(candidate.savedAt, language) || formatCandidateListDate(candidate.savedAt, language),
+        action: tl.addToCandidates,
+      }]
       : []),
     ...(perfReq?.requestedAt
       ? [{
-        date: formatCandidateListDate(perfReq.requestedAt, language),
+        ts: perfReq.requestedAt,
+        date: formatCandidateDetailDate(perfReq.requestedAt, language) || formatCandidateListDate(perfReq.requestedAt, language),
         action: tl.perfRequest(getLocalizedScoutPerformanceRequestStatusLabel(perfReq.status, language)),
       }]
       : []),
     ...(perfReq?.handledAt
-      ? [{ date: formatCandidateListDate(perfReq.handledAt, language), action: tl.wsHandled }]
+      ? [{
+        ts: perfReq.handledAt,
+        date: formatCandidateDetailDate(perfReq.handledAt, language) || formatCandidateListDate(perfReq.handledAt, language),
+        action: tl.wsHandled,
+      }]
       : []),
     ...(perfReq?.businessExploreStatus === 'interested'
-      ? [{ date: '—', action: tl.businessInterested }]
+      ? [{ ts: perfReq.handledAt || perfReq.requestedAt, date: null, action: tl.businessInterested }]
       : []),
     ...(perfReq?.wantsSimilarCandidates
-      ? [{ date: '—', action: tl.findingSimilar }]
+      ? [{ ts: null, date: null, action: tl.findingSimilar }]
       : []),
   ]
+  const timeline = timelineRaw
+    .filter((item) => item.action)
+    .sort((a, b) => {
+      const ta = a.ts ? new Date(a.ts).getTime() : 0
+      const tb = b.ts ? new Date(b.ts).getTime() : 0
+      return tb - ta
+    })
 
   return (
-    <div className="candidate-scrollbar flex min-h-0 flex-col gap-3">
+    <div className="candidate-scrollbar flex min-h-0 flex-col gap-2">
       {isPerformanceUnlock && (
-        <div className="cand-surface border border-violet-100 bg-white shadow-sm">
-          <h3 className="cand-fs-sm mb-2 font-bold text-slate-900">{sb.perfWsTitle}</h3>
+        <div className="cand-surface border border-slate-200/80 bg-slate-50/50 shadow-sm">
+          <h3 className="cand-fs-sm mb-1.5 font-bold text-slate-800">{sb.perfWsTitle}</h3>
           {!perfReq ? (
             <p className="cand-fs-xs text-slate-400">
               {sb.noPerfRequest}
@@ -683,7 +805,7 @@ function CandidateSidebar({
                       type="button"
                       disabled={exploreSubmitting}
                       onClick={() => onExploreStatus?.(perfReq.id, 'interested')}
-                      className="cand-fs-xs w-full rounded bg-indigo-600 px-2 py-1.5 font-semibold text-white disabled:opacity-70"
+                      className="cand-fs-xs w-full rounded-md border border-[#0077B6]/30 bg-white px-2 py-1.5 font-semibold text-[#0077B6] hover:bg-[#e8f4fa] disabled:opacity-70"
                     >
                       {sb.exploreYes}
                     </button>
@@ -691,7 +813,7 @@ function CandidateSidebar({
                       type="button"
                       disabled={exploreSubmitting}
                       onClick={() => onExploreStatus?.(perfReq.id, 'declined')}
-                      className="cand-fs-xs w-full rounded border border-slate-200 bg-slate-50 px-2 py-1.5 font-semibold text-slate-600 disabled:opacity-70"
+                      className="cand-fs-xs w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 font-semibold text-slate-600 disabled:opacity-70"
                     >
                       {sb.exploreNo}
                     </button>
@@ -707,7 +829,7 @@ function CandidateSidebar({
               </Link>
               <Link
                 to="/business/messages?tab=ws"
-                className="cand-fs-2xs flex items-center gap-1 font-semibold text-violet-600"
+                className="cand-fs-2xs flex items-center gap-1 font-semibold text-[#0077B6]"
               >
                 <MessageSquare className="cand-icon" />
                 {sb.chatWithWs}
@@ -717,39 +839,46 @@ function CandidateSidebar({
         </div>
       )}
 
-      <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
-        <h3 className="cand-fs-sm mb-2 font-bold text-slate-900">
-          {isPerformanceUnlock ? sb.approachTitle : sb.statusTitle}
-        </h3>
-        <div
-          className="cand-fs-sm mb-1 w-full rounded-md border border-slate-200 px-2 py-1 font-semibold"
-          style={{ color: pipeline.color, background: pipeline.bg }}
+      <div id="pipeline-control" ref={pipelineControlRef} className="cand-surface border border-slate-200/80 bg-white shadow-sm">
+        <label className="cand-fs-sm mb-1 block font-bold text-slate-900" htmlFor="pipeline-status-select">
+          {copy.detail?.headerMenu?.updateStatus || sb.statusTitle}
+        </label>
+        <select
+          id="pipeline-status-select"
+          value={candidate.pipelineStatus || 'new'}
+          disabled
+          className="cand-fs-sm w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 font-semibold text-slate-700"
+          title="Cập nhật trạng thái sẽ sớm khả dụng"
         >
-          {pipeline.label}
-        </div>
-        <p className="cand-fs-xs text-slate-400">
-          {isPerformanceUnlock ? sb.perfFeeNote : sb.creditCostNote(candidate.creditCost)}
+          {PIPELINE_OPTIONS.map((key) => {
+            const meta = getLocalizedScoutPipelineMeta(key, language)
+            return (
+              <option key={key} value={key}>{meta.label}</option>
+            )
+          })}
+        </select>
+        <p className="cand-fs-2xs mt-1 text-slate-400">
+          {isPerformanceUnlock
+            ? sb.perfFeeNote
+            : (candidate.unlockType === 'scout_credit'
+              ? sb.creditCostNote(candidate.creditCost)
+              : null)}
         </p>
       </div>
 
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
-        <h3 className="cand-fs-sm mb-2 font-bold text-slate-900">{sb.activity}</h3>
-        <div className="flex flex-col gap-1.5">
+        <h3 className="cand-fs-sm mb-1.5 font-bold text-slate-900">{sb.activity}</h3>
+        <ul className="relative border-l-2 border-slate-200 pl-3">
           {timeline.map((item, i) => (
-            <div key={i} className="flex gap-2">
-              <div
-                className="cand-fs-2xs flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-bold text-white"
-                style={{ background: BRAND }}
-              >
-                ●
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="cand-fs-sm font-medium text-slate-700">{item.action}</div>
-                <div className="cand-fs-xs mt-0.5 text-slate-400">{item.date}</div>
-              </div>
-            </div>
+            <li key={`${item.action}-${i}`} className="relative pb-2 last:pb-0">
+              <span className="absolute -left-[calc(0.75rem+1px)] top-1 h-2 w-2 rounded-full bg-[#0077B6]" />
+              <p className="cand-fs-xs font-medium leading-snug text-slate-800">{item.action}</p>
+              {item.date && item.date !== '—' ? (
+                <p className="cand-fs-2xs mt-0.5 text-slate-400">{item.date}</p>
+              ) : null}
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
 
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
@@ -812,7 +941,7 @@ function CandidateSidebar({
         <MatchedJobsRecommendations
           cvId={candidate.id}
           businessId={businessId}
-          onAttach={onAttachToJob}
+          onRequestAttach={onRequestAttach}
           attachingJobId={attachingJobId}
           attachedJobIds={attachedJobIds}
           copy={copy}
@@ -854,6 +983,8 @@ export default function BusinessUnlockedCandidateDetail() {
   const [downloadingCv, setDownloadingCv] = useState(false)
   const [attachedJobIds, setAttachedJobIds] = useState(() => new Set())
   const [nominationModalOpen, setNominationModalOpen] = useState(false)
+  const [attachConfirm, setAttachConfirm] = useState(null)
+  const pipelineControlRef = useRef(null)
   const candidateLoadSeqRef = useRef(0)
 
   const backToListUrl = useMemo(() => {
@@ -895,16 +1026,29 @@ export default function BusinessUnlockedCandidateDetail() {
     }
   }, [patchPerformanceExplore, numericCandidateId])
 
-  const handleAttachToJob = useCallback(async (jobId) => {
+  const handleRequestAttach = useCallback((payload) => {
+    if (!payload?.jobId || !payload?.job) return
+    setAttachConfirm(payload)
+  }, [])
+
+  const handleConfirmAttach = useCallback(async () => {
+    const jobId = attachConfirm?.jobId
     if (!candidate?.id || !jobId) return
     setAttachingJobId(jobId)
     try {
-      const res = await apiService.nominateBusinessCandidate(candidate.id, { jobId })
+      const res = await apiService.attachScoutCandidateToJob(candidate.id, { jobId })
       if (res?.success) {
         if (res.data?.alreadyExists) {
           window.alert(candidateCopy.list.nomination?.alreadyExists || d.attachError)
+        } else {
+          const ac = d.attachConfirm
+          const go = window.confirm(
+            `${ac?.successTitle || 'Đã đưa vào tuyển chọn'}\n${ac?.successBody || ''}\n\n${ac?.goApplications || 'Mở quản lý ứng viên'}?`,
+          )
+          if (go) navigate('/business/applications')
         }
         setAttachedJobIds((prev) => new Set([...prev, String(jobId)]))
+        setAttachConfirm(null)
       } else {
         window.alert(res?.message || d.attachError)
       }
@@ -914,7 +1058,7 @@ export default function BusinessUnlockedCandidateDetail() {
     } finally {
       setAttachingJobId(null)
     }
-  }, [candidate?.id, candidateCopy.list.nomination?.alreadyExists, d.attachError])
+  }, [attachConfirm?.jobId, candidate?.id, candidateCopy.list.nomination?.alreadyExists, d.attachError, d.attachConfirm, navigate])
 
   const handleNominationSuccess = useCallback((data) => {
     const jobId = data?.job?.id ?? data?.application?.jobId
@@ -997,15 +1141,25 @@ export default function BusinessUnlockedCandidateDetail() {
         className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#f4f6f8]"
         style={{ fontFamily: PAGE_FONT }}
       >
-        <div className="w-full shrink-0 border-b border-slate-200/80 bg-white px-3 py-2.5 sm:px-4">
-          <button
-            type="button"
-            onClick={() => navigate(backToListUrl)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            {d.backToList}
-          </button>
+        <div className="w-full shrink-0 border-b border-slate-200/80 bg-white px-3 py-1.5 sm:px-4">
+          <nav className="flex min-w-0 items-center gap-1 text-xs text-slate-500">
+            <button
+              type="button"
+              onClick={() => navigate(backToListUrl)}
+              className="inline-flex shrink-0 items-center gap-0.5 font-semibold text-slate-600 hover:text-[#0077B6]"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              {d.backToList}
+            </button>
+            {candidate ? (
+              <>
+                <span className="text-slate-300">/</span>
+                <span className="truncate font-medium text-slate-800">
+                  {getLocalizedScoutDisplayName(candidate, language)}
+                </span>
+              </>
+            ) : null}
+          </nav>
         </div>
 
         <div className="candidate-scrollbar min-h-0 flex-1 overflow-y-auto p-2 lg:p-3">
@@ -1031,6 +1185,13 @@ export default function BusinessUnlockedCandidateDetail() {
                   loading={candidateLoading}
                   copy={candidateCopy}
                   language={language}
+                  onDownloadCv={handleDownloadOriginalCv}
+                  onScrollToPipelineControl={() => {
+                    pipelineControlRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  }}
+                  onHeaderMenuComingSoon={() => {
+                    window.alert(d.headerMenu?.comingSoon || 'Tính năng đang được hoàn thiện.')
+                  }}
                 />
                 {candidate ? (
                   <CandidateSidebar
@@ -1039,11 +1200,12 @@ export default function BusinessUnlockedCandidateDetail() {
                     exploreSubmitting={exploreSubmitting}
                     onExploreStatus={handlePerformanceExplore}
                     onOpenNomination={() => setNominationModalOpen(true)}
-                    onAttachToJob={handleAttachToJob}
+                    onRequestAttach={handleRequestAttach}
                     attachingJobId={attachingJobId}
                     attachedJobIds={attachedJobIds}
                     onDownloadOriginalCv={handleDownloadOriginalCv}
                     downloadingCv={downloadingCv}
+                    pipelineControlRef={pipelineControlRef}
                     copy={candidateCopy}
                     language={language}
                   />
@@ -1061,15 +1223,30 @@ export default function BusinessUnlockedCandidateDetail() {
         </div>
       </div>
       {candidate ? (
-        <BusinessCandidateNominationModal
-          open={nominationModalOpen}
-          onClose={() => setNominationModalOpen(false)}
-          cvId={candidate.id}
-          candidateName={getLocalizedScoutDisplayName(candidate, language)}
-          copy={candidateCopy.list}
-          language={language}
-          onSuccess={handleNominationSuccess}
-        />
+        <>
+          <BusinessCandidateNominationModal
+            open={nominationModalOpen}
+            onClose={() => setNominationModalOpen(false)}
+            cvId={candidate.id}
+            candidateName={getLocalizedScoutDisplayName(candidate, language)}
+            copy={candidateCopy.list}
+            language={language}
+            onSuccess={handleNominationSuccess}
+          />
+          <BusinessCandidateAttachJobConfirmModal
+            open={!!attachConfirm}
+            onClose={() => setAttachConfirm(null)}
+            job={attachConfirm?.job}
+            jobId={attachConfirm?.jobId}
+            score={attachConfirm?.score}
+            candidate={candidate}
+            cvId={candidate.id}
+            language={language}
+            copy={d.attachConfirm}
+            submitting={!!attachingJobId}
+            onConfirm={handleConfirmAttach}
+          />
+        </>
       ) : null}
     </>
   )

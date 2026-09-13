@@ -1,11 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
-  Plus,
-  Bookmark,
-  BarChart3,
-  Users,
-  TrendingUp,
   Loader2,
   Check,
   ArrowUpRight,
@@ -13,6 +8,7 @@ import {
   Megaphone,
   CalendarDays,
   Building2,
+  LayoutGrid,
 } from 'lucide-react'
 import apiService from '../../services/api'
 import TemplateSlidePanel from '../../component/BusinessBranding/TemplateSlidePanel'
@@ -20,16 +16,12 @@ import BrandingAlertModal from '../../component/BusinessBranding/BrandingAlertMo
 import BrandingServiceIntakeModal from '../../component/BusinessBranding/BrandingServiceIntakeModal'
 import { getBillingServiceKeyFromIntake } from '../../utils/serviceRequestNoteDisplay'
 import { getServiceByKey } from '../../utils/businessServiceRequestCatalog'
-import { isCompanyBuilderContent } from '../../utils/companyLandingPageSchema'
 import { HomepageSidebar } from './Homepage'
 import { useLanguage } from '../../context/LanguageContext'
 import {
   getBrandingCopy,
   getBrandingServicePackages,
-  getLandingPageStatusMeta,
-  formatBrandingDate,
 } from '../../i18n/businessAppI18n'
-import { getLocalizedJobTitle } from '../../i18n/businessApp/jdBuilder'
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 const BRAND = '#0077B6'
@@ -102,16 +94,6 @@ const homepageStyles = `
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
-  @media (min-width: 1280px) and (max-width: 1679px) {
-    .branding-service-cards-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-  @media (min-width: 1680px) {
-    .branding-service-cards-grid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-  }
 `
 
 const CARD_SURFACE = {
@@ -132,23 +114,23 @@ const CTA_TAG_STYLE = {
   pro: 'bg-violet-100 text-violet-700',
 }
 
-function ServiceCardCtaButton({ cta, isOnDark, disabled, onClick }) {
-  const isYellow = cta.variant === 'yellow'
-  const whiteClass = isOnDark
-    ? 'bg-white text-[#0077B6] hover:bg-white/90'
-    : 'border border-slate-200 bg-white text-slate-800 hover:border-[#0077B6]/25 hover:bg-slate-50'
-  const yellowClass = isOnDark
-    ? 'border border-[#fde68a]/80 bg-[#fef9c3] text-slate-900 hover:bg-[#fde68a]'
-    : 'border border-[#fde68a] bg-[#fef9c3] text-slate-800 hover:bg-[#fde68a]'
+const DELIVERY_BADGE_STYLE = {
+  self_service: 'bg-emerald-100 text-emerald-800',
+  ws_support: 'bg-amber-100 text-amber-800',
+}
 
+const READY_NOW_BADGE_STYLE = 'bg-sky-100 text-sky-800'
+
+const SERVICE_CARD_BADGE =
+  'inline-flex h-[1.375rem] items-center rounded-full px-2 text-[9px] font-bold uppercase tracking-wide sm:text-[10px]'
+
+function ServiceCardCtaButton({ cta, disabled, onClick }) {
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`flex min-h-[2.75rem] w-full items-center gap-2 rounded-lg px-2.5 text-left text-[10px] font-semibold leading-tight transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-[3rem] sm:text-[11px] 2xl:h-12 ${
-        isYellow ? yellowClass : whiteClass
-      }`}
+      className="flex min-h-[2.125rem] w-full items-center justify-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-1 text-center text-[9px] font-semibold leading-tight text-slate-800 transition-colors hover:border-[#0077B6]/30 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-[2.25rem] sm:text-[10px]"
     >
       <span className="min-w-0 flex-1 line-clamp-2">{cta.label}</span>
       {cta.tag ? (
@@ -164,11 +146,7 @@ function ServiceCardCtaButton({ cta, isOnDark, disabled, onClick }) {
   )
 }
 
-function formatDate(value, language) {
-  return formatBrandingDate(value, language)
-}
-
-function BrandingServiceCard({ card, onCta, loadingKey, copy }) {
+function BrandingServiceCard({ card, onCta, loadingKey, copy, hasCreatedLandingPages, onManageLandingPages }) {
   const isOnDark = card.variant === 'primary'
   const surface = CARD_SURFACE[card.variant] || CARD_SURFACE.neutral
   const DecoIcon = PACKAGE_ICONS[card.id] || Sparkles
@@ -180,7 +158,7 @@ function BrandingServiceCard({ card, onCta, loadingKey, copy }) {
 
   return (
     <article
-      className={`biz-hp-solution-card ${isOnDark ? 'biz-hp-solution-card--dark' : ''} relative grid h-full min-h-[260px] grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden rounded-[1.25rem] p-3 sm:p-3.5 xl:min-h-[280px] 2xl:min-h-[300px] 2xl:p-4 ${surface}`}
+      className={`biz-hp-solution-card ${isOnDark ? 'biz-hp-solution-card--dark' : ''} relative flex h-full min-h-[260px] flex-col overflow-hidden rounded-[1.25rem] p-3 sm:p-3.5 xl:min-h-[280px] 2xl:min-h-[300px] 2xl:p-4 ${surface}`}
     >
       <div className="relative z-20 flex items-start justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -191,16 +169,13 @@ function BrandingServiceCard({ card, onCta, loadingKey, copy }) {
           >
             {card.num}
           </span>
+          {card.readyNow ? (
+            <span className={`${SERVICE_CARD_BADGE} ${READY_NOW_BADGE_STYLE}`}>{copy.readyNowBadge}</span>
+          ) : null}
           {card.deliveryBadge ? (
             <span
-              className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide sm:text-[10px] ${
-                card.deliveryBadge.type === 'self_service'
-                  ? isOnDark
-                    ? 'bg-emerald-400/25 text-emerald-100'
-                    : 'bg-emerald-100 text-emerald-800'
-                  : isOnDark
-                    ? 'bg-white/15 text-white/90'
-                    : 'bg-amber-100 text-amber-800'
+              className={`${SERVICE_CARD_BADGE} ${
+                DELIVERY_BADGE_STYLE[card.deliveryBadge.type] || 'bg-slate-100 text-slate-700'
               }`}
             >
               {card.deliveryBadge.label}
@@ -234,11 +209,11 @@ function BrandingServiceCard({ card, onCta, loadingKey, copy }) {
         />
       </div>
 
-      <div className="relative z-10 mt-3 flex min-h-0 flex-col">
-        <h4 className={`shrink-0 text-xs font-bold sm:text-[13px] ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}>
+      <div className="relative z-10 mt-2 flex min-h-0 flex-1 flex-col">
+        <h4 className={`shrink-0 text-[11px] font-bold sm:text-xs ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}>
           {copy.featuresHeading}
         </h4>
-        <ul className={`mt-2 flex min-h-0 flex-1 flex-col gap-2 text-[11px] leading-snug sm:text-xs ${bodyClass}`}>
+        <ul className={`mt-1 flex min-h-0 flex-1 flex-col gap-1 text-[10px] leading-snug sm:text-[11px] ${bodyClass}`}>
           {card.features.map((line) => (
             <li key={line} className="flex gap-2">
               <Check className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`} strokeWidth={2.5} />
@@ -248,15 +223,28 @@ function BrandingServiceCard({ card, onCta, loadingKey, copy }) {
         </ul>
       </div>
 
-      <div className={`relative z-10 mt-3 shrink-0 border-t pt-3 ${isOnDark ? 'border-white/20' : 'border-slate-200/80'}`}>
-        <h4 className={`text-xs font-bold sm:text-[13px] ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}>{copy.suitableHeading}</h4>
-        <p className={`mt-1.5 min-h-[2.25rem] text-[10px] leading-snug sm:min-h-[2.75rem] sm:text-[11px] 2xl:text-xs ${bodyClass}`}>{card.suitableFor}</p>
-        <div className="mt-2 grid grid-cols-1 gap-1.5">
+      <div className={`relative z-10 mt-auto shrink-0 border-t pt-2 ${isOnDark ? 'border-white/20' : 'border-slate-200/80'}`}>
+        <h4 className={`text-[11px] font-bold sm:text-xs ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}>{copy.suitableHeading}</h4>
+        <p className={`mt-1 min-h-[2rem] text-[10px] leading-snug sm:min-h-[2.25rem] sm:text-[11px] ${bodyClass}`}>{card.suitableFor}</p>
+        {card.id === 'landing' && hasCreatedLandingPages ? (
+          <button
+            type="button"
+            onClick={onManageLandingPages}
+            className="mt-1.5 flex min-h-[2.125rem] w-full items-center justify-center gap-1 rounded-md border border-[#0077B6]/35 bg-[#e8f4fa] px-1.5 py-1 text-[9px] font-semibold text-[#0077B6] transition-colors hover:bg-[#dceef8] sm:min-h-[2.25rem] sm:text-[10px]"
+          >
+            <LayoutGrid className="h-3 w-3 shrink-0" strokeWidth={2.25} />
+            {copy.manageLandingPagesCta}
+          </button>
+        ) : null}
+        <div
+          className={`mt-1.5 grid gap-1.5 ${
+            (card.ctas || []).length >= 2 ? 'grid-cols-2' : 'grid-cols-1 max-w-[14rem]'
+          }`}
+        >
           {(card.ctas || []).map((cta) => (
             <ServiceCardCtaButton
               key={cta.action}
               cta={cta}
-              isOnDark={isOnDark}
               disabled={busy}
               onClick={() => onCta(card, cta)}
             />
@@ -267,7 +255,16 @@ function BrandingServiceCard({ card, onCta, loadingKey, copy }) {
   )
 }
 
-function BrandingOverviewMain({ onNavigate, onCardCta, onConsultation, requestLoadingKey, copy, servicePackages }) {
+function BrandingOverviewMain({
+  onNavigate,
+  onCardCta,
+  onConsultation,
+  requestLoadingKey,
+  copy,
+  servicePackages,
+  hasCreatedLandingPages,
+  onManageLandingPages,
+}) {
   return (
     <div className="flex flex-col gap-2">
       <div className="shrink-0">
@@ -291,7 +288,14 @@ function BrandingOverviewMain({ onNavigate, onCardCta, onConsultation, requestLo
             className="biz-hp-solution-card-wrap min-w-0"
             style={{ animationDelay: `${0.06 + index * 0.1}s` }}
           >
-            <BrandingServiceCard card={card} onCta={onCardCta} loadingKey={requestLoadingKey} copy={copy} />
+            <BrandingServiceCard
+              card={card}
+              onCta={onCardCta}
+              loadingKey={requestLoadingKey}
+              copy={copy}
+              hasCreatedLandingPages={card.id === 'landing' && hasCreatedLandingPages}
+              onManageLandingPages={onManageLandingPages}
+            />
           </div>
         ))}
       </div>
@@ -316,208 +320,7 @@ function BrandingOverviewMain({ onNavigate, onCardCta, onConsultation, requestLo
   )
 }
 
-function BrandingStatsSection({
-  copy,
-  language,
-  statCards,
-  statsEmpty,
-  hasPublishedPage,
-  displayPages,
-  activities,
-  setShowCreate,
-  openEditor,
-  copyPublicLink,
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <h2 className="text-sm font-bold text-slate-900 sm:text-base">{copy.statsSectionTitle}</h2>
-
-      {statsEmpty && !hasPublishedPage ? (
-        <div className="rounded-xl border border-dashed border-[#0077B6]/35 bg-[#e8f4fa]/60 px-4 py-4 text-center sm:text-left">
-          <p className="text-xs font-semibold text-slate-800 sm:text-sm">
-            {copy.statsEmptyTitle}
-          </p>
-          <p className="mt-1 text-[11px] leading-relaxed text-slate-600 sm:text-xs">
-            {copy.statsEmptyBody}
-          </p>
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#006399]"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            {copy.statsEmptyCta}
-          </button>
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        {statCards.map((s, i) => {
-          const Icon = s.icon
-          const accent = i === 0
-          return (
-            <div
-              key={i}
-              className={`rounded-xl border p-3 shadow-sm ${accent ? 'border-[#cce5f0]/80 bg-[#e8f4fa]' : 'border-slate-200/90 bg-white'}`}
-            >
-              <div className="mb-2 flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: accent ? 'rgba(0,119,182,0.12)' : `${s.color}20` }}>
-                  <Icon className="h-4 w-4" style={{ color: accent ? BRAND : s.color }} />
-                </div>
-                <span className="text-[10px] font-medium leading-snug text-slate-500 sm:text-xs">{s.label}</span>
-              </div>
-              <div className="text-xl font-bold tabular-nums text-slate-800">{s.value}</div>
-            </div>
-          )
-        })}
-      </div>
-
-      <div className="grid gap-2 lg:grid-cols-[220px_1fr] lg:items-stretch">
-        <div className="flex min-h-[280px] flex-col rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm sm:min-h-[320px] lg:h-full">
-          <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <div
-              className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg"
-              style={{ background: 'rgba(0,119,182,0.12)' }}
-            >
-              <Building2 className="h-5 w-5" style={{ color: BRAND }} strokeWidth={2} />
-            </div>
-            <h2 className="mb-1.5 text-xs font-bold text-slate-800">{copy.companyPageTitle}</h2>
-            <p className="text-[10px] leading-snug text-slate-500">{copy.companyPageDesc}</p>
-          </div>
-          {hasPublishedPage ? (
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="mt-4 flex w-full shrink-0 items-center justify-center gap-1 rounded-lg bg-[#0077B6] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#006399]"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              {copy.create}
-            </button>
-          ) : null}
-        </div>
-
-        <div className="min-w-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xs font-bold text-slate-900 sm:text-sm">{copy.allLandingPages}</h2>
-            <button type="button" onClick={() => setShowCreate(true)} className="text-[10px] font-semibold text-[#0077B6] hover:text-[#006399] sm:text-xs">
-              {copy.createNew}
-            </button>
-          </div>
-
-          {displayPages.length === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-400">{copy.noLandingPages}</div>
-          ) : (
-            <div className="overflow-x-auto business-homepage-scroll">
-              <table className="w-full border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/80 text-[10px] uppercase tracking-wide text-slate-400">
-                    <th className="px-2 py-2 text-left font-semibold">{copy.tableName}</th>
-                    <th className="px-2 py-2 text-left font-semibold">{copy.tableType}</th>
-                    <th className="px-2 py-2 text-center font-semibold">{copy.tableViews}</th>
-                    <th className="px-2 py-2 text-center font-semibold">{copy.tableForms}</th>
-                    <th className="px-2 py-2 font-semibold">{copy.tableStatus}</th>
-                    <th className="px-2 py-2 text-right font-semibold">{copy.tableActions}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayPages.map((p) => {
-                    const st = getLandingPageStatusMeta(p.status, language)
-                    const typeLabel = (p.builderType === 'company' || isCompanyBuilderContent(p.content))
-                      ? copy.pageTypeCompany
-                      : (getLocalizedJobTitle(p.job, language) || p.job?.jobCode || copy.pageTypeRecruitment)
-                    return (
-                      <tr key={p.id} className="border-t border-slate-100 hover:bg-slate-50/60">
-                        <td className="px-2 py-2 font-semibold text-slate-800">{p.title}</td>
-                        <td className="px-2 py-2 text-slate-500">{typeLabel}</td>
-                        <td className="px-2 py-2 text-center tabular-nums text-slate-600">{p.viewsCount}</td>
-                        <td className="px-2 py-2 text-center tabular-nums text-slate-600">{p.formSubmissionsCount}</td>
-                        <td className="px-2 py-2">
-                          <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ color: st.color, background: st.bg }}>
-                            {st.label}
-                          </span>
-                        </td>
-                        <td className="px-2 py-2 text-right">
-                          <div className="flex flex-wrap justify-end gap-1">
-                            <button type="button" onClick={() => openEditor(p)} className="rounded-md bg-[#e8f4fa] px-2 py-1 text-[10px] font-semibold text-[#0077B6] hover:bg-[#cce5f0]">{copy.edit}</button>
-                            {p.status === 1 && (
-                              <>
-                                <button type="button" onClick={() => copyPublicLink(p)} className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-200">{copy.copyLink}</button>
-                                <a href={p.publicPath} target="_blank" rel="noreferrer" className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 no-underline hover:bg-slate-200">{copy.view}</a>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
-        <h2 className="mb-3 text-xs font-bold text-[#0077B6]">{copy.recentActivity}</h2>
-        {activities.length === 0 ? (
-          <div className="text-xs text-slate-400">{copy.noActivity}</div>
-        ) : (
-          <div className="flex flex-col divide-y divide-slate-100">
-            {activities.map((a) => (
-              <div key={a.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
-                <div className="flex-1 text-xs text-slate-700">{a.message}</div>
-                <div className="shrink-0 whitespace-nowrap text-[10px] text-slate-400">{formatDate(a.createdAt, language)}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function BrandingUnifiedMain({
-  copy,
-  language,
-  onNavigate,
-  servicePackages,
-  onCardCta,
-  onConsultation,
-  requestLoadingKey,
-  statCards,
-  statsEmpty,
-  hasPublishedPage,
-  displayPages,
-  activities,
-  setShowCreate,
-  openEditor,
-  copyPublicLink,
-}) {
-  return (
-    <div className="flex min-h-0 flex-col gap-4 pb-2">
-      <BrandingOverviewMain
-        onNavigate={onNavigate}
-        onCardCta={onCardCta}
-        onConsultation={onConsultation}
-        requestLoadingKey={requestLoadingKey}
-        copy={copy}
-        servicePackages={servicePackages}
-      />
-      <BrandingStatsSection
-        copy={copy}
-        language={language}
-        statCards={statCards}
-        statsEmpty={statsEmpty}
-        hasPublishedPage={hasPublishedPage}
-        displayPages={displayPages}
-        activities={activities}
-        setShowCreate={setShowCreate}
-        openEditor={openEditor}
-        copyPublicLink={copyPublicLink}
-      />
-    </div>
-  )
-}
+const LANDING_PAGES_MANAGE_PATH = '/business/saiyo/landing-pages'
 
 const Branding = () => {
   const navigate = useNavigate()
@@ -526,8 +329,7 @@ const Branding = () => {
   const copy = useMemo(() => getBrandingCopy(language), [language])
   const servicePackages = useMemo(() => getBrandingServicePackages(language), [language])
   const [loading, setLoading] = useState(true)
-  const [dashboard, setDashboard] = useState(null)
-  const [landingPages, setLandingPages] = useState([])
+  const [hasCreatedLandingPages, setHasCreatedLandingPages] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [requestLoadingKey, setRequestLoadingKey] = useState(null)
   const [intakeModal, setIntakeModal] = useState({ open: false, serviceKey: null })
@@ -583,25 +385,30 @@ const Branding = () => {
     })
   }
 
-  const loadData = useCallback(async () => {
+  const loadLandingPagePresence = useCallback(async () => {
     try {
       setLoading(true)
-      const [dashRes, listRes] = await Promise.all([
-        apiService.getBusinessLandingPageDashboard(),
-        apiService.getBusinessLandingPages({ page: 1, limit: 20 }),
-      ])
-      if (dashRes?.success) setDashboard(dashRes.data)
-      if (listRes?.success) setLandingPages(listRes.data?.landingPages || [])
+      const listRes = await apiService.getBusinessLandingPages({ page: 1, limit: 1 })
+      if (listRes?.success) {
+        const total = listRes.data?.pagination?.total
+        const list = listRes.data?.landingPages || []
+        setHasCreatedLandingPages(
+          (typeof total === 'number' ? total > 0 : list.length > 0),
+        )
+      } else {
+        setHasCreatedLandingPages(false)
+      }
     } catch (e) {
       console.error(e)
+      setHasCreatedLandingPages(false)
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    loadLandingPagePresence()
+  }, [loadLandingPagePresence])
 
   useEffect(() => {
     if (location.search.includes('view=')) {
@@ -616,41 +423,15 @@ const Branding = () => {
     }
   }, [location.pathname, location.search, location.state, navigate])
 
-  const stats = dashboard?.stats || {}
-  const activities = dashboard?.activities || []
-
-  const statCards = useMemo(() => [
-    { icon: Bookmark, value: stats.views || 0, label: copy.statViews, color: BRAND },
-    { icon: BarChart3, value: stats.formSubmissions || 0, label: copy.statForms, color: '#d97706' },
-    { icon: Users, value: stats.candidates || 0, label: copy.statCandidates, color: '#0d9488' },
-    { icon: TrendingUp, value: `${stats.conversionRate || 0}%`, label: copy.statConversion, color: '#059669' },
-  ], [stats.views, stats.formSubmissions, stats.candidates, stats.conversionRate, copy])
-
-  const statsEmpty = !loading
-    && (stats.views || 0) === 0
-    && (stats.formSubmissions || 0) === 0
-    && (stats.conversionRate || 0) === 0
-
-  const hasPublishedPage = !loading && landingPages.some((p) => Number(p.status) === 1)
-
   const handleCreated = () => {
-    loadData()
-  }
-
-  const openEditor = (p) => {
-    const path = isCompanyBuilderContent(p.content) || p.builderType === 'company'
-      ? `/business/saiyo/pages/${p.id}/build`
-      : `/business/saiyo/pages/${p.id}/edit`
-    window.open(`${window.location.origin}${path}`, '_blank', 'noopener,noreferrer')
-  }
-
-  const copyPublicLink = (lp) => {
-    const url = `${window.location.origin}${lp.publicPath || `/lp/${lp.slug}`}`
-    navigator.clipboard.writeText(url)
-    openNoticeModal(copy.alerts.copyTitle, copy.alerts.copyMessage, 'success')
+    loadLandingPagePresence()
   }
 
   const handleNavigate = useMemo(() => (path) => navigate(path), [navigate])
+
+  const handleManageLandingPages = useCallback(() => {
+    navigate(LANDING_PAGES_MANAGE_PATH)
+  }, [navigate])
 
   const sendServiceRequest = async (serviceKey, note = null) => {
     setRequestLoadingKey(serviceKey)
@@ -764,22 +545,15 @@ const Branding = () => {
           ) : (
             <div className="grid h-full min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] xl:gap-3 xl:overflow-hidden">
               <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col overflow-y-auto xl:h-full xl:pr-0.5">
-                <BrandingUnifiedMain
-                  copy={copy}
-                  language={language}
+                <BrandingOverviewMain
                   onNavigate={handleNavigate}
-                  servicePackages={servicePackages}
                   onCardCta={handleCardCta}
                   onConsultation={handleConsultation}
                   requestLoadingKey={requestLoadingKey}
-                  statCards={statCards}
-                  statsEmpty={statsEmpty}
-                  hasPublishedPage={hasPublishedPage}
-                  displayPages={landingPages}
-                  activities={activities}
-                  setShowCreate={setShowCreate}
-                  openEditor={openEditor}
-                  copyPublicLink={copyPublicLink}
+                  copy={copy}
+                  servicePackages={servicePackages}
+                  hasCreatedLandingPages={hasCreatedLandingPages}
+                  onManageLandingPages={handleManageLandingPages}
                 />
               </div>
 

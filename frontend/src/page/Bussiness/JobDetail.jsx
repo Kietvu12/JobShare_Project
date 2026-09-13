@@ -10,7 +10,6 @@ import apiService from '../../services/api'
 import {
   fetchAllBusinessScoutCandidates,
   fetchJobScoutAiMatches,
-  getMatchQualityLabel,
   mergeScoutCandidateWithMatch,
   summarizeAiMatches,
 } from '../../utils/businessJobAiMatching'
@@ -27,9 +26,13 @@ import {
   AiMatchOverviewCard,
   HealthOverviewGrid,
   pickShortSkillLabels,
+  SERVICE_ICON_MAP,
   ServicesActivityOverview,
   TopCandidatesOverview,
 } from '../../component/Bussiness/BusinessJobDetailOverview'
+import { useLanguage } from '../../context/LanguageContext'
+import { localizeApplications } from '../../utils/businessApplicationDisplay'
+import { getRecruitmentRating } from '../../utils/businessJobRecruitmentMetrics'
 
 const BASE_TABS = ['Tổng quan', 'Mô tả công việc']
 const AI_TAB = 'AI gợi ý'
@@ -42,23 +45,19 @@ const RECRUITMENT_TYPE_LABELS = {
   5: 'Uỷ thác',
 }
 
-const services = [
-  {
-    icon: Search, iconColor: 'text-blue-500', iconBg: 'bg-blue-50',
-    name: 'Scout Credit', status: 'Đang sử dụng', statusColor: 'bg-emerald-100 text-emerald-700',
-    detail: 'Tìm & unlock ứng viên trên Scout', action: 'Xem Scout',
-  },
-  {
-    icon: Star, iconColor: 'text-amber-500', iconBg: 'bg-amber-50',
-    name: 'Saiyo Branding', status: 'Chưa sử dụng', statusColor: 'bg-slate-100 text-slate-500',
-    detail: 'Chưa kích hoạt', action: 'Đăng ký',
-  },
-  {
-    icon: Building2, iconColor: 'text-violet-500', iconBg: 'bg-violet-50',
-    name: 'Sàn CTV (HR Partner)', status: 'Chưa sử dụng', statusColor: 'bg-slate-100 text-slate-500',
-    detail: 'Chưa đăng job', action: 'Đăng ngay',
-  },
-]
+/** Trạng thái WS trước khi vào pipeline tuyển chọn chung (Scout Ủy Thác) */
+const PRE_NOMINATION_PIPELINE_STATUSES = new Set([2, 3, 4])
+
+function MetaItem({ icon: Icon, children }) {
+  const text = String(children ?? '').trim()
+  if (!text || text === '—') return null
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] text-slate-600">
+      <Icon className="h-3 w-3 shrink-0 text-slate-400" />
+      {text}
+    </span>
+  )
+}
 
 const s = `
   .hide-sb::-webkit-scrollbar { display: none; }
@@ -103,6 +102,7 @@ function formatDate(value) {
 
 const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
   const navigate = useNavigate()
+  const { language } = useLanguage()
   const { jobId: jobIdParam } = useParams()
   const jobId = jobIdProp ?? jobIdParam
   const [activeTab, setActiveTab] = useState('Tổng quan')
@@ -206,7 +206,10 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
         sortOrder: 'DESC',
       })
       if (res?.success) {
-        setJobNominations(res.data?.applications || [])
+        const rows = (res.data?.applications || []).filter(
+          (a) => !PRE_NOMINATION_PIPELINE_STATUSES.has(Number(a.status)),
+        )
+        setJobNominations(localizeApplications(rows, language))
       } else {
         setJobNominations([])
       }
@@ -215,7 +218,7 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
     } finally {
       setNominationsLoading(false)
     }
-  }, [jobId])
+  }, [jobId, language])
 
   useEffect(() => {
     if (job?.id && (job.isMarketplace || job.isDirectRecruitment)) {
@@ -276,8 +279,11 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
     }
   }, [isOnCtvMarketplace, activeTab])
   const recruitmentLabel = RECRUITMENT_TYPE_LABELS[Number(job?.recruitmentType ?? job?.recruitment_type)] || 'Full-time'
-  const location = job?.interviewLocation || job?.interview_location || '—'
+  const location = job?.interviewLocation || job?.interview_location || ''
   const jobTitle = job?.title || job?.titleEn || job?.titleJp || 'Chi tiết JD'
+  const categoryLevel = job?.categoryExperience || job?.category_experience || ''
+  const jobCodeDisplay = job?.jobCode || job?.job_code || job?.jobNumber || job?.job_number || ''
+  const noRecruitmentMetrics = !metricsLoading && (recruitmentMetrics?.totalNominations ?? 0) === 0
   const matchStats = matchSummary?.matchStats || [
     { value: 0, label: 'Hồ sơ rất phù hợp', sub: '(Match ≥ 85%)' },
     { value: 0, label: 'Hồ sơ phù hợp', sub: '(Match 60% - 84%)' },
@@ -292,36 +298,65 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
     { id: 'benefits', label: 'Phúc lợi', sections: jobDetailTabs.benefits?.sections || [] },
   ]), [jobDetailTabs])
 
-  const healthCards = useMemo(() => [
-    {
-      icon: Users, score: scoutTotal > 0 ? Math.min(100, Math.round((matchedTotal / scoutTotal) * 100) + 40) : 0,
-      label: 'Nguồn ứng viên', rating: scoutTotal > 0 ? 'Khá' : '—',
-      lines: [`${scoutTotal.toLocaleString('vi-VN')} ứng viên Scout`, `${matchedTotal.toLocaleString('vi-VN')} gợi ý từ AI`],
-    },
-    {
-      icon: Sparkles, score: avgScore || 0,
-      label: 'Chất lượng ứng viên', rating: getMatchQualityLabel(avgScore),
-      lines: [`${matchedTotal.toLocaleString('vi-VN')} ứng viên phù hợp`, `Match trung bình: ${avgScore || 0}%`],
-    },
-    {
-      icon: BarChart3,
-      score: metricsLoading ? 0 : (recruitmentMetrics?.performanceScore ?? 0),
-      label: 'Hiệu suất tuyển dụng',
-      rating: metricsLoading ? '—' : (recruitmentMetrics?.performanceRating ?? '—'),
-      lines: metricsLoading
-        ? ['Đang tính toán...', '']
-        : (recruitmentMetrics?.performanceLines || ['Tỷ lệ phản hồi: —', 'Tỷ lệ chuyển tiếp: —']),
-    },
-    {
-      icon: Clock,
-      score: metricsLoading ? 0 : (recruitmentMetrics?.speedScore ?? 0),
-      label: 'Tốc độ tuyển dụng',
-      rating: metricsLoading ? '—' : (recruitmentMetrics?.speedRating ?? '—'),
-      lines: metricsLoading
-        ? ['Đang tính toán...', '']
-        : (recruitmentMetrics?.speedLines || ['Thời gian có ứng viên đầu tiên: —', 'Thời gian phản hồi TB: —']),
-    },
-  ], [scoutTotal, matchedTotal, avgScore, recruitmentMetrics, metricsLoading])
+  const healthCards = useMemo(() => {
+    const poolScore = scoutTotal > 0 ? Math.min(100, Math.round((matchedTotal / scoutTotal) * 100) + 40) : 0
+    const poolRating = scoutTotal > 0 ? getRecruitmentRating(poolScore) : 'Chưa đủ dữ liệu'
+    const qualityRating = matchedTotal > 0 ? getRecruitmentRating(avgScore) : 'Chưa đủ dữ liệu'
+    return [
+      {
+        icon: Users,
+        score: scoutTotal > 0 ? poolScore : 0,
+        showScore: scoutTotal > 0,
+        scoreDisplay: 'Chưa đủ dữ liệu',
+        label: 'Nguồn ứng viên',
+        rating: poolRating,
+        tooltip: 'Dựa trên quy mô kho Scout và số gợi ý AI khớp JD.',
+        lines: scoutTotal > 0
+          ? [`${scoutTotal.toLocaleString('vi-VN')} ứng viên Scout`, `${matchedTotal.toLocaleString('vi-VN')} gợi ý AI`]
+          : ['Chưa có dữ liệu Scout cho JD'],
+      },
+      {
+        icon: Sparkles,
+        score: matchedTotal > 0 ? (avgScore || 0) : 0,
+        showScore: matchedTotal > 0,
+        scoreDisplay: 'Chưa đủ dữ liệu',
+        label: 'Chất lượng ứng viên',
+        rating: qualityRating,
+        tooltip: 'Điểm match trung bình của các hồ sơ AI gợi ý cho JD.',
+        lines: matchedTotal > 0
+          ? [`${matchedTotal.toLocaleString('vi-VN')} hồ sơ phù hợp`, `Match TB: ${avgScore || 0}%`]
+          : ['Chưa có hồ sơ match'],
+      },
+      {
+        icon: BarChart3,
+        score: noRecruitmentMetrics ? 0 : (recruitmentMetrics?.performanceScore ?? 0),
+        showScore: !noRecruitmentMetrics && !metricsLoading,
+        scoreDisplay: metricsLoading ? '…' : 'Chưa đủ dữ liệu',
+        label: 'Hiệu suất tuyển dụng',
+        rating: metricsLoading ? '…' : (noRecruitmentMetrics ? 'Chưa đủ dữ liệu' : (recruitmentMetrics?.performanceRating ?? '—')),
+        tooltip: 'Tỷ lệ phản hồi và chuyển tiếp tích cực trên đơn tiến cử (7 ngày gần nhất).',
+        lines: metricsLoading
+          ? ['Đang tính toán...']
+          : (noRecruitmentMetrics
+            ? ['Cần thêm đơn ứng tuyển để tính điểm']
+            : (recruitmentMetrics?.performanceLines || [])),
+      },
+      {
+        icon: Clock,
+        score: noRecruitmentMetrics ? 0 : (recruitmentMetrics?.speedScore ?? 0),
+        showScore: !noRecruitmentMetrics && !metricsLoading,
+        scoreDisplay: metricsLoading ? '…' : 'Chưa đủ dữ liệu',
+        label: 'Tốc độ tuyển dụng',
+        rating: metricsLoading ? '…' : (noRecruitmentMetrics ? 'Chưa đủ dữ liệu' : (recruitmentMetrics?.speedRating ?? '—')),
+        tooltip: 'Thời gian có ứng viên đầu tiên, tần suất đơn mới và thời gian phản hồi.',
+        lines: metricsLoading
+          ? ['Đang tính toán...']
+          : (noRecruitmentMetrics
+            ? ['Cần thêm đơn ứng tuyển để tính điểm']
+            : (recruitmentMetrics?.speedLines || [])),
+      },
+    ]
+  }, [scoutTotal, matchedTotal, avgScore, recruitmentMetrics, metricsLoading, noRecruitmentMetrics])
 
   const aiInsights = useMemo(() => {
     const topSkills = new Map()
@@ -353,15 +388,70 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
         time: formatDate(job.createdAt || job.created_at),
       })
     }
+    const updated = job?.updatedAt || job?.updated_at
+    const created = job?.createdAt || job?.created_at
+    if (updated && updated !== created) {
+      list.push({
+        icon: Pencil, iconColor: 'text-slate-600', iconBg: 'bg-slate-100',
+        text: 'JD được cập nhật',
+        time: formatDate(updated),
+      })
+    }
+    jobNominations.slice(0, 5).forEach((app) => {
+      list.push({
+        icon: User, iconColor: 'text-emerald-600', iconBg: 'bg-emerald-50',
+        text: `${app.candidateName || 'Ứng viên'} đã ứng tuyển vào JD này`,
+        time: formatDate(app.appliedAt),
+      })
+    })
     if (matchedTotal > 0) {
       list.push({
         icon: Sparkles, iconColor: 'text-violet-500', iconBg: 'bg-violet-50',
-        text: `Tự động gợi ý ${matchedTotal.toLocaleString('vi-VN')} ứng viên phù hợp`,
+        text: `AI gợi ý ${matchedTotal.toLocaleString('vi-VN')} ứng viên phù hợp`,
         time: formatDate(job?.updatedAt || job?.updated_at || job?.createdAt || job?.created_at),
       })
     }
-    return list
-  }, [job, matchedTotal])
+    return list.slice(0, 8)
+  }, [job, matchedTotal, jobNominations])
+
+  const serviceButtons = useMemo(() => {
+    if (!job?.id) return []
+    const scout = SERVICE_ICON_MAP.scout
+    const branding = SERVICE_ICON_MAP.branding
+    const marketplace = SERVICE_ICON_MAP.marketplace
+    return [
+      {
+        id: 'scout',
+        label: 'Scout Trực Tiếp',
+        hint: 'Tìm & unlock ứng viên',
+        active: matchedTotal > 0 || scoutTotal > 0,
+        icon: scout.icon,
+        iconColor: scout.iconColor,
+        iconBg: scout.iconBg,
+        onClick: () => navigate(`/business/scout/direct?jobId=${job.id}`),
+      },
+      {
+        id: 'marketplace',
+        label: 'Sàn CTV',
+        hint: isOnCtvMarketplace ? 'Đã đưa lên sàn' : 'Mở rộng kênh tiến cử',
+        active: isOnCtvMarketplace,
+        icon: marketplace.icon,
+        iconColor: marketplace.iconColor,
+        iconBg: marketplace.iconBg,
+        onClick: () => navigate(`/business/candidate-sharing?create=1&jobId=${job.id}`),
+      },
+      {
+        id: 'branding',
+        label: 'Thương hiệu TD',
+        hint: 'Landing & branding',
+        active: false,
+        icon: branding.icon,
+        iconColor: branding.iconColor,
+        iconBg: branding.iconBg,
+        onClick: () => navigate('/business/saiyo'),
+      },
+    ]
+  }, [job?.id, isOnCtvMarketplace, matchedTotal, scoutTotal, navigate])
 
   if (loading) {
     return (
@@ -426,35 +516,49 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
       <div className="business-jobs-shell h-full min-h-0 flex flex-col overflow-hidden">
         <style>{JOB_DETAIL_SHELL_STYLE}</style>
         <div className="business-jobs-ui h-full min-h-0 flex flex-col bg-[#f9f9f9] overflow-hidden">
-          <div className="shrink-0 border-b border-slate-200 bg-white px-2 py-2 space-y-2">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <span className={`inline-flex items-center gap-1 rounded-full ${statusMeta.color} biz-jd-body font-medium px-2 py-0.5`}>
-                  <span className={`rounded-full ${statusMeta.dot} w-1.5 h-1.5`} />
-                  {statusMeta.label}
+          <div className="shrink-0 space-y-1.5 border-b border-slate-200 bg-white px-2 py-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusMeta.color}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dot}`} />
+                {statusMeta.label}
+              </span>
+              {isOnCtvMarketplace ? (
+                <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-800">
+                  Tiến cử trực tiếp với DN
                 </span>
-                {isOnCtvMarketplace ? (
-                  <span className="inline-flex items-center rounded-full bg-violet-100 text-violet-800 border border-violet-200 biz-jd-body font-medium px-2 py-0.5 ml-1">
-                    Tiến cử trực tiếp với doanh nghiệp
-                  </span>
-                ) : null}
-                <h1 className="biz-jd-title mt-1 truncate">{jobTitle}</h1>
-                <p className="biz-jd-muted truncate mt-0.5">
-                  {location} · {recruitmentLabel} · Mã: {job.jobCode || job.job_code || job.id}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <button type="button" onClick={() => navigate(scoutHref)} className="rounded-md bg-[#0077B6] px-2 py-1 font-semibold text-white hover:bg-[#006699]" style={{ fontSize: 10 }}>Scout</button>
-              </div>
+              ) : null}
             </div>
-            <div className="flex gap-1">
+            <h1 className="biz-jd-title truncate">{jobTitle}</h1>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-slate-500">
+              <MetaItem icon={MapPin}>{location}</MetaItem>
+              <MetaItem icon={Clock}>{recruitmentLabel}</MetaItem>
+              <MetaItem icon={Hash}>{jobCodeDisplay ? `Mã: ${jobCodeDisplay}` : `ID: ${job.id}`}</MetaItem>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              <button type="button" onClick={() => navigate(scoutHref)} className="rounded-md bg-[#0077B6] px-2 py-1 text-[10px] font-bold text-white hover:bg-[#006699]">
+                Scout
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(`/business/candidate-sharing?create=1&jobId=${job.id}`)}
+                className="rounded-md bg-violet-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-violet-700"
+              >
+                Sàn CTV
+              </button>
+              <button type="button" onClick={() => navigate(`/business/jobs/${job.id}/edit`)} className="rounded-md border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-50">
+                Sửa
+              </button>
+            </div>
+            <div className="flex gap-1 overflow-x-auto hide-sb">
               {pageTabs.map((tab) => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => setActiveTab(tab)}
-                  className={`biz-jd-body font-semibold px-2 py-1 border-b-2 transition-colors ${
-                    activeTab === tab ? 'border-[#0077B6] text-[#0077B6]' : 'border-transparent text-slate-500'
+                  className={`flex-shrink-0 rounded-md px-2 py-1 text-[10px] font-semibold transition-colors ${
+                    activeTab === tab
+                      ? 'bg-[#0077B6]/10 text-[#0077B6] ring-1 ring-[#0077B6]/20'
+                      : 'text-slate-500 hover:bg-slate-50'
                   }`}
                 >
                   {tab}
@@ -466,7 +570,7 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
             {activeTab === 'Tổng quan' ? (
               <div className="space-y-2">
                 {overviewBlocks}
-                <ServicesActivityOverview services={services} activities={activities} jobId={job.id} navigate={navigate} />
+                <ServicesActivityOverview serviceButtons={serviceButtons} activities={activities} />
               </div>
             ) : activeTab === AI_TAB ? (
               <div className="space-y-2">{aiTabBlocks}</div>
@@ -512,124 +616,113 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
             <ChevronRight className="biz-jd-icon" />
             <span className="biz-jd-body font-semibold text-slate-600">Chi tiết JD</span>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
-            <div className="flex items-start justify-between gap-3" style={{ marginBottom: 8 }}>
-              <span className={`inline-flex items-center gap-1 rounded-full ${statusMeta.color}`} style={{ fontSize: 9, fontWeight: 500, padding: '2px 8px' }}>
-                <span className={`rounded-full ${statusMeta.dot}`} style={{ width: 5, height: 5 }} />
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusMeta.color}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dot}`} />
                 {statusMeta.label}
               </span>
               {isOnCtvMarketplace ? (
-                <span
-                  className="inline-flex items-center rounded-full bg-violet-100 text-violet-800 border border-violet-200 font-medium"
-                  style={{ fontSize: 9, padding: '2px 8px', marginLeft: 4 }}
-                >
-                  Tiến cử trực tiếp với doanh nghiệp
+                <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-800">
+                  Tiến cử trực tiếp với DN
                 </span>
               ) : null}
-              <div className="flex items-center gap-2 flex-shrink-0">
+            </div>
+
+            <h1 className="text-base font-bold leading-tight text-slate-900 sm:text-lg">{jobTitle}</h1>
+
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <MetaItem icon={MapPin}>{location}</MetaItem>
+              <MetaItem icon={Clock}>{recruitmentLabel}</MetaItem>
+              <MetaItem icon={Award}>{categoryLevel ? `Cấp bậc: ${categoryLevel}` : ''}</MetaItem>
+              <MetaItem icon={Hash}>{jobCodeDisplay ? `Mã JD: ${jobCodeDisplay}` : `ID: ${job.id}`}</MetaItem>
+            </div>
+
+            <p className="mt-1.5 text-[10px] text-slate-500">
+              Ngày đăng: {formatDate(job.createdAt || job.created_at)}
+              {job.updatedAt || job.updated_at ? (
+                <> · Cập nhật: {formatDate(job.updatedAt || job.updated_at)}</>
+              ) : null}
+              {job.expiredAt || job.expired_at ? (
+                <> · Hết hạn: {formatDate(job.expiredAt || job.expired_at)}</>
+              ) : null}
+            </p>
+
+            <div className="mt-2.5 flex flex-col gap-2 border-t border-slate-100 pt-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/business/scout/direct?jobId=${job.id}`)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#0077B6] px-3 py-1.5 text-[11px] font-bold text-white shadow-sm hover:bg-[#006699]"
+                >
+                  <Target className="h-3.5 w-3.5" />
+                  Tìm ứng viên với Scout
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/business/candidate-sharing?create=1&jobId=${job.id}`)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm hover:bg-violet-700"
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  Đưa lên Sàn CTV
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => navigate(`/business/jobs/${job.id}/edit`)}
-                  className="flex items-center gap-1 border border-slate-200 rounded-lg hover:bg-slate-50 font-medium text-slate-700 transition-colors"
-                  style={{ fontSize: 10, padding: '6px 10px' }}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-50"
                 >
-                  <Pencil style={{ width: 11, height: 11 }} />
+                  <Pencil className="h-3 w-3" />
                   Sửa JD
                 </button>
-                <button className="flex items-center gap-1 border border-slate-200 rounded-lg hover:bg-slate-50 font-medium text-slate-700 transition-colors" style={{ fontSize: 10, padding: '6px 10px' }}>
-                  <Globe style={{ width: 11, height: 11 }} />
-                  Tạo Landing Page
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  <Globe className="h-3 w-3" />
+                  Landing Page
                 </button>
                 <div className="relative">
                   <button
                     type="button"
                     onClick={() => setMenuOpen((v) => !v)}
-                    className="flex items-center justify-center border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-500 transition-colors"
-                    style={{ width: 26, height: 26 }}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
                     aria-label="Thêm thao tác"
                   >
-                    <MoreHorizontal style={{ width: 13, height: 13 }} />
+                    <MoreHorizontal className="h-3.5 w-3.5" />
                   </button>
-                  {menuOpen && (
+                  {menuOpen ? (
                     <>
-                      <button
-                        type="button"
-                        className="fixed inset-0 z-10 cursor-default"
-                        aria-label="Đóng menu"
-                        onClick={() => setMenuOpen(false)}
-                      />
-                      <div
-                        className="absolute right-0 z-20 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden"
-                        style={{ top: 30, minWidth: 140 }}
-                      >
+                      <button type="button" className="fixed inset-0 z-10 cursor-default" aria-label="Đóng menu" onClick={() => setMenuOpen(false)} />
+                      <div className="absolute right-0 top-8 z-20 min-w-[140px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
                         <button
                           type="button"
                           disabled={deleting}
                           onClick={handleDeleteJob}
-                          className="w-full flex items-center gap-2 text-left text-rose-600 hover:bg-rose-50 disabled:opacity-50 transition-colors"
-                          style={{ fontSize: 10, padding: '8px 12px' }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-[10px] text-rose-600 hover:bg-rose-50 disabled:opacity-50"
                         >
-                          {deleting ? (
-                            <Loader2 className="animate-spin" style={{ width: 12, height: 12 }} />
-                          ) : (
-                            <Trash2 style={{ width: 12, height: 12 }} />
-                          )}
+                          {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                           Xóa JD
                         </button>
                       </div>
                     </>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
-
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>{jobTitle}</h1>
-
-            <div className="flex flex-wrap items-center justify-between gap-3" style={{ marginBottom: 6 }}>
-              <div className="flex items-center flex-wrap gap-3" style={{ fontSize: 10, color: '#64748b' }}>
-                <span className="flex items-center gap-1"><MapPin style={{ width: 11, height: 11, color: '#94a3b8' }} />{location}</span>
-                <span className="flex items-center gap-1"><Clock style={{ width: 11, height: 11, color: '#94a3b8' }} />{recruitmentLabel}</span>
-                <span className="flex items-center gap-1"><Award style={{ width: 11, height: 11, color: '#94a3b8' }} />Cấp bậc: {job.categoryExperience || job.category_experience || '—'}</span>
-                <span className="flex items-center gap-1"><Hash style={{ width: 11, height: 11, color: '#94a3b8' }} />Mã JD: {job.jobNumber || job.job_number || job.id}</span>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={() => navigate(`/business/candidate-sharing?create=1&jobId=${job.id}`)}
-                  className="flex items-center gap-1.5 border border-violet-200 text-violet-600 bg-violet-50 hover:bg-violet-100 rounded-lg font-semibold transition-colors"
-                  style={{ fontSize: 10, padding: '6px 10px' }}
-                >
-                  <Users style={{ width: 12, height: 12 }} />
-                  Đưa lên Sàn CTV
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate(`/business/scout/direct?jobId=${job.id}`)}
-                  className="flex items-center gap-1.5 rounded-lg bg-[#0077B6] font-semibold text-white transition-colors hover:bg-[#006699]"
-                  style={{ fontSize: 10, padding: '6px 10px' }}
-                >
-                  <Target className="biz-jd-icon" />
-                  Tìm ứng viên với Scout
-                </button>
-              </div>
-            </div>
-
-            <p style={{ fontSize: 10, color: '#94a3b8' }}>
-              Ngày đăng: {formatDate(job.createdAt || job.created_at)}
-              {job.expiredAt || job.expired_at ? (
-                <> &nbsp;•&nbsp; Hết hạn: {formatDate(job.expiredAt || job.expired_at)}</>
-              ) : null}
-            </p>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white flex items-center gap-3 overflow-x-auto hide-sb px-2">
+          <div className="flex items-center gap-1 overflow-x-auto rounded-lg border border-slate-200 bg-white px-1 hide-sb">
             {pageTabs.map((tab) => (
               <button
                 key={tab}
                 type="button"
                 onClick={() => setActiveTab(tab)}
-                className={`biz-jd-body font-semibold flex-shrink-0 py-2 border-b-2 transition-colors ${
-                  activeTab === tab ? 'border-[#0077B6] text-[#0077B6]' : 'border-transparent text-slate-500 hover:text-slate-700'
+                className={`flex-shrink-0 rounded-md px-3 py-2 text-[11px] font-semibold transition-colors ${
+                  activeTab === tab
+                    ? 'bg-[#0077B6]/10 text-[#0077B6] ring-1 ring-[#0077B6]/20'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
                 }`}
               >
                 {tab}
@@ -640,7 +733,7 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
           {activeTab === 'Tổng quan' ? (
             <div className="space-y-2 pb-2">
               {overviewBlocks}
-              <ServicesActivityOverview services={services} activities={activities} jobId={job.id} navigate={navigate} />
+              <ServicesActivityOverview serviceButtons={serviceButtons} activities={activities} />
             </div>
           ) : activeTab === AI_TAB ? (
             <div className="space-y-2 pb-2">{aiTabBlocks}</div>

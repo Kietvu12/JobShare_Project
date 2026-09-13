@@ -146,6 +146,8 @@ const NominationChat = ({
   onOpenInfoPanel,
   /** Nhúng trong panel cố định chiều cao (Sàn CTV) — không đẩy scroll trang */
   embeddedPanel = false,
+  /** Doanh nghiệp: không đổi trạng thái tự do — dùng CTA theo bước trên màn quản lý ứng viên */
+  disableBusinessFreeStatusChange = false,
 }) => {
   const { language } = useLanguage();
   const t = translations[language] || translations.vi;
@@ -1024,7 +1026,7 @@ const NominationChat = ({
                 {t.chatViewCv}
               </button>
             )}
-            {(userType === 'admin' || userType === 'business') && (
+            {(userType === 'admin' || (userType === 'business' && !disableBusinessFreeStatusChange)) && (
               <button
                 type="button"
                 onClick={() => {

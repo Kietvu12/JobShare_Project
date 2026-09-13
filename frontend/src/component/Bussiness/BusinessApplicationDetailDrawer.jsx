@@ -14,17 +14,15 @@ import {
 } from '../../utils/businessApplicationEvaluation'
 import { useLanguage } from '../../context/LanguageContext'
 import { getJobApplicationStatusLabelByLanguage } from '../../utils/jobApplicationStatus'
+import { getApplicationProfileReviewCopy } from '../../i18n/businessApp/applications'
 
 import { BUSINESS_UI_FONT } from '../../utils/businessUiFont'
 
 const BRAND = '#0077B6'
+const STATUS_SCREENING = 5
 const STATUS_WAITING_INTERVIEW = 8
 const STATUS_REJECTED_CLIENT = 6
-
-const EVALUATION_OPTIONS = [
-  { value: PROFILE_EVALUATION.PASS, label: 'Đạt' },
-  { value: PROFILE_EVALUATION.FAIL, label: 'Không đạt' },
-]
+const WS_PRE_NOMINATION_STATUSES = new Set([2, 3, 4])
 
 function resolveInitialDrawerTab(app) {
   if (!app) return 'chat'
@@ -115,6 +113,18 @@ export default function BusinessApplicationDetailDrawer({
   const [interviewModalOpen, setInterviewModalOpen] = useState(false)
   const [interviewSaving, setInterviewSaving] = useState(false)
   const [evaluationNotice, setEvaluationNotice] = useState('')
+  const [failModalOpen, setFailModalOpen] = useState(false)
+  const [failReason, setFailReason] = useState('')
+
+  const reviewCopy = useMemo(
+    () => getApplicationProfileReviewCopy(language),
+    [language],
+  )
+
+  const applicationStatus = Number(selectedApp?.status)
+  const isWsPreNomination = selectedApp?.sourceType === 'scout_performance'
+    && WS_PRE_NOMINATION_STATUSES.has(applicationStatus)
+  const canShowProfileReview = applicationStatus === STATUS_SCREENING && !isWsPreNomination
 
   const profileOnly = useMemo(
     () => isApplicationProfileOnly(selectedApp),
@@ -195,6 +205,8 @@ export default function BusinessApplicationDetailDrawer({
   useEffect(() => {
     setCvDownloadNotice('')
     setEvaluationNotice('')
+    setFailModalOpen(false)
+    setFailReason('')
   }, [selectedApp?.id])
 
   const applyApplicationPatch = useCallback((patch) => {
@@ -215,21 +227,33 @@ export default function BusinessApplicationDetailDrawer({
       return
     }
 
-    if (nextEvaluation === profileEvaluation) return
+    if (nextEvaluation === PROFILE_EVALUATION.FAIL) {
+      setFailModalOpen(true)
+    }
+  }, [
+    selectedApp?.id,
+    evaluationUpdating,
+  ])
 
+  const confirmProfileFail = useCallback(async () => {
+    if (!selectedApp?.id || evaluationUpdating) return
     setEvaluationNotice('')
     setEvaluationUpdating(true)
     try {
+      const note = failReason.trim()
       const res = await apiService.updateBusinessApplicationStatus(selectedApp.id, {
         status: STATUS_REJECTED_CLIENT,
+        rejectNote: note || undefined,
       })
       if (!res?.success) throw new Error(res?.message || 'Không thể cập nhật đánh giá')
       applyApplicationPatch({
         status: STATUS_REJECTED_CLIENT,
         statusLabel: getJobApplicationStatusLabelByLanguage(STATUS_REJECTED_CLIENT, language),
         statusCategory: 'rejected',
+        rejectNote: note || null,
       })
-      setEvaluationNotice('Đã đánh giá: Không đạt')
+      setFailModalOpen(false)
+      setEvaluationNotice(reviewCopy.fail)
       handleStatusUpdated()
     } catch (e) {
       setEvaluationNotice(e?.message || 'Không thể cập nhật đánh giá.')
@@ -238,11 +262,12 @@ export default function BusinessApplicationDetailDrawer({
     }
   }, [
     selectedApp?.id,
-    profileEvaluation,
     evaluationUpdating,
+    failReason,
     applyApplicationPatch,
     language,
     handleStatusUpdated,
+    reviewCopy.fail,
   ])
 
   const handleInterviewScheduleSubmit = useCallback(async ({ date, time }) => {
@@ -344,43 +369,38 @@ export default function BusinessApplicationDetailDrawer({
     </div>
   ) : null
 
-  const profileEvaluationControls = (
-    <div className="mt-2 flex flex-wrap items-center gap-2">
-      <div
-        className="inline-flex shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-white p-0.5"
-        role="group"
-        aria-label="Đánh giá hồ sơ"
-      >
-        {EVALUATION_OPTIONS.map((option) => {
-          const active = profileEvaluation === option.value
-          const toneClass = option.value === PROFILE_EVALUATION.PASS
-            ? active
-              ? 'bg-emerald-600 text-white'
-              : 'text-emerald-700 hover:bg-emerald-50'
-            : active
-              ? 'bg-rose-600 text-white'
-              : 'text-rose-700 hover:bg-rose-50'
-          return (
-            <button
-              key={option.value}
-              type="button"
-              disabled={evaluationUpdating || drawerLoading}
-              onClick={() => handleEvaluationChange(option.value)}
-              className={`biz-ui-caption rounded-md px-2 py-1 font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${toneClass}`}
-            >
-              {option.label}
-            </button>
-          )
-        })}
+  const profileReviewBar = canShowProfileReview ? (
+    <div className="sticky top-0 z-10 shrink-0 border-b border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <p className="biz-ui-body font-bold text-slate-900">{reviewCopy.title}</p>
+      <p className="biz-ui-caption mt-0.5 text-slate-500">
+        {selectedApp.statusLabel || getJobApplicationStatusLabelByLanguage(STATUS_SCREENING, language)}
+      </p>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          disabled={evaluationUpdating || drawerLoading}
+          onClick={() => handleEvaluationChange(PROFILE_EVALUATION.PASS)}
+          className="biz-ui-caption rounded-lg bg-emerald-600 px-3 py-1.5 font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {reviewCopy.pass}
+        </button>
+        <button
+          type="button"
+          disabled={evaluationUpdating || drawerLoading}
+          onClick={() => handleEvaluationChange(PROFILE_EVALUATION.FAIL)}
+          className="biz-ui-caption rounded-lg border border-rose-200 bg-white px-3 py-1.5 font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {reviewCopy.fail}
+        </button>
+        {evaluationUpdating ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0077B6]" aria-hidden />
+        ) : null}
       </div>
-      {evaluationUpdating ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0077B6]" aria-hidden />
-      ) : null}
       {evaluationNotice ? (
-        <p className="biz-ui-caption text-[#006399]">{evaluationNotice}</p>
+        <p className="biz-ui-caption mt-2 text-[#006399]">{evaluationNotice}</p>
       ) : null}
     </div>
-  )
+  ) : null
 
   if (!open || !selectedApp) return null
 
@@ -425,6 +445,14 @@ export default function BusinessApplicationDetailDrawer({
           </div>
         )}
 
+        {isWsPreNomination ? (
+          <div className="biz-ui-caption shrink-0 border-b border-amber-100 bg-amber-50 px-4 py-2 text-amber-900">
+            {reviewCopy.wsTrackingOnly}
+          </div>
+        ) : null}
+
+        {profileReviewBar}
+
         {drawerLoading && (
           <div className="biz-ui-caption flex items-center gap-2 border-b border-slate-100 bg-[#e8f4fa]/40 px-4 py-2 text-slate-500">
             <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0077B6]" /> Đang tải hồ sơ...
@@ -465,7 +493,6 @@ export default function BusinessApplicationDetailDrawer({
                     accessLabelColor={profileMeta.accessLabelColor}
                     footerNote={profileMeta.footerNote}
                     nameActions={cvDownloadAction}
-                    belowNameContent={profileEvaluationControls}
                   />
                 )}
               </div>
@@ -481,6 +508,7 @@ export default function BusinessApplicationDetailDrawer({
               mobileHeaderName={selectedApp.candidateName || 'Chat 3 bên'}
               mobileHeaderAvatar={(selectedApp.candidateName || '?').charAt(0).toUpperCase()}
               onStatusUpdated={handleStatusUpdated}
+              disableBusinessFreeStatusChange
             />
           ) : (
             <div className="flex flex-1 items-center justify-center px-4 py-8 text-center text-xs text-slate-400">
@@ -497,6 +525,51 @@ export default function BusinessApplicationDetailDrawer({
         loading={interviewSaving}
         candidateName={selectedApp.candidateName}
       />
+
+      {failModalOpen ? (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4"
+          onClick={() => !evaluationUpdating && setFailModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-labelledby="profile-fail-title"
+          >
+            <h4 id="profile-fail-title" className="biz-ui-body font-bold text-slate-900">
+              {reviewCopy.failConfirmTitle}
+            </h4>
+            <p className="biz-ui-caption mt-1 text-slate-600">{reviewCopy.failConfirmBody}</p>
+            <textarea
+              value={failReason}
+              onChange={(e) => setFailReason(e.target.value)}
+              placeholder={reviewCopy.failReasonPlaceholder}
+              rows={3}
+              className="biz-ui-body mt-3 w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-slate-800 outline-none focus:border-[#0077B6] focus:ring-1 focus:ring-[#0077B6]"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={evaluationUpdating}
+                onClick={() => setFailModalOpen(false)}
+                className="biz-ui-caption rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                {reviewCopy.cancel}
+              </button>
+              <button
+                type="button"
+                disabled={evaluationUpdating}
+                onClick={confirmProfileFail}
+                className="biz-ui-caption inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+              >
+                {evaluationUpdating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                {reviewCopy.confirmFail}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
