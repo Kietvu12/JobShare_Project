@@ -1150,6 +1150,104 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
   );
 
   /** Dùng chung cho bảng desktop và card mobile */
+  const selectedAdminFilterName = useMemo(() => {
+    if (!selectedAdminFilter) return '';
+    const match = adminFilterOptions.find((a) => String(a.id) === String(selectedAdminFilter));
+    return match?.name || match?.fullName || match?.email || '';
+  }, [selectedAdminFilter, adminFilterOptions]);
+
+  const filteredAdminFilterOptions = useMemo(() => {
+    const q = adminFilterSearchQuery.trim().toLowerCase();
+    if (!q) return adminFilterOptions;
+    return adminFilterOptions.filter((admin) => {
+      const name = String(admin?.name || admin?.fullName || '').toLowerCase();
+      const email = String(admin?.email || '').toLowerCase();
+      const id = String(admin?.id || '');
+      return name.includes(q) || email.includes(q) || id.includes(q);
+    });
+  }, [adminFilterOptions, adminFilterSearchQuery]);
+
+  const renderAdminFilterMenu = ({ className = '' } = {}) => (
+    <div
+      className={`rounded-xl border bg-white p-2.5 text-[9px] shadow-lg sm:text-[10px] lg:p-2 lg:text-[9px] xl:p-3 xl:text-[10px] ${className}`}
+      style={{ borderColor: '#e5e7eb' }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="mb-2 flex items-center rounded-lg border bg-white px-2 py-1.5" style={{ borderColor: '#e5e7eb' }}>
+        <Search className="mr-1.5 h-3 w-3 flex-shrink-0 text-gray-400" />
+        <input
+          type="text"
+          value={adminFilterSearchQuery}
+          onChange={(e) => setAdminFilterSearchQuery(e.target.value)}
+          placeholder={t.searchPlaceholderAdmin || 'Tìm tên admin, email...'}
+          className="w-full bg-transparent text-[9px] outline-none placeholder:text-gray-400 sm:text-[10px]"
+          autoFocus
+        />
+        {adminFilterSearchQuery ? (
+          <button
+            type="button"
+            onClick={() => setAdminFilterSearchQuery('')}
+            className="ml-1 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            aria-label="Clear search"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        ) : null}
+      </div>
+      <label className="flex cursor-pointer items-center gap-1.5 py-0.5">
+        <input
+          type="radio"
+          name="candidates-admin-filter"
+          checked={selectedAdminFilter === ''}
+          onChange={() => {
+            setSelectedAdminFilter('');
+            setCurrentPage(1);
+            setIsAdminFilterOpen(false);
+            setAdminFilterSearchQuery('');
+          }}
+          className="h-3.5 w-3.5"
+          style={{ accentColor: '#2563eb' }}
+        />
+        <span>{t.allStatus || 'Tất cả'}</span>
+      </label>
+      {adminFilterOptionsLoading ? (
+        <div className="px-1 py-2 text-gray-500">{t.loadingCandidates || 'Đang tải...'}</div>
+      ) : filteredAdminFilterOptions.length > 0 ? (
+        <div className="mt-1 max-h-52 overflow-y-auto">
+          {filteredAdminFilterOptions.map((admin) => (
+            <label key={admin.id} className="flex cursor-pointer items-center gap-1.5 py-0.5">
+              <input
+                type="radio"
+                name="candidates-admin-filter"
+                checked={String(selectedAdminFilter) === String(admin.id)}
+                onChange={() => {
+                  setSelectedAdminFilter(String(admin.id));
+                  setCurrentPage(1);
+                  setIsAdminFilterOpen(false);
+                  setAdminFilterSearchQuery('');
+                }}
+                className="h-3.5 w-3.5"
+                style={{ accentColor: '#2563eb' }}
+              />
+              <span className="min-w-0 flex-1 truncate" title={[admin.name || admin.fullName, admin.email].filter(Boolean).join(' • ')}>
+                <span className="font-medium text-gray-900">{admin.name || admin.fullName || `Admin #${admin.id}`}</span>
+                {admin.email ? (
+                  <span className="ml-1 text-[8px] text-gray-500 sm:text-[9px]">({admin.email})</span>
+                ) : null}
+              </span>
+            </label>
+          ))}
+        </div>
+      ) : (
+        <div className="px-1 py-2 text-gray-500">
+          {adminFilterSearchQuery.trim()
+            ? (t.noCandidatesFound || 'Không tìm thấy admin phù hợp')
+            : (t.noCandidatesFound || 'Không có admin')}
+        </div>
+      )}
+    </div>
+  );
+
   const getCandidateRowUi = (candidate) => {
     const isPromotedInactive = isCvPromotedInactive(candidate);
     const s = getCvDisplayStatusStyle(candidate);

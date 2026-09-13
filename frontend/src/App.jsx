@@ -87,6 +87,7 @@ import AgentEventDetailPage from './page/Agent/EventDetailPage';
 import AgentEventsPage from './page/Agent/AgentEventsPage';
 import CollaboratorLandingHome from './page/LandingPage/Collaborator/Home';
 import CandidateLandingHome from './page/LandingPage/Candidate/Home';
+import BusinessLandingPage from './page/LandingPage/Business/BusinessLandingPage';
 import CandidateLoginPage from './page/LandingPage/Candidate/CandidateLoginPage';
 import CandidateRegisterPage from './page/LandingPage/Candidate/CandidateRegisterPage';
 import CandidateResetPasswordPage from './page/LandingPage/Candidate/CandidateResetPasswordPage';
@@ -358,6 +359,9 @@ function App() {
 
           {/* Public landing pages — SEO / quảng cáo (không locale prefix) */}
           <Route path="/lp/:slug" element={<PublicLandingPage />} />
+
+          {/* Business landing — chưa có portal public, hiển thị 404 */}
+          <Route path="/business" element={<BusinessLandingPage />} />
 
           {/* Business auth - không dùng sidebar */}
           {/* <Route path="/business/register" element={<BusinessRegister />} />
