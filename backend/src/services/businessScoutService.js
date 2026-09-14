@@ -15,6 +15,8 @@ import {
   SCOUT_UNLOCK_TYPES,
   CTV_MARKETPLACE_ACCESS_TYPE,
   canCvBeListedOnScout,
+  BUSINESS_CANDIDATE_PIPELINE_VALUES,
+  getBusinessCandidatePipelineLabel,
 } from '../constants/scoutCredit.js';
 import { getScoutCreditCost, unlockScoutCvForBusiness } from './scoutCreditService.js';
 import { buildCvFileListPayload } from '../controllers/collaborator/cvController.js';
@@ -1398,6 +1400,69 @@ export async function unlockScoutCandidateForBusiness({ businessId, cvId }) {
   };
 }
 
+export async function updateUnlockedCandidatePipelineStatus({
+  businessId,
+  cvId,
+  pipelineStatus,
+}) {
+  const safeCvId = parseInt(cvId, 10);
+  if (!Number.isFinite(safeCvId) || safeCvId <= 0) {
+    const err = new Error('ID hồ sơ không hợp lệ');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const normalizedStatus = String(pipelineStatus || '').trim();
+  if (!BUSINESS_CANDIDATE_PIPELINE_VALUES.includes(normalizedStatus)) {
+    const err = new Error('Trạng thái không hợp lệ');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const unlock = await BusinessScoutUnlock.findOne({
+    where: { businessId, cvId: safeCvId },
+  });
+  if (!unlock) {
+    const err = new Error('Không tìm thấy hồ sơ đã mở');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const unlockType = unlock.unlockType || SCOUT_UNLOCK_TYPES.SCOUT_CREDIT;
+  if (unlockType !== SCOUT_UNLOCK_TYPES.SCOUT_CREDIT) {
+    const err = new Error('Chỉ hồ sơ mở bằng Scout Trực Tiếp mới cập nhật trạng thái tại đây');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  let saved = await BusinessSavedCandidate.findOne({
+    where: { businessId, cvId: safeCvId },
+  });
+
+  if (!saved) {
+    saved = await BusinessSavedCandidate.create({
+      businessId,
+      cvId: safeCvId,
+      source: SCOUT_UNLOCK_TYPES.SCOUT_CREDIT,
+      scoutUnlockId: unlock.id,
+      pipelineStatus: normalizedStatus,
+      savedAt: unlock.unlockedAt || unlock.createdAt || new Date(),
+    });
+  } else if (saved.pipelineStatus !== normalizedStatus) {
+    await saved.update({ pipelineStatus: normalizedStatus });
+  }
+
+  const label = getBusinessCandidatePipelineLabel(normalizedStatus);
+
+  return {
+    candidate: {
+      id: safeCvId,
+      pipelineStatus: normalizedStatus,
+      pipelineStatusLabel: label,
+    },
+  };
+}
+
 export async function getScoutUnlockedCvFileList({ businessId, cvId, req }) {
   const safeCvId = parseInt(cvId, 10);
   if (!Number.isFinite(safeCvId)) {
@@ -1464,5 +1529,6 @@ export default {
   listNominationJobsForAccessibleCandidate,
   nominateAccessibleCandidateToJob,
   getScoutUnlockedCvFileList,
+  updateUnlockedCandidatePipelineStatus,
   buildPublicScoutPayload,
 };

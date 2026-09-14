@@ -422,8 +422,8 @@ export function getLocalizedScoutDisplayName(candidate, language = 'vi') {
   const copy = scoutI18n[resolveScoutLang(language)];
   const fallback = copy.anonymousCandidate;
   if (!candidate) return fallback;
-  if (candidate.isUnlocked && candidate.name) return candidate.name;
-  if (candidate.name && !candidate.anonymousName) return candidate.name;
+  if (!candidate.isUnlocked) return fallback;
+  if (candidate.name) return candidate.name;
   // Server always sends Vietnamese ANONYMOUS_LABEL — use UI locale instead.
   return fallback;
 }

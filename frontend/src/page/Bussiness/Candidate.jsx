@@ -5,10 +5,10 @@ import nothingIllustration from '../../assets/Nothing.png'
 import apiService from '../../services/api'
 import FilterBlock from '../../component/Shared/FilterBlock'
 import FilterSelectDropdown from '../../component/Shared/FilterSelectDropdown'
-import ScoutCandidateFilterFields, { SCOUT_FILTER_INPUT_CLASS } from '../../component/Bussiness/ScoutCandidateFilterFields.jsx'
+import ScoutCandidateFilterFields from '../../component/Bussiness/ScoutCandidateFilterFields.jsx'
 import WorkLocationFilterModal from '../../component/Shared/WorkLocationFilterModal'
 import JobCategoryPickerModal from '../../component/Shared/JobCategoryPickerModal'
-import BusinessFloatingQuickActions from '../../component/Bussiness/BusinessFloatingQuickActions.jsx'
+import BusinessQuickActionsPageLayout from '../../component/Bussiness/BusinessQuickActionsPageLayout.jsx'
 import { CandidateListMatchCorner } from '../../component/Bussiness/ScoutMatchBadge'
 import { highlightSearchText } from '../../utils/searchTextHighlight'
 import { getBusinessUnlockedCandidateDetailUrl } from '../../utils/businessUnlockedCandidateDetailUrl'
@@ -51,6 +51,14 @@ const BRAND = '#0077B6'
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 
 const LIST_FILTER_ALL = 'all'
+
+const CANDIDATES_FILTER_INPUT_CLASS =
+  'scout-cand-meta w-full h-8 min-h-8 px-2.5 border border-gray-300 rounded-md bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0077B6]/25 focus:border-transparent'
+
+const CANDIDATES_FILTER_PICKER_BTN_CLASS =
+  'flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-gray-300 transition-colors hover:bg-gray-50'
+
+const CANDIDATES_FILTER_LABEL_CLASS = 'scout-cand-caption font-medium text-gray-700 leading-snug'
 
 function parseListFilter(listParam) {
   if (listParam === 'scout_credit' || listParam === 'scout_performance' || listParam === 'ctv_marketplace') {
@@ -115,9 +123,6 @@ const candidatePageStyles = `
     }
     .candidates-filter-head {
       padding: 0.375rem 0.625rem !important;
-    }
-    .candidates-filter-head h2 {
-      font-size: 11px !important;
     }
     .candidates-list-head {
       padding: 0.375rem 0.625rem !important;
@@ -266,7 +271,7 @@ function CandidateFilterChips({ chips }) {
           key={chip.id}
           type="button"
           onClick={chip.onRemove}
-          className="inline-flex max-w-full items-center gap-1 rounded-full border border-slate-200 bg-white py-0.5 pl-2 pr-1 text-[10px] font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+          className="scout-cand-caption inline-flex max-w-full items-center gap-1 rounded-full border border-slate-200 bg-white py-0.5 pl-2 pr-1 font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50"
           title="Bỏ điều kiện"
         >
           <span className="truncate">{chip.label}</span>
@@ -317,33 +322,49 @@ function UnlockedCandidateFilterPanel({
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [showJobCategoryModal, setShowJobCategoryModal] = useState(false)
 
+  const filterFieldProps = {
+    inputClassName: CANDIDATES_FILTER_INPUT_CLASS,
+    pickerBtnClassName: CANDIDATES_FILTER_PICKER_BTN_CLASS,
+    filterLabelClassName: CANDIDATES_FILTER_LABEL_CLASS,
+    fieldMinHeightClass: 'min-h-8',
+    dropdownOptionSize: 'comfortable',
+    salarySepClassName: 'scout-cand-caption shrink-0 text-gray-500',
+  }
+
   const leadingBlock = (
-    <FilterBlock icon={Unlock} label={copy.candidates.list.unlockSourceLabel} compact>
+    <FilterBlock
+      icon={Unlock}
+      label={copy.candidates.list.unlockSourceLabel}
+      compact
+      labelClassName={CANDIDATES_FILTER_LABEL_CLASS}
+      fieldMinHeightClass="min-h-8"
+    >
       <FilterSelectDropdown
         value={listFilter}
         onChange={onListFilterChange}
         options={unlockSourceOptions}
         placeholder={copy.candidates.list.unlockSourceAll}
-        className={SCOUT_FILTER_INPUT_CLASS}
+        className={CANDIDATES_FILTER_INPUT_CLASS}
+        optionSize="comfortable"
       />
     </FilterBlock>
   )
 
   const listCopy = copy.candidates.list
   return (
-    <section className="candidates-filter-sticky scout-workspace-filters shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      <div className="candidates-filter-head flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-2.5 py-2">
+    <section className="candidates-filter-sticky scout-candidates-list-ui scout-workspace-filters shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="candidates-filter-head flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-2.5 py-2 lg:px-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <h2 className="text-[11px] font-bold text-gray-900 lg:text-xs">{listCopy.filtersTitle}</h2>
+          <h2 className="scout-cand-title text-gray-900">{listCopy.filtersTitle}</h2>
           {!listLoading ? (
-            <span className="text-[10px] font-semibold text-slate-500">
+            <span className="scout-cand-caption font-semibold text-slate-500">
               {listCopy.resultCount(formatCandidateNumber(displayCount || 0, language))}
             </span>
           ) : null}
         </div>
         <div className="flex items-center gap-1.5">
           {hasActiveFilters ? (
-            <button type="button" onClick={onClear} className="text-[9px] font-semibold text-[#0077B6] hover:underline">
+            <button type="button" onClick={onClear} className="scout-cand-caption font-semibold text-[#0077B6] hover:underline">
               {listCopy.clearConditions}
             </button>
           ) : null}
@@ -351,14 +372,14 @@ function UnlockedCandidateFilterPanel({
             type="button"
             onClick={onApply}
             disabled={listLoading}
-            className="inline-flex h-6 items-center justify-center gap-1 rounded bg-[#facc15] px-2.5 shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 lg:h-7"
+            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-[#facc15] px-3 shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
             {listLoading ? (
-              <RotateCw className="h-3 w-3 animate-spin text-gray-800" />
+              <RotateCw className="h-3.5 w-3.5 animate-spin text-gray-800" />
             ) : (
-              <Search className="h-3 w-3 text-gray-800" />
+              <Search className="h-3.5 w-3.5 text-gray-800" />
             )}
-            <span className="text-[9px] font-semibold text-gray-800">{listCopy.searchButton}</span>
+            <span className="scout-cand-caption font-semibold text-gray-800">{listCopy.searchButton}</span>
           </button>
         </div>
       </div>
@@ -373,6 +394,7 @@ function UnlockedCandidateFilterPanel({
           onOpenLocationModal={() => setShowLocationModal(true)}
           onOpenJobCategoryModal={() => setShowJobCategoryModal(true)}
           language={language}
+          {...filterFieldProps}
         />
       </div>
       <WorkLocationFilterModal
@@ -783,49 +805,48 @@ const Candidate = () => {
           </div>
         )}
 
-        <div className="business-homepage-ui flex min-h-0 flex-1 flex-col overflow-hidden p-2 lg:p-3">
-          {showGlobalEmpty ? (
-            <CandidatesEmptyState copy={copy} />
-          ) : (
-            <div className="candidates-workspace-body min-h-0 flex-1">
-              <div className="candidates-workspace-content">
-                <UnlockedCandidateFilterPanel
-                  listFilter={listFilter}
-                  onListFilterChange={handleListFilterChange}
-                  scoutFilters={scoutFilters}
-                  setScoutFilters={setScoutFilters}
-                  searchInput={searchInput}
-                  setSearchInput={setSearchInput}
-                  onApply={handleApplyFilters}
-                  onClear={handleClearFilters}
-                  hasActiveFilters={hasActiveFilters}
-                  displayCount={totalItems}
-                  listLoading={listLoading}
-                  copy={copy}
-                  language={language}
-                  unlockSourceOptions={unlockSourceOptions}
-                  filterChips={filterChips}
-                />
-                <CandidateListPanel
-                  candidates={listForRender}
-                  loading={listLoading}
-                  total={totalItems}
-                  page={page}
-                  totalPages={totalPages}
-                  onPageChange={setPage}
-                  listFilter={listFilter}
-                  onOpenDetail={openCandidateDetail}
-                  hl={hl}
-                  copy={copy}
-                  language={language}
-                />
+        <div className="business-homepage-ui flex h-full min-h-0 flex-1 flex-col overflow-hidden p-2 lg:p-3">
+          <BusinessQuickActionsPageLayout onNavigate={navigate} showMobileFab={!showGlobalEmpty}>
+            {showGlobalEmpty ? (
+              <CandidatesEmptyState copy={copy} />
+            ) : (
+              <div className="candidates-workspace-body min-h-0 flex-1">
+                <div className="candidates-workspace-content">
+                  <UnlockedCandidateFilterPanel
+                    listFilter={listFilter}
+                    onListFilterChange={handleListFilterChange}
+                    scoutFilters={scoutFilters}
+                    setScoutFilters={setScoutFilters}
+                    searchInput={searchInput}
+                    setSearchInput={setSearchInput}
+                    onApply={handleApplyFilters}
+                    onClear={handleClearFilters}
+                    hasActiveFilters={hasActiveFilters}
+                    displayCount={totalItems}
+                    listLoading={listLoading}
+                    copy={copy}
+                    language={language}
+                    unlockSourceOptions={unlockSourceOptions}
+                    filterChips={filterChips}
+                  />
+                  <CandidateListPanel
+                    candidates={listForRender}
+                    loading={listLoading}
+                    total={totalItems}
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                    listFilter={listFilter}
+                    onOpenDetail={openCandidateDetail}
+                    hl={hl}
+                    copy={copy}
+                    language={language}
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </BusinessQuickActionsPageLayout>
         </div>
-        {!showGlobalEmpty ? (
-          <BusinessFloatingQuickActions onNavigate={navigate} placement="fixed" />
-        ) : null}
       </div>
     </>
   )

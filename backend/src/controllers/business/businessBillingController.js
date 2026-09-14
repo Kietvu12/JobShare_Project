@@ -3,6 +3,7 @@ import {
   listBusinessBillingTransactions,
   listBusinessBillingRequests,
   listBusinessBillingInvoices,
+  confirmBusinessInvoicePayment,
 } from '../../services/businessBillingService.js';
 import {
   createBusinessCreditRequest,
@@ -71,10 +72,27 @@ export const businessBillingController = {
         status: req.query.status,
         tab: req.query.tab,
         search: req.query.search,
+        scope: req.query.scope,
       });
       res.json({ success: true, data });
     } catch (error) {
       next(error);
+    }
+  },
+
+  confirmInvoicePayment: async (req, res, next) => {
+    try {
+      const payment = await confirmBusinessInvoicePayment({
+        businessId: req.business.id,
+        invoiceId: req.params.id,
+      });
+      res.json({
+        success: true,
+        message: 'Đã gửi xác nhận thanh toán. WS sẽ kiểm tra và hoàn tất giao dịch.',
+        data: { payment },
+      });
+    } catch (error) {
+      return handleServiceError(res, error, next);
     }
   },
 

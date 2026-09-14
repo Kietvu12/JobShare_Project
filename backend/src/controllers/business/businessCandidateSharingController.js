@@ -3,8 +3,10 @@ import {
   closeBusinessListing,
   createBusinessListing,
   getBusinessDashboard,
+  getBusinessListingDetail,
   getMarketplacePlatformOverview,
   listAdminListings,
+  listBusinessListingInterests,
   listBusinessListings,
   listBusinessNominations,
   listBusinessSettlements,
@@ -45,6 +47,32 @@ export const businessCandidateSharingController = {
         limit: req.query.limit,
         status: req.query.status,
         search: req.query.search,
+      });
+      res.json({ success: true, data });
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  getListing: async (req, res, next) => {
+    try {
+      const data = await getBusinessListingDetail({
+        businessId: req.business.id,
+        listingId: req.params.id,
+      });
+      res.json({ success: true, data });
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  listListingInterests: async (req, res, next) => {
+    try {
+      const data = await listBusinessListingInterests({
+        businessId: req.business.id,
+        listingId: req.params.id,
+        page: req.query.page,
+        limit: req.query.limit,
       });
       res.json({ success: true, data });
     } catch (e) {
@@ -130,6 +158,7 @@ export const businessCandidateSharingController = {
         businessId: req.business.id,
         page: req.query.page,
         limit: req.query.limit,
+        listingId: req.query.listingId,
       });
       res.json({ success: true, data });
     } catch (e) {

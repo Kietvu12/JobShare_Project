@@ -52,7 +52,7 @@ const HIRED_STATUSES = new Set([14, 15])
 const EMPTY_JOB_STATS = { candidates: 0, referrals: 0, interviews: 0, hired: 0 }
 
 const FILTER_SELECT_CLASS =
-  'w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 outline-none focus:border-[#0077B6]/40'
+  'w-full rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium leading-snug text-slate-700 outline-none focus:border-[#0077B6]/40 sm:min-h-[28px] sm:py-1 sm:text-[11px]'
 
 function buildJobStatsMap(applications = []) {
   const map = {}
@@ -434,7 +434,7 @@ function jobMatchesDateFilter(job, dateFilter) {
 function JobFilterField({ label, children }) {
   return (
     <label className="block min-w-0">
-      <span className="mb-0 block text-[10px] font-semibold leading-tight text-slate-500">{label}</span>
+      <span className="business-jobs-filter-label mb-0 block font-semibold leading-tight text-slate-500">{label}</span>
       {children}
     </label>
   )
@@ -503,6 +503,17 @@ const jobListStyles = `
   }
   .business-jobs-table tbody tr:last-child td {
     border-bottom: none;
+  }
+  .business-jobs-filter-panel {
+    font-size: 11px;
+    line-height: 1.35;
+  }
+  .business-jobs-filter-panel .business-jobs-filter-label {
+    font-size: 10px;
+  }
+  .business-jobs-filter-panel input,
+  .business-jobs-filter-panel button[aria-haspopup="listbox"] {
+    font-size: inherit;
   }
   .business-jobs-table .business-jobs-actions-col {
     position: sticky;
@@ -1058,22 +1069,22 @@ const JobManagement = () => {
             <span className="font-medium text-slate-700">{jobsCopy.breadcrumb.current}</span>
           </nav>
 
-          <div className="rounded-xl border border-slate-200/90 bg-white p-2 shadow-sm">
+          <div className="business-jobs-filter-panel rounded-xl border border-slate-200/90 bg-white p-2 shadow-sm">
             <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
-              <div className="relative flex flex-1 items-center rounded-md border border-slate-200 bg-white px-2 py-1">
+              <div className="relative flex flex-1 items-center rounded-md border border-slate-200 bg-white px-2 py-0.5 sm:min-h-[28px] sm:py-1">
                 <input
                   type="text"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder={jobsCopy.searchPlaceholder}
-                  className="min-w-0 flex-1 bg-transparent pr-7 text-[11px] text-slate-800 outline-none placeholder:text-slate-400 sm:text-xs"
+                  className="min-w-0 flex-1 bg-transparent pr-7 text-[10px] text-slate-800 outline-none placeholder:text-slate-400 sm:text-[11px]"
                 />
                 <Search className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-slate-400" />
               </div>
               <button
                 type="button"
                 onClick={() => navigate('/business/jobs/create')}
-                className="inline-flex shrink-0 items-center justify-center gap-1 rounded-md bg-[#0077B6] px-3 py-1 text-[11px] font-bold text-white shadow-md shadow-[#0077B6]/20 ring-1 ring-[#0077B6]/25 transition hover:bg-[#006399] sm:text-xs"
+                className="inline-flex shrink-0 items-center justify-center gap-1 rounded-md bg-[#0077B6] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-md shadow-[#0077B6]/20 ring-1 ring-[#0077B6]/25 transition hover:bg-[#006399] sm:min-h-[28px] sm:px-3 sm:py-1 sm:text-[11px]"
               >
                 <Plus className="h-3.5 w-3.5" />
                 {jobsCopy.createShort}
@@ -1082,7 +1093,7 @@ const JobManagement = () => {
                 type="button"
                 onClick={clearFilters}
                 disabled={!hasActiveFilters}
-                className="inline-flex shrink-0 items-center justify-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35"
+                className="inline-flex shrink-0 items-center justify-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-[28px] sm:py-1 sm:text-[11px]"
               >
                 <RotateCcw className="h-3 w-3" />
                 {commonCopy.clearFilters}
@@ -1098,6 +1109,7 @@ const JobManagement = () => {
                   placeholder={jobsCopy.filters.allStatus}
                   className={FILTER_SELECT_CLASS}
                   maxPanelHeight={220}
+                  optionSize="compact"
                 />
               </JobFilterField>
               <JobFilterField label={jobsCopy.filters.category}>
@@ -1110,6 +1122,7 @@ const JobManagement = () => {
                   searchPlaceholder={jobsCopy.filters.searchCategory}
                   className={FILTER_SELECT_CLASS}
                   maxPanelHeight={240}
+                  optionSize="compact"
                 />
               </JobFilterField>
               <JobFilterField label={jobsCopy.filters.location}>
@@ -1122,6 +1135,7 @@ const JobManagement = () => {
                   searchPlaceholder={jobsCopy.filters.searchLocation}
                   className={FILTER_SELECT_CLASS}
                   maxPanelHeight={240}
+                  optionSize="compact"
                 />
               </JobFilterField>
               <JobFilterField label={jobsCopy.filters.date}>
@@ -1132,6 +1146,7 @@ const JobManagement = () => {
                   placeholder={jobsCopy.filters.allTime}
                   className={FILTER_SELECT_CLASS}
                   maxPanelHeight={200}
+                  optionSize="compact"
                 />
               </JobFilterField>
             </div>

@@ -29,7 +29,7 @@ export const INSIGHTS_DONUT_COLORS = ['#0077B6', '#38bdf8', '#0ea5e9', '#7dd3fc'
 export const CHART_MARGIN = { top: 8, right: 12, left: 4, bottom: 0 }
 export const CHART_MARGIN_BAR = { top: 20, right: 12, left: 4, bottom: 0 }
 
-export const axisTick = { fontSize: 10, fill: '#94a3b8', fontFamily: 'inherit' }
+export const axisTick = { fontSize: 10, fill: '#64748b', fontFamily: 'inherit' }
 export const gridStroke = '#eef2f6'
 
 const tooltipBox = {
@@ -109,7 +109,7 @@ export function ChartPeriodPills({ value, onChange, options = ['Tuần', 'Tháng
           key={opt}
           type="button"
           onClick={() => onChange?.(opt)}
-          className={`biz-ui-caption rounded-md px-2 py-0.5 font-semibold transition-colors ${
+          className={`rounded-md px-2 py-0.5 text-[10px] font-semibold transition-colors sm:px-2.5 sm:py-1 sm:text-[11px] ${
             value === opt ? 'bg-white text-[#0077B6] shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronDown, Bell, Mail, HelpCircle, MoreVertical, LogOut, Settings, Coins, Menu, X } from 'lucide-react';
+import { ChevronDown, Bell, Mail, HelpCircle, MoreVertical, LogOut, User, Coins, Menu, X } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { localizeNotification } from '../../utils/notificationI18n';
 import { isCreditTopUpApprovedNotification, CREDIT_TOPUP_SCOUT_DIRECT_PATH } from '../../utils/businessNotificationActions';
@@ -16,7 +16,7 @@ const I18N = {
     messages: 'Tin nhắn',
     help: 'Trợ giúp',
     helpTitle: 'Hướng dẫn / Help Center',
-    settings: 'Cài đặt',
+    accountProfile: 'Thông tin doanh nghiệp',
     logout: 'Đăng xuất',
     markAllRead: 'Đọc hết',
     noNotifications: 'Không có thông báo.',
@@ -31,7 +31,7 @@ const I18N = {
     messages: 'Messages',
     help: 'Help',
     helpTitle: 'Guide / Help Center',
-    settings: 'Settings',
+    accountProfile: 'Business account',
     logout: 'Log Out',
     markAllRead: 'Mark all read',
     noNotifications: 'No notifications.',
@@ -46,7 +46,7 @@ const I18N = {
     messages: 'メッセージ',
     help: 'ヘルプ',
     helpTitle: 'ガイド / ヘルプセンター',
-    settings: '設定',
+    accountProfile: '企業アカウント情報',
     logout: 'ログアウト',
     markAllRead: 'すべて既読',
     noNotifications: '通知はありません。',
@@ -257,6 +257,11 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const goToAccountProfile = () => {
+    setUserMenuOpen(false);
+    navigate('/business/profile');
+  };
+
   const handleLogout = async () => {
     try {
       await apiService.logoutBusiness();
@@ -339,9 +344,10 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
           <span className="truncate">{t.messages}</span>
         </button>
 
-        <div className="px-2 py-2 border-b border-gray-200 lg:hidden">
+        <div className="border-b border-gray-200 px-2 py-1.5 lg:hidden">
           <BusinessAppLanguageSwitcher
             compact
+            dense
             showLabel
             label={appCopy.layout.language}
             className="w-full"
@@ -350,10 +356,11 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
 
         <button
           type="button"
+          onClick={goToAccountProfile}
           className="w-full text-left px-2 py-1.5 rounded-md hover:bg-gray-50 text-[11px] lg:text-[10px] text-gray-700 flex items-center gap-2"
         >
-          <Settings className="h-3.5 w-3.5 flex-shrink-0" />
-          <span className="truncate">{t.settings}</span>
+          <User className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="truncate">{t.accountProfile}</span>
         </button>
         <button
           type="button"
@@ -552,8 +559,8 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
           <HelpCircle className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-gray-600" />
         </button>
 
-        <div className="hidden lg:block">
-          <BusinessAppLanguageSwitcher compact />
+        <div className="hidden shrink-0 items-center lg:flex">
+          <BusinessAppLanguageSwitcher compact dense />
         </div>
 
         <div className="h-4 lg:h-5 border-l border-gray-300 mx-0.5 lg:mx-1" />

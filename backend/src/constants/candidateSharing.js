@@ -11,7 +11,7 @@ export const MARKETPLACE_LISTING_STATUS = {
 
 export const MARKETPLACE_LISTING_STATUS_LABELS = {
   0: 'Nháp',
-  1: 'Chờ WS duyệt',
+  1: 'Đang chờ WS duyệt',
   2: 'Đã duyệt',
   3: 'Đang chạy',
   4: 'Tạm dừng',

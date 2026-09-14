@@ -10,6 +10,7 @@ router.get('/dashboard', businessBillingController.getDashboard);
 router.get('/transactions', businessBillingController.getTransactions);
 router.get('/requests', businessBillingController.getRequests);
 router.get('/invoices', businessBillingController.getInvoices);
+router.post('/invoices/:id/confirm-payment', businessBillingController.confirmInvoicePayment);
 router.get('/credit-requests', businessBillingController.getCreditRequests);
 router.post('/credit-requests', businessBillingController.createCreditRequest);
 router.post('/service-requests', businessBillingController.createServiceRequest);

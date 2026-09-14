@@ -16,12 +16,14 @@ import {
 } from '../../i18n/businessAppI18n'
 
 export const SCOUT_FILTER_INPUT_CLASS =
-  'biz-ui-caption w-full h-[26px] px-2 py-0 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+  'scout-cand-meta w-full h-8 min-h-8 px-2.5 border border-gray-300 rounded-md bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0077B6]/25 focus:border-transparent'
 
-const SCOUT_FILTER_PICKER_BTN_CLASS =
-  'flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded border border-gray-300 transition-colors hover:bg-gray-50'
+export const SCOUT_FILTER_PICKER_BTN_CLASS =
+  'flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-gray-300 transition-colors hover:bg-gray-50'
 
-function FilterPickerRow({ value, placeholder, onOpen }) {
+const SCOUT_FILTER_LABEL_CLASS = 'scout-cand-caption font-medium text-gray-700 leading-snug'
+
+function FilterPickerRow({ value, placeholder, onOpen, inputClassName, pickerBtnClassName }) {
   return (
     <div className="flex items-center gap-1">
       <input
@@ -30,9 +32,9 @@ function FilterPickerRow({ value, placeholder, onOpen }) {
         value={value}
         placeholder={placeholder}
         onClick={onOpen}
-        className={`min-w-0 flex-1 cursor-pointer bg-gray-50 ${SCOUT_FILTER_INPUT_CLASS}`}
+        className={`min-w-0 flex-1 cursor-pointer bg-gray-50 ${inputClassName || SCOUT_FILTER_INPUT_CLASS}`}
       />
-      <button type="button" onClick={onOpen} className={SCOUT_FILTER_PICKER_BTN_CLASS}>
+      <button type="button" onClick={onOpen} className={pickerBtnClassName || SCOUT_FILTER_PICKER_BTN_CLASS}>
         <Plus className="h-3 w-3 text-gray-600" />
       </button>
     </div>
@@ -48,7 +50,17 @@ export default function ScoutCandidateFilterFields({
   onOpenLocationModal,
   onOpenJobCategoryModal,
   language = 'vi',
+  inputClassName = SCOUT_FILTER_INPUT_CLASS,
+  pickerBtnClassName = SCOUT_FILTER_PICKER_BTN_CLASS,
+  filterLabelClassName = SCOUT_FILTER_LABEL_CLASS,
+  fieldMinHeightClass = 'min-h-8',
+  dropdownOptionSize = 'compact',
+  salarySepClassName = 'scout-cand-caption shrink-0 text-gray-500',
 }) {
+  const filterBlockProps = {
+    labelClassName: filterLabelClassName,
+    fieldMinHeightClass,
+  };
   const f = useMemo(() => getScoutFilterCopy(language), [language])
 
   const japaneseLevelOptions = useMemo(() => [
@@ -81,54 +93,61 @@ export default function ScoutCandidateFilterFields({
     <div className="grid grid-cols-1 gap-x-3 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-4">
       {leadingBlock}
 
-      <FilterBlock icon={Languages} label={f.japaneseLevel} compact>
+      <FilterBlock icon={Languages} label={f.japaneseLevel} compact {...filterBlockProps}>
         <FilterSelectDropdown
           value={scoutFilters.japaneseLevel || ''}
           onChange={(next) => setScoutFilters((prev) => ({ ...prev, japaneseLevel: next }))}
           options={japaneseLevelOptions}
           placeholder={f.japaneseLevelPlaceholder}
-          className={SCOUT_FILTER_INPUT_CLASS}
+          className={inputClassName}
+          optionSize={dropdownOptionSize}
         />
       </FilterBlock>
 
-      <FilterBlock icon={UserCheck} label={f.experience} compact>
+      <FilterBlock icon={UserCheck} label={f.experience} compact {...filterBlockProps}>
         <FilterSelectDropdown
           value={scoutFilters.experience || ''}
           onChange={(next) => setScoutFilters((prev) => ({ ...prev, experience: next }))}
           options={experienceOptions}
           placeholder={f.experienceAll}
-          className={SCOUT_FILTER_INPUT_CLASS}
+          className={inputClassName}
+          optionSize={dropdownOptionSize}
         />
       </FilterBlock>
 
-      <FilterBlock icon={IdCard} label={f.visa} compact>
+      <FilterBlock icon={IdCard} label={f.visa} compact {...filterBlockProps}>
         <FilterSelectDropdown
           value={scoutFilters.visa || ''}
           onChange={(next) => setScoutFilters((prev) => ({ ...prev, visa: next }))}
           options={visaOptions}
           placeholder={f.visaAll}
-          className={SCOUT_FILTER_INPUT_CLASS}
+          className={inputClassName}
+          optionSize={dropdownOptionSize}
           maxPanelHeight={220}
         />
       </FilterBlock>
 
-      <FilterBlock icon={MapPin} label={f.location} compact>
+      <FilterBlock icon={MapPin} label={f.location} compact {...filterBlockProps}>
         <FilterPickerRow
           value={locationDisplay}
           placeholder={f.locationPlaceholder}
           onOpen={onOpenLocationModal}
+          inputClassName={inputClassName}
+          pickerBtnClassName={pickerBtnClassName}
         />
       </FilterBlock>
 
-      <FilterBlock icon={Building2} label={f.jobCategory} compact>
+      <FilterBlock icon={Building2} label={f.jobCategory} compact {...filterBlockProps}>
         <FilterPickerRow
           value={scoutFilters.jobCategoryLabel || ''}
           placeholder={f.jobCategoryPlaceholder}
           onOpen={onOpenJobCategoryModal}
+          inputClassName={inputClassName}
+          pickerBtnClassName={pickerBtnClassName}
         />
       </FilterBlock>
 
-      <FilterBlock icon={DollarSign} label={f.salary} compact>
+      <FilterBlock icon={DollarSign} label={f.salary} compact {...filterBlockProps}>
         <div className="flex min-w-0 items-center gap-1">
           <input
             type="number"
@@ -138,9 +157,9 @@ export default function ScoutCandidateFilterFields({
               salaryMin: e.target.value ? Number(e.target.value) : '',
             }))}
             placeholder={f.salaryFrom}
-            className={`min-w-0 flex-1 ${SCOUT_FILTER_INPUT_CLASS}`}
+            className={`min-w-0 flex-1 ${inputClassName}`}
           />
-          <span className="biz-ui-micro shrink-0 text-gray-500">~</span>
+          <span className={salarySepClassName}>~</span>
           <input
             type="number"
             value={scoutFilters.salaryMax}
@@ -149,18 +168,18 @@ export default function ScoutCandidateFilterFields({
               salaryMax: e.target.value ? Number(e.target.value) : '',
             }))}
             placeholder={f.salaryTo}
-            className={`min-w-0 flex-1 ${SCOUT_FILTER_INPUT_CLASS}`}
+            className={`min-w-0 flex-1 ${inputClassName}`}
           />
         </div>
       </FilterBlock>
 
-      <FilterBlock icon={Search} label={f.keyword} compact>
+      <FilterBlock icon={Search} label={f.keyword} compact {...filterBlockProps}>
         <input
           type="text"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder={f.keywordPlaceholder}
-          className={SCOUT_FILTER_INPUT_CLASS}
+          className={inputClassName}
         />
       </FilterBlock>
     </div>

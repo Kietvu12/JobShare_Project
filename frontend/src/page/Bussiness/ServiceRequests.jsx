@@ -127,43 +127,58 @@ export default function ServiceRequests() {
             <span className="font-medium text-slate-700">{breadcrumbCurrent}</span>
           </nav>
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_260px] xl:grid-cols-[minmax(0,1fr)_280px]">
-            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden lg:overflow-hidden">
-              <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 lg:grid-rows-2">
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_260px] lg:overflow-hidden xl:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="flex min-h-0 flex-col gap-3 lg:overflow-y-auto">
+              <header className="shrink-0">
+                <h1 className="text-sm font-bold text-slate-900 sm:text-base">
+                  Chọn dịch vụ bạn muốn yêu cầu
+                </h1>
+                <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-slate-600 sm:text-xs">
+                  Tạo yêu cầu mới và theo dõi tiến độ tại đây. Các dịch vụ branding (Landing Page, quảng cáo, seminar…)
+                  vẫn quản lý nội dung trong Thương hiệu tuyển dụng — màn này là nơi gửi và theo dõi yêu cầu tới WS.
+                </p>
+                <p className="mt-2 flex items-start gap-1.5 text-[10px] leading-snug text-slate-500">
+                  <Info className="mt-0.5 h-3 w-3 shrink-0 text-[#0077B6]" aria-hidden />
+                  <span>
+                    <span className="font-semibold text-slate-700">Lưu ý:</span>{' '}
+                    Thời gian xử lý 1–2 ngày làm việc. WS liên hệ xác nhận sau khi tiếp nhận.
+                  </span>
+                </p>
+              </header>
+
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-3">
                 {BUSINESS_SERVICE_REQUEST_CATALOG.map((service) => {
                   const Icon = service.icon;
+                  const cta = service.ctaLabel || 'Tiếp tục';
                   return (
-                    <article key={service.key} className={`${CARD} flex h-full min-h-0 flex-col p-2.5 transition-shadow hover:shadow-md sm:p-3`}>
-                      <div className="flex flex-1 flex-col justify-center">
+                    <article
+                      key={service.key}
+                      className={`${CARD} flex h-full min-h-[108px] flex-col p-3 transition-shadow hover:shadow-md`}
+                    >
+                      <div className="flex gap-2.5">
                         <div
-                          className="mb-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                           style={{ background: service.iconBg }}
                         >
-                          <Icon className="h-3.5 w-3.5" style={{ color: service.iconColor }} strokeWidth={2} />
+                          <Icon className="h-4 w-4" style={{ color: service.iconColor }} strokeWidth={2} />
                         </div>
-                        <h2 className="text-[11px] font-bold leading-snug text-slate-900 sm:text-xs">{service.title}</h2>
-                        <p className="mt-1 text-[9px] leading-snug text-slate-500 sm:text-[10px]">
-                          {service.shortDesc}
-                        </p>
+                        <div className="min-w-0 flex-1">
+                          <h2 className="text-xs font-bold leading-snug text-slate-900">{service.title}</h2>
+                          <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-slate-500">
+                            {service.shortDesc}
+                          </p>
+                        </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => openService(service)}
-                        className="mt-2 shrink-0 w-full rounded-lg border border-[#0077B6]/30 bg-white py-1.5 text-[10px] font-semibold text-[#0077B6] transition-colors hover:bg-[#e8f4fa] sm:text-[11px]"
+                        className="mt-2.5 inline-flex w-fit items-center rounded-lg border border-[#0077B6]/35 bg-white px-3 py-1.5 text-[10px] font-semibold text-[#0077B6] transition-colors hover:bg-[#e8f4fa] sm:text-[11px]"
                       >
-                        Xem chi tiết
+                        {cta}
                       </button>
                     </article>
                   );
                 })}
-              </div>
-
-              <div className={`${CARD} flex shrink-0 items-start gap-2 border-[#0077B6]/15 bg-[#e8f4fa]/60 p-2.5 sm:p-3`}>
-                <Info className="mt-0.5 h-3 w-3 shrink-0 text-[#0077B6]" />
-                <p className="text-[9px] leading-snug text-slate-600 sm:text-[10px]">
-                  <span className="font-semibold text-slate-800">Lưu ý:</span>{' '}
-                  Thời gian xử lý yêu cầu: 1–2 ngày làm việc. JobShare sẽ liên hệ xác nhận và tư vấn chi tiết sau khi tiếp nhận yêu cầu của bạn.
-                </p>
               </div>
             </div>
 

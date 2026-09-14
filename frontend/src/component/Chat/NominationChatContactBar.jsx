@@ -6,12 +6,34 @@ import {
   formatPhoneTel,
 } from '../../utils/wsSupportContact';
 
-export default function NominationChatContactBar({ responsibleContact = null }) {
+export default function NominationChatContactBar({ responsibleContact = null, variant = 'default' }) {
+  if (variant === 'hidden') return null;
   const wsPhone = responsibleContact?.wsPhone || WS_SUPPORT_PHONE_DISPLAY;
   const wsPhoneTel = responsibleContact?.wsPhoneTel || WS_SUPPORT_PHONE_TEL;
   const adminName = responsibleContact?.adminName;
   const adminPhone = responsibleContact?.adminPhone;
   const adminPhoneTel = formatPhoneTel(adminPhone);
+
+  if (variant === 'subtle') {
+    return (
+      <div className="shrink-0 border-b border-slate-100 bg-slate-50/80 px-3 py-1.5 text-[11px] text-slate-600 sm:px-4">
+        <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span>WS hỗ trợ:</span>
+          <a href={`tel:${wsPhoneTel}`} className="font-semibold text-[#0077B6] hover:underline">
+            {wsPhone}
+          </a>
+          {adminName && adminPhone ? (
+            <span>
+              · {adminName}:{' '}
+              <a href={`tel:${adminPhoneTel}`} className="font-medium text-[#0077B6] hover:underline">
+                {adminPhone}
+              </a>
+            </span>
+          ) : null}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="shrink-0 border-b border-[#0077B6]/15 bg-[#e8f4fa] px-3 py-2 sm:px-4">
@@ -38,9 +60,6 @@ export default function NominationChatContactBar({ responsibleContact = null }) 
           </span>
         ) : null}
       </div>
-      <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
-        Liên hệ trực tiếp khi cần. Xác nhận tuyển thành công vẫn thực hiện trên sàn để có căn cứ thanh toán &amp; chia phí.
-      </p>
     </div>
   );
 }

@@ -8,6 +8,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 
 
 router.use(authenticateBusiness);
 
+router.get('/unread-by-application', businessMessageController.getUnreadByJobApplication);
 router.get('/job-application/:jobApplicationId', businessMessageController.getMessagesByJobApplication);
 router.post('/', upload.single('attachment'), businessMessageController.createMessage);
 

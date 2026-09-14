@@ -578,13 +578,17 @@ export default function ScoutCandidateDetail() {
   const canShowUnlockOptions = Boolean(candidate?.id) && !candidate.isUnlocked
   const showUnlockCompareTable = canShowUnlockOptions && !scoutMode
   const showDualServiceCards = canShowUnlockOptions && !scoutMode && !performanceDetail
-  const showCreditUnlockCard = showDualServiceCards
-  const showManagedUnlockCard = showDualServiceCards
+  const showCreditUnlockCard = canShowUnlockOptions && !performanceDetail
+    && (showDualServiceCards || scoutMode === 'credit')
+  const showManagedUnlockCard = canShowUnlockOptions && !performanceDetail
+    && (showDualServiceCards || scoutMode === 'performance')
+  const showCreditStickyUnlock = canShowUnlockOptions && scoutMode === 'credit' && !showCreditUnlockCard
   const showManagedSoftPromo = canShowUnlockOptions && scoutMode === 'credit'
-  const showCreditSoftPromo = canShowUnlockOptions && scoutMode === 'performance' && !candidate?.isUnlocked
+    && !showCreditUnlockCard
   const hasPerformanceRequest = candidate?.unlockType === 'scout_performance'
     || Boolean(candidate?.performanceRequest?.id)
-  const showManagedStickyCta = canShowUnlockOptions && scoutMode === 'performance' && !hasPerformanceRequest
+  const showManagedStickyCta = canShowUnlockOptions && scoutMode === 'performance'
+    && !hasPerformanceRequest && !showManagedUnlockCard
   const showPerformancePipeline = (scoutMode === 'performance' || isPerformanceUnlock)
     && candidate?.performancePipeline
 
@@ -806,19 +810,6 @@ export default function ScoutCandidateDetail() {
                 </div>
               ) : null}
 
-              {showCreditSoftPromo ? (
-                <div className="w-full rounded-lg border border-slate-100 bg-slate-50/90 px-3 py-2.5 text-xs text-slate-600">
-                  Muốn tự liên hệ ứng viên?{' '}
-                  <button
-                    type="button"
-                    onClick={switchToCreditScoutOnDetail}
-                    className="font-semibold text-[#0077B6] underline decoration-[#0077B6]/30 underline-offset-2 hover:text-[#006399]"
-                  >
-                    Chuyển sang Scout Trực Tiếp →
-                  </button>
-                </div>
-              ) : null}
-
               {showManagedStickyCta ? (
                 <div className="sticky bottom-0 z-20 -mx-2.5 border-t border-slate-200 bg-white/95 px-2.5 py-2.5 shadow-[0_-4px_16px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:-mx-3 sm:px-3 lg:static lg:mx-0 lg:border lg:rounded-xl lg:shadow-sm">
                   <button
@@ -843,7 +834,7 @@ export default function ScoutCandidateDetail() {
                 </div>
               ) : null}
 
-              {showCreditUnlockCard && scoutMode === 'credit' && !candidate.isUnlocked ? (
+              {showCreditStickyUnlock ? (
                 <div className="sticky bottom-0 z-20 -mx-2.5 border-t border-slate-200 bg-white/95 px-2.5 py-2.5 shadow-[0_-4px_16px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:-mx-3 sm:px-3 lg:static lg:mx-0 lg:border lg:rounded-xl lg:shadow-sm">
                   <button
                     type="button"

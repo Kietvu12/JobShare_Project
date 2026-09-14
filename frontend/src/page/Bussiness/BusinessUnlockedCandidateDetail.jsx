@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
-  ChevronRight, MoreHorizontal, Phone, Mail, Loader2, BadgeCheck, MessageSquare,
+  ChevronRight, MoreHorizontal, Phone, Mail, Loader2, BadgeCheck,
   Copy, Briefcase, UserPlus, Sparkles, Download, ChevronLeft,
 } from 'lucide-react'
 import apiService from '../../services/api'
@@ -39,8 +39,6 @@ import {
   formatCandidateYesNo,
   getLocalizedJobTitle,
   getLocalizedScoutDisplayName,
-  getLocalizedScoutPerformanceExploreMeta,
-  getLocalizedScoutPerformanceRequestMeta,
   getLocalizedScoutPerformanceRequestStatusLabel,
   getLocalizedScoutPipelineMeta,
   getLocalizedScoutUnlockSourceMeta,
@@ -474,9 +472,6 @@ function CandidateDetail({
   const educations = normalizeScoutEducations(candidate.educations)
   const workExperiences = normalizeScoutWorkExperiences(candidate.workExperiences)
   const certificates = normalizeScoutCertificates(candidate.certificates)
-  const perfReq = candidate.performanceRequest
-  const perfStatusMeta = perfReq?.status ? getLocalizedScoutPerformanceRequestMeta(perfReq.status, language) : null
-
   const copyCode = () => {
     if (candidate.code && navigator.clipboard) {
       navigator.clipboard.writeText(String(candidate.code)).catch(() => {})
@@ -493,23 +488,8 @@ function CandidateDetail({
   const unlockDate = formatCandidateDetailDate(candidate.unlockedAt, language)
     || formatCandidateListDate(candidate.unlockedAt, language)
 
-  const isScoutCreditUnlock = candidate.unlockType === 'scout_credit'
-  const creditCost = Number(candidate.creditCost)
-  const showCreditMetric = isScoutCreditUnlock && Number.isFinite(creditCost) && creditCost > 0
-
   const overviewMetrics = [
-    ...(isPerformanceUnlock
-      ? [{
-        label: m.wsRequest,
-        value: perfStatusMeta?.label || null,
-        sub: perfReq?.recommendationCount ? m.recommendations(perfReq.recommendationCount) : undefined,
-      }]
-      : []),
     { label: m.experience, value: expYears !== '—' ? expYears : null, sub: m.overview },
-    { label: m.profileUnlock, value: unlockDate !== '—' ? unlockDate : null, sub: source.label },
-    ...(showCreditMetric
-      ? [{ label: m.creditUsed, value: String(creditCost), sub: m.scoutCredit }]
-      : []),
   ]
 
   const prText = sanitizeCandidateDisplayText(getScoutPrSummary(candidate))
@@ -558,11 +538,13 @@ function CandidateDetail({
         </div>
       </div>
 
-      <div className="cand-metrics">
-        {overviewMetrics.map((item) => (
-          <MetricCard key={item.label} label={item.label} value={item.value} sub={item.sub} />
-        ))}
-      </div>
+      {overviewMetrics.some((item) => item.value && item.value !== '—') ? (
+        <div className="cand-metrics">
+          {overviewMetrics.map((item) => (
+            <MetricCard key={item.label} label={item.label} value={item.value} sub={item.sub} />
+          ))}
+        </div>
+      ) : null}
 
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -689,8 +671,6 @@ const PIPELINE_OPTIONS = ['new', 'processing', 'interview', 'contact', 'hired', 
 function CandidateSidebar({
   candidate,
   businessId,
-  exploreSubmitting,
-  onExploreStatus,
   onOpenNomination,
   onRequestAttach,
   attachingJobId,
@@ -698,6 +678,8 @@ function CandidateSidebar({
   onDownloadOriginalCv,
   downloadingCv,
   pipelineControlRef,
+  pipelineUpdating,
+  onPipelineStatusChange,
   copy,
   language,
 }) {
@@ -711,11 +693,8 @@ function CandidateSidebar({
   const source = getLocalizedScoutUnlockSourceMeta(candidate.unlockType, language)
   const isPerformanceUnlock = isScoutPerformanceUnlock(candidate)
   const perfReq = candidate.performanceRequest
-  const perfStatusMeta = perfReq?.status ? getLocalizedScoutPerformanceRequestMeta(perfReq.status, language) : null
-  const exploreMeta = perfReq?.businessExploreStatus
-    ? getLocalizedScoutPerformanceExploreMeta(perfReq.businessExploreStatus, language)
-    : null
-  const canSetExplore = perfReq?.status === 'approved' && !perfReq?.businessExploreStatus
+  const isScoutCreditUnlock = candidate.unlockType === 'scout_credit' || (!candidate.unlockType && !isPerformanceUnlock)
+  const canEditPipeline = isScoutCreditUnlock && !isPerformanceUnlock
 
   const timelineRaw = [
     {
@@ -761,84 +740,6 @@ function CandidateSidebar({
 
   return (
     <div className="candidate-scrollbar flex min-h-0 flex-col gap-2">
-      {isPerformanceUnlock && (
-        <div className="cand-surface border border-slate-200/80 bg-slate-50/50 shadow-sm">
-          <h3 className="cand-fs-sm mb-1.5 font-bold text-slate-800">{sb.perfWsTitle}</h3>
-          {!perfReq ? (
-            <p className="cand-fs-xs text-slate-400">
-              {sb.noPerfRequest}
-            </p>
-          ) : (
-            <>
-              {perfStatusMeta && (
-                <div
-                  className="cand-fs-xs mb-1.5 w-full rounded border border-slate-200 px-1.5 py-1 font-semibold"
-                  style={{ color: perfStatusMeta.color, background: perfStatusMeta.bg }}
-                >
-                  {sb.requestLabel}: {perfStatusMeta.label}
-                  {perfReq.recommendationCount > 0 ? ` · ${sb.recommendationsSuffix(perfReq.recommendationCount)}` : ''}
-                </div>
-              )}
-              {exploreMeta ? (
-                <div
-                  className="cand-fs-xs mb-1.5 w-full rounded border border-slate-200 px-1.5 py-1 font-semibold"
-                  style={{ color: exploreMeta.color, background: exploreMeta.bg }}
-                >
-                  {sb.workingWithWs}: {exploreMeta.label}
-                </div>
-              ) : perfReq.wantsSimilarCandidates ? (
-                <div className="cand-fs-2xs mb-1.5 font-semibold text-violet-600">
-                  {sb.findingSimilar}
-                </div>
-              ) : perfReq.status === 'pending' ? (
-                <div className="cand-fs-2xs mb-1.5 text-amber-600">
-                  {sb.reviewingRequest}
-                </div>
-              ) : null}
-              {canSetExplore && (
-                <div className="mb-1.5">
-                  <p className="cand-fs-2xs mb-1.5 text-slate-600">
-                    {sb.explorePrompt}
-                  </p>
-                  <div className="flex flex-col gap-1">
-                    <button
-                      type="button"
-                      disabled={exploreSubmitting}
-                      onClick={() => onExploreStatus?.(perfReq.id, 'interested')}
-                      className="cand-fs-xs w-full rounded-md border border-[#0077B6]/30 bg-white px-2 py-1.5 font-semibold text-[#0077B6] hover:bg-[#e8f4fa] disabled:opacity-70"
-                    >
-                      {sb.exploreYes}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={exploreSubmitting}
-                      onClick={() => onExploreStatus?.(perfReq.id, 'declined')}
-                      className="cand-fs-xs w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 font-semibold text-slate-600 disabled:opacity-70"
-                    >
-                      {sb.exploreNo}
-                    </button>
-                  </div>
-                </div>
-              )}
-              <Link
-                to={perfReq.id ? `/business/scout/managed?performanceRequestId=${perfReq.id}` : '/business/scout/managed'}
-                className="cand-fs-2xs mb-1 flex items-center justify-between font-semibold text-[#0077B6]"
-              >
-                {sb.viewOnScout}
-                <ChevronRight className="cand-icon" />
-              </Link>
-              <Link
-                to="/business/messages?tab=ws"
-                className="cand-fs-2xs flex items-center gap-1 font-semibold text-[#0077B6]"
-              >
-                <MessageSquare className="cand-icon" />
-                {sb.chatWithWs}
-              </Link>
-            </>
-          )}
-        </div>
-      )}
-
       <div id="pipeline-control" ref={pipelineControlRef} className="cand-surface border border-slate-200/80 bg-white shadow-sm">
         <label className="cand-fs-sm mb-1 block font-bold text-slate-900" htmlFor="pipeline-status-select">
           {copy.detail?.headerMenu?.updateStatus || sb.statusTitle}
@@ -846,9 +747,16 @@ function CandidateSidebar({
         <select
           id="pipeline-status-select"
           value={candidate.pipelineStatus || 'new'}
-          disabled
-          className="cand-fs-sm w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 font-semibold text-slate-700"
-          title="Cập nhật trạng thái sẽ sớm khả dụng"
+          disabled={!canEditPipeline || pipelineUpdating}
+          onChange={(e) => onPipelineStatusChange?.(e.target.value)}
+          className={`cand-fs-sm w-full rounded-md border border-slate-200 px-2 py-1.5 font-semibold text-slate-700 ${
+            canEditPipeline ? 'bg-white cursor-pointer' : 'cursor-not-allowed bg-slate-50'
+          } disabled:opacity-70`}
+          title={
+            canEditPipeline
+              ? undefined
+              : (isPerformanceUnlock ? sb.perfStatusManagedByWs : sb.statusReadOnly)
+          }
         >
           {PIPELINE_OPTIONS.map((key) => {
             const meta = getLocalizedScoutPipelineMeta(key, language)
@@ -858,11 +766,10 @@ function CandidateSidebar({
           })}
         </select>
         <p className="cand-fs-2xs mt-1 text-slate-400">
-          {isPerformanceUnlock
-            ? sb.perfFeeNote
-            : (candidate.unlockType === 'scout_credit'
-              ? sb.creditCostNote(candidate.creditCost)
-              : null)}
+          {pipelineUpdating ? sb.statusSaving : null}
+          {!pipelineUpdating && isPerformanceUnlock ? sb.perfFeeNote : null}
+          {!pipelineUpdating && canEditPipeline ? sb.creditCostNote(candidate.creditCost) : null}
+          {!pipelineUpdating && !canEditPipeline && !isPerformanceUnlock ? sb.statusReadOnly : null}
         </p>
       </div>
 
@@ -978,12 +885,12 @@ export default function BusinessUnlockedCandidateDetail() {
   const [candidate, setCandidate] = useState(null)
   const [candidateLoading, setCandidateLoading] = useState(true)
   const [error, setError] = useState('')
-  const [exploreSubmitting, setExploreSubmitting] = useState(false)
   const [attachingJobId, setAttachingJobId] = useState(null)
   const [downloadingCv, setDownloadingCv] = useState(false)
   const [attachedJobIds, setAttachedJobIds] = useState(() => new Set())
   const [nominationModalOpen, setNominationModalOpen] = useState(false)
   const [attachConfirm, setAttachConfirm] = useState(null)
+  const [pipelineUpdating, setPipelineUpdating] = useState(false)
   const pipelineControlRef = useRef(null)
   const candidateLoadSeqRef = useRef(0)
 
@@ -996,35 +903,6 @@ export default function BusinessUnlockedCandidateDetail() {
     const qs = params.toString()
     return `/business/candidates${qs ? `?${qs}` : ''}`
   }, [searchParams])
-
-  const patchPerformanceExplore = useCallback((cvId, requestId, action) => {
-    setCandidate((prev) => {
-      if (!prev || prev.id !== cvId) return prev
-      return {
-        ...prev,
-        performanceRequest: {
-          ...(prev.performanceRequest || {}),
-          id: requestId,
-          businessExploreStatus: action,
-        },
-      }
-    })
-  }, [])
-
-  const handlePerformanceExplore = useCallback(async (requestId, action) => {
-    if (!requestId) return
-    setExploreSubmitting(true)
-    try {
-      const res = await apiService.setBusinessScoutPerformanceExplore(requestId, action)
-      if (res?.success && numericCandidateId) {
-        patchPerformanceExplore(numericCandidateId, requestId, action)
-      }
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setExploreSubmitting(false)
-    }
-  }, [patchPerformanceExplore, numericCandidateId])
 
   const handleRequestAttach = useCallback((payload) => {
     if (!payload?.jobId || !payload?.job) return
@@ -1066,6 +944,24 @@ export default function BusinessUnlockedCandidateDetail() {
       setAttachedJobIds((prev) => new Set([...prev, String(jobId)]))
     }
   }, [])
+
+  const handlePipelineStatusChange = useCallback(async (nextStatus) => {
+    if (!candidate?.id || !nextStatus || nextStatus === candidate.pipelineStatus) return
+    setPipelineUpdating(true)
+    try {
+      const res = await apiService.updateBusinessScoutUnlockedCandidatePipeline(candidate.id, nextStatus)
+      if (res?.success) {
+        const updated = res.data?.candidate?.pipelineStatus || nextStatus
+        setCandidate((prev) => (prev ? { ...prev, pipelineStatus: updated } : prev))
+      } else {
+        window.alert(res?.message || d.pipelineUpdateError)
+      }
+    } catch (e) {
+      window.alert(e?.message || d.pipelineUpdateError)
+    } finally {
+      setPipelineUpdating(false)
+    }
+  }, [candidate?.id, candidate?.pipelineStatus, d.pipelineUpdateError])
 
   const handleDownloadOriginalCv = useCallback(async () => {
     if (!candidate?.id || downloadingCv) return
@@ -1197,8 +1093,6 @@ export default function BusinessUnlockedCandidateDetail() {
                   <CandidateSidebar
                     candidate={candidate}
                     businessId={user?.id}
-                    exploreSubmitting={exploreSubmitting}
-                    onExploreStatus={handlePerformanceExplore}
                     onOpenNomination={() => setNominationModalOpen(true)}
                     onRequestAttach={handleRequestAttach}
                     attachingJobId={attachingJobId}
@@ -1206,6 +1100,8 @@ export default function BusinessUnlockedCandidateDetail() {
                     onDownloadOriginalCv={handleDownloadOriginalCv}
                     downloadingCv={downloadingCv}
                     pipelineControlRef={pipelineControlRef}
+                    pipelineUpdating={pipelineUpdating}
+                    onPipelineStatusChange={handlePipelineStatusChange}
                     copy={candidateCopy}
                     language={language}
                   />

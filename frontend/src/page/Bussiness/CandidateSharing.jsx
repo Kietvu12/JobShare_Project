@@ -5,10 +5,12 @@ import {
   ChevronRight, Plus, Loader2, X, BarChart3,
   FileText, Users, ArrowRight, Search, Briefcase,
   Sparkles, Wallet, Link2, SlidersHorizontal, UserCheck,
+  MoreHorizontal, AlertTriangle,
 } from 'lucide-react'
 import nothingIllustration from '../../assets/Nothing.png'
 import apiService from '../../services/api'
 import NominationChat from '../../component/Chat/NominationChat'
+import BusinessQuickActionsPageLayout from '../../component/Bussiness/BusinessQuickActionsPageLayout.jsx'
 import JobCommissionEditor, { validateCommissionForMarketplace } from '../../component/Bussiness/JobCommissionEditor'
 import {
   createAndSubmitMarketplaceListing,
@@ -27,7 +29,6 @@ import {
   simpleCommissionToPayload,
 } from '../../utils/businessSimpleCommission'
 import { normalizeJobSalaryCurrency } from '../../utils/jobSalaryCurrency'
-import { HomepageSidebar } from './Homepage'
 import { useLanguage } from '../../context/LanguageContext'
 import { getBusinessAppCopy, getHomepageSolutionCards } from '../../i18n/businessAppI18n'
 
@@ -140,6 +141,38 @@ const compareDimensions = [
 function formatPlatformStat(value, suffix = '') {
   if (value == null || Number.isNaN(Number(value))) return '—'
   return `${Number(value).toLocaleString('vi-VN')}${suffix}`
+}
+
+const CTV_CARD = 'rounded-xl border border-slate-200 bg-white shadow-sm'
+
+function CtvKpiCard({ icon: Icon, iconBg, iconColor, title, value, subValue }) {
+  return (
+    <div className={`${CTV_CARD} p-2.5`}>
+      <div className="flex items-start gap-2">
+        <div
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+          style={{ background: iconBg }}
+        >
+          <Icon className="h-3.5 w-3.5" style={{ color: iconColor }} strokeWidth={2} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] leading-tight text-slate-500">{title}</div>
+          <div className="mt-0.5 text-base font-bold tabular-nums leading-tight text-slate-900">{value}</div>
+          {subValue ? (
+            <div className="mt-0.5 text-[10px] font-medium text-slate-600">{subValue}</div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function formatReferralFeeCell(fee) {
+  const raw = String(fee || '').trim()
+  if (!raw || raw === '—') return '—'
+  const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean)
+  if (lines.length <= 1) return lines[0] || '—'
+  return lines.join(' · ')
 }
 
 function OnboardingView({
@@ -766,7 +799,7 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
           </section>
 
           <section className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-3 space-y-1.5">
-            <p className="text-[11px] font-bold text-slate-800 sm:text-xs">Quy tắc tiến cử trên Sàn HR</p>
+            <p className="text-[11px] font-bold text-slate-800 sm:text-xs">Quy tắc tiến cử trên Sàn CTV</p>
             <ul className="list-disc space-y-1 pl-4 text-[10px] leading-relaxed text-slate-600 sm:text-[11px]">
               <li>Email doanh nghiệp chỉ dùng để <strong>thông báo</strong> — hồ sơ phải ghi nhận trong mục Quản lý tiến cử.</li>
               <li>Doanh nghiệp <strong>xác nhận tuyển thành công trên JobShare</strong> để kích hoạt thanh toán &amp; chia phí.</li>
@@ -849,14 +882,72 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
   )
 }
 
+const MARKETPLACE_LISTING_STATUS = {
+  DRAFT: 0,
+  PENDING_APPROVAL: 1,
+  PUBLISHED: 3,
+  PAUSED: 4,
+  CLOSED: 5,
+}
+
+function parseDeadline(value) {
+  if (!value) return null
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+function isDeadlineExpiringSoon(value, withinDays = 7) {
+  const d = parseDeadline(value)
+  if (!d) return false
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  const limit = new Date(now)
+  limit.setDate(limit.getDate() + withinDays)
+  return d >= now && d <= limit
+}
+
+function isDeadlinePast(value) {
+  const d = parseDeadline(value)
+  if (!d) return false
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  return d < now
+}
+
+function listingStatusStyle(statusCode, label) {
+  const code = Number(statusCode)
+  if (code === MARKETPLACE_LISTING_STATUS.PUBLISHED || label === 'Đang chạy') {
+    return { bg: '#d1fae5', color: '#059669' }
+  }
+  if (code === MARKETPLACE_LISTING_STATUS.PENDING_APPROVAL || (label && label.includes('chờ WS'))) {
+    return { bg: '#fef9c3', color: '#d97706' }
+  }
+  if (code === MARKETPLACE_LISTING_STATUS.DRAFT || label === 'Nháp') {
+    return { bg: '#f1f5f9', color: '#64748b' }
+  }
+  if (code === MARKETPLACE_LISTING_STATUS.PAUSED || label === 'Tạm dừng') {
+    return { bg: '#e2e8f0', color: '#475569' }
+  }
+  if (code === MARKETPLACE_LISTING_STATUS.CLOSED || label === 'Đã đóng') {
+    return { bg: '#fee2e2', color: '#dc2626' }
+  }
+  return { bg: '#f1f5f9', color: '#64748b' }
+}
+
 const statusColor = (s) => {
   if (s === 'Đang chạy') return { bg: '#d1fae5', color: '#059669' }
-  if (s === 'Chờ WS duyệt') return { bg: '#fef9c3', color: '#d97706' }
-  if (s === 'Tạm dừng') return { bg: '#f1f5f9', color: '#64748b' }
+  if (s === 'Đang chờ WS duyệt' || s === 'Chờ WS duyệt') return { bg: '#fef9c3', color: '#d97706' }
+  if (s === 'Nháp') return { bg: '#f1f5f9', color: '#64748b' }
+  if (s === 'Tạm dừng') return { bg: '#e2e8f0', color: '#475569' }
   if (s === 'Đã đóng') return { bg: '#fee2e2', color: '#dc2626' }
   if (s === 'Mới gửi') return { bg: '#dbeafe', color: '#2563eb' }
   if (s === 'Đang xử lý') return { bg: '#ede9fe', color: '#7c3aed' }
   return { bg: '#f1f5f9', color: '#64748b' }
+}
+
+function openSanCtvListingDetail(navigate, listingId) {
+  if (!listingId || !navigate) return
+  navigate(`/business/candidate-sharing/listings/${encodeURIComponent(String(listingId))}`)
 }
 
 const Avatar = ({ id, size = 24, bg = '#e0e7ff', color = '#4f46e5' }) => (
@@ -869,11 +960,7 @@ const VALID_TABS = ['jobs', 'nominations', 'candidates', 'costs']
 
 function ThreeWayChatPanel({ selectedNomination }) {
   return (
-    <div className="flex h-full min-h-0 max-h-full flex-col overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
-      <div className="shrink-0 border-b border-slate-100 px-3 py-2.5">
-        <h3 className="text-xs font-bold text-slate-900 sm:text-sm">Trao đổi 3 bên</h3>
-        <p className="text-[10px] text-slate-500">Doanh nghiệp · JobShare WS · CTV</p>
-      </div>
+    <div className="flex h-full min-h-0 max-h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {selectedNomination ? (
           <NominationChat
@@ -885,6 +972,8 @@ function ThreeWayChatPanel({ selectedNomination }) {
             mobileHeaderName={selectedNomination.candidateName || 'Chat 3 bên'}
             mobileHeaderAvatar={(selectedNomination.candidateName || '?').charAt(0).toUpperCase()}
             embeddedPanel
+            disableBusinessFreeStatusChange
+            contactBarVariant="subtle"
           />
         ) : (
           <div className="flex flex-1 items-center justify-center px-4 py-8 text-center text-xs text-slate-400">
@@ -920,6 +1009,12 @@ const CandidateSharing = () => {
   const [forceDashboard, setForceDashboard] = useState(false)
   const [stats, setStats] = useState(null)
   const [platformOverview, setPlatformOverview] = useState(null)
+  const [jobFilterStatus, setJobFilterStatus] = useState('')
+  const [jobFilterDeadline, setJobFilterDeadline] = useState('')
+  const [jobFilterHasNomination, setJobFilterHasNomination] = useState('')
+  const [jobFilterHasInterest, setJobFilterHasInterest] = useState('')
+  const [openListingMenuId, setOpenListingMenuId] = useState(null)
+  const [listingActionBusyId, setListingActionBusyId] = useState(null)
   const [listings, setListings] = useState([])
   const [nominations, setNominations] = useState([])
   const [settlements, setSettlements] = useState([])
@@ -998,25 +1093,71 @@ const CandidateSharing = () => {
   const statCards = useMemo(() => {
     const s = stats || {}
     return [
-      { label: 'Job đã đăng sàn', value: s.totalListings ?? 0, change: `${s.activeOnMarket ?? 0} đang chạy`, changeColor: '#64748b', linkLabel: 'Xem tất cả' },
-      { label: 'Đơn tiến cử', value: s.totalNominations ?? 0, change: `${s.totalInterests ?? 0} CTV quan tâm`, changeColor: '#10b981', linkLabel: 'Xem chi tiết' },
-      { label: 'Ứng viên đang xử lý', value: s.pipelineCandidates ?? 0, change: null, changeColor: '#3b82f6', linkLabel: 'Xem chi tiết' },
-      { label: 'Tuyển thành công', value: s.hired ?? 0, change: s.pendingApproval ? `${s.pendingApproval} chờ duyệt` : null, changeColor: '#10b981', linkLabel: 'Xem báo cáo' },
+      {
+        icon: Briefcase,
+        iconBg: '#e8f4fa',
+        iconColor: BRAND,
+        title: 'JD đã đăng',
+        value: s.totalListings ?? 0,
+        subValue: `${s.activeOnMarket ?? 0} đang chạy`,
+      },
+      {
+        icon: FileText,
+        iconBg: '#ffedd5',
+        iconColor: '#ea580c',
+        title: 'Đơn tiến cử',
+        value: s.totalNominations ?? 0,
+        subValue: `${s.totalInterests ?? 0} CTV quan tâm`,
+      },
+      {
+        icon: Users,
+        iconBg: '#dbeafe',
+        iconColor: '#2563eb',
+        title: 'Ứng viên đang xử lý',
+        value: s.pipelineCandidates ?? 0,
+        subValue: null,
+      },
+      {
+        icon: UserCheck,
+        iconBg: '#dcfce7',
+        iconColor: '#16a34a',
+        title: 'Tuyển thành công',
+        value: s.hired ?? 0,
+        subValue: s.pendingApproval ? `${s.pendingApproval} chờ duyệt` : null,
+      },
     ]
   }, [stats])
 
-  const jobsData = useMemo(() => listings.map((l) => ({
-    id: l.id,
-    jobId: l.job?.id,
-    title: l.job?.title || '—',
-    code: l.job?.jobCode || '—',
-    ctvPayment: l.feeLabel,
-    status: l.statusLabel,
-    ctvCount: l.interestCount,
-    candidateCount: l.nominationsCount,
-    deadline: formatDateShort(l.recruitmentDeadline || l.job?.deadline),
-    raw: l,
-  })), [listings])
+  const jobsData = useMemo(() => listings.map((l) => {
+    const deadlineRaw = l.recruitmentDeadline || l.job?.deadline
+    return {
+      id: l.id,
+      jobId: l.job?.id,
+      title: l.job?.title || '—',
+      code: l.job?.jobCode || '—',
+      referralFee: l.feeLabel || '—',
+      status: l.statusLabel,
+      statusCode: l.status,
+      ctvCount: l.interestCount,
+      nominationCount: l.nominationsCount,
+      deadline: formatDateShort(deadlineRaw),
+      deadlineRaw,
+      expiringSoon: isDeadlineExpiringSoon(deadlineRaw),
+      deadlinePast: isDeadlinePast(deadlineRaw),
+      raw: l,
+    }
+  }), [listings])
+
+  const filteredJobsData = useMemo(() => jobsData.filter((job) => {
+    if (jobFilterStatus !== '' && String(job.statusCode) !== jobFilterStatus) return false
+    if (jobFilterDeadline === 'expiring' && !job.expiringSoon) return false
+    if (jobFilterDeadline === 'expired' && !job.deadlinePast) return false
+    if (jobFilterHasNomination === 'yes' && !(job.nominationCount > 0)) return false
+    if (jobFilterHasNomination === 'no' && job.nominationCount > 0) return false
+    if (jobFilterHasInterest === 'yes' && !(job.ctvCount > 0)) return false
+    if (jobFilterHasInterest === 'no' && job.ctvCount > 0) return false
+    return true
+  }), [jobsData, jobFilterStatus, jobFilterDeadline, jobFilterHasNomination, jobFilterHasInterest])
 
   const nominationsData = useMemo(() => nominations.map((n) => ({
     nominationId: n.id,
@@ -1035,7 +1176,7 @@ const CandidateSharing = () => {
   })), [nominations])
 
   const tabs = [
-    { key: 'jobs', label: 'Job trên sàn' },
+    { key: 'jobs', label: 'Danh sách JD' },
     { key: 'nominations', label: 'Đơn tiến cử' },
     { key: 'candidates', label: 'Ứng viên' },
     { key: 'costs', label: 'Thanh toán & chia phí' },
@@ -1049,7 +1190,7 @@ const CandidateSharing = () => {
     || (urlTab && VALID_TABS.includes(urlTab) && urlTab !== 'jobs'),
   )
 
-  const showOnboarding = !loading && !forceDashboard && !deepLinkDashboard
+  const showOnboarding = !loading && !forceDashboard && !deepLinkDashboard && !hasListings
 
   const enterMarketplaceDashboard = useCallback(() => {
     setForceDashboard(true)
@@ -1058,6 +1199,13 @@ const CandidateSharing = () => {
   useEffect(() => {
     if (deepLinkDashboard) setForceDashboard(true)
   }, [deepLinkDashboard])
+
+  useEffect(() => {
+    if (!urlListingId) return
+    const nom = urlNominationId
+    const path = `/business/candidate-sharing/listings/${encodeURIComponent(String(urlListingId))}`
+    navigate(nom ? `${path}?tab=nominations&nominationId=${encodeURIComponent(String(nom))}` : path, { replace: true })
+  }, [urlListingId, urlNominationId, navigate])
 
   useEffect(() => {
     if (deepLinkDashboard) return
@@ -1079,10 +1227,74 @@ const CandidateSharing = () => {
     [nominationsData],
   )
 
-  const statTabByIndex = ['jobs', 'nominations', 'candidates', 'costs']
-
   const handleCreatedListing = useCallback(async () => {
     await loadData()
+  }, [loadData])
+
+  const handleListingPause = useCallback(async (listingId) => {
+    setListingActionBusyId(listingId)
+    setOpenListingMenuId(null)
+    try {
+      const res = await apiService.pauseBusinessCandidateSharingListing(listingId)
+      if (res?.success) await loadData()
+      else alert(res?.message || 'Không thể tạm dừng JD trên Sàn CTV')
+    } catch (e) {
+      alert(e?.message || 'Không thể tạm dừng JD trên Sàn CTV')
+    } finally {
+      setListingActionBusyId(null)
+    }
+  }, [loadData])
+
+  const handleListingClose = useCallback(async (listingId) => {
+    if (!window.confirm('Đóng JD này trên Sàn CTV? CTV sẽ không tiếp cử thêm.')) return
+    setListingActionBusyId(listingId)
+    setOpenListingMenuId(null)
+    try {
+      const res = await apiService.closeBusinessCandidateSharingListing(listingId)
+      if (res?.success) await loadData()
+      else alert(res?.message || 'Không thể đóng JD')
+    } catch (e) {
+      alert(e?.message || 'Không thể đóng JD')
+    } finally {
+      setListingActionBusyId(null)
+    }
+  }, [loadData])
+
+  const handleListingExtend = useCallback(async (job) => {
+    const next = window.prompt('Gia hạn hạn tuyển (YYYY-MM-DD):', job.deadlineRaw?.slice(0, 10) || '')
+    if (!next) return
+    setListingActionBusyId(job.id)
+    setOpenListingMenuId(null)
+    try {
+      const res = await apiService.updateBusinessCandidateSharingListing(job.id, { recruitmentDeadline: next })
+      if (res?.success) await loadData()
+      else alert(res?.message || 'Không thể gia hạn')
+    } catch (e) {
+      alert(e?.message || 'Không thể gia hạn')
+    } finally {
+      setListingActionBusyId(null)
+    }
+  }, [loadData])
+
+  const handleListingEditFee = useCallback((job) => {
+    setOpenListingMenuId(null)
+    if (job.jobId) {
+      window.open(`${window.location.origin}/business/jobs/${encodeURIComponent(String(job.jobId))}`, '_blank', 'noopener,noreferrer')
+    }
+  }, [])
+
+  const handleListingSubmitDraft = useCallback(async (listingId) => {
+    setListingActionBusyId(listingId)
+    setOpenListingMenuId(null)
+    try {
+      const res = await apiService.submitBusinessCandidateSharingListing(listingId)
+      if (res?.success) await loadData()
+      else alert(res?.message || 'Không thể gửi duyệt')
+    } catch (e) {
+      alert(e?.message || 'Không thể gửi duyệt')
+    } finally {
+      setListingActionBusyId(null)
+    }
   }, [loadData])
 
   const HIRE_CONFIRM_ELIGIBLE = new Set([11, 12])
@@ -1119,7 +1331,7 @@ const CandidateSharing = () => {
       <table className="w-full min-w-[640px] border-collapse text-xs">
         <thead>
           <tr className="border-b border-slate-100 bg-slate-50/80 text-[10px] uppercase tracking-wide text-slate-400">
-            {['Ứng viên', 'Vị trí', 'CTV tiến cử', 'Ngày', 'Trạng thái', ...(showHireAction ? [''] : [])].map((h, idx) => (
+            {['Ứng viên', 'Vị trí', 'Cộng tác viên', 'Ngày', 'Trạng thái', ...(showHireAction ? [''] : [])].map((h, idx) => (
               <th
                 key={h || `action-${idx}`}
                 className={`px-3 py-2 font-semibold ${h === 'Ngày' || h === 'Trạng thái' || h === '' ? 'text-center' : 'text-left'}`}
@@ -1203,138 +1415,246 @@ const CandidateSharing = () => {
         onCreated={handleCreatedListing}
         initialJobId={createJobId}
       />
-      <div className="business-homepage-shell ctv-marketplace-dashboard bg-[#f4f6f8]" style={{ fontFamily: PAGE_FONT }}>
-        <div className="business-homepage-ui flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="shrink-0 px-3 pt-3 pb-2 sm:px-4 sm:pt-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
-              <button
-                type="button"
-                onClick={() => navigate('/business')}
-                className="transition hover:text-[#0077B6]"
-              >
-                {breadcrumbHome}
-              </button>
-              <span className="mx-1.5 text-slate-400">&gt;</span>
-              <span className="font-medium text-slate-700">{breadcrumbCurrent}</span>
-            </nav>
+      <div
+        className="business-homepage-shell min-h-0 h-full overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden"
+        style={{ fontFamily: PAGE_FONT }}
+      >
+        <div className="business-homepage-ui flex h-full min-h-0 w-full flex-1 flex-col p-2.5 sm:p-3">
+          <BusinessQuickActionsPageLayout onNavigate={navigate} className="min-h-0 flex-1">
+            <div className="ctv-marketplace-dashboard flex h-full min-h-0 flex-col overflow-hidden">
+              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+          <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
             <button
               type="button"
-              onClick={() => setShowCreate(true)}
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[#0077B6] px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:px-3 sm:py-1.5 sm:text-[11px]"
+              onClick={() => navigate('/business')}
+              className="transition hover:text-[#0077B6]"
             >
-              <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Đưa job lên sàn
+              {breadcrumbHome}
             </button>
-          </div>
+            <span className="mx-1.5 text-slate-400">&gt;</span>
+            <span className="font-medium text-slate-700">{breadcrumbCurrent}</span>
+          </nav>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#0077B6] px-3 py-2 text-[11px] font-semibold text-white shadow-sm transition-colors hover:bg-[#006399] sm:text-xs"
+          >
+            <Plus className="h-3.5 w-3.5" /> Đăng JD lên Sàn CTV
+          </button>
+        </header>
+
+        <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
+          {statCards.map((card) => (
+            <CtvKpiCard key={card.title} {...card} />
+          ))}
         </div>
-        <div className="grid shrink-0 grid-cols-2 gap-1.5 border-b border-slate-200/90 bg-white px-2 py-1.5 sm:grid-cols-4 sm:gap-2 sm:px-3 sm:py-2">
-          {statCards.map((card, i) => (
+
+        <div className="flex shrink-0 gap-4 overflow-x-auto border-b border-slate-200 scrollbar-hide">
+          {tabs.map((t) => (
             <button
-              key={card.label}
+              key={t.key}
               type="button"
-              onClick={() => handleTabChange(statTabByIndex[i] || 'jobs')}
-              className="rounded-md border border-slate-200/80 bg-slate-50/70 px-2 py-1.5 text-left transition-colors hover:border-[#cce5f0] hover:bg-[#e8f4fa]/60 sm:px-2.5"
+              onClick={() => handleTabChange(t.key)}
+              className={`-mb-px shrink-0 border-b-2 px-1 pb-2 text-[11px] font-semibold transition-colors sm:text-xs ${
+                tab === t.key
+                  ? 'border-[#0077B6] text-[#0077B6]'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
             >
-              <div className="truncate text-[9px] font-medium leading-tight text-slate-500 sm:text-[10px]">{card.label}</div>
-              <div className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
-                <span className="text-base font-bold tabular-nums leading-none text-slate-900 sm:text-lg">{card.value}</span>
-                {card.change && (
-                  <span className="text-[9px] font-semibold leading-tight sm:text-[10px]" style={{ color: card.changeColor }}>
-                    {card.changeColor === '#10b981' ? '↑ ' : ''}{card.change}
-                  </span>
-                )}
-              </div>
+              {t.label}
             </button>
           ))}
         </div>
 
-        <div className="shrink-0 border-b border-slate-200/90 bg-white px-2 pb-0.5 sm:px-3">
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide sm:gap-5">
-            {tabs.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => handleTabChange(t.key)}
-                className={`shrink-0 border-b-2 py-2 text-[11px] font-semibold transition-colors sm:text-xs ${
-                  tab === t.key
-                    ? 'border-[#0077B6] text-[#0077B6]'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="ctv-marketplace-body px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4">
-          <div className="grid h-full min-h-0 grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] xl:gap-3">
+        <div className="ctv-marketplace-body min-h-0 flex-1 overflow-hidden">
             <div
               className={
                 showChatColumn
-                  ? 'grid min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] items-stretch gap-3 overflow-hidden xl:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] xl:grid-rows-1 xl:gap-3.5'
+                  ? 'grid h-full min-h-0 grid-cols-1 gap-2 overflow-hidden lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] lg:gap-3'
                   : 'min-h-0 overflow-hidden'
               }
             >
           <div className="ctv-marketplace-col ctv-scrollbar flex min-h-0 flex-col gap-2.5">
             {tab === 'jobs' && (
-              <>
-                <div className={tablePanelClass}>
-                  <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-2.5">
-                    <span className="text-xs font-bold text-slate-900 sm:text-sm">Job đang đăng trên sàn</span>
-                    <span className="rounded-full bg-[#e8f4fa] px-1.5 py-0.5 text-[10px] font-bold text-[#0077B6]">{jobsData.length}</span>
-                  </div>
-                  <div className={tableBodyScrollClass}>
-                    <table className="w-full min-w-[720px] border-collapse text-xs">
-                      <thead>
-                        <tr className="border-b border-slate-100 bg-slate-50/80 text-[10px] uppercase tracking-wide text-slate-400">
-                          {['Vị trí', 'Phí thưởng CTV', 'Trạng thái', 'CTV', 'Đơn', 'Hạn'].map((h) => (
-                            <th key={h} className={`px-3 py-2 font-semibold ${h === 'Vị trí' || h === 'Phí thưởng CTV' ? 'text-left' : 'text-center'}`}>{h}</th>
-                          ))}
+              <div className={tablePanelClass}>
+                <div className={`${CTV_CARD} flex shrink-0 flex-wrap items-center justify-between gap-2 border-0 px-3 py-2 shadow-none`}>
+                  <span className="text-xs font-bold text-slate-900 sm:text-sm">JD đã đăng trên Sàn CTV</span>
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                    {filteredJobsData.length}/{jobsData.length}
+                  </span>
+                </div>
+                <div className="flex shrink-0 flex-wrap items-end gap-2 border-b border-slate-100 bg-white px-3 py-2">
+                  <label className="text-[10px] font-semibold text-slate-600">
+                    Trạng thái
+                    <select
+                      value={jobFilterStatus}
+                      onChange={(e) => setJobFilterStatus(e.target.value)}
+                      className="mt-0.5 block min-w-[7.5rem] rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-800"
+                    >
+                      <option value="">Tất cả</option>
+                      <option value="0">Nháp</option>
+                      <option value="1">Đang chờ WS duyệt</option>
+                      <option value="3">Đang chạy</option>
+                      <option value="4">Tạm dừng</option>
+                      <option value="5">Đã đóng</option>
+                    </select>
+                  </label>
+                  <label className="text-[10px] font-semibold text-slate-600">
+                    Thời hạn
+                    <select
+                      value={jobFilterDeadline}
+                      onChange={(e) => setJobFilterDeadline(e.target.value)}
+                      className="mt-0.5 block min-w-[7.5rem] rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-800"
+                    >
+                      <option value="">Tất cả</option>
+                      <option value="expiring">Sắp hết hạn</option>
+                      <option value="expired">Đã hết hạn</option>
+                    </select>
+                  </label>
+                  <label className="text-[10px] font-semibold text-slate-600">
+                    Đơn tiến cử
+                    <select
+                      value={jobFilterHasNomination}
+                      onChange={(e) => setJobFilterHasNomination(e.target.value)}
+                      className="mt-0.5 block min-w-[6.5rem] rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-800"
+                    >
+                      <option value="">Tất cả</option>
+                      <option value="yes">Có</option>
+                      <option value="no">Không</option>
+                    </select>
+                  </label>
+                  <label className="text-[10px] font-semibold text-slate-600">
+                    CTV quan tâm
+                    <select
+                      value={jobFilterHasInterest}
+                      onChange={(e) => setJobFilterHasInterest(e.target.value)}
+                      className="mt-0.5 block min-w-[6.5rem] rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-800"
+                    >
+                      <option value="">Tất cả</option>
+                      <option value="yes">Có</option>
+                      <option value="no">Không</option>
+                    </select>
+                  </label>
+                </div>
+                <div className={tableBodyScrollClass}>
+                  <table className="w-full min-w-[800px] border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/80 text-[10px] uppercase tracking-wide text-slate-400">
+                        {['JD', 'Phí giới thiệu', 'Trạng thái', 'CTV', 'Đơn tiến cử', 'Hạn', ''].map((h) => (
+                          <th
+                            key={h || 'actions'}
+                            className={`px-2 py-1.5 font-semibold sm:px-3 ${h === 'JD' || h === 'Phí giới thiệu' ? 'text-left' : 'text-center'}`}
+                          >
+                            {h === '' ? 'Thao tác' : h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredJobsData.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-3 py-10 text-center align-top text-[11px] text-slate-400">
+                            {jobsData.length === 0
+                              ? 'Chưa có JD trên Sàn CTV. Bấm "+ Đăng JD lên Sàn CTV" để bắt đầu.'
+                              : 'Không có JD khớp bộ lọc.'}
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {jobsData.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="px-3 py-12 text-center align-top text-slate-400">
-                              Chưa có job trên sàn. Bấm &quot;Đưa job lên sàn&quot; để bắt đầu.
+                      ) : filteredJobsData.map((job) => {
+                        const sc = listingStatusStyle(job.statusCode, job.status)
+                        const busy = listingActionBusyId === job.id
+                        const openDetail = () => openSanCtvListingDetail(navigate, job.id)
+                        return (
+                          <tr
+                            key={job.id}
+                            role={job.jobId ? 'button' : undefined}
+                            tabIndex={job.jobId ? 0 : undefined}
+                            onClick={job.jobId ? openDetail : undefined}
+                            onKeyDown={job.jobId ? (e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                openDetail()
+                              }
+                            } : undefined}
+                            className={`border-t border-slate-100 hover:bg-slate-50/70 ${job.jobId ? 'cursor-pointer' : ''}`}
+                          >
+                            <td className="px-2 py-1.5 sm:px-3 sm:py-2">
+                              <div className="font-semibold text-slate-800">{job.title}</div>
+                              <div className="text-[10px] text-slate-400">{job.code}</div>
+                            </td>
+                            <td className="max-w-[200px] px-2 py-1.5 text-[11px] leading-snug text-slate-600 sm:px-3">
+                              <span className="line-clamp-2" title={job.referralFee}>
+                                {formatReferralFeeCell(job.referralFee)}
+                              </span>
+                            </td>
+                            <td className="px-2 py-1.5 text-center sm:px-3">
+                              <span className="rounded-full px-2 py-0.5 text-[9px] font-semibold" style={{ color: sc.color, background: sc.bg }}>
+                                {job.status}
+                              </span>
+                            </td>
+                            <td className="px-2 py-1.5 text-center font-medium tabular-nums text-slate-700 sm:px-3">{job.ctvCount ?? '—'}</td>
+                            <td className="px-2 py-1.5 text-center font-medium tabular-nums text-slate-700 sm:px-3">{job.nominationCount ?? '—'}</td>
+                            <td className="px-2 py-1.5 text-center sm:px-3">
+                              <div className="text-slate-600">{job.deadline}</div>
+                              {job.expiringSoon ? (
+                                <div className="mt-0.5 inline-flex items-center gap-0.5 text-[9px] font-semibold text-amber-700">
+                                  <AlertTriangle className="h-3 w-3" aria-hidden />
+                                  Sắp hết hạn
+                                </div>
+                              ) : null}
+                            </td>
+                            <td className="relative px-2 py-1.5 text-center sm:px-3" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => setOpenListingMenuId((prev) => (prev === job.id ? null : job.id))}
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                                aria-label="Thao tác"
+                              >
+                                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
+                              </button>
+                              {openListingMenuId === job.id ? (
+                                <div className="absolute right-2 top-full z-20 mt-1 min-w-[10.5rem] rounded-lg border border-slate-200 bg-white py-1 text-left shadow-lg sm:right-3">
+                                  {job.jobId ? (
+                                    <button type="button" className="block w-full px-3 py-1.5 text-left text-[10px] font-medium text-slate-700 hover:bg-slate-50" onClick={() => openDetail()}>
+                                      Xem chi tiết
+                                    </button>
+                                  ) : null}
+                                  {job.jobId ? (
+                                    <button type="button" className="block w-full px-3 py-1.5 text-left text-[10px] font-medium text-slate-700 hover:bg-slate-50" onClick={() => handleListingEditFee(job)}>
+                                      Chỉnh phí giới thiệu
+                                    </button>
+                                  ) : null}
+                                  {Number(job.statusCode) === MARKETPLACE_LISTING_STATUS.DRAFT ? (
+                                    <button type="button" className="block w-full px-3 py-1.5 text-left text-[10px] font-medium text-[#0077B6] hover:bg-slate-50" onClick={() => handleListingSubmitDraft(job.id)}>
+                                      Gửi WS duyệt
+                                    </button>
+                                  ) : null}
+                                  {Number(job.statusCode) === MARKETPLACE_LISTING_STATUS.PUBLISHED ? (
+                                    <button type="button" className="block w-full px-3 py-1.5 text-left text-[10px] font-medium text-slate-700 hover:bg-slate-50" onClick={() => handleListingPause(job.id)}>
+                                      Tạm dừng
+                                    </button>
+                                  ) : null}
+                                  {[MARKETPLACE_LISTING_STATUS.PUBLISHED, MARKETPLACE_LISTING_STATUS.PAUSED].includes(Number(job.statusCode)) ? (
+                                    <button type="button" className="block w-full px-3 py-1.5 text-left text-[10px] font-medium text-rose-700 hover:bg-rose-50" onClick={() => handleListingClose(job.id)}>
+                                      Đóng JD
+                                    </button>
+                                  ) : null}
+                                  {(job.expiringSoon || Number(job.statusCode) === MARKETPLACE_LISTING_STATUS.PUBLISHED) ? (
+                                    <button type="button" className="block w-full px-3 py-1.5 text-left text-[10px] font-medium text-amber-800 hover:bg-amber-50" onClick={() => handleListingExtend(job)}>
+                                      Gia hạn
+                                    </button>
+                                  ) : null}
+                                </div>
+                              ) : null}
                             </td>
                           </tr>
-                        ) : jobsData.map((job) => {
-                          const sc = statusColor(job.status)
-                          const openJobDetail = () => {
-                            if (!job.jobId) return
-                            const url = `${window.location.origin}/business/jobs/${encodeURIComponent(String(job.jobId))}`
-                            window.open(url, '_blank', 'noopener,noreferrer')
-                          }
-                          return (
-                            <tr
-                              key={job.id}
-                              role={job.jobId ? 'button' : undefined}
-                              tabIndex={job.jobId ? 0 : undefined}
-                              onClick={job.jobId ? openJobDetail : undefined}
-                              onKeyDown={job.jobId ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openJobDetail() } } : undefined}
-                              className={`border-t border-slate-100 hover:bg-slate-50/60 ${job.jobId ? 'cursor-pointer' : ''}`}
-                            >
-                              <td className="px-3 py-2">
-                                <div className="font-semibold text-slate-800">{job.title}</div>
-                                <div className="text-[10px] text-slate-400">{job.code}</div>
-                              </td>
-                              <td className="whitespace-pre-line px-3 py-2 text-[11px] text-slate-600">{job.ctvPayment}</td>
-                              <td className="px-3 py-2 text-center">
-                                <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ color: sc.color, background: sc.bg }}>{job.status}</span>
-                              </td>
-                              <td className="px-3 py-2 text-center font-medium text-slate-700">{job.ctvCount ?? '—'}</td>
-                              <td className="px-3 py-2 text-center font-medium text-slate-700">{job.candidateCount ?? '—'}</td>
-                              <td className="px-3 py-2 text-center text-slate-500">{job.deadline}</td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                        )
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-              </>
+              </div>
             )}
 
             {tab === 'nominations' && (
@@ -1400,19 +1720,17 @@ const CandidateSharing = () => {
           </div>
 
           {showChatColumn && (
-            <div className="ctv-marketplace-col ctv-scrollbar flex min-h-0 flex-col gap-2.5">
-              <div className="flex min-h-[min(420px,52vh)] min-h-0 flex-1 flex-col xl:min-h-[360px]">
+            <div className="ctv-marketplace-col ctv-scrollbar flex min-h-0 flex-col">
+              <div className="flex min-h-[min(380px,48vh)] flex-1 flex-col lg:min-h-[320px]">
                 <ThreeWayChatPanel selectedNomination={selectedNomination} />
               </div>
             </div>
           )}
             </div>
-
-            <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col overflow-y-auto xl:pr-0.5">
-              <HomepageSidebar onNavigate={navigate} />
+              </div>
             </div>
-          </div>
-        </div>
+            </div>
+          </BusinessQuickActionsPageLayout>
         </div>
       </div>
     </>
@@ -1449,7 +1767,7 @@ const CandidateSharing = () => {
         />
         <div className="business-homepage-shell min-h-0 h-full overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden" style={{ fontFamily: PAGE_FONT }}>
           <div className="business-homepage-ui flex h-full min-h-0 w-full flex-1 flex-col p-2.5 sm:p-3">
-            <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-1 flex-col overflow-y-auto">
+            <BusinessQuickActionsPageLayout onNavigate={navigate}>
               <OnboardingView
                 hasMarketplaceData={hasListings}
                 platformOverview={platformOverview}
@@ -1459,7 +1777,7 @@ const CandidateSharing = () => {
                 breadcrumbHome={breadcrumbHome}
                 breadcrumbCurrent={breadcrumbCurrent}
               />
-            </div>
+            </BusinessQuickActionsPageLayout>
           </div>
         </div>
       </>

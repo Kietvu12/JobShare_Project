@@ -21,6 +21,7 @@ export const BUSINESS_SERVICE_REQUEST_CATALOG = [
     requiresAmount: true,
     apiType: 'credit',
     detailPath: '/business/service-requests/credit',
+    ctaLabel: 'Nạp Credit',
   },
   {
     key: 'landing_page_premium',
@@ -33,6 +34,7 @@ export const BUSINESS_SERVICE_REQUEST_CATALOG = [
     iconColor: '#db2777',
     apiType: 'service',
     detailPath: '/business/service-requests/landing-page',
+    ctaLabel: 'Yêu cầu Landing Page',
   },
   {
     key: 'recruitment_ads',
@@ -45,6 +47,7 @@ export const BUSINESS_SERVICE_REQUEST_CATALOG = [
     iconColor: '#16a34a',
     apiType: 'service',
     detailPath: '/business/service-requests/recruitment-ads',
+    ctaLabel: 'Yêu cầu chạy quảng cáo',
   },
   {
     key: 'seminar_campaign',
@@ -57,6 +60,7 @@ export const BUSINESS_SERVICE_REQUEST_CATALOG = [
     iconColor: '#7c3aed',
     apiType: 'service',
     detailPath: '/business/service-requests/seminar-campaign',
+    ctaLabel: 'Yêu cầu tổ chức Seminar/Campaign',
   },
   {
     key: 'company_profile',
@@ -69,6 +73,7 @@ export const BUSINESS_SERVICE_REQUEST_CATALOG = [
     iconColor: '#ca8a04',
     apiType: 'service',
     detailPath: '/business/service-requests/company-profile',
+    ctaLabel: 'Yêu cầu thiết kế Company Profile',
   },
   {
     key: 'other_service',
@@ -80,6 +85,7 @@ export const BUSINESS_SERVICE_REQUEST_CATALOG = [
     iconBg: '#f1f5f9',
     iconColor: '#64748b',
     apiType: 'service',
+    ctaLabel: 'Gửi yêu cầu khác',
   },
 ];
 

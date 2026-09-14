@@ -9,6 +9,8 @@ import { BUSINESS_APP_LANGUAGES } from '../../i18n/businessAppI18n';
  */
 export default function BusinessAppLanguageSwitcher({
   compact = true,
+  /** Thu gọn cho header / toolbar (cao ~24px) */
+  dense = false,
   collapsed = false,
   showLabel = false,
   label = '',
@@ -74,24 +76,31 @@ export default function BusinessAppLanguageSwitcher({
     );
   }
 
+  const shellClass = dense
+    ? 'inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5'
+    : 'inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5';
+  const btnClass = dense
+    ? 'min-w-[1.65rem] rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase leading-snug transition-colors sm:text-[11px]'
+    : 'rounded-md px-2 py-1 biz-ui-caption font-bold uppercase transition-colors';
+
   return (
     <div className={className}>
       {showLabel && label ? (
-        <p className="mb-1.5 px-0.5 biz-ui-micro font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+        <p
+          className={`px-0.5 font-semibold uppercase tracking-wide text-slate-400 ${
+            dense ? 'mb-1 text-[10px]' : 'mb-1.5 biz-ui-micro'
+          }`}
+        >
+          {label}
+        </p>
       ) : null}
-      <div
-        className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5"
-        role="group"
-        aria-label={label || 'Language'}
-      >
+      <div className={shellClass} role="group" aria-label={label || 'Language'}>
         {BUSINESS_APP_LANGUAGES.map((lang) => (
           <button
             key={lang.code}
             type="button"
             onClick={() => changeLanguage(lang.code)}
-            className={`rounded-md px-2 py-1 biz-ui-caption font-bold uppercase transition-colors ${
-              language === lang.code ? activeClass : idleClass
-            }`}
+            className={`${btnClass} ${language === lang.code ? activeClass : idleClass}`}
             aria-label={lang.label}
             aria-pressed={language === lang.code}
             title={lang.label}

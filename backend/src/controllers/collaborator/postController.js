@@ -1,4 +1,4 @@
-import { Post, Category, PostEvent, Event } from '../../models/index.js';
+import { Post, Category, PostEvent, Event, Admin } from '../../models/index.js';
 import { Op } from 'sequelize';
 import { resolveS3DisplayUrl, attachResolvedPostBodyHtml } from '../../utils/postHtmlS3.js';
 import { buildPostShareImageUrl } from '../../utils/publicShareUrls.js';
@@ -129,7 +129,27 @@ export const postController = {
       const { id } = req.params;
       const visibilityWhere = postVisibilityWhereForRequest(req);
 
-      const post = await findPublishedPostBySlugOrId(id, visibilityWhere);
+      let post = await findPublishedPostBySlugOrId(id, visibilityWhere);
+
+      if (post && String(req.baseUrl || '').includes('/business/knowledge')) {
+        post = await Post.findOne({
+          where: { id: post.id },
+          include: [
+            {
+              model: Category,
+              as: 'category',
+              required: false,
+              attributes: ['id', 'name', 'slug', 'color', 'sortOrder'],
+            },
+            {
+              model: Admin,
+              as: 'author',
+              required: false,
+              attributes: ['id', 'name', 'email'],
+            },
+          ],
+        });
+      }
 
       if (!post) {
         return res.status(404).json({

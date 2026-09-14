@@ -4,7 +4,12 @@ import apiService from '../../services/api'
 import NominationChat from '../Chat/NominationChat'
 import ScoutCandidateProfilePanel from './ScoutCandidateProfilePanel'
 import ApplicationInterviewScheduleModal from './ApplicationInterviewScheduleModal'
+import BusinessApplicationStatusSelect from './BusinessApplicationStatusSelect.jsx'
 import { isApplicationProfileOnly } from '../../utils/businessApplicationSource'
+import {
+  changeBusinessApplicationStatus,
+  getBusinessApplicationPortalStatusOptions,
+} from '../../utils/businessApplicationStatusChange'
 import { downloadApplicationOriginalCvFiles } from '../../utils/scoutCvDownload'
 import {
   PROFILE_EVALUATION,
@@ -15,6 +20,7 @@ import {
 import { useLanguage } from '../../context/LanguageContext'
 import { getJobApplicationStatusLabelByLanguage } from '../../utils/jobApplicationStatus'
 import { getApplicationProfileReviewCopy } from '../../i18n/businessApp/applications'
+import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
 
 import { BUSINESS_UI_FONT } from '../../utils/businessUiFont'
 
@@ -104,6 +110,7 @@ export default function BusinessApplicationDetailDrawer({
   onStatusUpdated,
 }) {
   const { language } = useLanguage()
+  const copy = useBusinessAppCopy()
   const [selectedApp, setSelectedApp] = useState(applicationProp || null)
   const [drawerLoading, setDrawerLoading] = useState(false)
   const [drawerTab, setDrawerTab] = useState('chat')
@@ -115,10 +122,17 @@ export default function BusinessApplicationDetailDrawer({
   const [evaluationNotice, setEvaluationNotice] = useState('')
   const [failModalOpen, setFailModalOpen] = useState(false)
   const [failReason, setFailReason] = useState('')
+  const [statusUpdating, setStatusUpdating] = useState(false)
+  const [statusChangeError, setStatusChangeError] = useState('')
 
   const reviewCopy = useMemo(
     () => getApplicationProfileReviewCopy(language),
     [language],
+  )
+
+  const portalStatusOptions = useMemo(
+    () => getBusinessApplicationPortalStatusOptions(language, selectedApp?.status),
+    [language, selectedApp?.status],
   )
 
   const applicationStatus = Number(selectedApp?.status)
@@ -207,6 +221,7 @@ export default function BusinessApplicationDetailDrawer({
     setEvaluationNotice('')
     setFailModalOpen(false)
     setFailReason('')
+    setStatusChangeError('')
   }, [selectedApp?.id])
 
   const applyApplicationPatch = useCallback((patch) => {
@@ -217,6 +232,34 @@ export default function BusinessApplicationDetailDrawer({
     if (selectedApp?.id) loadApplicationDetail(selectedApp.id)
     onStatusUpdated?.()
   }, [selectedApp?.id, loadApplicationDetail, onStatusUpdated])
+
+  const handleDrawerStatusChange = useCallback(async (newStatus) => {
+    if (!selectedApp?.id || statusUpdating) return
+    setStatusChangeError('')
+    setStatusUpdating(true)
+    try {
+      const result = await changeBusinessApplicationStatus(
+        apiService,
+        selectedApp.id,
+        newStatus,
+        selectedApp.status,
+        portalStatusOptions,
+      )
+      if (result.skipped) return
+      if (!result.success) {
+        setStatusChangeError(result.message || 'Không thể cập nhật trạng thái')
+        return
+      }
+      if (result.patch) {
+        applyApplicationPatch(result.patch)
+      }
+      handleStatusUpdated()
+    } catch (e) {
+      setStatusChangeError(e?.message || 'Không thể cập nhật trạng thái')
+    } finally {
+      setStatusUpdating(false)
+    }
+  }, [selectedApp?.id, selectedApp?.status, statusUpdating, applyApplicationPatch, handleStatusUpdated])
 
   const handleEvaluationChange = useCallback(async (nextEvaluation) => {
     if (!selectedApp?.id || evaluationUpdating) return
@@ -369,38 +412,105 @@ export default function BusinessApplicationDetailDrawer({
     </div>
   ) : null
 
+  const passEvaluationSelected = profileEvaluation === PROFILE_EVALUATION.PASS
+  const failEvaluationSelected = profileEvaluation === PROFILE_EVALUATION.FAIL
+
   const profileReviewBar = canShowProfileReview ? (
     <div className="sticky top-0 z-10 shrink-0 border-b border-slate-200 bg-white px-4 py-3 shadow-sm">
-      <p className="biz-ui-body font-bold text-slate-900">{reviewCopy.title}</p>
-      <p className="biz-ui-caption mt-0.5 text-slate-500">
+      <div className="flex items-center justify-between gap-3">
+        <p className="biz-ui-body min-w-0 flex-1 font-bold text-slate-900">{reviewCopy.title}</p>
+        <div className="flex shrink-0 items-center gap-2">
+          <div
+            className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5"
+            role="group"
+            aria-label={reviewCopy.title}
+          >
+            <button
+              type="button"
+              disabled={evaluationUpdating || drawerLoading}
+              aria-pressed={passEvaluationSelected}
+              onClick={() => handleEvaluationChange(PROFILE_EVALUATION.PASS)}
+              className={`biz-ui-caption rounded-md px-2.5 py-1.5 font-semibold whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-60 sm:px-3 ${
+                passEvaluationSelected
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-emerald-800'
+              }`}
+            >
+              {reviewCopy.passSwitch || reviewCopy.pass}
+            </button>
+            <button
+              type="button"
+              disabled={evaluationUpdating || drawerLoading}
+              aria-pressed={failEvaluationSelected}
+              onClick={() => handleEvaluationChange(PROFILE_EVALUATION.FAIL)}
+              className={`biz-ui-caption rounded-md px-2.5 py-1.5 font-semibold whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-60 sm:px-3 ${
+                failEvaluationSelected
+                  ? 'bg-rose-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-rose-800'
+              }`}
+            >
+              {reviewCopy.failSwitch || reviewCopy.fail}
+            </button>
+          </div>
+          {evaluationUpdating ? (
+            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#0077B6]" aria-hidden />
+          ) : null}
+        </div>
+      </div>
+      <p className="biz-ui-caption mt-1 text-slate-500">
         {selectedApp.statusLabel || getJobApplicationStatusLabelByLanguage(STATUS_SCREENING, language)}
       </p>
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          disabled={evaluationUpdating || drawerLoading}
-          onClick={() => handleEvaluationChange(PROFILE_EVALUATION.PASS)}
-          className="biz-ui-caption rounded-lg bg-emerald-600 px-3 py-1.5 font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {reviewCopy.pass}
-        </button>
-        <button
-          type="button"
-          disabled={evaluationUpdating || drawerLoading}
-          onClick={() => handleEvaluationChange(PROFILE_EVALUATION.FAIL)}
-          className="biz-ui-caption rounded-lg border border-rose-200 bg-white px-3 py-1.5 font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {reviewCopy.fail}
-        </button>
-        {evaluationUpdating ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0077B6]" aria-hidden />
-        ) : null}
-      </div>
       {evaluationNotice ? (
         <p className="biz-ui-caption mt-2 text-[#006399]">{evaluationNotice}</p>
       ) : null}
     </div>
   ) : null
+
+  const drawerHeaderBar = (
+    <div className="sticky top-0 z-20 shrink-0 border-b border-slate-200 bg-white shadow-sm">
+      <div className="flex items-start gap-2 px-4 pt-3 pb-2">
+        <div className="min-w-0 flex-1">
+          <p className="biz-ui-body truncate font-bold text-slate-900">
+            {selectedApp?.candidateName || '—'}
+          </p>
+          <p className="biz-ui-caption mt-0.5 truncate text-slate-500">
+            {[selectedApp?.jobTitle, selectedApp?.jobCode].filter(Boolean).join(' · ') || '—'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 rounded-lg p-1.5 transition-colors hover:bg-slate-100"
+          aria-label="Đóng"
+        >
+          <X className="h-4 w-4 text-slate-500" />
+        </button>
+      </div>
+      {!isWsPreNomination ? (
+        <div className="border-t border-slate-100 px-4 py-3">
+          <label
+            htmlFor="business-application-drawer-status"
+            className="biz-ui-caption mb-1.5 block font-semibold text-slate-600"
+          >
+            {copy.applications.table.status}
+          </label>
+          <BusinessApplicationStatusSelect
+            id="business-application-drawer-status"
+            status={selectedApp?.status}
+            statusCategory={selectedApp?.statusCategory}
+            statusLabel={selectedApp?.statusLabel}
+            statusOptions={portalStatusOptions}
+            onChange={handleDrawerStatusChange}
+            updating={statusUpdating}
+            disabled={drawerLoading}
+          />
+          {statusChangeError ? (
+            <p className="biz-ui-caption mt-1.5 text-rose-600">{statusChangeError}</p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  )
 
   if (!open || !selectedApp) return null
 
@@ -416,11 +526,7 @@ export default function BusinessApplicationDetailDrawer({
         style={{ width: 'min(100vw, 560px)', fontFamily: BUSINESS_UI_FONT }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 justify-end border-b border-slate-200 bg-white px-3 py-2">
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 transition-colors hover:bg-slate-100">
-            <X className="h-4 w-4 text-slate-500" />
-          </button>
-        </div>
+        {drawerHeaderBar}
 
         {showProfileView && showChatTab && (
           <div className="flex shrink-0 border-b border-slate-200 bg-white">

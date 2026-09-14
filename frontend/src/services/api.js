@@ -779,6 +779,14 @@ const apiService = {
     return handleResponse(response);
   },
 
+  confirmBusinessBillingInvoicePayment: async (invoiceId) => {
+    const response = await fetch(
+      `${API_BASE_URL}/business/billing/invoices/${invoiceId}/confirm-payment`,
+      { method: 'POST', headers: getAuthHeaders() }
+    );
+    return handleResponse(response);
+  },
+
   getBusinessCreditRequests: async (params = {}) => {
     const filtered = Object.fromEntries(
       Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
@@ -1064,6 +1072,18 @@ const apiService = {
       method: 'GET',
       headers: getAuthHeaders(),
     });
+    return handleResponse(response);
+  },
+
+  updateBusinessScoutUnlockedCandidatePipeline: async (cvId, pipelineStatus) => {
+    const response = await fetch(
+      `${API_BASE_URL}/business/scout/unlocked-candidates/${cvId}/pipeline-status`,
+      {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ pipelineStatus }),
+      },
+    );
     return handleResponse(response);
   },
 
@@ -1566,6 +1586,26 @@ const apiService = {
     return handleResponse(response);
   },
 
+  getBusinessCandidateSharingListing: async (id) => {
+    const response = await fetch(
+      `${API_BASE_URL}/business/candidate-sharing/listings/${encodeURIComponent(String(id))}`,
+      { method: 'GET', headers: getAuthHeaders() }
+    );
+    return handleResponse(response);
+  },
+
+  getBusinessCandidateSharingListingInterests: async (id, params = {}) => {
+    const filtered = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
+    );
+    const queryString = new URLSearchParams(filtered).toString();
+    const response = await fetch(
+      `${API_BASE_URL}/business/candidate-sharing/listings/${encodeURIComponent(String(id))}/interests${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET', headers: getAuthHeaders() }
+    );
+    return handleResponse(response);
+  },
+
   createBusinessCandidateSharingListing: async (body) => {
     const response = await fetch(`${API_BASE_URL}/business/candidate-sharing/listings`, {
       method: 'POST',
@@ -1577,6 +1617,31 @@ const apiService = {
 
   submitBusinessCandidateSharingListing: async (id) => {
     const response = await fetch(`${API_BASE_URL}/business/candidate-sharing/listings/${id}/submit`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  updateBusinessCandidateSharingListing: async (id, body) => {
+    const response = await fetch(`${API_BASE_URL}/business/candidate-sharing/listings/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    return handleResponse(response);
+  },
+
+  pauseBusinessCandidateSharingListing: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/business/candidate-sharing/listings/${id}/pause`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  closeBusinessCandidateSharingListing: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/business/candidate-sharing/listings/${id}/close`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
@@ -1704,6 +1769,15 @@ const apiService = {
       headers: getAuthHeaders(),
     });
     return handleResponse(response);
+  },
+
+  getBusinessUnreadMessagesByApplication: async () => {
+    const response = await fetch(`${API_BASE_URL}/business/messages/unread-by-application`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    const res = await handleResponse(response);
+    return res?.data?.unreadByJobApplication ?? {};
   },
 
   createBusinessMessage: async (messageData) => {

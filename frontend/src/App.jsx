@@ -119,6 +119,7 @@ import BusinessLandingPageEditor from './page/Bussiness/BusinessLandingPageEdito
 import BusinessLandingPageBuilder from './page/Bussiness/BusinessLandingPageBuilder';
 import PublicLandingPage from './page/LandingPage/PublicLandingPage';
 import CandidateSharing from './page/Bussiness/CandidateSharing';
+import CandidateSharingListingDetail from './page/Bussiness/CandidateSharingListingDetail';
 import AdminCandidateSharingPage from './page/Admin/CandidateSharingPage';
 import CtvMarketplacePage from './page/Agent/CtvMarketplacePage';
 import KnowledgeHub from './page/Bussiness/KnowledgeHub';
@@ -132,6 +133,7 @@ import LandingPagePremiumRequest from './page/Bussiness/LandingPagePremiumReques
 import RecruitmentAdsRequest from './page/Bussiness/RecruitmentAdsRequest';
 import SeminarCampaignRequest from './page/Bussiness/SeminarCampaignRequest';
 import CompanyProfileRequest from './page/Bussiness/CompanyProfileRequest';
+import BusinessProfilePage from './page/Bussiness/BusinessProfilePage';
 import BusinessRegister from './page/Bussiness/Register';
 import BusinessLogin from './page/Bussiness/Login';
 import BusinessVerifyEmail from './page/Bussiness/VerifyEmail';
@@ -418,6 +420,7 @@ function App() {
             <Route path="candidates" element={<Candidate />} />
             <Route path="candidates/:candidateId" element={<BusinessUnlockedCandidateDetail />} />
             <Route path="candidate-sharing" element={<CandidateSharing />} />
+            <Route path="candidate-sharing/listings/:listingId" element={<CandidateSharingListingDetail />} />
             <Route path="scout/direct" element={<ScoutDirect />} />
             <Route path="scout/managed" element={<ScoutManaged />} />
             <Route path="scout/candidates/:cvId" element={<ScoutCandidateDetail />} />
@@ -435,7 +438,6 @@ function App() {
             <Route path="candidates" element={<div className="p-6"><h1 className="text-2xl font-bold">Candidates</h1></div>} />
             <Route path="scout-performance" element={<div className="p-6"><h1 className="text-2xl font-bold">Scout Performance</h1></div>} />
             <Route path="partner-ctv" element={<div className="p-6"><h1 className="text-2xl font-bold">Partner CTV</h1></div>} />
-            <Route path="insights" element={<div className="p-6"><h1 className="text-2xl font-bold">Reports & Insights</h1></div>} />
             <Route path="service-requests/credit" element={<CreditTopUpRequest />} />
             <Route path="service-requests/landing-page" element={<LandingPagePremiumRequest />} />
             <Route path="service-requests/recruitment-ads" element={<RecruitmentAdsRequest />} />
@@ -444,7 +446,8 @@ function App() {
             <Route path="service-requests" element={<ServiceRequests />} />
             <Route path="billing" element={<Billing />} />
             <Route path="service-billing" element={<ServiceRequests />} />
-            <Route path="settings" element={<div className="p-6"><h1 className="text-2xl font-bold">Settings</h1></div>} />
+            <Route path="profile" element={<BusinessProfilePage />} />
+            <Route path="settings" element={<Navigate to="/business/profile" replace />} />
           </Route>
 
         </Routes>

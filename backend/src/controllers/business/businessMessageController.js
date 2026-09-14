@@ -1,4 +1,4 @@
-import { Op, col } from 'sequelize';
+import { Op, col, fn } from 'sequelize';
 import {
   Message,
   JobApplication,
@@ -53,6 +53,46 @@ async function enrichMessages(messages) {
 }
 
 export const businessMessageController = {
+  getUnreadByJobApplication: async (req, res, next) => {
+    try {
+      const businessId = req.business.id;
+      const rows = await Message.findAll({
+        attributes: [
+          'jobApplicationId',
+          [fn('COUNT', col('Message.id')), 'count'],
+        ],
+        where: {
+          senderType: { [Op.ne]: SENDER_TYPE_BUSINESS },
+          isReadByBusiness: false,
+        },
+        include: [{
+          model: JobApplication,
+          as: 'jobApplication',
+          required: true,
+          attributes: [],
+          include: [{
+            model: Job,
+            as: 'job',
+            required: true,
+            attributes: [],
+            where: { businessId },
+          }],
+        }],
+        group: ['Message.job_application_id'],
+        raw: true,
+        paranoid: true,
+      });
+      const unreadByJobApplication = {};
+      rows.forEach((r) => {
+        const jaId = r.jobApplicationId ?? r.job_application_id;
+        if (jaId != null) unreadByJobApplication[jaId] = parseInt(r.count, 10) || 0;
+      });
+      res.json({ success: true, data: { unreadByJobApplication } });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   getMessagesByJobApplication: async (req, res, next) => {
     try {
       const { jobApplicationId } = req.params;

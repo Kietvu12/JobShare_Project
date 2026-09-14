@@ -31,7 +31,7 @@ export const messagesI18n = {
       candidateInfo: 'Thông tin ứng viên',
       jdInfo: 'Thông tin JD',
       ctvInfo: 'Thông tin CTV',
-      rewardInfo: 'Thông tin thưởng',
+      rewardInfo: 'Phí giới thiệu',
     },
     marketplaceSource: 'Sàn CTV',
     fullProfileAccess: 'Hồ sơ đầy đủ (tiến cử Sàn CTV)',

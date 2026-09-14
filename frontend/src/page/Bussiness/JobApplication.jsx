@@ -2,10 +2,17 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Search, ChevronRight, ChevronLeft,
-  MessageSquare, Loader2, Bell, LayoutGrid, List,
+  MessageSquare, Loader2, LayoutGrid, List,
 } from 'lucide-react'
+import BusinessQuickActionsPageLayout from '../../component/Bussiness/BusinessQuickActionsPageLayout.jsx'
 import apiService from '../../services/api'
 import BusinessApplicationDetailDrawer from '../../component/Bussiness/BusinessApplicationDetailDrawer'
+import BusinessApplicationStatusSelect from '../../component/Bussiness/BusinessApplicationStatusSelect.jsx'
+import {
+  buildApplicationStatusPatch,
+  changeBusinessApplicationStatus,
+  getBusinessApplicationPortalStatusOptions,
+} from '../../utils/businessApplicationStatusChange'
 import {
   getStatusCategoryStyle,
   isApplicationProfileOnly,
@@ -20,7 +27,6 @@ import {
   localizeApplications,
   localizeApplicationStats,
 } from '../../utils/businessApplicationDisplay'
-import { localizeNotification } from '../../utils/notificationI18n'
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
 import { useLanguage } from '../../context/LanguageContext'
 import {
@@ -38,8 +44,8 @@ const applicationsPageStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
   .business-homepage-scroll::-webkit-scrollbar { width: 4px; }
   .business-homepage-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-  .app-scrollbar-hide::-webkit-scrollbar { display: none; }
-  .app-scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
   .business-homepage-shell { --hp-zoom: 1; }
   @media (min-width: 1024px) and (max-width: 1279px) {
     .business-homepage-shell { --hp-zoom: 0.9; }
@@ -84,11 +90,11 @@ function ApplicationSourceCell({ app }) {
   const showCtv = CTV_SOURCE_TYPES.has(app.sourceType) && app.ctvName
   return (
     <>
-      <span className="text-[10px] font-semibold" style={{ color: app.sourceColor }}>
+      <span className="text-xs font-semibold" style={{ color: app.sourceColor }}>
         {app.sourceLabel}
       </span>
       {showCtv ? (
-        <div className="mt-0.5 text-[10px] text-slate-500 truncate" title={app.ctvName}>
+        <div className="mt-0.5 text-xs text-slate-500 truncate" title={app.ctvName}>
           CTV: {app.ctvName}
         </div>
       ) : null}
@@ -111,14 +117,14 @@ function KanbanCard({ app, onOpen, onDragStart }) {
       onClick={() => onOpen(app)}
       className="cursor-pointer rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing"
     >
-      <div className="text-[11px] font-semibold text-slate-800 truncate">{app.candidateName}</div>
-      <div className="mt-0.5 text-[10px] text-slate-500 truncate">{app.jobTitle}</div>
+      <div className="text-xs font-semibold text-slate-800 truncate sm:text-sm">{app.candidateName}</div>
+      <div className="mt-0.5 text-xs text-slate-500 truncate">{app.jobTitle}</div>
       <div className="mt-2 flex items-center justify-between gap-1">
-        <span className="text-[9px] font-semibold truncate" style={{ color: app.sourceColor }}>
+        <span className="text-[11px] font-semibold truncate" style={{ color: app.sourceColor }}>
           {app.sourceLabel}
         </span>
         <span
-          className="shrink-0 rounded px-1 py-0.5 text-[8px] font-semibold"
+          className="shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold sm:text-xs"
           style={{ color: stageStyle.color, background: stageStyle.bg }}
         >
           {app.statusLabel}
@@ -161,8 +167,8 @@ function ApplicationsKanban({ applications, onOpen, onStatusChange, updatingId, 
           onDrop={handleDrop(col)}
         >
           <div className="flex items-center justify-between border-b border-slate-100 px-2.5 py-2">
-            <span className="text-[10px] font-bold text-slate-700">{col.label}</span>
-            <span className="rounded-full bg-white px-1.5 py-0.5 text-[9px] font-bold text-slate-500 tabular-nums">
+            <span className="text-xs font-bold text-slate-700">{col.label}</span>
+            <span className="rounded-full bg-white px-1.5 py-0.5 text-[11px] font-bold text-slate-500 tabular-nums sm:text-xs">
               {grouped[col.id]?.length || 0}
             </span>
           </div>
@@ -176,7 +182,7 @@ function ApplicationsKanban({ applications, onOpen, onStatusChange, updatingId, 
               />
             ))}
             {updatingId && grouped[col.id]?.some((a) => a.id === updatingId) && (
-              <div className="text-center text-[9px] text-slate-400 py-1">{updatingLabel}</div>
+              <div className="text-center text-xs text-slate-400 py-1">{updatingLabel}</div>
             )}
           </div>
         </div>
@@ -190,7 +196,7 @@ function PieChart({ stats, emptyLabel, totalLabel }) {
   const total = stats?.total || 0
   if (!total) {
     return (
-      <div className="text-[10px] text-slate-400 text-center py-3">
+      <div className="text-xs text-slate-400 text-center py-3">
         {emptyLabel}
       </div>
     )
@@ -236,7 +242,7 @@ function PieChart({ stats, emptyLabel, totalLabel }) {
       </svg>
       <div className="flex-1 flex flex-col gap-1 min-w-0">
         {paths.map((d, i) => (
-          <div key={i} className="text-[10px] flex items-center gap-1.5">
+          <div key={i} className="text-xs flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-sm shrink-0" style={{ background: d.color }} />
             <span className="text-slate-600 font-medium flex-1 truncate">{d.label}</span>
             <span className="text-slate-500 font-semibold shrink-0">
@@ -255,8 +261,8 @@ const StatCard = ({ label, value, accent }) => (
       accent ? 'border-[#cce5f0]/80 bg-[#e8f4fa]' : 'border-slate-200/90 bg-white'
     }`}
   >
-    <p className="text-[10px] font-medium text-slate-500">{label}</p>
-    <p className="text-lg font-bold tabular-nums leading-tight text-slate-800">{value ?? 0}</p>
+    <p className="text-xs font-medium text-slate-500 sm:text-sm">{label}</p>
+    <p className="text-xl font-bold tabular-nums leading-tight text-slate-800 sm:text-2xl">{value ?? 0}</p>
   </div>
 )
 
@@ -278,23 +284,23 @@ function ApplicationMobileCard({ app, isSelected, onOpen, tableLabels, language,
           { label: tableLabels.source, value: app.sourceLabel, color: app.sourceColor, sub: CTV_SOURCE_TYPES.has(app.sourceType) && app.ctvName ? `CTV: ${app.ctvName}` : null },
         ].map((row) => (
           <div key={row.label} className="flex items-start justify-between gap-3">
-            <span className="shrink-0 text-[11px] text-slate-400">{row.label}</span>
+            <span className="shrink-0 text-xs text-slate-400 sm:text-sm">{row.label}</span>
             <div className="min-w-0 text-right">
               <div
-                className="text-[11px] font-semibold text-slate-800"
+                className="text-xs font-semibold text-slate-800 sm:text-sm"
                 style={row.color ? { color: row.color } : undefined}
               >
                 {row.value || '—'}
               </div>
-              {row.sub ? <div className="text-[10px] text-slate-400">{row.sub}</div> : null}
+              {row.sub ? <div className="text-xs text-slate-400">{row.sub}</div> : null}
             </div>
           </div>
         ))}
 
         <div className="flex items-start justify-between gap-3">
-          <span className="shrink-0 text-[11px] text-slate-400">{tableLabels.status}</span>
+          <span className="shrink-0 text-xs text-slate-400 sm:text-sm">{tableLabels.status}</span>
           <span
-            className="rounded-md px-2 py-0.5 text-[10px] font-semibold"
+            className="rounded-md px-2 py-0.5 text-xs font-semibold"
             style={{ color: stageStyle.color, background: stageStyle.bg }}
           >
             {app.statusLabel}
@@ -302,26 +308,26 @@ function ApplicationMobileCard({ app, isSelected, onOpen, tableLabels, language,
         </div>
 
         <div className="flex items-start justify-between gap-3">
-          <span className="shrink-0 text-[11px] text-slate-400">{tableLabels.appliedAt}</span>
+          <span className="shrink-0 text-xs text-slate-400 sm:text-sm">{tableLabels.appliedAt}</span>
           <div className="text-right">
-            <div className="text-[11px] font-medium text-slate-700">{formatApplicationDateLocalized(app.appliedAt, language)}</div>
-            <div className="text-[10px] text-slate-400">{formatApplicationRelativeTimeLocalized(app.appliedAt, language)}</div>
+            <div className="text-xs font-medium text-slate-700 sm:text-sm">{formatApplicationDateLocalized(app.appliedAt, language)}</div>
+            <div className="text-xs text-slate-400">{formatApplicationRelativeTimeLocalized(app.appliedAt, language)}</div>
           </div>
         </div>
 
         <div className="flex items-start justify-between gap-3">
-          <span className="shrink-0 text-[11px] text-slate-400">{tableLabels.interviewDate}</span>
+          <span className="shrink-0 text-xs text-slate-400 sm:text-sm">{tableLabels.interviewDate}</span>
           <div className="text-right">
-            <div className="text-[11px] font-medium text-slate-700">{formatApplicationDateTimeLocalized(app.interviewDate, language)}</div>
+            <div className="text-xs font-medium text-slate-700 sm:text-sm">{formatApplicationDateTimeLocalized(app.interviewDate, language)}</div>
             {app.interviewDate ? (
-              <div className="text-[10px] text-slate-400">{formatApplicationRelativeTimeLocalized(app.interviewDate, language)}</div>
+              <div className="text-xs text-slate-400">{formatApplicationRelativeTimeLocalized(app.interviewDate, language)}</div>
             ) : null}
           </div>
         </div>
 
         {showChatBadge && (app.unreadCount > 0) && (
           <div className="flex items-center justify-end gap-1 pt-1">
-            <span className="rounded-full bg-rose-500 px-1.5 py-px text-[9px] font-bold text-white">
+            <span className="rounded-full bg-rose-500 px-1.5 py-px text-[11px] font-bold text-white sm:text-xs">
               {unreadLabel(app.unreadCount)}
             </span>
             <MessageSquare className="h-3.5 w-3.5 text-[#0077B6]/70" />
@@ -329,6 +335,36 @@ function ApplicationMobileCard({ app, isSelected, onOpen, tableLabels, language,
         )}
       </div>
     </button>
+  )
+}
+
+function ApplicationsSidebarCharts({ localizedStats, stageData, appCopy }) {
+  return (
+    <>
+      <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-3.5">
+        <h2 className="mb-2 text-sm font-bold text-[#0077B6]">{appCopy.sidebar.sourceRatio}</h2>
+        <PieChart stats={localizedStats} emptyLabel={appCopy.sidebar.noData} totalLabel={appCopy.sidebar.total} />
+      </div>
+
+      <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-3.5">
+        <h2 className="mb-2 text-sm font-bold text-[#0077B6]">{appCopy.sidebar.statusBreakdown}</h2>
+        <div className="flex flex-col gap-2">
+          {stageData.length === 0 ? (
+            <div className="text-xs text-slate-400">{appCopy.sidebar.noData}</div>
+          ) : stageData.map((stage, i) => (
+            <div key={i}>
+              <div className="mb-0.5 flex items-center justify-between gap-2">
+                <span className="text-xs font-medium text-slate-500 sm:text-sm">{stage.label}</span>
+                <span className="text-xs font-bold tabular-nums text-slate-800 sm:text-sm">{stage.value}</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full rounded-full transition-all" style={{ width: `${stage.width * 100}%`, background: stage.color }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
   )
 }
 
@@ -349,7 +385,6 @@ const JobApplication = () => {
   const [applications, setApplications] = useState([])
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 })
   const [jobs, setJobs] = useState([])
-  const [recentNotifications, setRecentNotifications] = useState([])
 
   const [searchInput, setSearchInput] = useState('')
   const [searchDebounced, setSearchDebounced] = useState('')
@@ -360,12 +395,16 @@ const JobApplication = () => {
   const [appliedTo, setAppliedTo] = useState('')
   const [page, setPage] = useState(1)
   const [viewMode, setViewMode] = useState('table')
-  const [kanbanUpdatingId, setKanbanUpdatingId] = useState(null)
+  const [statusUpdatingId, setStatusUpdatingId] = useState(null)
 
   const [selectedApp, setSelectedApp] = useState(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const statusOptions = useMemo(() => getJobApplicationStatusOptionsByLanguage(language), [language])
+  const portalStatusOptionsFor = useCallback(
+    (currentStatus) => getBusinessApplicationPortalStatusOptions(language, currentStatus),
+    [language],
+  )
 
   const jobById = useMemo(() => buildJobByIdMap(jobs), [jobs])
 
@@ -413,16 +452,6 @@ const JobApplication = () => {
     }
   }, [])
 
-  const loadNotifications = useCallback(async () => {
-    try {
-      const res = await apiService.getBusinessNotifications({ page: 1, limit: 8 })
-      const rows = res?.data?.notifications ?? res?.notifications ?? []
-      setRecentNotifications(Array.isArray(rows) ? rows : [])
-    } catch {
-      setRecentNotifications([])
-    }
-  }, [])
-
   const loadApplications = useCallback(async () => {
     try {
       setLoading(true)
@@ -454,30 +483,39 @@ const JobApplication = () => {
     }
   }, [page, searchDebounced, jobFilter, sourceFilter, statusFilter, appliedFrom, appliedTo, viewMode])
 
-  const handleKanbanStatusChange = useCallback(async (app, newStatus) => {
-    setKanbanUpdatingId(app.id)
+  const handleApplicationStatusChange = useCallback(async (app, newStatus) => {
+    setStatusUpdatingId(app.id)
     try {
-      const res = await apiService.updateBusinessApplicationStatus(app.id, { status: newStatus })
-      if (res?.success) {
-        setApplications((prev) => prev.map((a) => (
-          a.id === app.id
-            ? { ...a, status: newStatus, statusLabel: statusOptions.find((o) => Number(o.value) === newStatus)?.label || a.statusLabel }
-            : a
-        )))
-        loadStats()
+      const result = await changeBusinessApplicationStatus(
+        apiService,
+        app.id,
+        newStatus,
+        app.status,
+        portalStatusOptionsFor(app.status),
+      )
+      if (result.skipped) return
+      if (!result.success) {
+        window.alert(result.message || 'Không thể cập nhật trạng thái')
+        return
       }
-    } catch {
-      // ignore
+      const patch = result.patch || buildApplicationStatusPatch(
+        newStatus,
+        portalStatusOptionsFor(app.status),
+      )
+      setApplications((prev) => prev.map((a) => (a.id === app.id ? { ...a, ...patch } : a)))
+      setSelectedApp((prev) => (prev?.id === app.id ? { ...prev, ...patch } : prev))
+      loadStats()
+    } catch (e) {
+      window.alert(e?.message || 'Không thể cập nhật trạng thái')
     } finally {
-      setKanbanUpdatingId(null)
+      setStatusUpdatingId(null)
     }
-  }, [statusOptions, loadStats])
+  }, [portalStatusOptionsFor, loadStats])
 
   useEffect(() => {
     loadJobs()
     loadStats()
-    loadNotifications()
-  }, [loadJobs, loadStats, loadNotifications])
+  }, [loadJobs, loadStats])
 
   useEffect(() => {
     loadApplications()
@@ -561,6 +599,14 @@ const JobApplication = () => {
   const pageStart = pagination.total ? (pagination.page - 1) * pagination.limit + 1 : 0
   const pageEnd = Math.min(pagination.page * pagination.limit, pagination.total)
 
+  const sidebarCharts = useMemo(() => (
+    <ApplicationsSidebarCharts
+      localizedStats={localizedStats}
+      stageData={stageData}
+      appCopy={appCopy}
+    />
+  ), [localizedStats, stageData, appCopy])
+
   return (
     <>
       <style>{scrollbarHideStyle}</style>
@@ -568,9 +614,9 @@ const JobApplication = () => {
         className="business-homepage-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#f4f6f8]"
         style={{ fontFamily: PAGE_FONT }}
       >
-        <div className="business-homepage-ui flex min-h-0 flex-1 flex-col p-0 lg:p-3">
-          <div className="shrink-0 px-3 pt-3 lg:mb-2 lg:px-0 lg:pt-0">
-            <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
+        <div className="business-homepage-ui flex h-full min-h-0 flex-1 flex-col p-2.5 sm:p-3">
+          <div className="mb-2 shrink-0 sm:mb-2.5">
+            <nav aria-label="Breadcrumb" className="text-xs text-slate-500 sm:text-sm">
               <button
                 type="button"
                 onClick={() => navigate('/business')}
@@ -583,38 +629,37 @@ const JobApplication = () => {
             </nav>
           </div>
 
-          <div
-            className="grid min-h-0 flex-1 gap-0 overflow-hidden lg:gap-2.5"
-            style={{ gridTemplateColumns: drawerOpen ? '1fr' : undefined }}
+          <BusinessQuickActionsPageLayout
+            onNavigate={navigate}
+            showSidebar={!drawerOpen}
+            sidebarExtraTop={sidebarCharts}
+            sidebarSize="wide"
+            showMobileFab={!drawerOpen}
+            className="min-h-0 flex-1"
           >
-            <div
-              className={`flex min-h-0 flex-col gap-0 overflow-hidden lg:gap-2.5 ${
-                drawerOpen ? '' : 'lg:grid lg:grid-cols-[1fr_220px]'
-              }`}
-            >
-              <div className="flex min-h-0 flex-col gap-0 overflow-hidden lg:gap-2.5">
-              <div className="grid shrink-0 grid-cols-2 gap-2 px-3 py-2 sm:grid-cols-4 lg:px-0 lg:py-0">
+              <div className="flex min-h-0 flex-1 flex-col gap-2.5 sm:gap-3">
+              <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-2.5">
                 {statCards.map((s, i) => (
                   <StatCard key={i} {...s} />
                 ))}
               </div>
 
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border-y border-slate-200/90 bg-white shadow-sm lg:rounded-xl lg:border">
-                <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2 lg:px-2">
-                  <div className="flex min-w-[140px] flex-1 items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-2 ring-1 ring-slate-100 lg:py-1.5">
-                    <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
+                <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2.5 sm:px-3.5">
+                  <div className="flex min-w-[140px] flex-1 items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-2 ring-1 ring-slate-100 sm:py-2">
+                    <Search className="w-4 h-4 text-slate-400 shrink-0" />
                     <input
                       type="text"
                       placeholder={appCopy.filters.searchPlaceholder}
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
-                      className="bg-transparent outline-none w-full text-[10px] sm:text-xs text-slate-700 placeholder:text-slate-400"
+                      className="bg-transparent outline-none w-full text-xs text-slate-700 placeholder:text-slate-400 sm:text-sm"
                     />
                   </div>
                   <select
                     value={jobFilter}
                     onChange={(e) => setJobFilter(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] text-slate-600 outline-none focus:border-[#0077B6]/50 focus:ring-1 focus:ring-[#0077B6]/30 sm:w-auto sm:max-w-[160px] sm:py-1.5 sm:text-[10px] lg:text-xs"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-600 outline-none focus:border-[#0077B6]/50 focus:ring-1 focus:ring-[#0077B6]/30 sm:w-auto sm:max-w-[180px] sm:text-sm"
                   >
                     <option value="">{appCopy.filters.allJobs}</option>
                     {jobs.map((j) => (
@@ -624,7 +669,7 @@ const JobApplication = () => {
                   <select
                     value={sourceFilter}
                     onChange={(e) => setSourceFilter(e.target.value)}
-                    className="w-[calc(50%-4px)] rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] text-slate-600 outline-none focus:ring-1 focus:ring-[#0077B6]/30 sm:w-auto sm:py-1.5 sm:text-[10px] lg:text-xs"
+                    className="w-[calc(50%-4px)] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-600 outline-none focus:ring-1 focus:ring-[#0077B6]/30 sm:w-auto sm:text-sm"
                   >
                     {sourceOptions.map((o) => (
                       <option key={o.value} value={o.value}>{o.label}</option>
@@ -633,7 +678,7 @@ const JobApplication = () => {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-[calc(50%-4px)] rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] text-slate-600 outline-none focus:ring-1 focus:ring-[#0077B6]/30 sm:w-auto sm:py-1.5 sm:text-[10px] lg:text-xs"
+                    className="w-[calc(50%-4px)] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-600 outline-none focus:ring-1 focus:ring-[#0077B6]/30 sm:w-auto sm:text-sm"
                   >
                     <option value="">{appCopy.filters.allStatus}</option>
                     {statusOptions.map((o) => (
@@ -644,7 +689,7 @@ const JobApplication = () => {
                     type="date"
                     value={appliedFrom}
                     onChange={(e) => setAppliedFrom(e.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[10px] text-slate-600"
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-600 sm:text-sm"
                     title={appCopy.filters.appliedFrom}
                     aria-label={appCopy.filters.appliedFrom}
                   />
@@ -652,7 +697,7 @@ const JobApplication = () => {
                     type="date"
                     value={appliedTo}
                     onChange={(e) => setAppliedTo(e.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[10px] text-slate-600"
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-600 sm:text-sm"
                     title={appCopy.filters.appliedTo}
                     aria-label={appCopy.filters.appliedTo}
                   />
@@ -679,7 +724,7 @@ const JobApplication = () => {
                 {loading ? (
                   <div className="flex items-center justify-center gap-2 py-16 text-slate-500">
                     <Loader2 className="w-4 h-4 animate-spin text-[#0077B6]" />
-                    <span className="text-xs">{appCopy.loading}</span>
+                    <span className="text-xs sm:text-sm">{appCopy.loading}</span>
                   </div>
                 ) : viewMode === 'kanban' ? (
                   localizedApplications.length === 0 ? (
@@ -688,15 +733,15 @@ const JobApplication = () => {
                     <ApplicationsKanban
                       applications={localizedApplications}
                       onOpen={openDrawer}
-                      onStatusChange={handleKanbanStatusChange}
-                      updatingId={kanbanUpdatingId}
+                      onStatusChange={handleApplicationStatusChange}
+                      updatingId={statusUpdatingId}
                       kanbanColumns={kanbanColumns}
                       updatingLabel={appCopy.kanbanUpdating}
                     />
                   )
                 ) : (
                   <>
-                    <div className="min-h-0 flex-1 overflow-auto business-homepage-scroll lg:hidden">
+                    <div className="min-h-0 flex-1 overflow-auto scrollbar-hide lg:hidden">
                       {localizedApplications.length === 0 ? (
                         <div className="py-12 text-center text-xs text-slate-400">{appCopy.empty}</div>
                       ) : localizedApplications.map((app) => (
@@ -712,12 +757,26 @@ const JobApplication = () => {
                       ))}
                     </div>
 
-                    <div className="hidden min-h-0 flex-1 overflow-auto business-homepage-scroll lg:block">
-                    <table className="w-full text-left text-[10px] sm:text-xs border-collapse table-fixed">
+                    <div className="hidden min-h-0 flex-1 overflow-auto scrollbar-hide lg:block">
+                    <table className="w-full min-w-[720px] text-left text-xs border-collapse table-fixed sm:text-sm">
+                      <colgroup>
+                        <col style={{ width: '26%' }} />
+                        <col style={{ width: '24%' }} />
+                        <col style={{ width: '11%' }} />
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '11%' }} />
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '4%' }} />
+                      </colgroup>
                       <thead>
-                        <tr className="text-[9px] sm:text-[10px] uppercase tracking-wide text-slate-400 border-b border-slate-100 bg-slate-50/80">
+                        <tr className="text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-100 bg-slate-50/80 sm:text-xs">
                           {[appCopy.table.candidate, appCopy.table.job, appCopy.table.source, appCopy.table.status, appCopy.table.appliedAt, appCopy.table.interviewDate, ''].map((h, i) => (
-                            <th key={i} className={`font-semibold px-2.5 py-2 ${i === 6 ? 'text-right' : 'text-left'}`}>{h}</th>
+                            <th
+                              key={i}
+                              className={`font-semibold py-2.5 ${i === 0 ? 'pl-3 pr-4' : i === 1 ? 'pl-2 pr-3' : i === 6 ? 'px-2 text-right' : 'px-3'} ${i === 6 ? 'text-right' : 'text-left'}`}
+                            >
+                              {h}
+                            </th>
                           ))}
                         </tr>
                       </thead>
@@ -729,7 +788,6 @@ const JobApplication = () => {
                             </td>
                           </tr>
                         ) : localizedApplications.map((app) => {
-                          const stageStyle = getStatusCategoryStyle(app.statusCategory)
                           const isSelected = selectedApp?.id === app.id
                           const showChatBadge = !isApplicationProfileOnly(app)
                           return (
@@ -740,39 +798,49 @@ const JobApplication = () => {
                               }`}
                               onClick={() => openDrawer(app)}
                             >
-                              <td className="px-2.5 py-2">
-                                <div className="font-semibold text-slate-800">{app.candidateName}</div>
-                                <div className="text-[10px] text-slate-400">{app.candidateEmail || '—'}</div>
+                              <td className="max-w-0 py-2.5 pl-3 pr-4">
+                                <div className="truncate font-semibold text-slate-800" title={app.candidateName}>
+                                  {app.candidateName}
+                                </div>
+                                <div className="truncate text-xs text-slate-400" title={app.candidateEmail || undefined}>
+                                  {app.candidateEmail || '—'}
+                                </div>
                               </td>
-                              <td className="px-2 py-2">
-                                <div className="font-semibold text-slate-800 truncate">{app.jobTitle}</div>
-                                <div className="text-[10px] text-slate-400">{app.jobCode || '—'}</div>
+                              <td className="max-w-0 py-2.5 pl-2 pr-3">
+                                <div className="truncate font-semibold text-slate-800" title={app.jobTitle}>
+                                  {app.jobTitle}
+                                </div>
+                                <div className="truncate text-xs text-slate-400" title={app.jobCode || undefined}>
+                                  {app.jobCode || '—'}
+                                </div>
                               </td>
-                              <td className="px-2 py-2">
+                              <td className="px-3 py-2.5">
                                 <ApplicationSourceCell app={app} />
                               </td>
-                              <td className="px-2 py-2">
-                                <span
-                                  className="text-[10px] font-semibold rounded-md px-1.5 py-0.5 inline-block"
-                                  style={{ color: stageStyle.color, background: stageStyle.bg }}
-                                >
-                                  {app.statusLabel}
-                                </span>
+                              <td className="max-w-0 px-3 py-2.5">
+                                <BusinessApplicationStatusSelect
+                                  status={app.status}
+                                  statusCategory={app.statusCategory}
+                                  statusLabel={app.statusLabel}
+                                  statusOptions={portalStatusOptionsFor(app.status)}
+                                  onChange={(newStatus) => handleApplicationStatusChange(app, newStatus)}
+                                  updating={statusUpdatingId === app.id}
+                                />
                               </td>
-                              <td className="px-2 py-2 text-slate-500">
+                              <td className="px-3 py-2.5 text-slate-500">
                                 {formatApplicationDateLocalized(app.appliedAt, language)}
-                                <div className="text-[10px] text-slate-400">{formatApplicationRelativeTimeLocalized(app.appliedAt, language)}</div>
+                                <div className="text-xs text-slate-400">{formatApplicationRelativeTimeLocalized(app.appliedAt, language)}</div>
                               </td>
-                              <td className="px-2 py-2 text-slate-500">
+                              <td className="px-3 py-2.5 text-slate-500">
                                 {formatApplicationDateTimeLocalized(app.interviewDate, language)}
                                 {app.interviewDate ? (
-                                  <div className="text-[10px] text-slate-400">{formatApplicationRelativeTimeLocalized(app.interviewDate, language)}</div>
+                                  <div className="text-xs text-slate-400">{formatApplicationRelativeTimeLocalized(app.interviewDate, language)}</div>
                                 ) : null}
                               </td>
-                              <td className="px-2 py-2 text-right">
+                              <td className="px-3 py-2.5 text-right">
                                 <div className="flex items-center justify-end gap-1">
                                   {showChatBadge && app.unreadCount > 0 && (
-                                    <span className="text-[9px] font-bold text-white bg-rose-500 rounded-full px-1.5 py-px min-w-[18px] text-center">
+                                    <span className="text-[11px] font-bold text-white bg-rose-500 rounded-full px-1.5 py-px min-w-[18px] text-center sm:text-xs">
                                       {app.unreadCount}
                                     </span>
                                   )}
@@ -794,7 +862,7 @@ const JobApplication = () => {
 
                 {!loading && viewMode === 'table' && pagination.totalPages > 0 && (
                   <div className="flex flex-col gap-2 border-t border-slate-100 bg-slate-50/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-                    <span className="text-[10px] text-slate-500">
+                    <span className="text-xs text-slate-500 sm:text-sm">
                       {appCopy.pagination.showing(pageStart, pageEnd, pagination.total)}
                     </span>
                     <div className="flex items-center gap-1">
@@ -806,7 +874,7 @@ const JobApplication = () => {
                       >
                         <ChevronLeft className="w-3.5 h-3.5" />
                       </button>
-                      <span className="text-[10px] font-semibold text-slate-600 px-1 tabular-nums">
+                      <span className="text-xs font-semibold text-slate-600 px-1 tabular-nums sm:text-sm">
                         {pagination.page}/{pagination.totalPages}
                       </span>
                       <button
@@ -822,70 +890,7 @@ const JobApplication = () => {
                 )}
               </div>
               </div>
-
-            {!drawerOpen && (
-              <div className="hidden min-h-0 flex-col gap-1.5 overflow-hidden lg:flex">
-                <div className="shrink-0 rounded-lg border border-slate-200/90 bg-white p-2 shadow-sm">
-                  <h2 className="mb-1.5 text-[11px] font-bold text-[#0077B6]">{appCopy.sidebar.sourceRatio}</h2>
-                  <PieChart stats={localizedStats} emptyLabel={appCopy.sidebar.noData} totalLabel={appCopy.sidebar.total} />
-                </div>
-
-                <div className="shrink-0 rounded-lg border border-slate-200/90 bg-white p-2 shadow-sm">
-                  <h2 className="mb-1.5 text-[11px] font-bold text-[#0077B6]">{appCopy.sidebar.statusBreakdown}</h2>
-                  <div className="flex flex-col gap-1.5">
-                    {stageData.length === 0 ? (
-                      <div className="text-[10px] text-slate-400">{appCopy.sidebar.noData}</div>
-                    ) : stageData.map((stage, i) => (
-                      <div key={i}>
-                        <div className="mb-0.5 flex items-center justify-between gap-2">
-                          <span className="text-[10px] font-medium text-slate-500">{stage.label}</span>
-                          <span className="text-[10px] font-bold tabular-nums text-slate-800">{stage.value}</span>
-                        </div>
-                        <div className="h-1 overflow-hidden rounded-full bg-slate-100">
-                          <div className="h-full rounded-full transition-all" style={{ width: `${stage.width * 100}%`, background: stage.color }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200/90 bg-white p-2 shadow-sm">
-                  <div className="mb-1.5 flex items-center justify-between gap-2">
-                    <h2 className="text-[11px] font-bold text-[#0077B6]">{appCopy.sidebar.recentActivity}</h2>
-                    {recentNotifications.length > 5 ? (
-                      <button
-                        type="button"
-                        onClick={() => navigate('/business/messages')}
-                        className="text-[10px] font-semibold text-[#0077B6] hover:underline"
-                      >
-                        {appCopy.sidebar.viewAllActivity}
-                      </button>
-                    ) : null}
-                  </div>
-                  <div className="space-y-2">
-                    {recentNotifications.length === 0 ? (
-                      <div className="text-[10px] text-slate-400">{appCopy.sidebar.noActivity}</div>
-                    ) : recentNotifications.slice(0, 5).map((n) => {
-                      const localized = localizeNotification(n, language)
-                      return (
-                        <div key={n.id} className="flex items-start gap-1.5">
-                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#e8f4fa]">
-                            <Bell className="h-3 w-3 text-[#0077B6]" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[10px] font-semibold leading-snug text-slate-700">{localized.title}</div>
-                            <div className="mt-0.5 line-clamp-2 text-[10px] text-slate-500">{localized.content}</div>
-                            <div className="mt-0.5 text-[9px] text-slate-400">{formatApplicationDateLocalized(n.createdAt, language)}</div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-            </div>
-          </div>
+          </BusinessQuickActionsPageLayout>
         </div>
       </div>
 

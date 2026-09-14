@@ -1,9 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Search, ChevronRight, FileText, Eye, Share2, Filter, BookOpen, Users, Rocket, Shield, Zap,
-  MessageSquare, Clock, Loader2,
-} from 'lucide-react'
+import { Search, ChevronRight, Clock, Eye, Loader2 } from 'lucide-react'
 import nothingIllustration from '../../assets/Nothing.png'
 import apiService, { normalizePostImageUrl } from '../../services/api'
 import { useLanguage } from '../../context/LanguageContext'
@@ -16,65 +13,23 @@ import { getKnowledgeHubCopy } from '../../i18n/businessApp/knowledgeHub.js'
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 const BRAND = '#0077B6'
-const BRAND_LIGHT = '#e8f4fa'
-const BRAND_BORDER = '#cce5f0'
 
-const CATEGORY_ICONS = {
-  'tuyen-dung': BookOpen,
-  'quan-tri-nhan-su': Users,
-  'phat-trien-doi-ngu': Rocket,
-  'phap-ly-tuan-thu': Shield,
-  'ky-nang-nghe-nghiep': Zap,
-  khac: FileText,
-}
+const CATEGORY_SECTIONS = [
+  { slug: 'tuyen-dung', title: 'Tuyển dụng' },
+  { slug: 'quan-tri-nhan-su', title: 'Quản trị nhân sự' },
+  { slug: 'phat-trien-doi-ngu', title: 'Phát triển đội ngũ' },
+  { slug: 'phap-ly-tuan-thu', title: 'Pháp lý & tuân thủ' },
+  { slug: 'ky-nang-nghe-nghiep', title: 'Kỹ năng nghề nghiệp' },
+]
 
 const hubStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
   .knowledge-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-  .knowledge-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .knowledge-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-  .knowledge-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   .knowledge-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
-  .knowledge-articles-panel {
-    min-height: min(560px, 68vh);
-  }
-  @media (min-width: 1280px) {
-    .knowledge-articles-panel {
-      min-height: 620px;
-    }
-  }
-  @media (min-width: 1536px) {
-    .knowledge-articles-panel {
-      min-height: 680px;
-    }
-  }
-  .knowledge-recent-panel {
-    min-height: min(360px, 42vh);
-  }
-  @media (min-width: 1280px) {
-    .knowledge-recent-panel {
-      min-height: 420px;
-    }
-  }
-  @media (min-width: 1536px) {
-    .knowledge-recent-panel {
-      min-height: 480px;
-    }
-  }
   .business-homepage-shell { --hp-zoom: 1; }
-  @media (min-width: 1024px) and (max-width: 1279px) {
-    .business-homepage-shell { --hp-zoom: 0.9; }
-  }
   @media (min-width: 1280px) and (max-width: 1535px) {
-    .business-homepage-shell { --hp-zoom: 0.86; }
-  }
-  @media (min-width: 1024px) and (max-height: 760px) {
-    .business-homepage-shell { --hp-zoom: 0.78; }
-  }
-  @media (min-width: 1536px) and (min-height: 861px) {
-    .business-homepage-shell { --hp-zoom: 0.94; }
+    .business-homepage-shell { --hp-zoom: 0.92; }
   }
   .business-homepage-ui { zoom: var(--hp-zoom); }
   @supports not (zoom: 1) {
@@ -86,22 +41,6 @@ const hubStyles = `
   }
 `
 
-const recommendations = [
-  { id: 1, icon: Zap, title: 'Tài liệu nổi bật cho bạn', desc: 'Dựa trên lịch sử đọc và vai trò của bạn' },
-  { id: 2, icon: FileText, title: 'Mẫu JD chuẩn theo vị trí', desc: 'Tuyển dụng' },
-  { id: 3, icon: BookOpen, title: 'Khung năng lực nhân sự', desc: 'Quản trị nhân sự' },
-  { id: 4, icon: FileText, title: 'Template định giá ứng viên', desc: 'Tuyển dụng' },
-  { id: 5, icon: Users, title: 'Bộ câu hỏi phỏng vấn năng lực', desc: 'Kỹ năng nghề nghiệp' },
-]
-
-const templates = [
-  { id: 1, icon: FileText, label: 'Mẫu JD', name: 'Mẫu JD theo vị trí', desc: '23 mẫu', action: 'Xem ngay' },
-  { id: 2, icon: FileText, label: 'Mẫu Excel', name: 'Bảng đánh giá ứng viên', desc: 'Excel · 15 KB', action: 'Tải về' },
-  { id: 3, icon: FileText, label: 'Mẫu quy trình', name: 'Quy trình tuyển dụng chuẩn', desc: 'PDF · 2.4 MB', action: 'Xem ngay' },
-  { id: 4, icon: FileText, label: 'Mẫu slide', name: 'Bộ slide onboarding nhân viên mới', desc: 'PPTX · 5.6 MB', action: 'Tải về' },
-  { id: 5, icon: FileText, label: 'Mẫu văn bản', name: 'Hợp đồng lao động mẫu', desc: 'DOCX · 48 KB', action: 'Tải về' },
-]
-
 function formatPostDate(iso, lang) {
   if (!iso) return ''
   const d = new Date(iso)
@@ -109,18 +48,6 @@ function formatPostDate(iso, lang) {
   const locale = lang === 'ja' ? 'ja-JP' : lang === 'en' ? 'en-US' : 'vi-VN'
   try {
     return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
-  } catch {
-    return ''
-  }
-}
-
-function formatShortDate(iso, lang) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  const locale = lang === 'ja' ? 'ja-JP' : lang === 'en' ? 'en-US' : 'vi-VN'
-  try {
-    return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' })
   } catch {
     return ''
   }
@@ -142,21 +69,54 @@ function estimateReadMinutes(post, lang) {
   return Math.max(1, Math.round(text.split(/\s+/).length / 200))
 }
 
-function SectionHeader({ title, actionLabel, onAction }) {
+function SectionTitle({ children }) {
   return (
-    <div className="mb-2.5 flex items-center justify-between border-b border-slate-100 pb-2.5">
-      <h2 className="text-xs font-bold text-slate-900 sm:text-sm">{title}</h2>
-      {actionLabel ? (
-        <button
-          type="button"
-          onClick={onAction}
-          className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[#0077B6] transition-colors hover:text-[#006399] sm:text-[11px]"
-        >
-          {actionLabel}
-          <ChevronRight className="h-3 w-3" />
-        </button>
-      ) : null}
-    </div>
+    <h2 className="border-b border-slate-200/80 pb-2 text-sm font-bold tracking-tight text-slate-900 sm:text-base">
+      {children}
+    </h2>
+  )
+}
+
+function ArticleRow({ post, language, onOpen, className = '' }) {
+  const img = postImage(post)
+  const title = pickPublicPostTitle(post, language)
+  const excerpt = pickPublicPostExcerpt(post, language)
+  const category = pickPublicPostCategoryLabel(post, language, '')
+  const date = formatPostDate(post.publishedAt || post.createdAt, language)
+  const readMin = estimateReadMinutes(post, language)
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(post)}
+      className={`group flex w-full gap-3 border-b border-slate-100 py-3 text-left transition-colors last:border-b-0 hover:bg-slate-50/60 sm:gap-4 sm:py-4 ${className}`}
+    >
+      <div className="h-[72px] w-[108px] shrink-0 overflow-hidden rounded-md bg-slate-100 sm:h-[80px] sm:w-[120px]">
+        {img ? (
+          <img src={img} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]" />
+        ) : (
+          <div className="flex h-full items-center justify-center text-[9px] text-slate-400">KB</div>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        {category ? (
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-[#0077B6]">{category}</span>
+        ) : null}
+        <h3 className="mt-0.5 text-[13px] font-semibold leading-snug text-slate-900 group-hover:text-[#0077B6] sm:text-sm">
+          {title}
+        </h3>
+        {excerpt ? (
+          <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-slate-600 sm:text-xs">{excerpt}</p>
+        ) : null}
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-slate-400">
+          {date ? <span>{date}</span> : null}
+          <span className="inline-flex items-center gap-1">
+            <Clock className="h-3 w-3" aria-hidden />
+            {readMin} phút đọc
+          </span>
+        </div>
+      </div>
+    </button>
   )
 }
 
@@ -169,7 +129,7 @@ const KnowledgeHub = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [posts, setPosts] = useState([])
-  const [sidebarPosts, setSidebarPosts] = useState([])
+  const [popularPosts, setPopularPosts] = useState([])
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [loadingPosts, setLoadingPosts] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -181,75 +141,114 @@ const KnowledgeHub = () => {
 
   useEffect(() => {
     let cancelled = false
-    const loadCategories = async () => {
+    ;(async () => {
       try {
         setLoadingCategories(true)
         const res = await apiService.getBusinessKnowledgeCategories()
-        if (!cancelled) {
-          setCategories(res?.data?.categories || [])
-        }
+        if (!cancelled) setCategories(res?.data?.categories || [])
       } catch {
         if (!cancelled) setCategories([])
       } finally {
         if (!cancelled) setLoadingCategories(false)
       }
-    }
-    loadCategories()
+    })()
     return () => { cancelled = true }
   }, [])
 
+  const isBrowseAll = !searchQuery && !selectedCategoryId
+
   useEffect(() => {
     let cancelled = false
-    const loadPosts = async () => {
+    ;(async () => {
       try {
         setLoadingPosts(true)
         setLoadError('')
-        const params = { page: 1, limit: 20, sortBy: 'published_at', sortOrder: 'DESC' }
-        if (selectedCategoryId) params.categoryId = selectedCategoryId
-        if (searchQuery) params.search = searchQuery
+        const listParams = { page: 1, limit: isBrowseAll ? 48 : 24, sortBy: 'published_at', sortOrder: 'DESC' }
+        if (selectedCategoryId) listParams.categoryId = selectedCategoryId
+        if (searchQuery) listParams.search = searchQuery
 
-        const [listRes, sidebarRes] = await Promise.all([
-          apiService.getBusinessKnowledgePosts(params),
-          apiService.getBusinessKnowledgePosts({ page: 1, limit: 12, sortBy: 'published_at', sortOrder: 'DESC' }),
-        ])
+        const requests = [apiService.getBusinessKnowledgePosts(listParams)]
+        if (isBrowseAll) {
+          requests.push(apiService.getBusinessKnowledgePosts({
+            page: 1,
+            limit: 12,
+            sortBy: 'viewCount',
+            sortOrder: 'DESC',
+          }))
+        }
 
+        const [listRes, popRes] = await Promise.all(requests)
         if (!cancelled) {
           setPosts(listRes?.data?.posts || [])
-          setSidebarPosts(sidebarRes?.data?.posts || [])
+          setPopularPosts(isBrowseAll ? (popRes?.data?.posts || []) : [])
         }
       } catch (err) {
         if (!cancelled) {
           setPosts([])
-          setSidebarPosts([])
-          setLoadError(err?.message || 'Không tải được danh sách bài viết.')
+          setPopularPosts([])
+          setLoadError(err?.message || copy.loadPostsError)
         }
       } finally {
         if (!cancelled) setLoadingPosts(false)
       }
-    }
-    loadPosts()
+    })()
     return () => { cancelled = true }
-  }, [selectedCategoryId, searchQuery])
+  }, [selectedCategoryId, searchQuery, isBrowseAll, copy.loadPostsError])
 
-  const showFeatured = !searchQuery && posts.length > 0
-  const featuredPost = showFeatured ? posts[0] : null
-  const listPosts = showFeatured ? posts.slice(1) : posts
+  const categoriesWithPosts = useMemo(
+    () => categories.filter((c) => (c.postCount ?? 0) > 0),
+    [categories],
+  )
 
-  const apiRecommendations = useMemo(() => {
-    return sidebarPosts.slice(0, 4).map((post) => ({
-      id: post.id,
-      icon: CATEGORY_ICONS[post.category?.slug] || FileText,
-      title: pickPublicPostTitle(post, language),
-      desc: pickPublicPostCategoryLabel(post, language, ''),
-      slug: post.slug || post.id,
-    }))
-  }, [sidebarPosts, language])
-
-  const openPost = (post) => {
+  const openPost = useCallback((post) => {
     const key = post?.slug || post?.id
     if (!key) return
     navigate(`/business/knowledge/${encodeURIComponent(key)}`)
-  }
+  }, [navigate])
+
+  const hubSections = useMemo(() => {
+    if (!isBrowseAll || !posts.length) return null
+
+    const used = new Set()
+
+    const hero = [...posts].sort((a, b) => (b.viewCount ?? 0) - (a.viewCount ?? 0))[0] || posts[0]
+    if (hero) used.add(String(hero.id))
+
+    const pickUnused = (list, limit) => {
+      const out = []
+      for (const p of list) {
+        const id = String(p.id)
+        if (used.has(id)) continue
+        out.push(p)
+        used.add(id)
+        if (out.length >= limit) break
+      }
+      return out
+    }
+
+    const featured = pickUnused(
+      [...posts].sort((a, b) => (b.viewCount ?? 0) - (a.viewCount ?? 0)),
+      5,
+    )
+
+    const latest = pickUnused(posts, 6)
+
+    const byCategorySlug = {}
+    for (const { slug, title } of CATEGORY_SECTIONS) {
+      const cat = categories.find((c) => c.slug === slug)
+      if (!cat || (cat.postCount ?? 0) === 0) continue
+      const inCat = posts.filter((p) => String(p.category?.id || p.categoryId) === String(cat.id))
+      const items = pickUnused(inCat, 4)
+      if (items.length) byCategorySlug[slug] = { title, items }
+    }
+
+    return { hero, featured, latest, byCategorySlug, usedIds: used }
+  }, [isBrowseAll, posts, categories])
+
+  const sidebarPopular = useMemo(() => {
+    const used = hubSections?.usedIds || new Set()
+    return popularPosts.filter((p) => !used.has(String(p.id))).slice(0, 6)
+  }, [popularPosts, hubSections])
 
   const resetFilters = () => {
     setSelectedCategoryId(null)
@@ -260,329 +259,214 @@ const KnowledgeHub = () => {
     <>
       <style>{hubStyles}</style>
       <div
-        className="business-homepage-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#f4f6f8]"
+        className="business-homepage-shell flex h-full min-h-0 flex-col overflow-hidden bg-white"
         style={{ fontFamily: PAGE_FONT }}
       >
         <div className="business-homepage-ui flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="shrink-0 space-y-2 px-3 pt-3 pb-1 sm:px-4 sm:pt-3 sm:pb-1">
-            <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
-              <button
-                type="button"
-                onClick={() => navigate('/business')}
-                className="transition hover:text-[#0077B6]"
-              >
+          <header className="shrink-0 border-b border-slate-200/80 bg-white px-3 py-3 sm:px-5">
+            <nav aria-label="Breadcrumb" className="mb-2 text-[11px] text-slate-500">
+              <button type="button" onClick={() => navigate('/business')} className="transition hover:text-[#0077B6]">
                 {copy.breadcrumb.home}
               </button>
-              <span className="mx-1.5 text-slate-400">&gt;</span>
-              <span className="font-medium text-slate-700">{copy.breadcrumb.current}</span>
+              <span className="mx-1.5 text-slate-300">/</span>
+              <span className="font-medium text-slate-800">{copy.breadcrumb.current}</span>
             </nav>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 focus-within:border-[#0077B6]/40 focus-within:ring-2 focus-within:ring-[#0077B6]/15">
-                <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 focus-within:border-[#0077B6]/35 focus-within:bg-white focus-within:ring-2 focus-within:ring-[#0077B6]/10">
+                <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
                 <input
-                  type="text"
+                  type="search"
                   placeholder={copy.searchPlaceholder}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="min-w-0 flex-1 border-none bg-transparent text-[11px] text-slate-800 outline-none placeholder:text-slate-400 sm:text-xs"
+                  className="min-w-0 flex-1 border-none bg-transparent text-xs text-slate-800 outline-none placeholder:text-slate-400 sm:text-sm"
                 />
               </div>
+            </div>
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
               <button
                 type="button"
                 onClick={resetFilters}
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[10px] font-semibold text-slate-600 transition-colors hover:border-[#cce5f0] hover:bg-[#e8f4fa]/50 sm:text-[11px]"
+                className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold transition-colors sm:text-xs ${
+                  !selectedCategoryId
+                    ? 'bg-[#0077B6] text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+                }`}
               >
-                <Filter className="h-3 w-3" />
-                {copy.allTopics}
+                Tất cả
               </button>
+              {loadingCategories ? (
+                <span className="inline-flex items-center gap-1 py-1 text-[11px] text-slate-400">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                </span>
+              ) : categoriesWithPosts.map((cat) => {
+                const active = selectedCategoryId === cat.id
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategoryId(active ? null : cat.id)}
+                    className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold transition-colors sm:text-xs ${
+                      active
+                        ? 'bg-[#0077B6] text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                )
+              })}
             </div>
-          </div>
+          </header>
 
-          <div className="knowledge-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            <div className="flex w-full min-h-0 flex-col gap-3 px-3 pb-3 pt-1 sm:px-4 sm:pb-4 sm:pt-1.5">
-              <div className="grid shrink-0 grid-cols-3 gap-2 sm:grid-cols-6 sm:gap-2.5">
-                {loadingCategories ? (
-                  <div className="col-span-full flex items-center gap-2 py-2 text-[11px] text-slate-500">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Đang tải danh mục...
-                  </div>
-                ) : categories.map((cat) => {
-                  const Icon = CATEGORY_ICONS[cat.slug] || FileText
-                  const active = selectedCategoryId === cat.id
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => setSelectedCategoryId(active ? null : cat.id)}
-                      className={`flex min-w-0 flex-col items-center gap-1 rounded-xl border px-1.5 py-2.5 transition-colors sm:px-2 sm:py-3 ${
-                        active
-                          ? 'border-[#0077B6] bg-[#e8f4fa] shadow-sm shadow-[#0077B6]/10'
-                          : 'border-slate-200/90 bg-white hover:border-[#cce5f0] hover:bg-slate-50/80'
-                      }`}
-                    >
-                      <Icon
-                        className="h-4 w-4 sm:h-[18px] sm:w-[18px]"
-                        style={{ color: active ? BRAND : '#64748b' }}
-                      />
-                      <span className="text-center text-[9px] font-semibold leading-tight text-slate-800 sm:text-[10px]">
-                        {cat.name}
-                      </span>
-                      <span className="text-[8px] font-medium text-slate-500 sm:text-[9px]">
-                        {cat.postCount ?? 0} bài
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-
-              <div className="grid w-full min-h-0 grid-cols-1 items-start gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] xl:items-stretch xl:gap-4">
-              <div className="flex min-w-0 flex-col gap-3 xl:min-h-full">
-                <div className="knowledge-articles-panel flex flex-1 flex-col gap-3">
+          <div className="knowledge-scrollbar min-h-0 flex-1 overflow-y-auto bg-[#fafbfc]">
+            <div className="flex w-full min-w-0 gap-6 px-3 py-4 sm:px-5 lg:gap-8 lg:py-5">
+              <div className="min-w-0 flex-1">
                 {loadingPosts ? (
-                  <div className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200/90 bg-white text-[11px] text-slate-500">
+                  <div className="flex items-center justify-center gap-2 py-20 text-sm text-slate-500">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Đang tải bài viết...
                   </div>
                 ) : loadError ? (
-                  <div className="flex flex-1 items-center justify-center rounded-xl border border-red-100 bg-white p-4 text-center text-[11px] text-red-600">
-                    {loadError}
-                  </div>
+                  <p className="py-12 text-center text-sm text-red-600">{loadError}</p>
                 ) : posts.length === 0 ? (
-                  <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-slate-200/90 bg-white px-5 py-12 text-center sm:py-16">
-                    <img
-                      src={nothingIllustration}
-                      alt=""
-                      className="mb-4 w-full max-w-[220px] object-contain"
-                      draggable={false}
-                    />
-                    <p className="max-w-lg text-xs font-medium leading-relaxed text-slate-700 sm:text-sm">
-                      Chưa có bài viết phù hợp. 
-                    </p>
+                  <div className="flex flex-col items-center py-16 text-center">
+                    <img src={nothingIllustration} alt="" className="mb-4 max-w-[200px]" draggable={false} />
+                    <p className="text-sm text-slate-600">{copy.noPosts}</p>
                   </div>
                 ) : null}
 
-                {featuredPost ? (
-                  <article className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
-                    <button type="button" onClick={() => openPost(featuredPost)} className="grid w-full grid-cols-1 text-left sm:grid-cols-[minmax(0,280px)_1fr]">
-                      <div className="relative aspect-[16/10] sm:aspect-auto sm:min-h-[160px]">
-                        {postImage(featuredPost) ? (
-                          <img src={postImage(featuredPost)} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <div className="flex h-full min-h-[160px] items-center justify-center bg-slate-100 text-[10px] text-slate-400">
-                            Knowledge Hub
-                          </div>
-                        )}
-                        <span
-                          className="absolute left-2 top-2 rounded-md px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white sm:text-[9px]"
-                          style={{ background: BRAND }}
-                        >
-                          Nổi bật
-                        </span>
-                      </div>
-                      <div className="flex flex-col justify-between gap-3 p-3 sm:p-4">
-                        <div>
-                          <span className="inline-flex rounded-full bg-[#e8f4fa] px-2 py-0.5 text-[9px] font-semibold text-[#0077B6]">
-                            {pickPublicPostCategoryLabel(featuredPost, language, 'Bài viết')}
-                          </span>
-                          <h3 className="mt-2 text-xs font-bold leading-snug text-slate-900 sm:text-sm">
-                            {pickPublicPostTitle(featuredPost, language)}
-                          </h3>
-                          <p className="mt-1.5 text-[10px] leading-relaxed text-slate-600 sm:text-[11px]">
-                            {pickPublicPostExcerpt(featuredPost, language)}
-                          </p>
+                {isBrowseAll && hubSections?.hero ? (
+                  <button
+                    type="button"
+                    onClick={() => openPost(hubSections.hero)}
+                    className="group mb-8 block w-full overflow-hidden rounded-xl bg-white text-left shadow-sm ring-1 ring-slate-200/80"
+                  >
+                    <div className="relative aspect-[21/9] max-h-[280px] w-full overflow-hidden bg-slate-100 sm:max-h-[320px]">
+                      {postImage(hubSections.hero) ? (
+                        <img
+                          src={postImage(hubSections.hero)}
+                          alt=""
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                        />
+                      ) : (
+                        <div className="flex h-full min-h-[160px] items-center justify-center text-xs text-slate-400">
+                          Knowledge Hub
                         </div>
-                        <div className="flex flex-wrap items-center gap-3 text-[9px] text-slate-400 sm:text-[10px]">
-                          <span>{formatPostDate(featuredPost.publishedAt || featuredPost.createdAt, language)}</span>
+                      )}
+                      <span className="absolute left-3 top-3 rounded-md bg-[#0077B6] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                        {copy.featured}
+                      </span>
+                    </div>
+                    <div className="space-y-2 px-4 py-4 sm:px-5 sm:py-5">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-[#0077B6]">
+                        {pickPublicPostCategoryLabel(hubSections.hero, language, 'Bài viết')}
+                      </span>
+                      <h2 className="text-lg font-bold leading-snug text-slate-900 sm:text-xl lg:text-2xl">
+                        {pickPublicPostTitle(hubSections.hero, language)}
+                      </h2>
+                      <p className="line-clamp-2 text-sm leading-relaxed text-slate-600">
+                        {pickPublicPostExcerpt(hubSections.hero, language)}
+                      </p>
+                      <div className="flex flex-wrap gap-3 text-[11px] text-slate-400">
+                        <span>{formatPostDate(hubSections.hero.publishedAt || hubSections.hero.createdAt, language)}</span>
+                        <span>{estimateReadMinutes(hubSections.hero, language)} phút đọc</span>
+                        {(hubSections.hero.viewCount ?? 0) > 0 ? (
                           <span className="inline-flex items-center gap-1">
                             <Eye className="h-3 w-3" />
-                            {estimateReadMinutes(featuredPost, language)} phút đọc
+                            {hubSections.hero.viewCount} lượt xem
                           </span>
-                          <span className="inline-flex items-center gap-1">
-                            <Share2 className="h-3 w-3" />
-                            {featuredPost.viewCount ?? 0} lượt xem
-                          </span>
-                        </div>
+                        ) : null}
                       </div>
-                    </button>
-                  </article>
+                    </div>
+                  </button>
                 ) : null}
 
-                {listPosts.length > 0 ? (
-                  <section className="flex min-h-0 flex-1 flex-col rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
-                    <SectionHeader title="Bài viết nổi bật" actionLabel="Xem tất cả" onAction={resetFilters} />
-                    <ul className="knowledge-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-0.5">
-                      {listPosts.map((post) => (
-                        <li key={post.id}>
-                          <button
-                            type="button"
-                            onClick={() => openPost(post)}
-                            className="grid w-full grid-cols-[88px_1fr] gap-2.5 rounded-lg border border-slate-100 bg-slate-50/40 p-2 text-left transition-colors hover:border-[#cce5f0] hover:bg-[#e8f4fa]/30 sm:grid-cols-[100px_1fr] sm:gap-3 sm:p-2.5"
-                          >
-                            <div className="overflow-hidden rounded-md">
-                              {postImage(post) ? (
-                                <img src={postImage(post)} alt="" className="h-[70px] w-full object-cover" />
-                              ) : (
-                                <div className="flex h-[70px] items-center justify-center bg-slate-100 text-[8px] text-slate-400">
-                                  KB
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex min-w-0 flex-col justify-between gap-1">
-                              <div>
-                                <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                                  <span className="rounded-full bg-[#e8f4fa] px-1.5 py-0.5 text-[8px] font-semibold text-[#0077B6] sm:text-[9px]">
-                                    {pickPublicPostCategoryLabel(post, language, 'Bài viết')}
-                                  </span>
-                                  <span className="text-[8px] text-slate-400 sm:text-[9px]">
-                                    {formatPostDate(post.publishedAt || post.createdAt, language)}
-                                  </span>
-                                </div>
-                                <h4 className="text-[10px] font-semibold leading-snug text-slate-800 sm:text-[11px]">
-                                  {pickPublicPostTitle(post, language)}
-                                </h4>
-                              </div>
-                              <div className="flex gap-3 text-[8px] text-slate-400 sm:text-[9px]">
-                                <span className="inline-flex items-center gap-0.5">
-                                  <Eye className="h-2.5 w-2.5" />
-                                  {estimateReadMinutes(post, language)} phút
-                                </span>
-                                <span className="inline-flex items-center gap-0.5">
-                                  <Share2 className="h-2.5 w-2.5" />
-                                  {post.viewCount ?? 0} lượt xem
-                                </span>
-                              </div>
-                            </div>
-                          </button>
-                        </li>
+                {!isBrowseAll && posts.length > 0 ? (
+                  <section className="mb-6">
+                    <SectionTitle>
+                      {searchQuery ? 'Kết quả tìm kiếm' : categories.find((c) => c.id === selectedCategoryId)?.name || 'Bài viết'}
+                    </SectionTitle>
+                    <div className="mt-1 rounded-lg bg-white px-3 sm:px-4">
+                      {posts.map((post) => (
+                        <ArticleRow key={post.id} post={post} language={language} onOpen={openPost} />
                       ))}
-                    </ul>
+                    </div>
                   </section>
                 ) : null}
-                </div>
 
-                <section className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
-                  <SectionHeader title="Tài liệu & mẫu biểu hữu ích" actionLabel="Xem tất cả mẫu" />
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 sm:gap-2.5">
-                    {templates.map((tpl) => {
-                      const TplIcon = tpl.icon
-                      return (
-                        <div
-                          key={tpl.id}
-                          className="flex flex-col rounded-lg border border-slate-100 bg-slate-50/50 p-2.5 sm:p-3"
-                        >
-                          <TplIcon className="mb-2 h-4 w-4 text-[#0077B6]" />
-                          <span className="text-[8px] font-semibold uppercase tracking-wide text-slate-400">{tpl.label}</span>
-                          <p className="mt-0.5 flex-1 text-[10px] font-semibold leading-snug text-slate-800 sm:text-[11px]">{tpl.name}</p>
-                          <p className="mt-1 text-[8px] text-slate-500 sm:text-[9px]">{tpl.desc}</p>
-                          <button
-                            type="button"
-                            className="mt-2 w-full rounded-md border border-slate-200 bg-white py-1.5 text-[9px] font-semibold text-[#0077B6] transition-colors hover:border-[#0077B6]/30 hover:bg-[#e8f4fa]/60 sm:text-[10px]"
-                          >
-                            {tpl.action}
-                          </button>
+                {isBrowseAll && hubSections ? (
+                  <div className="space-y-10">
+                    {hubSections.featured.length > 0 ? (
+                      <section>
+                        <SectionTitle>Bài viết nổi bật</SectionTitle>
+                        <div className="mt-2 rounded-lg bg-white px-3 sm:px-4">
+                          {hubSections.featured.map((post) => (
+                            <ArticleRow key={post.id} post={post} language={language} onOpen={openPost} />
+                          ))}
                         </div>
-                      )
-                    })}
+                      </section>
+                    ) : null}
+
+                    {hubSections.latest.length > 0 ? (
+                      <section>
+                        <SectionTitle>Mới cập nhật</SectionTitle>
+                        <div className="mt-2 rounded-lg bg-white px-3 sm:px-4">
+                          {hubSections.latest.map((post) => (
+                            <ArticleRow key={post.id} post={post} language={language} onOpen={openPost} />
+                          ))}
+                        </div>
+                      </section>
+                    ) : null}
+
+                    {Object.entries(hubSections.byCategorySlug).map(([slug, { title, items }]) => (
+                      <section key={slug}>
+                        <SectionTitle>{title}</SectionTitle>
+                        <div className="mt-2 rounded-lg bg-white px-3 sm:px-4">
+                          {items.map((post) => (
+                            <ArticleRow key={post.id} post={post} language={language} onOpen={openPost} />
+                          ))}
+                        </div>
+                      </section>
+                    ))}
                   </div>
-                </section>
+                ) : null}
               </div>
 
-              <aside className="flex min-w-0 flex-col gap-3 xl:min-h-full">
-                <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
-                  <div className="mb-2.5 flex items-center gap-1.5 border-b border-slate-100 pb-2.5">
-                    <Zap className="h-3.5 w-3.5 text-amber-500" />
-                    <h3 className="text-[11px] font-bold text-slate-900 sm:text-xs">Gợi ý cho bạn</h3>
-                  </div>
-                  <ul className="flex flex-col gap-1.5">
-                    {apiRecommendations.length > 0
-                      ? apiRecommendations.map((rec) => {
-                        const RecIcon = rec.icon
-                        return (
-                          <li key={rec.id}>
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/business/knowledge/${encodeURIComponent(rec.slug)}`)}
-                              className="flex w-full gap-2 rounded-lg border border-slate-100 bg-slate-50/60 p-2 text-left transition-colors hover:border-[#cce5f0] hover:bg-[#e8f4fa]/40"
-                            >
-                              <RecIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0077B6]" />
-                              <span className="min-w-0">
-                                <span className="block text-[10px] font-semibold text-slate-800 sm:text-[11px]">{rec.title}</span>
-                                <span className="block text-[9px] text-slate-500">{rec.desc}</span>
-                              </span>
-                            </button>
-                          </li>
-                        )
-                      })
-                      : recommendations.map((rec) => {
-                        const RecIcon = rec.icon
-                        return (
-                          <li key={rec.id}>
-                            <div className="flex w-full gap-2 rounded-lg border border-slate-100 bg-slate-50/60 p-2 text-left opacity-70">
-                              <RecIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0077B6]" />
-                              <span className="min-w-0">
-                                <span className="block text-[10px] font-semibold text-slate-800 sm:text-[11px]">{rec.title}</span>
-                                <span className="block text-[9px] text-slate-500">{rec.desc}</span>
-                              </span>
-                            </div>
-                          </li>
-                        )
-                      })}
-                  </ul>
-                </div>
-
-                <div className="knowledge-recent-panel flex min-h-0 flex-1 flex-col rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
-                  <h3 className="mb-2.5 flex shrink-0 items-center gap-1.5 border-b border-slate-100 pb-2.5 text-[11px] font-bold text-slate-900 sm:text-xs">
-                    <Clock className="h-3.5 w-3.5 text-slate-500" />
-                    Bài viết mới cập nhật
-                  </h3>
-                  <ul className="knowledge-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-0.5">
-                    {sidebarPosts.length > 0
-                      ? sidebarPosts.map((post) => (
+              {isBrowseAll ? (
+                <aside className="hidden w-[260px] shrink-0 lg:block xl:w-[280px]">
+                  <div className="sticky top-4 rounded-lg border border-slate-200/80 bg-white p-4">
+                    <h3 className="border-b border-slate-100 pb-2 text-xs font-bold text-slate-900">
+                      Đọc nhiều
+                    </h3>
+                    <ul className="mt-2 divide-y divide-slate-100">
+                      {sidebarPopular.length > 0 ? sidebarPopular.map((post, idx) => (
                         <li key={post.id}>
                           <button
                             type="button"
                             onClick={() => openPost(post)}
-                            className="flex w-full items-start justify-between gap-2 text-left"
+                            className="flex w-full gap-2 py-2.5 text-left hover:text-[#0077B6]"
                           >
-                            <div className="min-w-0">
-                              <p className="text-[9px] text-slate-400">
-                                {formatShortDate(post.publishedAt || post.createdAt, language)}
-                              </p>
-                              <p className="text-[10px] font-medium leading-snug text-slate-800 sm:text-[11px]">
+                            <span className="mt-0.5 w-5 shrink-0 text-sm font-bold tabular-nums text-slate-300">
+                              {idx + 1}
+                            </span>
+                            <span className="min-w-0">
+                              <span className="line-clamp-2 text-[12px] font-medium leading-snug text-slate-800">
                                 {pickPublicPostTitle(post, language)}
-                              </p>
-                            </div>
-                            <span className="shrink-0 rounded bg-[#e8f4fa] px-1.5 py-0.5 text-[7px] font-bold text-[#0077B6] sm:text-[8px]">
-                              BÀI
+                              </span>
+                              <span className="mt-0.5 block text-[10px] text-slate-400">
+                                {pickPublicPostCategoryLabel(post, language, '')}
+                              </span>
                             </span>
                           </button>
                         </li>
-                      ))
-                      : (
-                        <li className="text-[10px] text-slate-500">Chưa có bài viết mới.</li>
+                      )) : (
+                        <li className="py-4 text-[11px] text-slate-400">Chưa có dữ liệu.</li>
                       )}
-                  </ul>
-                </div>
-
-                <div
-                  className="rounded-xl border p-3 text-center sm:p-4"
-                  style={{ borderColor: BRAND_BORDER, background: `${BRAND_LIGHT}99` }}
-                >
-                  <MessageSquare className="mx-auto mb-2 h-6 w-6 text-[#0077B6]" />
-                  <h3 className="text-[11px] font-bold text-slate-900 sm:text-xs">Góp ý & yêu cầu tài liệu</h3>
-                  <p className="mt-1 text-[9px] leading-relaxed text-slate-600 sm:text-[10px]">
-                    Bạn cần tài liệu nào? Gửi góp ý để chúng tôi bổ sung nội dung phù hợp.
-                  </p>
-                  <button
-                    type="button"
-                    className="mt-3 w-full rounded-lg py-2 text-[10px] font-semibold text-white shadow-sm transition-colors hover:bg-[#006399] sm:text-[11px]"
-                    style={{ background: BRAND, boxShadow: '0 1px 2px rgba(0,119,182,0.2)' }}
-                  >
-                    Gửi góp ý
-                  </button>
-                </div>
-              </aside>
-              </div>
+                    </ul>
+                  </div>
+                </aside>
+              ) : null}
             </div>
           </div>
         </div>

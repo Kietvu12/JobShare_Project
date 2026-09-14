@@ -34,8 +34,13 @@ async function fetchMatchV3CvsScoresBatched(apiService, fetchScores, jobId, cvId
   const topKDefault = resolveMatchTopK(options.top_k, ids.length);
 
   if (!ids.length) {
-    const raw = await fetchScores(jobId, { top_k: topKDefault, lang });
-    return parseAiMatchResponse(raw);
+    try {
+      const raw = await fetchScores(jobId, { top_k: topKDefault, lang });
+      return parseAiMatchResponse(raw);
+    } catch (err) {
+      console.warn('[AI match] scores request failed:', err?.message || err);
+      return [];
+    }
   }
 
   const chunks = chunkCvIds(ids);
@@ -44,17 +49,21 @@ async function fetchMatchV3CvsScoresBatched(apiService, fetchScores, jobId, cvId
   const seen = new Set();
 
   await Promise.all(chunks.map(async (chunk) => {
-    const raw = await fetchScores(jobId, {
-      top_k: resolveMatchTopK(options.top_k, chunk.length),
-      cv_ids: chunk,
-      lang,
-    });
-    parseAiMatchResponse(raw).forEach((row) => {
-      const id = String(row.id ?? row.cv_id);
-      if (!idSet.has(id) || seen.has(id)) return;
-      seen.add(id);
-      merged.push(row);
-    });
+    try {
+      const raw = await fetchScores(jobId, {
+        top_k: resolveMatchTopK(options.top_k, chunk.length),
+        cv_ids: chunk,
+        lang,
+      });
+      parseAiMatchResponse(raw).forEach((row) => {
+        const id = String(row.id ?? row.cv_id);
+        if (!idSet.has(id) || seen.has(id)) return;
+        seen.add(id);
+        merged.push(row);
+      });
+    } catch (err) {
+      console.warn('[AI match] scores chunk failed:', err?.message || err);
+    }
   }));
 
   return merged;

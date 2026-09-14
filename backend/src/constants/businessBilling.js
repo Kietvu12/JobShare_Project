@@ -65,13 +65,30 @@ export const BILLING_INVOICE_STATUS = {
   CANCELLED: 'cancelled',
 };
 
+/** Tab lọc tab Thanh toán (yêu cầu WS, chưa hoàn tất) */
+export const BILLING_PAYMENT_LIST_TABS = {
+  ALL: 'all',
+  UNPAID: 'unpaid',
+  PROCESSING: 'processing',
+  OVERDUE: 'overdue',
+};
+
 export const PAYMENT_STATUS_STYLES = {
-  unpaid: { label: 'Chưa thanh toán', statusBg: '#fee2e2', statusColor: '#dc2626', tab: 'unpaid' },
-  processing: { label: 'Đang xử lý', statusBg: '#ffedd5', statusColor: '#ea580c', tab: 'processing' },
+  unpaid: { label: 'Chờ thanh toán', statusBg: '#fee2e2', statusColor: '#dc2626', tab: 'unpaid' },
+  overdue: { label: 'Quá hạn', statusBg: '#fecaca', statusColor: '#b91c1c', tab: 'overdue' },
+  processing: { label: 'Đang xác nhận', statusBg: '#ffedd5', statusColor: '#ea580c', tab: 'processing' },
   paid: { label: 'Đã thanh toán', statusBg: '#dcfce7', statusColor: '#16a34a', tab: 'paid' },
   draft: { label: 'Draft', statusBg: '#f1f5f9', statusColor: '#64748b', tab: 'draft' },
   cancelled: { label: 'Đã hủy', statusBg: '#f1f5f9', statusColor: '#64748b', tab: 'closed' },
 };
+
+/** 4 bước quy trình thanh toán (tách khỏi trạng thái order/dịch vụ) */
+export const PAYMENT_PIPELINE_STEP_KEYS = [
+  'ws_created',
+  'business_review',
+  'business_paid',
+  'ws_confirmed',
+];
 
 export const BILLING_STATUS_STYLES = {
   processing: { label: 'Đang xử lý', statusBg: '#ffedd5', statusColor: '#ea580c', category: 'processing' },

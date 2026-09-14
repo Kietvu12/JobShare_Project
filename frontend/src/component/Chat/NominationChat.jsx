@@ -14,6 +14,7 @@ import {
   getNominationIntroDisplayContent,
   isNominationIntroMessage,
 } from '../../utils/nominationIntroMessage.js';
+import { textMayContainPhoneNumber } from '../../utils/chatPhoneDetect.js';
 
 /** Đồng bộ logic folder với NominationDetailContent (cvPath → snapshot gốc / template) */
 function parseNominationCvPath(cvPath) {
@@ -125,6 +126,27 @@ const BUBBLE_RIGHT_BORDER = '#0084ff';
 const BUBBLE_SYSTEM_BG = '#ffedd5';
 const BUBBLE_SYSTEM_BORDER = '#ea580c';
 
+function isInterviewReminderContent(text) {
+  const s = String(text || '').trim();
+  return /^📅\s*(Nhắc phỏng vấn|Interview reminder|面接リマインダー)/i.test(s);
+}
+
+function EmbeddedChatEvent({ icon: Icon, children, createdAt, formatDate }) {
+  return (
+    <div className="flex w-full justify-center py-0.5">
+      <div className="w-full max-w-[min(100%,300px)] rounded-lg border border-slate-200/90 bg-slate-50 px-2.5 py-2">
+        <div className="flex items-start gap-1.5 text-[11px] leading-snug text-slate-700">
+          {Icon ? <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0077B6]" aria-hidden /> : null}
+          <div className="min-w-0 flex-1 whitespace-pre-wrap text-left">{children}</div>
+        </div>
+        {createdAt && formatDate ? (
+          <p className="mt-1 text-right text-[10px] text-slate-400">{formatDate(createdAt)}</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 const NominationChat = ({
   jobApplicationId,
   userType = 'admin',
@@ -148,6 +170,8 @@ const NominationChat = ({
   embeddedPanel = false,
   /** Doanh nghiệp: không đổi trạng thái tự do — dùng CTA theo bước trên màn quản lý ứng viên */
   disableBusinessFreeStatusChange = false,
+  /** default | subtle | hidden — thanh SĐT WS */
+  contactBarVariant,
 }) => {
   const { language } = useLanguage();
   const t = translations[language] || translations.vi;
@@ -925,6 +949,18 @@ const NominationChat = ({
     [messages, language]
   );
 
+  const resolvedContactBarVariant = contactBarVariant ?? (userType === 'business' ? 'subtle' : 'default');
+
+  const showPhoneNotice = useMemo(() => {
+    if (!['business', 'collaborator', 'applicant'].includes(userType)) return false;
+    if (textMayContainPhoneNumber(newMessage)) return true;
+    return visibleMessages.some((m) => {
+      const c = m.content;
+      if (!c || c === '[Attachment]') return false;
+      return textMayContainPhoneNumber(String(c).replace(/<[^>]*>/g, ' '));
+    });
+  }, [userType, newMessage, visibleMessages]);
+
   const formatDate = (dateString) => {
     if (!dateString) return '';
     try {
@@ -966,6 +1002,10 @@ const NominationChat = ({
 
   const statusLabel = getJobApplicationStatusLabelByLanguage(statusFormStatus, language);
 
+  const embeddedBusiness = embeddedPanel && userType === 'business';
+  const bubbleRightBg = embeddedBusiness ? '#0077B6' : BUBBLE_RIGHT_BG;
+  const bubbleRightBorder = embeddedBusiness ? '#0077B6' : BUBBLE_RIGHT_BORDER;
+
   return (
     <div
       className={`flex h-full min-h-0 flex-col overflow-hidden ${
@@ -975,6 +1015,14 @@ const NominationChat = ({
       }`}
       style={{ backgroundColor: 'white', borderColor: embeddedPanel ? 'transparent' : CARD_BORDER }}
     >
+      {embeddedPanel ? (
+        <div className="shrink-0 border-b border-slate-100 bg-white px-3 py-2">
+          <p className="truncate text-xs font-semibold text-slate-900">{mobileHeaderName || t.chatTitle}</p>
+          {introJobTitle && introJobTitle !== '—' ? (
+            <p className="truncate text-[10px] text-slate-500">{introJobTitle}</p>
+          ) : null}
+        </div>
+      ) : null}
       {/* Header */}
       {!embeddedPanel && (
       <div className="border-b px-3 py-2 sm:p-4" style={{ borderColor: CARD_BORDER, backgroundColor: CARD_HEADER_BG }}>
@@ -1051,7 +1099,7 @@ const NominationChat = ({
       )}
 
       {!chatWithApplicant && userType !== 'applicant' ? (
-        <NominationChatContactBar responsibleContact={responsibleContact} />
+        <NominationChatContactBar responsibleContact={responsibleContact} variant={resolvedContactBarVariant} />
       ) : null}
 
       {/* Yêu cầu thanh toán (CTV — sau khi đã vào công ty) */}
@@ -1330,7 +1378,9 @@ const NominationChat = ({
           <div
             ref={messagesContainerRef}
             onScroll={handleMessagesScroll}
-            className={`relative z-[1] min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3 ${embeddedPanel ? '' : 'min-h-[220px] sm:min-h-[200px]'}`}
+            className={`relative z-[1] min-h-0 flex-1 overflow-y-auto overscroll-contain p-2.5 sm:p-3 ${
+              embeddedPanel ? 'space-y-2 bg-slate-50/40' : 'space-y-3 min-h-[220px] sm:min-h-[200px]'
+            }`}
           >
             {loading ? (
               <div className="flex items-center justify-center min-h-[160px]">
@@ -1339,9 +1389,11 @@ const NominationChat = ({
             ) : (
               <>
                 {visibleMessages.length === 0 && (
-                  <div className="text-center text-xs py-6 rounded-lg border border-dashed" style={{ color: '#64748b', backgroundColor: 'rgba(255,255,255,0.65)', borderColor: '#94a3b8' }}>
-                    {t.chatNoMessages}
-                  </div>
+                  <p className="py-10 text-center text-sm text-slate-500">
+                    {userType === 'business' && embeddedPanel
+                      ? 'Chưa có tin nhắn. Bắt đầu trao đổi về ứng viên này.'
+                      : t.chatNoMessages}
+                  </p>
                 )}
                 {visibleMessages.map((message) => {
                   const statusParsed = parseStatusMessageContent(message.content);
@@ -1382,10 +1434,19 @@ const NominationChat = ({
                   const showSenderForAdmin = userType === 'admin';
                   const showSenderForCTV = userType === 'ctv';
                   if (message.senderType === 3 && statusParsed.isStatusChange) {
+                    const statusVariant = embeddedBusiness
+                      ? 'compact'
+                      : (userType === 'admin' ? 'adminSide' : userType === 'business' ? 'adminSide' : 'ctvSide');
                     return (
                       <div
                         key={message.id}
-                        className={`flex w-full ${userType === 'admin' || userType === 'business' ? 'justify-end' : 'justify-start'}`}
+                        className={`flex w-full ${
+                          embeddedBusiness || userType === 'ctv'
+                            ? 'justify-center'
+                            : userType === 'admin' || userType === 'business'
+                              ? 'justify-end'
+                              : 'justify-start'
+                        }`}
                       >
                         <StatusChangeMessageCard
                           statusName={statusParsed.statusName}
@@ -1395,7 +1456,7 @@ const NominationChat = ({
                           paymentAmount={statusParsed.paymentAmount}
                           createdAt={message.createdAt}
                           formatDate={formatDate}
-                          variant={userType === 'admin' ? 'adminSide' : userType === 'business' ? 'adminSide' : 'ctvSide'}
+                          variant={statusVariant}
                         />
                       </div>
                     );
@@ -1404,6 +1465,13 @@ const NominationChat = ({
                   const isSystem = (message.senderType === 3 || message.type === 'system') && !nominationIntro;
                   if (isSystem && !statusParsed.isStatusChange) {
                     const displayContent = messageDisplayContent === '[Attachment]' ? '' : messageDisplayContent;
+                    if (embeddedBusiness) {
+                      return (
+                        <EmbeddedChatEvent key={message.id} createdAt={message.createdAt} formatDate={formatDate}>
+                          {displayContent || '—'}
+                        </EmbeddedChatEvent>
+                      );
+                    }
                     return (
                       <div key={message.id} className="flex justify-center w-full">
                         <div
@@ -1473,22 +1541,35 @@ const NominationChat = ({
                     );
                   }
 
+                  if (embeddedBusiness && isInterviewReminderContent(messageDisplayContent)) {
+                    return (
+                      <EmbeddedChatEvent
+                        key={message.id}
+                        icon={Calendar}
+                        createdAt={message.createdAt}
+                        formatDate={formatDate}
+                      >
+                        {messageDisplayContent}
+                      </EmbeddedChatEvent>
+                    );
+                  }
+
                   const cardStyle = isSender
                     ? {
-                        backgroundColor: BUBBLE_RIGHT_BG,
-                        border: `1px solid ${BUBBLE_RIGHT_BORDER}`,
-                        boxShadow: '0 1px 4px rgba(0, 132, 255, 0.25)',
+                        backgroundColor: bubbleRightBg,
+                        border: `1px solid ${bubbleRightBorder}`,
+                        boxShadow: embeddedBusiness ? 'none' : '0 1px 4px rgba(0, 132, 255, 0.25)',
                       }
                     : {
                         backgroundColor: BUBBLE_LEFT_BG,
                         border: `1px solid ${BUBBLE_LEFT_BORDER}`,
-                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+                        boxShadow: embeddedBusiness ? 'none' : '0 1px 3px rgba(0, 0, 0, 0.08)',
                       };
 
                   return (
                     <div
                       key={message.id}
-                      className={`flex w-full items-end gap-2 ${isSender ? 'justify-end' : 'justify-start'}`}
+                      className={`flex w-full items-end gap-1.5 ${isSender ? 'justify-end' : 'justify-start'}`}
                     >
                       {!isSender && (
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-[10px] font-bold text-slate-700 ring-2 ring-white">
@@ -1499,7 +1580,12 @@ const NominationChat = ({
                           )}
                         </div>
                       )}
-                      <div className="max-w-[78%] rounded-2xl px-3 py-2 sm:max-w-[72%]" style={cardStyle}>
+                      <div
+                        className={`rounded-2xl px-3 py-2 ${
+                          embeddedBusiness ? 'max-w-[88%] text-[11px]' : 'max-w-[78%] sm:max-w-[72%]'
+                        }`}
+                        style={cardStyle}
+                      >
                         {messageDisplayContent !== '[Attachment]' && (
                           <LinkifiedText
                             text={messageDisplayContent}
@@ -1574,15 +1660,20 @@ const NominationChat = ({
       </div>
 
       {/* Input */}
-      {['business', 'collaborator', 'applicant'].includes(userType) && (
+      {showPhoneNotice ? (
         <div
-          className="mx-2 mb-1 rounded-lg border px-3 py-2 text-[11px] leading-snug sm:mx-4"
-          style={{ borderColor: '#fed7aa', backgroundColor: '#fff7ed', color: '#9a3412' }}
+          className={`shrink-0 rounded-lg border px-2.5 py-1.5 leading-snug text-amber-900 ${
+            embeddedPanel ? 'mx-2.5 mb-1.5 border-amber-100 bg-amber-50/90 text-[10px]' : 'mx-2 mb-1 px-3 py-2 text-xs sm:mx-4'
+          }`}
         >
           {t.chatContactInfoNotice}
         </div>
-      )}
-      <form onSubmit={handleSendMessage} className="border-t px-2 py-1.5 sm:p-4" style={{ borderColor: CARD_BORDER }}>
+      ) : null}
+      <form
+        onSubmit={handleSendMessage}
+        className={`shrink-0 border-t bg-white ${embeddedPanel ? 'sticky bottom-0 z-10 px-2.5 py-2 shadow-[0_-2px_8px_rgba(15,23,42,0.04)] sm:px-3' : 'px-2 py-1.5 sm:p-4'}`}
+        style={{ borderColor: CARD_BORDER }}
+      >
         {selectedAttachment && (
           <div className="mb-2 flex items-center justify-between rounded-lg border px-3 py-1.5" style={{ borderColor: '#d1d5db', backgroundColor: '#f9fafb' }}>
             <div className="flex items-center gap-2 min-w-0">
@@ -1594,7 +1685,7 @@ const NominationChat = ({
             </button>
           </div>
         )}
-        <div className="flex items-end gap-1.5 sm:gap-2">
+        <div className={`flex gap-1.5 sm:gap-2 ${embeddedPanel ? 'items-center' : 'items-end'}`}>
           <input
             ref={attachmentInputRef}
             type="file"
@@ -1605,31 +1696,42 @@ const NominationChat = ({
           <button
             type="button"
             onClick={() => attachmentInputRef.current?.click()}
-            className="flex h-8 w-8 items-center justify-center rounded-full border text-sm sm:h-auto sm:w-auto sm:rounded-xl sm:px-3 sm:py-2"
+            className={`flex shrink-0 items-center justify-center rounded-lg border ${
+              embeddedPanel ? 'h-10 w-10' : 'h-8 w-8 rounded-full sm:h-auto sm:w-auto sm:rounded-xl sm:px-3 sm:py-2'
+            }`}
             style={{ borderColor: '#e5e7eb', color: '#64748b', backgroundColor: '#fff' }}
             disabled={sending}
+            aria-label="Đính kèm"
           >
-            <Plus className="h-4 w-4 sm:hidden" />
-            <Paperclip className="hidden h-4 w-4 sm:block" />
+            {embeddedPanel ? <Paperclip className="h-4 w-4" /> : (
+              <>
+                <Plus className="h-4 w-4 sm:hidden" />
+                <Paperclip className="hidden h-4 w-4 sm:block" />
+              </>
+            )}
           </button>
-          <button
-            type="button"
-            onClick={() => attachmentInputRef.current?.click()}
-            className="flex h-8 w-8 items-center justify-center rounded-full border text-sm sm:hidden"
-            style={{ borderColor: '#e5e7eb', color: '#64748b', backgroundColor: '#fff' }}
-            disabled={sending}
-          >
-            <Camera className="h-4 w-4" />
-          </button>
+          {!embeddedPanel ? (
+            <button
+              type="button"
+              onClick={() => attachmentInputRef.current?.click()}
+              className="flex h-8 w-8 items-center justify-center rounded-full border text-sm sm:hidden"
+              style={{ borderColor: '#e5e7eb', color: '#64748b', backgroundColor: '#fff' }}
+              disabled={sending}
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+          ) : null}
           <textarea
             value={newMessage}
             onChange={(e) => {
               setNewMessage(e.target.value);
+              if (embeddedPanel) return;
               const el = e.target;
               el.style.height = 'auto';
               el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
             }}
             onKeyDown={(e) => {
+              if (embeddedPanel) return;
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 const textarea = e.currentTarget;
@@ -1648,8 +1750,18 @@ const NominationChat = ({
             }}
             placeholder={t.chatMessagePlaceholder}
             rows={1}
-            className="min-h-8 flex-1 resize-none rounded-full px-3 py-1.5 text-sm focus:outline-none sm:h-auto sm:rounded-xl"
-            style={{ backgroundColor: '#f8fafc', border: '1px solid #e5e7eb', color: '#111827', height: '32px', overflowY: 'hidden' }}
+            className={`flex-1 resize-none box-border focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20 ${
+              embeddedPanel
+                ? 'h-10 min-h-10 max-h-10 rounded-lg px-3 py-0 text-[13px] leading-10'
+                : 'min-h-8 rounded-full px-3 py-2.5 text-sm sm:rounded-xl'
+            }`}
+            style={{
+              backgroundColor: embeddedPanel ? '#fff' : '#f8fafc',
+              border: '1px solid #e5e7eb',
+              color: '#111827',
+              height: embeddedPanel ? '2.5rem' : '32px',
+              overflowY: embeddedPanel ? 'hidden' : 'hidden',
+            }}
             disabled={sending}
           />
           <button
@@ -1657,9 +1769,11 @@ const NominationChat = ({
             disabled={(!newMessage.trim() && !selectedAttachment) || sending}
             onMouseEnter={() => setHoveredSendButton(true)}
             onMouseLeave={() => setHoveredSendButton(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-xl transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:h-auto sm:w-auto sm:px-4 sm:py-2"
+            className={`flex shrink-0 items-center justify-center rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              embeddedPanel ? 'h-10 w-10' : 'h-8 w-8 rounded-xl sm:h-auto sm:w-auto sm:px-4 sm:py-2'
+            }`}
             style={{
-              backgroundColor: hoveredSendButton ? '#1d4ed8' : '#2563eb',
+              backgroundColor: hoveredSendButton ? '#006399' : '#0077B6',
               color: 'white',
               opacity: ((!newMessage.trim() && !selectedAttachment) || sending) ? 0.5 : 1,
               cursor: ((!newMessage.trim() && !selectedAttachment) || sending) ? 'not-allowed' : 'pointer'

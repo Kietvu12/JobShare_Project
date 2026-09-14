@@ -113,10 +113,6 @@ export default function CreditPricingPackageCard({
         ))}
       </ul>
 
-      <p className={`credit-pricing-hover-hint biz-ui-micro text-center font-semibold ${featured ? 'text-white/90' : 'text-[#0077B6]'}`}>
-        {modalCopy.choosePlan}
-      </p>
-
       <button
         type="button"
         onClick={(e) => {
@@ -129,7 +125,7 @@ export default function CreditPricingPackageCard({
         } ${
           featured
             ? 'bg-white text-slate-900 hover:bg-white/95'
-            : 'bg-[#0077B6] text-white hover:bg-[#006399]'
+            : 'bg-[#0077B6] text-white hover:bg-[#006399] hover:text-white'
         }`}
       >
         {isSubmitting ? (

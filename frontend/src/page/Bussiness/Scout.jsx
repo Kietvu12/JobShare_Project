@@ -8,7 +8,10 @@ import {
   MessageSquare, ArrowUpRight, Coins, UserPlus, IdCard, Send, Info,
   RotateCw,
 } from 'lucide-react'
-import ScoutCandidateFilterFields, { SCOUT_FILTER_INPUT_CLASS } from '../../component/Bussiness/ScoutCandidateFilterFields.jsx'
+import ScoutCandidateFilterFields, {
+  SCOUT_FILTER_INPUT_CLASS,
+  SCOUT_FILTER_PICKER_BTN_CLASS,
+} from '../../component/Bussiness/ScoutCandidateFilterFields.jsx'
 import WorkLocationFilterModal from '../../component/Shared/WorkLocationFilterModal'
 import JobCategoryPickerModal from '../../component/Shared/JobCategoryPickerModal'
 import FilterBlock from '../../component/Shared/FilterBlock'
@@ -37,7 +40,7 @@ import {
   getDateLocale,
 } from '../../i18n/businessAppI18n'
 import { getLocalizedJobTitle } from '../../i18n/businessApp/jdBuilder'
-import BusinessFloatingQuickActions from '../../component/Bussiness/BusinessFloatingQuickActions'
+import BusinessQuickActionsPageLayout from '../../component/Bussiness/BusinessQuickActionsPageLayout.jsx'
 import {
   buildScoreMapFromMatches,
   fetchAllBusinessScoutCandidates,
@@ -57,6 +60,7 @@ import {
   formatScoutListLocation,
   isScoutEmptyDisplayValue,
   getScoutListSkillChips,
+  getScoutSkillTags,
 } from '../../utils/scoutCandidateDisplay'
 import { getLocalizedCandidateRole } from '../../utils/jobCategoryDisplay'
 import ScoutMatchBadge, { CandidateListMatchCorner } from '../../component/Bussiness/ScoutMatchBadge'
@@ -110,10 +114,10 @@ const scoutPageStyles = `
   }
   @media (min-width: 1536px) {
     .scout-candidates-list-ui {
-      --scout-cand-fs-title: 14px;
-      --scout-cand-fs-body: 13px;
-      --scout-cand-fs-caption: 12px;
-      --scout-cand-icon: 14px;
+      --scout-cand-fs-title: 12px;
+      --scout-cand-fs-body: 12px;
+      --scout-cand-fs-caption: 11px;
+      --scout-cand-icon: 13px;
     }
   }
   .scout-candidates-list-ui .scout-cand-title {
@@ -479,9 +483,8 @@ function ScoutCandidateRowBody({
   const location = formatScoutListLocation(candidate)
   const jlpt = formatScoutLanguageSummaryLocalized(candidate, language)
   const { visible: skillTags, extra: skillExtra, title: skillTitle } = getScoutListSkillChips(candidate, 6)
-  const headline = !candidate?.isUnlocked && !isScoutEmptyDisplayValue(position)
-    ? position
-    : getLocalizedScoutDisplayName(candidate, language)
+  const headline = getLocalizedScoutDisplayName(candidate, language)
+  const showLockedRoleSubtitle = !candidate?.isUnlocked && !isScoutEmptyDisplayValue(position)
 
   return (
     <>
@@ -495,6 +498,9 @@ function ScoutCandidateRowBody({
           </span>
         ) : null}
       </div>
+      {showLockedRoleSubtitle ? (
+        <p className="scout-cand-caption mt-0.5 truncate text-slate-600">{hl(position)}</p>
+      ) : null}
       <div className="mt-1 flex flex-wrap gap-1">
         {!isScoutEmptyDisplayValue(exp) ? (
           <ScoutMetaChip label="KN">{exp}</ScoutMetaChip>
@@ -783,11 +789,7 @@ function ScoutOnboardingView({
   const managedCopy = ws.onboarding.managed
   const directCopy = ws.onboarding.direct
   const packagesRef = useRef(null)
-  const [packagesExpanded, setPackagesExpanded] = useState(() => {
-    const opens = Math.floor(Number(creditBalance) / Math.max(1, scoutCreditCost))
-    const low = Number(creditBalance) > 0 && opens < 3
-    return Number(creditBalance) <= 0 || low
-  })
+  const [packagesExpanded, setPackagesExpanded] = useState(true)
   const scoutCard = useMemo(
     () => getScoutSolutionCard(language, variant === 'performance' ? 'performance' : 'credit'),
     [language, variant],
@@ -879,7 +881,7 @@ function ScoutOnboardingView({
           collapsible={hasEnoughCredit}
           expanded={packagesExpanded}
           onToggleExpanded={() => setPackagesExpanded((v) => !v)}
-          deemphasized={hasEnoughCredit && !creditLow}
+          deemphasized={hasEnoughCredit && !creditLow && !packagesExpanded}
           sectionRef={packagesRef}
         />
       ) : (
@@ -1046,6 +1048,8 @@ function isCandidateNew(candidate) {
   return diff >= 0 && diff < 7 * 86400000
 }
 
+const SCOUT_PAGE_FILTER_LABEL = 'scout-cand-caption font-medium text-gray-700 leading-snug'
+
 function ScoutFilterPanel({
   selectedJobId,
   jobs,
@@ -1066,6 +1070,15 @@ function ScoutFilterPanel({
   const [showJobCategoryModal, setShowJobCategoryModal] = useState(false)
   const ws = getScoutWorkspaceCopy(language)
 
+  const filterFieldProps = {
+    inputClassName: SCOUT_FILTER_INPUT_CLASS,
+    pickerBtnClassName: SCOUT_FILTER_PICKER_BTN_CLASS,
+    filterLabelClassName: SCOUT_PAGE_FILTER_LABEL,
+    fieldMinHeightClass: 'min-h-8',
+    dropdownOptionSize: 'compact',
+    salarySepClassName: 'scout-cand-caption shrink-0 text-gray-500',
+  }
+
   const jobOptions = useMemo(() => [
     { value: '', label: ws.workspace.allScoutCandidates },
     ...jobs.map((job) => ({
@@ -1076,7 +1089,7 @@ function ScoutFilterPanel({
 
   const leadingBlock = (
     <div className="rounded-lg border-2 border-[#0077B6]/25 bg-[#f8fbfd]/80 p-2">
-      <FilterBlock icon={Briefcase} label={ws.workspace.attachJd} compact>
+      <FilterBlock icon={Briefcase} label={ws.workspace.attachJd} compact labelClassName={SCOUT_PAGE_FILTER_LABEL} fieldMinHeightClass="min-h-8">
         <FilterSelectDropdown
           value={selectedJobId || ''}
           onChange={onJobChange}
@@ -1087,18 +1100,19 @@ function ScoutFilterPanel({
           disabled={jobsLoading}
           className={SCOUT_FILTER_INPUT_CLASS}
           maxPanelHeight={220}
+          optionSize="compact"
         />
       </FilterBlock>
     </div>
   )
 
   return (
-    <section className="scout-workspace-filters shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      <div className="scout-filter-head flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-3 py-2.5">
-        <h2 className="text-xs font-bold text-gray-900">{ws.workspace.filterTitle}</h2>
-        <div className="flex items-center gap-2">
+    <section className="scout-candidates-list-ui scout-workspace-filters shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="scout-filter-head flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-2.5 py-2 lg:px-3">
+        <h2 className="scout-cand-title text-gray-900">{ws.workspace.filterTitle}</h2>
+        <div className="flex items-center gap-1.5">
           {hasActiveFilters ? (
-            <button type="button" onClick={onClear} className="text-[9px] font-semibold text-[#0077B6] hover:underline">
+            <button type="button" onClick={onClear} className="scout-cand-caption font-semibold text-[#0077B6] hover:underline">
               {ws.workspace.clearFilters}
             </button>
           ) : null}
@@ -1106,21 +1120,20 @@ function ScoutFilterPanel({
             type="button"
             onClick={onApply}
             disabled={listLoading}
-            className="inline-flex h-7 items-center justify-center gap-1 rounded px-2.5 shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ backgroundColor: '#facc15' }}
+            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-[#facc15] px-3 shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
             {listLoading ? (
-              <RotateCw className="h-3 w-3 animate-spin text-gray-800" />
+              <RotateCw className="h-3.5 w-3.5 animate-spin text-gray-800" />
             ) : (
-              <Search className="h-3 w-3 text-gray-800" />
+              <Search className="h-3.5 w-3.5 text-gray-800" />
             )}
-            <span className="text-[9px] font-semibold text-gray-800">
+            <span className="scout-cand-caption font-semibold text-gray-800">
               {ws.workspace.searchProfiles(displayCount, getDateLocale(language))}
             </span>
           </button>
         </div>
       </div>
-      <div className="scout-filter-scroll scout-scrollbar custom-scrollbar max-h-[26vh] overflow-y-auto p-2 lg:max-h-[30vh] lg:p-2.5 2xl:max-h-[34vh]">
+      <div className="scout-filter-scroll scout-scrollbar custom-scrollbar max-h-[26vh] overflow-y-auto p-2 lg:max-h-[30vh] lg:p-3 2xl:max-h-[34vh]">
         <ScoutCandidateFilterFields
           leadingBlock={leadingBlock}
           scoutFilters={scoutFilters}
@@ -1130,6 +1143,7 @@ function ScoutFilterPanel({
           onOpenLocationModal={() => setShowLocationModal(true)}
           onOpenJobCategoryModal={() => setShowJobCategoryModal(true)}
           language={language}
+          {...filterFieldProps}
         />
       </div>
       <WorkLocationFilterModal
@@ -2495,8 +2509,8 @@ const Scout = ({ variant = 'credit' } = {}) => {
         <style>{scoutPageStyles}</style>
         {sharedModals}
         <div className="business-homepage-shell relative min-h-0 h-full overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden" style={{ fontFamily: PAGE_FONT }}>
-          <div className="business-homepage-ui w-full min-h-0 p-2.5 sm:p-3 xl:h-full xl:flex xl:flex-col">
-            <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col xl:h-full xl:overflow-y-auto xl:pr-0.5">
+          <div className="business-homepage-ui flex h-full min-h-0 w-full flex-1 flex-col p-2.5 sm:p-3">
+            <BusinessQuickActionsPageLayout onNavigate={navigate}>
               <ScoutOnboardingView
                 variant={variant}
                 previewCandidates={previewCandidates}
@@ -2507,9 +2521,8 @@ const Scout = ({ variant = 'credit' } = {}) => {
                 onExplore={enterScoutDashboard}
                 language={language}
               />
-            </div>
+            </BusinessQuickActionsPageLayout>
           </div>
-          <BusinessFloatingQuickActions onNavigate={navigate} placement="fixed" />
         </div>
       </>
     )
@@ -2519,7 +2532,9 @@ const Scout = ({ variant = 'credit' } = {}) => {
     <>
       <style>{scoutPageStyles}</style>
       <div className="business-homepage-shell scout-workspace-shell flex h-full min-h-0 flex-col overflow-hidden" style={{ fontFamily: PAGE_FONT }}>
-        <div className="business-homepage-ui flex min-h-0 flex-1 flex-col overflow-hidden p-2 lg:p-3">
+        <div className="business-homepage-ui flex h-full min-h-0 flex-1 flex-col overflow-hidden p-2 lg:p-3">
+          <BusinessQuickActionsPageLayout onNavigate={navigate} className="min-h-0 flex-1">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="shrink-0 lg:mb-2">
             <ScoutBreadcrumb
               homeLabel={ws.breadcrumb.home}
@@ -2707,8 +2722,9 @@ const Scout = ({ variant = 'credit' } = {}) => {
             </div>
 
           </div>
+            </div>
+          </BusinessQuickActionsPageLayout>
         </div>
-        <BusinessFloatingQuickActions onNavigate={navigate} placement="fixed" />
       </div>
 
       {sharedModals}

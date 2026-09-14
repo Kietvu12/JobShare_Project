@@ -30,8 +30,9 @@ const {
 
 /** Fallback khi staging chưa deploy constants mới (tránh crash lúc import). */
 const PAYMENT_STATUS_STYLES = billingConstants.PAYMENT_STATUS_STYLES ?? {
-  unpaid: { label: 'Chưa thanh toán', statusBg: '#fee2e2', statusColor: '#dc2626', tab: 'unpaid' },
-  processing: { label: 'Đang xử lý', statusBg: '#ffedd5', statusColor: '#ea580c', tab: 'processing' },
+  unpaid: { label: 'Chờ thanh toán', statusBg: '#fee2e2', statusColor: '#dc2626', tab: 'unpaid' },
+  overdue: { label: 'Quá hạn', statusBg: '#fecaca', statusColor: '#b91c1c', tab: 'overdue' },
+  processing: { label: 'Đang xác nhận', statusBg: '#ffedd5', statusColor: '#ea580c', tab: 'processing' },
   paid: { label: 'Đã thanh toán', statusBg: '#dcfce7', statusColor: '#16a34a', tab: 'paid' },
   draft: { label: 'Draft', statusBg: '#f1f5f9', statusColor: '#64748b', tab: 'draft' },
   cancelled: { label: 'Đã hủy', statusBg: '#f1f5f9', statusColor: '#64748b', tab: 'closed' },
@@ -681,15 +682,42 @@ async function fetchUnpaidInvoices(businessId, limit = 10) {
 function formatInvoiceRow(row) {
   const json = row.toJSON ? row.toJSON() : row;
   const status = String(json.status || BILLING_INVOICE_STATUS.UNPAID).trim();
-  const style = PAYMENT_STATUS_STYLES[status] || PAYMENT_STATUS_STYLES.unpaid;
+  const overdue = isInvoiceOverdue(row);
+  const displayStatus = overdue && status === BILLING_INVOICE_STATUS.UNPAID ? 'overdue' : status;
+  const style = PAYMENT_STATUS_STYLES[displayStatus] || PAYMENT_STATUS_STYLES[status] || PAYMENT_STATUS_STYLES.unpaid;
   const createdAt = json.createdAt || json.created_at;
+  const updatedAt = json.updatedAt || json.updated_at;
+  const paidAtRaw = json.paidAt || json.paid_at || null;
+  const meta = parseInvoiceMeta(json.description);
+  const amountLabel = formatMoneyVnd(json.amount);
+  let type = json.paymentType || json.payment_type || meta.paymentTypeLabel || inferPaymentType(json.description);
+  if (meta.paymentType === 'referral_fee') type = 'Phí giới thiệu';
+  const relatedLine = stripInvoiceMetaLine(json.description) || json.relatedLabel || json.related_label || '—';
+  const content = buildRichPaymentContent({
+    meta,
+    description: json.description,
+    type,
+    amountLabel,
+    related: relatedLine,
+  });
+  const pipeline = buildPaymentPipeline({
+    status,
+    createdAt,
+    updatedAt,
+    paidAt: paidAtRaw,
+    meta,
+  });
+  const attachments = Array.isArray(meta.attachments) ? meta.attachments : [];
+
   return {
     id: json.id,
     paymentCode: json.invoiceCode || json.invoice_code,
     invoiceCode: json.invoiceCode || json.invoice_code,
-    type: json.paymentType || json.payment_type || inferPaymentType(json.description),
-    related: json.relatedLabel || json.related_label || json.description || '—',
-    amount: formatMoneyVnd(json.amount),
+    type,
+    feeType: type,
+    related: relatedLine,
+    content,
+    amount: amountLabel,
     amountValue: Number(json.amount) || 0,
     deadline: json.dueDate || json.due_date ? formatDateVi(json.dueDate || json.due_date) : '—',
     dueDate: json.dueDate || json.due_date,
@@ -697,15 +725,67 @@ function formatInvoiceRow(row) {
       ? `Hạn: ${formatDateVi(json.dueDate || json.due_date)}`
       : '—',
     status,
+    displayStatus,
+    isOverdue: overdue,
     statusLabel: style.label,
     statusBg: style.statusBg,
     statusColor: style.statusColor,
+    paymentStep: pipeline.currentStep,
+    pipeline,
+    attachments,
+    candidateName: meta.candidateName || meta.candidate || null,
+    jdTitle: meta.jobTitle || meta.jdTitle || null,
+    jobCode: meta.jobCode || null,
+    feeBasis: meta.feeBasis || meta.basis || null,
     description: json.description || null,
+    issuedAt: formatDateVi(createdAt),
+    issuedAtRaw: createdAt,
     createdAt: formatDateTimeVi(createdAt),
     createdAtRaw: createdAt,
-    source: json.source || 'Workstation',
-    paidAt: json.paidAt || json.paid_at || null,
+    paidAt: paidAtRaw ? formatDateVi(paidAtRaw) : '—',
+    paidAtRaw,
+    source: json.source || meta.source || 'Workstation',
+    invoicePdfUrl: meta.invoicePdfUrl || meta.pdfUrl || null,
   };
+}
+
+const INVOICE_META_PREFIX = '__wjs_meta__:';
+
+function parseInvoiceMeta(description) {
+  const text = String(description || '');
+  const idx = text.indexOf(INVOICE_META_PREFIX);
+  if (idx < 0) return {};
+  try {
+    const parsed = JSON.parse(text.slice(idx + INVOICE_META_PREFIX.length));
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function stripInvoiceMetaLine(description) {
+  const lines = String(description || '').split('\n');
+  return lines.filter((line) => !line.includes(INVOICE_META_PREFIX)).join('\n').trim();
+}
+
+function mergeInvoiceMeta(description, patch) {
+  const meta = { ...parseInvoiceMeta(description), ...patch };
+  const head = stripInvoiceMetaLine(description) || String(description || '').split('\n')[0] || '';
+  return `${head}\n${INVOICE_META_PREFIX}${JSON.stringify(meta)}`;
+}
+
+function isInvoiceOverdue(row) {
+  const json = row.toJSON ? row.toJSON() : row;
+  const status = String(json.status || '').trim();
+  if (status !== BILLING_INVOICE_STATUS.UNPAID) return false;
+  const due = json.dueDate || json.due_date;
+  if (!due) return false;
+  const dueDate = new Date(due);
+  if (Number.isNaN(dueDate.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  dueDate.setHours(0, 0, 0, 0);
+  return dueDate < today;
 }
 
 function inferPaymentType(description) {
@@ -716,6 +796,45 @@ function inferPaymentType(description) {
   if (text.includes('seminar') || text.includes('campaign')) return 'Seminar / Campaign';
   if (text.includes('profile')) return 'Thiết kế profile company';
   return 'Phí giới thiệu';
+}
+
+function buildRichPaymentContent({ meta, description, type, amountLabel, related }) {
+  const candidate = meta.candidateName || meta.candidate;
+  const jd = meta.jobTitle || meta.jdTitle || meta.jobCode;
+  if (candidate && jd) {
+    return `Phí giới thiệu ứng viên ${candidate} – JD ${jd} – ${amountLabel}`;
+  }
+  const visible = stripInvoiceMetaLine(description);
+  if (visible) return visible;
+  return related || type || '—';
+}
+
+function buildPaymentPipeline({ status, createdAt, updatedAt, paidAt, meta }) {
+  const step1At = meta.wsCreatedAt || createdAt;
+  const step2At = meta.businessReviewedAt || null;
+  const step3At = meta.businessConfirmedAt || (status === BILLING_INVOICE_STATUS.PROCESSING ? updatedAt : null);
+  const step4At = paidAt || meta.wsConfirmedAt || null;
+
+  let currentStep = 2;
+  if (status === BILLING_INVOICE_STATUS.UNPAID) currentStep = 2;
+  else if (status === BILLING_INVOICE_STATUS.PROCESSING) currentStep = 4;
+  else if (status === BILLING_INVOICE_STATUS.PAID) currentStep = 4;
+
+  const steps = [
+    { key: 'ws_created', title: 'WS tạo yêu cầu thanh toán', at: step1At },
+    { key: 'business_review', title: 'Doanh nghiệp kiểm tra', at: step2At || (currentStep > 2 ? step1At : null) },
+    { key: 'business_paid', title: 'Doanh nghiệp thanh toán', at: step3At },
+    { key: 'ws_confirmed', title: 'WS xác nhận hoàn tất', at: step4At },
+  ].map((step, index) => {
+    const stepNum = index + 1;
+    let state = 'pending';
+    if (status === BILLING_INVOICE_STATUS.PAID && stepNum <= 4) state = 'done';
+    else if (stepNum < currentStep) state = 'done';
+    else if (stepNum === currentStep) state = 'current';
+    return { ...step, step: stepNum, state };
+  });
+
+  return { currentStep, steps };
 }
 
 function sumInvoiceAmount(rows) {
@@ -729,87 +848,174 @@ function isSameMonth(a, b) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
 }
 
+function isPendingPaymentRow(row) {
+  const status = String(row.status || '').trim();
+  return status === BILLING_INVOICE_STATUS.UNPAID || status === BILLING_INVOICE_STATUS.PROCESSING;
+}
+
 async function buildPaymentSummary(businessId) {
   try {
     const rows = await BusinessInvoice.findAll({
       where: { businessId },
       order: [['created_at', 'DESC']],
     });
-    const unpaid = rows.filter((r) => r.status === BILLING_INVOICE_STATUS.UNPAID);
+    const pending = rows.filter(isPendingPaymentRow);
+    const unpaidNotOverdue = rows.filter(
+      (r) => r.status === BILLING_INVOICE_STATUS.UNPAID && !isInvoiceOverdue(r),
+    );
+    const overdue = rows.filter((r) => isInvoiceOverdue(r));
     const processing = rows.filter((r) => r.status === BILLING_INVOICE_STATUS.PROCESSING);
-    const paid = rows.filter((r) => r.status === BILLING_INVOICE_STATUS.PAID);
-    const now = new Date();
-    const thisMonthPaid = paid.filter((r) => {
-      const paidAt = r.paidAt || r.paid_at;
-      return paidAt && isSameMonth(new Date(paidAt), now);
-    });
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthPaid = paid.filter((r) => {
-      const paidAt = r.paidAt || r.paid_at;
-      return paidAt && isSameMonth(new Date(paidAt), lastMonth);
-    });
-    const thisMonthAmount = sumInvoiceAmount(thisMonthPaid);
-    const lastMonthAmount = sumInvoiceAmount(lastMonthPaid);
-    const changePercent = lastMonthAmount > 0
-      ? Math.round(((thisMonthAmount - lastMonthAmount) / lastMonthAmount) * 100)
-      : (thisMonthAmount > 0 ? 100 : 0);
+    const totalDueAmount = sumInvoiceAmount(pending);
 
     return {
-      unpaid: { count: unpaid.length, amount: sumInvoiceAmount(unpaid), amountLabel: formatMoneyVnd(sumInvoiceAmount(unpaid)) },
-      processing: { count: processing.length, amount: sumInvoiceAmount(processing), amountLabel: formatMoneyVnd(sumInvoiceAmount(processing)) },
-      paid: { count: paid.length, amount: sumInvoiceAmount(paid), amountLabel: formatMoneyVnd(sumInvoiceAmount(paid)) },
-      monthlyCost: {
-        amount: thisMonthAmount,
-        amountLabel: formatMoneyVnd(thisMonthAmount),
-        changePercent,
-        changeDirection: changePercent >= 0 ? 'up' : 'down',
+      unpaid: {
+        count: unpaidNotOverdue.length,
+        amount: sumInvoiceAmount(unpaidNotOverdue),
+        amountLabel: formatMoneyVnd(sumInvoiceAmount(unpaidNotOverdue)),
+      },
+      overdue: {
+        count: overdue.length,
+        amount: sumInvoiceAmount(overdue),
+        amountLabel: formatMoneyVnd(sumInvoiceAmount(overdue)),
+      },
+      processing: {
+        count: processing.length,
+        amount: sumInvoiceAmount(processing),
+        amountLabel: formatMoneyVnd(sumInvoiceAmount(processing)),
+      },
+      totalDue: {
+        count: pending.length,
+        amount: totalDueAmount,
+        amountLabel: formatMoneyVnd(totalDueAmount),
       },
     };
   } catch (err) {
     if (String(err?.message || '').includes("doesn't exist")) {
       return {
         unpaid: { count: 0, amount: 0, amountLabel: '0 VND' },
+        overdue: { count: 0, amount: 0, amountLabel: '0 VND' },
         processing: { count: 0, amount: 0, amountLabel: '0 VND' },
-        paid: { count: 0, amount: 0, amountLabel: '0 VND' },
-        monthlyCost: { amount: 0, amountLabel: '0 VND', changePercent: 0, changeDirection: 'up' },
+        totalDue: { count: 0, amount: 0, amountLabel: '0 VND' },
       };
     }
     throw err;
   }
 }
 
-function countPaymentsByTab(rows) {
-  const counts = { all: rows.length, unpaid: 0, processing: 0, paid: 0, draft: 0 };
-  for (const row of rows) {
-    const status = String(row.status || '').trim();
-    if (status === BILLING_INVOICE_STATUS.UNPAID) counts.unpaid += 1;
-    if (status === BILLING_INVOICE_STATUS.PROCESSING) counts.processing += 1;
-    if (status === BILLING_INVOICE_STATUS.PAID) counts.paid += 1;
-    if (status === BILLING_INVOICE_STATUS.DRAFT) counts.draft += 1;
+async function buildInvoiceArchiveSummary(businessId) {
+  try {
+    const rows = await BusinessInvoice.findAll({
+      where: { businessId, status: BILLING_INVOICE_STATUS.PAID },
+      order: [['paid_at', 'DESC']],
+    });
+    const now = new Date();
+    const thisMonth = rows.filter((r) => {
+      const paidAt = r.paidAt || r.paid_at;
+      return paidAt && isSameMonth(new Date(paidAt), now);
+    });
+    const totalPaidAmount = sumInvoiceAmount(rows);
+    const monthlyAmount = sumInvoiceAmount(thisMonth);
+
+    return {
+      monthlyCount: { count: thisMonth.length, amountLabel: String(thisMonth.length) },
+      monthlyValue: { amount: monthlyAmount, amountLabel: formatMoneyVnd(monthlyAmount) },
+      paidTotal: { amount: totalPaidAmount, amountLabel: formatMoneyVnd(totalPaidAmount) },
+      invoiceCount: { count: rows.length, amountLabel: String(rows.length) },
+    };
+  } catch (err) {
+    if (String(err?.message || '').includes("doesn't exist")) {
+      return {
+        monthlyCount: { count: 0, amountLabel: '0' },
+        monthlyValue: { amount: 0, amountLabel: '0 VND' },
+        paidTotal: { amount: 0, amountLabel: '0 VND' },
+        invoiceCount: { count: 0, amountLabel: '0' },
+      };
+    }
+    throw err;
+  }
+}
+
+function countPaymentsByTab(rows, { scope = 'payments' } = {}) {
+  if (scope === 'invoices') {
+    const paid = rows.filter((r) => String(r.status || '').trim() === BILLING_INVOICE_STATUS.PAID);
+    return { all: paid.length, paid: paid.length };
+  }
+  const pending = rows.filter(isPendingPaymentRow);
+  const counts = {
+    all: pending.length,
+    unpaid: 0,
+    processing: 0,
+    overdue: 0,
+  };
+  for (const row of pending) {
+    if (isInvoiceOverdue(row)) counts.overdue += 1;
+    else if (row.status === BILLING_INVOICE_STATUS.UNPAID) counts.unpaid += 1;
+    else if (row.status === BILLING_INVOICE_STATUS.PROCESSING) counts.processing += 1;
   }
   return counts;
 }
 
-function filterPaymentRows(rows, { tab, search }) {
-  let filtered = rows;
+function filterPaymentRows(rows, { tab, search, scope = 'payments' }) {
+  let filtered = scope === 'invoices'
+    ? rows.filter((r) => String(r.status || '').trim() === BILLING_INVOICE_STATUS.PAID)
+    : rows.filter(isPendingPaymentRow);
+
   if (tab && tab !== 'all') {
-    filtered = filtered.filter((row) => String(row.status || '').trim() === tab);
+    if (tab === 'overdue') {
+      filtered = filtered.filter((row) => isInvoiceOverdue(row));
+    } else if (tab === 'unpaid') {
+      filtered = filtered.filter(
+        (row) => row.status === BILLING_INVOICE_STATUS.UNPAID && !isInvoiceOverdue(row),
+      );
+    } else if (tab === 'processing') {
+      filtered = filtered.filter((row) => row.status === BILLING_INVOICE_STATUS.PROCESSING);
+    } else if (tab === 'paid') {
+      filtered = filtered.filter((row) => row.status === BILLING_INVOICE_STATUS.PAID);
+    }
   }
+
   const q = String(search || '').trim().toLowerCase();
   if (q) {
     filtered = filtered.filter((row) => {
       const json = row.toJSON ? row.toJSON() : row;
+      const formatted = formatInvoiceRow(row);
       const haystack = [
         json.invoiceCode,
         json.invoice_code,
         json.description,
-        json.paymentType,
-        json.payment_type,
+        formatted.content,
+        formatted.type,
       ].filter(Boolean).join(' ').toLowerCase();
       return haystack.includes(q);
     });
   }
   return filtered;
+}
+
+export async function confirmBusinessInvoicePayment({ businessId, invoiceId }) {
+  const invoice = await BusinessInvoice.findOne({
+    where: { id: invoiceId, businessId },
+  });
+  if (!invoice) {
+    const err = new Error('Không tìm thấy yêu cầu thanh toán');
+    err.statusCode = 404;
+    throw err;
+  }
+  if (invoice.status !== BILLING_INVOICE_STATUS.UNPAID) {
+    const err = new Error('Yêu cầu này không thể xác nhận thanh toán');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const nowIso = new Date().toISOString();
+  invoice.description = mergeInvoiceMeta(invoice.description, {
+    businessConfirmedAt: nowIso,
+    businessReviewedAt: parseInvoiceMeta(invoice.description).businessReviewedAt || nowIso,
+  });
+  invoice.status = BILLING_INVOICE_STATUS.PROCESSING;
+  await invoice.save();
+
+  return formatInvoiceRow(invoice);
 }
 
 export async function getBusinessBillingDashboard({ businessId, credit }) {
@@ -838,6 +1044,7 @@ export async function getBusinessBillingDashboard({ businessId, credit }) {
 
   const activities = await buildActivities(businessId);
   const paymentSummary = await buildPaymentSummary(businessId);
+  const invoiceArchiveSummary = await buildInvoiceArchiveSummary(businessId);
 
   return {
     summary: {
@@ -855,6 +1062,7 @@ export async function getBusinessBillingDashboard({ businessId, credit }) {
     activities,
     requestTabCounts: tabCounts,
     paymentSummary,
+    invoiceArchiveSummary,
   };
 }
 
@@ -920,18 +1128,24 @@ export async function listBusinessBillingInvoices({
   status,
   tab,
   search,
+  scope = 'payments',
 }) {
   const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
   const safePage = Math.max(parseInt(page, 10) || 1, 1);
+  const listScope = scope === 'invoices' ? 'invoices' : 'payments';
 
   try {
     const allRows = await BusinessInvoice.findAll({
       where: { businessId },
       order: [['created_at', 'DESC']],
     });
-    const tabCounts = countPaymentsByTab(allRows);
+    const tabCounts = countPaymentsByTab(allRows, { scope: listScope });
     const activeTab = tab || status || 'all';
-    const filtered = filterPaymentRows(allRows, { tab: activeTab === 'all' ? undefined : activeTab, search });
+    const filtered = filterPaymentRows(allRows, {
+      tab: activeTab === 'all' ? undefined : activeTab,
+      search,
+      scope: listScope,
+    });
     const total = filtered.length;
     const offset = (safePage - 1) * safeLimit;
     const slice = filtered.slice(offset, offset + safeLimit);
@@ -954,7 +1168,7 @@ export async function listBusinessBillingInvoices({
       return {
         payments: [],
         invoices: [],
-        tabCounts: { all: 0, unpaid: 0, processing: 0, paid: 0, draft: 0 },
+        tabCounts: { all: 0, unpaid: 0, processing: 0, overdue: 0, paid: 0 },
         pagination: { total: 0, page: safePage, limit: safeLimit, totalPages: 0, from: 0, to: 0 },
       };
     }
@@ -967,4 +1181,5 @@ export default {
   listBusinessBillingTransactions,
   listBusinessBillingRequests,
   listBusinessBillingInvoices,
+  confirmBusinessInvoicePayment,
 };

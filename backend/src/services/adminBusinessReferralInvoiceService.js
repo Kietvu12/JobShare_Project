@@ -16,9 +16,16 @@ function buildInvoiceCode(id, date = new Date()) {
   return `RF-${ym}-${String(id).padStart(4, '0')}`;
 }
 
-function buildInvoiceDescription({ jobCode, candidateName, jobApplicationId }) {
+function buildInvoiceDescription({ jobCode, candidateName, jobTitle, jobApplicationId }) {
   const related = `Tiến cử ${jobCode || '—'} — ${candidateName || 'Ứng viên'}`;
-  const meta = JSON.stringify({ jobApplicationId, paymentType: 'referral_fee' });
+  const meta = JSON.stringify({
+    jobApplicationId,
+    paymentType: 'referral_fee',
+    candidateName: candidateName || null,
+    jobCode: jobCode || null,
+    jobTitle: jobTitle || null,
+    feeBasis: 'Ứng viên đã vào công ty (xác nhận tiến cử)',
+  });
   return `${related}\n${META_PREFIX}${meta}`;
 }
 
@@ -116,6 +123,7 @@ export async function createBusinessReferralInvoice({ jobApplicationId, amount, 
   }
 
   const jobCode = jobApplication.job?.jobCode || String(jobApplicationId);
+  const jobTitle = jobApplication.job?.title || null;
   const candidateName = jobApplication.cv?.name || null;
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 30);
@@ -128,7 +136,7 @@ export async function createBusinessReferralInvoice({ jobApplicationId, amount, 
     currency: 'VND',
     status: BILLING_INVOICE_STATUS.UNPAID,
     dueDate: dueDateOnly,
-    description: buildInvoiceDescription({ jobCode, candidateName, jobApplicationId }),
+    description: buildInvoiceDescription({ jobCode, candidateName, jobTitle, jobApplicationId }),
   });
 
   invoice.invoiceCode = buildInvoiceCode(invoice.id);

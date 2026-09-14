@@ -11,6 +11,7 @@ import {
   ClipboardList,
   BookOpen,
   PieChart,
+  Building2,
 } from 'lucide-react';
 
 const PAGE_META = [
@@ -32,6 +33,7 @@ const PAGE_META = [
   { path: '/business/service-requests/company-profile', end: false, icon: ClipboardList, title: { vi: 'Thiết kế profile company', en: 'Company profile', ja: '会社プロフィール' } },
   { path: '/business/service-requests', end: false, icon: ClipboardList, title: { vi: 'Yêu cầu dịch vụ', en: 'Service requests', ja: 'サービス依頼' } },
   { path: '/business/billing', end: false, icon: Receipt, title: { vi: 'Thanh toán & Hóa đơn', en: 'Payments & Invoices', ja: '支払い・請求書' } },
+  { path: '/business/profile', end: true, icon: Building2, title: { vi: 'Thông tin doanh nghiệp', en: 'Business account', ja: '企業アカウント情報' } },
   { path: '/business', end: true, icon: LayoutDashboard, title: { vi: 'Dashboard', en: 'Dashboard', ja: 'ダッシュボード' } },
 ];
 
@@ -40,6 +42,7 @@ const VIEWPORT_LOCKED_PREFIXES = [
   '/business/billing',
   '/business/messages',
   '/business/scout',
+  '/business/insights',
 ];
 
 export function isBusinessViewportLockedPage(pathname) {

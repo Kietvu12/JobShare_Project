@@ -6,7 +6,7 @@ import TemplateSlidePanel from '../../component/BusinessBranding/TemplateSlidePa
 import BrandingAlertModal from '../../component/BusinessBranding/BrandingAlertModal';
 import BrandingLandingPageDashboard, { buildBrandingStatCards } from '../../component/BusinessBranding/BrandingLandingPageDashboard';
 import { isCompanyBuilderContent } from '../../utils/companyLandingPageSchema';
-import { HomepageSidebar } from './Homepage';
+import BusinessQuickActionsPageLayout from '../../component/Bussiness/BusinessQuickActionsPageLayout.jsx';
 import { useLanguage } from '../../context/LanguageContext';
 import { getBrandingCopy } from '../../i18n/businessAppI18n';
 
@@ -151,36 +151,31 @@ export default function BrandingLandingPages() {
               <span className="text-sm">{copy.loading}</span>
             </div>
           ) : (
-            <div className="grid h-full min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] xl:gap-3 xl:overflow-hidden">
-              <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col overflow-y-auto xl:h-full xl:pr-0.5">
-                <nav className="mb-2 flex shrink-0 flex-wrap items-center gap-1 text-[11px] text-slate-500 lg:text-xs">
-                  <Link to="/business" className="font-medium text-[#0077B6] hover:underline">
-                    {copy.breadcrumb.home}
-                  </Link>
-                  <ChevronRight className="h-3 w-3 shrink-0 text-slate-400" />
-                  <Link to="/business/saiyo" className="font-medium text-[#0077B6] hover:underline">
-                    {copy.breadcrumb.current}
-                  </Link>
-                  <ChevronRight className="h-3 w-3 shrink-0 text-slate-400" />
-                  <span className="font-semibold text-slate-700">{copy.landingPagesManageTitle}</span>
-                </nav>
-                <BrandingLandingPageDashboard
-                  copy={copy}
-                  language={language}
-                  statCards={statCards}
-                  statsEmpty={statsEmpty}
-                  hasPublishedPage={hasPublishedPage}
-                  displayPages={landingPages}
-                  activities={activities}
-                  setShowCreate={setShowCreate}
-                  openEditor={openEditor}
-                  copyPublicLink={copyPublicLink}
-                />
-              </div>
-              <div className="business-homepage-scroll scrollbar-hide flex h-full min-h-0 flex-col overflow-y-auto xl:pr-0.5">
-                <HomepageSidebar onNavigate={(path) => navigate(path)} />
-              </div>
-            </div>
+            <BusinessQuickActionsPageLayout onNavigate={(path) => navigate(path)}>
+              <nav className="mb-2 flex shrink-0 flex-wrap items-center gap-1 text-[11px] text-slate-500 lg:text-xs">
+                <Link to="/business" className="font-medium text-[#0077B6] hover:underline">
+                  {copy.breadcrumb.home}
+                </Link>
+                <ChevronRight className="h-3 w-3 shrink-0 text-slate-400" />
+                <Link to="/business/saiyo" className="font-medium text-[#0077B6] hover:underline">
+                  {copy.breadcrumb.current}
+                </Link>
+                <ChevronRight className="h-3 w-3 shrink-0 text-slate-400" />
+                <span className="font-semibold text-slate-700">{copy.landingPagesManageTitle}</span>
+              </nav>
+              <BrandingLandingPageDashboard
+                copy={copy}
+                language={language}
+                statCards={statCards}
+                statsEmpty={statsEmpty}
+                hasPublishedPage={hasPublishedPage}
+                displayPages={landingPages}
+                activities={activities}
+                setShowCreate={setShowCreate}
+                openEditor={openEditor}
+                copyPublicLink={copyPublicLink}
+              />
+            </BusinessQuickActionsPageLayout>
           )}
         </div>
       </div>

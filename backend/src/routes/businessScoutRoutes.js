@@ -11,6 +11,7 @@ router.get('/unlocked-candidates', businessScoutController.listUnlockedCandidate
 router.get('/unlocked-candidates/:id/nomination-jobs', businessScoutController.listNominationJobs);
 router.post('/unlocked-candidates/:id/nominate', businessScoutController.nominateCandidate);
 router.get('/unlocked-candidates/:id/cv-file-list', businessScoutController.getCandidateCvFileList);
+router.patch('/unlocked-candidates/:id/pipeline-status', businessScoutController.updateUnlockedCandidatePipeline);
 router.get('/unlocked-candidates/:id', businessScoutController.getUnlockedCandidate);
 router.post('/performance-requests/:id/similar-candidates', businessScoutController.requestSimilarCandidates);
 router.get('/performance-requests', businessScoutController.listPerformanceRequests);

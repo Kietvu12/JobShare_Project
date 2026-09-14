@@ -364,10 +364,29 @@ export async function createBusinessListing({ businessId, payload }) {
 
 export async function updateBusinessListing({ businessId, listingId, payload }) {
   const listing = await assertOwnedListing(businessId, listingId);
-  if (![MARKETPLACE_LISTING_STATUS.DRAFT, MARKETPLACE_LISTING_STATUS.REJECTED].includes(Number(listing.status))) {
-    const err = new Error('Chỉ sửa được listing ở trạng thái Nháp hoặc Từ chối');
+  const status = Number(listing.status);
+  const draftOrRejected = [MARKETPLACE_LISTING_STATUS.DRAFT, MARKETPLACE_LISTING_STATUS.REJECTED].includes(status);
+  const payloadKeys = Object.keys(payload || {}).filter((k) => payload[k] !== undefined);
+  const deadlineOnly =
+    payloadKeys.length === 1 && payloadKeys[0] === 'recruitmentDeadline';
+  const canExtendDeadline =
+    deadlineOnly
+    && [
+      MARKETPLACE_LISTING_STATUS.PENDING_APPROVAL,
+      MARKETPLACE_LISTING_STATUS.APPROVED,
+      MARKETPLACE_LISTING_STATUS.PUBLISHED,
+      MARKETPLACE_LISTING_STATUS.PAUSED,
+    ].includes(status);
+
+  if (!draftOrRejected && !canExtendDeadline) {
+    const err = new Error('Chỉ sửa được listing ở trạng thái Nháp hoặc Từ chối (hoặc gia hạn hạn tuyển khi đang đăng)');
     err.statusCode = 400;
     throw err;
+  }
+
+  if (canExtendDeadline) {
+    await listing.update({ recruitmentDeadline: payload.recruitmentDeadline || null });
+    return formatListing(await assertOwnedListing(businessId, listingId));
   }
 
   const transaction = await sequelize.transaction();
@@ -462,6 +481,76 @@ export async function closeBusinessListing({ businessId, listingId }) {
   return formatListing(await assertOwnedListing(businessId, listingId));
 }
 
+export async function getBusinessListingDetail({ businessId, listingId }) {
+  await assertOwnedListing(businessId, listingId);
+  await syncListingCounters(listingId);
+  const listing = await assertOwnedListing(businessId, listingId);
+  const jobId = listing.jobId;
+  const pipelineCount = await JobApplication.count({
+    where: {
+      jobId,
+      collaboratorId: { [Op.ne]: null },
+      status: { [Op.in]: MARKETPLACE_PIPELINE_STATUSES },
+    },
+  });
+  return {
+    listing: formatListing(listing),
+    stats: {
+      interestCount: listing.interestCount || 0,
+      nominationsCount: listing.nominationsCount || 0,
+      hiredCount: listing.hiredCount || 0,
+      pipelineCount,
+    },
+  };
+}
+
+export async function listBusinessListingInterests({
+  businessId,
+  listingId,
+  page = 1,
+  limit = 50,
+}) {
+  await assertOwnedListing(businessId, listingId);
+  const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100);
+  const safePage = Math.max(parseInt(page, 10) || 1, 1);
+  const offset = (safePage - 1) * safeLimit;
+
+  const { count, rows } = await BusinessCtvMarketplaceInterest.findAndCountAll({
+    where: { listingId },
+    include: [
+      {
+        model: Collaborator,
+        as: 'collaborator',
+        required: false,
+        attributes: ['id', 'name', 'email', 'code'],
+      },
+    ],
+    order: [['created_at', 'DESC']],
+    limit: safeLimit,
+    offset,
+  });
+
+  return {
+    interests: rows.map((r) => {
+      const j = r.toJSON();
+      return {
+        id: j.id,
+        collaboratorId: j.collaboratorId,
+        ctvName: j.collaborator?.name || '—',
+        ctvEmail: j.collaborator?.email || null,
+        ctvCode: j.collaborator?.code || null,
+        interestedAt: j.createdAt,
+      };
+    }),
+    pagination: {
+      total: count,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(count / safeLimit) || 0,
+    },
+  };
+}
+
 export async function listBusinessNominations({ businessId, page = 1, limit = 20, listingId, jobId }) {
   const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
   const safePage = Math.max(parseInt(page, 10) || 1, 1);
@@ -538,13 +627,15 @@ export async function listBusinessNominations({ businessId, page = 1, limit = 20
   };
 }
 
-export async function listBusinessSettlements({ businessId, page = 1, limit = 20 }) {
+export async function listBusinessSettlements({ businessId, page = 1, limit = 20, listingId }) {
   const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
   const safePage = Math.max(parseInt(page, 10) || 1, 1);
   const offset = (safePage - 1) * safeLimit;
+  const where = { businessId };
+  if (listingId) where.listingId = parseInt(listingId, 10);
 
   const { count, rows } = await BusinessCtvMarketplaceSettlement.findAndCountAll({
-    where: { businessId },
+    where,
     include: [
       { model: BusinessCtvMarketplaceListing, as: 'listing', required: false, include: [{ model: Job, as: 'job', attributes: ['id', 'title', 'jobCode'] }] },
     ],

@@ -2,6 +2,7 @@ import { Business } from '../../models/index.js';
 import {
   getScoutCandidateForBusiness,
   getUnlockedCandidateForBusiness,
+  updateUnlockedCandidatePipelineStatus,
   listScoutCandidatesForBusiness,
   listUnlockedCandidatesForBusiness,
   attachScoutCandidateToJob,
@@ -94,6 +95,31 @@ export const businessScoutController = {
       });
 
       res.json({ success: true, data });
+    } catch (error) {
+      return handleServiceError(res, error, next);
+    }
+  },
+
+  /**
+   * PATCH /api/business/scout/unlocked-candidates/:id/pipeline-status
+   */
+  updateUnlockedCandidatePipeline: async (req, res, next) => {
+    try {
+      const cvId = parseInt(req.params.id, 10);
+      if (Number.isNaN(cvId)) {
+        return res.status(400).json({ success: false, message: 'ID hồ sơ không hợp lệ' });
+      }
+      const { pipelineStatus } = req.body || {};
+      const data = await updateUnlockedCandidatePipelineStatus({
+        businessId: req.business.id,
+        cvId,
+        pipelineStatus,
+      });
+      res.json({
+        success: true,
+        message: 'Đã cập nhật trạng thái',
+        data,
+      });
     } catch (error) {
       return handleServiceError(res, error, next);
     }

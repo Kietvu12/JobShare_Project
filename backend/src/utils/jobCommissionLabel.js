@@ -63,20 +63,24 @@ function resolveCampaignPercentFromJob(job) {
 }
 
 function formatTierLine(jv, commissionType) {
-  const typeName = jv.type?.typename || jv.type?.name || 'Phí';
-  const valueRefName = jv.valueRef?.valuename || jv.valueRef?.name || '';
-  const label = valueRefName ? `${typeName}: ${valueRefName}` : typeName;
+  const typeName = String(jv.type?.typename || jv.type?.name || '').trim();
+  const valueRefName = String(jv.valueRef?.valuename || jv.valueRef?.name || '').trim();
+  const genericType = !typeName || /^ph[ií]$/i.test(typeName) || typeName.toLowerCase() === 'commission';
+  const label = valueRefName || typeName || 'Phí';
+  const labelWithType = valueRefName && typeName && !genericType && !valueRefName.toLowerCase().startsWith(typeName.toLowerCase())
+    ? `${typeName}: ${valueRefName}`
+    : label;
   const raw = jv.value;
   if (raw == null || raw === '') {
     const display = String(jv.viewOnCollaborator ?? jv.view_on_collaborator ?? '').trim();
-    return display ? `${label}: ${display}` : label;
+    return display ? `${labelWithType}: ${display}` : labelWithType;
   }
   const num = parseFloat(String(raw));
-  if (!Number.isFinite(num)) return `${label}: ${raw}`;
+  if (!Number.isFinite(num)) return `${labelWithType}: ${raw}`;
   if (commissionType === 'percent') {
-    return `${label}: ${num}% thu nhập năm`;
+    return `${labelWithType}: ${num}% thu nhập năm`;
   }
-  return `${label}: ${Number(num).toLocaleString('vi-VN')} Y`;
+  return `${labelWithType}: ${Number(num).toLocaleString('vi-VN')} Y`;
 }
 
 /**

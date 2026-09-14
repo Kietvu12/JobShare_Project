@@ -5,7 +5,6 @@ import {
   Search,
   ChevronDown,
   Star,
-  MoreHorizontal,
   Filter,
   Briefcase,
   Coins,
@@ -26,6 +25,10 @@ import apiService from '../../services/api'
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
 import { useLanguage } from '../../context/LanguageContext'
 import { getMessageWsViews } from '../../i18n/businessAppI18n'
+import {
+  getJobApplicationStatusLabelByLanguage,
+  getJobApplicationStatusOptionsByLanguage,
+} from '../../utils/jobApplicationStatus'
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 const BRAND = '#0077B6'
@@ -34,8 +37,8 @@ const CTV_TAB_INDEX = 0
 const WS_TAB_INDEX = 1
 
 const TABS = [
-  { label: 'CTV', key: 'ctv' },
-  { label: 'WS', key: 'ws' },
+  { label: 'Đối tác tuyển dụng', shortLabel: 'Đối tác', key: 'ctv' },
+  { label: 'WS', shortLabel: 'WS', key: 'ws' },
 ]
 
 const messageStyles = `
@@ -118,15 +121,6 @@ const WsLogo = ({ size = 28 }) => (
   </div>
 )
 
-const CompanyLogo = ({ size = 28 }) => (
-  <div
-    className="flex shrink-0 items-center justify-center rounded-full bg-slate-800 font-bold text-white"
-    style={{ width: size, height: size, fontSize: size * 0.28 }}
-  >
-    DN
-  </div>
-)
-
 const InfoCard = ({ title, children }) => (
   <div className="border-b border-slate-100 px-3 py-2.5">
     <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{title}</div>
@@ -152,22 +146,30 @@ const CtvConvItem = ({ conv, active, onClick }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`flex w-full items-start gap-2 border-b border-slate-100 px-2.5 py-2.5 text-left transition-colors ${
+    className={`flex w-full items-start gap-2.5 border-b border-slate-100 px-3 py-3 text-left transition-colors ${
       active
         ? 'border-l-[3px] border-l-[#0077B6] bg-[#e8f4fa]/70'
         : 'border-l-[3px] border-l-transparent hover:bg-slate-50/80'
     }`}
   >
-    <Avatar initials={conv.initials} bg={conv.bg} color={conv.color} size={32} />
+    <Avatar initials={conv.initials} bg={conv.bg} color={conv.color} size={36} />
     <div className="min-w-0 flex-1">
-      <div className="text-[11px] font-semibold text-slate-900">{conv.ctvName} (CTV)</div>
-      <div className="mt-0.5 text-[10px] text-slate-600">Ứng viên: {conv.candidate}</div>
-      <div className="mt-0.5 truncate text-[10px] text-slate-400">JD: {conv.job}</div>
+      <div className="truncate text-xs font-semibold text-slate-900">{conv.ctvName}</div>
+      <div className="mt-0.5 truncate text-[11px] text-slate-600">
+        {conv.candidate}
+        <span className="text-slate-300"> · </span>
+        <span className="text-slate-500">{conv.jobShort}</span>
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+        {conv.statusLabel ? <Tag>{conv.statusLabel}</Tag> : null}
+        <span className="text-[10px] text-slate-400">{conv.time}</span>
+      </div>
     </div>
-    <div className="flex shrink-0 flex-col items-end gap-1">
-      <span className="text-[9px] text-slate-400">{conv.time}</span>
-      {conv.statusLabel ? <Tag>{conv.statusLabel}</Tag> : null}
-    </div>
+    {conv.unread > 0 ? (
+      <span className="mt-0.5 flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">
+        {conv.unread > 99 ? '99+' : conv.unread}
+      </span>
+    ) : null}
   </button>
 )
 
@@ -199,6 +201,9 @@ const Message = () => {
   const [selectedNominationId, setSelectedNominationId] = useState(null)
   const [nominationsLoading, setNominationsLoading] = useState(false)
   const [ctvSearch, setCtvSearch] = useState('')
+  const [ctvStatusFilter, setCtvStatusFilter] = useState('')
+  const [unreadByApp, setUnreadByApp] = useState({})
+  const [listingFeeLabel, setListingFeeLabel] = useState('')
   const [tabBadges, setTabBadges] = useState({ ctv: 0, ws: 0 })
   const [successMsg, setSuccessMsg] = useState('')
 
@@ -255,24 +260,31 @@ const Message = () => {
     enabled: isWsTab,
   })
 
+  const loadUnreadCounts = useCallback(async () => {
+    try {
+      const map = await apiService.getBusinessUnreadMessagesByApplication()
+      setUnreadByApp(map || {})
+      const total = Object.values(map || {}).reduce((sum, n) => sum + (Number(n) || 0), 0)
+      setTabBadges((prev) => ({ ...prev, ctv: total }))
+    } catch {
+      setUnreadByApp({})
+    }
+  }, [])
+
   const loadNominations = useCallback(async () => {
     setNominationsLoading(true)
     try {
-      const res = await apiService.getBusinessCandidateSharingNominations({
-        page: 1,
-        limit: 50,
-      })
+      const res = await apiService.getBusinessCandidateSharingNominations({ page: 1, limit: 80 })
+      await loadUnreadCounts()
       if (res?.success) {
-        const list = res.data?.nominations || []
-        setNominations(list)
-        setTabBadges((prev) => ({ ...prev, ctv: list.length }))
+        setNominations(res.data?.nominations || [])
       }
     } catch {
       setNominations([])
     } finally {
       setNominationsLoading(false)
     }
-  }, [])
+  }, [loadUnreadCounts])
 
   const loadWsBadge = useCallback(async () => {
     try {
@@ -321,22 +333,32 @@ const Message = () => {
     }
   }, [searchParams, urlWsView])
 
+  const statusFilterOptions = useMemo(
+    () => getJobApplicationStatusOptionsByLanguage(language),
+    [language],
+  )
+
   const ctvConversations = useMemo(() => {
     const q = ctvSearch.trim().toLowerCase()
     return nominations
       .filter((n) => {
+        if (ctvStatusFilter && String(n.status) !== String(ctvStatusFilter)) return false
         if (!q) return true
+        const statusText = getJobApplicationStatusLabelByLanguage(n.status, language)
         const hay = [
           n.candidateName,
           n.ctvName,
           n.jobTitle,
           n.jobCode,
+          statusText,
           n.statusLabel,
         ].filter(Boolean).join(' ').toLowerCase()
         return hay.includes(q)
       })
       .map((n) => {
         const colors = avatarColorForId(n.ctvId || n.id)
+        const unread = Number(unreadByApp[n.id] || unreadByApp[String(n.id)] || 0)
+        const jobShort = n.jobCode || (n.jobTitle ? String(n.jobTitle).slice(0, 28) : '—')
         return {
           id: n.id,
           ctvName: n.ctvName || '—',
@@ -344,13 +366,20 @@ const Message = () => {
           bg: colors.bg,
           color: colors.color,
           candidate: n.candidateName || '—',
-          job: n.jobCode ? `${n.jobTitle} (${n.jobCode})` : (n.jobTitle || '—'),
+          jobShort,
           time: formatDateShort(n.appliedAt),
-          statusLabel: n.statusLabel,
+          statusLabel: getJobApplicationStatusLabelByLanguage(n.status, language) || n.statusLabel,
+          unread,
           raw: n,
         }
       })
-  }, [nominations, ctvSearch])
+      .sort((a, b) => {
+        if (b.unread !== a.unread) return b.unread - a.unread
+        const ta = new Date(a.raw.appliedAt || 0).getTime()
+        const tb = new Date(b.raw.appliedAt || 0).getTime()
+        return tb - ta
+      })
+  }, [nominations, ctvSearch, ctvStatusFilter, unreadByApp, language])
 
   const selectedNomination = useMemo(
     () => nominations.find((n) => n.id === selectedNominationId) || null,
@@ -390,7 +419,28 @@ const Message = () => {
       loadApplicationDetail(selectedNomination.id, selectedNomination)
     }
     loadNominations()
-  }, [loadApplicationDetail, loadNominations, selectedNomination])
+    loadUnreadCounts()
+  }, [loadApplicationDetail, loadNominations, loadUnreadCounts, selectedNomination])
+
+  useEffect(() => {
+    let cancelled = false
+    const listingId = selectedNomination?.listingId
+    if (!listingId) {
+      setListingFeeLabel('')
+      return undefined
+    }
+    ;(async () => {
+      try {
+        const res = await apiService.getBusinessCandidateSharingListing(listingId)
+        if (!cancelled && res?.success) {
+          setListingFeeLabel(res.data?.listing?.feeLabel || '')
+        }
+      } catch {
+        if (!cancelled) setListingFeeLabel('')
+      }
+    })()
+    return () => { cancelled = true }
+  }, [selectedNomination?.listingId])
 
   const handleTabChange = (i) => {
     setActiveTab(i)
@@ -443,6 +493,13 @@ const Message = () => {
 
   const handleSelectNomination = (id) => {
     setSelectedNominationId(id)
+    setUnreadByApp((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      delete next[String(id)]
+      return next
+    })
+    loadUnreadCounts()
     const next = new URLSearchParams(searchParams)
     next.set('nominationId', String(id))
     next.set('tab', 'ctv')
@@ -463,7 +520,7 @@ const Message = () => {
             </div>
           )}
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(200px,34vh)_minmax(0,1fr)] overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm md:grid-cols-[minmax(200px,240px)_minmax(0,1fr)] md:grid-rows-1 lg:grid-cols-[minmax(200px,240px)_minmax(0,1fr)_minmax(200px,240px)]">
+          <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(200px,34vh)_minmax(0,1fr)] overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm md:grid-cols-[minmax(240px,290px)_minmax(0,1fr)] md:grid-rows-1 lg:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_minmax(240px,280px)]">
             {/* LEFT */}
             <div className="flex min-h-0 flex-col overflow-hidden border-slate-200 lg:border-r">
               <div className="flex shrink-0 border-b border-slate-200">
@@ -472,16 +529,17 @@ const Message = () => {
                     key={tab.key}
                     type="button"
                     onClick={() => handleTabChange(i)}
-                    className={`relative flex-1 py-2.5 text-center text-[11px] font-semibold transition-colors ${
+                    className={`relative flex-1 py-3 text-center text-xs font-semibold transition-colors sm:text-[13px] ${
                       activeTab === i
-                        ? 'border-b-2 border-[#0077B6] text-[#0077B6]'
-                        : 'border-b-2 border-transparent text-slate-500 hover:text-slate-700'
+                        ? 'border-b-[3px] border-[#0077B6] bg-[#e8f4fa]/40 text-[#0077B6]'
+                        : 'border-b-[3px] border-transparent text-slate-500 hover:bg-slate-50/80 hover:text-slate-800'
                     }`}
                   >
-                    {tab.label}
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="sm:hidden">{tab.shortLabel || tab.label}</span>
                     {tabBadges[tab.key] > 0 && (
-                      <span className="absolute right-2 top-1 min-w-[14px] rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
-                        {tabBadges[tab.key]}
+                      <span className="absolute right-2 top-1.5 min-w-[18px] rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                        {tabBadges[tab.key] > 99 ? '99+' : tabBadges[tab.key]}
                       </span>
                     )}
                   </button>
@@ -556,20 +614,19 @@ const Message = () => {
                         className={searchInputClass}
                       />
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className="flex flex-1 items-center justify-between rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[10px] font-medium text-slate-600"
+                    <div className="relative">
+                      <Filter className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" aria-hidden />
+                      <select
+                        value={ctvStatusFilter}
+                        onChange={(e) => setCtvStatusFilter(e.target.value)}
+                        className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-8 text-[11px] font-medium text-slate-700"
                       >
-                        Tất cả trạng thái
-                        <ChevronDown className="h-3 w-3 text-slate-400" />
-                      </button>
-                      <button
-                        type="button"
-                        className="flex items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-600"
-                      >
-                        <Filter className="h-3.5 w-3.5" />
-                      </button>
+                        <option value="">Tất cả trạng thái</option>
+                        {statusFilterOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                     </div>
                   </div>
                   <div className="msg-scrollbar min-h-0 flex-1 overflow-y-auto">
@@ -641,72 +698,63 @@ const Message = () => {
               <div className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-[#f8fafc] lg:border-r lg:border-slate-200">
                 {selectedNomination ? (
                   <>
-                    <div className="shrink-0 border-b border-slate-100 bg-white px-3 py-2">
-                      <div className="flex flex-wrap items-center gap-2">
+                    <div className="shrink-0 border-b border-slate-100 bg-white px-3 py-2.5 sm:px-4">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Avatar
+                          initials={getInitials(selectedNomination.ctvName)}
+                          bg={avatarColorForId(selectedNomination.ctvId).bg}
+                          color={avatarColorForId(selectedNomination.ctvId).color}
+                          size={40}
+                        />
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-[11px] font-semibold text-slate-900 sm:text-xs">
-                              Đơn tiến cử <strong>#{selectedNomination.id}</strong>
+                            <span className="text-sm font-semibold text-slate-900">{selectedNomination.ctvName || '—'}</span>
+                            <span className="text-[11px] text-slate-500">Cộng tác viên · Sàn CTV</span>
+                          </div>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-600">
+                            <span>
+                              Đơn tiến cử <strong className="font-semibold text-slate-800">#{selectedNomination.id}</strong>
                             </span>
-                            <Tag>{selectedNomination.statusLabel || msgCopy.statusDiscussing}</Tag>
+                            <Tag>
+                              {getJobApplicationStatusLabelByLanguage(selectedNomination.status, language)
+                                || selectedNomination.statusLabel}
+                            </Tag>
+                          </div>
+                          <div className="mt-1 text-[11px] text-slate-500">
+                            <button type="button" onClick={() => openCandidateDrawer('profile')} className="font-medium text-[#0077B6] hover:underline">
+                              {selectedNomination.candidateName || '—'}
+                            </button>
+                            <span className="text-slate-300"> · </span>
+                            <button
+                              type="button"
+                              onClick={openJobDrawer}
+                              disabled={!selectedNomination.jobId}
+                              className="font-medium text-[#0077B6] hover:underline disabled:text-slate-400"
+                            >
+                              {selectedNomination.jobTitle || '—'}
+                              {selectedNomination.jobCode ? ` (${selectedNomination.jobCode})` : ''}
+                            </button>
+                            <span className="text-slate-300"> · </span>
+                            {formatDateShort(selectedNomination.appliedAt)}
                           </div>
                         </div>
                         <button
                           type="button"
                           onClick={() => openCandidateDrawer('profile')}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 hover:bg-slate-50"
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
                         >
-                          <ExternalLink className="h-3 w-3" />
+                          <ExternalLink className="h-3.5 w-3.5" />
                           Chi tiết đơn
                         </button>
-                        <button type="button" className="rounded-lg p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-600">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </button>
                       </div>
-                    </div>
-
-                    <div className="grid shrink-0 grid-cols-1 gap-2 border-b border-slate-100 bg-white px-3 py-2 sm:grid-cols-3">
-                      {[
-                        { logo: <CompanyLogo size={24} />, label: msgCopy.parties.company, name: msgCopy.parties.you, sub: msgCopy.parties.companySub },
-                        { logo: <WsLogo size={24} />, label: 'WS (JobShare)', name: 'WS Team', sub: 'Talent Consultant' },
-                        {
-                          logo: (
-                            <Avatar
-                              initials={getInitials(selectedNomination.ctvName)}
-                              bg={avatarColorForId(selectedNomination.ctvId).bg}
-                              color={avatarColorForId(selectedNomination.ctvId).color}
-                              size={24}
-                            />
-                          ),
-                          label: 'CTV',
-                          name: selectedNomination.ctvName || '—',
-                          sub: msgCopy.parties.ctvSub,
-                        },
-                      ].map((p) => (
-                        <div key={p.label} className="rounded-lg border border-slate-100 bg-slate-50/80 px-2 py-1.5">
-                          <div className="mb-1 flex items-center gap-2">
-                            {p.logo}
-                            <span className="text-[9px] font-semibold text-slate-500">{p.label}</span>
-                          </div>
-                          <div className="text-[10px] font-semibold text-slate-900">{p.name}</div>
-                          <div className="text-[9px] text-slate-400">{p.sub}</div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="shrink-0 border-b border-slate-100 bg-[#f1f5f9]/80 px-3 py-1.5 text-[10px] leading-relaxed text-slate-600">
-                      <strong className="font-semibold text-slate-700">{msgCopy.candidate}</strong> {selectedNomination.candidateName || '—'}
-                      {' · '}
-                      <strong className="font-semibold text-slate-700">{msgCopy.position}</strong> {selectedNomination.jobTitle || '—'}
-                      {selectedNomination.jobCode ? ` (${selectedNomination.jobCode})` : ''}
-                      {' · '}
-                      <strong className="font-semibold text-slate-700">Ngày:</strong> {formatDateShort(selectedNomination.appliedAt)}
                     </div>
 
                     <div className="flex min-h-0 flex-1 flex-col">
                       <NominationChat
                         key={selectedNomination.id}
                         embeddedPanel
+                        disableBusinessFreeStatusChange
+                        contactBarVariant="subtle"
                         jobApplicationId={selectedNomination.id}
                         userType="business"
                         currentStatus={selectedNomination.status}
@@ -783,7 +831,10 @@ const Message = () => {
                 <div className="msg-scrollbar min-h-0 flex-1 overflow-y-auto">
                   <InfoCard title={msgCopy.infoCards.nominationInfo}>
                     <div className="text-[11px] font-semibold text-slate-900">#{selectedNomination.id}</div>
-                    <Tag>{selectedNomination.statusLabel || '—'}</Tag>
+                    <Tag>
+                      {getJobApplicationStatusLabelByLanguage(selectedNomination.status, language)
+                        || selectedNomination.statusLabel || '—'}
+                    </Tag>
                   </InfoCard>
                   <InfoCard title={msgCopy.infoCards.candidateInfo}>
                     <div className="flex gap-2">
@@ -841,12 +892,19 @@ const Message = () => {
                       </div>
                     </div>
                   </InfoCard>
-                  <InfoCard title={msgCopy.infoCards.rewardInfo}>
-                    <div className="flex items-center gap-2">
+                  <InfoCard title="Phí giới thiệu">
+                    <div className="flex items-start gap-2">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
                         <Coins className="h-4 w-4 text-emerald-600" />
                       </div>
-                      <p className="text-[10px] leading-relaxed text-slate-500">Chi tiết phí thưởng tại Sàn CTV.</p>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-900">
+                          {listingFeeLabel || '—'}
+                        </p>
+                        <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
+                          Phí áp dụng cho JD đăng trên Sàn CTV (đơn tiến cử này).
+                        </p>
+                      </div>
                     </div>
                   </InfoCard>
                 </div>
@@ -942,6 +1000,9 @@ const Message = () => {
                     <NominationChat
                       jobApplicationId={drawerApp.id}
                       userType="business"
+                      disableBusinessFreeStatusChange
+                      contactBarVariant="subtle"
+                      embeddedPanel
                       currentStatus={drawerApp.status}
                       cvStorageId={drawerApp.cvStorageId || drawerApp.cvId || null}
                       introCandidateName={drawerApp.candidateName || '—'}

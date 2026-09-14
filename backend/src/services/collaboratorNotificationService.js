@@ -286,7 +286,7 @@ export const collaboratorNotificationService = {
       content: `JD "${jobTitle || '—'}" đã được WS duyệt và đăng lên Sàn CTV.`,
       jobId,
       url: listingId
-        ? `/business/candidate-sharing?tab=jobs&listingId=${listingId}`
+        ? `/business/candidate-sharing/listings/${listingId}`
         : '/business/candidate-sharing?tab=jobs',
     });
   },
@@ -300,7 +300,7 @@ export const collaboratorNotificationService = {
       content: `JD "${jobTitle || '—'}" chưa được duyệt lên Sàn CTV.${suffix}`,
       jobId: null,
       url: listingId
-        ? `/business/candidate-sharing?tab=jobs&listingId=${listingId}`
+        ? `/business/candidate-sharing/listings/${listingId}`
         : '/business/candidate-sharing?tab=jobs',
     });
   },

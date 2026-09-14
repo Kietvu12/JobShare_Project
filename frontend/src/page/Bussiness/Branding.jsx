@@ -16,7 +16,7 @@ import BrandingAlertModal from '../../component/BusinessBranding/BrandingAlertMo
 import BrandingServiceIntakeModal from '../../component/BusinessBranding/BrandingServiceIntakeModal'
 import { getBillingServiceKeyFromIntake } from '../../utils/serviceRequestNoteDisplay'
 import { getServiceByKey } from '../../utils/businessServiceRequestCatalog'
-import { HomepageSidebar } from './Homepage'
+import BusinessQuickActionsPageLayout from '../../component/Bussiness/BusinessQuickActionsPageLayout.jsx'
 import { useLanguage } from '../../context/LanguageContext'
 import {
   getBrandingCopy,
@@ -543,24 +543,18 @@ const Branding = () => {
               <span className="text-sm">{copy.loading}</span>
             </div>
           ) : (
-            <div className="grid h-full min-h-0 flex-1 grid-cols-1 items-stretch gap-2.5 xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] xl:gap-3 xl:overflow-hidden">
-              <div className="business-homepage-scroll scrollbar-hide flex min-h-0 flex-col overflow-y-auto xl:h-full xl:pr-0.5">
-                <BrandingOverviewMain
-                  onNavigate={handleNavigate}
-                  onCardCta={handleCardCta}
-                  onConsultation={handleConsultation}
-                  requestLoadingKey={requestLoadingKey}
-                  copy={copy}
-                  servicePackages={servicePackages}
-                  hasCreatedLandingPages={hasCreatedLandingPages}
-                  onManageLandingPages={handleManageLandingPages}
-                />
-              </div>
-
-              <div className="business-homepage-scroll scrollbar-hide flex h-full min-h-0 flex-col overflow-y-auto xl:pr-0.5">
-                <HomepageSidebar onNavigate={handleNavigate} />
-              </div>
-            </div>
+            <BusinessQuickActionsPageLayout onNavigate={handleNavigate}>
+              <BrandingOverviewMain
+                onNavigate={handleNavigate}
+                onCardCta={handleCardCta}
+                onConsultation={handleConsultation}
+                requestLoadingKey={requestLoadingKey}
+                copy={copy}
+                servicePackages={servicePackages}
+                hasCreatedLandingPages={hasCreatedLandingPages}
+                onManageLandingPages={handleManageLandingPages}
+              />
+            </BusinessQuickActionsPageLayout>
           )}
         </div>
       </div>

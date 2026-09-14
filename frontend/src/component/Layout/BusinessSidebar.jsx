@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   ClipboardCheck,
   GitBranch,
+  LayoutTemplate,
   User,
   Users,
   Users2,
@@ -35,6 +36,7 @@ const I18N = {
     candidateScoutCredit: 'Scout Trực Tiếp',
     candidateScoutPerformance: 'Scout Ủy Thác',
     applications: 'Quản lý ứng viên',
+    landingPageManagement: 'Quản lý Landing Page',
     services: 'Dịch vụ',
     scout: 'Scout Trực Tiếp',
     saiyo: 'Thương hiệu Tuyển dụng',
@@ -67,6 +69,7 @@ const I18N = {
     candidateScoutCredit: 'Direct Scout',
     candidateScoutPerformance: 'Managed Scout',
     applications: 'Candidate selection',
+    landingPageManagement: 'Landing page management',
     services: 'Services',
     scout: 'Direct Scout',
     saiyo: 'Employer Branding',
@@ -99,6 +102,7 @@ const I18N = {
     candidateScoutCredit: 'ダイレクトスカウト',
     candidateScoutPerformance: 'おまかせスカウト',
     applications: '選考管理',
+    landingPageManagement: 'LP管理',
     services: 'サービス',
     scout: 'ダイレクトスカウト',
     saiyo: '採用ブランディング',
@@ -147,6 +151,14 @@ const NAV_SECTIONS = [
       { id: 'jobs', icon: ClipboardCheck, path: '/business/jobs', label: 'jobManagement' },
       { id: 'candidates', icon: User, path: '/business/candidates', label: 'candidateManagement' },
       { id: 'applications', icon: GitBranch, path: '/business/applications', label: 'applications' },
+      {
+        id: 'landing-pages',
+        icon: LayoutTemplate,
+        path: '/business/saiyo/landing-pages',
+        label: 'landingPageManagement',
+        end: true,
+        alsoActivePrefixes: ['/business/saiyo/pages'],
+      },
     ],
   },
   {
@@ -155,7 +167,7 @@ const NAV_SECTIONS = [
     items: [
       { id: 'scout-direct', icon: Coins, path: '/business/scout/direct', label: 'candidateScoutCredit' },
       { id: 'scout-managed', icon: UserPlus, path: '/business/scout/managed', label: 'candidateScoutPerformance' },
-      { id: 'saiyo', icon: Users, path: '/business/saiyo', label: 'saiyo' },
+      { id: 'saiyo', icon: Users, path: '/business/saiyo', label: 'saiyo', end: true },
       { id: 'candidate-sharing', icon: Users2, path: '/business/candidate-sharing', label: 'partnerCTV' },
       { id: 'knowledge', icon: BookOpen, path: '/business/knowledge', label: 'knowledgeHub' },
       { id: 'insights', icon: PieChart, path: '/business/insights', label: 'insights' },
@@ -279,6 +291,9 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
   const { companyName = '' } = businessUser || {};
 
   const isActive = (item) => {
+    if (item.alsoActivePrefixes?.some((prefix) => pathname.startsWith(prefix))) {
+      return true;
+    }
     if (item.end) return pathname === item.path;
     return pathname === item.path || pathname.startsWith(`${item.path}/`);
   };

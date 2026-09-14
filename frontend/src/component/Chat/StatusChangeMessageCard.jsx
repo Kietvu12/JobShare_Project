@@ -49,6 +49,30 @@ const StatusChangeMessageCard = ({
   const hasTags = tagList.length > 0;
   const hasPayment = isPaidStatus && paymentAmount;
 
+  if (variant === 'compact') {
+    return (
+      <div className="mx-auto w-full max-w-[min(100%,280px)] rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-center shadow-none">
+        <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+          {t.chatStatusUpdateBadge || 'Trạng thái'}
+        </p>
+        <p className="mt-0.5 text-[11px] font-semibold leading-snug text-slate-800">{localizedStatus}</p>
+        {hasPayment ? (
+          <p className="mt-1 text-[10px] text-slate-600">
+            {t.chatPaymentAmountLabel}: <span className="font-semibold">{paymentAmount}</span>
+          </p>
+        ) : null}
+        {hasReason ? (
+          <p className="mt-1 text-left text-[10px] leading-snug text-slate-600 whitespace-pre-wrap">
+            {String(reason).trim()}
+          </p>
+        ) : null}
+        {formatDate && createdAt ? (
+          <p className="mt-1 text-[10px] text-slate-400">{formatDate(createdAt)}</p>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div
       className="max-w-[min(100%,320px)] overflow-hidden rounded-xl border shadow-sm"

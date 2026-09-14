@@ -11,15 +11,15 @@ import {
   ChevronDown,
   Loader2,
   X,
-  TrendingUp,
-  TrendingDown,
+  Download,
+  Receipt,
 } from 'lucide-react';
 import apiService from '../../services/api';
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy';
 import { useLanguage } from '../../context/LanguageContext';
-import { getBillingPaymentTabs, getBillingRequestTabs } from '../../i18n/businessAppI18n';
-import BillingPaymentDetailPanel, { PaymentTypeIcon, formatPaymentDescription } from '../../component/Bussiness/BillingPaymentDetailPanel';
-import BillingRequestDetailPanel from '../../component/Bussiness/BillingRequestDetailPanel';
+import { getBillingPaymentTabs, getBillingInvoiceTabs } from '../../i18n/businessAppI18n';
+import BillingPaymentDetailPanel, { PaymentTypeIcon } from '../../component/Bussiness/BillingPaymentDetailPanel';
+import BillingInvoiceDetailPanel from '../../component/Bussiness/BillingInvoiceDetailPanel';
 
 const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif";
 const BRAND = '#0077B6';
@@ -74,16 +74,15 @@ export default function Billing() {
   const billingCopy = copy.billing;
   const commonCopy = copy.common;
   const paymentTabDefs = useMemo(() => getBillingPaymentTabs(language), [language]);
-  const requestTabDefs = useMemo(() => getBillingRequestTabs(language), [language]);
-  const [viewMode, setViewMode] = useState('requests');
+  const invoiceTabDefs = useMemo(() => getBillingInvoiceTabs(language), [language]);
+
+  const [viewMode, setViewMode] = useState('payments');
   const [loading, setLoading] = useState(true);
-  const [paymentsLoading, setPaymentsLoading] = useState(false);
-  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [listLoading, setListLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [dashboard, setDashboard] = useState(null);
-  const [payments, setPayments] = useState([]);
-  const [requests, setRequests] = useState([]);
+  const [rows, setRows] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [tabCounts, setTabCounts] = useState({});
   const [activeTab, setActiveTab] = useState('all');
@@ -92,7 +91,7 @@ export default function Billing() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [selectedPayment, setSelectedPayment] = useState(null);
-  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -108,57 +107,37 @@ export default function Billing() {
     }
   }, [billingCopy.loadFailed]);
 
-  const loadPayments = useCallback(async () => {
-    setPaymentsLoading(true);
+  const loadList = useCallback(async () => {
+    setListLoading(true);
     try {
+      const scope = viewMode === 'invoices' ? 'invoices' : 'payments';
       const res = await apiService.getBusinessBillingInvoices({
         page,
         limit,
+        scope,
         tab: activeTab === 'all' ? undefined : activeTab,
         search: search || undefined,
       });
       if (res?.success) {
-        const rows = res.data?.payments || res.data?.invoices || [];
-        setPayments(rows);
+        const list = res.data?.payments || res.data?.invoices || [];
+        setRows(list);
         setPagination(res.data?.pagination || null);
         setTabCounts(res.data?.tabCounts || {});
       }
     } catch {
-      setPayments([]);
+      setRows([]);
     } finally {
-      setPaymentsLoading(false);
+      setListLoading(false);
     }
-  }, [page, limit, activeTab, search]);
-
-  const loadRequests = useCallback(async () => {
-    setRequestsLoading(true);
-    try {
-      const res = await apiService.getBusinessBillingRequests({
-        page,
-        limit,
-        tab: activeTab === 'all' ? undefined : activeTab,
-        search: search || undefined,
-      });
-      if (res?.success) {
-        setRequests(res.data?.requests || []);
-        setPagination(res.data?.pagination || null);
-        setTabCounts(res.data?.tabCounts || {});
-      }
-    } catch {
-      setRequests([]);
-    } finally {
-      setRequestsLoading(false);
-    }
-  }, [page, limit, activeTab, search]);
+  }, [page, limit, activeTab, search, viewMode]);
 
   useEffect(() => {
     loadDashboard();
   }, [loadDashboard]);
 
   useEffect(() => {
-    if (viewMode === 'invoices') loadPayments();
-    else loadRequests();
-  }, [viewMode, loadPayments, loadRequests]);
+    loadList();
+  }, [loadList]);
 
   useEffect(() => {
     setActiveTab('all');
@@ -166,7 +145,7 @@ export default function Billing() {
     setSearchInput('');
     setSearch('');
     setSelectedPayment(null);
-    setSelectedRequest(null);
+    setSelectedInvoice(null);
   }, [viewMode]);
 
   useEffect(() => {
@@ -178,12 +157,9 @@ export default function Billing() {
   }, [searchInput]);
 
   const paymentSummary = dashboard?.paymentSummary;
-  const requestTabCounts = useMemo(
-    () => ({ ...(dashboard?.requestTabCounts || {}), ...tabCounts }),
-    [dashboard?.requestTabCounts, tabCounts],
-  );
+  const invoiceSummary = dashboard?.invoiceArchiveSummary;
   const totalPages = pagination?.totalPages || 1;
-  const listLoading = viewMode === 'invoices' ? paymentsLoading : requestsLoading;
+  const hasSelection = viewMode === 'payments' ? !!selectedPayment : !!selectedInvoice;
 
   const pageNumbers = useMemo(() => {
     const pages = [];
@@ -192,32 +168,24 @@ export default function Billing() {
     return pages;
   }, [totalPages]);
 
-  const paymentTabs = paymentTabDefs.map((tab) => ({
+  const filterTabs = (viewMode === 'invoices' ? invoiceTabDefs : paymentTabDefs).map((tab) => ({
     ...tab,
     count: tabCounts[tab.key] ?? 0,
   }));
-
-  const requestTabs = requestTabDefs.map((tab) => ({
-    ...tab,
-    count: tabCounts[tab.key] ?? requestTabCounts[tab.key] ?? 0,
-  }));
-
-  const activeFilterTabs = viewMode === 'invoices' ? paymentTabs : requestTabs;
-
-  const formatRequestContent = (row) => {
-    if (row.candidate && row.candidate !== '—') return row.candidate;
-    if (row.jd && row.jd !== '—') return row.jd;
-    return '—';
-  };
 
   const handleSummaryFilter = (tabKey) => {
     setActiveTab(tabKey);
     setPage(1);
   };
 
-  const handleViewModeChange = (mode) => {
-    setViewMode(mode);
+  const handlePaymentConfirmed = (updated) => {
+    setSuccessMsg(billingCopy.confirmPaidSuccess);
+    setSelectedPayment(updated);
+    loadList();
+    loadDashboard();
   };
+
+  const stopRowClick = (e) => e.stopPropagation();
 
   if (loading && !dashboard) {
     return (
@@ -253,49 +221,35 @@ export default function Billing() {
         ) : null}
 
         <header className="flex shrink-0 flex-wrap items-center justify-between gap-2">
-          <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
-            <button
-              type="button"
-              onClick={() => navigate('/business')}
-              className="transition hover:text-[#0077B6]"
-            >
-              {copy.jobs.breadcrumb.home}
-            </button>
-            <span className="mx-1.5 text-slate-400">&gt;</span>
-            <span className="font-medium text-slate-700">{billingCopy.title}</span>
-          </nav>
-          <div className="flex shrink-0 flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => navigate('/business/service-requests/credit')}
-              className="rounded-lg border border-[#0077B6]/35 bg-[#e8f4fa] px-3 py-1.5 text-[10px] font-bold text-[#0077B6] sm:text-[11px]"
-            >
-              {billingCopy.createCreditRequest}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/business/service-requests')}
-              className="rounded-lg px-3 py-1.5 text-[10px] font-bold text-white sm:text-[11px]"
-              style={{ background: BRAND }}
-            >
-              {billingCopy.createServiceRequest}
-            </button>
+          <div>
+            <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
+              <button
+                type="button"
+                onClick={() => navigate('/business')}
+                className="transition hover:text-[#0077B6]"
+              >
+                {copy.jobs.breadcrumb.home}
+              </button>
+              <span className="mx-1.5 text-slate-400">&gt;</span>
+              <span className="font-medium text-slate-700">{billingCopy.title}</span>
+            </nav>
+            <p className="mt-0.5 text-[10px] text-slate-500 sm:text-[11px]">{billingCopy.subtitle}</p>
           </div>
         </header>
 
-        <div className="flex shrink-0 gap-1 rounded-lg border border-slate-200 bg-white p-1">
+        <div className="flex shrink-0 gap-4 border-b border-slate-200">
           {[
-            { key: 'requests', label: billingCopy.viewRequests },
-            { key: 'invoices', label: billingCopy.viewInvoices },
+            { key: 'payments', label: billingCopy.tabPayments },
+            { key: 'invoices', label: billingCopy.tabInvoices },
           ].map((item) => (
             <button
               key={item.key}
               type="button"
-              onClick={() => handleViewModeChange(item.key)}
-              className={`flex-1 rounded-md px-3 py-1.5 text-[10px] font-semibold transition-colors sm:text-[11px] ${
+              onClick={() => setViewMode(item.key)}
+              className={`-mb-px border-b-2 px-1 pb-2 text-[11px] font-semibold transition-colors sm:text-xs ${
                 viewMode === item.key
-                  ? 'bg-[#0077B6] text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-50'
+                  ? 'border-[#0077B6] text-[#0077B6]'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
               }`}
             >
               {item.label}
@@ -303,125 +257,112 @@ export default function Billing() {
           ))}
         </div>
 
-        {viewMode === 'requests' ? (
+        {viewMode === 'payments' ? (
           <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
             <SummaryCard
-              icon={FilePenLine}
+              icon={FileWarning}
               iconBg="#fee2e2"
               iconColor="#dc2626"
               accent="#dc2626"
-              title={billingCopy.requestSummary.waiting}
-              value={requestTabCounts.waiting ?? 0}
+              title={billingCopy.paymentSummary.unpaid}
+              value={paymentSummary?.unpaid?.count ?? 0}
+              subValue={paymentSummary?.unpaid?.amountLabel}
               linkLabel={commonCopy.viewDetails}
-              onLink={() => handleSummaryFilter('waiting')}
+              onLink={() => handleSummaryFilter('unpaid')}
             />
             <SummaryCard
               icon={FilePenLine}
               iconBg="#ffedd5"
               iconColor="#ea580c"
               accent="#ea580c"
-              title={billingCopy.requestSummary.processing}
-              value={requestTabCounts.processing ?? 0}
+              title={billingCopy.paymentSummary.processing}
+              value={paymentSummary?.processing?.count ?? 0}
+              subValue={paymentSummary?.processing?.amountLabel}
               linkLabel={commonCopy.viewDetails}
               onLink={() => handleSummaryFilter('processing')}
             />
             <SummaryCard
               icon={FileCheck2}
-              iconBg="#dcfce7"
-              iconColor="#16a34a"
-              accent="#16a34a"
-              title={billingCopy.requestSummary.done}
-              value={requestTabCounts.done ?? 0}
+              iconBg="#fecaca"
+              iconColor="#b91c1c"
+              accent="#b91c1c"
+              title={billingCopy.paymentSummary.overdue}
+              value={paymentSummary?.overdue?.count ?? 0}
+              subValue={paymentSummary?.overdue?.amountLabel}
               linkLabel={commonCopy.viewDetails}
-              onLink={() => handleSummaryFilter('done')}
+              onLink={() => handleSummaryFilter('overdue')}
             />
             <SummaryCard
               icon={Wallet}
               iconBg="#e8f4fa"
               iconColor="#0077B6"
               accent="#0077B6"
-              title={billingCopy.requestSummary.total}
-              value={requestTabCounts.all ?? 0}
-              linkLabel={commonCopy.viewDetails}
-              onLink={() => handleSummaryFilter('all')}
+              title={billingCopy.paymentSummary.totalDue}
+              value={paymentSummary?.totalDue?.amountLabel || '0 VND'}
+              subValue={`${paymentSummary?.totalDue?.count ?? 0} khoản`}
             />
           </div>
         ) : (
-        <div className="grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          <SummaryCard
-            icon={FileWarning}
-            iconBg="#fee2e2"
-            iconColor="#dc2626"
-            accent="#dc2626"
-            title={billingCopy.summary.unpaid}
-            value={paymentSummary?.unpaid?.count ?? 0}
-            subValue={paymentSummary?.unpaid?.amountLabel || '0 VND'}
-            linkLabel={commonCopy.viewDetails}
-            onLink={() => handleSummaryFilter('unpaid')}
-          />
-          <SummaryCard
-            icon={FilePenLine}
-            iconBg="#ffedd5"
-            iconColor="#ea580c"
-            accent="#ea580c"
-            title={billingCopy.summary.processing}
-            value={paymentSummary?.processing?.count ?? 0}
-            subValue={paymentSummary?.processing?.amountLabel || '0 VND'}
-            linkLabel={commonCopy.viewDetails}
-            onLink={() => handleSummaryFilter('processing')}
-          />
-          <SummaryCard
-            icon={FileCheck2}
-            iconBg="#dcfce7"
-            iconColor="#16a34a"
-            accent="#16a34a"
-            title={billingCopy.summary.paid}
-            value={paymentSummary?.paid?.count ?? 0}
-            subValue={paymentSummary?.paid?.amountLabel || '0 VND'}
-            linkLabel={commonCopy.viewDetails}
-            onLink={() => handleSummaryFilter('paid')}
-          />
-          <SummaryCard
-            icon={Wallet}
-            iconBg="#e8f4fa"
-            iconColor="#0077B6"
-            accent="#0077B6"
-            title={billingCopy.summary.monthlyCost}
-            value={paymentSummary?.monthlyCost?.amountLabel || '0 VND'}
-            subValue={
-              <span className="inline-flex items-center gap-1">
-                {billingCopy.summary.vsLastMonth}
-                {paymentSummary?.monthlyCost?.changeDirection === 'down' ? (
-                  <TrendingDown className="h-3.5 w-3.5 text-emerald-600" />
-                ) : (
-                  <TrendingUp className="h-3.5 w-3.5 text-rose-500" />
-                )}
-                {Math.abs(paymentSummary?.monthlyCost?.changePercent ?? 0)}%
-              </span>
-            }
-          />
-        </div>
+          <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
+            <SummaryCard
+              icon={Receipt}
+              iconBg="#e8f4fa"
+              iconColor="#0077B6"
+              accent="#0077B6"
+              title={billingCopy.invoiceSummary.monthlyCount}
+              value={invoiceSummary?.monthlyCount?.count ?? 0}
+            />
+            <SummaryCard
+              icon={Wallet}
+              iconBg="#dcfce7"
+              iconColor="#16a34a"
+              accent="#16a34a"
+              title={billingCopy.invoiceSummary.monthlyValue}
+              value={invoiceSummary?.monthlyValue?.amountLabel || '0 VND'}
+            />
+            <SummaryCard
+              icon={FileCheck2}
+              iconBg="#dcfce7"
+              iconColor="#16a34a"
+              accent="#16a34a"
+              title={billingCopy.invoiceSummary.paidTotal}
+              value={invoiceSummary?.paidTotal?.amountLabel || '0 VND'}
+            />
+            <SummaryCard
+              icon={FilePenLine}
+              iconBg="#f1f5f9"
+              iconColor="#64748b"
+              title={billingCopy.invoiceSummary.invoiceCount}
+              value={invoiceSummary?.invoiceCount?.count ?? 0}
+            />
+          </div>
         )}
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-hidden xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div
+          className={`grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-hidden ${
+            hasSelection ? 'xl:grid-cols-[minmax(0,1fr)_min(420px,38vw)]' : 'xl:grid-cols-[minmax(0,1fr)_300px]'
+          }`}
+        >
           <div className="flex min-h-0 flex-col gap-2 overflow-hidden">
             <div className={`${CARD} flex min-h-0 flex-1 flex-col overflow-hidden p-3`}>
-              <div className="mb-2 flex shrink-0 flex-wrap gap-1.5">
-                {activeFilterTabs.map((tab) => (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => { setActiveTab(tab.key); setPage(1); }}
-                    className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors sm:text-[11px] ${
-                      activeTab === tab.key
-                        ? 'bg-[#0077B6] text-white'
-                        : 'border border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
-                    }`}
-                  >
-                    {tab.label}{tab.key !== 'all' ? ` (${tab.count})` : ''}
-                  </button>
-                ))}
-              </div>
+              {filterTabs.length > 1 ? (
+                <div className="mb-2 flex shrink-0 flex-wrap gap-1.5">
+                  {filterTabs.map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => { setActiveTab(tab.key); setPage(1); }}
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors sm:text-[11px] ${
+                        activeTab === tab.key
+                          ? 'bg-slate-800 text-white'
+                          : 'border border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+                      }`}
+                    >
+                      {tab.label}{tab.key !== 'all' ? ` (${tab.count})` : ''}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
 
               <div className="mb-2 flex shrink-0 gap-2">
                 <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1.5">
@@ -429,7 +370,11 @@ export default function Billing() {
                   <input
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder={viewMode === 'invoices' ? billingCopy.searchPlaceholder : billingCopy.requestSearchPlaceholder}
+                    placeholder={
+                      viewMode === 'payments'
+                        ? billingCopy.paymentSearchPlaceholder
+                        : billingCopy.invoiceSearchPlaceholder
+                    }
                     className="min-w-0 flex-1 border-0 bg-transparent text-[10px] outline-none sm:text-[11px]"
                   />
                 </div>
@@ -449,120 +394,124 @@ export default function Billing() {
                     <Loader2 className="h-5 w-5 animate-spin text-[#0077B6]" />
                   </div>
                 ) : null}
-                {viewMode === 'requests' ? (
-                <table className="w-full min-w-[680px] border-collapse text-[10px] sm:text-[11px]">
-                  <thead className="sticky top-0 z-[1] bg-white">
-                    <tr className="border-b border-slate-200 text-left text-[10px] font-semibold text-slate-400">
-                      {billingCopy.requestTableHeaders.map((h) => (
-                        <th key={h || 'action'} className="px-2 py-2 font-semibold">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {requests.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-2 py-8 text-center text-[11px] text-slate-400">
-                          {billingCopy.emptyRequests}
-                        </td>
+
+                {viewMode === 'payments' ? (
+                  <table className="w-full min-w-[760px] border-collapse text-[10px] sm:text-[11px]">
+                    <thead className="sticky top-0 z-[1] bg-white">
+                      <tr className="border-b border-slate-200 text-left text-[10px] font-semibold text-slate-400">
+                        {billingCopy.paymentTableHeaders.map((h) => (
+                          <th key={h || 'action'} className="px-2 py-2 font-semibold">{h}</th>
+                        ))}
                       </tr>
-                    ) : requests.map((row) => {
-                      const isSelected = selectedRequest?.id === row.id;
-                      const content = formatRequestContent(row);
-                      return (
-                        <tr
-                          key={row.id || row.requestCode}
-                          onClick={() => setSelectedRequest(row)}
-                          className={`cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50 ${
-                            isSelected ? 'bg-[#e8f4fa]/60' : ''
-                          }`}
-                        >
-                          <td className="px-2 py-2 align-top">
-                            <div className="font-semibold text-[#0077B6]">{row.requestCode}</div>
-                            <div className="mt-0.5 text-[9px] text-slate-400 sm:text-[10px]">{row.created}</div>
-                          </td>
-                          <td className="px-2 py-2 align-top">
-                            <div className="flex items-center gap-1.5">
-                              <PaymentTypeIcon type={row.type} />
-                              <span className="font-medium text-slate-800">{row.type}</span>
-                            </div>
-                          </td>
-                          <td className="max-w-[180px] px-2 py-2 align-top text-slate-600">
-                            <span className="line-clamp-2">{content}</span>
-                          </td>
-                          <td className="px-2 py-2 align-top">
-                            <span
-                              className="inline-block rounded-full px-2 py-0.5 text-[9px] font-semibold sm:text-[10px]"
-                              style={{ background: row.statusBg, color: row.statusColor }}
-                            >
-                              {row.status}
-                            </span>
-                          </td>
-                          <td className="whitespace-nowrap px-2 py-2 align-top text-slate-600">{row.ws || '—'}</td>
-                          <td className="px-2 py-2 align-top">
-                            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                    </thead>
+                    <tbody>
+                      {rows.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-2 py-8 text-center text-[11px] text-slate-400">
+                            {billingCopy.emptyPayments}
                           </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                      ) : rows.map((row) => {
+                        const isSelected = selectedPayment?.id === row.id;
+                        return (
+                          <tr
+                            key={row.id || row.paymentCode}
+                            onClick={() => setSelectedPayment(row)}
+                            className={`cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50 ${
+                              isSelected ? 'bg-[#e8f4fa]/60' : ''
+                            }`}
+                          >
+                            <td className="px-2 py-2 align-top">
+                              <div className="font-semibold text-[#0077B6]">{row.paymentCode}</div>
+                            </td>
+                            <td className="px-2 py-2 align-top">
+                              <div className="flex items-center gap-1.5">
+                                <PaymentTypeIcon type={row.type} />
+                                <span className="font-medium text-slate-800">{row.feeType || row.type}</span>
+                              </div>
+                            </td>
+                            <td className="max-w-[200px] px-2 py-2 align-top text-slate-600">
+                              <span className="line-clamp-2">{row.content || row.related}</span>
+                            </td>
+                            <td className="whitespace-nowrap px-2 py-2 align-top font-semibold text-slate-900">{row.amount}</td>
+                            <td className="whitespace-nowrap px-2 py-2 align-top text-slate-600">{row.deadline}</td>
+                            <td className="px-2 py-2 align-top">
+                              <span
+                                className="inline-block rounded-full px-2 py-0.5 text-[9px] font-semibold sm:text-[10px]"
+                                style={{ background: row.statusBg, color: row.statusColor }}
+                              >
+                                {row.statusLabel}
+                              </span>
+                            </td>
+                            <td className="px-2 py-2 align-top" onClick={stopRowClick}>
+                              <ChevronRight className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 ) : (
-                <table className="w-full min-w-[720px] border-collapse text-[10px] sm:text-[11px]">
-                  <thead className="sticky top-0 z-[1] bg-white">
-                    <tr className="border-b border-slate-200 text-left text-[10px] font-semibold text-slate-400">
-                      {billingCopy.tableHeaders.map((h) => (
-                        <th key={h || 'action'} className="px-2 py-2 font-semibold">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {payments.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-2 py-8 text-center text-[11px] text-slate-400">
-                          {billingCopy.emptyPayments}
-                        </td>
+                  <table className="w-full min-w-[720px] border-collapse text-[10px] sm:text-[11px]">
+                    <thead className="sticky top-0 z-[1] bg-white">
+                      <tr className="border-b border-slate-200 text-left text-[10px] font-semibold text-slate-400">
+                        {billingCopy.invoiceTableHeaders.map((h) => (
+                          <th key={h || 'action'} className="px-2 py-2 font-semibold">{h}</th>
+                        ))}
                       </tr>
-                    ) : payments.map((row) => {
-                      const isSelected = selectedPayment?.id === row.id;
-                      return (
-                        <tr
-                          key={row.id || row.paymentCode}
-                          onClick={() => setSelectedPayment(row)}
-                          className={`cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50 ${
-                            isSelected ? 'bg-[#e8f4fa]/60' : ''
-                          }`}
-                        >
-                          <td className="px-2 py-2 align-top">
-                            <div className="font-semibold text-[#0077B6]">{row.paymentCode}</div>
-                            <div className="mt-0.5 text-[9px] text-slate-400 sm:text-[10px]">{row.createdAt}</div>
-                          </td>
-                          <td className="px-2 py-2 align-top">
-                            <div className="flex items-center gap-1.5">
-                              <PaymentTypeIcon type={row.type} />
-                              <span className="font-medium text-slate-800">{row.type}</span>
-                            </div>
-                          </td>
-                          <td className="max-w-[160px] truncate px-2 py-2 align-top text-slate-600">
-                            {formatPaymentDescription(row.description, row.related)}
-                          </td>
-                          <td className="whitespace-nowrap px-2 py-2 align-top font-semibold text-slate-900">{row.amount}</td>
-                          <td className="whitespace-nowrap px-2 py-2 align-top text-slate-600">{row.deadline}</td>
-                          <td className="px-2 py-2 align-top">
-                            <span
-                              className="inline-block rounded-full px-2 py-0.5 text-[9px] font-semibold sm:text-[10px]"
-                              style={{ background: row.statusBg, color: row.statusColor }}
-                            >
-                              {row.statusLabel}
-                            </span>
-                          </td>
-                          <td className="px-2 py-2 align-top">
-                            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                    </thead>
+                    <tbody>
+                      {rows.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-2 py-8 text-center text-[11px] text-slate-400">
+                            {billingCopy.emptyInvoices}
                           </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                      ) : rows.map((row) => {
+                        const isSelected = selectedInvoice?.id === row.id;
+                        return (
+                          <tr
+                            key={row.id || row.invoiceCode}
+                            onClick={() => setSelectedInvoice(row)}
+                            className={`cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50 ${
+                              isSelected ? 'bg-[#e8f4fa]/60' : ''
+                            }`}
+                          >
+                            <td className="px-2 py-2 align-top font-semibold text-[#0077B6]">{row.invoiceCode}</td>
+                            <td className="max-w-[200px] px-2 py-2 align-top text-slate-600">
+                              <span className="line-clamp-2">{row.content || row.related}</span>
+                            </td>
+                            <td className="whitespace-nowrap px-2 py-2 align-top font-semibold">{row.amount}</td>
+                            <td className="whitespace-nowrap px-2 py-2 align-top text-slate-600">{row.issuedAt}</td>
+                            <td className="whitespace-nowrap px-2 py-2 align-top text-slate-600">{row.paidAt}</td>
+                            <td className="px-2 py-2 align-top">
+                              <span
+                                className="inline-block rounded-full px-2 py-0.5 text-[9px] font-semibold sm:text-[10px]"
+                                style={{ background: row.statusBg, color: row.statusColor }}
+                              >
+                                {row.statusLabel}
+                              </span>
+                            </td>
+                            <td className="px-2 py-2 align-top" onClick={stopRowClick}>
+                              {row.invoicePdfUrl ? (
+                                <a
+                                  href={row.invoicePdfUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-[#0077B6] hover:underline sm:text-[10px]"
+                                >
+                                  <Download className="h-3 w-3" />
+                                  PDF
+                                </a>
+                              ) : (
+                                <span className="text-[9px] text-slate-300">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 )}
               </div>
 
@@ -595,9 +544,7 @@ export default function Billing() {
                       {p}
                     </button>
                   ))}
-                  {totalPages > 5 ? (
-                    <span className="text-xs text-slate-400">+</span>
-                  ) : null}
+                  {totalPages > 5 ? <span className="text-xs text-slate-400">+</span> : null}
                   <button
                     type="button"
                     disabled={page >= totalPages}
@@ -621,34 +568,20 @@ export default function Billing() {
                 </div>
               </div>
             </div>
-
-            <div className={`${CARD} shrink-0 p-3`}>
-              <h3 className="mb-3 text-[11px] font-bold text-slate-800 sm:text-xs">{billingCopy.processTitle}</h3>
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-                {billingCopy.processSteps.map((step, index) => (
-                  <div key={step} className="flex items-start gap-2">
-                    <div
-                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                      style={{ background: BRAND }}
-                    >
-                      {index + 1}
-                    </div>
-                    <p className="pt-0.5 text-[10px] leading-snug text-slate-600 sm:text-[11px]">{step}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
-          {viewMode === 'invoices' ? (
+          {viewMode === 'payments' ? (
             <BillingPaymentDetailPanel
               payment={selectedPayment}
               onClose={() => setSelectedPayment(null)}
+              onConfirmed={handlePaymentConfirmed}
+              copy={billingCopy}
             />
           ) : (
-            <BillingRequestDetailPanel
-              request={selectedRequest}
-              onClose={() => setSelectedRequest(null)}
+            <BillingInvoiceDetailPanel
+              invoice={selectedInvoice}
+              onClose={() => setSelectedInvoice(null)}
+              copy={billingCopy}
             />
           )}
         </div>
