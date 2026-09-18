@@ -1594,6 +1594,14 @@ const apiService = {
     return handleResponse(response);
   },
 
+  getBusinessCandidateSharingListingByJobId: async (jobId) => {
+    const response = await fetch(
+      `${API_BASE_URL}/business/candidate-sharing/listings/by-job/${encodeURIComponent(String(jobId))}`,
+      { method: 'GET', headers: getAuthHeaders() }
+    );
+    return handleResponse(response);
+  },
+
   getBusinessCandidateSharingListingInterests: async (id, params = {}) => {
     const filtered = Object.fromEntries(
       Object.entries(params).filter(([, v]) => v != null && v !== '' && v !== 'undefined')
@@ -3956,6 +3964,35 @@ const apiService = {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ cvIds }),
+    });
+    return handleResponse(response);
+  },
+
+  getAdminScoutReserveList: async (params = {}) => {
+    const qs = new URLSearchParams();
+    if (params.search) qs.set('search', params.search);
+    if (params.page) qs.set('page', String(params.page));
+    if (params.limit) qs.set('limit', String(params.limit));
+    const response = await fetch(`${API_BASE_URL}/admin/scout-reserve?${qs}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getAdminScoutReserveDetail: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/admin/scout-reserve/${id}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  relistAdminScoutReserveCv: async (id, body = {}) => {
+    const response = await fetch(`${API_BASE_URL}/admin/scout-reserve/${id}/relist`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
     });
     return handleResponse(response);
   },

@@ -8,6 +8,7 @@ router.use(authenticateBusiness);
 router.get('/dashboard', businessCandidateSharingController.getDashboard);
 router.get('/platform-overview', businessCandidateSharingController.getPlatformOverview);
 router.get('/listings', businessCandidateSharingController.listListings);
+router.get('/listings/by-job/:jobId', businessCandidateSharingController.getListingByJob);
 router.get('/listings/:id', businessCandidateSharingController.getListing);
 router.get('/listings/:id/interests', businessCandidateSharingController.listListingInterests);
 router.post('/listings', businessCandidateSharingController.createListing);

@@ -1,8 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { getServiceRequestsCopy } from '../../i18n/businessApp/serviceRequests';
+import { formatCreditPanelNumber } from '../../i18n/businessApp/messages';
 import { Loader2, X } from 'lucide-react';
 import apiService from '../../services/api';
-
-const BRAND = '#0077B6';
+import {
+  BRAND,
+  BUSINESS_HP_TEXT,
+  BUSINESS_HOMEPAGE_TYPOGRAPHY_STYLES,
+  SR_BODY,
+  SR_CAPTION,
+  SR_SECTION,
+} from '../../utils/serviceRequestUi';
 
 export default function ServiceRequestModal({
   open,
@@ -10,7 +18,9 @@ export default function ServiceRequestModal({
   onClose,
   onSuccess,
   currentCredit,
+  language = 'vi',
 }) {
+  const m = useMemo(() => getServiceRequestsCopy(language).modal, [language]);
   const [note, setNote] = useState('');
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -38,7 +48,7 @@ export default function ServiceRequestModal({
       if (isCredit) {
         const creditAmount = Math.trunc(Number(amount));
         if (!Number.isFinite(creditAmount) || creditAmount <= 0) {
-          setError('Vui lòng nhập số credit cần nạp (lớn hơn 0).');
+          setError(m.errAmount);
           setSubmitting(false);
           return;
         }
@@ -50,7 +60,7 @@ export default function ServiceRequestModal({
           onSuccess?.(res.data, service);
           onClose();
         } else {
-          setError(res?.message || 'Không thể gửi yêu cầu nạp credit');
+          setError(res?.message || m.errCredit);
         }
       } else {
         const res = await apiService.createBusinessServiceRequest({
@@ -62,113 +72,118 @@ export default function ServiceRequestModal({
           onSuccess?.(res.data, service);
           onClose();
         } else {
-          setError(res?.message || 'Không thể gửi yêu cầu dịch vụ');
+          setError(res?.message || m.errService);
         }
       }
     } catch (err) {
-      setError(err?.message || 'Không thể gửi yêu cầu. Vui lòng thử lại.');
+      setError(err?.message || m.errGeneric);
     } finally {
       setSubmitting(false);
     }
   };
 
+  const fieldClass = `w-full rounded-lg border border-slate-200 px-3 py-2.5 outline-none focus:border-[#0077B6] focus:ring-1 focus:ring-[#0077B6] ${SR_BODY}`;
+
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/45 p-4"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
+    <>
+      <style>{BUSINESS_HOMEPAGE_TYPOGRAPHY_STYLES}</style>
       <div
-        className="w-full max-w-md rounded-xl border border-slate-200 bg-white shadow-xl"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/45 p-4"
+        role="dialog"
+        aria-modal="true"
+        onClick={onClose}
       >
-        <div className="flex items-start gap-3 border-b border-slate-100 px-4 py-3">
-          <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
-            style={{ background: service.iconBg }}
-          >
-            <Icon className="h-5 w-5" style={{ color: service.iconColor }} strokeWidth={2} />
+        <div
+          className="business-app-ui w-full max-w-md rounded-xl border border-slate-200 bg-white shadow-xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-start gap-3 border-b border-slate-100 px-4 py-3.5">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+              style={{ background: service.iconBg }}
+            >
+              <Icon className="h-5 w-5" style={{ color: service.iconColor }} strokeWidth={2} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className={SR_SECTION}>{service.title}</h2>
+              {isCredit && currentCredit != null ? (
+                <p className={`mt-0.5 ${SR_CAPTION}`}>
+                  {m.currentCredit}{' '}
+                  <span className="font-semibold text-slate-700">
+                    {formatCreditPanelNumber(currentCredit, language)}
+                  </span>
+                </p>
+              ) : null}
+            </div>
+            <button type="button" onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-50">
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="biz-ui-section text-slate-900">{service.title}</h2>
-            {isCredit && currentCredit != null ? (
-              <p className="biz-ui-caption mt-0.5 text-slate-500">
-                Credit hiện tại:{' '}
-                <span className="font-semibold text-slate-700">
-                  {Number(currentCredit).toLocaleString('vi-VN')}
-                </span>
-              </p>
+
+          <form onSubmit={handleSubmit} className="space-y-3.5 px-4 py-3.5">
+            <p className={`leading-relaxed text-slate-600 whitespace-pre-wrap ${SR_BODY}`}>
+              {service.description}
+            </p>
+
+            {isCredit ? (
+              <label className="block">
+                <span className={`mb-1.5 block font-semibold text-slate-700 ${SR_CAPTION}`}>{m.amountLabel}</span>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder={m.amountPlaceholder}
+                  className={fieldClass}
+                />
+              </label>
             ) : null}
-          </div>
-          <button type="button" onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-50">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3 px-4 py-3">
-          <p className="biz-ui-body leading-relaxed text-slate-600 whitespace-pre-wrap">
-            {service.description}
-          </p>
-
-          {isCredit ? (
             <label className="block">
-              <span className="biz-ui-caption mb-1 block font-semibold text-slate-700">Số credit cần nạp</span>
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="VD: 2000"
-                className="biz-ui-body w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-[#0077B6] focus:ring-1 focus:ring-[#0077B6]"
+              <span className={`mb-1.5 block font-semibold text-slate-700 ${SR_CAPTION}`}>
+                {m.noteLabel} {isCredit ? m.noteOptional : ''}
+              </span>
+              <textarea
+                rows={4}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder={
+                  isCredit
+                    ? m.notePlaceholderCredit
+                    : m.notePlaceholderService
+                }
+                className={`${fieldClass} resize-none`}
               />
             </label>
-          ) : null}
 
-          <label className="block">
-            <span className="biz-ui-caption mb-1 block font-semibold text-slate-700">
-              Ghi chú / mô tả thêm {isCredit ? '(tuỳ chọn)' : ''}
-            </span>
-            <textarea
-              rows={4}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder={
-                isCredit
-                  ? 'VD: Cần nạp gấp cho chiến dịch Scout tháng này…'
-                  : 'Mô tả nhu cầu, timeline, ngân sách dự kiến (nếu có)…'
-              }
-              className="biz-ui-body w-full resize-none rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-[#0077B6] focus:ring-1 focus:ring-[#0077B6]"
-            />
-          </label>
+            {error ? (
+              <p className={`rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700 ${SR_CAPTION}`}>
+                {error}
+              </p>
+            ) : null}
 
-          {error ? (
-            <p className="biz-ui-caption rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-rose-700">
-              {error}
-            </p>
-          ) : null}
-
-          <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="biz-ui-body flex-1 rounded-lg border border-slate-200 bg-white py-2 font-semibold text-slate-600 hover:bg-slate-50"
-            >
-              Đóng
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="biz-ui-body flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 font-bold text-white disabled:opacity-60"
-              style={{ background: BRAND }}
-            >
-              {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-              Gửi yêu cầu
-            </button>
-          </div>
-        </form>
+            <div className="flex gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={onClose}
+                className={`flex-1 rounded-lg border border-slate-200 bg-white py-2.5 font-semibold text-slate-600 hover:bg-slate-50 ${BUSINESS_HP_TEXT.button}`}
+              >
+                {m.close}
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 font-bold text-white disabled:opacity-60 ${BUSINESS_HP_TEXT.buttonPrimary}`}
+                style={{ background: BRAND }}
+              >
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {m.submit}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

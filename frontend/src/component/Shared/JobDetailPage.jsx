@@ -2177,22 +2177,6 @@ const JobDetailPage = ({
           {renderAiSupplementPopupPanel(aiSupplementPopupCvId, aiSupplementPopupCvDetail)}
         </div>
       )}
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #cbd5e0;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #a0aec0;
-        }
-      `}</style>
       <div
         className={`max-w-full min-w-0 w-full h-full overflow-x-hidden lg:overflow-hidden ${showMobileSidebar ? 'overflow-hidden overscroll-none touch-none' : 'overflow-y-auto'}`}
       >

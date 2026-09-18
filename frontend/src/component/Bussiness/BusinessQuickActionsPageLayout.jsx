@@ -6,25 +6,24 @@ import BusinessNotificationsPanel from './BusinessNotificationsPanel.jsx';
 import { useLanguage } from '../../context/LanguageContext';
 
 /**
- * Layout 2 cột giống Homepage: nội dung chính + cột phải (thông báo + Thao tác nhanh).
- * Desktop: widget sidebar; mobile: FAB góc màn hình.
+ * Layout nội dung chính full-width. Thao tác nhanh + thông báo: sidebar DN (Recruitment Health).
+ * Giữ props sidebar* để tương thích (mặc định tắt cột phải).
  */
 export default function BusinessQuickActionsPageLayout({
   children,
   onNavigate,
   sidebarExtra = null,
-  /** Nội dung trên khối thông báo (vd. biểu đồ trang Đơn tiến cử). */
+  /** @deprecated Đưa nội dung vào main thay vì cột phải */
   sidebarExtraTop = null,
   showQuickActionsPanel = false,
   showNotifications = true,
-  showSidebar = true,
-  /** Desktop: widget dưới cột phải. Tắt khi đã có panel đầy đủ. */
+  showSidebar = false,
   showSidebarFloating = undefined,
-  showMobileFab = true,
+  showMobileFab = false,
   className = '',
   mainClassName = '',
   sidebarClassName = '',
-  /** 'default' (220–252px) | 'wide' (300–400px) — trang có biểu đồ sidebar */
+  /** 'default' (220–252px) | 'narrow' (188–228px) | 'wide' (300–400px) */
   sidebarSize = 'default',
 }) {
   const navigate = useNavigate();
@@ -34,7 +33,9 @@ export default function BusinessQuickActionsPageLayout({
   const sidebarFloating = showSidebarFloating ?? !showQuickActionsPanel;
   const sidebarGridCols = sidebarSize === 'wide'
     ? 'xl:grid-cols-[minmax(0,1fr)_minmax(300px,400px)]'
-    : 'xl:grid-cols-[minmax(0,1fr)_minmax(220px,252px)]';
+    : sidebarSize === 'narrow'
+      ? 'xl:grid-cols-[minmax(0,1fr)_minmax(188px,228px)]'
+      : 'xl:grid-cols-[minmax(0,1fr)_minmax(220px,252px)]';
 
   return (
     <>

@@ -1952,26 +1952,6 @@ const mockJobs = [
 
   return (
     <>
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #cbd5e0;
-          border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #a0aec0;
-        }
-        .custom-scrollbar {
-          scrollbar-width: thin;
-          scrollbar-color: #cbd5e0 #f1f1f1;
-        }
-      `}</style>
       <div className="w-full h-full min-h-0 overflow-hidden flex flex-col">
         {/* Job Listings with Scroll */}
         <div ref={listContainerRef} className="flex-1 overflow-y-auto overscroll-contain px-0.5 sm:pr-2 min-h-0 relative">

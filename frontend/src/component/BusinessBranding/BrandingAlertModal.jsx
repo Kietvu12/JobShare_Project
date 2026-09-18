@@ -2,7 +2,11 @@ import React, { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import brandingAlertIcon from '../../../Gemini_Generated_Image_mc1m6rmc1m6rmc1m-Picsart-BackgroundRemover.png'
-import { BUSINESS_UI_FONT } from '../../utils/businessUiFont'
+import {
+  BUSINESS_HOMEPAGE_TYPOGRAPHY_STYLES,
+  BUSINESS_HP_TEXT,
+  BUSINESS_UI_FONT,
+} from '../../utils/businessHomepageTypography.js'
 
 const BRAND = '#0077B6'
 
@@ -53,8 +57,10 @@ export default function BrandingAlertModal({
   }
 
   return createPortal(
+    <>
+      <style>{BUSINESS_HOMEPAGE_TYPOGRAPHY_STYLES}</style>
     <div
-      className="fixed inset-0 z-[10050] flex items-center justify-center p-4"
+      className="business-app-ui fixed inset-0 z-[10050] flex items-center justify-center p-4"
       style={{ fontFamily: BUSINESS_UI_FONT }}
       role="dialog"
       aria-modal="true"
@@ -87,7 +93,7 @@ export default function BrandingAlertModal({
           {title ? (
             <h2
               id="branding-alert-title"
-              className="pr-8 text-base font-bold leading-snug text-slate-900 sm:text-lg"
+              className={`pr-8 font-bold leading-snug text-slate-900 ${BUSINESS_HP_TEXT.title}`}
               style={{ color: styles.accent }}
             >
               {title}
@@ -95,7 +101,7 @@ export default function BrandingAlertModal({
           ) : null}
 
           {message ? (
-            <p className={`whitespace-pre-line text-sm font-medium leading-relaxed text-slate-600 sm:text-[15px] ${title ? 'mt-3' : 'pr-8'}`}>
+            <p className={`whitespace-pre-line font-medium leading-relaxed text-slate-600 ${BUSINESS_HP_TEXT.bodyLg} ${title ? 'mt-3' : 'pr-8'}`}>
               {message}
             </p>
           ) : null}
@@ -108,7 +114,7 @@ export default function BrandingAlertModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                  className={`rounded-lg border border-slate-200 bg-white px-4 py-2 font-medium text-slate-600 hover:bg-slate-50 ${BUSINESS_HP_TEXT.button}`}
                 >
                   {cancelLabel}
                 </button>
@@ -116,7 +122,7 @@ export default function BrandingAlertModal({
               <button
                 type="button"
                 onClick={handleConfirm}
-                className={`rounded-lg px-4 py-2 text-sm font-semibold ${styles.button}`}
+                className={`rounded-lg px-4 py-2 font-semibold ${BUSINESS_HP_TEXT.buttonPrimary} ${styles.button}`}
               >
                 {confirmLabel}
               </button>
@@ -125,14 +131,15 @@ export default function BrandingAlertModal({
             <button
               type="button"
               onClick={onClose}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold ${styles.button}`}
+              className={`rounded-lg px-4 py-2 font-semibold ${BUSINESS_HP_TEXT.buttonPrimary} ${styles.button}`}
             >
               {confirmLabel}
             </button>
           )}
         </div>
       </div>
-    </div>,
+    </div>
+    </>,
     document.body,
   )
 }

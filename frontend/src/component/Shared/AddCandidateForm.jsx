@@ -3111,7 +3111,12 @@ const AddCandidateForm = ({
         });
       } catch (nominateError) {
         console.error('Error creating nomination:', nominateError);
-        notify.warning('CV đã được tạo thành công nhưng có lỗi khi tiến cử. Vui lòng thử lại.');
+        const existing = nominateError?.data?.data?.existingApplication;
+        if (nominateError?.status === 409 && existing) {
+          notify.warning(nominateError.message || 'Hồ sơ này đã có đơn tiến cử tương tự cho công việc này.');
+        } else {
+          notify.warning('CV đã được tạo thành công nhưng có lỗi khi tiến cử. Vui lòng thử lại.');
+        }
       }
     }
     if (response.success) {

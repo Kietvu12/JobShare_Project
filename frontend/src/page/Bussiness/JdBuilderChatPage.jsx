@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-/** Route cũ — chuyển về Quản lý JD (JobManagement + JobAiBuilderPanel). */
+/** Route cũ — redirect tới `/business/jobs/create` (UI: JobAiBuilderPage, typography theo Homepage). */
 const JdBuilderChatPage = () => {
   const navigate = useNavigate();
 

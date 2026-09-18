@@ -103,6 +103,36 @@ export const applicationsI18n = {
       showing: (start, end, total) => `${start} - ${end} / ${total} ứng viên`,
     },
     unreadMessages: (n) => `${n} tin mới`,
+    drawer: {
+      close: 'Đóng',
+      tabProfile: 'Hồ sơ ứng viên',
+      tabChat: 'Chat 3 bên',
+      loadingProfile: 'Đang tải hồ sơ...',
+      emptyContent: 'Không có nội dung hiển thị.',
+      chatFallbackTitle: 'Chat 3 bên',
+      interviewReminderTitle: 'Nhắc lịch phỏng vấn',
+      editInterviewSchedule: 'Sửa lịch phỏng vấn',
+      downloadOriginalCv: 'Tải CV gốc',
+      downloading: 'Đang tải...',
+      cvDownloadingOne: 'Đang tải file CV gốc.',
+      cvDownloadingMany: (count) => `Đang tải ${count} file CV gốc.`,
+      cvNoFile: 'Hồ sơ này chưa có file CV gốc để tải.',
+      cvDownloadError: 'Không thể tải CV gốc. Vui lòng thử lại.',
+      statusUpdateError: 'Không thể cập nhật trạng thái',
+      evaluationUpdateError: 'Không thể cập nhật đánh giá.',
+      evaluationUpdateErrorShort: 'Không thể cập nhật đánh giá',
+      invalidInterviewDateTime: 'Ngày giờ phỏng vấn không hợp lệ',
+      saveInterviewError: 'Không thể lưu lịch phỏng vấn.',
+      interviewUpdated: 'Đã cập nhật lịch phỏng vấn.',
+      interviewPassScheduled: 'Đã đánh giá: Đạt — đã tạo lịch phỏng vấn.',
+      profileAccess: {
+        scoutCredit: 'Hồ sơ đầy đủ (Scout Credit)',
+        scoutPerformance: 'Hồ sơ Scout Performance',
+        ctvMarketplace: 'Hồ sơ đầy đủ (tiến cử Sàn CTV)',
+        ctvScoutLockedNote:
+          'Doanh nghiệp xem được hồ sơ nhờ tiến cử Sàn CTV. Trên Scout vẫn hiển thị khóa cho đến khi mở bằng credit.',
+      },
+    },
   },
   en: {
     title: 'Candidate selection',
@@ -206,6 +236,36 @@ export const applicationsI18n = {
       showing: (start, end, total) => `${start} - ${end} / ${total} applications`,
     },
     unreadMessages: (n) => `${n} new message${n === 1 ? '' : 's'}`,
+    drawer: {
+      close: 'Close',
+      tabProfile: 'Candidate profile',
+      tabChat: 'Three-way chat',
+      loadingProfile: 'Loading profile...',
+      emptyContent: 'Nothing to display.',
+      chatFallbackTitle: 'Three-way chat',
+      interviewReminderTitle: 'Interview reminder',
+      editInterviewSchedule: 'Edit interview schedule',
+      downloadOriginalCv: 'Download original CV',
+      downloading: 'Downloading...',
+      cvDownloadingOne: 'Downloading original CV file.',
+      cvDownloadingMany: (count) => `Downloading ${count} original CV files.`,
+      cvNoFile: 'No original CV file is available for this profile.',
+      cvDownloadError: 'Could not download original CV. Please try again.',
+      statusUpdateError: 'Could not update status',
+      evaluationUpdateError: 'Could not update evaluation.',
+      evaluationUpdateErrorShort: 'Could not update evaluation',
+      invalidInterviewDateTime: 'Invalid interview date or time',
+      saveInterviewError: 'Could not save interview schedule.',
+      interviewUpdated: 'Interview schedule updated.',
+      interviewPassScheduled: 'Profile passed — interview schedule created.',
+      profileAccess: {
+        scoutCredit: 'Full profile (Scout Credit)',
+        scoutPerformance: 'Scout Performance profile',
+        ctvMarketplace: 'Full profile (CTV Marketplace referral)',
+        ctvScoutLockedNote:
+          'You can view this profile via CTV Marketplace referral. On Scout it stays locked until unlocked with credits.',
+      },
+    },
   },
   ja: {
     title: '選考管理',
@@ -309,6 +369,36 @@ export const applicationsI18n = {
       showing: (start, end, total) => `${start} - ${end} / ${total} 件`,
     },
     unreadMessages: (n) => `新着 ${n} 件`,
+    drawer: {
+      close: '閉じる',
+      tabProfile: '候補者プロフィール',
+      tabChat: '三者チャット',
+      loadingProfile: 'プロフィールを読み込み中...',
+      emptyContent: '表示する内容がありません。',
+      chatFallbackTitle: '三者チャット',
+      interviewReminderTitle: '面接リマインダー',
+      editInterviewSchedule: '面接日程を変更',
+      downloadOriginalCv: '原本CVをダウンロード',
+      downloading: 'ダウンロード中...',
+      cvDownloadingOne: '原本CVファイルをダウンロードしています。',
+      cvDownloadingMany: (count) => `原本CVファイル ${count} 件をダウンロードしています。`,
+      cvNoFile: 'このプロフィールにはダウンロード可能な原本CVがありません。',
+      cvDownloadError: '原本CVをダウンロードできませんでした。もう一度お試しください。',
+      statusUpdateError: 'ステータスを更新できませんでした',
+      evaluationUpdateError: '評価を更新できませんでした。',
+      evaluationUpdateErrorShort: '評価を更新できませんでした',
+      invalidInterviewDateTime: '面接日時が無効です',
+      saveInterviewError: '面接日程を保存できませんでした。',
+      interviewUpdated: '面接日程を更新しました。',
+      interviewPassScheduled: 'プロフィール合格 — 面接日程を作成しました。',
+      profileAccess: {
+        scoutCredit: 'フルプロフィール（Scout Credit）',
+        scoutPerformance: 'Scout委託プロフィール',
+        ctvMarketplace: 'フルプロフィール（CTVマーケット推薦）',
+        ctvScoutLockedNote:
+          'CTVマーケット推薦によりプロフィールを閲覧できます。Scout上はクレジットで開くまでロック表示のままです。',
+      },
+    },
   },
 };
 
@@ -352,6 +442,10 @@ export function getApplicationStageLabels(language) {
 
 export function getApplicationProfileReviewCopy(language) {
   return applicationsI18n[language]?.profileReview || applicationsI18n.vi.profileReview;
+}
+
+export function getApplicationDrawerCopy(language) {
+  return applicationsI18n[language]?.drawer || applicationsI18n.vi.drawer;
 }
 
 export function getApplicationSourceLabel(sourceType, language = 'vi') {

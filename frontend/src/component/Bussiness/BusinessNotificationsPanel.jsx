@@ -24,11 +24,6 @@ function getNotificationVisual(notification, localized) {
   };
 }
 
-const NOTIF_SCROLL_HIDE = `
-  .biz-notif-panel-scroll::-webkit-scrollbar { display: none; }
-  .biz-notif-panel-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-`;
-
 /**
  * Khối thông báo cột phải — dùng Homepage, Scout, Ứng viên, Sàn CTV, …
  */
@@ -92,7 +87,6 @@ export default function BusinessNotificationsPanel({ onNavigate, className = '' 
 
   return (
     <>
-      <style>{NOTIF_SCROLL_HIDE}</style>
     <div
       className={`flex min-h-[12rem] flex-1 flex-col rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:min-h-[14rem] sm:p-3.5 ${className}`}
     >

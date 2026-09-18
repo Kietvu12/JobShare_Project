@@ -1,5 +1,7 @@
 /** Job management page strings */
 
+import { jdBuilderI18n } from './jdBuilder.js';
+
 export const jobsI18n = {
   vi: {
     title: 'Quản lý JD',
@@ -25,6 +27,7 @@ export const jobsI18n = {
       last7d: '7 ngày qua',
       last30d: '30 ngày qua',
       last90d: '90 ngày qua',
+      categoryFallback: (id) => `Ngành #${id}`,
     },
     tabs: {
       all: 'Tất cả',
@@ -122,6 +125,7 @@ export const jobsI18n = {
       last7d: 'Last 7 days',
       last30d: 'Last 30 days',
       last90d: 'Last 90 days',
+      categoryFallback: (id) => `Industry #${id}`,
     },
     tabs: {
       all: 'All',
@@ -219,6 +223,7 @@ export const jobsI18n = {
       last7d: '過去7日',
       last30d: '過去30日',
       last90d: '過去90日',
+      categoryFallback: (id) => `業種 #${id}`,
     },
     tabs: {
       all: 'すべて',
@@ -293,6 +298,23 @@ export const jobsI18n = {
     },
   },
 };
+
+const DRAFT_PLACEHOLDER_TITLES = new Set(
+  ['vi', 'en', 'ja'].flatMap((lang) => {
+    const fromJobs = jobsI18n[lang]?.draft?.defaultTitle;
+    const fromBuilder = jdBuilderI18n[lang]?.defaultTitle;
+    return [fromJobs, fromBuilder].filter(Boolean);
+  }),
+);
+
+/** Tiêu đề nháp chat lưu theo ngôn ngữ lúc tạo — hiển thị theo locale UI khi vẫn là placeholder. */
+export function getDraftThreadDisplayTitle(rawTitle, language = 'vi') {
+  const trimmed = String(rawTitle || '').trim();
+  if (!trimmed || DRAFT_PLACEHOLDER_TITLES.has(trimmed)) {
+    return jobsI18n[language]?.draft?.defaultTitle || jobsI18n.vi.draft.defaultTitle;
+  }
+  return trimmed;
+}
 
 export function getJobStatusTabs(language) {
   const t = jobsI18n[language]?.tabs || jobsI18n.vi.tabs;

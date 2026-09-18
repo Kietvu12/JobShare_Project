@@ -30,6 +30,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { translations } from '../../translations/translations';
 import apiService from '../../services/api';
 import { getJobApplicationStatus, getJobApplicationStatusLabelByLanguage } from '../../utils/jobApplicationStatus';
+import { buildExistingNominationNoticeBody } from '../../utils/businessApplicationDisplay';
 import { isCvUnavailableForNomination, CV_STATUS_OVERDUE_6_MONTHS, CV_STATUS_NEW, isCvPromotedInactive } from '../../utils/cvStatus';
 import AddCandidateForm from '../../component/Shared/AddCandidateForm';
 import QuickCreateCandidateDrawer from './QuickCreateCandidateDrawer';
@@ -593,6 +594,12 @@ const NominationPageContent = ({ variant = 'agent' }) => {
       }
     } catch (error) {
       console.error('Error submitting nomination:', error);
+      const existing = error?.data?.data?.existingApplication;
+      if (error?.status === 409 && existing) {
+        const detail = buildExistingNominationNoticeBody(existing, language);
+        alert([error.message, detail].filter(Boolean).join('\n\n'));
+        return;
+      }
       alert(error.message || (isAdmin ? t.adminNominationErrorSubmit : 'Có lỗi xảy ra khi tiến cử'));
     } finally {
       setSubmitting(false);

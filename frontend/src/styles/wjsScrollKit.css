@@ -1,0 +1,172 @@
+/**
+ * WJS Scroll Kit — chuẩn bảng Sàn CTV (candidate-sharing / .ctv-scrollbar).
+ * Alias class giữ markup cũ; style thống nhất qua index.css.
+ */
+
+.wjs-scroll-kit,
+.business-homepage-scroll,
+.ctv-scrollbar,
+.msg-scrollbar,
+.scout-scrollbar,
+.candidate-scrollbar,
+.scout-modal-scroll,
+.scout-confirm-modal-scroll,
+.business-jobs-list-scroll,
+.knowledge-scrollbar,
+.knowledge-article-scroll,
+.billing-scroll,
+.billing-detail-scroll,
+.credit-pricing-modal-scroll,
+.custom-scrollbar,
+.admin-scout-picker-scroll,
+.landing-jobs-scroll,
+.landing-filter-scrollbar,
+.business-app-ui main {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.wjs-scroll-kit::-webkit-scrollbar,
+.business-homepage-scroll::-webkit-scrollbar,
+.ctv-scrollbar::-webkit-scrollbar,
+.msg-scrollbar::-webkit-scrollbar,
+.scout-scrollbar::-webkit-scrollbar,
+.candidate-scrollbar::-webkit-scrollbar,
+.scout-modal-scroll::-webkit-scrollbar,
+.scout-confirm-modal-scroll::-webkit-scrollbar,
+.business-jobs-list-scroll::-webkit-scrollbar,
+.knowledge-scrollbar::-webkit-scrollbar,
+.knowledge-article-scroll::-webkit-scrollbar,
+.billing-scroll::-webkit-scrollbar,
+.billing-detail-scroll::-webkit-scrollbar,
+.credit-pricing-modal-scroll::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar,
+.admin-scout-picker-scroll::-webkit-scrollbar,
+.landing-jobs-scroll::-webkit-scrollbar,
+.landing-filter-scrollbar::-webkit-scrollbar,
+.business-app-ui main::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.wjs-scroll-kit::-webkit-scrollbar-track,
+.business-homepage-scroll::-webkit-scrollbar-track,
+.ctv-scrollbar::-webkit-scrollbar-track,
+.msg-scrollbar::-webkit-scrollbar-track,
+.scout-scrollbar::-webkit-scrollbar-track,
+.candidate-scrollbar::-webkit-scrollbar-track,
+.scout-modal-scroll::-webkit-scrollbar-track,
+.scout-confirm-modal-scroll::-webkit-scrollbar-track,
+.business-jobs-list-scroll::-webkit-scrollbar-track,
+.knowledge-scrollbar::-webkit-scrollbar-track,
+.knowledge-article-scroll::-webkit-scrollbar-track,
+.billing-scroll::-webkit-scrollbar-track,
+.billing-detail-scroll::-webkit-scrollbar-track,
+.credit-pricing-modal-scroll::-webkit-scrollbar-track,
+.custom-scrollbar::-webkit-scrollbar-track,
+.admin-scout-picker-scroll::-webkit-scrollbar-track,
+.landing-jobs-scroll::-webkit-scrollbar-track,
+.landing-filter-scrollbar::-webkit-scrollbar-track,
+.business-app-ui main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.wjs-scroll-kit::-webkit-scrollbar-thumb,
+.business-homepage-scroll::-webkit-scrollbar-thumb,
+.ctv-scrollbar::-webkit-scrollbar-thumb,
+.msg-scrollbar::-webkit-scrollbar-thumb,
+.scout-scrollbar::-webkit-scrollbar-thumb,
+.candidate-scrollbar::-webkit-scrollbar-thumb,
+.scout-modal-scroll::-webkit-scrollbar-thumb,
+.scout-confirm-modal-scroll::-webkit-scrollbar-thumb,
+.business-jobs-list-scroll::-webkit-scrollbar-thumb,
+.knowledge-scrollbar::-webkit-scrollbar-thumb,
+.knowledge-article-scroll::-webkit-scrollbar-thumb,
+.billing-scroll::-webkit-scrollbar-thumb,
+.billing-detail-scroll::-webkit-scrollbar-thumb,
+.credit-pricing-modal-scroll::-webkit-scrollbar-thumb,
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.admin-scout-picker-scroll::-webkit-scrollbar-thumb,
+.landing-jobs-scroll::-webkit-scrollbar-thumb,
+.landing-filter-scrollbar::-webkit-scrollbar-thumb,
+.business-app-ui main::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.wjs-scroll-kit::-webkit-scrollbar-thumb:hover,
+.business-homepage-scroll::-webkit-scrollbar-thumb:hover,
+.ctv-scrollbar::-webkit-scrollbar-thumb:hover,
+.msg-scrollbar::-webkit-scrollbar-thumb:hover,
+.scout-scrollbar::-webkit-scrollbar-thumb:hover,
+.candidate-scrollbar::-webkit-scrollbar-thumb:hover,
+.scout-modal-scroll::-webkit-scrollbar-thumb:hover,
+.scout-confirm-modal-scroll::-webkit-scrollbar-thumb:hover,
+.business-jobs-list-scroll::-webkit-scrollbar-thumb:hover,
+.knowledge-scrollbar::-webkit-scrollbar-thumb:hover,
+.knowledge-article-scroll::-webkit-scrollbar-thumb:hover,
+.billing-scroll::-webkit-scrollbar-thumb:hover,
+.billing-detail-scroll::-webkit-scrollbar-thumb:hover,
+.credit-pricing-modal-scroll::-webkit-scrollbar-thumb:hover,
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.admin-scout-picker-scroll::-webkit-scrollbar-thumb:hover,
+.landing-jobs-scroll::-webkit-scrollbar-thumb:hover,
+.landing-filter-scrollbar::-webkit-scrollbar-thumb:hover,
+.business-app-ui main::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.scout-modal-scroll::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
+.business-jobs-ui .business-jd-preview-root {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+  overscroll-behavior: contain;
+}
+
+.business-jobs-ui .business-jd-preview-root::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Ẩn scrollbar nhưng vẫn scroll */
+.wjs-scroll-hide,
+.scrollbar-hide,
+.hide-scrollbar,
+.msg-scroll-hide,
+.ctv-onboard-scroll,
+.business-sidebar-scroll,
+.biz-notif-panel-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  scrollbar-gutter: auto;
+}
+
+.wjs-scroll-hide::-webkit-scrollbar,
+.scrollbar-hide::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar,
+.msg-scroll-hide::-webkit-scrollbar,
+.ctv-onboard-scroll::-webkit-scrollbar,
+.business-sidebar-scroll::-webkit-scrollbar,
+.biz-notif-panel-scroll::-webkit-scrollbar {
+  display: none;
+}

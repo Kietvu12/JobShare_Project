@@ -45,6 +45,20 @@ export function formatApplicationDateTimeLocalized(value, language = 'vi') {
   }
 }
 
+/** Một dòng ngày + giờ (bảng Quản lý ứng viên — tránh wrap giữa giờ và ngày). */
+export function formatApplicationInterviewDateLocalized(value, language = 'vi') {
+  if (!value) return '—';
+  try {
+    const d = new Date(value);
+    const locale = getDateLocale(language);
+    const dateStr = d.toLocaleDateString(locale);
+    const timeStr = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    return `${dateStr} · ${timeStr}`;
+  } catch {
+    return '—';
+  }
+}
+
 export function formatApplicationRelativeTimeLocalized(value, language = 'vi') {
   return formatBusinessRelativeTime(value, language);
 }
@@ -87,4 +101,22 @@ export function buildJobByIdMap(jobs = []) {
     if (job?.id != null) map[job.id] = job;
   });
   return map;
+}
+
+const EXISTING_NOMINATION_COPY = {
+  vi: { id: 'Mã đơn', job: 'JD', status: 'Trạng thái' },
+  en: { id: 'Application ID', job: 'JD', status: 'Status' },
+  ja: { id: '推薦ID', job: 'JD', status: 'ステータス' },
+};
+
+/** Mô tả đơn tiến cử đã tồn tại (409) — hiển thị trong alert/modal. */
+export function buildExistingNominationNoticeBody(existingApplication, language = 'vi') {
+  if (!existingApplication?.id) return '';
+  const c = EXISTING_NOMINATION_COPY[language] || EXISTING_NOMINATION_COPY.vi;
+  const jobTitle = getLocalizedJobTitle(existingApplication.job, language)
+    || existingApplication.job?.title
+    || '—';
+  const statusLabel = existingApplication.statusLabel
+    || getJobApplicationStatusLabelByLanguage(existingApplication.status, language);
+  return `${c.id}: #${existingApplication.id}\n${c.job}: ${jobTitle}\n${c.status}: ${statusLabel}`;
 }

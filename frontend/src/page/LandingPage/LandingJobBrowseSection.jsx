@@ -352,12 +352,6 @@ export default function LandingJobBrowseSection({ jobsBasePath, listQueryKey, ap
           )}
         </div>
       </div>
-      <style>{`
-        .landing-jobs-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 #ffffff; }
-        .landing-jobs-scroll::-webkit-scrollbar { width: 6px; }
-        .landing-jobs-scroll::-webkit-scrollbar-track { background: #ffffff; border-radius: 3px; }
-        .landing-jobs-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-      `}</style>
     </section>
   );
 }

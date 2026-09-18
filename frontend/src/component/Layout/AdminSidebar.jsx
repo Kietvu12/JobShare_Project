@@ -157,13 +157,6 @@ const AdminSidebar = () => {
       roles: [1, 2, 3] // All roles
     },
     { 
-      id: 'scout-performance', 
-      label: 'Scout Performance', 
-      icon: Users, 
-      path: '/admin/scout-performance',
-      roles: [1, 2]
-    },
-    { 
       id: 'bao-cao-thong-ke', 
       label: t.adminReport, 
       icon: BarChart3, 
@@ -212,15 +205,29 @@ const AdminSidebar = () => {
       path: '/admin/emails',
       roles: [1] // Only Super Admin
     },
+    {
+      id: 'quan-ly-doanh-nghiep',
+      label: t.adminSourceCompanyManagement,
+      icon: Building2,
+      path: '/admin/companies',
+      roles: [1],
+    },
   ];
 
-  // Menu doanh nghiệp — hiển thị cuối sidebar
+  // Menu doanh nghiệp — tách khối dưới sidebar
   const adminBusinessMenuItems = [
     {
-      id: 'business-credit-requests',
-      label: 'Nạp credit DN',
-      icon: Coins,
-      path: '/admin/business-credit-requests',
+      id: 'scout-direct',
+      label: t.adminSidebarScoutDirect || 'Scout trực tiếp',
+      icon: UserCheck,
+      path: '/admin/scout-reserve',
+      roles: [1, 2],
+    },
+    {
+      id: 'scout-delegated',
+      label: t.adminSidebarScoutDelegated || 'Scout Uỷ thác',
+      icon: Handshake,
+      path: '/admin/scout-performance',
       roles: [1, 2],
     },
     {
@@ -231,15 +238,23 @@ const AdminSidebar = () => {
       roles: [1, 2],
     },
     {
-      id: 'quan-ly-doanh-nghiep',
-      label: t.adminSourceCompanyManagement,
-      icon: Building2,
-      path: '/admin/companies',
-      roles: [1],
+      id: 'business-credit-requests',
+      label: t.adminSidebarTopUpCredit || 'Nạp Credit',
+      icon: Coins,
+      path: '/admin/business-credit-requests',
+      roles: [1, 2],
+    },
+    {
+      id: 'business-messages',
+      label: t.adminSidebarBusinessMessages || 'Tin nhắn với doanh nghiệp',
+      icon: MessageCircle,
+      path: '/admin/public-ctv-chat',
+      search: '?tab=business',
+      roles: [1, 2],
     },
     {
       id: 'quan-ly-tk-doanh-nghiep',
-      label: t.adminBusinessAccountManagement || 'Quản lý tài khoản DN (Business)',
+      label: t.adminBusinessAccountManagement || 'Quản lý tài khoản doanh nghiệp',
       icon: Factory,
       path: '/admin/business-accounts',
       roles: [1, 2],
@@ -325,12 +340,21 @@ const AdminSidebar = () => {
     });
   }
 
-  // Combine menu items (doanh nghiệp xuống cuối)
-  const allMenuItems = [
+  const primaryMenuItems = [
     ...menuItems,
     ...roleBasedMenuItems,
-    ...filterMenuByRole(adminBusinessMenuItems),
   ];
+
+  const businessMenuItems = filterMenuByRole(adminBusinessMenuItems);
+
+  const sidebarMenuSections = [
+    { items: primaryMenuItems },
+    {
+      items: businessMenuItems,
+      showDivider: businessMenuItems.length > 0,
+      sectionLabel: t.adminSidebarBusinessSection || 'Doanh nghiệp',
+    },
+  ].filter((section) => section.items.length > 0);
 
   const isActive = (path) => {
     if (path === '/admin') {
@@ -339,11 +363,42 @@ const AdminSidebar = () => {
     return location.pathname.startsWith(path);
   };
 
+  const getPublicChatTab = () => new URLSearchParams(location.search).get('tab') || 'ctv';
+
+  const isMenuItemActive = (item) => {
+    if (item.id === 'chat-landing-ctv') {
+      if (!location.pathname.startsWith('/admin/public-ctv-chat')) return false;
+      const tab = getPublicChatTab();
+      return tab === 'ctv' || tab === 'candidate';
+    }
+    if (item.id === 'business-messages') {
+      return location.pathname.startsWith('/admin/public-ctv-chat') && getPublicChatTab() === 'business';
+    }
+    if (item.search) {
+      const [pathname] = item.path.split('?');
+      if (!location.pathname.startsWith(pathname)) return false;
+      const expected = new URLSearchParams(item.search.startsWith('?') ? item.search.slice(1) : item.search);
+      const current = new URLSearchParams(location.search);
+      for (const [key, value] of expected.entries()) {
+        if (current.get(key) !== value) return false;
+      }
+      return true;
+    }
+    return isActive(item.path);
+  };
+
   const getAdminSidebarLinkTo = (path) => {
     if (path === ADMIN_CANDIDATES_PATH) {
       return { pathname: ADMIN_CANDIDATES_PATH, state: RESET_CANDIDATES_LIST_LOCATION_STATE };
     }
     return path;
+  };
+
+  const getMenuItemLinkTo = (item) => {
+    if (item.search) {
+      return { pathname: item.path, search: item.search };
+    }
+    return getAdminSidebarLinkTo(item.path);
   };
 
   const handleAdminCandidatesSidebarClick = (e) => {
@@ -499,9 +554,18 @@ const AdminSidebar = () => {
           </button>
         </div>
         <div className="flex-1 space-y-1 overflow-y-auto px-3 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {allMenuItems.map((item) => {
+          {sidebarMenuSections.map((section, sectionIndex) => (
+            <React.Fragment key={`mobile-section-${sectionIndex}`}>
+              {section.showDivider ? (
+                <div className="mb-2 mt-3 border-t pt-3" style={{ borderColor: SIDEBAR_BORDER }}>
+                  <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    {section.sectionLabel}
+                  </p>
+                </div>
+              ) : null}
+              {section.items.map((item) => {
             const Icon = item.icon;
-            const active = isActive(item.path);
+            const active = isMenuItemActive(item);
             if (item.hasSubmenu) {
               return (
                 <div key={`mobile-${item.id}`}>
@@ -543,7 +607,7 @@ const AdminSidebar = () => {
             return (
               <Link
                 key={`mobile-${item.id}`}
-                to={getAdminSidebarLinkTo(item.path)}
+                to={getMenuItemLinkTo(item)}
                 onClick={(e) => {
                   if (item.path === ADMIN_CANDIDATES_PATH) {
                     handleAdminCandidatesSidebarClick(e);
@@ -590,6 +654,8 @@ const AdminSidebar = () => {
               </Link>
             );
           })}
+            </React.Fragment>
+          ))}
         </div>
         <div className="border-t px-3 py-3" style={{ borderColor: SIDEBAR_BORDER }}>
           <Link
@@ -649,9 +715,23 @@ const AdminSidebar = () => {
       {/* Navigation Section */}
       <div className="flex-1 overflow-y-auto overflow-x-visible px-2.5 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="space-y-1">
-          {allMenuItems.map((item) => {
+          {sidebarMenuSections.map((section, sectionIndex) => (
+            <React.Fragment key={`section-${sectionIndex}`}>
+              {section.showDivider ? (
+                <div
+                  className={`${isExpanded ? 'mb-2 mt-4 border-t pt-3' : 'mb-1 mt-3 border-t pt-2'} mx-0.5`}
+                  style={{ borderColor: SIDEBAR_BORDER }}
+                >
+                  {isExpanded ? (
+                    <p className="px-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      {section.sectionLabel}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+              {section.items.map((item) => {
             const Icon = item.icon;
-            const active = isActive(item.path);
+            const active = isMenuItemActive(item);
             
             if (item.hasSubmenu) {
               return (
@@ -757,7 +837,7 @@ const AdminSidebar = () => {
             return (
               <Link
                 key={item.id}
-                to={getAdminSidebarLinkTo(item.path)}
+                to={getMenuItemLinkTo(item)}
                 onClick={item.path === ADMIN_CANDIDATES_PATH ? handleAdminCandidatesSidebarClick : undefined}
                 onMouseEnter={() => setHoveredMenuItemIndex(item.id)}
                 onMouseLeave={() => setHoveredMenuItemIndex(null)}
@@ -817,6 +897,8 @@ const AdminSidebar = () => {
               </Link>
             );
           })}
+            </React.Fragment>
+          ))}
         </div>
       </div>
 

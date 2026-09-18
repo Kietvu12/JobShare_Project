@@ -3,13 +3,14 @@ import { getBusinessInsightsReport, getBusinessRecruitmentHealth } from '../../s
 export const businessInsightsController = {
   getReport: async (req, res, next) => {
     try {
-      const { from, to, period, departmentId } = req.query || {};
+      const { from, to, period, departmentId, lang } = req.query || {};
       const data = await getBusinessInsightsReport({
         businessId: req.business.id,
         from,
         to,
         period,
         departmentId,
+        lang,
       });
       res.json({ success: true, data });
     } catch (error) {

@@ -285,23 +285,27 @@ export const collaboratorNotificationService = {
       title: 'Job đã được duyệt trên Sàn CTV',
       content: `JD "${jobTitle || '—'}" đã được WS duyệt và đăng lên Sàn CTV.`,
       jobId,
-      url: listingId
-        ? `/business/candidate-sharing/listings/${listingId}`
-        : '/business/candidate-sharing?tab=jobs',
+      url: jobId
+        ? `/business/candidate-sharing/jobs/${jobId}`
+        : listingId
+          ? `/business/candidate-sharing/listings/${listingId}`
+          : '/business/candidate-sharing?tab=jobs',
     });
   },
 
-  async notifyBusinessListingRejected({ businessId, jobTitle, reason = null, listingId = null }) {
+  async notifyBusinessListingRejected({ businessId, jobTitle, reason = null, jobId = null, listingId = null }) {
     if (!businessId) return null;
     const suffix = reason ? ` Lý do: ${reason}` : '';
     return this.createAndEmit({
       businessId,
       title: 'Job bị từ chối trên Sàn CTV',
       content: `JD "${jobTitle || '—'}" chưa được duyệt lên Sàn CTV.${suffix}`,
-      jobId: null,
-      url: listingId
-        ? `/business/candidate-sharing/listings/${listingId}`
-        : '/business/candidate-sharing?tab=jobs',
+      jobId,
+      url: jobId
+        ? `/business/candidate-sharing/jobs/${jobId}`
+        : listingId
+          ? `/business/candidate-sharing/listings/${listingId}`
+          : '/business/candidate-sharing?tab=jobs',
     });
   },
 
@@ -314,6 +318,29 @@ export const collaboratorNotificationService = {
       content: `Admin đã đánh dấu các vị trí cần bổ sung trên hồ sơ ${safeName}. Vui lòng mở hồ sơ và cập nhật.`,
       jobId: null,
       url: `/agent/candidates/${cvId}`
+    });
+  },
+
+  async notifyScoutPerformanceProfileShared({
+    collaboratorId,
+    cvId,
+    candidateName,
+    companyName,
+    requestId = null,
+  }) {
+    if (!collaboratorId) return null;
+    const safeName = candidateName || 'Ứng viên';
+    const safeCompany = companyName || 'Doanh nghiệp';
+    const url = requestId
+      ? `/agent/scout-performance?requestId=${requestId}`
+      : (cvId ? `/agent/candidates/${cvId}` : '/agent/scout-performance');
+    return this.createAndEmit({
+      collaboratorId,
+      adminId: null,
+      title: 'Hồ sơ Scout ủy thác',
+      content: `JobShare WS đã gửi hồ sơ ${safeName} cho ${safeCompany} qua Scout ủy thác. Hồ sơ được gắn nhãn «Scout ủy thác» trên danh sách ứng viên của bạn.`,
+      jobId: null,
+      url,
     });
   },
 

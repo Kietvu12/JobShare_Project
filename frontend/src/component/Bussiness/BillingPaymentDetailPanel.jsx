@@ -13,8 +13,28 @@ import {
   Loader2,
 } from 'lucide-react';
 import apiService from '../../services/api';
-
-const BRAND = '#0077B6';
+import {
+  BILL_AMOUNT_BOX,
+  BILL_AMOUNT_VALUE,
+  BILL_BADGE,
+  BILL_BTN_LINK,
+  BILL_BTN_OUTLINE,
+  BILL_BTN_PRIMARY,
+  BILL_DETAIL_BODY,
+  BILL_DETAIL_CAPTION,
+  BILL_DETAIL_LABEL,
+  BILL_DETAIL_SECTION,
+  BILL_DETAIL_VALUE,
+  BILL_PANEL,
+  BILL_PANEL_EMPTY,
+  BILL_PANEL_EMPTY_DESC,
+  BILL_PANEL_EMPTY_TITLE,
+  BILL_PANEL_HEAD,
+  BILL_PANEL_SCROLL,
+  BILL_PANEL_TITLE,
+  BRAND,
+  BUSINESS_HP_TEXT,
+} from '../../utils/billingUi';
 
 const TYPE_ICON_MAP = {
   'Phí giới thiệu': { icon: User, bg: '#dcfce7', color: '#16a34a' },
@@ -85,7 +105,7 @@ function PaymentPipelineVertical({ pipeline }) {
           <div key={step.key || index} className="flex gap-2">
             <div className="flex flex-col items-center">
               <div
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-bold ${BUSINESS_HP_TEXT.button} ${
                   state === 'done'
                     ? 'bg-emerald-500 text-white'
                     : state === 'current'
@@ -94,21 +114,21 @@ function PaymentPipelineVertical({ pipeline }) {
                 }`}
                 style={state === 'current' ? { background: BRAND } : undefined}
               >
-                {state === 'done' ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : step.step || index + 1}
+                {state === 'done' ? <Check className="h-4 w-4" strokeWidth={3} /> : step.step || index + 1}
               </div>
-              {!isLast ? <div className="my-0.5 w-px flex-1 min-h-[12px] bg-slate-200" /> : null}
+              {!isLast ? <div className="my-0.5 w-px flex-1 min-h-[14px] bg-slate-200" /> : null}
             </div>
-            <div className={`pb-3 ${isLast ? 'pb-0' : ''}`}>
+            <div className={`pb-4 ${isLast ? 'pb-0' : ''}`}>
               <div
-                className={`text-[10px] font-semibold leading-snug sm:text-[11px] ${
+                className={`font-semibold leading-snug ${BILL_DETAIL_BODY} ${
                   state === 'current' ? 'text-[#0077B6]' : state === 'done' ? 'text-slate-800' : 'text-slate-400'
                 }`}
               >
                 {step.title || copy.title}
               </div>
-              <p className="mt-0.5 text-[9px] leading-snug text-slate-500 sm:text-[10px]">{copy.hint}</p>
+              <p className={`mt-1 leading-snug text-slate-500 ${BILL_DETAIL_CAPTION}`}>{copy.hint}</p>
               {timeLabel ? (
-                <p className="mt-0.5 text-[9px] font-medium text-slate-600">{timeLabel}</p>
+                <p className={`mt-1 font-medium text-slate-600 ${BILL_DETAIL_CAPTION}`}>{timeLabel}</p>
               ) : null}
             </div>
           </div>
@@ -128,10 +148,10 @@ export default function BillingPaymentDetailPanel({
 
   if (!payment) {
     return (
-      <aside className="flex h-full min-h-0 flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
-        <FileText className="mb-2 h-8 w-8 text-slate-300" />
-        <p className="text-[10px] font-semibold text-slate-700 sm:text-[11px]">Chi tiết yêu cầu thanh toán</p>
-        <p className="mt-1 text-[9px] leading-relaxed text-slate-500 sm:text-[10px]">
+      <aside className={BILL_PANEL_EMPTY}>
+        <FileText className="mb-2 h-9 w-9 text-slate-300 sm:h-10 sm:w-10" />
+        <p className={BILL_PANEL_EMPTY_TITLE}>Chi tiết yêu cầu thanh toán</p>
+        <p className={`mt-2 ${BILL_PANEL_EMPTY_DESC}`}>
           Chọn một yêu cầu trong danh sách để xem chi tiết và quy trình xử lý.
         </p>
       </aside>
@@ -166,44 +186,41 @@ export default function BillingPaymentDetailPanel({
   };
 
   return (
-    <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-[10px] shadow-sm sm:text-[11px]">
-      <div className="flex shrink-0 items-start justify-between gap-2 border-b border-slate-100 px-3 py-2">
+    <aside className={BILL_PANEL}>
+      <div className={BILL_PANEL_HEAD}>
         <div className="min-w-0">
-          <div className="text-[11px] font-bold text-slate-900 sm:text-xs">{payment.paymentCode}</div>
+          <div className={BILL_PANEL_TITLE}>{payment.paymentCode}</div>
           <span
-            className="mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-[9px] font-semibold sm:text-[10px]"
+            className={`mt-1 inline-block ${BILL_BADGE}`}
             style={{ background: payment.statusBg, color: payment.statusColor }}
           >
             {payment.statusLabel}
           </span>
         </div>
-        <button type="button" onClick={onClose} className="rounded-lg border-0 bg-slate-50 p-1 hover:bg-slate-100">
-          <X className="h-3.5 w-3.5 text-slate-500" />
+        <button type="button" onClick={onClose} className="rounded-lg border-0 bg-slate-50 p-1.5 hover:bg-slate-100">
+          <X className="h-4 w-4 text-slate-500" />
         </button>
       </div>
 
-      <div className="billing-detail-scroll min-h-0 flex-1 overflow-y-auto px-3 py-2.5">
-        <div className="mb-3 flex items-center gap-2">
+      <div className={BILL_PANEL_SCROLL}>
+        <div className="mb-4 flex items-center gap-2.5">
           <PaymentTypeIcon type={payment.type} />
           <div className="min-w-0">
-            <div className="font-semibold text-slate-800">{payment.feeType || payment.type}</div>
-            <div className="text-[9px] text-slate-400 sm:text-[10px]">Loại phí</div>
+            <div className={`font-semibold text-slate-800 ${BILL_DETAIL_BODY}`}>{payment.feeType || payment.type}</div>
+            <div className={BILL_DETAIL_CAPTION}>Loại phí</div>
           </div>
         </div>
 
-        <p className="mb-3 text-[10px] leading-snug text-slate-700 sm:text-[11px]">{descriptionLabel}</p>
+        <p className={`mb-4 leading-snug text-slate-700 ${BILL_DETAIL_BODY}`}>{descriptionLabel}</p>
 
-        <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2">
-          <div className="text-[9px] text-slate-500">Số tiền & hạn thanh toán</div>
-          <div className="mt-0.5 text-sm font-bold text-rose-600">{payment.amount}</div>
-          <div className="mt-0.5 text-[10px] font-medium text-slate-700">Hạn: {payment.deadline}</div>
+        <div className={`${BILL_AMOUNT_BOX} mb-4`}>
+          <div className={BILL_DETAIL_CAPTION}>Số tiền & hạn thanh toán</div>
+          <div className={`mt-1 text-rose-600 ${BILL_AMOUNT_VALUE}`}>{payment.amount}</div>
+          <div className={`mt-1 font-medium text-slate-700 ${BILL_DETAIL_BODY}`}>Hạn: {payment.deadline}</div>
         </div>
 
-        <div className="mb-3 flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[9px] font-semibold text-slate-700 hover:bg-slate-50 sm:text-[10px]"
-          >
+        <div className="mb-4 flex flex-wrap gap-2">
+          <button type="button" className={BILL_BTN_OUTLINE}>
             {copy.viewDetail || 'Xem chi tiết'}
           </button>
           {canConfirm ? (
@@ -211,10 +228,10 @@ export default function BillingPaymentDetailPanel({
               type="button"
               disabled={confirming}
               onClick={handleConfirm}
-              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[9px] font-semibold text-white disabled:opacity-60 sm:text-[10px]"
+              className={BILL_BTN_PRIMARY}
               style={{ background: BRAND }}
             >
-              {confirming ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              {confirming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
               {copy.confirmPaid || 'Xác nhận đã thanh toán'}
             </button>
           ) : null}
@@ -222,15 +239,15 @@ export default function BillingPaymentDetailPanel({
             <button
               type="button"
               onClick={() => openAttachment(primaryAttachment)}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[9px] font-semibold text-[#0077B6] hover:bg-slate-50 sm:text-[10px]"
+              className={BILL_BTN_LINK}
             >
-              <Download className="h-3 w-3" />
+              <Download className="h-3.5 w-3.5" />
               {copy.downloadVoucher || 'Tải chứng từ'}
             </button>
           ) : null}
         </div>
 
-        <div className="mb-3 space-y-1.5 rounded-lg border border-slate-100 px-0.5 py-0.5">
+        <div className="mb-4 space-y-2 rounded-lg border border-slate-100 p-2">
           {[
             ['Dịch vụ / phí', payment.type],
             ['JD liên quan', payment.jdTitle || payment.jobCode || '—'],
@@ -239,31 +256,31 @@ export default function BillingPaymentDetailPanel({
             ['Trạng thái thanh toán', payment.statusLabel],
           ].map(([label, value]) => (
             <div key={label} className="flex gap-2 leading-snug">
-              <span className="w-28 shrink-0 text-[9px] text-slate-500 sm:text-[10px]">{label}</span>
-              <span className="min-w-0 flex-1 font-medium text-slate-800">{value || '—'}</span>
+              <span className={BILL_DETAIL_LABEL}>{label}</span>
+              <span className={BILL_DETAIL_VALUE}>{value || '—'}</span>
             </div>
           ))}
         </div>
 
-        <div className="mb-3">
-          <div className="mb-2 text-[10px] font-bold text-slate-800 sm:text-[11px]">Quy trình xử lý</div>
+        <div className="mb-4">
+          <div className={`mb-3 text-slate-800 ${BILL_DETAIL_SECTION}`}>Quy trình xử lý</div>
           <PaymentPipelineVertical pipeline={payment.pipeline} />
         </div>
 
         <div>
-          <div className="mb-1.5 text-[10px] font-bold text-slate-800 sm:text-[11px]">File / chứng từ (WS)</div>
+          <div className={`mb-2 text-slate-800 ${BILL_DETAIL_SECTION}`}>File / chứng từ (WS)</div>
           {attachments.length === 0 ? (
-            <p className="text-[9px] text-slate-400 sm:text-[10px]">Chưa có file đính kèm trên yêu cầu này.</p>
+            <p className={BILL_DETAIL_CAPTION}>Chưa có file đính kèm trên yêu cầu này.</p>
           ) : (
-            <ul className="space-y-1">
+            <ul className="space-y-1.5">
               {attachments.map((file) => (
                 <li key={file.url || file.name}>
                   <button
                     type="button"
                     onClick={() => openAttachment(file)}
-                    className="inline-flex w-full items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-left text-[9px] font-medium text-[#0077B6] hover:bg-slate-100 sm:text-[10px]"
+                    className={`inline-flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left hover:bg-slate-100 ${BILL_BTN_LINK}`}
                   >
-                    <FileText className="h-3.5 w-3.5 shrink-0" />
+                    <FileText className="h-4 w-4 shrink-0" />
                     <span className="truncate">{file.name || 'Tải file'}</span>
                   </button>
                 </li>
@@ -281,10 +298,10 @@ export function PaymentTypeIcon({ type, className = '' }) {
   const Icon = meta.icon;
   return (
     <div
-      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${className}`}
+      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg sm:h-9 sm:w-9 ${className}`}
       style={{ background: meta.bg }}
     >
-      <Icon className="h-3.5 w-3.5" style={{ color: meta.color }} strokeWidth={2} />
+      <Icon className="h-4 w-4 sm:h-[1.125rem] sm:w-[1.125rem]" style={{ color: meta.color }} strokeWidth={2} />
     </div>
   );
 }

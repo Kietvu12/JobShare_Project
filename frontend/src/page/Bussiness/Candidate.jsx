@@ -1,11 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Loader2, RotateCw, Search, Unlock, X } from 'lucide-react'
+import { Loader2, RotateCw, Search, SlidersHorizontal, Unlock, X } from 'lucide-react'
 import nothingIllustration from '../../assets/Nothing.png'
 import apiService from '../../services/api'
 import FilterBlock from '../../component/Shared/FilterBlock'
 import FilterSelectDropdown from '../../component/Shared/FilterSelectDropdown'
-import ScoutCandidateFilterFields from '../../component/Bussiness/ScoutCandidateFilterFields.jsx'
+import ScoutCandidateFilterFields, {
+  SCOUT_FILTER_INPUT_CLASS,
+  SCOUT_FILTER_LABEL_CLASS,
+  SCOUT_FILTER_PICKER_BTN_CLASS,
+  ScoutKeywordSearchField,
+} from '../../component/Bussiness/ScoutCandidateFilterFields.jsx'
 import WorkLocationFilterModal from '../../component/Shared/WorkLocationFilterModal'
 import JobCategoryPickerModal from '../../component/Shared/JobCategoryPickerModal'
 import BusinessQuickActionsPageLayout from '../../component/Bussiness/BusinessQuickActionsPageLayout.jsx'
@@ -23,7 +28,7 @@ import {
 } from '../../utils/scoutFilterOptions'
 import { getWorkLocationsDisplayText } from '../../utils/workLocationFilter'
 import { getScoutFilterCopy, getScoutVisaFilterOptions } from '../../i18n/businessAppI18n'
-import ScoutCandidateHoverTip from '../../component/Bussiness/ScoutCandidateHoverTip'
+import { ScoutCandidateHoverHost } from '../../component/Bussiness/ScoutCandidateHoverTip'
 import {
   formatScoutDesiredSalary,
   getScoutListSkillChips,
@@ -44,21 +49,17 @@ import {
   getLocalizedScoutPipelineMeta,
   getLocalizedScoutUnlockSourceMeta,
 } from '../../i18n/businessAppI18n'
+import {
+  BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
+  BUSINESS_HP_TEXT,
+  BUSINESS_UI_FONT,
+} from '../../utils/businessHomepageTypography.js'
 
 const ANONYMOUS_AVATAR = 'https://api.dicebear.com/7.x/shapes/svg?seed=scout-unlocked'
 const PAGE_SIZE = 10
 const BRAND = '#0077B6'
-const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 
 const LIST_FILTER_ALL = 'all'
-
-const CANDIDATES_FILTER_INPUT_CLASS =
-  'scout-cand-meta w-full h-8 min-h-8 px-2.5 border border-gray-300 rounded-md bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0077B6]/25 focus:border-transparent'
-
-const CANDIDATES_FILTER_PICKER_BTN_CLASS =
-  'flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-gray-300 transition-colors hover:bg-gray-50'
-
-const CANDIDATES_FILTER_LABEL_CLASS = 'scout-cand-caption font-medium text-gray-700 leading-snug'
 
 function parseListFilter(listParam) {
   if (listParam === 'scout_credit' || listParam === 'scout_performance' || listParam === 'ctv_marketplace') {
@@ -68,25 +69,19 @@ function parseListFilter(listParam) {
 }
 
 const candidatePageStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
-  .business-homepage-shell { --hp-zoom: 1; }
-  @media (min-width: 1024px) and (max-width: 1279px) { .business-homepage-shell { --hp-zoom: 0.9; } }
-  @media (min-width: 1280px) and (max-width: 1535px) { .business-homepage-shell { --hp-zoom: 0.86; } }
-  @media (min-width: 1024px) and (max-height: 760px) { .business-homepage-shell { --hp-zoom: 0.78; } }
-  @media (min-width: 1024px) and (min-height: 761px) and (max-height: 860px) { .business-homepage-shell { --hp-zoom: 0.84; } }
-  @media (min-width: 1536px) and (min-height: 861px) { .business-homepage-shell { --hp-zoom: 0.94; } }
-  @media (min-width: 1920px) and (min-height: 900px) { .business-homepage-shell { --hp-zoom: 1; } }
-  .business-homepage-ui { zoom: var(--hp-zoom); }
-  @supports not (zoom: 1) {
-    .business-homepage-ui {
-      transform: scale(var(--hp-zoom));
-      transform-origin: top left;
-      width: calc(100% / var(--hp-zoom));
-      height: calc(100% / var(--hp-zoom));
-    }
-  }
+  ${BUSINESS_HOMEPAGE_PAGE_BASE_STYLES}
   .candidates-workspace-shell {
     flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: #f4f6f8;
+    font-family: ${BUSINESS_UI_FONT};
+  }
+  .candidates-workspace-shell .business-homepage-ui {
+    height: 100%;
+    min-height: 0;
+  }
+  @supports not (zoom: 1) {
+    .candidates-workspace-shell .business-homepage-ui {
+      height: calc(100% / var(--hp-zoom));
+    }
   }
   .candidates-workspace-body {
     flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr; gap: 10px; overflow: hidden;
@@ -100,29 +95,36 @@ const candidatePageStyles = `
     z-index: 20;
   }
   .scout-candidates-list-ui {
-    --scout-cand-fs-title: 12px; --scout-cand-fs-body: 12px; --scout-cand-fs-caption: 11px; --scout-cand-icon: 13px;
-    line-height: 1.45; color: #334155; font-size: var(--scout-cand-fs-body);
+    line-height: 1.45;
+    color: #334155;
+    font-size: var(--biz-hp-body);
   }
-  .scout-candidates-list-ui .scout-cand-title { font-size: var(--scout-cand-fs-title); line-height: 1.35; font-weight: 700; }
-  .scout-candidates-list-ui .scout-cand-subtitle { font-size: var(--scout-cand-fs-body); line-height: 1.35; font-weight: 600; }
-  .scout-candidates-list-ui .scout-cand-meta { font-size: var(--scout-cand-fs-body); line-height: 1.35; }
-  .scout-candidates-list-ui .scout-cand-caption { font-size: var(--scout-cand-fs-caption); line-height: 1.4; }
-  .scout-candidates-list-ui .scout-cand-icon { width: var(--scout-cand-icon); height: var(--scout-cand-icon); flex-shrink: 0; }
+  .scout-candidates-list-ui .scout-cand-title {
+    font-size: var(--biz-hp-section);
+    line-height: 1.35;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .scout-candidates-list-ui .scout-cand-subtitle {
+    font-size: var(--biz-hp-body);
+    line-height: 1.35;
+    font-weight: 600;
+  }
+  .scout-candidates-list-ui .scout-cand-meta { font-size: var(--biz-hp-body); line-height: 1.35; }
+  .scout-candidates-list-ui .scout-cand-caption { font-size: var(--biz-hp-caption); line-height: 1.4; color: #64748b; }
+  .scout-candidates-list-ui .scout-cand-icon {
+    width: var(--biz-hp-jd-icon);
+    height: var(--biz-hp-jd-icon);
+    flex-shrink: 0;
+  }
   @media (min-width: 1024px) and (max-width: 1535px) {
     .candidates-workspace-body { gap: 8px; }
     .candidates-workspace-content { gap: 6px; }
-    .scout-candidates-list-ui {
-      --scout-cand-fs-title: 11px;
-      --scout-cand-fs-body: 11px;
-      --scout-cand-fs-caption: 10px;
-      --scout-cand-icon: 12px;
+    .candidates-filter-head {
+      padding: 0.875rem 1rem !important;
     }
     .candidates-filter-scroll {
-      max-height: min(26vh, 210px) !important;
-      padding: 0.5rem !important;
-    }
-    .candidates-filter-head {
-      padding: 0.375rem 0.625rem !important;
+      padding: 0.875rem 1rem !important;
     }
     .candidates-list-head {
       padding: 0.375rem 0.625rem !important;
@@ -135,25 +137,16 @@ const candidatePageStyles = `
       height: 34px !important;
     }
   }
-  @media (min-width: 1024px) and (max-width: 1535px) and (max-height: 860px) {
-    .candidates-filter-scroll {
-      max-height: min(22vh, 180px) !important;
-    }
-  }
   .scout-search-highlight {
     background-color: #fef08a !important; color: #92400e !important;
     padding: 0 2px; border-radius: 2px; font-weight: 600;
   }
-  .candidate-scrollbar::-webkit-scrollbar { width: 4px; }
-  .candidate-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-  .candidate-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
-  .business-homepage-scroll::-webkit-scrollbar { width: 4px; }
-  .business-homepage-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-  .scout-scrollbar::-webkit-scrollbar { width: 6px; }
-  .scout-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .scout-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-  .scout-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-  .scout-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+  .candidate-scrollbar .group:last-child .scout-candidate-hover-tip-anchor {
+    top: auto;
+    bottom: 100%;
+    padding-top: 0;
+    padding-bottom: 0.25rem;
+  }
 `
 
 function AvatarCircle({ candidate, size = 44, language = 'vi', className = '' }) {
@@ -243,7 +236,13 @@ function UnlockedCandidateListItem({ candidate, onOpenDetail, hl, language, list
   const tipCandidate = { ...candidate, isUnlocked: true }
   const matchScore = resolveCandidateMatchScore(candidate)
   return (
-    <div className="group relative">
+    <ScoutCandidateHoverHost
+      className="group relative"
+      candidate={tipCandidate}
+      hl={hl}
+      matchScore={matchScore}
+      language={language}
+    >
       <button
         type="button"
         onClick={() => onOpenDetail(candidate.id)}
@@ -257,8 +256,7 @@ function UnlockedCandidateListItem({ candidate, onOpenDetail, hl, language, list
           <CandidateListMatchCorner score={matchScore} language={language} />
         </div>
       </button>
-      <ScoutCandidateHoverTip candidate={tipCandidate} hl={hl} matchScore={matchScore} language={language} />
-    </div>
+    </ScoutCandidateHoverHost>
   )
 }
 
@@ -271,7 +269,7 @@ function CandidateFilterChips({ chips }) {
           key={chip.id}
           type="button"
           onClick={chip.onRemove}
-          className="scout-cand-caption inline-flex max-w-full items-center gap-1 rounded-full border border-slate-200 bg-white py-0.5 pl-2 pr-1 font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+          className={`inline-flex max-w-full items-center gap-1 rounded-full border border-slate-200 bg-white py-0.5 pl-2 pr-1 font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 ${BUSINESS_HP_TEXT.caption}`}
           title="Bỏ điều kiện"
         >
           <span className="truncate">{chip.label}</span>
@@ -287,13 +285,13 @@ function CandidatesEmptyState({ copy }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-5 py-10 text-center">
       <img src={nothingIllustration} alt="" className="mb-4 w-full max-w-[220px] object-contain" draggable={false} />
-      <p className="max-w-md text-xs font-medium leading-relaxed text-slate-700 sm:text-sm">
+      <p className={`max-w-md font-medium leading-relaxed text-slate-700 ${BUSINESS_HP_TEXT.body}`}>
         {copy.candidates.list.emptyBody}
       </p>
       <button
         type="button"
         onClick={() => navigate('/business/scout/direct')}
-        className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-95 sm:text-sm"
+        className={`mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-white shadow-sm transition hover:opacity-95 ${BUSINESS_HP_TEXT.button}`}
         style={{ background: BRAND }}
       >
         {copy.candidates.list.emptyCta}
@@ -321,14 +319,18 @@ function UnlockedCandidateFilterPanel({
 }) {
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [showJobCategoryModal, setShowJobCategoryModal] = useState(false)
+  const [advancedOpen, setAdvancedOpen] = useState(() => hasActiveFilters)
+
+  useEffect(() => {
+    if (hasActiveFilters) setAdvancedOpen(true)
+  }, [hasActiveFilters])
 
   const filterFieldProps = {
-    inputClassName: CANDIDATES_FILTER_INPUT_CLASS,
-    pickerBtnClassName: CANDIDATES_FILTER_PICKER_BTN_CLASS,
-    filterLabelClassName: CANDIDATES_FILTER_LABEL_CLASS,
-    fieldMinHeightClass: 'min-h-8',
+    inputClassName: SCOUT_FILTER_INPUT_CLASS,
+    pickerBtnClassName: SCOUT_FILTER_PICKER_BTN_CLASS,
+    filterLabelClassName: SCOUT_FILTER_LABEL_CLASS,
+    fieldMinHeightClass: 'min-h-9',
     dropdownOptionSize: 'comfortable',
-    salarySepClassName: 'scout-cand-caption shrink-0 text-gray-500',
   }
 
   const leadingBlock = (
@@ -336,35 +338,56 @@ function UnlockedCandidateFilterPanel({
       icon={Unlock}
       label={copy.candidates.list.unlockSourceLabel}
       compact
-      labelClassName={CANDIDATES_FILTER_LABEL_CLASS}
-      fieldMinHeightClass="min-h-8"
+      labelClassName={SCOUT_FILTER_LABEL_CLASS}
+      fieldMinHeightClass="min-h-9"
     >
       <FilterSelectDropdown
         value={listFilter}
         onChange={onListFilterChange}
         options={unlockSourceOptions}
         placeholder={copy.candidates.list.unlockSourceAll}
-        className={CANDIDATES_FILTER_INPUT_CLASS}
+        className={SCOUT_FILTER_INPUT_CLASS}
         optionSize="comfortable"
       />
     </FilterBlock>
   )
 
   const listCopy = copy.candidates.list
+  const advancedToggleClass = advancedOpen
+    ? 'border-[#0077B6]/40 bg-[#f0f9ff] text-[#0077B6]'
+    : 'border-gray-200 bg-white text-gray-700 hover:border-[#0077B6]/30 hover:bg-[#f8fbfd]'
+
   return (
     <section className="candidates-filter-sticky scout-candidates-list-ui scout-workspace-filters shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      <div className="candidates-filter-head flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-2.5 py-2 lg:px-3">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <h2 className="scout-cand-title text-gray-900">{listCopy.filtersTitle}</h2>
+      <div className="candidates-filter-head flex flex-wrap items-end gap-3 px-4 py-3.5 lg:gap-4 lg:px-5 lg:py-4">
+        <div className="min-w-0 flex-1 basis-[min(100%,16rem)]">
+          <ScoutKeywordSearchField
+            searchInput={searchInput}
+            setSearchInput={setSearchInput}
+            language={language}
+            inputClassName={SCOUT_FILTER_INPUT_CLASS}
+            filterLabelClassName={SCOUT_FILTER_LABEL_CLASS}
+            fieldMinHeightClass="min-h-9"
+            onEnter={onApply}
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2 pb-1">
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen((open) => !open)}
+            aria-expanded={advancedOpen}
+            className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-2.5 font-semibold transition-colors ${BUSINESS_HP_TEXT.caption} ${advancedToggleClass}`}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5 shrink-0" />
+            {advancedOpen ? listCopy.collapseAdvancedFilters : listCopy.advancedFilters}
+          </button>
           {!listLoading ? (
-            <span className="scout-cand-caption font-semibold text-slate-500">
+            <span className={`hidden font-semibold text-slate-500 sm:inline ${BUSINESS_HP_TEXT.caption}`}>
               {listCopy.resultCount(formatCandidateNumber(displayCount || 0, language))}
             </span>
           ) : null}
-        </div>
-        <div className="flex items-center gap-1.5">
           {hasActiveFilters ? (
-            <button type="button" onClick={onClear} className="scout-cand-caption font-semibold text-[#0077B6] hover:underline">
+            <button type="button" onClick={onClear} className={`font-semibold text-[#0077B6] hover:underline ${BUSINESS_HP_TEXT.caption}`}>
               {listCopy.clearConditions}
             </button>
           ) : null}
@@ -372,31 +395,34 @@ function UnlockedCandidateFilterPanel({
             type="button"
             onClick={onApply}
             disabled={listLoading}
-            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-[#facc15] px-3 shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-[#facc15] px-3 shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${BUSINESS_HP_TEXT.button}`}
           >
             {listLoading ? (
               <RotateCw className="h-3.5 w-3.5 animate-spin text-gray-800" />
             ) : (
               <Search className="h-3.5 w-3.5 text-gray-800" />
             )}
-            <span className="scout-cand-caption font-semibold text-gray-800">{listCopy.searchButton}</span>
+            <span className="font-semibold text-gray-800">{listCopy.searchButton}</span>
           </button>
         </div>
       </div>
       <CandidateFilterChips chips={filterChips} />
-      <div className="candidates-filter-scroll scout-scrollbar custom-scrollbar max-h-[38vh] overflow-y-auto p-2 lg:max-h-[42vh] lg:p-3 2xl:max-h-none">
-        <ScoutCandidateFilterFields
-          leadingBlock={leadingBlock}
-          scoutFilters={scoutFilters}
-          setScoutFilters={setScoutFilters}
-          searchInput={searchInput}
-          setSearchInput={setSearchInput}
-          onOpenLocationModal={() => setShowLocationModal(true)}
-          onOpenJobCategoryModal={() => setShowJobCategoryModal(true)}
-          language={language}
-          {...filterFieldProps}
-        />
-      </div>
+      {advancedOpen ? (
+        <div className="candidates-filter-scroll border-t border-gray-100 p-3.5 lg:p-4">
+          <ScoutCandidateFilterFields
+            leadingBlock={leadingBlock}
+            scoutFilters={scoutFilters}
+            setScoutFilters={setScoutFilters}
+            searchInput={searchInput}
+            setSearchInput={setSearchInput}
+            onOpenLocationModal={() => setShowLocationModal(true)}
+            onOpenJobCategoryModal={() => setShowJobCategoryModal(true)}
+            language={language}
+            includeKeywordField={false}
+            {...filterFieldProps}
+          />
+        </div>
+      ) : null}
       <WorkLocationFilterModal
         open={showLocationModal}
         onClose={() => setShowLocationModal(false)}
@@ -798,15 +824,15 @@ const Candidate = () => {
   return (
     <>
       <style>{candidatePageStyles}</style>
-      <div className="business-homepage-shell candidates-workspace-shell flex h-full min-h-0 flex-col overflow-hidden" style={{ fontFamily: PAGE_FONT }}>
+      <div className="business-homepage-shell candidates-workspace-shell flex h-full min-h-0 flex-col overflow-hidden">
         {error && (
-          <div className="mx-3 mt-2 shrink-0 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-[11px] text-red-700">
+          <div className={`mx-3 mt-2 shrink-0 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-red-700 ${BUSINESS_HP_TEXT.caption}`}>
             {error}
           </div>
         )}
 
-        <div className="business-homepage-ui flex h-full min-h-0 flex-1 flex-col overflow-hidden p-2 lg:p-3">
-          <BusinessQuickActionsPageLayout onNavigate={navigate} showMobileFab={!showGlobalEmpty}>
+        <div className="business-homepage-ui business-app-ui flex h-full min-h-0 flex-1 flex-col overflow-hidden p-2 lg:p-3">
+          <BusinessQuickActionsPageLayout onNavigate={navigate}>
             {showGlobalEmpty ? (
               <CandidatesEmptyState copy={copy} />
             ) : (

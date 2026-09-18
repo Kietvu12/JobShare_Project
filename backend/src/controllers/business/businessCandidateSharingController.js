@@ -4,6 +4,7 @@ import {
   createBusinessListing,
   getBusinessDashboard,
   getBusinessListingDetail,
+  getBusinessListingDetailByJobId,
   getMarketplacePlatformOverview,
   listAdminListings,
   listBusinessListingInterests,
@@ -59,6 +60,18 @@ export const businessCandidateSharingController = {
       const data = await getBusinessListingDetail({
         businessId: req.business.id,
         listingId: req.params.id,
+      });
+      res.json({ success: true, data });
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  getListingByJob: async (req, res, next) => {
+    try {
+      const data = await getBusinessListingDetailByJobId({
+        businessId: req.business.id,
+        jobId: req.params.jobId,
       });
       res.json({ success: true, data });
     } catch (e) {

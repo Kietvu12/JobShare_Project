@@ -9,12 +9,15 @@ export const SCOUT_LISTING_STATUS = {
   OFF: 0,
   LISTED: 1,
   SUSPENDED: 2,
+  /** Scout dự bị — CTV quá hạn 6 tháng, admin bổ sung thông tin trước khi đăng lại */
+  RESERVE: 3,
 };
 
 export const SCOUT_LISTING_STATUS_LABELS = {
   0: 'Chưa đăng Scout',
   1: 'Đang trên sàn Scout',
   2: 'Tạm gỡ Scout',
+  3: 'Scout dự bị',
 };
 
 /** business_scout_performance_requests.status */

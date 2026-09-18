@@ -1,6 +1,7 @@
 import React from 'react'
 import { Loader2 } from 'lucide-react'
 import { getStatusCategoryStyle } from '../../utils/businessApplicationSource'
+import { BUSINESS_HP_TEXT } from '../../utils/businessHomepageTypography.js'
 
 /**
  * Dropdown trạng thái đơn tiến cử — bảng danh sách & drawer chi tiết.
@@ -13,6 +14,7 @@ export default function BusinessApplicationStatusSelect({
   onChange,
   disabled = false,
   updating = false,
+  compact = false,
   className = '',
   id,
 }) {
@@ -35,7 +37,11 @@ export default function BusinessApplicationStatusSelect({
           const next = Number(e.target.value)
           if (next !== current) onChange(next)
         }}
-        className="w-full min-w-0 cursor-pointer appearance-none truncate rounded-lg py-2 pl-3 pr-9 text-xs font-semibold outline-none ring-1 ring-inset ring-black/5 focus:ring-[#0077B6]/40 disabled:cursor-not-allowed disabled:opacity-70 sm:text-sm"
+        className={`w-full min-w-0 cursor-pointer appearance-none whitespace-nowrap rounded-lg font-semibold outline-none ring-1 ring-inset ring-black/5 focus:ring-[#0077B6]/40 disabled:cursor-not-allowed disabled:opacity-70 ${
+          compact
+            ? 'py-1 pl-2 pr-7 text-[10px] sm:text-[11px]'
+            : `py-2 pl-3 pr-9 ${BUSINESS_HP_TEXT.body}`
+        }`}
         style={{ color: stageStyle.color, backgroundColor: stageStyle.bg }}
         aria-label={statusLabel || 'Trạng thái đơn tiến cử'}
       >
@@ -47,7 +53,7 @@ export default function BusinessApplicationStatusSelect({
       </select>
       {updating ? (
         <Loader2
-          className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-500"
+          className={`pointer-events-none absolute top-1/2 -translate-y-1/2 animate-spin text-slate-500 ${compact ? 'right-1.5 h-3 w-3' : 'right-2.5 h-4 w-4'}`}
           aria-hidden
         />
       ) : null}

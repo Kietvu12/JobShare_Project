@@ -14,14 +14,50 @@ import {
   getScoutFilterCopy,
   getScoutVisaFilterOptions,
 } from '../../i18n/businessAppI18n'
+import { BUSINESS_HP_TEXT } from '../../utils/businessHomepageTypography.js'
 
+/** Cùng scale với Job Management / Homepage filter controls */
 export const SCOUT_FILTER_INPUT_CLASS =
-  'scout-cand-meta w-full h-8 min-h-8 px-2.5 border border-gray-300 rounded-md bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0077B6]/25 focus:border-transparent'
+  `w-full h-9 min-h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-slate-800 outline-none focus:border-[#0077B6]/40 focus:ring-1 focus:ring-[#0077B6]/30 ${BUSINESS_HP_TEXT.body}`
 
 export const SCOUT_FILTER_PICKER_BTN_CLASS =
-  'flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-gray-300 transition-colors hover:bg-gray-50'
+  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 transition-colors hover:bg-slate-50'
 
-const SCOUT_FILTER_LABEL_CLASS = 'scout-cand-caption font-medium text-gray-700 leading-snug'
+export const SCOUT_FILTER_LABEL_CLASS =
+  `block font-semibold leading-tight text-slate-500 ${BUSINESS_HP_TEXT.caption}`
+
+/** Ô từ khóa chuẩn (icon + nhãn + input) — dùng ở thanh tìm kiếm thu gọn và trong lưới nâng cao. */
+export function ScoutKeywordSearchField({
+  searchInput,
+  setSearchInput,
+  language = 'vi',
+  inputClassName = SCOUT_FILTER_INPUT_CLASS,
+  filterLabelClassName = SCOUT_FILTER_LABEL_CLASS,
+  fieldMinHeightClass = 'min-h-9',
+  onEnter,
+}) {
+  const f = getScoutFilterCopy(language)
+  return (
+    <FilterBlock
+      icon={Search}
+      label={f.keyword}
+      compact
+      labelClassName={filterLabelClassName}
+      fieldMinHeightClass={fieldMinHeightClass}
+    >
+      <input
+        type="text"
+        value={searchInput}
+        onChange={(e) => setSearchInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && onEnter) onEnter()
+        }}
+        placeholder={f.keywordPlaceholder}
+        className={inputClassName}
+      />
+    </FilterBlock>
+  )
+}
 
 function FilterPickerRow({ value, placeholder, onOpen, inputClassName, pickerBtnClassName }) {
   return (
@@ -53,9 +89,10 @@ export default function ScoutCandidateFilterFields({
   inputClassName = SCOUT_FILTER_INPUT_CLASS,
   pickerBtnClassName = SCOUT_FILTER_PICKER_BTN_CLASS,
   filterLabelClassName = SCOUT_FILTER_LABEL_CLASS,
-  fieldMinHeightClass = 'min-h-8',
-  dropdownOptionSize = 'compact',
-  salarySepClassName = 'scout-cand-caption shrink-0 text-gray-500',
+  fieldMinHeightClass = 'min-h-9',
+  dropdownOptionSize = 'comfortable',
+  salarySepClassName = `shrink-0 text-slate-500 ${BUSINESS_HP_TEXT.caption}`,
+  includeKeywordField = true,
 }) {
   const filterBlockProps = {
     labelClassName: filterLabelClassName,
@@ -173,15 +210,16 @@ export default function ScoutCandidateFilterFields({
         </div>
       </FilterBlock>
 
-      <FilterBlock icon={Search} label={f.keyword} compact {...filterBlockProps}>
-        <input
-          type="text"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder={f.keywordPlaceholder}
-          className={inputClassName}
+      {includeKeywordField ? (
+        <ScoutKeywordSearchField
+          searchInput={searchInput}
+          setSearchInput={setSearchInput}
+          language={language}
+          inputClassName={inputClassName}
+          filterLabelClassName={filterLabelClassName}
+          fieldMinHeightClass={fieldMinHeightClass}
         />
-      </FilterBlock>
+      ) : null}
     </div>
   )
 }

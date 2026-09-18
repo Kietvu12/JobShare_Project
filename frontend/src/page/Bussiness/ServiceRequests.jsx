@@ -4,22 +4,38 @@ import { Loader2, Info, X } from 'lucide-react';
 import apiService from '../../services/api';
 import ServiceRequestModal from '../../component/Bussiness/ServiceRequestModal';
 import ServiceRequestAccountSidebar from '../../component/Bussiness/ServiceRequestAccountSidebar';
-import { BUSINESS_SERVICE_REQUEST_CATALOG, getServiceByKey } from '../../utils/businessServiceRequestCatalog';
-import { BUSINESS_HOMEPAGE_SHELL_STYLES, CARD, PAGE_FONT } from '../../utils/businessHomepageShell';
+import { getBusinessServiceRequestCatalog, getServiceByKey } from '../../utils/businessServiceRequestCatalog';
+import { getServiceRequestsCopy } from '../../i18n/businessApp/serviceRequests';
+import {
+  BUSINESS_UI_FONT,
+  SR_BODY_LG,
+  SR_BODY,
+  SR_BREADCRUMB,
+  SR_BREADCRUMB_CURRENT,
+  SR_CATALOG_GRID,
+  SR_CATALOG_LAYOUT_STYLES,
+  SR_CATALOG_PANEL,
+  SR_INNER,
+  SR_LINK,
+  SR_PAGE_STYLES,
+  SR_PAGE_TITLE,
+  SR_SERVICE_CARD,
+  SR_SERVICE_CARD_BTN,
+  SR_SERVICE_CARD_DESC,
+  SR_SERVICE_CARD_TITLE,
+  SR_SHELL,
+  SR_SUCCESS_BANNER,
+} from '../../utils/serviceRequestUi';
 import { useLanguage } from '../../context/LanguageContext';
 import { getBusinessAppCopy } from '../../i18n/businessAppI18n';
-
-const SERVICE_REQUESTS_BREADCRUMB = {
-  vi: 'Yêu cầu dịch vụ',
-  en: 'Service requests',
-  ja: 'サービス依頼',
-};
 
 export default function ServiceRequests() {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const copy = useMemo(() => getBusinessAppCopy(language), [language]);
-  const breadcrumbCurrent = SERVICE_REQUESTS_BREADCRUMB[language] || SERVICE_REQUESTS_BREADCRUMB.vi;
+  const srCopy = useMemo(() => getServiceRequestsCopy(language), [language]);
+  const catalog = useMemo(() => getBusinessServiceRequestCatalog(language), [language]);
+  const breadcrumbCurrent = srCopy.breadcrumb;
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState(null);
@@ -51,7 +67,7 @@ export default function ServiceRequests() {
       return;
     }
     if (!serviceKey || serviceKey === 'credit_topup') return;
-    const service = getServiceByKey(serviceKey);
+    const service = getServiceByKey(serviceKey, language);
     if (service?.detailPath) {
       setSearchParams({}, { replace: true });
       navigate(service.detailPath, { replace: true });
@@ -62,7 +78,7 @@ export default function ServiceRequests() {
       setModalOpen(true);
     }
     setSearchParams({}, { replace: true });
-  }, [searchParams, setSearchParams, navigate]);
+  }, [searchParams, setSearchParams, navigate, language]);
 
   const openService = (service) => {
     if (service.detailPath) {
@@ -74,115 +90,110 @@ export default function ServiceRequests() {
   };
 
   const handleSuccess = () => {
-    setSuccessMsg('Đã gửi yêu cầu. WS sẽ liên hệ xác nhận trong thời gian sớm nhất.');
+    setSuccessMsg(srCopy.successSent);
     loadDashboard();
   };
 
   if (loading && !dashboard) {
     return (
       <div
-        className="flex h-full min-h-0 items-center justify-center bg-[#f4f6f8] text-[11px] text-slate-500"
-        style={{ fontFamily: PAGE_FONT }}
+        className={`flex h-full min-h-0 items-center justify-center bg-[#f4f6f8] text-slate-500 ${SR_BODY}`}
+        style={{ fontFamily: BUSINESS_UI_FONT }}
       >
         <Loader2 className="h-4 w-4 animate-spin text-[#0077B6]" />
-        <span className="ml-2">Đang tải...</span>
+        <span className="ml-2">{srCopy.loading}</span>
       </div>
     );
   }
 
   return (
     <>
-      <style>{BUSINESS_HOMEPAGE_SHELL_STYLES}</style>
-      <div
-        className="business-homepage-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#f4f6f8]"
-        style={{ fontFamily: PAGE_FONT }}
-      >
+      <style>{SR_PAGE_STYLES}{SR_CATALOG_LAYOUT_STYLES}</style>
+      <div className={SR_SHELL} style={{ fontFamily: BUSINESS_UI_FONT }}>
         <ServiceRequestModal
           open={modalOpen}
           service={activeService}
           onClose={() => { setModalOpen(false); setActiveService(null); }}
           onSuccess={handleSuccess}
           currentCredit={dashboard?.summary?.credit}
+          language={language}
         />
 
-        <div className="business-homepage-ui flex min-h-0 flex-1 flex-col overflow-hidden p-2 sm:p-2.5">
+        <div className={SR_INNER}>
           {successMsg ? (
-            <div className="mb-2 flex shrink-0 items-start justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-medium text-emerald-800">
+            <div className={SR_SUCCESS_BANNER}>
               <span>{successMsg}</span>
               <button type="button" onClick={() => setSuccessMsg('')} className="border-0 bg-transparent p-0">
-                <X className="h-3.5 w-3.5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
           ) : null}
 
-          <nav aria-label="Breadcrumb" className="mb-2 shrink-0 text-[11px] text-slate-500 lg:text-xs">
+          <nav aria-label="Breadcrumb" className={`mb-2 shrink-0 ${SR_BREADCRUMB}`}>
             <button
               type="button"
               onClick={() => navigate('/business')}
-              className="transition hover:text-[#0077B6]"
+              className={`transition hover:text-[#0077B6] ${SR_LINK}`}
             >
               {copy.jobs.breadcrumb.home}
             </button>
             <span className="mx-1.5 text-slate-400">&gt;</span>
-            <span className="font-medium text-slate-700">{breadcrumbCurrent}</span>
+            <span className={SR_BREADCRUMB_CURRENT}>{breadcrumbCurrent}</span>
           </nav>
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_260px] lg:overflow-hidden xl:grid-cols-[minmax(0,1fr)_280px]">
-            <div className="flex min-h-0 flex-col gap-3 lg:overflow-y-auto">
-              <header className="shrink-0">
-                <h1 className="text-sm font-bold text-slate-900 sm:text-base">
-                  Chọn dịch vụ bạn muốn yêu cầu
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_260px] xl:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+              <header className="shrink-0 space-y-2">
+                <h1 className={SR_PAGE_TITLE}>
+                  {srCopy.pageTitle}
                 </h1>
-                <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-slate-600 sm:text-xs">
-                  Tạo yêu cầu mới và theo dõi tiến độ tại đây. Các dịch vụ branding (Landing Page, quảng cáo, seminar…)
-                  vẫn quản lý nội dung trong Thương hiệu tuyển dụng — màn này là nơi gửi và theo dõi yêu cầu tới WS.
+                <p className={`max-w-3xl leading-relaxed text-slate-600 ${SR_BODY_LG}`}>
+                  {srCopy.pageIntro}
                 </p>
-                <p className="mt-2 flex items-start gap-1.5 text-[10px] leading-snug text-slate-500">
-                  <Info className="mt-0.5 h-3 w-3 shrink-0 text-[#0077B6]" aria-hidden />
+                <p className={`flex items-start gap-2.5 rounded-lg border border-slate-200/80 bg-white px-4 py-3 leading-relaxed ${SR_BODY}`}>
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#0077B6]" aria-hidden />
                   <span>
-                    <span className="font-semibold text-slate-700">Lưu ý:</span>{' '}
-                    Thời gian xử lý 1–2 ngày làm việc. WS liên hệ xác nhận sau khi tiếp nhận.
+                    <span className="font-semibold text-slate-700">{srCopy.noteLabel}</span>{' '}
+                    {srCopy.noteBody}
                   </span>
                 </p>
               </header>
 
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-3">
-                {BUSINESS_SERVICE_REQUEST_CATALOG.map((service) => {
-                  const Icon = service.icon;
-                  const cta = service.ctaLabel || 'Tiếp tục';
-                  return (
-                    <article
-                      key={service.key}
-                      className={`${CARD} flex h-full min-h-[108px] flex-col p-3 transition-shadow hover:shadow-md`}
-                    >
-                      <div className="flex gap-2.5">
+              <div className={SR_CATALOG_PANEL}>
+                <div className={SR_CATALOG_GRID}>
+                  {catalog.map((service) => {
+                    const Icon = service.icon;
+                    const cta = service.ctaLabel || srCopy.continueCta;
+                    return (
+                      <article
+                        key={service.key}
+                        className={SR_SERVICE_CARD}
+                      >
                         <div
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl sm:h-[3.25rem] sm:w-[3.25rem]"
                           style={{ background: service.iconBg }}
                         >
-                          <Icon className="h-4 w-4" style={{ color: service.iconColor }} strokeWidth={2} />
+                          <Icon className="h-6 w-6 sm:h-7 sm:w-7" style={{ color: service.iconColor }} strokeWidth={2} />
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <h2 className="text-xs font-bold leading-snug text-slate-900">{service.title}</h2>
-                          <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-slate-500">
-                            {service.shortDesc}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => openService(service)}
-                        className="mt-2.5 inline-flex w-fit items-center rounded-lg border border-[#0077B6]/35 bg-white px-3 py-1.5 text-[10px] font-semibold text-[#0077B6] transition-colors hover:bg-[#e8f4fa] sm:text-[11px]"
-                      >
-                        {cta}
-                      </button>
-                    </article>
-                  );
-                })}
+                        <h2 className={`leading-snug ${SR_SERVICE_CARD_TITLE}`}>{service.title}</h2>
+                        <p className={`min-h-0 flex-1 ${SR_SERVICE_CARD_DESC}`}>
+                          {service.shortDesc}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => openService(service)}
+                          className={SR_SERVICE_CARD_BTN}
+                        >
+                          {cta}
+                        </button>
+                      </article>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            <ServiceRequestAccountSidebar dashboard={dashboard} />
+            <ServiceRequestAccountSidebar dashboard={dashboard} language={language} />
           </div>
         </div>
       </div>

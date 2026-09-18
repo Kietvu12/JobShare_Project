@@ -110,6 +110,7 @@ import ScoutDirect from './page/Bussiness/ScoutDirect';
 import ScoutManaged from './page/Bussiness/ScoutManaged';
 import ScoutCandidateDetail from './page/Bussiness/ScoutCandidateDetail';
 import AdminScoutPerformancePage from './page/Admin/ScoutPerformancePage';
+import AdminScoutReservePage from './page/Admin/AdminScoutReservePage';
 import AdminWsChatPage from './page/Admin/AdminWsChatPage';
 import AdminCreditRequestsPage from './page/Admin/AdminCreditRequestsPage';
 import AgentScoutPerformancePage from './page/Agent/ScoutPerformancePage';
@@ -119,7 +120,9 @@ import BusinessLandingPageEditor from './page/Bussiness/BusinessLandingPageEdito
 import BusinessLandingPageBuilder from './page/Bussiness/BusinessLandingPageBuilder';
 import PublicLandingPage from './page/LandingPage/PublicLandingPage';
 import CandidateSharing from './page/Bussiness/CandidateSharing';
-import CandidateSharingListingDetail from './page/Bussiness/CandidateSharingListingDetail';
+import CandidateSharingListingDetail, {
+  CandidateSharingListingLegacyRedirect,
+} from './page/Bussiness/CandidateSharingListingDetail';
 import AdminCandidateSharingPage from './page/Admin/CandidateSharingPage';
 import CtvMarketplacePage from './page/Agent/CtvMarketplacePage';
 import KnowledgeHub from './page/Bussiness/KnowledgeHub';
@@ -284,6 +287,7 @@ function App() {
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="payments/:id" element={<PaymentRequestDetailPage />} />
             <Route path="scout-performance" element={<AdminScoutPerformancePage />} />
+            <Route path="scout-reserve" element={<AdminScoutReservePage />} />
             <Route path="ws-chat" element={<AdminWsChatPage />} />
             <Route path="business-credit-requests" element={<AdminCreditRequestsPage />} />
             <Route path="candidate-sharing" element={<AdminCandidateSharingPage />} />
@@ -420,7 +424,8 @@ function App() {
             <Route path="candidates" element={<Candidate />} />
             <Route path="candidates/:candidateId" element={<BusinessUnlockedCandidateDetail />} />
             <Route path="candidate-sharing" element={<CandidateSharing />} />
-            <Route path="candidate-sharing/listings/:listingId" element={<CandidateSharingListingDetail />} />
+            <Route path="candidate-sharing/jobs/:jobId" element={<CandidateSharingListingDetail />} />
+            <Route path="candidate-sharing/listings/:listingId" element={<CandidateSharingListingLegacyRedirect />} />
             <Route path="scout/direct" element={<ScoutDirect />} />
             <Route path="scout/managed" element={<ScoutManaged />} />
             <Route path="scout/candidates/:cvId" element={<ScoutCandidateDetail />} />

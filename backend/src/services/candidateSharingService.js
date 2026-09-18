@@ -31,14 +31,14 @@ const JOB_COMMISSION_INCLUDE = {
   model: Job,
   as: 'job',
   required: false,
-  attributes: ['id', 'title', 'jobCode', 'slug', 'deadline', 'jobCommissionType'],
+  attributes: ['id', 'title', 'titleEn', 'titleJp', 'jobCode', 'slug', 'deadline', 'jobCommissionType'],
   include: [{
     model: JobValue,
     as: 'jobValues',
     required: false,
     include: [
       { model: Type, as: 'type', required: false, attributes: ['id', 'typename', 'cvField'] },
-      { model: Value, as: 'valueRef', required: false, attributes: ['id', 'valuename'] },
+      { model: Value, as: 'valueRef', required: false, attributes: ['id', 'valuename', 'valuenameEn', 'valuenameJp'] },
     ],
   }],
 };
@@ -82,6 +82,8 @@ function formatListing(row, { includeJob = true } = {}) {
       ? {
           id: json.job.id,
           title: json.job.title,
+          titleEn: json.job.titleEn ?? null,
+          titleJp: json.job.titleJp ?? null,
           jobCode: json.job.jobCode,
           slug: json.job.slug,
           deadline: json.job.deadline || null,
@@ -481,6 +483,20 @@ export async function closeBusinessListing({ businessId, listingId }) {
   return formatListing(await assertOwnedListing(businessId, listingId));
 }
 
+export async function getBusinessListingDetailByJobId({ businessId, jobId }) {
+  await assertOwnedJob(businessId, jobId);
+  const listing = await BusinessCtvMarketplaceListing.findOne({
+    where: { businessId, jobId },
+    order: [['updated_at', 'DESC'], ['id', 'DESC']],
+  });
+  if (!listing) {
+    const err = new Error('Chưa có tin đăng Sàn CTV cho JD này');
+    err.statusCode = 404;
+    throw err;
+  }
+  return getBusinessListingDetail({ businessId, listingId: listing.id });
+}
+
 export async function getBusinessListingDetail({ businessId, listingId }) {
   await assertOwnedListing(businessId, listingId);
   await syncListingCounters(listingId);
@@ -587,7 +603,7 @@ export async function listBusinessNominations({ businessId, page = 1, limit = 20
   const { count, rows } = await JobApplication.findAndCountAll({
     where: { jobId: jobIds.length === 1 ? jobIds[0] : { [Op.in]: jobIds } },
     include: [
-      { model: Job, as: 'job', required: false, attributes: ['id', 'title', 'jobCode'] },
+      { model: Job, as: 'job', required: false, attributes: ['id', 'title', 'titleEn', 'titleJp', 'jobCode'] },
       { model: Collaborator, as: 'collaborator', required: false, attributes: ['id', 'name', 'email'] },
       { model: CVStorage, as: 'cv', required: false, attributes: ['id', 'name', 'code', 'desiredPosition'] },
     ],
@@ -608,6 +624,8 @@ export async function listBusinessNominations({ businessId, page = 1, limit = 20
         candidateSub: j.cv?.desiredPosition || null,
         cvStorageId: j.cv?.id || null,
         jobTitle: j.job?.title || '—',
+        jobTitleEn: j.job?.titleEn ?? null,
+        jobTitleJp: j.job?.titleJp ?? null,
         jobCode: j.job?.jobCode || null,
         ctvName: j.collaborator?.name || '—',
         ctvId: j.collaboratorId,
@@ -637,7 +655,7 @@ export async function listBusinessSettlements({ businessId, page = 1, limit = 20
   const { count, rows } = await BusinessCtvMarketplaceSettlement.findAndCountAll({
     where,
     include: [
-      { model: BusinessCtvMarketplaceListing, as: 'listing', required: false, include: [{ model: Job, as: 'job', attributes: ['id', 'title', 'jobCode'] }] },
+      { model: BusinessCtvMarketplaceListing, as: 'listing', required: false, include: [{ model: Job, as: 'job', attributes: ['id', 'title', 'titleEn', 'titleJp', 'jobCode'] }] },
     ],
     order: [['created_at', 'DESC']],
     limit: safeLimit,
@@ -806,6 +824,7 @@ export async function rejectListing({
       businessId: listing.businessId,
       jobTitle,
       reason: rejectionReason?.trim() || null,
+      jobId: full?.job?.id ?? listing.jobId,
       listingId: listing.id,
     });
   } catch (err) {

@@ -41,13 +41,6 @@ export const creditPricingModalStyles = `
   .credit-pricing-modal-shell {
     font-family: ${BUSINESS_UI_FONT};
   }
-  .credit-pricing-modal-scroll {
-    scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
-  }
-  .credit-pricing-modal-scroll::-webkit-scrollbar { width: 4px; }
-  .credit-pricing-modal-scroll::-webkit-scrollbar-track { background: transparent; }
-  .credit-pricing-modal-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
   @media (max-width: 639px) {
     .credit-pricing-modal-shell.business-app-ui {
       --biz-fs-title: 0.9375rem;
@@ -108,18 +101,13 @@ export const creditPricingModalStyles = `
 
 export const creditPricingIntroStyles = `
   ${creditPricingPanelStyles}
-  .credit-pricing-intro-shell {
-    --biz-fs-title: 1.0625rem;
-    --biz-fs-section: 0.8125rem;
-    --biz-fs-body: 0.75rem;
-    --biz-fs-caption: 0.6875rem;
-    --biz-fs-micro: 0.625rem;
-    --biz-fs-stat: 1.375rem;
-  }
-  @media (min-width: 1280px) {
-    .credit-pricing-intro-shell {
-      --biz-fs-stat: 1.5rem;
-    }
+  .credit-pricing-intro-shell.business-app-ui {
+    --biz-fs-title: var(--biz-hp-title);
+    --biz-fs-section: var(--biz-hp-section);
+    --biz-fs-body: var(--biz-hp-body);
+    --biz-fs-caption: var(--biz-hp-caption);
+    --biz-fs-micro: var(--biz-hp-micro);
+    --biz-fs-stat: var(--biz-hp-stat);
   }
   .credit-pricing-intro-shell .credit-pricing-card {
     min-height: 0;
@@ -153,11 +141,15 @@ export const creditPricingIntroStyles = `
   .credit-pricing-card-interactive.credit-pricing-card-featured:focus-visible {
     box-shadow: 0 16px 32px -12px rgba(0, 60, 100, 0.45);
   }
-  .credit-pricing-card:not(.credit-pricing-card-featured) .credit-pricing-cta {
-    color: #ffffff;
+  .credit-pricing-card:not(.credit-pricing-card-featured) .credit-pricing-cta,
+  .credit-pricing-card:not(.credit-pricing-card-featured) .credit-pricing-cta:hover,
+  .credit-pricing-card:not(.credit-pricing-card-featured) .credit-pricing-cta:focus-visible {
+    color: #ffffff !important;
   }
-  .credit-pricing-card:not(.credit-pricing-card-featured) .credit-pricing-cta:hover {
-    color: #ffffff;
+  .credit-pricing-card-featured .credit-pricing-cta,
+  .credit-pricing-card-featured .credit-pricing-cta:hover,
+  .credit-pricing-card-featured .credit-pricing-cta:focus-visible {
+    color: #0f172a !important;
   }
   .credit-pricing-intro-shell.credit-packages-deemphasized .credit-pricing-panel {
     opacity: 0.92;

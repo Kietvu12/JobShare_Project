@@ -9,24 +9,34 @@ import {
   getScoutPipelineMeta,
 } from '../../utils/scoutCandidateDisplay'
 import { parseServiceRequestNote } from '../../utils/serviceRequestNoteDisplay'
+import { wsChatTheme } from '../../utils/wsChatTheme'
+import { getBusinessUnlockedCandidateDetailUrl } from '../../utils/businessUnlockedCandidateDetailUrl'
+import { getScoutCandidateDetailUrl } from '../../utils/scoutCandidateDetailUrl'
+import { useLanguage } from '../../context/LanguageContext'
+import {
+  getMessagesCopy,
+  getCreditRequestStatusStyle,
+  formatCreditPanelNumber,
+  getWsChatLocale,
+} from '../../i18n/businessApp/messages.js'
 
 const ICON_SM = { width: 10, height: 10 }
 const bd = '1px solid #e2e8f0'
 
-function formatTime(value) {
+function formatTime(value, locale = 'vi-VN') {
   if (!value) return ''
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
-function formatListTime(value) {
+function formatListTime(value, locale = 'vi-VN') {
   if (!value) return ''
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return ''
   const now = new Date()
-  if (d.toDateString() === now.toDateString()) return formatTime(value)
-  return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
+  if (d.toDateString() === now.toDateString()) return formatTime(value, locale)
+  return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' })
 }
 
 const WsLogo = ({ size = 28 }) => (
@@ -37,31 +47,32 @@ const WsLogo = ({ size = 28 }) => (
   }}>WS</div>
 )
 
-function CvAttachmentCard({ cv, mode, onOpen, kind = 'recommendation' }) {
-  const code = cv.code || (cv.cvId ? `CV #${cv.cvId}` : 'Hồ sơ')
+function CvAttachmentCard({ cv, mode, onOpen, kind = 'recommendation', wsCopy = null }) {
+  const th = wsChatTheme(mode)
+  const code = cv.code || (cv.cvId ? `CV #${cv.cvId}` : (wsCopy?.cvProfile || 'Hồ sơ'))
   const name = cv.name || null
   const sub = [
     name,
     cv.desiredPosition,
     cv.jobCategory?.name,
   ].filter(Boolean).join(' · ')
-  const footer = kind === 'request'
-    ? (mode === 'admin' ? 'Bấm để xem chi tiết hồ sơ →' : 'Bấm để xem chi tiết hồ sơ →')
-    : (mode === 'admin' ? 'Đã gửi vào danh sách Scout DN' : 'Xem hồ sơ trên Scout →')
+  const footer = mode === 'admin'
+    ? (kind === 'request' ? (wsCopy?.cvClickDetail || 'Bấm để xem chi tiết hồ sơ →') : 'Đã gửi vào danh sách Scout DN')
+    : (wsCopy?.cvClickDetail || 'Bấm để xem chi tiết hồ sơ →')
   const canOpen = !!onOpen && !!cv.cvId
   return (
     <button
       type="button"
-      onClick={() => (canOpen ? onOpen?.(cv.cvId) : undefined)}
+      onClick={() => (canOpen ? onOpen?.(cv.cvId, { kind }) : undefined)}
       style={{
         width: '100%', textAlign: 'left', background: '#f8fafc', border: bd, borderRadius: 8,
-        padding: '8px 10px', cursor: canOpen ? 'pointer' : 'default',
+        padding: th.pad.attach, cursor: canOpen ? 'pointer' : 'default',
       }}
     >
-      <div style={{ fontSize: 9, fontWeight: 700, color: '#1e293b' }}>{code}</div>
-      {sub && <div style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>{sub}</div>}
+      <div style={{ fontSize: th.fs.body, fontWeight: 700, color: '#1e293b' }}>{code}</div>
+      {sub && <div style={{ fontSize: th.fs.caption, color: '#64748b', marginTop: 2 }}>{sub}</div>}
       {canOpen ? (
-        <div style={{ fontSize: 7, color: '#0077B6', marginTop: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
+        <div style={{ fontSize: th.fs.micro, color: '#0077B6', marginTop: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
           <ExternalLink width={9} height={9} />
           {footer}
         </div>
@@ -70,7 +81,8 @@ function CvAttachmentCard({ cv, mode, onOpen, kind = 'recommendation' }) {
   )
 }
 
-function JobAttachmentCard({ jobId, jobTitle, jobCode, mode, onOpen }) {
+function JobAttachmentCard({ jobId, jobTitle, jobCode, mode, onOpen, wsCopy = null }) {
+  const th = wsChatTheme(mode)
   if (!jobId) return null
   const title = jobTitle || `JD #${jobId}`
   const canOpen = !!onOpen
@@ -80,17 +92,17 @@ function JobAttachmentCard({ jobId, jobTitle, jobCode, mode, onOpen }) {
       onClick={() => (canOpen ? onOpen?.(jobId) : undefined)}
       style={{
         width: '100%', textAlign: 'left', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8,
-        padding: '8px 10px', cursor: canOpen ? 'pointer' : 'default',
+        padding: th.pad.attach, cursor: canOpen ? 'pointer' : 'default',
       }}
     >
-      <div style={{ fontSize: 8, fontWeight: 600, color: '#64748b', marginBottom: 2 }}>JD hearing</div>
-      <div style={{ fontSize: 9, fontWeight: 700, color: '#1e40af' }}>
+      <div style={{ fontSize: th.fs.caption, fontWeight: 600, color: '#64748b', marginBottom: 2 }}>{wsCopy?.jdHearing || 'JD hearing'}</div>
+      <div style={{ fontSize: th.fs.body, fontWeight: 700, color: '#1e40af' }}>
         {title}{jobCode ? ` · ${jobCode}` : ''}
       </div>
       {canOpen ? (
-        <div style={{ fontSize: 7, color: '#0077B6', marginTop: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
+        <div style={{ fontSize: th.fs.micro, color: '#0077B6', marginTop: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
           <ExternalLink width={9} height={9} />
-          Bấm để xem chi tiết JD →
+          {wsCopy?.jobClickDetail || 'Bấm để xem chi tiết JD →'}
         </div>
       ) : null}
     </button>
@@ -132,18 +144,19 @@ const SERVICE_REQUEST_STATUS_STYLES = {
   cancelled: { label: 'Đã hủy', color: '#64748b', bg: '#f1f5f9' },
 }
 
-function StructuredServiceNoteBody({ note }) {
+function StructuredServiceNoteBody({ note, mode = 'admin' }) {
+  const th = wsChatTheme(mode)
   const { sectionTitle, fields, freeText } = parseServiceRequestNote(note)
   if (!sectionTitle && !fields.length && !freeText) return null
 
   return (
     <div style={{
-      marginTop: 8, padding: '8px 9px', background: '#f8fafc', borderRadius: 8,
+      marginTop: 8, padding: th.pad.structured, background: '#f8fafc', borderRadius: 8,
       border: '1px solid #e2e8f0',
     }}>
       {sectionTitle ? (
         <div style={{
-          fontSize: 8, fontWeight: 700, color: '#0077B6', marginBottom: 6,
+          fontSize: th.fs.caption, fontWeight: 700, color: '#0077B6', marginBottom: 6,
           paddingBottom: 5, borderBottom: '1px solid #e2e8f0',
         }}>
           {sectionTitle}
@@ -152,17 +165,17 @@ function StructuredServiceNoteBody({ note }) {
       {fields.map((field) => (
         <div key={`${field.label}-${field.value}`} style={{ marginBottom: 5 }}>
           {field.label ? (
-            <div style={{ fontSize: 7, fontWeight: 600, color: '#64748b', marginBottom: 1 }}>{field.label}</div>
+            <div style={{ fontSize: th.fs.micro, fontWeight: 600, color: '#64748b', marginBottom: 1 }}>{field.label}</div>
           ) : null}
           <div style={{
-            fontSize: 8, color: '#1e293b', lineHeight: 1.55, whiteSpace: field.multiline ? 'pre-wrap' : 'normal',
+            fontSize: th.fs.caption, color: '#1e293b', lineHeight: 1.55, whiteSpace: field.multiline ? 'pre-wrap' : 'normal',
           }}>
             {field.value || '—'}
           </div>
         </div>
       ))}
       {freeText ? (
-        <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.55, whiteSpace: 'pre-wrap', marginTop: fields.length ? 4 : 0 }}>
+        <div style={{ fontSize: th.fs.caption, color: '#475569', lineHeight: 1.55, whiteSpace: 'pre-wrap', marginTop: fields.length ? 4 : 0 }}>
           {freeText}
         </div>
       ) : null}
@@ -170,54 +183,58 @@ function StructuredServiceNoteBody({ note }) {
   )
 }
 
-function ServiceRequestEventCard({ message }) {
+function ServiceRequestEventCard({ message, mode = 'admin', language = 'vi' }) {
+  const th = wsChatTheme(mode)
   const payload = message.requestPayload || {}
-  const title = payload.serviceTitle || 'Yêu cầu dịch vụ'
+  const wsCopy = mode === 'business' ? getMessagesCopy(language).wsChat : null
+  const title = payload.serviceTitle || wsCopy?.serviceRequestDefault || 'Yêu cầu dịch vụ'
   const status = payload.status || 'pending'
   const statusStyle = SERVICE_REQUEST_STATUS_STYLES[status] || SERVICE_REQUEST_STATUS_STYLES.pending
 
   return (
     <div style={{
       width: '100%', maxWidth: 320, background: '#fff', border: '1.5px solid #bae6fd',
-      borderRadius: 10, padding: '10px 12px', boxShadow: '0 2px 8px rgba(0,119,182,0.1)',
+      borderRadius: 10, padding: th.pad.card, boxShadow: '0 2px 8px rgba(0,119,182,0.1)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#0077B6' }}>Yêu cầu dịch vụ</div>
+        <div style={{ fontSize: th.fs.section, fontWeight: 700, color: '#0077B6' }}>Yêu cầu dịch vụ</div>
         <span style={{
-          fontSize: 7, fontWeight: 600, padding: '2px 6px', borderRadius: 99,
+          fontSize: th.fs.micro, fontWeight: 600, padding: '2px 6px', borderRadius: 99,
           color: statusStyle.color, background: statusStyle.bg,
         }}>
           {statusStyle.label}
         </span>
       </div>
-      <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.65 }}>
+      <div style={{ fontSize: th.fs.caption, color: '#475569', lineHeight: 1.65 }}>
         {payload.requestCode ? <div style={{ marginBottom: 4 }}><strong>Mã yêu cầu:</strong> {payload.requestCode}</div> : null}
         <div><strong>Dịch vụ:</strong> {title}</div>
       </div>
-      {payload.note ? <StructuredServiceNoteBody note={payload.note} /> : null}
+      {payload.note ? <StructuredServiceNoteBody note={payload.note} mode={mode} /> : null}
     </div>
   )
 }
 
-function SaiyoBrandingRequestEventCard({ message }) {
+function SaiyoBrandingRequestEventCard({ message, mode = 'admin', language = 'vi' }) {
+  const th = wsChatTheme(mode)
   const payload = message.requestPayload || {}
+  const wsCopy = mode === 'business' ? getMessagesCopy(language).wsChat : null
   const title = payload.serviceTitle || 'Dịch vụ Saiyo Branding'
 
   return (
     <div style={{
       width: '100%', maxWidth: 320, background: '#fff', border: '1.5px solid #ddd6fe',
-      borderRadius: 10, padding: '10px 12px', boxShadow: '0 2px 8px rgba(139,92,246,0.12)',
+      borderRadius: 10, padding: th.pad.card, boxShadow: '0 2px 8px rgba(139,92,246,0.12)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#5b21b6' }}>Yêu cầu Saiyo Branding</div>
-        <span style={{ fontSize: 7, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: '#7c3aed', background: '#ede9fe' }}>
+        <div style={{ fontSize: th.fs.section, fontWeight: 700, color: '#5b21b6' }}>{wsCopy?.brandingTitle || 'Yêu cầu Saiyo Branding'}</div>
+        <span style={{ fontSize: th.fs.micro, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: '#7c3aed', background: '#ede9fe' }}>
           Chờ WS
         </span>
       </div>
-      <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.65 }}>
+      <div style={{ fontSize: th.fs.caption, color: '#475569', lineHeight: 1.65 }}>
         <div><strong>Dịch vụ:</strong> {title}</div>
       </div>
-      {payload.note ? <StructuredServiceNoteBody note={payload.note} /> : null}
+      {payload.note ? <StructuredServiceNoteBody note={payload.note} mode={mode} /> : null}
     </div>
   )
 }
@@ -228,32 +245,40 @@ function CreditRequestEventCard({
   onApprove,
   onReject,
   actionRequestId,
+  language = 'vi',
 }) {
+  const th = wsChatTheme(mode)
   const payload = message.requestPayload || {}
   const status = payload.status || 'pending'
-  const statusStyle = CREDIT_STATUS_STYLES[status] || CREDIT_STATUS_STYLES.pending
+  const msgCopy = getMessagesCopy(language)
+  const wsCopy = mode === 'business' ? msgCopy.wsChat : null
+  const cp = msgCopy.creditPanel
+  const statusStyle = mode === 'business'
+    ? getCreditRequestStatusStyle(status, language)
+    : (CREDIT_STATUS_STYLES[status] || CREDIT_STATUS_STYLES.pending)
   const isPending = status === 'pending'
   const [rejectNote, setRejectNote] = useState('')
   const [showReject, setShowReject] = useState(false)
+  const paymentLabels = wsCopy?.paymentMethod || PAYMENT_METHOD_LABELS
 
   return (
     <div style={{
       width: '100%', maxWidth: 320, background: '#fff', border: '1.5px solid #fde68a',
-      borderRadius: 10, padding: '10px 12px', boxShadow: '0 2px 8px rgba(234,179,8,0.12)',
+      borderRadius: 10, padding: th.pad.card, boxShadow: '0 2px 8px rgba(234,179,8,0.12)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#92400e' }}>Yêu cầu nạp credit</div>
-        <span style={{ fontSize: 7, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: statusStyle.color, background: statusStyle.bg }}>
+        <div style={{ fontSize: th.fs.section, fontWeight: 700, color: '#92400e' }}>{wsCopy?.creditRequestTitle || 'Yêu cầu nạp credit'}</div>
+        <span style={{ fontSize: th.fs.micro, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: statusStyle.color, background: statusStyle.bg }}>
           {statusStyle.label}
         </span>
       </div>
 
-      <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.65, marginBottom: 8 }}>
-        <div><strong>Mã:</strong> {payload.requestCode || `#${payload.requestId}`}</div>
-        <div><strong>Số credit:</strong> {Number(payload.amount || 0).toLocaleString('vi-VN')}</div>
-        <div><strong>Thanh toán:</strong> {PAYMENT_METHOD_LABELS[payload.paymentMethod] || payload.paymentMethod || '—'}</div>
-        {payload.note && <div><strong>Ghi chú DN:</strong> {payload.note}</div>}
-        {payload.adminNote && <div><strong>Phản hồi WS:</strong> {payload.adminNote}</div>}
+      <div style={{ fontSize: th.fs.caption, color: '#475569', lineHeight: 1.65, marginBottom: 8 }}>
+        <div><strong>{cp.labelCode}</strong> {payload.requestCode || `#${payload.requestId}`}</div>
+        <div><strong>{cp.labelCredits}</strong> {formatCreditPanelNumber(payload.amount, language)}</div>
+        <div><strong>{wsCopy?.labelPayment || 'Thanh toán:'}</strong> {paymentLabels[payload.paymentMethod] || payload.paymentMethod || '—'}</div>
+        {payload.note && <div><strong>{wsCopy?.noteCompany || 'Ghi chú DN:'}</strong> {payload.note}</div>}
+        {payload.adminNote && <div><strong>{cp.labelAdminNote}</strong> {payload.adminNote}</div>}
       </div>
 
       {mode === 'admin' && isPending && onApprove && onReject && (
@@ -318,28 +343,32 @@ function CreditRequestEventCard({
       )}
 
       {mode === 'business' && isPending && (
-        <div style={{ fontSize: 7, color: '#92400e', background: '#fffbeb', borderRadius: 6, padding: '6px 8px' }}>
-          WS sẽ xem xét và phản hồi trong cuộc trò chuyện này.
+        <div style={{ fontSize: th.fs.caption, color: '#92400e', background: '#fffbeb', borderRadius: 6, padding: th.pad.cardSm }}>
+          {wsCopy?.creditPendingHint || 'WS sẽ xem xét và phản hồi trong cuộc trò chuyện này.'}
         </div>
       )}
     </div>
   )
 }
 
-function CreditDecisionEventCard({ message }) {
+function CreditDecisionEventCard({ message, mode = 'admin', language = 'vi' }) {
+  const th = wsChatTheme(mode)
   const payload = message.requestPayload || {}
   const accepted = payload.decision === 'accepted' || payload.status === 'approved'
+  const wsCopy = mode === 'business' ? getMessagesCopy(language).wsChat : null
   return (
     <div style={{
       width: '100%', maxWidth: 320, background: accepted ? '#ecfdf5' : '#fef2f2',
       border: `1.5px solid ${accepted ? '#bbf7d0' : '#fecaca'}`,
-      borderRadius: 10, padding: '10px 12px',
+      borderRadius: 10, padding: th.pad.card,
     }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: accepted ? '#166534' : '#991b1b', marginBottom: 4 }}>
-        {accepted ? 'WS đã duyệt yêu cầu nạp credit' : 'WS đã từ chối yêu cầu nạp credit'}
+      <div style={{ fontSize: th.fs.section, fontWeight: 700, color: accepted ? '#166534' : '#991b1b', marginBottom: 4 }}>
+        {accepted
+          ? (wsCopy?.creditApproved || 'WS đã duyệt yêu cầu nạp credit')
+          : (wsCopy?.creditRejected || 'WS đã từ chối yêu cầu nạp credit')}
       </div>
       {message.content && (
-        <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.55 }}>{message.content}</div>
+        <div style={{ fontSize: th.fs.caption, color: '#475569', lineHeight: 1.55 }}>{message.content}</div>
       )}
     </div>
   )
@@ -362,6 +391,7 @@ function ListingRequestEventCard({
   onReject,
   actionListingId,
 }) {
+  const th = wsChatTheme(mode)
   const payload = message.requestPayload || {}
   const status = payload.status || 'pending'
   const statusStyle = CREDIT_STATUS_STYLES[status] || CREDIT_STATUS_STYLES.pending
@@ -377,16 +407,16 @@ function ListingRequestEventCard({
   return (
     <div style={{
       width: '100%', maxWidth: 320, background: '#fff', border: '1.5px solid #bae6fd',
-      borderRadius: 10, padding: '10px 12px', boxShadow: '0 2px 8px rgba(0,119,182,0.12)',
+      borderRadius: 10, padding: th.pad.card, boxShadow: '0 2px 8px rgba(0,119,182,0.12)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#0077B6' }}>Đăng job lên Sàn CTV</div>
-        <span style={{ fontSize: 7, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: statusStyle.color, background: statusStyle.bg }}>
+        <div style={{ fontSize: th.fs.section, fontWeight: 700, color: '#0077B6' }}>Đăng job lên Sàn CTV</div>
+        <span style={{ fontSize: th.fs.micro, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: statusStyle.color, background: statusStyle.bg }}>
           {statusStyle.label}
         </span>
       </div>
 
-      <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.65, marginBottom: 8 }}>
+      <div style={{ fontSize: th.fs.caption, color: '#475569', lineHeight: 1.65, marginBottom: 8 }}>
         <div><strong>Job:</strong> {payload.jobTitle || '—'}{payload.jobCode ? ` (${payload.jobCode})` : ''}</div>
         <div><strong>Phí CTV:</strong> {formatListingReferralFee(payload)}</div>
         {payload.platformFeePercent != null && status !== 'pending' && (
@@ -478,7 +508,7 @@ function ListingRequestEventCard({
       )}
 
       {mode === 'business' && isPending && (
-        <div style={{ fontSize: 7, color: '#0369a1', background: '#f0f9ff', borderRadius: 6, padding: '6px 8px' }}>
+        <div style={{ fontSize: th.fs.caption, color: '#0369a1', background: '#f0f9ff', borderRadius: 6, padding: th.pad.cardSm }}>
           WS sẽ xem xét, thiết lập phí dịch vụ và phản hồi trong cuộc trò chuyện này.
         </div>
       )}
@@ -486,20 +516,21 @@ function ListingRequestEventCard({
   )
 }
 
-function ListingDecisionEventCard({ message }) {
+function ListingDecisionEventCard({ message, mode = 'admin' }) {
+  const th = wsChatTheme(mode)
   const payload = message.requestPayload || {}
   const accepted = payload.decision === 'accepted' || payload.status === 'approved'
   return (
     <div style={{
       width: '100%', maxWidth: 320, background: accepted ? '#ecfdf5' : '#fef2f2',
       border: `1.5px solid ${accepted ? '#bbf7d0' : '#fecaca'}`,
-      borderRadius: 10, padding: '10px 12px',
+      borderRadius: 10, padding: th.pad.card,
     }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: accepted ? '#166534' : '#991b1b', marginBottom: 4 }}>
+      <div style={{ fontSize: th.fs.section, fontWeight: 700, color: accepted ? '#166534' : '#991b1b', marginBottom: 4 }}>
         {accepted ? 'WS đã duyệt đăng Sàn CTV' : 'WS đã từ chối đăng Sàn CTV'}
       </div>
       {message.content && (
-        <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.55 }}>{message.content}</div>
+        <div style={{ fontSize: th.fs.caption, color: '#475569', lineHeight: 1.55 }}>{message.content}</div>
       )}
     </div>
   )
@@ -518,6 +549,7 @@ function ReferralPaymentDraftEventCard({
   onSubmit,
   actionJobApplicationId,
 }) {
+  const th = wsChatTheme(mode)
   const payload = message.requestPayload || {}
   const status = payload.status || 'pending_amount'
   const statusStyle = REFERRAL_PAYMENT_STATUS_STYLES[status] || REFERRAL_PAYMENT_STATUS_STYLES.pending_amount
@@ -528,16 +560,16 @@ function ReferralPaymentDraftEventCard({
   return (
     <div style={{
       width: '100%', maxWidth: 320, background: '#fff', border: '1.5px solid #bfdbfe',
-      borderRadius: 10, padding: '10px 12px', boxShadow: '0 2px 8px rgba(37,99,235,0.12)',
+      borderRadius: 10, padding: th.pad.card, boxShadow: '0 2px 8px rgba(37,99,235,0.12)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#1d4ed8' }}>Yêu cầu thanh toán phí giới thiệu</div>
-        <span style={{ fontSize: 7, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: statusStyle.color, background: statusStyle.bg }}>
+        <div style={{ fontSize: th.fs.section, fontWeight: 700, color: '#1d4ed8' }}>Yêu cầu thanh toán phí giới thiệu</div>
+        <span style={{ fontSize: th.fs.micro, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: statusStyle.color, background: statusStyle.bg }}>
           {statusStyle.label}
         </span>
       </div>
 
-      <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.65, marginBottom: 8 }}>
+      <div style={{ fontSize: th.fs.caption, color: '#475569', lineHeight: 1.65, marginBottom: 8 }}>
         <div><strong>Doanh nghiệp:</strong> {payload.businessName || '—'}</div>
         <div><strong>Ứng viên:</strong> {payload.candidateName || '—'}</div>
         <div><strong>Đơn tiến cử:</strong> {payload.jobCode || `#${jobApplicationId || '—'}`}</div>
@@ -586,6 +618,7 @@ function ReferralPaymentDraftEventCard({
 }
 
 function ReferralPaymentInvoiceEventCard({ message, mode }) {
+  const th = wsChatTheme(mode)
   const payload = message.requestPayload || {}
   const status = payload.status || 'unpaid'
   const statusStyle = REFERRAL_PAYMENT_STATUS_STYLES[status] || REFERRAL_PAYMENT_STATUS_STYLES.unpaid
@@ -596,15 +629,15 @@ function ReferralPaymentInvoiceEventCard({ message, mode }) {
   return (
     <div style={{
       width: '100%', maxWidth: 320, background: '#fff', border: '1.5px solid #bfdbfe',
-      borderRadius: 10, padding: '10px 12px', boxShadow: '0 2px 8px rgba(37,99,235,0.12)',
+      borderRadius: 10, padding: th.pad.card, boxShadow: '0 2px 8px rgba(37,99,235,0.12)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#1d4ed8' }}>Yêu cầu thanh toán phí giới thiệu</div>
-        <span style={{ fontSize: 7, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: statusStyle.color, background: statusStyle.bg }}>
+        <div style={{ fontSize: th.fs.section, fontWeight: 700, color: '#1d4ed8' }}>Yêu cầu thanh toán phí giới thiệu</div>
+        <span style={{ fontSize: th.fs.micro, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: statusStyle.color, background: statusStyle.bg }}>
           {statusStyle.label}
         </span>
       </div>
-      <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.65, marginBottom: 8 }}>
+      <div style={{ fontSize: th.fs.caption, color: '#475569', lineHeight: 1.65, marginBottom: 8 }}>
         <div><strong>Ứng viên:</strong> {payload.candidateName || '—'}</div>
         <div><strong>Đơn tiến cử:</strong> {payload.jobCode || '—'}</div>
         <div><strong>Mã hóa đơn:</strong> {payload.invoiceCode || '—'}</div>
@@ -615,7 +648,7 @@ function ReferralPaymentInvoiceEventCard({ message, mode }) {
           href={billingPath}
           style={{
             display: 'inline-block', width: '100%', textAlign: 'center', border: 'none', borderRadius: 6,
-            padding: '7px 8px', fontSize: 8, fontWeight: 700, background: '#2563eb', color: '#fff', textDecoration: 'none',
+            padding: th.pad.cardSm, fontSize: th.fs.caption, fontWeight: 700, background: '#2563eb', color: '#fff', textDecoration: 'none',
           }}
         >
           Xem Billing
@@ -626,6 +659,7 @@ function ReferralPaymentInvoiceEventCard({ message, mode }) {
 }
 
 function ApproachStatusUpdateEventCard({ message, mode, onOpenCv }) {
+  const th = wsChatTheme(mode)
   const payload = message.requestPayload || {}
   const statusLabel = payload.pipelineStatusLabel || payload.pipelineStatus || '—'
   const cvFromAttachment = (message.cvAttachments || [])[0]
@@ -636,19 +670,19 @@ function ApproachStatusUpdateEventCard({ message, mode, onOpenCv }) {
   return (
     <div style={{
       width: '100%', maxWidth: 320, background: '#f0fdf4', border: '1.5px solid #bbf7d0',
-      borderRadius: 10, padding: '10px 12px',
+      borderRadius: 10, padding: th.pad.card,
     }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: '#166534', marginBottom: 6 }}>
+      <div style={{ fontSize: th.fs.section, fontWeight: 700, color: '#166534', marginBottom: 6 }}>
         Cập nhật trạng thái tiếp cận
       </div>
       {message.content && (
-        <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.55, marginBottom: 8 }}>
+        <div style={{ fontSize: th.fs.caption, color: '#475569', lineHeight: 1.55, marginBottom: 8 }}>
           {message.content}
         </div>
       )}
       <div style={{
-        fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7',
-        borderRadius: 6, padding: '5px 8px', marginBottom: cv ? 8 : 0,
+        fontSize: th.fs.body, fontWeight: 700, color: '#15803d', background: '#dcfce7',
+        borderRadius: 6, padding: th.pad.cardSm, marginBottom: cv ? 8 : 0,
       }}
       >
         {statusLabel}
@@ -877,49 +911,68 @@ function WsAdminScoutPerformanceCandidatesPanel({
   )
 }
 
-function ScoutPerformanceEventCard({ message, mode, onOpenCv, onOpenJob }) {
+function ScoutPerformanceEventCard({ message, mode, onOpenCv, onOpenJob, language = 'vi' }) {
+  const th = wsChatTheme(mode)
   const payload = message.requestPayload || {}
   const requestedCv = getRequestedCvFromMessage(message)
   const type = message.messageType
+  const wsCopy = mode === 'business' ? getMessagesCopy(language).wsChat : null
 
   const meta = type === 'similar_candidates_request'
-    ? { label: 'Tìm tương tự', color: '#4338ca', bg: '#e8f4fa', title: 'Yêu cầu tìm thêm ứng viên tương tự' }
+    ? {
+      label: wsCopy?.perfSimilarLabel || 'Tìm tương tự',
+      color: '#4338ca',
+      bg: '#e8f4fa',
+      title: wsCopy?.perfSimilarTitle || 'Yêu cầu tìm thêm ứng viên tương tự',
+    }
     : type === 'performance_opened'
-      ? { label: 'Scout Ủy Thác', color: '#059669', bg: '#d1fae5', title: 'Mở hồ sơ & hearing JD' }
-      : { label: 'Scout Performance', color: '#64748b', bg: '#f1f5f9', title: message.content || 'Scout Performance' }
+      ? {
+        label: wsCopy?.perfOpenedLabel || 'Scout Ủy Thác',
+        color: '#059669',
+        bg: '#d1fae5',
+        title: wsCopy?.perfOpenedTitle || 'Mở hồ sơ & hearing JD',
+      }
+      : {
+        label: wsCopy?.scoutPerformance || 'Scout Performance',
+        color: '#64748b',
+        bg: '#f1f5f9',
+        title: message.content || wsCopy?.scoutPerformance || 'Scout Performance',
+      }
 
   const note = payload.businessNote || (type !== 'performance_opened' ? payload.businessNote : null)
 
   return (
     <div style={{
       width: '100%', maxWidth: 320, background: '#fff', border: '1.5px solid #c7d2fe',
-      borderRadius: 10, padding: '10px 12px', boxShadow: '0 2px 8px rgba(79,70,229,0.08)',
+      borderRadius: 10, padding: th.pad.card, boxShadow: '0 2px 8px rgba(79,70,229,0.08)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#312e81' }}>{meta.title}</div>
-        <span style={{ fontSize: 7, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: meta.color, background: meta.bg }}>
+        <div style={{ fontSize: th.fs.section, fontWeight: 700, color: '#312e81' }}>{meta.title}</div>
+        <span style={{ fontSize: th.fs.micro, fontWeight: 600, padding: '2px 6px', borderRadius: 99, color: meta.color, background: meta.bg }}>
           {meta.label}
         </span>
       </div>
 
       {type === 'performance_opened' ? (
-        <div style={{ fontSize: 8, color: '#475569', lineHeight: 1.65, marginBottom: 8 }}>
+        <div style={{ fontSize: th.fs.caption, color: '#475569', lineHeight: 1.65, marginBottom: 8 }}>
           {payload.businessCompanyName ? (
-            <div><strong>Doanh nghiệp:</strong> {payload.businessCompanyName}</div>
+            <div><strong>{wsCopy?.labelCompany || 'Doanh nghiệp:'}</strong> {payload.businessCompanyName}</div>
           ) : null}
           <div>
-            <strong>Ứng viên:</strong>{' '}
+            <strong>{wsCopy?.labelCandidate || 'Ứng viên:'}</strong>{' '}
             {payload.cvCode || (payload.cvId ? `CV #${payload.cvId}` : '—')}
             {payload.cvName ? ` · ${payload.cvName}` : ''}
           </div>
           {payload.desiredPosition ? (
-            <div><strong>Vị trí mong muốn:</strong> {payload.desiredPosition}</div>
+            <div><strong>{wsCopy?.labelDesiredRole || 'Vị trí mong muốn:'}</strong> {payload.desiredPosition}</div>
           ) : null}
           {payload.collaboratorName ? (
-            <div><strong>Thuộc CTV:</strong> {payload.collaboratorName}</div>
+            <div><strong>{wsCopy?.labelCtvOwner || 'Thuộc CTV:'}</strong> {payload.collaboratorName}</div>
           ) : null}
           {!payload.jobId ? (
-            <div style={{ color: '#b45309' }}><strong>JD hearing:</strong> Chưa chọn — WS cần hearing yêu cầu tuyển dụng</div>
+            <div style={{ color: '#b45309' }}>
+              <strong>{wsCopy?.jdHearing || 'JD hearing'}:</strong> {wsCopy?.jdHearingMissing || 'Chưa chọn — WS cần hearing yêu cầu tuyển dụng'}
+            </div>
           ) : null}
         </div>
       ) : null}
@@ -931,6 +984,7 @@ function ScoutPerformanceEventCard({ message, mode, onOpenCv, onOpenJob }) {
             mode={mode}
             kind="request"
             onOpen={onOpenCv}
+            wsCopy={wsCopy}
           />
         </div>
       )}
@@ -943,20 +997,24 @@ function ScoutPerformanceEventCard({ message, mode, onOpenCv, onOpenJob }) {
             jobCode={payload.jobCode}
             mode={mode}
             onOpen={onOpenJob}
+            wsCopy={wsCopy}
           />
         </div>
       ) : null}
 
       {note ? (
-        <div style={{ fontSize: 8, color: '#475569', padding: '6px 8px', background: '#f8fafc', borderRadius: 6, marginTop: note ? 0 : undefined }}>
-          <strong>Ghi chú DN:</strong> {note}
+        <div style={{ fontSize: th.fs.caption, color: '#475569', padding: th.pad.cardSm, background: '#f8fafc', borderRadius: 6, marginTop: note ? 0 : undefined }}>
+          <strong>{wsCopy?.noteCompany || 'Ghi chú DN:'}</strong> {note}
         </div>
       ) : null}
     </div>
   )
 }
 
-function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRejectCredit, creditActionId, onApproveListing, onRejectListing, listingActionId, onSubmitReferralPayment, referralPaymentActionId }) {
+function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRejectCredit, creditActionId, onApproveListing, onRejectListing, listingActionId, onSubmitReferralPayment, referralPaymentActionId, language = 'vi' }) {
+  const th = wsChatTheme(mode)
+  const timeLocale = mode === 'business' ? getWsChatLocale(language) : 'vi-VN'
+  const wsCopy = mode === 'business' ? getMessagesCopy(language).wsChat : null
   const isPerformanceEvent = [
     'performance_opened',
     'similar_candidates_request',
@@ -979,10 +1037,10 @@ function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRej
   if (isReferralPaymentDraft) {
     return (
       <div style={{
-        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: 'flex-start',
+        maxWidth: th.maxBubbleWidth, display: 'flex', gap: th.gap, alignSelf: 'flex-start',
         flexDirection: 'row', alignItems: 'flex-end',
       }}>
-        <WsLogo size={24} />
+        <WsLogo size={th.logoBubble} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
           <ReferralPaymentDraftEventCard
             message={message}
@@ -990,8 +1048,8 @@ function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRej
             onSubmit={mode === 'admin' ? onSubmitReferralPayment : undefined}
             actionJobApplicationId={referralPaymentActionId}
           />
-          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: 'left' }}>
-            {formatTime(message.createdAt)}
+          <div style={{ fontSize: th.fs.micro, color: '#94a3b8', textAlign: 'left' }}>
+            {formatTime(message.createdAt, timeLocale)}
           </div>
         </div>
       </div>
@@ -1001,13 +1059,13 @@ function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRej
   if (isReferralPaymentInvoice) {
     return (
       <div style={{
-        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-start' : 'flex-end',
+        maxWidth: th.maxBubbleWidth, display: 'flex', gap: th.gap, alignSelf: mode === 'business' ? 'flex-start' : 'flex-end',
         flexDirection: mode === 'business' ? 'row' : 'row-reverse', alignItems: 'flex-end',
       }}>
-        {mode === 'business' && <WsLogo size={24} />}
+        {mode === 'business' && <WsLogo size={th.logoBubble} />}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
           <ReferralPaymentInvoiceEventCard message={message} mode={mode} />
-          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'left' : 'right' }}>
+          <div style={{ fontSize: th.fs.micro, color: '#94a3b8', textAlign: mode === 'business' ? 'left' : 'right' }}>
             {formatTime(message.createdAt)}
           </div>
         </div>
@@ -1018,10 +1076,10 @@ function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRej
   if (isCreditRequest) {
     return (
       <div style={{
-        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-end' : 'flex-start',
+        maxWidth: th.maxBubbleWidth, display: 'flex', gap: th.gap, alignSelf: mode === 'business' ? 'flex-end' : 'flex-start',
         flexDirection: mode === 'business' ? 'row-reverse' : 'row', alignItems: 'flex-end',
       }}>
-        {mode !== 'business' && <WsLogo size={24} />}
+        {mode !== 'business' && <WsLogo size={th.logoBubble} />}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
           <CreditRequestEventCard
             message={message}
@@ -1030,7 +1088,7 @@ function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRej
             onReject={onRejectCredit}
             actionRequestId={creditActionId}
           />
-          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
+          <div style={{ fontSize: th.fs.micro, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
             {formatTime(message.createdAt)}
           </div>
         </div>
@@ -1041,10 +1099,10 @@ function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRej
   if (isListingRequest) {
     return (
       <div style={{
-        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-end' : 'flex-start',
+        maxWidth: th.maxBubbleWidth, display: 'flex', gap: th.gap, alignSelf: mode === 'business' ? 'flex-end' : 'flex-start',
         flexDirection: mode === 'business' ? 'row-reverse' : 'row', alignItems: 'flex-end',
       }}>
-        {mode !== 'business' && <WsLogo size={24} />}
+        {mode !== 'business' && <WsLogo size={th.logoBubble} />}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
           <ListingRequestEventCard
             message={message}
@@ -1053,7 +1111,7 @@ function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRej
             onReject={onRejectListing}
             actionListingId={listingActionId}
           />
-          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
+          <div style={{ fontSize: th.fs.micro, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
             {formatTime(message.createdAt)}
           </div>
         </div>
@@ -1064,13 +1122,13 @@ function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRej
   if (isServiceRequest) {
     return (
       <div style={{
-        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-end' : 'flex-start',
+        maxWidth: th.maxBubbleWidth, display: 'flex', gap: th.gap, alignSelf: mode === 'business' ? 'flex-end' : 'flex-start',
         flexDirection: mode === 'business' ? 'row-reverse' : 'row', alignItems: 'flex-end',
       }}>
-        {mode !== 'business' && <WsLogo size={24} />}
+        {mode !== 'business' && <WsLogo size={th.logoBubble} />}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
-          <ServiceRequestEventCard message={message} />
-          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
+          <ServiceRequestEventCard message={message} mode={mode} />
+          <div style={{ fontSize: th.fs.micro, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
             {formatTime(message.createdAt)}
           </div>
         </div>
@@ -1081,13 +1139,13 @@ function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRej
   if (isSaiyoBrandingRequest) {
     return (
       <div style={{
-        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-end' : 'flex-start',
+        maxWidth: th.maxBubbleWidth, display: 'flex', gap: th.gap, alignSelf: mode === 'business' ? 'flex-end' : 'flex-start',
         flexDirection: mode === 'business' ? 'row-reverse' : 'row', alignItems: 'flex-end',
       }}>
-        {mode !== 'business' && <WsLogo size={24} />}
+        {mode !== 'business' && <WsLogo size={th.logoBubble} />}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
-          <SaiyoBrandingRequestEventCard message={message} />
-          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
+          <SaiyoBrandingRequestEventCard message={message} mode={mode} />
+          <div style={{ fontSize: th.fs.micro, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
             {formatTime(message.createdAt)}
           </div>
         </div>
@@ -1098,13 +1156,13 @@ function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRej
   if (isCreditDecision) {
     return (
       <div style={{
-        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-start' : 'flex-end',
+        maxWidth: th.maxBubbleWidth, display: 'flex', gap: th.gap, alignSelf: mode === 'business' ? 'flex-start' : 'flex-end',
         flexDirection: mode === 'business' ? 'row' : 'row-reverse', alignItems: 'flex-end',
       }}>
-        {mode === 'business' && <WsLogo size={24} />}
+        {mode === 'business' && <WsLogo size={th.logoBubble} />}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
-          <CreditDecisionEventCard message={message} />
-          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'left' : 'right' }}>
+          <CreditDecisionEventCard message={message} mode={mode} />
+          <div style={{ fontSize: th.fs.micro, color: '#94a3b8', textAlign: mode === 'business' ? 'left' : 'right' }}>
             {formatTime(message.createdAt)}
           </div>
         </div>
@@ -1115,13 +1173,13 @@ function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRej
   if (isListingDecision) {
     return (
       <div style={{
-        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-start' : 'flex-end',
+        maxWidth: th.maxBubbleWidth, display: 'flex', gap: th.gap, alignSelf: mode === 'business' ? 'flex-start' : 'flex-end',
         flexDirection: mode === 'business' ? 'row' : 'row-reverse', alignItems: 'flex-end',
       }}>
-        {mode === 'business' && <WsLogo size={24} />}
+        {mode === 'business' && <WsLogo size={th.logoBubble} />}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
-          <ListingDecisionEventCard message={message} />
-          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'left' : 'right' }}>
+          <ListingDecisionEventCard message={message} mode={mode} />
+          <div style={{ fontSize: th.fs.micro, color: '#94a3b8', textAlign: mode === 'business' ? 'left' : 'right' }}>
             {formatTime(message.createdAt)}
           </div>
         </div>
@@ -1132,13 +1190,13 @@ function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRej
   if (isApproachUpdate) {
     return (
       <div style={{
-        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-start' : 'flex-end',
+        maxWidth: th.maxBubbleWidth, display: 'flex', gap: th.gap, alignSelf: mode === 'business' ? 'flex-start' : 'flex-end',
         flexDirection: mode === 'business' ? 'row' : 'row-reverse', alignItems: 'flex-end',
       }}>
-        {mode === 'business' && <WsLogo size={24} />}
+        {mode === 'business' && <WsLogo size={th.logoBubble} />}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
           <ApproachStatusUpdateEventCard message={message} mode={mode} onOpenCv={onOpenCv} />
-          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'left' : 'right' }}>
+          <div style={{ fontSize: th.fs.micro, color: '#94a3b8', textAlign: mode === 'business' ? 'left' : 'right' }}>
             {formatTime(message.createdAt)}
           </div>
         </div>
@@ -1149,13 +1207,13 @@ function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRej
   if (isPerformanceEvent) {
     return (
       <div style={{
-        maxWidth: '85%', display: 'flex', gap: 6, alignSelf: mode === 'business' ? 'flex-end' : 'flex-start',
+        maxWidth: th.maxBubbleWidth, display: 'flex', gap: th.gap, alignSelf: mode === 'business' ? 'flex-end' : 'flex-start',
         flexDirection: mode === 'business' ? 'row-reverse' : 'row', alignItems: 'flex-end',
       }}>
-        {mode !== 'business' && <WsLogo size={24} />}
+        {mode !== 'business' && <WsLogo size={th.logoBubble} />}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
           <ScoutPerformanceEventCard message={message} mode={mode} onOpenCv={onOpenCv} onOpenJob={onOpenJob} />
-          <div style={{ fontSize: 7, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
+          <div style={{ fontSize: th.fs.micro, color: '#94a3b8', textAlign: mode === 'business' ? 'right' : 'left' }}>
             {formatTime(message.createdAt)}
           </div>
         </div>
@@ -1165,14 +1223,14 @@ function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRej
 
   return (
     <div style={{
-      maxWidth: '78%', display: 'flex', gap: 6, alignSelf: isOutgoing ? 'flex-end' : 'flex-start',
+      maxWidth: th.maxBubbleWidth, display: 'flex', gap: th.gap, alignSelf: isOutgoing ? 'flex-end' : 'flex-start',
       flexDirection: isOutgoing ? 'row-reverse' : 'row', alignItems: 'flex-end',
     }}>
-      {!isOutgoing && <WsLogo size={24} />}
+      {!isOutgoing && <WsLogo size={th.logoBubble} />}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
         {message.content && (
           <div style={{
-            padding: '6px 10px', borderRadius: 8, fontSize: 9, lineHeight: 1.45, whiteSpace: 'pre-line',
+            padding: th.pad.bubble, borderRadius: 8, fontSize: th.fs.body, lineHeight: 1.45, whiteSpace: 'pre-line',
             background: isOutgoing ? '#0077B6' : isSystem ? '#e8f4fa' : '#fff',
             color: isOutgoing ? '#fff' : '#1e293b',
             border: isOutgoing ? 'none' : bd,
@@ -1183,7 +1241,7 @@ function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRej
         {(message.cvAttachments || []).map((cv) => (
           <CvAttachmentCard key={cv.cvId} cv={cv} mode={mode} onOpen={onOpenCv} />
         ))}
-        <div style={{ fontSize: 7, color: '#94a3b8', textAlign: isOutgoing ? 'right' : 'left' }}>
+        <div style={{ fontSize: th.fs.micro, color: '#94a3b8', textAlign: isOutgoing ? 'right' : 'left' }}>
           {formatTime(message.createdAt)}
         </div>
       </div>
@@ -1192,6 +1250,7 @@ function ChatBubble({ message, mode, onOpenCv, onOpenJob, onApproveCredit, onRej
 }
 
 export function WsSessionListItem({ session, active, onClick, mode = 'business' }) {
+  const th = wsChatTheme(mode)
   const title = mode === 'admin'
     ? (session.business?.companyName || session.title || 'Doanh nghiệp')
     : 'WS Team – Tuyển dụng'
@@ -1200,23 +1259,23 @@ export function WsSessionListItem({ session, active, onClick, mode = 'business' 
     : (session.lastMessagePreview || 'Scout Performance')
   return (
     <div onClick={onClick} style={{
-      display: 'flex', alignItems: 'flex-start', gap: 7, padding: '9px 9px',
+      display: 'flex', alignItems: 'flex-start', gap: th.gap, padding: th.pad.listItem,
       cursor: 'pointer', borderBottom: '1px solid #f1f5f9',
       background: active ? '#e8f4fa' : 'transparent',
       borderLeft: active ? '3px solid #0077B6' : '3px solid transparent',
     }}>
-      <WsLogo size={28} />
+      <WsLogo size={th.logoList} />
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <div style={{ fontSize: 9, fontWeight: 600, color: '#1e293b', lineHeight: 1.4 }}>{title}</div>
-        <div style={{ fontSize: 8, color: '#64748b', lineHeight: 1.45 }}>{subtitle}</div>
-        <div style={{ fontSize: 8, color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ fontSize: wsChatTheme(mode).fs.body, fontWeight: 600, color: '#1e293b', lineHeight: 1.4 }}>{title}</div>
+        <div style={{ fontSize: wsChatTheme(mode).fs.caption, color: '#64748b', lineHeight: 1.45 }}>{subtitle}</div>
+        <div style={{ fontSize: wsChatTheme(mode).fs.caption, color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {session.lastMessagePreview || 'Chưa có tin nhắn'}
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, flexShrink: 0 }}>
-        <span style={{ fontSize: 8, color: '#94a3b8' }}>{formatListTime(session.lastMessageAt)}</span>
+        <span style={{ fontSize: wsChatTheme(mode).fs.caption, color: '#94a3b8' }}>{formatListTime(session.lastMessageAt)}</span>
         {session.unreadCount > 0 && (
-          <span style={{ background: '#0077B6', color: '#fff', borderRadius: 99, fontSize: 7, fontWeight: 600, padding: '0 4px', minWidth: 14, textAlign: 'center' }}>
+          <span style={{ background: '#0077B6', color: '#fff', borderRadius: 99, fontSize: wsChatTheme(mode).fs.micro, fontWeight: 600, padding: '0 4px', minWidth: 14, textAlign: 'center' }}>
             {session.unreadCount}
           </span>
         )}
@@ -1524,11 +1583,16 @@ export function WsChatThread({
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const openCv = (cvId) => {
+  const openCv = (cvId, { kind } = {}) => {
     if (!cvId) return
-    const path = mode === 'admin'
-      ? `/admin/candidates/${cvId}`
-      : `/business/scout/candidates/${cvId}`
+    let path
+    if (mode === 'admin') {
+      path = `/admin/candidates/${cvId}`
+    } else if (kind === 'request') {
+      path = getScoutCandidateDetailUrl(cvId, { mode: 'performance' })
+    } else {
+      path = getBusinessUnlockedCandidateDetailUrl(cvId, { list: 'scout_performance' })
+    }
     window.open(path, '_blank', 'noopener,noreferrer')
   }
 
@@ -1660,8 +1724,14 @@ export function WsChatThread({
     ? 'Đang tìm ứng viên tương tự'
     : 'Scout Performance'
 
+  const biz = mode === 'business'
+  const th = wsChatTheme(mode)
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%', background: '#f8fafc', position: 'relative' }}>
+    <div
+      className={biz ? 'business-app-ui flex min-h-0 h-full flex-col bg-[#f8fafc] relative' : undefined}
+      style={biz ? undefined : { display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%', background: '#f8fafc', position: 'relative' }}
+    >
       <WsAdminScoutPerformanceCandidatesPanel
         open={mode === 'admin' && perfListOpen}
         sessionId={activeSessionId}
@@ -1669,12 +1739,15 @@ export function WsChatThread({
         onStatusUpdated={() => chat.reloadMessages?.()}
       />
       {showHeader && (
-        <div style={{ background: '#fff', borderBottom: bd, padding: '8px 10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <WsLogo size={30} />
+        <div
+          className={biz ? 'flex min-h-[3.25rem] shrink-0 items-center border-b border-slate-200 bg-white px-4 py-3 sm:px-5' : undefined}
+          style={biz ? undefined : { background: '#fff', borderBottom: bd, padding: th.pad.header }}
+        >
+          <div className={biz ? 'flex w-full items-center gap-3' : undefined} style={biz ? undefined : { display: 'flex', alignItems: 'center', gap: 8 }}>
+            <WsLogo size={biz ? 34 : 30} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#1e293b' }}>{headerTitle}</div>
-              <div style={{ fontSize: 8, color: '#64748b' }}>
+              <div style={{ fontSize: wsChatTheme(mode).fs.section, fontWeight: 700, color: '#1e293b' }}>{headerTitle}</div>
+              <div style={{ fontSize: wsChatTheme(mode).fs.caption, color: '#64748b', marginTop: biz ? 2 : 0 }}>
                 Scout Performance · {requestStatusLabel}
               </div>
             </div>
@@ -1696,37 +1769,39 @@ export function WsChatThread({
               <button
                 type="button"
                 onClick={() => navigate('/business/candidates?list=scout_performance')}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4, border: bd, borderRadius: 6,
-                  padding: '4px 8px', fontSize: 8, fontWeight: 600, background: '#fff',
-                  color: '#0077B6', cursor: 'pointer', whiteSpace: 'nowrap',
-                }}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 font-semibold text-[#0077B6] hover:bg-slate-50"
+                style={{ fontSize: th.fs.body }}
               >
-                <Users style={{ width: 10, height: 10 }} />
+                <Users style={{ width: 14, height: 14 }} />
                 Danh sách UV
               </button>
             )}
             {mode === 'business' && activeSession?.triggerCv?.id && (
-              <button type="button" onClick={() => openCv(activeSession.triggerCv.id)} style={{ display: 'flex', alignItems: 'center', gap: 4, border: bd, borderRadius: 6, padding: '4px 8px', fontSize: 8, background: '#fff', cursor: 'pointer' }}>
-                <ExternalLink width={10} height={10} /> Hồ sơ tham chiếu
+              <button
+                type="button"
+                onClick={() => openCv(activeSession.triggerCv.id)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 font-medium text-slate-700 hover:bg-slate-50"
+                style={{ fontSize: th.fs.body }}
+              >
+                <ExternalLink width={14} height={14} /> Hồ sơ tham chiếu
               </button>
             )}
           </div>
         </div>
       )}
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: th.pad.thread, display: 'flex', flexDirection: 'column', gap: th.gap }}>
         {!activeSessionId && mode === 'admin' && (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#94a3b8' }}>
             Chọn một cuộc trò chuyện để bắt đầu
           </div>
         )}
         {!activeSessionId && mode === 'business' && !loadingMessages && messages.length === 0 && (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#94a3b8', textAlign: 'center', padding: '0 16px' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: wsChatTheme(mode).fs.body, color: '#94a3b8', textAlign: 'center', padding: '0 16px' }}>
             Nhắn tin cho WS Team — chúng tôi sẽ phản hồi sớm nhất có thể.
           </div>
         )}
-        {loadingMessages && <div style={{ fontSize: 8, color: '#94a3b8' }}>Đang tải tin nhắn...</div>}
+        {loadingMessages && <div style={{ fontSize: wsChatTheme(mode).fs.caption, color: '#94a3b8' }}>Đang tải tin nhắn...</div>}
         {messages.map((msg) => (
           <ChatBubble
             key={msg.id}
@@ -1748,13 +1823,16 @@ export function WsChatThread({
       </div>
 
       {(activeSessionId || mode === 'business') && (
-        <div style={{ background: '#fff', borderTop: bd, padding: '8px 10px' }}>
+        <div
+          className={biz ? 'shrink-0 border-t border-slate-200 bg-white px-4 py-3 sm:px-5' : undefined}
+          style={biz ? undefined : { background: '#fff', borderTop: bd, padding: th.pad.header }}
+        >
           {mode === 'admin' && (
             <div style={{ fontSize: 8, color: '#64748b', marginBottom: 6 }}>
               Gõ @ + tên/mã/kỹ năng để gợi ý hồ sơ phù hợp cho doanh nghiệp.
             </div>
           )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className={biz ? 'flex items-center gap-3' : undefined} style={biz ? undefined : { display: 'flex', alignItems: 'center', gap: 8 }}>
             {mode === 'admin' ? (
               <WsMentionInput
                 value={input}
@@ -1772,13 +1850,13 @@ export function WsChatThread({
                   onKeyDown={(e) => e.key === 'Enter' && !sending && activeSessionId && input.trim() && sendMessage({ content: input }).then(() => setInput(''))}
                   placeholder={activeSessionId ? 'Nhập tin nhắn...' : 'Đang kết nối với WS...'}
                   disabled={!activeSessionId || sending}
-                  style={{ flex: 1, border: bd, borderRadius: 99, padding: '6px 12px', fontSize: 9, background: '#f8fafc', outline: 'none', opacity: activeSessionId ? 1 : 0.7 }}
+                  style={{ flex: 1, border: bd, borderRadius: 99, padding: th.pad.input, fontSize: th.fs.body, background: '#f8fafc', outline: 'none', opacity: activeSessionId ? 1 : 0.7, minHeight: biz ? 40 : undefined }}
                 />
                 <button
                   type="button"
                   disabled={sending || !activeSessionId || !input.trim()}
                   onClick={() => sendMessage({ content: input }).then(() => setInput(''))}
-                  style={{ width: 28, height: 28, borderRadius: '50%', background: '#0077B6', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: activeSessionId ? 1 : 0.5 }}
+                  style={{ width: biz ? 36 : 28, height: biz ? 36 : 28, borderRadius: '50%', background: '#0077B6', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: activeSessionId ? 1 : 0.5, flexShrink: 0 }}
                 >
                   <Send {...ICON_SM} color="#fff" />
                 </button>
@@ -1860,9 +1938,6 @@ const ADMIN_WS_LAYOUT_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, syste
 
 const adminWsLayoutStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
-  .admin-ws-chat-layout .msg-scrollbar::-webkit-scrollbar { width: 5px; }
-  .admin-ws-chat-layout .msg-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-  .admin-ws-chat-layout .msg-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
 `
 
 export function AdminBusinessWsChatLayout({

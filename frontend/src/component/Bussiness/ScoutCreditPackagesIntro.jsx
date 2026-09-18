@@ -9,6 +9,7 @@ import {
 } from '../../utils/businessCreditPackages';
 import { getScoutWorkspaceCopy } from '../../i18n/businessApp/scoutWorkspace';
 import { creditPricingIntroStyles } from '../../utils/creditPricingStyles';
+import { BUSINESS_HP_TEXT } from '../../utils/businessHomepageTypography.js';
 import { formatScoutLocaleNumber } from '../../i18n/businessAppI18n';
 import apiService from '../../services/api';
 
@@ -96,7 +97,7 @@ export default function ScoutCreditPackagesIntro({
         <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-3 py-3 sm:px-4 sm:py-3.5">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-bold text-slate-900 sm:text-base">{copy.creditPackagesTitle}</h2>
+              <h2 className={BUSINESS_HP_TEXT.section}>{copy.creditPackagesTitle}</h2>
               {showIntro && showPackages ? (
                 <div className="biz-ui-body mt-2 max-w-3xl space-y-2 text-slate-600 sm:leading-relaxed">
                   {copy.creditIntroLines.map((line) => (
@@ -112,7 +113,7 @@ export default function ScoutCreditPackagesIntro({
               <button
                 type="button"
                 onClick={onToggleExpanded}
-                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#0077B6]/30 bg-[#e8f4fa]/50 px-2.5 py-1.5 text-xs font-semibold text-[#0077B6] hover:bg-[#e8f4fa]"
+                className={`inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#0077B6]/30 bg-[#e8f4fa]/50 px-2.5 py-1.5 font-semibold text-[#0077B6] hover:bg-[#e8f4fa] ${BUSINESS_HP_TEXT.button}`}
               >
                 {expanded ? copy.collapsePackages : copy.topUpMore}
                 {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -154,6 +155,7 @@ export default function ScoutCreditPackagesIntro({
                       submittingKey={submitting ? pendingKey : null}
                       submitCopy={copy}
                       priceLocale={priceLocale}
+                      language={language}
                       compact={compact}
                       interactive
                     />
@@ -184,6 +186,7 @@ export default function ScoutCreditPackagesIntro({
         unlockCost={unlockCost}
         copy={confirmCopy}
         priceLocale={priceLocale}
+        language={language}
       />
     </>
   );

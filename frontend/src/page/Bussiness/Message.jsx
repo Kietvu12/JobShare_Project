@@ -24,44 +24,45 @@ import JobDetail from './JobDetail'
 import apiService from '../../services/api'
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
 import { useLanguage } from '../../context/LanguageContext'
-import { getMessageWsViews } from '../../i18n/businessAppI18n'
+import {
+  getMessageWsViews,
+  getMessageMainTabs,
+  formatMessageDateShort,
+} from '../../i18n/businessAppI18n'
+import { getLocalizedJobTitle } from '../../i18n/businessApp/jdBuilder.js'
+import { getMarketplaceListingReferralFeeLabel } from '../../i18n/businessApp/candidateSharing.js'
 import {
   getJobApplicationStatusLabelByLanguage,
   getJobApplicationStatusOptionsByLanguage,
 } from '../../utils/jobApplicationStatus'
+import {
+  BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
+  BUSINESS_HP_TEXT,
+  BUSINESS_UI_FONT,
+} from '../../utils/businessHomepageTypography'
 
-const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 const BRAND = '#0077B6'
 
 const CTV_TAB_INDEX = 0
 const WS_TAB_INDEX = 1
 
-const TABS = [
-  { label: 'Đối tác tuyển dụng', shortLabel: 'Đối tác', key: 'ctv' },
-  { label: 'WS', shortLabel: 'WS', key: 'ws' },
-]
+const messageStyles = BUSINESS_HOMEPAGE_PAGE_BASE_STYLES
 
-const messageStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
-  .msg-scroll-hide::-webkit-scrollbar { display: none; }
-  .msg-scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
-  .msg-scrollbar::-webkit-scrollbar { width: 5px; }
-  .msg-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-  .msg-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
-  .business-homepage-shell { --hp-zoom: 1; }
-  @media (min-width: 1280px) and (max-width: 1535px) {
-    .business-homepage-shell { --hp-zoom: 0.92; }
-  }
-  .business-homepage-ui { zoom: var(--hp-zoom); }
-  @supports not (zoom: 1) {
-    .business-homepage-ui {
-      transform: scale(var(--hp-zoom));
-      transform-origin: top left;
-      width: calc(100% / var(--hp-zoom));
-      height: calc(100% / var(--hp-zoom));
-    }
-  }
-`
+const MSG_COL_HEADER = 'flex min-h-[3.25rem] shrink-0 items-stretch border-b border-slate-200 bg-white'
+const MSG_SUBTOOLBAR = 'flex min-h-[3.25rem] shrink-0 items-center border-b border-slate-100 bg-white px-3 py-2.5 sm:px-4'
+const MSG_INFO_LABEL = `mb-2.5 font-semibold uppercase tracking-wide text-slate-400 ${BUSINESS_HP_TEXT.caption}`
+const MSG_MAIN_TAB = `relative flex flex-1 items-center justify-center min-h-[3.25rem] px-2 text-center font-semibold transition-colors ${BUSINESS_HP_TEXT.button}`
+const MSG_TAB_BADGE = `absolute right-2 top-2 min-w-[18px] rounded-full bg-rose-500 px-1.5 py-0.5 font-bold leading-none text-white ${BUSINESS_HP_TEXT.micro}`
+const MSG_UNREAD_BADGE = `mt-0.5 flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full bg-rose-500 px-1.5 font-bold text-white ${BUSINESS_HP_TEXT.micro}`
+const MSG_EMPTY = `text-slate-400 ${BUSINESS_HP_TEXT.body}`
+const MSG_WS_NAV_BTN = `mb-2.5 flex w-full items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left font-medium transition-colors ${BUSINESS_HP_TEXT.body}`
+const MSG_CENTER_TAB = `inline-flex flex-1 items-center justify-center gap-1.5 min-h-[3.25rem] border-b-2 px-3 font-semibold transition-colors ${BUSINESS_HP_TEXT.button}`
+const MSG_FILTER_SELECT = `w-full appearance-none rounded-lg border border-slate-200 bg-white py-2.5 pl-8 pr-8 font-medium text-slate-700 ${BUSINESS_HP_TEXT.body}`
+const MSG_BTN_OUTLINE = `inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 font-medium text-slate-600 hover:bg-slate-50 ${BUSINESS_HP_TEXT.button}`
+const MSG_BTN_PRIMARY = `rounded-lg px-3 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-[#006399] ${BUSINESS_HP_TEXT.buttonPrimary}`
+const MSG_BTN_SECONDARY = `w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 font-medium text-slate-600 hover:bg-slate-50 ${BUSINESS_HP_TEXT.button}`
+const MSG_DRAWER_TAB = `flex flex-1 items-center justify-center gap-1.5 py-2.5 font-semibold transition-colors ${BUSINESS_HP_TEXT.button}`
+const MSG_SIDEBAR_TITLE = `font-bold text-slate-900 ${BUSINESS_HP_TEXT.section}`
 
 const AVATAR_COLORS = [
   { bg: '#e8f4fa', color: '#0077B6' },
@@ -70,15 +71,6 @@ const AVATAR_COLORS = [
   { bg: '#fef9c3', color: '#854d0e' },
   { bg: '#f0f9ff', color: '#0284c7' },
 ]
-
-function formatDateShort(value) {
-  if (!value) return '—'
-  try {
-    return new Date(value).toLocaleDateString('vi-VN')
-  } catch {
-    return '—'
-  }
-}
 
 function getInitials(name = '') {
   const parts = String(name).trim().split(/\s+/).filter(Boolean)
@@ -107,23 +99,9 @@ const Avatar = ({ initials, bg, color, size = 28 }) => (
   </div>
 )
 
-const WsLogo = ({ size = 28 }) => (
-  <div
-    className="flex shrink-0 items-center justify-center rounded-full font-bold text-white"
-    style={{
-      width: size,
-      height: size,
-      fontSize: size * 0.32,
-      background: 'linear-gradient(135deg, #38bdf8, #0077B6)',
-    }}
-  >
-    WS
-  </div>
-)
-
 const InfoCard = ({ title, children }) => (
-  <div className="border-b border-slate-100 px-3 py-2.5">
-    <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{title}</div>
+  <div className="border-b border-slate-100 px-4 py-4">
+    <div className={MSG_INFO_LABEL}>{title}</div>
     {children}
   </div>
 )
@@ -136,7 +114,7 @@ const Tag = ({ children, type = 'discuss' }) => {
     pending: 'bg-amber-100 text-amber-800',
   }[type] || 'bg-slate-100 text-slate-600'
   return (
-    <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-semibold whitespace-nowrap ${cls}`}>
+    <span className={`inline-flex rounded-full px-2 py-0.5 font-semibold whitespace-nowrap ${BUSINESS_HP_TEXT.micro} ${cls}`}>
       {children}
     </span>
   )
@@ -146,7 +124,7 @@ const CtvConvItem = ({ conv, active, onClick }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`flex w-full items-start gap-2.5 border-b border-slate-100 px-3 py-3 text-left transition-colors ${
+    className={`flex w-full items-start gap-3 border-b border-slate-100 px-4 py-4 text-left transition-colors sm:px-5 ${
       active
         ? 'border-l-[3px] border-l-[#0077B6] bg-[#e8f4fa]/70'
         : 'border-l-[3px] border-l-transparent hover:bg-slate-50/80'
@@ -154,19 +132,19 @@ const CtvConvItem = ({ conv, active, onClick }) => (
   >
     <Avatar initials={conv.initials} bg={conv.bg} color={conv.color} size={36} />
     <div className="min-w-0 flex-1">
-      <div className="truncate text-xs font-semibold text-slate-900">{conv.ctvName}</div>
-      <div className="mt-0.5 truncate text-[11px] text-slate-600">
+      <div className={`truncate font-semibold text-slate-900 ${BUSINESS_HP_TEXT.body}`}>{conv.ctvName}</div>
+      <div className={`mt-0.5 truncate text-slate-600 ${BUSINESS_HP_TEXT.body}`}>
         {conv.candidate}
         <span className="text-slate-300"> · </span>
         <span className="text-slate-500">{conv.jobShort}</span>
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
         {conv.statusLabel ? <Tag>{conv.statusLabel}</Tag> : null}
-        <span className="text-[10px] text-slate-400">{conv.time}</span>
+        <span className={`text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>{conv.time}</span>
       </div>
     </div>
     {conv.unread > 0 ? (
-      <span className="mt-0.5 flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">
+      <span className={MSG_UNREAD_BADGE}>
         {conv.unread > 99 ? '99+' : conv.unread}
       </span>
     ) : null}
@@ -174,15 +152,16 @@ const CtvConvItem = ({ conv, active, onClick }) => (
 )
 
 const searchInputClass =
-  'min-w-0 flex-1 border-none bg-transparent text-[11px] text-slate-800 outline-none placeholder:text-slate-400'
+  `min-w-0 flex-1 border-none bg-transparent text-slate-800 outline-none placeholder:text-slate-400 ${BUSINESS_HP_TEXT.body}`
 const searchWrapClass =
-  'flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2 focus-within:border-[#0077B6]/35 focus-within:ring-2 focus-within:ring-[#0077B6]/10'
+  'flex w-full items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 focus-within:border-[#0077B6]/35 focus-within:ring-2 focus-within:ring-[#0077B6]/10'
 
 const Message = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const { language } = useLanguage()
   const copy = useBusinessAppCopy()
   const msgCopy = copy.messages
+  const mainTabs = useMemo(() => getMessageMainTabs(language), [language])
   const wsViewDefs = useMemo(() => {
     const labels = getMessageWsViews(language)
     const icons = { chat: MessageSquare, credit: CreditCard, 'credit-history': History }
@@ -203,7 +182,7 @@ const Message = () => {
   const [ctvSearch, setCtvSearch] = useState('')
   const [ctvStatusFilter, setCtvStatusFilter] = useState('')
   const [unreadByApp, setUnreadByApp] = useState({})
-  const [listingFeeLabel, setListingFeeLabel] = useState('')
+  const [listingForFee, setListingForFee] = useState(null)
   const [tabBadges, setTabBadges] = useState({ ctv: 0, ws: 0 })
   const [successMsg, setSuccessMsg] = useState('')
 
@@ -220,6 +199,9 @@ const Message = () => {
     candidateName: n.candidateName,
     candidateSub: n.candidateSub,
     jobTitle: n.jobTitle,
+    jobTitleEn: n.jobTitleEn,
+    jobTitleJp: n.jobTitleJp,
+    jobId: n.jobId,
     jobCode: n.jobCode,
     status: n.status,
     statusLabel: n.statusLabel,
@@ -338,6 +320,19 @@ const Message = () => {
     [language],
   )
 
+  const localizedJobTitle = useCallback((n) => {
+    if (!n) return '—'
+    return getLocalizedJobTitle(
+      {
+        title: n.jobTitle,
+        titleEn: n.jobTitleEn,
+        titleJp: n.jobTitleJp,
+        id: n.jobId,
+      },
+      language,
+    ) || n.jobTitle || '—'
+  }, [language])
+
   const ctvConversations = useMemo(() => {
     const q = ctvSearch.trim().toLowerCase()
     return nominations
@@ -348,7 +343,7 @@ const Message = () => {
         const hay = [
           n.candidateName,
           n.ctvName,
-          n.jobTitle,
+          localizedJobTitle(n),
           n.jobCode,
           statusText,
           n.statusLabel,
@@ -358,7 +353,8 @@ const Message = () => {
       .map((n) => {
         const colors = avatarColorForId(n.ctvId || n.id)
         const unread = Number(unreadByApp[n.id] || unreadByApp[String(n.id)] || 0)
-        const jobShort = n.jobCode || (n.jobTitle ? String(n.jobTitle).slice(0, 28) : '—')
+        const titleLoc = localizedJobTitle(n)
+        const jobShort = n.jobCode || (titleLoc ? String(titleLoc).slice(0, 28) : '—')
         return {
           id: n.id,
           ctvName: n.ctvName || '—',
@@ -367,7 +363,7 @@ const Message = () => {
           color: colors.color,
           candidate: n.candidateName || '—',
           jobShort,
-          time: formatDateShort(n.appliedAt),
+          time: formatMessageDateShort(n.appliedAt, language),
           statusLabel: getJobApplicationStatusLabelByLanguage(n.status, language) || n.statusLabel,
           unread,
           raw: n,
@@ -379,7 +375,7 @@ const Message = () => {
         const tb = new Date(b.raw.appliedAt || 0).getTime()
         return tb - ta
       })
-  }, [nominations, ctvSearch, ctvStatusFilter, unreadByApp, language])
+  }, [nominations, ctvSearch, ctvStatusFilter, unreadByApp, language, localizedJobTitle])
 
   const selectedNomination = useMemo(
     () => nominations.find((n) => n.id === selectedNominationId) || null,
@@ -426,21 +422,26 @@ const Message = () => {
     let cancelled = false
     const listingId = selectedNomination?.listingId
     if (!listingId) {
-      setListingFeeLabel('')
+      setListingForFee(null)
       return undefined
     }
     ;(async () => {
       try {
         const res = await apiService.getBusinessCandidateSharingListing(listingId)
         if (!cancelled && res?.success) {
-          setListingFeeLabel(res.data?.listing?.feeLabel || '')
+          setListingForFee(res.data?.listing || null)
         }
       } catch {
-        if (!cancelled) setListingFeeLabel('')
+        if (!cancelled) setListingForFee(null)
       }
     })()
     return () => { cancelled = true }
   }, [selectedNomination?.listingId])
+
+  const listingReferralFee = useMemo(
+    () => (listingForFee ? getMarketplaceListingReferralFeeLabel(listingForFee, language) : ''),
+    [listingForFee, language],
+  )
 
   const handleTabChange = (i) => {
     setActiveTab(i)
@@ -511,25 +512,31 @@ const Message = () => {
       <style>{messageStyles}</style>
       <div
         className="business-homepage-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#f4f6f8]"
-        style={{ fontFamily: PAGE_FONT }}
+        style={{ fontFamily: BUSINESS_UI_FONT }}
       >
-        <div className="business-homepage-ui flex min-h-0 flex-1 flex-col overflow-hidden p-2 sm:p-2.5">
+        <div className="business-homepage-ui business-app-ui flex min-h-0 flex-1 flex-col overflow-hidden p-2.5 sm:p-3">
           {successMsg && (
-            <div className="mb-2 shrink-0 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-medium text-emerald-800">
+            <div className={`mb-2 shrink-0 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 font-medium text-emerald-800 ${BUSINESS_HP_TEXT.body}`}>
               {successMsg}
             </div>
           )}
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(200px,34vh)_minmax(0,1fr)] overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm md:grid-cols-[minmax(240px,290px)_minmax(0,1fr)] md:grid-rows-1 lg:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_minmax(240px,280px)]">
+          <div
+            className={`business-messages-ui grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(200px,34vh)_minmax(0,1fr)] overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm md:grid-cols-[minmax(240px,290px)_minmax(0,1fr)] md:grid-rows-1 ${
+              isWsTab
+                ? 'lg:grid-cols-[minmax(260px,300px)_minmax(0,1fr)]'
+                : 'lg:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_minmax(240px,280px)]'
+            }`}
+          >
             {/* LEFT */}
             <div className="flex min-h-0 flex-col overflow-hidden border-slate-200 lg:border-r">
-              <div className="flex shrink-0 border-b border-slate-200">
-                {TABS.map((tab, i) => (
+              <div className={MSG_COL_HEADER}>
+                {mainTabs.map((tab, i) => (
                   <button
                     key={tab.key}
                     type="button"
                     onClick={() => handleTabChange(i)}
-                    className={`relative flex-1 py-3 text-center text-xs font-semibold transition-colors sm:text-[13px] ${
+                    className={`${MSG_MAIN_TAB} ${
                       activeTab === i
                         ? 'border-b-[3px] border-[#0077B6] bg-[#e8f4fa]/40 text-[#0077B6]'
                         : 'border-b-[3px] border-transparent text-slate-500 hover:bg-slate-50/80 hover:text-slate-800'
@@ -538,7 +545,7 @@ const Message = () => {
                     <span className="hidden sm:inline">{tab.label}</span>
                     <span className="sm:hidden">{tab.shortLabel || tab.label}</span>
                     {tabBadges[tab.key] > 0 && (
-                      <span className="absolute right-2 top-1.5 min-w-[18px] rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                      <span className={MSG_TAB_BADGE}>
                         {tabBadges[tab.key] > 99 ? '99+' : tabBadges[tab.key]}
                       </span>
                     )}
@@ -549,9 +556,9 @@ const Message = () => {
               {isWsTab ? (
                 wsViewMode === 'chat' ? (
                   <>
-                    <div className="shrink-0 border-b border-slate-100 p-2">
+                    <div className={MSG_SUBTOOLBAR}>
                       <div className={searchWrapClass}>
-                        <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <Search className="h-4 w-4 shrink-0 text-slate-400" />
                         <input
                           value={wsChat.search}
                           onChange={(e) => wsChat.setSearch(e.target.value)}
@@ -562,10 +569,10 @@ const Message = () => {
                     </div>
                     <div className="msg-scrollbar min-h-0 flex-1 overflow-y-auto">
                       {wsChat.loadingSessions && (
-                        <p className="p-3 text-[11px] text-slate-400">Đang tải...</p>
+                        <p className={`p-3 ${MSG_EMPTY}`}>{msgCopy.loading}</p>
                       )}
                       {!wsChat.loadingSessions && wsChat.sessions.length === 0 && (
-                        <p className="p-3 text-[11px] leading-relaxed text-slate-400">Chưa có cuộc trò chuyện với WS.</p>
+                        <p className={`p-3 leading-relaxed ${MSG_EMPTY}`}>{msgCopy.emptyWsSessions}</p>
                       )}
                       {wsChat.sessions.map((session) => (
                         <WsSessionListItem
@@ -579,8 +586,8 @@ const Message = () => {
                     </div>
                   </>
                 ) : (
-                  <div className="msg-scrollbar min-h-0 flex-1 overflow-y-auto p-2.5">
-                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Điều hướng WS</p>
+                  <div className="msg-scrollbar min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+                    <p className={MSG_INFO_LABEL}>{msgCopy.wsNavLabel}</p>
                     {wsViewDefs.map((view) => {
                       const Icon = view.icon
                       const active = wsViewMode === view.key
@@ -589,7 +596,7 @@ const Message = () => {
                           key={view.key}
                           type="button"
                           onClick={() => handleWsViewChange(view.key)}
-                          className={`mb-2 flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-[11px] font-medium transition-colors ${
+                          className={`${MSG_WS_NAV_BTN} ${
                             active
                               ? 'border-[#0077B6] bg-[#e8f4fa] text-[#0077B6]'
                               : 'border-slate-200 bg-white text-slate-600 hover:border-[#cce5f0] hover:bg-slate-50'
@@ -604,9 +611,9 @@ const Message = () => {
                 )
               ) : (
                 <>
-                  <div className="shrink-0 space-y-2 border-b border-slate-100 p-2">
+                  <div className={`${MSG_SUBTOOLBAR} flex-col items-stretch gap-2.5 !min-h-0 py-3`}>
                     <div className={searchWrapClass}>
-                      <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      <Search className="h-4 w-4 shrink-0 text-slate-400" />
                       <input
                         value={ctvSearch}
                         onChange={(e) => setCtvSearch(e.target.value)}
@@ -619,9 +626,9 @@ const Message = () => {
                       <select
                         value={ctvStatusFilter}
                         onChange={(e) => setCtvStatusFilter(e.target.value)}
-                        className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-8 text-[11px] font-medium text-slate-700"
+                        className={MSG_FILTER_SELECT}
                       >
-                        <option value="">Tất cả trạng thái</option>
+                        <option value="">{msgCopy.allStatuses}</option>
                         {statusFilterOptions.map((opt) => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
@@ -631,13 +638,13 @@ const Message = () => {
                   </div>
                   <div className="msg-scrollbar min-h-0 flex-1 overflow-y-auto">
                     {nominationsLoading && (
-                      <div className="flex items-center gap-2 p-3 text-[11px] text-slate-400">
+                      <div className={`flex items-center gap-2 p-3 ${MSG_EMPTY}`}>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Đang tải...
+                        {msgCopy.loading}
                       </div>
                     )}
                     {!nominationsLoading && ctvConversations.length === 0 && (
-                      <p className="p-3 text-[11px] leading-relaxed text-slate-400">Chưa có đơn tiến cử từ CTV.</p>
+                      <p className={`p-3 leading-relaxed ${MSG_EMPTY}`}>{msgCopy.emptyCtvNominations}</p>
                     )}
                     {ctvConversations.map((conv) => (
                       <CtvConvItem
@@ -654,8 +661,8 @@ const Message = () => {
 
             {/* CENTER */}
             {isWsTab ? (
-              <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-slate-200 lg:border-r">
-                <div className="flex shrink-0 border-b border-slate-100 bg-white px-1">
+              <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-slate-200">
+                <div className={`${MSG_COL_HEADER} w-full`}>
                   {wsViewDefs.map((view) => {
                     const Icon = view.icon
                     const active = wsViewMode === view.key
@@ -664,7 +671,7 @@ const Message = () => {
                         key={view.key}
                         type="button"
                         onClick={() => handleWsViewChange(view.key)}
-                        className={`inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-[10px] font-semibold transition-colors sm:text-[11px] ${
+                        className={`${MSG_CENTER_TAB} ${
                           active
                             ? 'border-[#0077B6] text-[#0077B6]'
                             : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -698,68 +705,52 @@ const Message = () => {
               <div className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-[#f8fafc] lg:border-r lg:border-slate-200">
                 {selectedNomination ? (
                   <>
-                    <div className="shrink-0 border-b border-slate-100 bg-white px-3 py-2.5 sm:px-4">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Avatar
-                          initials={getInitials(selectedNomination.ctvName)}
-                          bg={avatarColorForId(selectedNomination.ctvId).bg}
-                          color={avatarColorForId(selectedNomination.ctvId).color}
-                          size={40}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-semibold text-slate-900">{selectedNomination.ctvName || '—'}</span>
-                            <span className="text-[11px] text-slate-500">Cộng tác viên · Sàn CTV</span>
-                          </div>
-                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-600">
-                            <span>
-                              Đơn tiến cử <strong className="font-semibold text-slate-800">#{selectedNomination.id}</strong>
-                            </span>
-                            <Tag>
-                              {getJobApplicationStatusLabelByLanguage(selectedNomination.status, language)
-                                || selectedNomination.statusLabel}
-                            </Tag>
-                          </div>
-                          <div className="mt-1 text-[11px] text-slate-500">
-                            <button type="button" onClick={() => openCandidateDrawer('profile')} className="font-medium text-[#0077B6] hover:underline">
-                              {selectedNomination.candidateName || '—'}
-                            </button>
-                            <span className="text-slate-300"> · </span>
-                            <button
-                              type="button"
-                              onClick={openJobDrawer}
-                              disabled={!selectedNomination.jobId}
-                              className="font-medium text-[#0077B6] hover:underline disabled:text-slate-400"
-                            >
-                              {selectedNomination.jobTitle || '—'}
-                              {selectedNomination.jobCode ? ` (${selectedNomination.jobCode})` : ''}
-                            </button>
-                            <span className="text-slate-300"> · </span>
-                            {formatDateShort(selectedNomination.appliedAt)}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => openCandidateDrawer('profile')}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          Chi tiết đơn
-                        </button>
+                    <div className={`${MSG_SUBTOOLBAR} gap-2.5 border-slate-200 px-4 sm:px-5`}>
+                      <Avatar
+                        initials={getInitials(selectedNomination.ctvName)}
+                        bg={avatarColorForId(selectedNomination.ctvId).bg}
+                        color={avatarColorForId(selectedNomination.ctvId).color}
+                        size={32}
+                      />
+                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className={`font-semibold text-slate-900 ${BUSINESS_HP_TEXT.body}`}>
+                          {selectedNomination.ctvName || '—'}
+                        </span>
+                        <span className={`text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>· {msgCopy.marketplaceChannel}</span>
+                        <span className={`text-slate-600 ${BUSINESS_HP_TEXT.body}`}>
+                          #{selectedNomination.id}
+                        </span>
+                        <Tag>
+                          {getJobApplicationStatusLabelByLanguage(selectedNomination.status, language)
+                            || selectedNomination.statusLabel}
+                        </Tag>
+                        <span className={`hidden min-w-0 truncate text-slate-500 xl:inline ${BUSINESS_HP_TEXT.caption}`}>
+                          {selectedNomination.candidateName || '—'}
+                          {selectedNomination.jobTitle ? ` · ${localizedJobTitle(selectedNomination)}` : ''}
+                        </span>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => openCandidateDrawer('profile')}
+                        className={`${MSG_BTN_OUTLINE} shrink-0`}
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">{msgCopy.nominationDetailBtn}</span>
+                      </button>
                     </div>
 
                     <div className="flex min-h-0 flex-1 flex-col">
                       <NominationChat
                         key={selectedNomination.id}
                         embeddedPanel
+                        hideEmbeddedHeader
                         disableBusinessFreeStatusChange
                         contactBarVariant="subtle"
                         jobApplicationId={selectedNomination.id}
                         userType="business"
                         currentStatus={selectedNomination.status}
                         introCandidateName={selectedNomination.candidateName || '—'}
-                        introJobTitle={selectedNomination.jobTitle || '—'}
+                        introJobTitle={localizedJobTitle(selectedNomination)}
                         cvStorageId={selectedNomination.cvStorageId}
                         mobileHeaderName={selectedNomination.candidateName || msgCopy.chatThreeWay}
                         mobileHeaderAvatar={getInitials(selectedNomination.candidateName)}
@@ -768,90 +759,45 @@ const Message = () => {
                     </div>
                   </>
                 ) : (
-                  <div className="flex flex-1 items-center justify-center p-6 text-center text-[11px] text-slate-400">
+                  <div className={`flex flex-1 items-center justify-center p-6 text-center ${MSG_EMPTY}`}>
                     {nominationsLoading ? msgCopy.loadingNominations : msgCopy.selectNomination}
                   </div>
                 )}
               </div>
             )}
 
-            {/* RIGHT — desktop only sidebar */}
+            {/* RIGHT — desktop only (Đối tác tuyển dụng) */}
+            {!isWsTab ? (
             <div className="hidden min-h-0 flex-col overflow-hidden lg:flex">
-              {isWsTab ? (
+              {selectedNomination ? (
                 <>
-                  <div className="shrink-0 border-b border-slate-100 px-3 py-2">
-                    <div className="text-xs font-bold text-slate-900">Thông tin WS</div>
+                  <div className={`${MSG_SUBTOOLBAR} border-slate-200 px-4 sm:px-5`}>
+                    <div className={MSG_SIDEBAR_TITLE}>{msgCopy.sidebarNominationTitle}</div>
                   </div>
                   <div className="msg-scrollbar min-h-0 flex-1 overflow-y-auto">
-                    <InfoCard title={msgCopy.infoCards.wsSupport}>
-                      <div className="flex gap-2">
-                        <WsLogo size={32} />
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[11px] font-semibold text-slate-900">WS Team – JobShare</div>
-                          <Tag type="active">Đang hoạt động</Tag>
-                          <p className="mt-1.5 text-[10px] leading-relaxed text-slate-500">
-                            Scout Performance, yêu cầu nạp credit và lịch sử yêu cầu.
-                          </p>
-                        </div>
-                      </div>
-                    </InfoCard>
-                    <InfoCard title={msgCopy.infoCards.creditRequest}>
-                      <p className="mb-2 text-[10px] leading-relaxed text-slate-500">
-                        Tạo yêu cầu cấp credit — WS phê duyệt sau khi xác nhận thanh toán.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => handleWsViewChange('credit')}
-                        className="mb-2 w-full rounded-lg py-2 text-[11px] font-semibold text-white shadow-sm transition-colors hover:bg-[#006399]"
-                        style={{ background: BRAND }}
-                      >
-                        Tạo yêu cầu nạp credit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleWsViewChange('credit-history')}
-                        className="w-full rounded-lg border border-slate-200 bg-white py-2 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
-                      >
-                        Xem lịch sử yêu cầu
-                      </button>
-                    </InfoCard>
-                    {wsViewMode === 'chat' && wsChat.activeSession && (
-                      <InfoCard title={msgCopy.infoCards.currentChat}>
-                        <div className="text-[11px] font-semibold text-slate-900">
-                          {wsChat.activeSession.title || wsChat.activeSession.subject || 'WS Chat'}
-                        </div>
-                        <div className="mt-1 text-[10px] text-slate-400">
-                          {wsChat.activeSession.lastMessagePreview || '—'}
-                        </div>
-                      </InfoCard>
-                    )}
-                  </div>
-                </>
-              ) : selectedNomination ? (
-                <div className="msg-scrollbar min-h-0 flex-1 overflow-y-auto">
                   <InfoCard title={msgCopy.infoCards.nominationInfo}>
-                    <div className="text-[11px] font-semibold text-slate-900">#{selectedNomination.id}</div>
+                    <div className={`font-semibold text-slate-900 ${BUSINESS_HP_TEXT.body}`}>#{selectedNomination.id}</div>
                     <Tag>
                       {getJobApplicationStatusLabelByLanguage(selectedNomination.status, language)
                         || selectedNomination.statusLabel || '—'}
                     </Tag>
                   </InfoCard>
                   <InfoCard title={msgCopy.infoCards.candidateInfo}>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2.5">
                       <Avatar initials={getInitials(selectedNomination.candidateName)} bg="#d1fae5" color="#065f46" size={32} />
                       <div>
-                        <div className="text-[11px] font-semibold text-slate-900">{selectedNomination.candidateName || '—'}</div>
+                        <div className={`font-semibold text-slate-900 ${BUSINESS_HP_TEXT.body}`}>{selectedNomination.candidateName || '—'}</div>
                         {selectedNomination.candidateSub && (
-                          <div className="text-[10px] text-slate-600">{selectedNomination.candidateSub}</div>
+                          <div className={`text-slate-600 ${BUSINESS_HP_TEXT.caption}`}>{selectedNomination.candidateSub}</div>
                         )}
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => openCandidateDrawer('profile')}
-                      className="mt-2 w-full rounded-lg border border-slate-200 py-1.5 text-[10px] font-medium text-slate-600 hover:bg-slate-50"
+                      className={`mt-2 w-full rounded-lg border border-slate-200 py-1.5 font-medium text-slate-600 hover:bg-slate-50 ${BUSINESS_HP_TEXT.button}`}
                     >
-                      Xem hồ sơ ứng viên
+                      {msgCopy.viewCandidateProfile}
                     </button>
                   </InfoCard>
                   <InfoCard title={msgCopy.infoCards.jdInfo}>
@@ -865,15 +811,15 @@ const Message = () => {
                         <Briefcase className="h-4 w-4 text-[#0077B6]" />
                       </div>
                       <div>
-                        <div className="text-[11px] font-semibold text-slate-900">{selectedNomination.jobTitle || '—'}</div>
+                        <div className={`font-semibold text-slate-900 ${BUSINESS_HP_TEXT.body}`}>{localizedJobTitle(selectedNomination)}</div>
                         {selectedNomination.jobCode && (
-                          <div className="text-[10px] text-slate-400">Mã: {selectedNomination.jobCode}</div>
+                          <div className={`text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>{msgCopy.jobCodePrefix} {selectedNomination.jobCode}</div>
                         )}
                       </div>
                     </button>
                   </InfoCard>
                   <InfoCard title={msgCopy.infoCards.ctvInfo}>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2.5">
                       <Avatar
                         initials={getInitials(selectedNomination.ctvName)}
                         bg={avatarColorForId(selectedNomination.ctvId).bg}
@@ -881,10 +827,10 @@ const Message = () => {
                         size={32}
                       />
                       <div>
-                        <div className="text-[11px] font-semibold text-slate-900">{selectedNomination.ctvName || '—'}</div>
-                        <div className="text-[10px] text-slate-600">CTV tuyển dụng</div>
+                        <div className={`font-semibold text-slate-900 ${BUSINESS_HP_TEXT.body}`}>{selectedNomination.ctvName || '—'}</div>
+                        <div className={`text-slate-600 ${BUSINESS_HP_TEXT.caption}`}>{msgCopy.ctvRecruiter}</div>
                         {selectedNomination.matchScore != null && (
-                          <div className="mt-0.5 flex items-center gap-0.5 text-[10px] text-slate-500">
+                          <div className={`mt-0.5 flex items-center gap-0.5 text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>
                             {selectedNomination.matchScore}
                             <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                           </div>
@@ -892,28 +838,35 @@ const Message = () => {
                       </div>
                     </div>
                   </InfoCard>
-                  <InfoCard title="Phí giới thiệu">
+                  <InfoCard title={msgCopy.infoCards.rewardInfo}>
                     <div className="flex items-start gap-2">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
                         <Coins className="h-4 w-4 text-emerald-600" />
                       </div>
                       <div>
-                        <p className="text-xs font-semibold text-slate-900">
-                          {listingFeeLabel || '—'}
+                        <p className={`font-semibold text-slate-900 whitespace-pre-line ${BUSINESS_HP_TEXT.body}`}>
+                          {listingReferralFee || '—'}
                         </p>
-                        <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
-                          Phí áp dụng cho JD đăng trên Sàn CTV (đơn tiến cử này).
+                        <p className={`mt-1 leading-relaxed text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>
+                          {msgCopy.referralFeeHint}
                         </p>
                       </div>
                     </div>
                   </InfoCard>
                 </div>
+                </>
               ) : (
-                <div className="flex flex-1 items-center justify-center p-4 text-center text-[11px] text-slate-400">
-                  Chọn đơn tiến cử để xem chi tiết
-                </div>
+                <>
+                  <div className={`${MSG_SUBTOOLBAR} border-slate-200 px-4 sm:px-5`}>
+                    <div className={`font-semibold text-slate-400 ${BUSINESS_HP_TEXT.body}`}>{msgCopy.sidebarDetailTitle}</div>
+                  </div>
+                  <div className={`flex flex-1 items-center justify-center p-6 text-center ${MSG_EMPTY}`}>
+                    {msgCopy.selectNominationDetail}
+                  </div>
+                </>
               )}
             </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -928,15 +881,23 @@ const Message = () => {
               onClick={closeCandidateDrawer}
             >
               <div
-                className="ml-auto flex h-full flex-col border-l border-slate-200 bg-white shadow-2xl"
-                style={{ width: 'min(100vw, 560px)', fontFamily: PAGE_FONT }}
+                className="business-app-ui ml-auto flex h-full flex-col border-l border-slate-200 bg-white shadow-2xl"
+                style={{ width: 'min(100vw, 560px)', fontFamily: BUSINESS_UI_FONT }}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-200 bg-[#f4f6f8]/50 px-4 py-3">
                   <div>
-                    <div className="text-sm font-bold text-slate-800">{drawerApp.candidateName}</div>
-                    <div className="mt-0.5 text-[10px] text-slate-500">
-                      {drawerApp.jobTitle} ({drawerApp.jobCode || '—'}) · {drawerApp.sourceLabel || msgCopy.marketplaceSource}
+                    <div className={`font-bold text-slate-800 ${BUSINESS_HP_TEXT.title}`}>{drawerApp.candidateName}</div>
+                    <div className={`mt-0.5 text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>
+                      {getLocalizedJobTitle(
+                        {
+                          title: drawerApp.jobTitle,
+                          titleEn: drawerApp.jobTitleEn,
+                          titleJp: drawerApp.jobTitleJp,
+                          id: drawerApp.jobId,
+                        },
+                        language,
+                      ) || drawerApp.jobTitle} ({drawerApp.jobCode || '—'}) · {drawerApp.sourceLabel || msgCopy.marketplaceSource}
                     </div>
                   </div>
                   <button type="button" onClick={closeCandidateDrawer} className="rounded-lg p-1.5 transition-colors hover:bg-slate-100">
@@ -949,27 +910,27 @@ const Message = () => {
                     <button
                       type="button"
                       onClick={() => setCandidateDrawerTab('profile')}
-                      className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold transition-colors ${
+                      className={`${MSG_DRAWER_TAB} ${
                         candidateDrawerTab === 'profile' ? 'border-b-2 border-[#0077B6] text-[#0077B6]' : 'border-b-2 border-transparent text-slate-500'
                       }`}
                     >
-                      <User className="h-3.5 w-3.5" /> Hồ sơ ứng viên
+                      <User className="h-3.5 w-3.5" /> {msgCopy.drawerProfileTab}
                     </button>
                     <button
                       type="button"
                       onClick={() => setCandidateDrawerTab('chat')}
-                      className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold transition-colors ${
+                      className={`${MSG_DRAWER_TAB} ${
                         candidateDrawerTab === 'chat' ? 'border-b-2 border-[#0077B6] text-[#0077B6]' : 'border-b-2 border-transparent text-slate-500'
                       }`}
                     >
-                      <MessageSquare className="h-3.5 w-3.5" /> Chat 3 bên
+                      <MessageSquare className="h-3.5 w-3.5" /> {msgCopy.chatThreeWay}
                     </button>
                   </div>
                 )}
 
                 {candidateDrawerLoading && (
-                  <div className="flex items-center gap-2 border-b border-slate-100 bg-[#e8f4fa]/40 px-4 py-2 text-[10px] text-slate-500">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0077B6]" /> Đang tải hồ sơ...
+                  <div className={`flex items-center gap-2 border-b border-slate-100 bg-[#e8f4fa]/40 px-4 py-2 text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0077B6]" /> {msgCopy.loadingProfile}
                   </div>
                 )}
 
@@ -977,8 +938,8 @@ const Message = () => {
                   {candidateDrawerTab === 'profile' && showProfileTab ? (
                     <div className="business-homepage-scroll min-h-0 flex-1 overflow-y-auto p-3">
                       {candidateDrawerLoading && !drawerApp.candidateProfile ? (
-                        <div className="flex items-center justify-center gap-2 py-12 text-xs text-slate-500">
-                          <Loader2 className="h-4 w-4 animate-spin text-[#0077B6]" /> Đang tải hồ sơ...
+                        <div className={`flex items-center justify-center gap-2 py-12 text-slate-500 ${BUSINESS_HP_TEXT.body}`}>
+                          <Loader2 className="h-4 w-4 animate-spin text-[#0077B6]" /> {msgCopy.loadingProfile}
                         </div>
                       ) : (
                         <ScoutCandidateProfilePanel
@@ -1006,7 +967,15 @@ const Message = () => {
                       currentStatus={drawerApp.status}
                       cvStorageId={drawerApp.cvStorageId || drawerApp.cvId || null}
                       introCandidateName={drawerApp.candidateName || '—'}
-                      introJobTitle={drawerApp.jobTitle || '—'}
+                      introJobTitle={getLocalizedJobTitle(
+                        {
+                          title: drawerApp.jobTitle,
+                          titleEn: drawerApp.jobTitleEn,
+                          titleJp: drawerApp.jobTitleJp,
+                          id: drawerApp.jobId,
+                        },
+                        language,
+                      ) || drawerApp.jobTitle || '—'}
                       mobileHeaderName={drawerApp.candidateName || msgCopy.chatThreeWay}
                       mobileHeaderAvatar={(drawerApp.candidateName || '?').charAt(0).toUpperCase()}
                       onStatusUpdated={handleCandidateStatusUpdated}
@@ -1026,16 +995,16 @@ const Message = () => {
           onClick={closeJobDrawer}
         >
           <div
-            className="ml-auto flex h-full flex-col border-l border-slate-200 bg-white shadow-2xl"
-            style={{ width: 'min(100vw, 680px)', fontFamily: PAGE_FONT }}
+            className="business-app-ui ml-auto flex h-full flex-col border-l border-slate-200 bg-white shadow-2xl"
+            style={{ width: 'min(100vw, 680px)', fontFamily: BUSINESS_UI_FONT }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-200 bg-[#f4f6f8]/50 px-4 py-3">
               <div className="min-w-0">
-                <div className="text-sm font-bold text-slate-800">Thông tin JD</div>
-                <div className="mt-0.5 truncate text-[10px] text-slate-500">
-                  {selectedNomination?.jobTitle || '—'}
-                  {selectedNomination?.jobCode ? ` · Mã: ${selectedNomination.jobCode}` : ''}
+                <div className={`font-bold text-slate-800 ${BUSINESS_HP_TEXT.title}`}>{msgCopy.jobDrawerTitle}</div>
+                <div className={`mt-0.5 truncate text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>
+                  {selectedNomination ? localizedJobTitle(selectedNomination) : '—'}
+                  {selectedNomination?.jobCode ? ` · ${msgCopy.jobCodePrefix} ${selectedNomination.jobCode}` : ''}
                 </div>
               </div>
               <button type="button" onClick={closeJobDrawer} className="rounded-lg p-1.5 transition-colors hover:bg-slate-100">

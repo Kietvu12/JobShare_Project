@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Search } from 'lucide-react';
+import { BUSINESS_HP_TEXT } from '../../utils/businessHomepageTypography.js';
 
 const PANEL_VIEWPORT_MARGIN = 8;
 const PANEL_MIN_WIDTH = 200;
@@ -54,7 +55,7 @@ export default function FilterSelectDropdown({
   }, [options, searchable, searchQuery]);
 
   const optionTextClass = optionSize === 'comfortable'
-    ? 'text-sm leading-snug'
+    ? `${BUSINESS_HP_TEXT.body} leading-snug`
     : 'text-[9px] leading-snug';
 
   const updatePanelPosition = () => {
@@ -160,7 +161,7 @@ export default function FilterSelectDropdown({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={searchPlaceholder}
-                  className={`min-w-0 flex-1 bg-transparent outline-none ${optionSize === 'comfortable' ? 'text-sm' : 'text-[9px]'}`}
+                  className={`min-w-0 flex-1 bg-transparent outline-none ${optionSize === 'comfortable' ? BUSINESS_HP_TEXT.body : 'text-[9px]'}`}
                   onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>

@@ -24,7 +24,7 @@ const PAGE_META = [
   { path: '/business/saiyo/landing-pages', end: true, icon: Users, title: { vi: 'Quản lý Landing Page', en: 'Landing page management', ja: 'LP管理' } },
   { path: '/business/candidate-sharing', end: false, icon: Users2, title: { vi: 'Sàn CTV', en: 'WS CTV Marketplace', ja: 'WS CTVマーケット' } },
   { path: '/business/knowledge', end: false, icon: BookOpen, title: { vi: 'Knowledge Hub', en: 'Knowledge Hub', ja: 'ナレッジハブ' } },
-  { path: '/business/insights', end: false, icon: PieChart, title: { vi: 'Report & insight', en: 'Report & insight', ja: 'Report & insight' } },
+  { path: '/business/insights', end: false, icon: PieChart, title: { vi: 'Report & insight', en: 'Reports & insights', ja: 'レポート・インサイト' } },
   { path: '/business/messages', end: false, icon: MessageSquare, title: { vi: 'Tin nhắn', en: 'Messages', ja: 'メッセージ' } },
   { path: '/business/service-requests/credit', end: false, icon: ClipboardList, title: { vi: 'Yêu cầu nạp credit', en: 'Credit top-up', ja: 'クレジットチャージ' } },
   { path: '/business/service-requests/landing-page', end: false, icon: ClipboardList, title: { vi: 'Landing Page premium', en: 'Landing Page premium', ja: 'Landing Page premium' } },
@@ -49,6 +49,7 @@ export function isBusinessViewportLockedPage(pathname) {
   if (pathname === '/business') return true;
   if (pathname === '/business/jobs') return true;
   if (pathname === '/business/candidates') return true;
+  if (pathname === '/business/candidate-sharing' || pathname.startsWith('/business/candidate-sharing/')) return true;
   if (pathname === '/business/jobs/create' || pathname === '/business/jobs/manual-create') return true;
   if (/^\/business\/jobs\/[^/]+\/edit$/.test(pathname)) return true;
   return VIEWPORT_LOCKED_PREFIXES.some(

@@ -22,42 +22,26 @@ import {
   getBrandingCopy,
   getBrandingServicePackages,
 } from '../../i18n/businessAppI18n'
+import {
+  BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
+  BUSINESS_HP_TEXT,
+  BUSINESS_UI_FONT,
+} from '../../utils/businessHomepageTypography.js'
 
-const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 const BRAND = '#0077B6'
 
 const homepageStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
-  .business-homepage-scroll::-webkit-scrollbar { width: 4px; }
-  .business-homepage-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-  .business-homepage-shell { --hp-zoom: 1; }
-  @media (min-width: 1024px) and (max-width: 1279px) {
-    .business-homepage-shell { --hp-zoom: 0.9; }
+  ${BUSINESS_HOMEPAGE_PAGE_BASE_STYLES}
+  .branding-saiyo-shell {
+    font-family: ${BUSINESS_UI_FONT};
   }
-  @media (min-width: 1280px) and (max-width: 1535px) {
-    .business-homepage-shell { --hp-zoom: 0.86; }
+  .branding-saiyo-shell .business-homepage-ui {
+    height: 100%;
+    min-height: 0;
   }
-  @media (min-width: 1024px) and (max-height: 760px) {
-    .business-homepage-shell { --hp-zoom: 0.78; }
-  }
-  @media (min-width: 1024px) and (min-height: 761px) and (max-height: 860px) {
-    .business-homepage-shell { --hp-zoom: 0.84; }
-  }
-  @media (min-width: 1536px) and (min-height: 861px) {
-    .business-homepage-shell { --hp-zoom: 0.94; }
-  }
-  @media (min-width: 1920px) and (min-height: 900px) {
-    .business-homepage-shell { --hp-zoom: 1; }
-  }
-  .business-homepage-ui { zoom: var(--hp-zoom); }
   @supports not (zoom: 1) {
-    .business-homepage-ui {
-      transform: scale(var(--hp-zoom));
-      transform-origin: top left;
-      width: calc(100% / var(--hp-zoom));
+    .branding-saiyo-shell .business-homepage-ui {
+      height: calc(100% / var(--hp-zoom));
     }
   }
 
@@ -122,7 +106,7 @@ const DELIVERY_BADGE_STYLE = {
 const READY_NOW_BADGE_STYLE = 'bg-sky-100 text-sky-800'
 
 const SERVICE_CARD_BADGE =
-  'inline-flex h-[1.375rem] items-center rounded-full px-2 text-[9px] font-bold uppercase tracking-wide sm:text-[10px]'
+  `inline-flex min-h-[1.375rem] items-center rounded-full px-2 font-bold uppercase tracking-wide ${BUSINESS_HP_TEXT.micro}`
 
 function ServiceCardCtaButton({ cta, disabled, onClick }) {
   return (
@@ -130,12 +114,12 @@ function ServiceCardCtaButton({ cta, disabled, onClick }) {
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex min-h-[2.125rem] w-full items-center justify-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-1 text-center text-[9px] font-semibold leading-tight text-slate-800 transition-colors hover:border-[#0077B6]/30 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-[2.25rem] sm:text-[10px]"
+      className={`flex min-h-[2.125rem] w-full items-center justify-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-1.5 text-center font-semibold leading-tight text-slate-800 transition-colors hover:border-[#0077B6]/30 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-[2.25rem] ${BUSINESS_HP_TEXT.caption}`}
     >
       <span className="min-w-0 flex-1 line-clamp-2">{cta.label}</span>
       {cta.tag ? (
         <span
-          className={`inline-flex h-5 min-w-[2rem] shrink-0 items-center justify-center rounded px-1.5 text-[8px] font-bold uppercase tracking-wide ${
+          className={`inline-flex h-5 min-w-[2rem] shrink-0 items-center justify-center rounded px-1.5 font-bold uppercase tracking-wide ${BUSINESS_HP_TEXT.micro} ${
             CTA_TAG_STYLE[cta.tagTone] || 'bg-slate-100 text-slate-600'
           }`}
         >
@@ -163,7 +147,7 @@ function BrandingServiceCard({ card, onCta, loadingKey, copy, hasCreatedLandingP
       <div className="relative z-20 flex items-start justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
           <span
-            className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold ${
+            className={`inline-flex h-8 w-8 items-center justify-center rounded-full font-bold ${BUSINESS_HP_TEXT.caption} ${
               isOnDark ? 'bg-white/20 text-white' : 'bg-white text-slate-800 shadow-sm ring-1 ring-slate-100'
             }`}
           >
@@ -198,8 +182,8 @@ function BrandingServiceCard({ card, onCta, loadingKey, copy, hasCreatedLandingP
       </div>
 
       <div className="relative z-10 mt-1.5 pr-10 sm:mt-2 sm:pr-14">
-        <h3 className="line-clamp-2 text-sm font-bold leading-tight sm:text-base 2xl:text-lg">{card.title}</h3>
-        <p className={`mt-1 line-clamp-2 text-[11px] leading-snug sm:text-xs 2xl:text-[13px] ${mutedClass}`}>{card.subtitle}</p>
+        <h3 className={`line-clamp-2 font-bold leading-tight ${BUSINESS_HP_TEXT.section}`}>{card.title}</h3>
+        <p className={`mt-1 line-clamp-2 leading-snug ${BUSINESS_HP_TEXT.body} ${mutedClass}`}>{card.subtitle}</p>
       </div>
 
       <div className="pointer-events-none absolute right-0 top-[2.75rem] z-0 translate-x-[18%] sm:top-[3.25rem]" aria-hidden>
@@ -210,10 +194,10 @@ function BrandingServiceCard({ card, onCta, loadingKey, copy, hasCreatedLandingP
       </div>
 
       <div className="relative z-10 mt-2 flex min-h-0 flex-1 flex-col">
-        <h4 className={`shrink-0 text-[11px] font-bold sm:text-xs ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}>
+        <h4 className={`shrink-0 font-bold ${BUSINESS_HP_TEXT.caption} ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}>
           {copy.featuresHeading}
         </h4>
-        <ul className={`mt-1 flex min-h-0 flex-1 flex-col gap-1 text-[10px] leading-snug sm:text-[11px] ${bodyClass}`}>
+        <ul className={`mt-1 flex min-h-0 flex-1 flex-col gap-1 leading-snug ${BUSINESS_HP_TEXT.body} ${bodyClass}`}>
           {card.features.map((line) => (
             <li key={line} className="flex gap-2">
               <Check className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`} strokeWidth={2.5} />
@@ -224,13 +208,13 @@ function BrandingServiceCard({ card, onCta, loadingKey, copy, hasCreatedLandingP
       </div>
 
       <div className={`relative z-10 mt-auto shrink-0 border-t pt-2 ${isOnDark ? 'border-white/20' : 'border-slate-200/80'}`}>
-        <h4 className={`text-[11px] font-bold sm:text-xs ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}>{copy.suitableHeading}</h4>
-        <p className={`mt-1 min-h-[2rem] text-[10px] leading-snug sm:min-h-[2.25rem] sm:text-[11px] ${bodyClass}`}>{card.suitableFor}</p>
+        <h4 className={`font-bold ${BUSINESS_HP_TEXT.caption} ${isOnDark ? 'text-white' : 'text-[#0077B6]'}`}>{copy.suitableHeading}</h4>
+        <p className={`mt-1 min-h-[2rem] leading-snug sm:min-h-[2.25rem] ${BUSINESS_HP_TEXT.body} ${bodyClass}`}>{card.suitableFor}</p>
         {card.id === 'landing' && hasCreatedLandingPages ? (
           <button
             type="button"
             onClick={onManageLandingPages}
-            className="mt-1.5 flex min-h-[2.125rem] w-full items-center justify-center gap-1 rounded-md border border-[#0077B6]/35 bg-[#e8f4fa] px-1.5 py-1 text-[9px] font-semibold text-[#0077B6] transition-colors hover:bg-[#dceef8] sm:min-h-[2.25rem] sm:text-[10px]"
+            className={`mt-1.5 flex min-h-[2.125rem] w-full items-center justify-center gap-1 rounded-md border border-[#0077B6]/35 bg-[#e8f4fa] px-1.5 py-1.5 font-semibold text-[#0077B6] transition-colors hover:bg-[#dceef8] sm:min-h-[2.25rem] ${BUSINESS_HP_TEXT.caption}`}
           >
             <LayoutGrid className="h-3 w-3 shrink-0" strokeWidth={2.25} />
             {copy.manageLandingPagesCta}
@@ -268,16 +252,16 @@ function BrandingOverviewMain({
   return (
     <div className="flex flex-col gap-2">
       <div className="shrink-0">
-        <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
+        <nav aria-label="Breadcrumb" className={BUSINESS_HP_TEXT.meta}>
           <button
             type="button"
             onClick={() => onNavigate('/business')}
-            className="transition hover:text-[#0077B6]"
+            className={`transition hover:text-[#0077B6] ${BUSINESS_HP_TEXT.link}`}
           >
             {copy.breadcrumb.home}
           </button>
           <span className="mx-1.5 text-slate-400">&gt;</span>
-          <span className="font-medium text-slate-700">{copy.breadcrumb.current}</span>
+          <span className={`font-medium text-slate-700 ${BUSINESS_HP_TEXT.body}`}>{copy.breadcrumb.current}</span>
         </nav>
       </div>
 
@@ -301,8 +285,8 @@ function BrandingOverviewMain({
       </div>
 
       <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="min-w-0 flex-1 text-xs leading-snug text-slate-700">
-          <span className="font-semibold text-slate-900">{copy.consultTitle}</span>
+        <p className={`min-w-0 flex-1 leading-snug text-slate-700 ${BUSINESS_HP_TEXT.body}`}>
+          <span className={`font-semibold text-slate-900 ${BUSINESS_HP_TEXT.body}`}>{copy.consultTitle}</span>
           {' '}
           {copy.consultBody}
         </p>
@@ -310,7 +294,7 @@ function BrandingOverviewMain({
           type="button"
           disabled={requestLoadingKey === 'consultation'}
           onClick={onConsultation}
-          className="shrink-0 rounded-lg bg-[#0077B6] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#006399] disabled:opacity-60 inline-flex items-center justify-center gap-2"
+          className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#0077B6] px-4 py-2 font-semibold text-white transition-colors hover:bg-[#006399] disabled:opacity-60 ${BUSINESS_HP_TEXT.buttonPrimary}`}
         >
           {requestLoadingKey === 'consultation' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
           {copy.consultCta}
@@ -533,14 +517,13 @@ const Branding = () => {
       />
 
       <div
-        className="business-homepage-shell flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto bg-[#f4f6f8] xl:overflow-hidden"
-        style={{ fontFamily: PAGE_FONT }}
+        className="business-homepage-shell branding-saiyo-shell flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto bg-[#f4f6f8] xl:overflow-hidden"
       >
-        <div className="business-homepage-ui flex h-full min-h-0 w-full flex-1 flex-col p-2.5 sm:p-3">
+        <div className="business-homepage-ui business-app-ui flex h-full min-h-0 w-full flex-1 flex-col p-2.5 sm:p-3">
           {loading ? (
-            <div className="flex flex-1 items-center justify-center gap-2 py-20 text-slate-500">
+            <div className={`flex flex-1 items-center justify-center gap-2 py-20 text-slate-500 ${BUSINESS_HP_TEXT.body}`}>
               <Loader2 className="h-5 w-5 animate-spin text-[#0077B6]" />
-              <span className="text-sm">{copy.loading}</span>
+              <span>{copy.loading}</span>
             </div>
           ) : (
             <BusinessQuickActionsPageLayout onNavigate={handleNavigate}>

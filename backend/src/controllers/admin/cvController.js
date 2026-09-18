@@ -17,6 +17,7 @@ import {
   findCanonicalDuplicateConflictForUpdate,
 } from '../../utils/cvDuplicateChecker.js';
 import { CV_STATUS_NEW, CV_STATUS_DUPLICATE, CV_STATUS_OVERDUE_6_MONTHS, CV_STATUS_CREATE_FAILED } from '../../constants/cvStatus.js';
+import { moveCtvCvToScoutReserve } from '../../services/scoutReserveService.js';
 import { uploadBufferToS3, buildCvRirekishoPdfKey, buildCvShokumuPdfKey, buildCvOriginalKey, isS3Key, deleteFileFromS3, s3Enabled, getCvSnapshotDateTime, buildCvOriginalFolderKey, buildCvTemplateFolderKey, buildCvTemplateFileKey, uploadCvOriginalsToSnapshot, copyCvOriginalsToNewSnapshot, copySingleFileToCvOriginalSnapshot, isFolderPath, getObjectStream } from '../../services/s3Service.js';
 import { toSafeStorageFilename } from '../../utils/uploadFilename.js';
 import {
@@ -1634,6 +1635,9 @@ export const cvController = {
 
           if (wasCanonicalValid && newStatus === CV_STATUS_OVERDUE_6_MONTHS) {
             await promoteDuplicatesWhenCanonicalMarkedOverdue(cv.id);
+          }
+          if (newStatus === CV_STATUS_OVERDUE_6_MONTHS && cv.collaboratorId) {
+            await moveCtvCvToScoutReserve(cv);
           }
           if (prevStatus === CV_STATUS_OVERDUE_6_MONTHS && newStatus === CV_STATUS_NEW) {
             await revertUnavailableToDuplicatesForCanonical(cv.id);

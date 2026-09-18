@@ -1,16 +1,33 @@
 import React from 'react';
 import { X, FileText, Download } from 'lucide-react';
 import { PaymentTypeIcon, formatPaymentDescription } from './BillingPaymentDetailPanel';
-
-const BRAND = '#0077B6';
+import {
+  BILL_AMOUNT_BOX,
+  BILL_AMOUNT_VALUE,
+  BILL_BADGE,
+  BILL_BTN_OUTLINE,
+  BILL_BTN_PRIMARY,
+  BILL_DETAIL_BODY,
+  BILL_DETAIL_CAPTION,
+  BILL_DETAIL_LABEL,
+  BILL_DETAIL_VALUE,
+  BILL_PANEL,
+  BILL_PANEL_EMPTY,
+  BILL_PANEL_EMPTY_DESC,
+  BILL_PANEL_EMPTY_TITLE,
+  BILL_PANEL_HEAD,
+  BILL_PANEL_SCROLL,
+  BILL_PANEL_TITLE,
+  BRAND,
+} from '../../utils/billingUi';
 
 export default function BillingInvoiceDetailPanel({ invoice, onClose, copy = {} }) {
   if (!invoice) {
     return (
-      <aside className="flex h-full min-h-0 flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
-        <FileText className="mb-2 h-8 w-8 text-slate-300" />
-        <p className="text-[10px] font-semibold text-slate-700 sm:text-[11px]">Chi tiết hóa đơn</p>
-        <p className="mt-1 text-[9px] leading-relaxed text-slate-500 sm:text-[10px]">
+      <aside className={BILL_PANEL_EMPTY}>
+        <FileText className="mb-2 h-9 w-9 text-slate-300 sm:h-10 sm:w-10" />
+        <p className={BILL_PANEL_EMPTY_TITLE}>Chi tiết hóa đơn</p>
+        <p className={`mt-2 ${BILL_PANEL_EMPTY_DESC}`}>
           Chọn một hóa đơn trong danh sách để xem chi tiết và tải PDF.
         </p>
       </aside>
@@ -25,44 +42,44 @@ export default function BillingInvoiceDetailPanel({ invoice, onClose, copy = {} 
   };
 
   return (
-    <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-[10px] shadow-sm sm:text-[11px]">
-      <div className="flex shrink-0 items-start justify-between gap-2 border-b border-slate-100 px-3 py-2">
+    <aside className={BILL_PANEL}>
+      <div className={BILL_PANEL_HEAD}>
         <div className="min-w-0">
-          <div className="text-[11px] font-bold text-slate-900 sm:text-xs">{invoice.invoiceCode}</div>
+          <div className={BILL_PANEL_TITLE}>{invoice.invoiceCode}</div>
           <span
-            className="mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-[9px] font-semibold sm:text-[10px]"
+            className={`mt-1 inline-block ${BILL_BADGE}`}
             style={{ background: invoice.statusBg, color: invoice.statusColor }}
           >
             {invoice.statusLabel}
           </span>
         </div>
-        <button type="button" onClick={onClose} className="rounded-lg border-0 bg-slate-50 p-1 hover:bg-slate-100">
-          <X className="h-3.5 w-3.5 text-slate-500" />
+        <button type="button" onClick={onClose} className="rounded-lg border-0 bg-slate-50 p-1.5 hover:bg-slate-100">
+          <X className="h-4 w-4 text-slate-500" />
         </button>
       </div>
 
-      <div className="billing-detail-scroll min-h-0 flex-1 overflow-y-auto px-3 py-2.5">
-        <div className="mb-3 flex items-center gap-2">
+      <div className={BILL_PANEL_SCROLL}>
+        <div className="mb-4 flex items-center gap-2.5">
           <PaymentTypeIcon type={invoice.type} />
           <div>
-            <div className="font-semibold text-slate-800">{invoice.type}</div>
-            <div className="text-[9px] text-slate-400 sm:text-[10px]">Loại phí</div>
+            <div className={`font-semibold text-slate-800 ${BILL_DETAIL_BODY}`}>{invoice.type}</div>
+            <div className={BILL_DETAIL_CAPTION}>Loại phí</div>
           </div>
         </div>
 
-        <p className="mb-3 text-[10px] leading-snug text-slate-700 sm:text-[11px]">{content}</p>
+        <p className={`mb-4 leading-snug text-slate-700 ${BILL_DETAIL_BODY}`}>{content}</p>
 
-        <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2">
-          <div className="text-[9px] text-slate-500">Số tiền đã thanh toán</div>
-          <div className="mt-0.5 text-sm font-bold text-emerald-700">{invoice.amount}</div>
+        <div className={`${BILL_AMOUNT_BOX} mb-4`}>
+          <div className={BILL_DETAIL_CAPTION}>Số tiền đã thanh toán</div>
+          <div className={`mt-1 text-emerald-700 ${BILL_AMOUNT_VALUE}`}>{invoice.amount}</div>
         </div>
 
-        <div className="mb-3 flex flex-wrap gap-1.5">
+        <div className="mb-4 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={openPdf}
             disabled={!pdfUrl}
-            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[9px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 sm:text-[10px]"
+            className={`${BILL_BTN_OUTLINE} disabled:opacity-50`}
           >
             {copy.viewInvoice || 'Xem hóa đơn'}
           </button>
@@ -70,15 +87,15 @@ export default function BillingInvoiceDetailPanel({ invoice, onClose, copy = {} 
             type="button"
             onClick={openPdf}
             disabled={!pdfUrl}
-            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[9px] font-semibold text-white disabled:opacity-50 sm:text-[10px]"
+            className={`${BILL_BTN_PRIMARY} disabled:opacity-50`}
             style={{ background: BRAND }}
           >
-            <Download className="h-3 w-3" />
+            <Download className="h-3.5 w-3.5" />
             {copy.downloadPdf || 'Tải PDF'}
           </button>
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {[
             ['Ngày phát hành', invoice.issuedAt || invoice.createdAt],
             ['Ngày thanh toán', invoice.paidAt],
@@ -88,8 +105,8 @@ export default function BillingInvoiceDetailPanel({ invoice, onClose, copy = {} 
               : invoice.jdTitle || invoice.candidateName || '—'],
           ].map(([label, value]) => (
             <div key={label} className="flex gap-2 leading-snug">
-              <span className="w-28 shrink-0 text-[9px] text-slate-500 sm:text-[10px]">{label}</span>
-              <span className="min-w-0 flex-1 font-medium text-slate-800">{value || '—'}</span>
+              <span className={BILL_DETAIL_LABEL}>{label}</span>
+              <span className={BILL_DETAIL_VALUE}>{value || '—'}</span>
             </div>
           ))}
         </div>

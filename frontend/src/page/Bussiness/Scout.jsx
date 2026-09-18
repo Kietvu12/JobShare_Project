@@ -11,6 +11,8 @@ import {
 import ScoutCandidateFilterFields, {
   SCOUT_FILTER_INPUT_CLASS,
   SCOUT_FILTER_PICKER_BTN_CLASS,
+  SCOUT_FILTER_LABEL_CLASS,
+  ScoutKeywordSearchField,
 } from '../../component/Bussiness/ScoutCandidateFilterFields.jsx'
 import WorkLocationFilterModal from '../../component/Shared/WorkLocationFilterModal'
 import JobCategoryPickerModal from '../../component/Shared/JobCategoryPickerModal'
@@ -47,14 +49,18 @@ import {
   fetchJobScoutAiMatches,
 } from '../../utils/businessJobAiMatching'
 import { highlightSearchText } from '../../utils/searchTextHighlight'
-import ScoutCandidateHoverTip from '../../component/Bussiness/ScoutCandidateHoverTip'
+import { ScoutCandidateHoverHost } from '../../component/Bussiness/ScoutCandidateHoverTip'
 import { getScoutCandidateDetailUrl } from '../../utils/scoutCandidateDetailUrl'
 import CreditTopUpModal from '../../component/Bussiness/CreditTopUpModal'
 import ScoutCreditPackagesIntro from '../../component/Bussiness/ScoutCreditPackagesIntro'
 import ScoutInsufficientCreditModal from '../../component/Bussiness/ScoutInsufficientCreditModal'
 import creditIllustration from '../../assets/scout_credit_vi.png'
 import performanceIllustration from '../../assets/scout_per_vi.png'
-import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont'
+import {
+  BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
+  BUSINESS_HP_TEXT,
+  BUSINESS_UI_FONT,
+} from '../../utils/businessHomepageTypography.js'
 import {
   formatScoutDesiredSalary,
   formatScoutListLocation,
@@ -71,27 +77,19 @@ const ICON_MD = { width: 12, height: 12 }
 const PAGE_FONT = BUSINESS_UI_FONT
 
 const scoutPageStyles = `
-  ${BUSINESS_UI_FONT_IMPORT}
-  .scout-scrollbar::-webkit-scrollbar { width: 6px; }
-  .scout-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .scout-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-  .scout-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-  .scout-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
-  .scout-modal-scroll {
-    scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
+  ${BUSINESS_HOMEPAGE_PAGE_BASE_STYLES}
+  .scout-workspace-shell {
+    font-family: ${BUSINESS_UI_FONT};
   }
-  .scout-modal-scroll::-webkit-scrollbar { width: 4px; }
-  .scout-modal-scroll::-webkit-scrollbar-track { background: transparent; }
-  .scout-modal-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
-  .scout-modal-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-  .scout-modal-scroll::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
-  .scout-confirm-modal-scroll {
-    scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
+  .scout-workspace-shell .business-homepage-ui {
+    height: 100%;
+    min-height: 0;
   }
-  .scout-confirm-modal-scroll::-webkit-scrollbar { width: 4px; }
-  .scout-confirm-modal-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+  @supports not (zoom: 1) {
+    .scout-workspace-shell .business-homepage-ui {
+      height: calc(100% / var(--hp-zoom));
+    }
+  }
   @media (max-width: 639px) {
     .scout-confirm-modal-fee th,
     .scout-confirm-modal-fee td {
@@ -104,85 +102,76 @@ const scoutPageStyles = `
     }
   }
   .scout-candidates-list-ui {
-    --scout-cand-fs-title: 12px;
-    --scout-cand-fs-body: 12px;
-    --scout-cand-fs-caption: 11px;
-    --scout-cand-icon: 13px;
     line-height: 1.45;
     color: #334155;
-    font-size: var(--scout-cand-fs-body);
-  }
-  @media (min-width: 1536px) {
-    .scout-candidates-list-ui {
-      --scout-cand-fs-title: 12px;
-      --scout-cand-fs-body: 12px;
-      --scout-cand-fs-caption: 11px;
-      --scout-cand-icon: 13px;
-    }
+    font-size: var(--biz-hp-body);
   }
   .scout-candidates-list-ui .scout-cand-title {
-    font-size: var(--scout-cand-fs-title);
+    font-size: var(--biz-hp-section);
     line-height: 1.35;
     font-weight: 700;
+    color: #0f172a;
   }
   .scout-candidates-list-ui .scout-cand-subtitle {
-    font-size: var(--scout-cand-fs-body);
+    font-size: var(--biz-hp-body);
     line-height: 1.35;
     font-weight: 600;
   }
   .scout-candidates-list-ui .scout-cand-meta {
-    font-size: var(--scout-cand-fs-body);
+    font-size: var(--biz-hp-body);
     line-height: 1.35;
   }
   .scout-candidates-list-ui .scout-cand-caption {
-    font-size: var(--scout-cand-fs-caption);
+    font-size: var(--biz-hp-caption);
     line-height: 1.4;
+    color: #64748b;
+  }
+  .scout-candidates-list-ui .scout-unlock-cta,
+  .scout-candidates-list-ui .group:hover .scout-unlock-cta {
+    color: #ffffff !important;
+  }
+  .scout-workspace-shell .scout-primary-btn,
+  .scout-workspace-shell .scout-primary-btn:hover,
+  .scout-workspace-shell .scout-primary-btn:focus-visible {
+    color: #ffffff !important;
   }
   .scout-candidates-list-ui .scout-cand-icon {
-    width: var(--scout-cand-icon);
-    height: var(--scout-cand-icon);
+    width: var(--biz-hp-jd-icon);
+    height: var(--biz-hp-jd-icon);
     flex-shrink: 0;
   }
 
   .scout-detail-ui {
-    --scout-detail-fs-title: 12px;
-    --scout-detail-fs-body: 11px;
-    --scout-detail-fs-caption: 10px;
-    font-size: var(--scout-detail-fs-body);
+    font-size: var(--biz-hp-body);
     line-height: 1.45;
     color: #334155;
   }
   .scout-detail-ui .scout-detail-title {
-    font-size: var(--scout-detail-fs-title);
+    font-size: var(--biz-hp-section);
     font-weight: 700;
     line-height: 1.35;
+    color: #0f172a;
   }
   .scout-detail-ui .scout-detail-body {
-    font-size: var(--scout-detail-fs-body);
+    font-size: var(--biz-hp-body);
     line-height: 1.45;
   }
   .scout-detail-ui .scout-detail-caption {
-    font-size: var(--scout-detail-fs-caption);
+    font-size: var(--biz-hp-caption);
     line-height: 1.4;
+    color: #64748b;
   }
-  .candidate-scrollbar::-webkit-scrollbar { width: 4px; }
-  .candidate-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .candidate-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
   .candidate-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
     scrollbar-gutter: stable;
     overflow-anchor: none;
   }
   /* Tooltip card cuối: hiện phía trên để không kéo dài scroll → tránh rung UI */
-  .candidate-scrollbar .group:last-child .scout-candidate-hover-tip {
+  .candidate-scrollbar .group:last-child .scout-candidate-hover-tip-anchor {
     top: auto;
     bottom: 100%;
-    margin-top: 0;
-    margin-bottom: 0.25rem;
+    padding-top: 0;
+    padding-bottom: 0.25rem;
   }
-  .business-homepage-scroll::-webkit-scrollbar { width: 4px; }
-  .business-homepage-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
   .scout-search-highlight {
     background-color: #fef08a !important;
     color: #92400e !important;
@@ -192,38 +181,6 @@ const scoutPageStyles = `
     box-decoration-break: clone;
     -webkit-box-decoration-break: clone;
   }
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-  .business-homepage-shell { --hp-zoom: 1; }
-  @media (min-width: 1024px) and (max-width: 1279px) {
-    .business-homepage-shell { --hp-zoom: 0.9; }
-  }
-  @media (min-width: 1280px) and (max-width: 1535px) {
-    .business-homepage-shell { --hp-zoom: 0.86; }
-  }
-  @media (min-width: 1024px) and (max-height: 760px) {
-    .business-homepage-shell { --hp-zoom: 0.78; }
-  }
-  @media (min-width: 1024px) and (min-height: 761px) and (max-height: 860px) {
-    .business-homepage-shell { --hp-zoom: 0.84; }
-  }
-  @media (min-width: 1536px) and (min-height: 861px) {
-    .business-homepage-shell { --hp-zoom: 0.94; }
-  }
-  @media (min-width: 1920px) and (min-height: 900px) {
-    .business-homepage-shell { --hp-zoom: 1; }
-  }
-  .business-homepage-ui { zoom: var(--hp-zoom); }
-  @supports not (zoom: 1) {
-    .business-homepage-ui {
-      transform: scale(var(--hp-zoom));
-      transform-origin: top left;
-      width: calc(100% / var(--hp-zoom));
-      height: calc(100% / var(--hp-zoom));
-    }
-  }
-
   @keyframes biz-hp-card-slide-in {
     from { opacity: 0; transform: translateY(28px); }
     to { opacity: 1; transform: translateY(0); }
@@ -285,21 +242,11 @@ const scoutPageStyles = `
   @media (min-width: 1024px) and (max-width: 1535px) {
     .scout-workspace-body { gap: 8px; }
     .scout-workspace-content { gap: 6px; }
-    .scout-candidates-list-ui {
-      --scout-cand-fs-title: 11px;
-      --scout-cand-fs-body: 11px;
-      --scout-cand-fs-caption: 10px;
-      --scout-cand-icon: 12px;
+    .scout-filter-head {
+      padding: 0.875rem 1rem !important;
     }
     .scout-filter-scroll {
-      max-height: min(26vh, 210px) !important;
-      padding: 0.5rem !important;
-    }
-    .scout-filter-head {
-      padding: 0.375rem 0.625rem !important;
-    }
-    .scout-filter-head h2 {
-      font-size: 11px !important;
+      padding: 0.875rem 1rem !important;
     }
     .scout-list-head {
       padding: 0.375rem 0.625rem !important;
@@ -311,11 +258,6 @@ const scoutPageStyles = `
     .scout-list-avatar {
       width: 38px !important;
       height: 38px !important;
-    }
-  }
-  @media (min-width: 1024px) and (max-width: 1535px) and (max-height: 860px) {
-    .scout-filter-scroll {
-      max-height: min(22vh, 180px) !important;
     }
   }
 `
@@ -330,7 +272,15 @@ const SCOUT_CARD_ICONS = {
   performance: UserPlus,
 }
 
-function ScoutSolutionCard({ card, onStart, animationDelay = 0, scoutCopy, hidePrimaryCta = false }) {
+function ScoutSolutionCard({
+  card,
+  onStart,
+  animationDelay = 0,
+  scoutCopy,
+  hidePrimaryCta = false,
+  featuresTitle = '',
+  highlightNote = '',
+}) {
   const surface = CARD_SURFACE[card.variant] || CARD_SURFACE.neutral
   const DecoIcon = SCOUT_CARD_ICONS[card.mode] || Coins
   const bodyClass = 'text-slate-600'
@@ -343,26 +293,31 @@ function ScoutSolutionCard({ card, onStart, animationDelay = 0, scoutCopy, hideP
       >
         <div className="relative z-10 flex min-w-0 flex-1 flex-col">
           <div className="flex items-start justify-between gap-2">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-[11px] font-bold text-slate-800 shadow-sm ring-1 ring-slate-100">
+            <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full bg-white font-bold text-slate-800 shadow-sm ring-1 ring-slate-100 ${BUSINESS_HP_TEXT.caption}`}>
               {card.num}
             </span>
           </div>
 
           <div className="relative z-10 mt-2 pr-14 lg:pr-0">
-            <h3 className="text-base font-bold leading-tight sm:text-lg">{card.title}</h3>
-            <p className="mt-2 text-xs font-bold leading-snug text-slate-800 sm:text-[13px]">{card.painPoint}</p>
-            <p className={`mt-1.5 text-[11px] leading-snug sm:text-xs ${mutedClass}`}>{card.solution}</p>
+            <h3 className={BUSINESS_HP_TEXT.title}>{card.title}</h3>
+            <p className={`mt-2 font-bold leading-snug text-slate-800 ${BUSINESS_HP_TEXT.body}`}>{card.painPoint}</p>
+            <p className={`mt-1.5 leading-snug ${BUSINESS_HP_TEXT.body} ${mutedClass}`}>{card.solution}</p>
           </div>
 
           <div className="relative z-10 mt-3 lg:mt-auto lg:pt-4">
-            <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 sm:text-[11px]">
+            {highlightNote ? (
+              <p className={`inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-800 ${BUSINESS_HP_TEXT.caption}`}>
+                {highlightNote}
+              </p>
+            ) : null}
+            <span className={`inline-flex rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600 ${highlightNote ? 'mt-2' : ''} ${BUSINESS_HP_TEXT.caption}`}>
               {scoutCopy.suitableFor} {card.suitableFor}
             </span>
             {card.slaLine ? (
-              <p className="mt-2 text-[10px] font-bold text-emerald-700 sm:text-[11px]">{card.slaLine}</p>
+              <p className={`mt-2 font-bold text-emerald-700 ${BUSINESS_HP_TEXT.caption}`}>{card.slaLine}</p>
             ) : null}
             {card.footerNote ? (
-              <p className="mt-2 text-[10px] font-semibold text-[#0077B6] sm:text-[11px]">{card.footerNote}</p>
+              <p className={`mt-2 font-semibold text-[#0077B6] ${BUSINESS_HP_TEXT.caption}`}>{card.footerNote}</p>
             ) : null}
           </div>
         </div>
@@ -372,7 +327,10 @@ function ScoutSolutionCard({ card, onStart, animationDelay = 0, scoutCopy, hideP
         </div>
 
         <div className="relative z-10 mt-3 flex min-w-0 flex-1 flex-col border-slate-200/80 lg:mt-0 lg:border-l lg:pl-6 lg:pt-1">
-          <ul className={`flex min-h-0 flex-1 flex-col gap-2 text-[11px] leading-snug sm:text-xs ${bodyClass}`}>
+          {featuresTitle ? (
+            <h4 className={`mb-2 ${BUSINESS_HP_TEXT.section}`}>{featuresTitle}</h4>
+          ) : null}
+          <ul className={`flex min-h-0 flex-1 flex-col gap-2 leading-snug ${BUSINESS_HP_TEXT.body} ${bodyClass}`}>
             {card.features.map((line) => (
               <li key={line} className="flex gap-2">
                 <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0077B6]" strokeWidth={2.5} />
@@ -386,7 +344,7 @@ function ScoutSolutionCard({ card, onStart, animationDelay = 0, scoutCopy, hideP
               <button
                 type="button"
                 onClick={() => onStart(card.mode)}
-                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] py-2.5 text-xs font-semibold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:text-sm"
+                className={`scout-primary-btn inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] py-2.5 text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] hover:text-white ${BUSINESS_HP_TEXT.buttonPrimary}`}
               >
                 {scoutCopy.startWith(card.title)}
                 <ArrowRight className="h-4 w-4 shrink-0" />
@@ -477,6 +435,7 @@ function ScoutCandidateRowBody({
   const { language } = useLanguage()
   const copy = useBusinessAppCopy()
   const newBadgeLabel = copy.scout.newBadge
+  const chipLabels = copy.scout.chips
   const position = getLocalizedCandidateRole(candidate, language)
   const exp = formatScoutExperienceSeniorityLocalized(candidate.experienceYears, language)
   const salary = formatScoutDesiredSalary(candidate)
@@ -503,7 +462,7 @@ function ScoutCandidateRowBody({
       ) : null}
       <div className="mt-1 flex flex-wrap gap-1">
         {!isScoutEmptyDisplayValue(exp) ? (
-          <ScoutMetaChip label="KN">{exp}</ScoutMetaChip>
+          <ScoutMetaChip label={chipLabels.experience}>{exp}</ScoutMetaChip>
         ) : null}
         {!isScoutEmptyDisplayValue(jlpt) ? (
           <ScoutMetaChip label="JLPT">{jlpt}</ScoutMetaChip>
@@ -562,30 +521,30 @@ function ScoutManagedFeeTableBody({ compact = false }) {
 
   return (
     <>
-      <div className={`overflow-x-auto ${compact ? 'px-0 py-1' : 'px-3 py-2.5 sm:px-4 sm:py-3'}`}>
-        <table className="w-full text-left text-xs sm:text-sm">
+      <div className={`overflow-x-auto ${compact ? 'px-3 py-2.5 sm:px-4 sm:py-3.5' : 'px-4 py-3 sm:px-5 sm:py-4'}`}>
+        <table className={`w-full text-left ${BUSINESS_HP_TEXT.body}`}>
           <thead>
             <tr className="border-b border-slate-100 text-slate-500">
-              <th className="py-2 pr-3 font-semibold">{onboarding.feeTableLevel}</th>
-              <th className="py-2 pr-3 font-semibold">{onboarding.feeTableExperience}</th>
-              <th className="py-2 pr-3 font-semibold">{onboarding.feeTableFee}</th>
-              <th className="py-2 font-semibold">{onboarding.feeTableNoteCol}</th>
+              <th className="py-2.5 pr-4 font-semibold sm:py-3">{onboarding.feeTableLevel}</th>
+              <th className="py-2.5 pr-4 font-semibold sm:py-3">{onboarding.feeTableExperience}</th>
+              <th className="py-2.5 pr-4 font-semibold sm:py-3">{onboarding.feeTableFee}</th>
+              <th className="py-2.5 font-semibold sm:py-3">{onboarding.feeTableNoteCol}</th>
             </tr>
           </thead>
           <tbody>
             {feeTiers.map((tier) => (
               <tr key={tier.level} className="border-b border-slate-50 last:border-0">
-                <td className="py-2 pr-3 font-semibold text-slate-800">{tier.level}</td>
-                <td className="py-2 pr-3 text-slate-600">{tier.range}</td>
-                <td className="py-2 pr-3 font-bold text-[#0077B6]">{tier.fee}</td>
-                <td className="py-2 text-slate-500">{tier.note}</td>
+                <td className="py-2.5 pr-4 font-semibold text-slate-800 sm:py-3">{tier.level}</td>
+                <td className="py-2.5 pr-4 text-slate-600 sm:py-3">{tier.range}</td>
+                <td className="py-2.5 pr-4 font-bold text-[#0077B6] sm:py-3">{tier.fee}</td>
+                <td className="py-2.5 text-slate-500 sm:py-3">{tier.note}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       {!compact ? (
-        <p className="border-t border-slate-100 px-3 py-2.5 text-xs leading-relaxed text-slate-600 sm:px-4 sm:text-sm">
+        <p className={`border-t border-slate-100 px-4 py-3 leading-relaxed text-slate-600 sm:px-5 sm:py-3.5 ${BUSINESS_HP_TEXT.body}`}>
           {onboarding.wsSupportHint}
         </p>
       ) : null}
@@ -593,48 +552,23 @@ function ScoutManagedFeeTableBody({ compact = false }) {
   )
 }
 
-function ScoutManagedIntroBlock({ scoutCard }) {
+function ScoutManagedIntroBlock() {
   const { language } = useLanguage()
   const onboarding = getScoutWorkspaceCopy(language).onboarding.managed
 
-  if (!scoutCard) return null
-
   return (
     <article className="w-full shrink-0 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
-      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-3 py-3 sm:px-4 sm:py-4">
-        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white text-[11px] font-bold text-slate-800 shadow-sm ring-1 ring-slate-100">
-          {scoutCard.num}
-        </span>
-        <h2 className="mt-2 text-base font-bold text-slate-900 sm:text-lg">{scoutCard.title}</h2>
-        <p className="mt-1 text-xs font-bold text-slate-800 sm:text-sm">{scoutCard.painPoint}</p>
-        <p className="mt-1 text-[11px] leading-snug text-slate-600 sm:text-xs">{scoutCard.solution}</p>
-        <p className="mt-2 inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 sm:text-xs">
-          {onboarding.noCreditLine}
-        </p>
-        <ul className="mt-3 space-y-1.5 text-[11px] leading-snug text-slate-600 sm:text-xs">
-          {scoutCard.features.map((line) => (
-            <li key={line} className="flex gap-2">
-              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0077B6]" strokeWidth={2.5} />
-              <span>{line}</span>
-            </li>
-          ))}
-        </ul>
-        {scoutCard.slaLine ? (
-          <p className="mt-2 text-[10px] font-bold text-emerald-700 sm:text-[11px]">{scoutCard.slaLine}</p>
-        ) : null}
-      </div>
-
-      <div className="border-b border-slate-100 px-3 py-3 sm:px-4 sm:py-3.5">
-        <h3 className="text-sm font-bold text-slate-900">{onboarding.feeTableTitle}</h3>
-        <p className="mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm">{onboarding.feeTableNote}</p>
-        <div className="mt-2 rounded-lg border border-slate-100 bg-slate-50/50">
+      <div className="border-b border-slate-100 px-4 py-4 sm:px-5 sm:py-5">
+        <h3 className={BUSINESS_HP_TEXT.section}>{onboarding.feeTableTitle}</h3>
+        <p className={`mt-1.5 leading-relaxed text-slate-500 ${BUSINESS_HP_TEXT.body}`}>{onboarding.feeTableNote}</p>
+        <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50/50">
           <ScoutManagedFeeTableBody compact />
         </div>
       </div>
 
-      <div className="px-3 py-3 sm:px-4 sm:pb-4">
-        <h3 className="text-sm font-bold text-slate-900">{onboarding.diffVsDirectTitle}</h3>
-        <ul className="mt-2 space-y-1.5 text-xs text-slate-600">
+      <div className="px-4 py-4 sm:px-5 sm:pb-5">
+        <h3 className={BUSINESS_HP_TEXT.section}>{onboarding.diffVsDirectTitle}</h3>
+        <ul className={`mt-2 space-y-1.5 text-slate-600 ${BUSINESS_HP_TEXT.body}`}>
           {(onboarding.diffVsDirect || []).map((line) => (
             <li key={line} className="flex gap-2">
               <span className="text-[#0077B6]">•</span>
@@ -648,6 +582,8 @@ function ScoutManagedIntroBlock({ scoutCard }) {
 }
 
 function ScoutManagedPreviewRow({ candidate, matchScore, onExplore, language = 'vi' }) {
+  const copy = useBusinessAppCopy()
+  const chipLabels = copy.scout.chips
   const position = getLocalizedCandidateRole(candidate, language)
   const exp = formatScoutExperienceSeniorityLocalized(candidate.experienceYears, language)
   const jlpt = formatScoutLanguageSummaryLocalized(candidate, language)
@@ -667,7 +603,7 @@ function ScoutManagedPreviewRow({ candidate, matchScore, onExplore, language = '
         <div className="mt-1 flex flex-wrap gap-1">
           <CandidateListMatchCorner score={cornerScore} language={language} />
           {!isScoutEmptyDisplayValue(exp) ? (
-            <ScoutMetaChip label="KN">{exp}</ScoutMetaChip>
+            <ScoutMetaChip label={chipLabels.experience}>{exp}</ScoutMetaChip>
           ) : null}
           {!isScoutEmptyDisplayValue(jlpt) ? (
             <ScoutMetaChip label="JLPT">{jlpt}</ScoutMetaChip>
@@ -707,7 +643,7 @@ function ScoutOnboardingCandidatePreview({
       {rankedPreviewCandidates.length === 0 ? (
         <div className={`px-3 text-center sm:px-4 ${isManaged ? 'py-4 sm:py-5' : 'py-8 sm:py-10'}`}>
           <Users className={`mx-auto text-slate-300 ${isManaged ? 'h-6 w-6' : 'h-8 w-8'}`} />
-          <p className={`mt-2 text-slate-500 ${isManaged ? 'text-[11px] sm:text-xs' : 'mt-3 text-xs sm:text-sm'}`}>
+          <p className={`text-slate-500 ${isManaged ? `mt-2 ${BUSINESS_HP_TEXT.body}` : `mt-3 ${BUSINESS_HP_TEXT.bodyLg}`}`}>
             {onboarding.previewEmpty}
           </p>
         </div>
@@ -741,7 +677,7 @@ function ScoutOnboardingCandidatePreview({
           <button
             type="button"
             onClick={onExplore}
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-[#0077B6]/35 hover:bg-[#f8fbfd] hover:text-[#0077B6] sm:rounded-xl sm:py-2.5 sm:text-sm"
+            className={`inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white py-2 font-semibold text-slate-700 transition-colors hover:border-[#0077B6]/35 hover:bg-[#f8fbfd] hover:text-[#0077B6] sm:rounded-xl sm:py-2.5 ${BUSINESS_HP_TEXT.button}`}
           >
             {onboarding.exploreAll}
             <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -754,16 +690,16 @@ function ScoutOnboardingCandidatePreview({
 
 function ScoutBreadcrumb({ homeLabel, currentLabel, onHomeClick }) {
   return (
-    <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
+    <nav aria-label="Breadcrumb" className={BUSINESS_HP_TEXT.meta}>
       <button
         type="button"
         onClick={onHomeClick}
-        className="transition hover:text-[#0077B6]"
+        className={`transition hover:text-[#0077B6] ${BUSINESS_HP_TEXT.link}`}
       >
         {homeLabel}
       </button>
       <span className="mx-1.5 text-slate-400">&gt;</span>
-      <span className="font-medium text-slate-700">{currentLabel}</span>
+      <span className={`font-medium text-slate-700 ${BUSINESS_HP_TEXT.body}`}>{currentLabel}</span>
     </nav>
   )
 }
@@ -794,6 +730,13 @@ function ScoutOnboardingView({
     () => getScoutSolutionCard(language, variant === 'performance' ? 'performance' : 'credit'),
     [language, variant],
   )
+  const scoutCardForDisplay = useMemo(() => {
+    if (!scoutCard) return null
+    if (variant === 'performance') {
+      return { ...scoutCard, variant: 'brandLight' }
+    }
+    return scoutCard
+  }, [scoutCard, variant])
   const rankedPreviewCandidates = useMemo(
     () => rankPreviewCandidates(previewCandidates).slice(0, variant === 'performance' ? 5 : 5),
     [previewCandidates, variant],
@@ -818,7 +761,7 @@ function ScoutOnboardingView({
     onStart(variant === 'performance' ? 'performance' : 'credit')
   }
 
-  if (!scoutCard) return null
+  if (!scoutCardForDisplay) return null
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2 sm:gap-3">
@@ -832,11 +775,11 @@ function ScoutOnboardingView({
 
       {variant === 'credit' && Number(creditBalance) > 0 ? (
         <div className="shrink-0 rounded-xl border border-[#cce5f0] bg-gradient-to-r from-[#e8f4fa] to-white px-3 py-2.5 sm:px-4">
-          <p className="text-sm font-bold text-[#006399]">
+          <p className={`font-bold text-[#006399] ${BUSINESS_HP_TEXT.bodyLg}`}>
             {directCopy.creditBalanceBanner(formatScoutLocaleNumber(creditBalance, language), opensRemaining)}
           </p>
           {creditLow ? (
-            <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-amber-800">
+            <p className={`mt-1 flex items-center gap-1 font-semibold text-amber-800 ${BUSINESS_HP_TEXT.body}`}>
               <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
               {directCopy.creditLowWarning}
             </p>
@@ -844,32 +787,20 @@ function ScoutOnboardingView({
         </div>
       ) : null}
 
-      {variant === 'performance' ? (
-        <ScoutManagedIntroBlock scoutCard={scoutCard} />
-      ) : (
-        <div className="grid w-full shrink-0 grid-cols-1 items-stretch gap-2 sm:gap-3">
-          <ScoutSolutionCard
-            card={scoutCard}
-            onStart={onStart}
-            animationDelay={0.06}
-            scoutCopy={scoutCopy}
-            hidePrimaryCta
-          />
-        </div>
-      )}
+      <div className="grid w-full shrink-0 grid-cols-1 items-stretch gap-2 sm:gap-3">
+        <ScoutSolutionCard
+          card={scoutCardForDisplay}
+          onStart={onStart}
+          animationDelay={0.06}
+          scoutCopy={scoutCopy}
+          hidePrimaryCta
+          featuresTitle={variant === 'performance' ? managedCopy.howItWorksTitle : directCopy.howItWorksTitle}
+          highlightNote={variant === 'performance' ? managedCopy.noCreditLine : ''}
+        />
+      </div>
 
-      {variant === 'credit' ? (
-        <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
-          <h2 className="text-sm font-bold text-slate-900">{directCopy.howItWorksTitle}</h2>
-          <ul className="mt-2 space-y-2 text-xs leading-snug text-slate-600 sm:text-[13px]">
-            {scoutCard.features.map((line) => (
-              <li key={line} className="flex gap-2">
-                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0077B6]" strokeWidth={2.5} />
-                <span>{line}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {variant === 'performance' ? (
+        <ScoutManagedIntroBlock />
       ) : null}
 
       {variant === 'credit' ? (
@@ -902,7 +833,7 @@ function ScoutOnboardingView({
           <button
             type="button"
             onClick={handleBottomCta}
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0077B6] py-3 text-sm font-bold text-white shadow-md shadow-[#0077B6]/20 transition-colors hover:bg-[#006399]"
+            className={`scout-primary-btn inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0077B6] py-3 font-bold text-white shadow-md shadow-[#0077B6]/20 transition-colors hover:bg-[#006399] hover:text-white ${BUSINESS_HP_TEXT.buttonPrimary}`}
           >
             {hasEnoughCredit ? directCopy.ctaStartScout : directCopy.ctaChoosePackage}
             <ArrowRight className="h-4 w-4 shrink-0" />
@@ -911,17 +842,17 @@ function ScoutOnboardingView({
       ) : (
         <div className="sticky bottom-0 z-10 shrink-0 border-t border-slate-200/80 bg-[#f4f6f8]/95 pb-1 pt-2 backdrop-blur-sm">
           {scoutCard?.slaLine ? (
-            <p className="mb-1.5 text-center text-[11px] font-bold text-emerald-700 sm:text-xs">{scoutCard.slaLine}</p>
+            <p className={`mb-1.5 text-center font-bold text-emerald-700 ${BUSINESS_HP_TEXT.caption}`}>{scoutCard.slaLine}</p>
           ) : null}
           <button
             type="button"
             onClick={() => onStart('performance')}
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0077B6] py-3 text-sm font-bold text-white shadow-md shadow-[#0077B6]/20 transition-colors hover:bg-[#006399]"
+            className={`scout-primary-btn inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0077B6] py-3 font-bold text-white shadow-md shadow-[#0077B6]/20 transition-colors hover:bg-[#006399] hover:text-white ${BUSINESS_HP_TEXT.buttonPrimary}`}
           >
             {managedCopy.ctaStartManaged}
             <ArrowRight className="h-4 w-4 shrink-0" />
           </button>
-          <p className="mt-1.5 text-center text-[10px] leading-snug text-slate-500 sm:text-[11px]">
+          <p className={`mt-1.5 text-center leading-snug text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>
             {managedCopy.processHint}
           </p>
         </div>
@@ -973,7 +904,7 @@ function ScoutUnlockOptionCard({
         type="button"
         onClick={onClick}
         disabled={disabled || loading}
-        className="scout-detail-body mt-3 w-full shrink-0 rounded-md py-2 font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#94c5e0] bg-[#0077B6] hover:bg-[#006399] disabled:opacity-100"
+        className="scout-primary-btn scout-detail-body mt-3 w-full shrink-0 rounded-md py-2 font-semibold text-white hover:text-white disabled:cursor-not-allowed disabled:bg-[#94c5e0] bg-[#0077B6] hover:bg-[#006399] disabled:opacity-100"
       >
         {loading ? loadingLabel : buttonLabel}
       </button>
@@ -1034,7 +965,7 @@ function MatchScoreRing({ score, size = 34 }) {
           strokeLinecap="round"
         />
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold leading-none text-slate-800">
+      <span className={`absolute inset-0 flex items-center justify-center font-bold leading-none text-slate-800 ${BUSINESS_HP_TEXT.micro}`}>
         {pct}%
       </span>
     </div>
@@ -1047,8 +978,6 @@ function isCandidateNew(candidate) {
   const diff = Date.now() - new Date(raw).getTime()
   return diff >= 0 && diff < 7 * 86400000
 }
-
-const SCOUT_PAGE_FILTER_LABEL = 'scout-cand-caption font-medium text-gray-700 leading-snug'
 
 function ScoutFilterPanel({
   selectedJobId,
@@ -1068,15 +997,20 @@ function ScoutFilterPanel({
 }) {
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [showJobCategoryModal, setShowJobCategoryModal] = useState(false)
+  const [advancedOpen, setAdvancedOpen] = useState(() => hasActiveFilters || !!selectedJobId)
   const ws = getScoutWorkspaceCopy(language)
+
+  useEffect(() => {
+    if (hasActiveFilters || selectedJobId) setAdvancedOpen(true)
+  }, [hasActiveFilters, selectedJobId])
 
   const filterFieldProps = {
     inputClassName: SCOUT_FILTER_INPUT_CLASS,
     pickerBtnClassName: SCOUT_FILTER_PICKER_BTN_CLASS,
-    filterLabelClassName: SCOUT_PAGE_FILTER_LABEL,
-    fieldMinHeightClass: 'min-h-8',
-    dropdownOptionSize: 'compact',
-    salarySepClassName: 'scout-cand-caption shrink-0 text-gray-500',
+    filterLabelClassName: SCOUT_FILTER_LABEL_CLASS,
+    fieldMinHeightClass: 'min-h-9',
+    dropdownOptionSize: 'comfortable',
+    salarySepClassName: `shrink-0 text-gray-500 ${BUSINESS_HP_TEXT.caption}`,
   }
 
   const jobOptions = useMemo(() => [
@@ -1089,7 +1023,7 @@ function ScoutFilterPanel({
 
   const leadingBlock = (
     <div className="rounded-lg border-2 border-[#0077B6]/25 bg-[#f8fbfd]/80 p-2">
-      <FilterBlock icon={Briefcase} label={ws.workspace.attachJd} compact labelClassName={SCOUT_PAGE_FILTER_LABEL} fieldMinHeightClass="min-h-8">
+      <FilterBlock icon={Briefcase} label={ws.workspace.attachJd} compact labelClassName={SCOUT_FILTER_LABEL_CLASS} fieldMinHeightClass="min-h-9">
         <FilterSelectDropdown
           value={selectedJobId || ''}
           onChange={onJobChange}
@@ -1100,17 +1034,40 @@ function ScoutFilterPanel({
           disabled={jobsLoading}
           className={SCOUT_FILTER_INPUT_CLASS}
           maxPanelHeight={220}
-          optionSize="compact"
+          optionSize="comfortable"
         />
       </FilterBlock>
     </div>
   )
 
+  const advancedToggleClass = advancedOpen
+    ? 'border-[#0077B6]/40 bg-[#f0f9ff] text-[#0077B6]'
+    : 'border-gray-200 bg-white text-gray-700 hover:border-[#0077B6]/30 hover:bg-[#f8fbfd]'
+
   return (
     <section className="scout-candidates-list-ui scout-workspace-filters shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      <div className="scout-filter-head flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-2.5 py-2 lg:px-3">
-        <h2 className="scout-cand-title text-gray-900">{ws.workspace.filterTitle}</h2>
-        <div className="flex items-center gap-1.5">
+      <div className="scout-filter-head flex flex-wrap items-end gap-3 px-4 py-3.5 lg:gap-4 lg:px-5 lg:py-4">
+        <div className="min-w-0 flex-1 basis-[min(100%,16rem)]">
+          <ScoutKeywordSearchField
+            searchInput={searchInput}
+            setSearchInput={setSearchInput}
+            language={language}
+            inputClassName={SCOUT_FILTER_INPUT_CLASS}
+            filterLabelClassName={SCOUT_FILTER_LABEL_CLASS}
+            fieldMinHeightClass="min-h-9"
+            onEnter={onApply}
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2 pb-1">
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen((open) => !open)}
+            aria-expanded={advancedOpen}
+            className={`scout-cand-caption inline-flex h-9 items-center gap-1.5 rounded-lg border px-2.5 font-semibold transition-colors ${advancedToggleClass}`}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5 shrink-0" />
+            {advancedOpen ? ws.workspace.collapseAdvancedFilters : ws.workspace.advancedFilters}
+          </button>
           {hasActiveFilters ? (
             <button type="button" onClick={onClear} className="scout-cand-caption font-semibold text-[#0077B6] hover:underline">
               {ws.workspace.clearFilters}
@@ -1120,7 +1077,7 @@ function ScoutFilterPanel({
             type="button"
             onClick={onApply}
             disabled={listLoading}
-            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-[#facc15] px-3 shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-[#facc15] px-3 shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
             {listLoading ? (
               <RotateCw className="h-3.5 w-3.5 animate-spin text-gray-800" />
@@ -1133,19 +1090,22 @@ function ScoutFilterPanel({
           </button>
         </div>
       </div>
-      <div className="scout-filter-scroll scout-scrollbar custom-scrollbar max-h-[26vh] overflow-y-auto p-2 lg:max-h-[30vh] lg:p-3 2xl:max-h-[34vh]">
-        <ScoutCandidateFilterFields
-          leadingBlock={leadingBlock}
-          scoutFilters={scoutFilters}
-          setScoutFilters={setScoutFilters}
-          searchInput={searchInput}
-          setSearchInput={setSearchInput}
-          onOpenLocationModal={() => setShowLocationModal(true)}
-          onOpenJobCategoryModal={() => setShowJobCategoryModal(true)}
-          language={language}
-          {...filterFieldProps}
-        />
-      </div>
+      {advancedOpen ? (
+        <div className="scout-filter-scroll border-t border-gray-100 p-3.5 lg:p-4">
+          <ScoutCandidateFilterFields
+            leadingBlock={leadingBlock}
+            scoutFilters={scoutFilters}
+            setScoutFilters={setScoutFilters}
+            searchInput={searchInput}
+            setSearchInput={setSearchInput}
+            onOpenLocationModal={() => setShowLocationModal(true)}
+            onOpenJobCategoryModal={() => setShowJobCategoryModal(true)}
+            language={language}
+            includeKeywordField={false}
+            {...filterFieldProps}
+          />
+        </div>
+      ) : null}
       <WorkLocationFilterModal
         open={showLocationModal}
         onClose={() => setShowLocationModal(false)}
@@ -1185,13 +1145,20 @@ function ScoutCandidateListItem({
 }) {
   const copy = useBusinessAppCopy()
   const listCardLabels = copy.scout.listCard
+  const chipLabels = copy.scout.chips
   const ws = getScoutWorkspaceCopy(language)
   const showNew = isCandidateNew(candidate)
 
   const cornerScore = Number.isFinite(Number(matchScore)) ? Number(matchScore) : null
 
   return (
-    <div className="group relative">
+    <ScoutCandidateHoverHost
+      className="group relative"
+      candidate={candidate}
+      hl={hl}
+      matchScore={cornerScore}
+      language={language}
+    >
       <button
         type="button"
         onClick={() => onOpenDetail(candidate.id)}
@@ -1221,14 +1188,13 @@ function ScoutCandidateListItem({
             pendingLabel={matchPendingLabel}
           />
           {!candidate.isUnlocked ? (
-            <span className="scout-cand-caption hidden max-w-full truncate rounded-md bg-[#0077B6] px-2 py-0.5 font-bold text-white shadow-sm group-hover:inline-flex sm:inline-flex sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+            <span className="scout-unlock-cta scout-cand-caption hidden max-w-full truncate rounded-md bg-[#0077B6] px-2 py-0.5 font-bold text-white shadow-sm group-hover:inline-flex sm:inline-flex sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
               {listActionLabel || ws.workspace.unlockCta(scoutCreditCost)}
             </span>
           ) : null}
         </div>
       </button>
-      <ScoutCandidateHoverTip candidate={candidate} hl={hl} matchScore={cornerScore} language={language} />
-    </div>
+    </ScoutCandidateHoverHost>
   )
 }
 
@@ -1251,7 +1217,7 @@ function ScoutAlternatePromoLine({ promo, onSwitch, className = 'mt-2.5' }) {
   if (!promo?.link || !onSwitch) return null
 
   return (
-    <p className={`${className} text-xs font-medium leading-snug text-slate-600 sm:text-sm`}>
+    <p className={`${className} font-medium leading-snug text-slate-600 ${BUSINESS_HP_TEXT.body}`}>
       {promo.prefix}
       <button
         type="button"
@@ -1310,7 +1276,7 @@ function ScoutCreditConfirmModal({
 
   return createPortal(
     <div
-      className="scout-confirm-modal-overlay fixed inset-0 z-[120] flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4"
+      className="business-app-ui scout-confirm-modal-overlay fixed inset-0 z-[120] flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4"
       style={{ fontFamily: BUSINESS_UI_FONT }}
       onClick={onClose}
     >
@@ -1329,12 +1295,12 @@ function ScoutCreditConfirmModal({
 
         <div className="scout-confirm-modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="scout-confirm-modal-body px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4 xl:px-8 xl:pt-7">
-            <h2 className="pr-10 text-sm font-bold leading-snug text-slate-900 sm:text-base xl:text-xl">
+            <h2 className={`pr-10 font-bold leading-snug text-slate-900 ${BUSINESS_HP_TEXT.title}`}>
               {m.title}{' '}
               <span className="text-[#0077B6]">{m.titleHighlight}</span>
             </h2>
 
-            <p className="mt-1.5 text-xs font-medium leading-relaxed text-slate-700 sm:mt-2 sm:text-sm">
+            <p className={`mt-1.5 font-medium leading-relaxed text-slate-700 sm:mt-2 ${BUSINESS_HP_TEXT.body}`}>
               {m.intro}
             </p>
 
@@ -1346,8 +1312,8 @@ function ScoutCreditConfirmModal({
                       <Icon className="h-3.5 w-3.5 xl:h-4 xl:w-4" strokeWidth={2} />
                     </div>
                     <div className="min-w-0 pt-0.5">
-                      <p className="text-xs font-bold leading-snug text-slate-900 sm:text-sm">{title}</p>
-                      <p className="mt-0.5 text-xs font-medium leading-snug text-slate-600 sm:text-sm">{desc}</p>
+                      <p className={`font-bold leading-snug text-slate-900 ${BUSINESS_HP_TEXT.body}`}>{title}</p>
+                      <p className={`mt-0.5 font-medium leading-snug text-slate-600 ${BUSINESS_HP_TEXT.body}`}>{desc}</p>
                     </div>
                   </li>
                 ))}
@@ -1365,7 +1331,7 @@ function ScoutCreditConfirmModal({
               <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0077B6] text-white xl:h-7 xl:w-7">
                 <Info className="h-3 w-3 xl:h-3.5 xl:w-3.5" strokeWidth={2.5} />
               </div>
-              <p className="min-w-0 text-xs font-medium leading-snug text-slate-700 sm:text-sm">
+              <p className={`min-w-0 font-medium leading-snug text-slate-700 ${BUSINESS_HP_TEXT.body}`}>
                 {m.disclaimer}
               </p>
             </div>
@@ -1387,7 +1353,7 @@ function ScoutCreditConfirmModal({
               onChange={(e) => onAgreedChange?.(e.target.checked)}
               className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 text-[#0077B6] focus:ring-[#0077B6] sm:h-4 sm:w-4"
             />
-            <span className="text-xs font-medium leading-snug text-slate-700 sm:text-sm">
+            <span className={`font-medium leading-snug text-slate-700 ${BUSINESS_HP_TEXT.body}`}>
               {m.agree}
             </span>
           </label>
@@ -1396,7 +1362,7 @@ function ScoutCreditConfirmModal({
               type="button"
               disabled={loading}
               onClick={onClose}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
+              className={`rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 sm:px-4 sm:py-2 ${BUSINESS_HP_TEXT.button}`}
             >
               {c.cancel}
             </button>
@@ -1404,7 +1370,7 @@ function ScoutCreditConfirmModal({
               type="button"
               disabled={loading || !agreed}
               onClick={onConfirm}
-              className="rounded-lg bg-[#0077B6] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#006399] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
+              className={`scout-primary-btn rounded-lg bg-[#0077B6] px-3 py-1.5 font-semibold text-white hover:bg-[#006399] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 ${BUSINESS_HP_TEXT.buttonPrimary}`}
             >
               {loading ? m.opening : m.confirmUnlock(creditCost)}
             </button>
@@ -1487,7 +1453,7 @@ function ScoutPerformanceConfirmModal({
 
   return createPortal(
     <div
-      className="scout-confirm-modal-overlay fixed inset-0 z-[120] flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4"
+      className="business-app-ui scout-confirm-modal-overlay fixed inset-0 z-[120] flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4"
       style={{ fontFamily: BUSINESS_UI_FONT }}
       onClick={onClose}
     >
@@ -1506,7 +1472,7 @@ function ScoutPerformanceConfirmModal({
 
         <div className="scout-confirm-modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="scout-confirm-modal-body px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4 xl:px-8 xl:pt-7">
-            <h2 className="pr-10 text-sm font-bold leading-snug text-slate-900 sm:text-base xl:text-xl">
+            <h2 className={`pr-10 font-bold leading-snug text-slate-900 ${BUSINESS_HP_TEXT.title}`}>
               {step === 'jd' ? (
                 m.jdStepTitle
               ) : (
@@ -1520,13 +1486,13 @@ function ScoutPerformanceConfirmModal({
             {step === 'confirm' && (
               <>
                 {skipJdStep && selectedJob ? (
-                  <div className="mt-1.5 rounded-lg bg-[#e8f4fa] px-3 py-2 text-xs text-[#006399] sm:mt-2 sm:px-4 sm:py-2.5 sm:text-sm">
+                  <div className={`mt-1.5 rounded-lg bg-[#e8f4fa] px-3 py-2 text-[#006399] sm:mt-2 sm:px-4 sm:py-2.5 ${BUSINESS_HP_TEXT.body}`}>
                     {m.jdSelected(getLocalizedJobTitle(selectedJob, language))}
                   </div>
                 ) : null}
 
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:mt-4 xl:grid-cols-[1fr_minmax(200px,38%)] xl:gap-6 xl:items-start">
-                  <div className="space-y-1.5 text-xs font-medium leading-relaxed text-slate-700 sm:space-y-2 sm:text-sm">
+                  <div className={`space-y-1.5 font-medium leading-relaxed text-slate-700 sm:space-y-2 ${BUSINESS_HP_TEXT.body}`}>
                     <p>{m.intro1}</p>
                     <p>
                       {m.intro2Prefix}{' '}
@@ -1541,16 +1507,16 @@ function ScoutPerformanceConfirmModal({
                       />
                     ) : null}
                     {hideAlternatePromo && Array.isArray(managedOnboarding.fairProcessSteps) ? (
-                      <ol className="mt-3 space-y-1.5 rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-[11px] text-slate-700 sm:text-xs">
+                      <ol className={`mt-3 space-y-1.5 rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-slate-700 ${BUSINESS_HP_TEXT.body}`}>
                         {managedOnboarding.fairProcessSteps.map((label, idx) => (
                           <li key={label} className="flex gap-2">
-                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#0077B6] text-[10px] font-bold text-white">
+                            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#0077B6] font-bold text-white ${BUSINESS_HP_TEXT.micro}`}>
                               {idx + 1}
                             </span>
                             <span>{label}</span>
                           </li>
                         ))}
-                        <li className="mt-1 border-t border-slate-200/80 pt-2 text-[10px] italic text-slate-500">
+                        <li className={`mt-1 border-t border-slate-200/80 pt-2 italic text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>
                           {managedOnboarding.contractPendingNote}
                         </li>
                       </ol>
@@ -1569,7 +1535,7 @@ function ScoutPerformanceConfirmModal({
                   <button
                     type="button"
                     onClick={() => setFeeExpanded((prev) => !prev)}
-                    className="flex w-full items-center justify-between gap-2 bg-slate-50 px-3 py-2 text-left text-[10px] font-bold text-slate-600 sm:px-4 sm:text-xs xl:cursor-default"
+                    className={`flex w-full items-center justify-between gap-2 bg-slate-50 px-3 py-2 text-left font-bold text-slate-600 sm:px-4 xl:cursor-default ${BUSINESS_HP_TEXT.caption}`}
                     aria-expanded={feeExpanded}
                   >
                     <span>{m.feeTableTitle}</span>
@@ -1579,7 +1545,7 @@ function ScoutPerformanceConfirmModal({
                     />
                   </button>
                   <div className={feeExpanded ? 'block' : 'hidden xl:block'}>
-                    <table className="w-full text-left text-[10px] sm:text-xs">
+                    <table className={`w-full text-left ${BUSINESS_HP_TEXT.caption}`}>
                       <thead>
                         <tr className="border-b border-slate-100 text-slate-500">
                           <th className="px-2 py-1 font-semibold sm:px-4 sm:py-1.5">{m.feeColLevel}</th>
@@ -1597,7 +1563,7 @@ function ScoutPerformanceConfirmModal({
                         ))}
                       </tbody>
                     </table>
-                    <p className="border-t border-slate-100 px-2 py-1 text-[10px] text-slate-500 sm:px-4 sm:py-1.5">
+                    <p className={`border-t border-slate-100 px-2 py-1 text-slate-500 sm:px-4 sm:py-1.5 ${BUSINESS_HP_TEXT.caption}`}>
                       {m.feeFootnote}
                     </p>
                   </div>
@@ -1607,12 +1573,12 @@ function ScoutPerformanceConfirmModal({
 
             {step === 'jd' && (
               <div className="mt-3 space-y-3 sm:mt-4">
-                <p className="text-xs text-slate-600 leading-relaxed sm:text-sm">
+                <p className={`text-slate-600 leading-relaxed ${BUSINESS_HP_TEXT.body}`}>
                   {m.jdStepIntro}
                 </p>
                 <label className="block">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-[10px] font-semibold text-slate-700 sm:text-xs">{m.relatedJd}</span>
+                    <span className={`font-semibold text-slate-700 ${BUSINESS_HP_TEXT.caption}`}>{m.relatedJd}</span>
                     {onQuickCreateJd ? (
                       <button
                         type="button"
@@ -1621,7 +1587,7 @@ function ScoutPerformanceConfirmModal({
                           requirementNote,
                           wantsSimilar,
                         })}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#0077B6]/25 bg-[#e8f4fa] px-2 py-1 text-[10px] font-semibold text-[#0077B6] transition hover:border-[#0077B6]/40 hover:bg-[#dff0fa] disabled:opacity-50 sm:px-2.5 sm:text-xs"
+                        className={`inline-flex items-center gap-1.5 rounded-lg border border-[#0077B6]/25 bg-[#e8f4fa] px-2 py-1 font-semibold text-[#0077B6] transition hover:border-[#0077B6]/40 hover:bg-[#dff0fa] disabled:opacity-50 sm:px-2.5 ${BUSINESS_HP_TEXT.button}`}
                       >
                         <FilePlus2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" aria-hidden />
                         {m.createJd}
@@ -1637,17 +1603,17 @@ function ScoutPerformanceConfirmModal({
                     searchPlaceholder={ws.workspace.searchJdPlaceholder}
                     optionSize="comfortable"
                     maxPanelHeight={280}
-                    className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-800 outline-none focus:border-[#0077B6] sm:py-2.5 sm:text-sm"
+                    className={`mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-800 outline-none focus:border-[#0077B6] sm:py-2.5 ${BUSINESS_HP_TEXT.body}`}
                   />
                 </label>
                 <label className="block">
-                  <span className="text-[10px] font-semibold text-slate-700 sm:text-xs">{m.extraRequirements}</span>
+                  <span className={`font-semibold text-slate-700 ${BUSINESS_HP_TEXT.caption}`}>{m.extraRequirements}</span>
                   <textarea
                     value={requirementNote}
                     onChange={(e) => onRequirementNoteChange?.(e.target.value)}
                     rows={2}
                     placeholder={m.extraRequirementsPlaceholder}
-                    className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-800 outline-none focus:border-[#0077B6] resize-y sm:py-2.5 sm:text-sm"
+                    className={`mt-1.5 w-full resize-y rounded-lg border border-slate-200 px-3 py-2 text-slate-800 outline-none focus:border-[#0077B6] sm:py-2.5 ${BUSINESS_HP_TEXT.body}`}
                   />
                 </label>
               </div>
@@ -1664,7 +1630,7 @@ function ScoutPerformanceConfirmModal({
                 onChange={(e) => onAgreedChange?.(e.target.checked)}
                 className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 text-[#E30613] focus:ring-[#E30613] sm:h-4 sm:w-4"
               />
-              <span className="text-xs font-medium leading-snug text-slate-700 sm:text-sm">
+              <span className={`font-medium leading-snug text-slate-700 ${BUSINESS_HP_TEXT.body}`}>
                 {m.agree}
               </span>
             </label>
@@ -1676,7 +1642,7 @@ function ScoutPerformanceConfirmModal({
                 onChange={(e) => onWantsSimilarChange?.(e.target.checked)}
                 className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 text-[#E30613] focus:ring-[#E30613] sm:h-4 sm:w-4"
               />
-              <span className="text-xs font-medium leading-snug text-slate-700 sm:text-sm">
+              <span className={`font-medium leading-snug text-slate-700 ${BUSINESS_HP_TEXT.body}`}>
                 {m.headhuntSimilar}
               </span>
             </label>
@@ -1689,7 +1655,7 @@ function ScoutPerformanceConfirmModal({
                   type="button"
                   disabled={loading}
                   onClick={() => setStep('confirm')}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 sm:px-4 sm:py-2 sm:text-sm"
+                  className={`rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 sm:px-4 sm:py-2 ${BUSINESS_HP_TEXT.button}`}
                 >
                   {c.back}
                 </button>
@@ -1700,7 +1666,7 @@ function ScoutPerformanceConfirmModal({
                 type="button"
                 disabled={loading}
                 onClick={onClose}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
+                className={`rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 sm:px-4 sm:py-2 ${BUSINESS_HP_TEXT.button}`}
               >
                 {c.cancel}
               </button>
@@ -1709,7 +1675,7 @@ function ScoutPerformanceConfirmModal({
                   type="button"
                   disabled={loading || !agreed}
                   onClick={handleConfirmStepContinue}
-                  className="rounded-lg bg-[#0077B6] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#006399] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
+                  className={`scout-primary-btn rounded-lg bg-[#0077B6] px-3 py-1.5 font-semibold text-white hover:bg-[#006399] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 ${BUSINESS_HP_TEXT.buttonPrimary}`}
                 >
                   {loading
                     ? m.sending
@@ -1722,7 +1688,7 @@ function ScoutPerformanceConfirmModal({
                   type="button"
                   disabled={loading || !canProceedJd}
                   onClick={handleConfirm}
-                  className="rounded-lg bg-[#E30613] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#c90511] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
+                  className={`scout-primary-btn rounded-lg bg-[#E30613] px-3 py-1.5 font-semibold text-white hover:bg-[#c90511] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 ${BUSINESS_HP_TEXT.buttonPrimary}`}
                 >
                   {loading ? m.sending : m.confirmSend}
                 </button>
@@ -1762,7 +1728,7 @@ function ScoutPerformanceSuccessModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 sm:p-4"
+      className="business-app-ui fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 sm:p-4"
       style={{ fontFamily: BUSINESS_UI_FONT }}
       onClick={onClose}
     >
@@ -1773,27 +1739,27 @@ function ScoutPerformanceSuccessModal({
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#dcfce7] text-[#059669]">
           <Check className="h-6 w-6" strokeWidth={2.5} />
         </div>
-        <h2 className="mt-4 text-lg font-bold text-slate-900">{m.title}</h2>
-        <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+        <h2 className={`mt-4 ${BUSINESS_HP_TEXT.title}`}>{m.title}</h2>
+        <p className={`mt-2 leading-relaxed text-slate-600 ${BUSINESS_HP_TEXT.bodyLg}`}>
           {m.body}
           {wantsSimilarCandidates ? m.bodySimilar : ''}
         </p>
         {nominationMessage ? (
-          <p className="mt-2 text-sm font-medium text-[#006399] leading-relaxed">
+          <p className={`mt-2 font-medium leading-relaxed text-[#006399] ${BUSINESS_HP_TEXT.bodyLg}`}>
             {nominationMessage}
           </p>
         ) : null}
         {requestCode && (
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{m.requestCode}</div>
-            <div className="mt-1 text-xl font-bold text-[#0077B6]">{requestCode}</div>
+            <div className={`font-semibold uppercase tracking-wide text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>{m.requestCode}</div>
+            <div className={`mt-1 font-bold text-[#0077B6] ${BUSINESS_HP_TEXT.display}`}>{requestCode}</div>
           </div>
         )}
         <div className="mt-5 flex flex-col gap-2">
           <button
             type="button"
             onClick={onGoApplications}
-            className="w-full rounded-lg bg-[#0077B6] py-2.5 text-sm font-semibold text-white hover:bg-[#006399]"
+            className={`w-full rounded-lg bg-[#0077B6] py-2.5 font-semibold text-white hover:bg-[#006399] ${BUSINESS_HP_TEXT.buttonPrimary}`}
           >
             {m.trackApplications}
           </button>
@@ -1801,7 +1767,7 @@ function ScoutPerformanceSuccessModal({
             <button
               type="button"
               onClick={onGoChat}
-              className="w-full rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              className={`w-full rounded-lg border border-slate-200 py-2.5 font-semibold text-slate-700 hover:bg-slate-50 ${BUSINESS_HP_TEXT.button}`}
             >
               {m.openWsChat}
             </button>
@@ -1809,7 +1775,7 @@ function ScoutPerformanceSuccessModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-2 text-xs font-medium text-slate-500 hover:text-slate-700"
+            className={`w-full py-2 font-medium text-slate-500 hover:text-slate-700 ${BUSINESS_HP_TEXT.body}`}
           >
             {c.close}
           </button>
@@ -1859,14 +1825,14 @@ function ScoutAttachJobModal({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3" onClick={onClose}>
+    <div className="business-app-ui fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3" style={{ fontFamily: BUSINESS_UI_FONT }} onClick={onClose}>
       <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-sm font-bold text-slate-900">{m.title}</h3>
-        <p className="mt-1 text-xs text-slate-500">
+        <h3 className={BUSINESS_HP_TEXT.section}>{m.title}</h3>
+        <p className={`mt-1 text-slate-500 ${BUSINESS_HP_TEXT.body}`}>
           {candidateName ? `${m.candidatePrefix} ${candidateName}` : m.selectJdHint}
         </p>
         <label className="mt-4 block">
-          <span className="text-xs font-semibold text-slate-600">{c.jdLabel} *</span>
+          <span className={`font-semibold text-slate-600 ${BUSINESS_HP_TEXT.caption}`}>{c.jdLabel} *</span>
           <FilterSelectDropdown
             value={jobId}
             onChange={setJobId}
@@ -1876,25 +1842,25 @@ function ScoutAttachJobModal({
             searchPlaceholder={ws.workspace.searchJdPlaceholder}
             optionSize="comfortable"
             maxPanelHeight={280}
-            className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-[#0077B6]"
+            className={`mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-slate-800 outline-none focus:border-[#0077B6] ${BUSINESS_HP_TEXT.body}`}
           />
         </label>
         <label className="mt-3 block">
-          <span className="text-[10px] font-semibold text-slate-600">{m.note}</span>
+          <span className={`font-semibold text-slate-600 ${BUSINESS_HP_TEXT.caption}`}>{m.note}</span>
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder={c.optional}
-            className="mt-1 w-full rounded-lg border border-slate-200 px-2.5 py-2 text-xs outline-none focus:border-[#0077B6]"
+            className={`mt-1 w-full rounded-lg border border-slate-200 px-2.5 py-2 outline-none focus:border-[#0077B6] ${BUSINESS_HP_TEXT.body}`}
           />
         </label>
         <div className="mt-4 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600">{c.cancel}</button>
+          <button type="button" onClick={onClose} className={`rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 ${BUSINESS_HP_TEXT.button}`}>{c.cancel}</button>
           <button
             type="button"
             disabled={!jobId || loading}
             onClick={() => onSubmit({ jobId, note })}
-            className="rounded-lg bg-[#0077B6] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            className={`rounded-lg bg-[#0077B6] px-3 py-1.5 font-semibold text-white disabled:opacity-50 ${BUSINESS_HP_TEXT.buttonPrimary}`}
           >
             {loading ? m.adding : m.addToPipeline}
           </button>
@@ -1930,23 +1896,24 @@ function ScoutActionModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+      className="business-app-ui fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+      style={{ fontFamily: BUSINESS_UI_FONT }}
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl p-5 w-full max-w-md shadow-xl"
+        className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-sm font-bold text-slate-800 mb-2">{title}</h3>
-        {children || (message ? <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">{message}</p> : null)}
-        <div className={`flex gap-2 justify-end ${children || message ? 'mt-4' : ''}`}>
+        <h3 className={`mb-2 ${BUSINESS_HP_TEXT.section}`}>{title}</h3>
+        {children || (message ? <p className={`leading-relaxed whitespace-pre-line text-slate-600 ${BUSINESS_HP_TEXT.body}`}>{message}</p> : null)}
+        <div className={`flex justify-end gap-2 ${children || message ? 'mt-4' : ''}`}>
           {isConfirm ? (
             <>
               <button
                 type="button"
                 disabled={loading}
                 onClick={onClose}
-                className="text-xs px-3 py-2 border border-slate-200 rounded-lg text-slate-600 disabled:opacity-50"
+                className={`rounded-lg border border-slate-200 px-3 py-2 text-slate-600 disabled:opacity-50 ${BUSINESS_HP_TEXT.button}`}
               >
                 {resolvedCancelLabel}
               </button>
@@ -1954,7 +1921,7 @@ function ScoutActionModal({
                 type="button"
                 disabled={loading}
                 onClick={onConfirm}
-                className="text-xs px-3 py-2 rounded-lg text-white bg-[#0077B6] disabled:opacity-50"
+                className={`rounded-lg bg-[#0077B6] px-3 py-2 text-white disabled:opacity-50 ${BUSINESS_HP_TEXT.buttonPrimary}`}
               >
                 {loading ? c.processing : resolvedConfirmLabel}
               </button>
@@ -1963,7 +1930,7 @@ function ScoutActionModal({
             <button
               type="button"
               onClick={onClose}
-              className={`text-xs px-3 py-2 rounded-lg text-white ${noticeButtonClass}`}
+              className={`rounded-lg px-3 py-2 text-white ${noticeButtonClass} ${BUSINESS_HP_TEXT.buttonPrimary}`}
             >
               {c.understand}
             </button>
@@ -2443,18 +2410,18 @@ const Scout = ({ variant = 'credit' } = {}) => {
   const sharedModals = (
     <>
       {showPerformanceCta && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-          <div className="bg-white rounded-xl p-5 w-full max-w-md shadow-xl">
-            <h3 className="text-sm font-bold text-slate-800 mb-2">{ws.modals.performanceCta.title}</h3>
-            <p className="text-xs text-slate-600 leading-relaxed mb-4">
+        <div className="business-app-ui fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" style={{ fontFamily: BUSINESS_UI_FONT }}>
+          <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
+            <h3 className={`mb-2 ${BUSINESS_HP_TEXT.section}`}>{ws.modals.performanceCta.title}</h3>
+            <p className={`mb-4 leading-relaxed text-slate-600 ${BUSINESS_HP_TEXT.body}`}>
               {ws.modals.performanceCta.message}
             </p>
-            <div className="flex gap-2 justify-end">
+            <div className="flex justify-end gap-2">
               <button
                 type="button"
                 disabled={exploreSubmitting}
                 onClick={() => handlePerformanceExplore('declined')}
-                className="text-xs px-3 py-2 border border-slate-200 rounded-lg text-slate-600"
+                className={`rounded-lg border border-slate-200 px-3 py-2 text-slate-600 ${BUSINESS_HP_TEXT.button}`}
               >
                 {ws.modals.performanceCta.decline}
               </button>
@@ -2462,7 +2429,7 @@ const Scout = ({ variant = 'credit' } = {}) => {
                 type="button"
                 disabled={exploreSubmitting}
                 onClick={() => handlePerformanceExplore('interested')}
-                className="text-xs px-3 py-2 rounded-lg text-white bg-[#0077B6] disabled:opacity-50"
+                className={`rounded-lg bg-[#0077B6] px-3 py-2 text-white disabled:opacity-50 ${BUSINESS_HP_TEXT.buttonPrimary}`}
               >
                 {ws.modals.performanceCta.interested}
               </button>
@@ -2509,7 +2476,7 @@ const Scout = ({ variant = 'credit' } = {}) => {
         <style>{scoutPageStyles}</style>
         {sharedModals}
         <div className="business-homepage-shell relative min-h-0 h-full overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden" style={{ fontFamily: PAGE_FONT }}>
-          <div className="business-homepage-ui flex h-full min-h-0 w-full flex-1 flex-col p-2.5 sm:p-3">
+          <div className="business-homepage-ui business-app-ui flex h-full min-h-0 w-full flex-1 flex-col p-2.5 sm:p-3">
             <BusinessQuickActionsPageLayout onNavigate={navigate}>
               <ScoutOnboardingView
                 variant={variant}
@@ -2532,7 +2499,7 @@ const Scout = ({ variant = 'credit' } = {}) => {
     <>
       <style>{scoutPageStyles}</style>
       <div className="business-homepage-shell scout-workspace-shell flex h-full min-h-0 flex-col overflow-hidden" style={{ fontFamily: PAGE_FONT }}>
-        <div className="business-homepage-ui flex h-full min-h-0 flex-1 flex-col overflow-hidden p-2 lg:p-3">
+        <div className="business-homepage-ui business-app-ui flex h-full min-h-0 flex-1 flex-col overflow-hidden p-2 lg:p-3">
           <BusinessQuickActionsPageLayout onNavigate={navigate} className="min-h-0 flex-1">
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="shrink-0 lg:mb-2">
@@ -2563,25 +2530,36 @@ const Scout = ({ variant = 'credit' } = {}) => {
 
               <div className="scout-candidates-list-ui flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
               <div className="scout-list-head border-b border-slate-100 px-3 py-2">
-                <div className="flex flex-wrap items-stretch gap-2 rounded-lg border border-[#cce5f0]/80 bg-[#f8fbfd] px-2.5 py-2">
-                  <div className="min-w-[8rem] flex-1">
-                    <div className="scout-cand-caption font-semibold uppercase tracking-wide text-slate-500">{ws.workspace.creditLabel}</div>
-                    <div className="scout-cand-title text-[#0077B6]">{formatScoutLocaleNumber(credit, language)}</div>
+                {variant === 'performance' ? (
+                  <div className="rounded-lg border border-[#cce5f0]/80 bg-[#f8fbfd] px-2.5 py-2.5">
+                    <p className={`font-semibold text-[#006399] ${BUSINESS_HP_TEXT.bodyLg}`}>
+                      {ws.onboarding.managed.noCreditLine}
+                    </p>
+                    <p className={`mt-1 text-slate-600 ${BUSINESS_HP_TEXT.body}`}>
+                      {ws.onboarding.managed.pageSubtitle}
+                    </p>
                   </div>
-                  <div className="min-w-[8rem] flex-1 border-l border-[#cce5f0]/60 pl-2.5">
-                    <div className="scout-cand-caption font-semibold uppercase tracking-wide text-slate-500">{ws.workspace.unlockLabel}</div>
-                    <div className="scout-cand-title text-slate-800">{scoutCreditCost} {ws.workspace.creditUnit}</div>
-                  </div>
-                  {credit < scoutCreditCost ? (
-                    <button
-                      type="button"
-                      onClick={() => setCreditTopUpOpen(true)}
-                      className="scout-cand-caption self-center font-bold text-[#0077B6] hover:underline"
-                    >
-                      {ws.workspace.topUpCredit}
-                    </button>
-                  ) : null}
-                </div>
+                ) : (
+                  <p className={`scout-cand-caption leading-relaxed text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>
+                    {ws.workspace.creditWorkspaceNote(
+                      formatScoutLocaleNumber(credit, language),
+                      scoutCreditCost,
+                      ws.workspace.creditUnit,
+                    )}
+                    {credit < scoutCreditCost ? (
+                      <>
+                        {' · '}
+                        <button
+                          type="button"
+                          onClick={() => setCreditTopUpOpen(true)}
+                          className={`font-semibold text-[#0077B6] hover:underline ${BUSINESS_HP_TEXT.link}`}
+                        >
+                          {ws.workspace.topUpCredit}
+                        </button>
+                      </>
+                    ) : null}
+                  </p>
+                )}
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                   <h2 className="scout-cand-title text-slate-900">
                     {listLoading ? ws.workspace.loading : ws.workspace.candidatesFound(totalItems, getDateLocale(language))}

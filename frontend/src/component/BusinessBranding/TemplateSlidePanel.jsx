@@ -6,7 +6,11 @@ import { getRegisteredLandingPageTemplates, getTemplatePages, isHtmlTemplate } f
 import { buildCompanyContentFromTemplate } from '../../utils/companyLandingPageSchema';
 import apiService from '../../services/api';
 import { wjsDebug } from '../../utils/wjsBuilderDebug';
-import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont';
+import {
+  BUSINESS_HOMEPAGE_TYPOGRAPHY_STYLES,
+  BUSINESS_HP_TEXT,
+  BUSINESS_UI_FONT,
+} from '../../utils/businessHomepageTypography.js';
 import TemplateLivePreview from './TemplateLivePreview';
 import { useLanguage } from '../../context/LanguageContext';
 import { getBrandingCopy } from '../../i18n/businessAppI18n';
@@ -84,9 +88,9 @@ export default function TemplateSlidePanel({ open, onClose, onCreated }) {
 
   return createPortal(
     <>
-      <style>{BUSINESS_UI_FONT_IMPORT}</style>
+      <style>{BUSINESS_HOMEPAGE_TYPOGRAPHY_STYLES}</style>
       <div
-        className="fixed inset-0 z-[10030] flex items-center justify-center p-3 sm:p-4"
+        className="business-app-ui fixed inset-0 z-[10030] flex items-center justify-center p-5 sm:p-8 lg:p-10"
         style={{ fontFamily: BUSINESS_UI_FONT }}
         role="dialog"
         aria-modal="true"
@@ -98,13 +102,13 @@ export default function TemplateSlidePanel({ open, onClose, onCreated }) {
           className="absolute inset-0 bg-slate-900/45"
           onClick={handleClose}
         />
-        <div className="relative flex h-[min(78vh,720px)] max-h-[78vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-          <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-2.5 pr-12">
-            <div className="min-w-0 pr-2">
-              <h2 id="template-picker-title" className="truncate text-sm font-bold text-slate-900">
+        <div className="business-homepage-ui relative flex h-[min(86vh,840px)] max-h-[86vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl lg:max-w-7xl">
+          <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-6 py-5 pr-16 sm:px-8 sm:py-6 sm:pr-20">
+            <div className="min-w-0 pr-4">
+              <h2 id="template-picker-title" className={`truncate ${BUSINESS_HP_TEXT.title}`}>
                 {previewTemplate ? previewTemplate.name : templateCopy.pickTitle}
               </h2>
-              <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-500">
+              <p className={`mt-2 line-clamp-2 text-slate-500 ${BUSINESS_HP_TEXT.bodyLg}`}>
                 {previewTemplate
                   ? templateCopy.fullPreviewHint
                   : templateCopy.pickSubtitle}
@@ -113,30 +117,30 @@ export default function TemplateSlidePanel({ open, onClose, onCreated }) {
             <button
               type="button"
               onClick={handleClose}
-              className="absolute right-3 top-2.5 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+              className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full text-slate-400 hover:bg-slate-50 hover:text-slate-600 sm:right-7 sm:top-6"
               aria-label={templateCopy.closeDialog}
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </button>
           </div>
 
           {previewTemplate ? (
             <div className="flex min-h-0 flex-1 flex-col">
-              <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+              <div className="business-homepage-scroll min-h-0 flex-1 overflow-y-auto p-6 sm:p-8">
                 <TemplateLivePreview templateKey={previewTemplate.key} compact />
                 {isHtmlTemplate(previewTemplate.key) && (
-                  <p className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-emerald-700">
-                    <FileText className="h-3.5 w-3.5" />
+                  <p className={`mt-4 flex items-center gap-2 font-semibold text-emerald-700 ${BUSINESS_HP_TEXT.body}`}>
+                    <FileText className="h-4 w-4 shrink-0" />
                     {templateCopy.htmlPages(getTemplatePages(previewTemplate.key).length)}
                   </p>
                 )}
               </div>
-              <div className="flex shrink-0 gap-2 border-t border-slate-100 p-3 sm:p-4">
+              <div className="flex shrink-0 gap-4 border-t border-slate-100 p-6 sm:p-8">
                 <button
                   type="button"
                   onClick={() => setPreviewKey(null)}
                   disabled={!!creatingKey}
-                  className="flex-1 rounded-lg border border-slate-200 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+                  className={`flex-1 rounded-xl border border-slate-200 px-5 py-3 font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60 sm:py-3.5 ${BUSINESS_HP_TEXT.button}`}
                 >
                   {templateCopy.back}
                 </button>
@@ -144,7 +148,7 @@ export default function TemplateSlidePanel({ open, onClose, onCreated }) {
                   type="button"
                   onClick={() => handlePick(previewTemplate.key)}
                   disabled={!!creatingKey}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0077B6] py-2 text-xs font-semibold text-white hover:bg-[#006399] disabled:opacity-60"
+                  className={`inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#0077B6] px-5 py-3 text-white hover:bg-[#006399] disabled:opacity-60 sm:py-3.5 ${BUSINESS_HP_TEXT.buttonPrimary}`}
                 >
                   {creatingKey === previewTemplate.key ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -154,22 +158,22 @@ export default function TemplateSlidePanel({ open, onClose, onCreated }) {
               </div>
             </div>
           ) : (
-            <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+            <div className="business-homepage-scroll min-h-0 flex-1 overflow-y-auto p-6 sm:p-8">
               {availableTemplates.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-400">
+                <div className={`py-16 text-center text-slate-400 ${BUSINESS_HP_TEXT.body}`}>
                   {templateCopy.noTemplates}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-7">
                   {availableTemplates.map((t) => {
                     const busy = creatingKey === t.key;
                     return (
                       <article
                         key={t.key}
-                        className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition-all hover:border-[#0077B6]/40 hover:shadow-md"
+                        className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all hover:border-[#0077B6]/40 hover:shadow-lg"
                       >
                         <div
-                          className="relative h-32 shrink-0 overflow-hidden sm:h-28"
+                          className="relative h-40 shrink-0 overflow-hidden sm:h-44"
                           style={{ background: `${t.previewColor}18` }}
                         >
                           <img
@@ -185,32 +189,32 @@ export default function TemplateSlidePanel({ open, onClose, onCreated }) {
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-1 flex-col p-2.5">
-                          <div className="text-xs font-bold leading-tight text-slate-800">{t.name}</div>
-                          <div className="mt-1 line-clamp-2 text-[10px] leading-snug text-slate-500">{t.description}</div>
+                        <div className="flex flex-1 flex-col p-5 sm:p-6">
+                          <div className={`leading-snug text-slate-900 ${BUSINESS_HP_TEXT.section}`}>{t.name}</div>
+                          <div className={`mt-3 line-clamp-3 leading-relaxed text-slate-600 ${BUSINESS_HP_TEXT.body}`}>{t.description}</div>
                           {isHtmlTemplate(t.key) && (
-                            <div className="mt-1.5 flex items-center gap-1 text-[9px] font-semibold text-emerald-700">
-                              <FileText className="h-3 w-3" />
+                            <div className={`mt-3 flex items-center gap-2 font-semibold text-emerald-700 ${BUSINESS_HP_TEXT.caption}`}>
+                              <FileText className="h-4 w-4 shrink-0" />
                               {templateCopy.htmlPages(getTemplatePages(t.key).length)}
                             </div>
                           )}
-                          <div className="mt-2 grid grid-cols-2 gap-1.5">
+                          <div className="mt-auto grid grid-cols-2 gap-3 pt-5 sm:pt-6">
                             <button
                               type="button"
                               disabled={!!creatingKey}
                               onClick={() => setPreviewKey(t.key)}
-                              className="inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 py-1.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+                              className={`inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-3 font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60 sm:py-3.5 ${BUSINESS_HP_TEXT.button}`}
                             >
-                              <Eye className="h-3 w-3" />
+                              <Eye className="h-4 w-4 shrink-0" />
                               {templateCopy.preview}
                             </button>
                             <button
                               type="button"
                               disabled={!!creatingKey}
                               onClick={() => handlePick(t.key)}
-                              className="inline-flex items-center justify-center gap-1 rounded-md bg-[#0077B6] py-1.5 text-[10px] font-semibold text-white hover:bg-[#006399] disabled:opacity-60"
+                              className={`inline-flex items-center justify-center gap-2 rounded-xl bg-[#0077B6] px-3 py-3 font-semibold text-white hover:bg-[#006399] disabled:opacity-60 sm:py-3.5 ${BUSINESS_HP_TEXT.buttonPrimary}`}
                             >
-                              {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                              {busy ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : null}
                               {templateCopy.pickNow}
                             </button>
                           </div>

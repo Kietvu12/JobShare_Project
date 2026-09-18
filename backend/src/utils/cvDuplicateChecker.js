@@ -1,7 +1,8 @@
 import { CVStorage } from '../models/index.js';
-import { Op } from 'sequelize';
+import { Op, fn, col, where as seqWhere } from 'sequelize';
 import sequelize from '../config/database.js';
 import { CV_STATUS_NEW, CV_STATUS_DUPLICATE, CV_STATUS_OVERDUE_6_MONTHS } from '../constants/cvStatus.js';
+import { moveCtvCvToScoutReserve } from '../services/scoutReserveService.js';
 import { normalizeCvEmail, normalizeCvPhone } from './cvIdentityNormalize.js';
 
 /** Số tháng để coi h�� sơ là quá hạn nếu không có lịch sử xử lý */
@@ -216,10 +217,16 @@ export async function markOverdueCVsAndPromoteDuplicates() {
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - OVERDUE_MONTHS);
 
+  const ageColumn = fn(
+    'COALESCE',
+    col('CVStorage.scout_refreshed_at'),
+    col('CVStorage.created_at'),
+  );
+
   const cvs = await CVStorage.findAll({
     where: {
       [Op.and]: [
-        sequelize.where(sequelize.col('CVStorage.created_at'), Op.lt, sixMonthsAgo),
+        seqWhere(ageColumn, Op.lt, sixMonthsAgo),
         ...canonicalValidCvWhereParts(),
       ],
     },
@@ -227,15 +234,18 @@ export async function markOverdueCVsAndPromoteDuplicates() {
 
   let markedOverdue = 0;
   let promoted = 0;
+  let movedToReserve = 0;
 
   for (const cv of cvs) {
     cv.status = CV_STATUS_OVERDUE_6_MONTHS;
     await cv.save();
     markedOverdue++;
     promoted += await promoteDuplicatesWhenCanonicalMarkedOverdue(cv.id);
+    const reserveResult = await moveCtvCvToScoutReserve(cv);
+    if (reserveResult.moved) movedToReserve += 1;
   }
 
-  return { markedOverdue, promoted };
+  return { markedOverdue, promoted, movedToReserve };
 }
 
 /**

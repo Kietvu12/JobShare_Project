@@ -21,7 +21,10 @@ import BusinessQuickActionsPageLayout from '../../component/Bussiness/BusinessQu
 import BusinessNotificationsPanel from '../../component/Bussiness/BusinessNotificationsPanel.jsx';
 import { getBusinessServiceTag } from '../../component/Bussiness/BusinessServiceCardTag.jsx';
 
-const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif";
+import {
+  BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
+  BUSINESS_UI_FONT as PAGE_FONT,
+} from '../../utils/businessHomepageTypography.js';
 
 const SOLUTION_CARD_ICONS = {
   'direct-scout': Coins,
@@ -37,39 +40,7 @@ const CARD_SURFACE = {
 };
 
 const homepageStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
-  .business-homepage-scroll::-webkit-scrollbar { width: 4px; }
-  .business-homepage-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-  .business-homepage-shell { --hp-zoom: 1; }
-  @media (min-width: 1024px) and (max-width: 1279px) {
-    .business-homepage-shell { --hp-zoom: 0.9; }
-  }
-  @media (min-width: 1280px) and (max-width: 1535px) {
-    .business-homepage-shell { --hp-zoom: 0.86; }
-  }
-  @media (min-width: 1024px) and (max-height: 760px) {
-    .business-homepage-shell { --hp-zoom: 0.78; }
-  }
-  @media (min-width: 1024px) and (min-height: 761px) and (max-height: 860px) {
-    .business-homepage-shell { --hp-zoom: 0.84; }
-  }
-  @media (min-width: 1536px) and (min-height: 861px) {
-    .business-homepage-shell { --hp-zoom: 0.94; }
-  }
-  @media (min-width: 1920px) and (min-height: 900px) {
-    .business-homepage-shell { --hp-zoom: 1; }
-  }
-  .business-homepage-ui { zoom: var(--hp-zoom); }
-  @supports not (zoom: 1) {
-    .business-homepage-ui {
-      transform: scale(var(--hp-zoom));
-      transform-origin: top left;
-      width: calc(100% / var(--hp-zoom));
-    }
-  }
+  ${BUSINESS_HOMEPAGE_PAGE_BASE_STYLES}
 
   @keyframes biz-hp-card-slide-in {
     from {

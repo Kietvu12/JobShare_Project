@@ -34,6 +34,73 @@ const SOURCE_DISPLAY = {
   other: 'Khác',
 };
 
+function resolveInsightLang(raw) {
+  const l = String(raw || 'vi').toLowerCase();
+  if (l === 'en') return 'en';
+  if (l === 'ja' || l === 'jp') return 'ja';
+  return 'vi';
+}
+
+const SOURCE_LABELS_I18N = {
+  vi: {
+    ctv_marketplace: 'CTV (HR Partner)',
+    ctv_nomination: 'CTV (HR Partner)',
+    scout_credit: 'Scout (Mở bảng credit)',
+    scout_performance: 'Scout Performance',
+    landing: 'Website công ty',
+    other: 'Khác',
+  },
+  en: {
+    ctv_marketplace: 'CTV (HR Partner)',
+    ctv_nomination: 'CTV (HR Partner)',
+    scout_credit: 'Scout (credit unlock)',
+    scout_performance: 'Scout Performance',
+    landing: 'Company website',
+    other: 'Other',
+  },
+  ja: {
+    ctv_marketplace: 'CTV（HRパートナー）',
+    ctv_nomination: 'CTV（HRパートナー）',
+    scout_credit: 'Scout（クレジット）',
+    scout_performance: 'Scout Performance',
+    landing: '企業サイト',
+    other: 'その他',
+  },
+};
+
+function insightSourceLabel(source, lang) {
+  const L = SOURCE_LABELS_I18N[resolveInsightLang(lang)] || SOURCE_LABELS_I18N.vi;
+  return L[source] || SOURCE_DISPLAY[source] || SOURCE_LABELS[source] || source;
+}
+
+function deptOtherLabel(lang) {
+  const l = resolveInsightLang(lang);
+  if (l === 'en') return 'Other';
+  if (l === 'ja') return 'その他';
+  return 'Khác';
+}
+
+const CUSTOM_REPORT_TITLES = {
+  vi: [
+    'Báo cáo hiệu quả tuyển dụng tổng quan',
+    'Báo cáo chi phí tuyển dụng',
+    'Báo cáo nguồn ứng viên',
+    'Báo cáo JD theo phòng ban',
+  ],
+  en: [
+    'Overall recruitment performance',
+    'Recruitment cost report',
+    'Candidate source report',
+    'JD report by department',
+  ],
+  ja: [
+    '採用パフォーマンス概要',
+    '採用コストレポート',
+    '候補者ソースレポート',
+    '部署別JDレポート',
+  ],
+};
+
 function normalizePeriod(raw) {
   const key = String(raw || 'month').trim().toLowerCase();
   return PERIOD_MAP[key] || 'month';
@@ -79,8 +146,10 @@ function formatDateLabel(d, period) {
   return `${dd}/${mm}`;
 }
 
-function formatRangeLabel(start, end) {
-  const fmt = (d) => d.toLocaleDateString('vi-VN');
+function formatRangeLabel(start, end, lang = 'vi') {
+  const l = resolveInsightLang(lang);
+  const locale = l === 'ja' ? 'ja-JP' : l === 'en' ? 'en-US' : 'vi-VN';
+  const fmt = (d) => d.toLocaleDateString(locale);
   return `${fmt(start)} – ${fmt(end)}`;
 }
 
@@ -99,8 +168,21 @@ function formatVnd(amount) {
   return `${n.toLocaleString('vi-VN')}đ`;
 }
 
-function jobStatusLabel(status) {
+function jobStatusLabel(status, lang = 'vi') {
   const n = Number(status);
+  const l = resolveInsightLang(lang);
+  if (l === 'en') {
+    if (n === 1) return 'Open';
+    if (n === 0) return 'Paused';
+    if (n === 2 || n === 3) return 'Closed';
+    return 'Unknown';
+  }
+  if (l === 'ja') {
+    if (n === 1) return '募集中';
+    if (n === 0) return '一時停止';
+    if (n === 2 || n === 3) return '終了';
+    return '不明';
+  }
   if (n === 1) return 'Đang tuyển';
   if (n === 0) return 'Tạm dừng';
   if (n === 2 || n === 3) return 'Đã đóng';
@@ -163,12 +245,12 @@ function buildSparkline(trend, key) {
   return trend.map((row) => Number(row[key]) || 0);
 }
 
-function aggregateSourceHires(apps, maps) {
+function aggregateSourceHires(apps, maps, lang = 'vi') {
   const counts = {};
   apps.forEach((row) => {
     if (!HIRED_STATUSES.includes(Number(row.status))) return;
     const source = resolveSourceType(row, maps);
-    const label = SOURCE_DISPLAY[source] || SOURCE_LABELS[source] || source;
+    const label = insightSourceLabel(source, lang);
     counts[label] = (counts[label] || 0) + 1;
   });
   const total = Object.values(counts).reduce((s, v) => s + v, 0) || 0;
@@ -181,13 +263,14 @@ function aggregateSourceHires(apps, maps) {
     .sort((a, b) => b.value - a.value);
 }
 
-function buildDeptHires(jobs, apps) {
+function buildDeptHires(jobs, apps, lang = 'vi') {
   const jobById = new Map(jobs.map((j) => [Number(j.id), j]));
   const counts = {};
+  const other = deptOtherLabel(lang);
   apps.forEach((a) => {
     if (!HIRED_STATUSES.includes(Number(a.status))) return;
     const job = jobById.get(Number(a.jobId));
-    const dept = job?.category?.name || job?.businessSectorKey || 'Khác';
+    const dept = job?.category?.name || job?.businessSectorKey || other;
     counts[dept] = (counts[dept] || 0) + 1;
   });
   return Object.entries(counts)
@@ -216,7 +299,11 @@ function buildTopPositions(jobs, apps, trend) {
       const base = Math.max(rate - 8, 5);
       const trendLine = [base, base + 2, base + 4, base + 6, rate].map((v) => Math.min(100, Math.max(0, v)));
       return {
+        jobId: job.id,
         name: job.title,
+        title: job.title,
+        titleEn: job.titleEn ?? null,
+        titleJp: job.titleJp ?? null,
         rate: `${rate}%`,
         rateNum: rate,
         hires: stats.hired,
@@ -228,7 +315,7 @@ function buildTopPositions(jobs, apps, trend) {
     .slice(0, 5);
 }
 
-function buildJdTable(jobs, apps) {
+function buildJdTable(jobs, apps, lang = 'vi') {
   const byJob = {};
   apps.forEach((a) => {
     const jid = Number(a.jobId);
@@ -246,13 +333,19 @@ function buildJdTable(jobs, apps) {
       const rate = stats.tiencu ? `${Math.round((stats.tuyendung / stats.tiencu) * 100)}%` : '0%';
       const code = job.jobCode ? ` (${job.jobCode})` : '';
       return {
+        jobId: job.id,
         jd: `${job.title}${code}`,
+        title: job.title,
+        titleEn: job.titleEn ?? null,
+        titleJp: job.titleJp ?? null,
+        jobCode: job.jobCode || null,
         dept: job.category?.name || job.businessSectorKey || '—',
         tiencu: stats.tiencu,
         phongvan: stats.phongvan,
         tuyendung: stats.tuyendung,
         rate,
-        status: jobStatusLabel(job.status),
+        statusCode: job.status,
+        status: jobStatusLabel(job.status, lang),
       };
     })
     .sort((a, b) => b.tiencu - a.tiencu)
@@ -293,50 +386,136 @@ function buildHighlights({
   sourceData,
   totalNominations,
   hired,
+  lang = 'vi',
 }) {
+  const l = resolveInsightLang(lang);
   const items = [];
   if (hiredChange !== 0) {
-    items.push({
-      icon: '📊',
-      title: hiredChange > 0
-        ? `Tỷ lệ tuyển thành công tăng ${Math.abs(hiredChange)}%`
-        : `Tỷ lệ tuyển thành công giảm ${Math.abs(hiredChange)}%`,
-      desc: 'So với kỳ trước, hiệu quả tuyển dụng của bạn đang thay đổi theo xu hướng này.',
-    });
+    const abs = Math.abs(hiredChange);
+    if (l === 'en') {
+      items.push({
+        icon: '📊',
+        title: hiredChange > 0
+          ? `Hire rate up ${abs}%`
+          : `Hire rate down ${abs}%`,
+        desc: 'Compared with the previous period, your recruitment performance is moving in this direction.',
+      });
+    } else if (l === 'ja') {
+      items.push({
+        icon: '📊',
+        title: hiredChange > 0
+          ? `採用成功率が${abs}%上昇`
+          : `採用成功率が${abs}%低下`,
+        desc: '前期と比べて、採用パフォーマンスがこの傾向に変化しています。',
+      });
+    } else {
+      items.push({
+        icon: '📊',
+        title: hiredChange > 0
+          ? `Tỷ lệ tuyển thành công tăng ${abs}%`
+          : `Tỷ lệ tuyển thành công giảm ${abs}%`,
+        desc: 'So với kỳ trước, hiệu quả tuyển dụng của bạn đang thay đổi theo xu hướng này.',
+      });
+    }
   }
   if (topPosition?.name) {
-    items.push({
-      icon: '🎯',
-      title: `${topPosition.name} là vị trí hiệu quả nhất`,
-      desc: `Tỷ lệ chuyển đổi đạt ${topPosition.rate} trong kỳ đang xem.`,
-    });
+    const posName = topPosition.name;
+    if (l === 'en') {
+      items.push({
+        icon: '🎯',
+        title: `${posName} is the top-performing role`,
+        desc: `Conversion rate reached ${topPosition.rate} in this period.`,
+      });
+    } else if (l === 'ja') {
+      items.push({
+        icon: '🎯',
+        title: `${posName}が最も効果的なポジション`,
+        desc: `この期間のコンバージョン率は${topPosition.rate}です。`,
+      });
+    } else {
+      items.push({
+        icon: '🎯',
+        title: `${posName} là vị trí hiệu quả nhất`,
+        desc: `Tỷ lệ chuyển đổi đạt ${topPosition.rate} trong kỳ đang xem.`,
+      });
+    }
   }
   if (avgTimeToHire > 0) {
     const diff = prevAvgTimeToHire ? prevAvgTimeToHire - avgTimeToHire : 0;
-    items.push({
-      icon: '⏱️',
-      title: diff > 0
-        ? `Thời gian tuyển dụng trung bình giảm ${diff} ngày`
-        : `Thời gian tuyển dụng trung bình: ${avgTimeToHire} ngày`,
-      desc: diff > 0
-        ? `Từ ${prevAvgTimeToHire} ngày xuống còn ${avgTimeToHire} ngày.`
-        : 'Tính từ lúc nhận tiến cử đến khi tuyển thành công.',
-    });
+    if (l === 'en') {
+      items.push({
+        icon: '⏱️',
+        title: diff > 0
+          ? `Average time to hire down ${diff} days`
+          : `Average time to hire: ${avgTimeToHire} days`,
+        desc: diff > 0
+          ? `From ${prevAvgTimeToHire} days to ${avgTimeToHire} days.`
+          : 'From nomination received to successful hire.',
+      });
+    } else if (l === 'ja') {
+      items.push({
+        icon: '⏱️',
+        title: diff > 0
+          ? `平均採用日数が${diff}日短縮`
+          : `平均採用日数: ${avgTimeToHire}日`,
+        desc: diff > 0
+          ? `${prevAvgTimeToHire}日から${avgTimeToHire}日に短縮。`
+          : '推薦受付から採用成功まで。',
+      });
+    } else {
+      items.push({
+        icon: '⏱️',
+        title: diff > 0
+          ? `Thời gian tuyển dụng trung bình giảm ${diff} ngày`
+          : `Thời gian tuyển dụng trung bình: ${avgTimeToHire} ngày`,
+        desc: diff > 0
+          ? `Từ ${prevAvgTimeToHire} ngày xuống còn ${avgTimeToHire} ngày.`
+          : 'Tính từ lúc nhận tiến cử đến khi tuyển thành công.',
+      });
+    }
   }
   if (sourceData.length > 0 && totalNominations > 0) {
     const top = sourceData[0];
-    items.push({
-      icon: '👥',
-      title: `Nguồn ${top.name} dẫn đầu tuyển thành công`,
-      desc: `${top.value}/${hired || top.value} lượt tuyển thành công đến từ kênh này (${top.percent}).`,
-    });
+    if (l === 'en') {
+      items.push({
+        icon: '👥',
+        title: `${top.name} leads successful hires`,
+        desc: `${top.value}/${hired || top.value} hires came from this channel (${top.percent}).`,
+      });
+    } else if (l === 'ja') {
+      items.push({
+        icon: '👥',
+        title: `${top.name}が採用成功の最多ソース`,
+        desc: `${top.value}/${hired || top.value}件の採用がこのチャネルから（${top.percent}）。`,
+      });
+    } else {
+      items.push({
+        icon: '👥',
+        title: `Nguồn ${top.name} dẫn đầu tuyển thành công`,
+        desc: `${top.value}/${hired || top.value} lượt tuyển thành công đến từ kênh này (${top.percent}).`,
+      });
+    }
   }
   if (!items.length) {
-    items.push({
-      icon: '📋',
-      title: 'Chưa đủ dữ liệu insight',
-      desc: 'Đăng JD và nhận tiến cử để JobShare bắt đầu phân tích hiệu quả tuyển dụng.',
-    });
+    if (l === 'en') {
+      items.push({
+        icon: '📋',
+        title: 'Not enough data for insights',
+        desc: 'Post jobs and receive nominations so JobShare can analyze your recruitment performance.',
+      });
+    } else if (l === 'ja') {
+      items.push({
+        icon: '📋',
+        title: 'インサイト用のデータが不足しています',
+        desc: 'JDを掲載し推薦を受けると、JobShareが採用分析を開始します。',
+      });
+    } else {
+      items.push({
+        icon: '📋',
+        title: 'Chưa đủ dữ liệu insight',
+        desc: 'Đăng JD và nhận tiến cử để JobShare bắt đầu phân tích hiệu quả tuyển dụng.',
+      });
+    }
   }
   return items.slice(0, 4);
 }
@@ -375,7 +554,9 @@ export async function getBusinessInsightsReport({
   to,
   period = 'month',
   departmentId,
+  lang = 'vi',
 }) {
+  const insightLang = resolveInsightLang(lang);
   const range = parseDateRange({ from, to, period });
   const { start, end, prevStart, prevEnd, period: p } = range;
 
@@ -383,7 +564,7 @@ export async function getBusinessInsightsReport({
   if (!ownedJobIds.length) {
     const emptyTrend = buildTrendSeries([], [], start, end, p);
     return {
-      dateRange: { from: start.toISOString(), to: end.toISOString(), label: formatRangeLabel(start, end) },
+      dateRange: { from: start.toISOString(), to: end.toISOString(), label: formatRangeLabel(start, end, insightLang) },
       period: p,
       kpis: {
         totalJobs: 0,
@@ -403,7 +584,16 @@ export async function getBusinessInsightsReport({
       funnel: [],
       funnelConversionRate: '0%',
       funnelConversionChange: 0,
-      highlights: buildHighlights({ hiredChange: 0, avgTimeToHire: 0, prevAvgTimeToHire: 0, topPosition: null, sourceData: [], totalNominations: 0, hired: 0 }),
+      highlights: buildHighlights({
+        hiredChange: 0,
+        avgTimeToHire: 0,
+        prevAvgTimeToHire: 0,
+        topPosition: null,
+        sourceData: [],
+        totalNominations: 0,
+        hired: 0,
+        lang: insightLang,
+      }),
       deptData: [],
       sourceData: [],
       topPositions: [],
@@ -422,7 +612,7 @@ export async function getBusinessInsightsReport({
   const [jobs, applications, maps, recruitmentCost, prevRecruitmentCost] = await Promise.all([
     Job.findAll({
       where: jobWhere,
-      attributes: ['id', 'title', 'jobCode', 'status', 'jobCategoryId', 'businessSectorKey', 'createdAt'],
+      attributes: ['id', 'title', 'titleEn', 'titleJp', 'jobCode', 'status', 'jobCategoryId', 'businessSectorKey', 'createdAt'],
       include: [
         { model: JobCategory, as: 'category', required: false, attributes: ['id', 'name'] },
       ],
@@ -486,28 +676,31 @@ export async function getBusinessInsightsReport({
     : 0;
 
   const funnel = [
-    { name: 'JD đã đăng', value: totalJobsAll, percent: '100%' },
+    { key: 'jd', name: 'JD đã đăng', value: totalJobsAll, percent: '100%' },
     {
+      key: 'tiencu',
       name: 'Tiến cử nhận được',
       value: totalNominationsAll,
       percent: totalJobsAll ? `${Math.round((totalNominationsAll / totalJobsAll) * 1000) / 10}%` : '0%',
     },
     {
+      key: 'phongvan',
       name: 'Vào phỏng vấn',
       value: interviewAll,
       percent: totalNominationsAll ? `${Math.round((interviewAll / totalNominationsAll) * 1000) / 10}%` : '0%',
     },
     {
+      key: 'tuyendung',
       name: 'Tuyển thành công',
       value: hiredAll,
       percent: interviewAll ? `${Math.round((hiredAll / interviewAll) * 1000) / 10}%` : '0%',
     },
   ];
 
-  const sourceData = aggregateSourceHires(apps, maps);
-  const deptData = buildDeptHires(jobs, apps);
+  const sourceData = aggregateSourceHires(apps, maps, insightLang);
+  const deptData = buildDeptHires(jobs, apps, insightLang);
   const topPositions = buildTopPositions(jobs, apps, trend);
-  const jdTable = buildJdTable(jobs, apps);
+  const jdTable = buildJdTable(jobs, apps, insightLang);
   const timeToHireCurrent = buildTimeToHireSeries(
     apps.filter((a) => inRange(appDate(a), start, end)),
     start,
@@ -521,19 +714,16 @@ export async function getBusinessInsightsReport({
     p,
   );
 
-  const updatedLabel = end.toLocaleDateString('vi-VN');
-  const customReports = [
-    { title: 'Báo cáo hiệu quả tuyển dụng tổng quan', updated: updatedLabel },
-    { title: 'Báo cáo chi phí tuyển dụng', updated: updatedLabel },
-    { title: 'Báo cáo nguồn ứng viên', updated: updatedLabel },
-    { title: 'Báo cáo JD theo phòng ban', updated: updatedLabel },
-  ];
+  const dateLocale = insightLang === 'ja' ? 'ja-JP' : insightLang === 'en' ? 'en-US' : 'vi-VN';
+  const updatedLabel = end.toLocaleDateString(dateLocale);
+  const reportTitles = CUSTOM_REPORT_TITLES[insightLang] || CUSTOM_REPORT_TITLES.vi;
+  const customReports = reportTitles.map((title) => ({ title, updated: updatedLabel }));
 
   return {
     dateRange: {
       from: start.toISOString(),
       to: end.toISOString(),
-      label: formatRangeLabel(start, end),
+      label: formatRangeLabel(start, end, insightLang),
     },
     period: p,
     kpis: {
@@ -563,6 +753,7 @@ export async function getBusinessInsightsReport({
       sourceData,
       totalNominations,
       hired: hiredCount,
+      lang: insightLang,
     }),
     deptData,
     sourceData,

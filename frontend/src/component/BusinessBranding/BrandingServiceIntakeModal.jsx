@@ -2,7 +2,18 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Loader2, Search, X } from 'lucide-react'
 import apiService from '../../services/api'
-import { BUSINESS_UI_FONT } from '../../utils/businessUiFont'
+import {
+  BUSINESS_HOMEPAGE_TYPOGRAPHY_STYLES,
+  BUSINESS_HP_TEXT,
+  BUSINESS_UI_FONT,
+} from '../../utils/businessHomepageTypography.js'
+
+const INTAKE_LABEL_CLASS = `mb-1.5 block font-semibold text-slate-700 ${BUSINESS_HP_TEXT.caption}`
+const INTAKE_SECTION_LABEL_CLASS = `mb-2 font-semibold text-slate-700 ${BUSINESS_HP_TEXT.caption}`
+const INTAKE_FIELD_CLASS =
+  `w-full rounded-lg border border-slate-200 px-3 py-2.5 text-slate-800 placeholder:text-slate-400 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20 ${BUSINESS_HP_TEXT.body}`
+const INTAKE_OPTION_CLASS =
+  `flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 font-medium transition-colors ${BUSINESS_HP_TEXT.body}`
 import { useLanguage } from '../../context/LanguageContext'
 import { getBrandingCopy, formatBrandingJobLabel } from '../../i18n/businessAppI18n'
 
@@ -154,8 +165,10 @@ export default function BrandingServiceIntakeModal({
   const subtitle = isAds ? intake.adsSubtitle : isEvent ? intake.eventSubtitle : intake.profileSubtitle
 
   return createPortal(
+    <>
+      <style>{BUSINESS_HOMEPAGE_TYPOGRAPHY_STYLES}</style>
     <div
-      className="fixed inset-0 z-[10040] flex items-center justify-center p-4"
+      className="business-app-ui fixed inset-0 z-[10040] flex items-center justify-center p-4"
       style={{ fontFamily: BUSINESS_UI_FONT }}
       role="dialog"
       aria-modal="true"
@@ -177,8 +190,8 @@ export default function BrandingServiceIntakeModal({
           >
             <X className="h-4 w-4" />
           </button>
-          <h2 id="branding-intake-title" className="text-base font-bold text-slate-900">{title}</h2>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500">{subtitle}</p>
+          <h2 id="branding-intake-title" className={BUSINESS_HP_TEXT.title}>{title}</h2>
+          <p className={`mt-1 leading-relaxed text-slate-500 ${BUSINESS_HP_TEXT.body}`}>{subtitle}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
@@ -186,12 +199,12 @@ export default function BrandingServiceIntakeModal({
             {isAds ? (
               <>
                 <section>
-                  <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
+                  <label className={INTAKE_LABEL_CLASS}>
                     {intake.jdRequired} <span className="text-red-500">*</span>
                   </label>
                   {selectedJob ? (
                     <div className="flex items-center gap-2 rounded-lg border border-[#0077B6]/30 bg-[#e8f4fa]/50 px-3 py-2.5">
-                      <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-800">
+                      <span className={`min-w-0 flex-1 truncate font-medium text-slate-800 ${BUSINESS_HP_TEXT.body}`}>
                         {formatBrandingJobLabel(selectedJob, language)}
                       </span>
                       <button
@@ -213,7 +226,7 @@ export default function BrandingServiceIntakeModal({
                         onChange={(e) => setJobQuery(e.target.value)}
                         placeholder={intake.searchJd}
                         disabled={submitting}
-                        className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
+                        className={`${INTAKE_FIELD_CLASS} py-2.5 pl-9 pr-3`}
                       />
                       {jobLoading ? (
                         <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[#0077B6]" />
@@ -229,7 +242,7 @@ export default function BrandingServiceIntakeModal({
                                   setJobQuery('')
                                   setJobResults([])
                                 }}
-                                className="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                                className={`w-full px-3 py-2 text-left text-slate-700 hover:bg-slate-50 ${BUSINESS_HP_TEXT.body}`}
                               >
                                 {formatBrandingJobLabel(job, language)}
                               </button>
@@ -242,7 +255,7 @@ export default function BrandingServiceIntakeModal({
                 </section>
 
                 <section>
-                  <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
+                  <label className={INTAKE_LABEL_CLASS}>
                     {intake.budget} <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -251,12 +264,12 @@ export default function BrandingServiceIntakeModal({
                     onChange={(e) => setBudget(e.target.value)}
                     placeholder={intake.budgetPlaceholder}
                     disabled={submitting}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
+                    className={INTAKE_FIELD_CLASS}
                   />
                 </section>
 
                 <section>
-                  <p className="mb-2 text-[11px] font-semibold text-slate-700 sm:text-xs">
+                  <p className={INTAKE_SECTION_LABEL_CLASS}>
                     {intake.channels} <span className="text-red-500">*</span>
                   </p>
                   <div className="grid grid-cols-2 gap-2">
@@ -265,7 +278,7 @@ export default function BrandingServiceIntakeModal({
                       return (
                         <label
                           key={ch.id}
-                          className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                          className={`${INTAKE_OPTION_CLASS} transition-colors ${
                             checked
                               ? 'border-[#0077B6] bg-[#e8f4fa] text-[#0077B6]'
                               : 'border-slate-200 text-slate-600 hover:border-slate-300'
@@ -279,7 +292,7 @@ export default function BrandingServiceIntakeModal({
                             disabled={submitting}
                           />
                           <span className={`h-3.5 w-3.5 shrink-0 rounded border ${checked ? 'border-[#0077B6] bg-[#0077B6]' : 'border-slate-300 bg-white'}`}>
-                            {checked ? <span className="block text-[8px] leading-[14px] text-center text-white">✓</span> : null}
+                            {checked ? <span className={`block leading-[14px] text-center text-white ${BUSINESS_HP_TEXT.micro}`}>✓</span> : null}
                           </span>
                           {ch.label}
                         </label>
@@ -293,14 +306,14 @@ export default function BrandingServiceIntakeModal({
             {isEvent ? (
               <>
                 <section>
-                  <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
+                  <label className={INTAKE_LABEL_CLASS}>
                     {intake.eventType} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={eventType}
                     onChange={(e) => setEventType(e.target.value)}
                     disabled={submitting}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs text-slate-800 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
+                    className={INTAKE_FIELD_CLASS}
                   >
                     {intake.eventTypes.map((t) => (
                       <option key={t.id} value={t.id}>{t.label}</option>
@@ -309,7 +322,7 @@ export default function BrandingServiceIntakeModal({
                 </section>
 
                 <section>
-                  <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
+                  <label className={INTAKE_LABEL_CLASS}>
                     {intake.eventDate} <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -318,19 +331,19 @@ export default function BrandingServiceIntakeModal({
                     onChange={(e) => setEventDate(e.target.value)}
                     disabled={submitting}
                     min={new Date().toISOString().slice(0, 10)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs text-slate-800 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
+                    className={INTAKE_FIELD_CLASS}
                   />
                 </section>
 
                 <section>
-                  <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
+                  <label className={INTAKE_LABEL_CLASS}>
                     {intake.eventScale} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={eventScale}
                     onChange={(e) => setEventScale(e.target.value)}
                     disabled={submitting}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs text-slate-800 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
+                    className={INTAKE_FIELD_CLASS}
                   >
                     {intake.eventScales.map((s) => (
                       <option key={s.id} value={s.id}>{s.label}</option>
@@ -339,7 +352,7 @@ export default function BrandingServiceIntakeModal({
                 </section>
 
                 <section>
-                  <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
+                  <label className={INTAKE_LABEL_CLASS}>
                     {intake.eventNote}
                   </label>
                   <textarea
@@ -348,7 +361,7 @@ export default function BrandingServiceIntakeModal({
                     rows={3}
                     placeholder={intake.eventNotePlaceholder}
                     disabled={submitting}
-                    className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
+                    className={`${INTAKE_FIELD_CLASS} resize-none`}
                   />
                 </section>
               </>
@@ -357,14 +370,14 @@ export default function BrandingServiceIntakeModal({
             {isProfile ? (
               <>
                 <section>
-                  <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
+                  <label className={INTAKE_LABEL_CLASS}>
                     {intake.profileFormat} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={profileFormat}
                     onChange={(e) => setProfileFormat(e.target.value)}
                     disabled={submitting}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs text-slate-800 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
+                    className={INTAKE_FIELD_CLASS}
                   >
                     {intake.profileFormats.map((f) => (
                       <option key={f.id} value={f.id}>{f.label}</option>
@@ -373,7 +386,7 @@ export default function BrandingServiceIntakeModal({
                 </section>
 
                 <section>
-                  <p className="mb-2 text-[11px] font-semibold text-slate-700 sm:text-xs">
+                  <p className={INTAKE_SECTION_LABEL_CLASS}>
                     {intake.profileLanguages} <span className="text-red-500">*</span>
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -382,7 +395,7 @@ export default function BrandingServiceIntakeModal({
                       return (
                         <label
                           key={lang.id}
-                          className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${
+                          className={`${INTAKE_OPTION_CLASS} ${
                             checked ? 'border-[#0077B6] bg-[#e8f4fa] text-[#0077B6]' : 'border-slate-200 text-slate-600'
                           }`}
                         >
@@ -401,7 +414,7 @@ export default function BrandingServiceIntakeModal({
                 </section>
 
                 <section>
-                  <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
+                  <label className={INTAKE_LABEL_CLASS}>
                     {intake.profileMaterials}
                   </label>
                   <textarea
@@ -410,12 +423,12 @@ export default function BrandingServiceIntakeModal({
                     rows={4}
                     placeholder={intake.profileMaterialsPlaceholder}
                     disabled={submitting}
-                    className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
+                    className={`${INTAKE_FIELD_CLASS} resize-none`}
                   />
                 </section>
 
                 <section>
-                  <label className="mb-1.5 block text-[11px] font-semibold text-slate-700 sm:text-xs">
+                  <label className={INTAKE_LABEL_CLASS}>
                     {intake.profileNote}
                   </label>
                   <textarea
@@ -424,7 +437,7 @@ export default function BrandingServiceIntakeModal({
                     rows={2}
                     placeholder={intake.profileNotePlaceholder}
                     disabled={submitting}
-                    className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#0077B6] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20"
+                    className={`${INTAKE_FIELD_CLASS} resize-none`}
                   />
                 </section>
               </>
@@ -436,14 +449,14 @@ export default function BrandingServiceIntakeModal({
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+              className={`rounded-lg border border-slate-200 bg-white px-4 py-2 font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60 ${BUSINESS_HP_TEXT.button}`}
             >
               {intake.cancel}
             </button>
             <button
               type="submit"
               disabled={!canSubmit || submitting}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#0077B6] px-4 py-2 text-sm font-semibold text-white hover:bg-[#006399] disabled:opacity-60"
+              className={`inline-flex items-center gap-2 rounded-lg bg-[#0077B6] px-4 py-2 font-semibold text-white hover:bg-[#006399] disabled:opacity-60 ${BUSINESS_HP_TEXT.buttonPrimary}`}
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {intake.submit}
@@ -451,7 +464,8 @@ export default function BrandingServiceIntakeModal({
           </div>
         </form>
       </div>
-    </div>,
+    </div>
+    </>,
     document.body,
   )
 }

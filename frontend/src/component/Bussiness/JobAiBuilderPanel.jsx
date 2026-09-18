@@ -137,6 +137,15 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   const [quickReplies, setQuickReplies] = useState([]);
   const [canFinalize, setCanFinalize] = useState(false);
   const [input, setInput] = useState('');
+  const syncComposerHeight = useCallback(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+  }, []);
+  useEffect(() => {
+    syncComposerHeight();
+  }, [input, syncComposerHeight]);
   const [loading, setLoading] = useState(false);
   const [parseLoading, setParseLoading] = useState(false);
   const [translatingInputs, setTranslatingInputs] = useState(false);
@@ -1210,15 +1219,15 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
             />
             <div className={`w-full min-w-0 ${embedded ? '' : 'max-w-2xl mx-auto'}`}>
               <div
-                className={`w-full flex items-end gap-1.5 border border-slate-200 bg-white shadow-sm focus-within:border-slate-300 focus-within:shadow-md transition-shadow ${
-                  compactUi ? 'rounded-2xl px-2.5 py-2' : 'rounded-2xl lg:rounded-3xl px-2.5 py-2 lg:px-3 lg:py-2.5 gap-1.5 lg:gap-2'
+                className={`flex w-full items-center gap-1.5 border border-slate-200 bg-white shadow-sm transition-shadow focus-within:border-slate-300 focus-within:shadow-md ${
+                  compactUi ? 'rounded-2xl px-2.5 py-1.5' : 'rounded-2xl px-2.5 py-1.5 lg:gap-2 lg:rounded-3xl lg:px-3 lg:py-2'
                 }`}
               >
               <button
                 type="button"
                 onClick={handleFileUploadClick}
                 disabled={parseLoading}
-                className={`${hitCls} inline-flex items-center justify-center rounded-full shrink-0 mb-0.5 border border-slate-200 bg-transparent text-[#0077B6] hover:border-[#0077B6]/40 hover:text-[#0077B6] disabled:opacity-40 [&_svg]:block`}
+                className={`${hitCls} inline-flex shrink-0 items-center justify-center rounded-full border border-slate-200 bg-transparent text-[#0077B6] hover:border-[#0077B6]/40 hover:text-[#0077B6] disabled:opacity-40 [&_svg]:block`}
                 title={jdCopy.panel.uploadTitle}
               >
                 {parseLoading ? <Loader2 className={`${iconCls} animate-spin`} /> : <Plus className={iconCls} />}
@@ -1227,12 +1236,10 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                rows={2}
+                rows={1}
                 placeholder={jdCopy.panel.inputPlaceholder}
                 disabled={parseLoading}
-                className={`flex-1 min-w-0 resize-none bg-transparent outline-none placeholder:text-slate-400 max-h-32 disabled:opacity-50 leading-normal ${
-                  `${bodyCls} py-2 text-slate-800`
-                }`}
+                className={`${bodyCls} max-h-32 min-h-[2rem] flex-1 min-w-0 resize-none self-center overflow-y-auto bg-transparent py-1.5 leading-snug text-slate-800 outline-none placeholder:text-slate-400 disabled:opacity-50 lg:min-h-[2.25rem] lg:py-2`}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -1246,7 +1253,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 onClick={() => handleSaveJob()}
                 aria-label={isEditingSavedJob ? jdCopy.panel.saveUpdate : jdCopy.panel.saveCreate}
                 title={isEditingSavedJob ? jdCopy.panel.saveUpdate : jdCopy.panel.saveCreate}
-                className={`${hitCls} inline-flex items-center justify-center rounded-full shrink-0 mb-0.5 border border-[#0077B6] bg-[#0077B6] text-white hover:bg-[#006699] disabled:opacity-40 disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400 [&_svg]:block`}
+                className={`${hitCls} inline-flex shrink-0 items-center justify-center rounded-full border border-[#0077B6] bg-[#0077B6] text-white hover:bg-[#006699] disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400 disabled:opacity-40 [&_svg]:block`}
               >
                 {saving ? <Loader2 className={`${iconCls} animate-spin`} /> : <Save className={iconCls} />}
               </button>
@@ -1256,7 +1263,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 onClick={() => sendMessage(input)}
                 title={jdCopy.panel.sendTitle}
                 aria-label={jdCopy.panel.sendTitle}
-                className={`${hitCls} inline-flex items-center justify-center rounded-full shrink-0 mb-0.5 border border-[#0077B6]/35 bg-transparent text-[#0077B6] hover:border-[#0077B6]/55 disabled:opacity-40 disabled:border-slate-200 disabled:text-slate-300 [&_svg]:block`}
+                className={`${hitCls} inline-flex shrink-0 items-center justify-center rounded-full border border-[#0077B6]/35 bg-transparent text-[#0077B6] hover:border-[#0077B6]/55 disabled:border-slate-200 disabled:text-slate-300 disabled:opacity-40 [&_svg]:block`}
               >
                 <Send className={iconCls} />
               </button>

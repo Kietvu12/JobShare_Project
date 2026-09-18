@@ -17,6 +17,7 @@ import {
   STATUSES_ACTIVE_BLOCK_DUPLICATE
 } from '../../constants/jobApplicationStatus.js';
 import { canCVBeNominated } from '../../constants/cvStatus.js';
+import { formatJobApplicationSummary } from '../../utils/jobApplicationPresentation.js';
 import { collaboratorNotificationService } from '../../services/collaboratorNotificationService.js';
 import { nominationEmailService } from '../../services/nominationEmailService.js';
 import { createNominationIntroMessages } from '../../services/nominationIntroMessageService.js';
@@ -542,13 +543,33 @@ export const jobApplicationController = {
           where: {
             jobId,
             cvId: resolvedCvId,
-            status: { [Op.in]: STATUSES_ACTIVE_BLOCK_DUPLICATE }
-          }
+            status: { [Op.in]: STATUSES_ACTIVE_BLOCK_DUPLICATE },
+          },
+          include: [
+            {
+              model: Job,
+              as: 'job',
+              required: false,
+              attributes: ['id', 'jobCode', 'title', 'titleEn', 'titleJp', 'status'],
+            },
+          ],
         });
         if (activeExisting) {
-          return res.status(400).json({
+          const createdByBusiness = activeExisting.collaboratorId == null;
+          const sameCollaborator = Number(activeExisting.collaboratorId) === Number(req.collaborator.id);
+          const message = createdByBusiness
+            ? 'Hồ sơ này của bạn đã có đơn tiến cử tương tự cho công việc này (do doanh nghiệp tạo từ Scout).'
+            : sameCollaborator
+              ? 'Bạn đã tạo đơn tiến cử cho hồ sơ này với công việc này và đơn đang được xử lý.'
+              : 'Đơn tiến cử cho ứng viên này với công việc này đã tồn tại và đang được xử lý. Không thể tạo lại.';
+          return res.status(409).json({
             success: false,
-            message: 'Đơn tiến cử cho ứng viên này với công việc này đã tồn tại và đang được xử lý. Không thể tạo lại.'
+            code: 'DUPLICATE_ACTIVE_NOMINATION',
+            message,
+            data: {
+              existingApplication: formatJobApplicationSummary(activeExisting),
+              createdByBusiness,
+            },
           });
         }
       }

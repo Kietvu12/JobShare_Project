@@ -380,7 +380,7 @@ export async function resolvePerformancePipelineMeta({ businessId, cvId }) {
         as: 'job',
         required: true,
         where: { businessId },
-        attributes: ['id', 'title', 'jobCode'],
+        attributes: ['id', 'title', 'titleEn', 'titleJp', 'jobCode'],
       },
     ],
     order: [['applied_at', 'DESC'], ['id', 'DESC']],
@@ -405,6 +405,8 @@ export async function resolvePerformancePipelineMeta({ businessId, cvId }) {
     applicationStatus: status,
     jobId: application?.jobId ?? null,
     jobTitle: application?.job?.title ?? null,
+    jobTitleEn: application?.job?.titleEn ?? null,
+    jobTitleJp: application?.job?.titleJp ?? null,
     stage,
   };
 }
@@ -1361,10 +1363,13 @@ export async function attachScoutCandidateToJob({
     where: { jobId: safeJobId, cvId: safeCvId },
   });
   if (existing) {
+    const { formatJobApplicationSummary } = await import('../utils/jobApplicationPresentation.js');
+    const jobSummary = { id: job.id, title: job.title, jobCode: job.jobCode || null };
     return {
       application: existing.toJSON(),
+      existingApplication: formatJobApplicationSummary(existing, job),
       alreadyExists: true,
-      job: { id: job.id, title: job.title, jobCode: job.jobCode || null },
+      job: jobSummary,
     };
   }
 

@@ -1737,28 +1737,6 @@ const AgentJobsPageSession1 = ({
 
   return (
     <>
-      {/* Custom Scrollbar Styles */}
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f1f5f9;
-          border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
-          border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #94a3b8;
-        }
-        /* Firefox */
-        .custom-scrollbar {
-          scrollbar-width: thin;
-          scrollbar-color: #cbd5e1 #f1f5f9;
-        }
-      `}</style>
       <div className={`${compact ? "w-full h-full flex flex-col" : "w-full sm:w-[400px] md:w-[500px] h-full flex flex-col"}`}>
         {/* Header Navigation (CTV: lịch sử / tiêu chí / danh sách — ẩn trên landing) */}
         {!hideCtvPersonalNav ? (

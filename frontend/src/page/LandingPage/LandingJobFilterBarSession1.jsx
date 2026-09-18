@@ -524,13 +524,6 @@ const LandingJobFilterBarSession1 = forwardRef(function LandingJobFilterBarSessi
 
   return (
     <>
-      <style>{`
-        .landing-filter-scrollbar::-webkit-scrollbar { width: 8px; }
-        .landing-filter-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
-        .landing-filter-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .landing-filter-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 #f1f5f9; }
-      `}</style>
-
       <div
         className={
           isHero

@@ -28,7 +28,8 @@ export const CV_STATUS = {
   4: {
     label: 'Hồ sơ quá hạn quá 6 tháng',
     value: 'overdue_6_months',
-    canNominate: false
+    canNominate: false,
+    /** CTV: chuyển scout_status=RESERVE (Scout dự bị) — admin bổ sung thông tin trước khi đăng lại Scout */
   }
 };
 

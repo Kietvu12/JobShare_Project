@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   normalizeScoutEducations,
   normalizeScoutWorkExperiences,
@@ -16,15 +16,15 @@ import {
 import { getLocalizedCandidateRole } from '../../utils/jobCategoryDisplay'
 import ScoutMatchBadge from './ScoutMatchBadge'
 
-export default function ScoutCandidateHoverTip({
+const HOVER_HIDE_DELAY_MS = 180
+
+function ScoutCandidateHoverTipContent({
   candidate,
   hl = (text) => text,
   matchScore = null,
   language = 'vi',
 }) {
   const tip = useMemo(() => getScoutHoverTipCopy(language), [language])
-
-  if (!candidate) return null
 
   const educations = normalizeScoutEducations(candidate.educations)
   const workExperiences = candidate.isUnlocked
@@ -42,10 +42,7 @@ export default function ScoutCandidateHoverTip({
   ].filter((v) => !isScoutEmptyDisplayValue(v))
 
   return (
-    <div
-      className="scout-candidate-hover-tip pointer-events-none absolute left-0 right-0 top-full z-30 mt-1 hidden rounded-xl border border-slate-200 bg-white p-3 shadow-lg ring-1 ring-black/5 group-hover:block"
-      role="tooltip"
-    >
+    <>
       <div className="scout-cand-title text-slate-900">{hl(getLocalizedScoutDisplayName(candidate, language))}</div>
       {position ? (
         <p className="scout-cand-subtitle mt-0.5 text-slate-600">{hl(position)}</p>
@@ -123,6 +120,84 @@ export default function ScoutCandidateHoverTip({
           </ul>
         </div>
       ) : null}
+    </>
+  )
+}
+
+/** Bao list row + preview: giữ mở khi rê chuột sang popup, có vùng đệm và cuộn trong popup. */
+export function ScoutCandidateHoverHost({
+  children,
+  className = '',
+  candidate,
+  hl = (text) => text,
+  matchScore = null,
+  language = 'vi',
+}) {
+  const [open, setOpen] = useState(false)
+  const hideTimerRef = useRef(null)
+
+  const cancelHide = useCallback(() => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current)
+      hideTimerRef.current = null
+    }
+  }, [])
+
+  const show = useCallback(() => {
+    cancelHide()
+    setOpen(true)
+  }, [cancelHide])
+
+  const scheduleHide = useCallback(() => {
+    cancelHide()
+    hideTimerRef.current = setTimeout(() => setOpen(false), HOVER_HIDE_DELAY_MS)
+  }, [cancelHide])
+
+  useEffect(() => () => cancelHide(), [cancelHide])
+
+  if (!candidate) {
+    return <div className={className}>{children}</div>
+  }
+
+  return (
+    <div
+      className={className}
+      onMouseEnter={show}
+      onMouseLeave={scheduleHide}
+    >
+      {children}
+      <div
+        className={`scout-candidate-hover-tip-anchor absolute left-0 right-0 top-full z-40 pt-1 ${
+          open ? '' : 'pointer-events-none invisible'
+        }`}
+        aria-hidden={!open}
+      >
+        <div
+          className="scout-candidate-hover-tip scout-scrollbar max-h-[min(420px,55vh)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-3 shadow-lg ring-1 ring-black/5"
+          role="tooltip"
+          onWheel={(e) => e.stopPropagation()}
+        >
+          <ScoutCandidateHoverTipContent
+            candidate={candidate}
+            hl={hl}
+            matchScore={matchScore}
+            language={language}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** @deprecated Dùng ScoutCandidateHoverHost — giữ export cho tương thích import cũ. */
+export default function ScoutCandidateHoverTip(props) {
+  if (!props.candidate) return null
+  return (
+    <div
+      className="scout-candidate-hover-tip scout-scrollbar pointer-events-none absolute left-0 right-0 top-full z-30 mt-1 hidden max-h-[min(420px,55vh)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-3 shadow-lg ring-1 ring-black/5 group-hover:block"
+      role="tooltip"
+    >
+      <ScoutCandidateHoverTipContent {...props} />
     </div>
   )
 }

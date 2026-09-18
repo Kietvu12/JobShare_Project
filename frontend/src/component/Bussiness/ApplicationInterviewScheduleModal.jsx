@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { Loader2, X } from 'lucide-react'
-import { BUSINESS_UI_FONT } from '../../utils/businessUiFont'
+import {
+  BUSINESS_HP_TEXT,
+  BUSINESS_UI_FONT,
+} from '../../utils/businessHomepageTypography.js'
 
 export default function ApplicationInterviewScheduleModal({
   open,
@@ -33,7 +36,7 @@ export default function ApplicationInterviewScheduleModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"
+        className="business-app-ui relative w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -45,31 +48,31 @@ export default function ApplicationInterviewScheduleModal({
           <X className="h-4 w-4" />
         </button>
 
-        <h3 className="pr-8 text-sm font-bold text-slate-900 sm:text-base">Tạo lịch phỏng vấn</h3>
+        <h3 className={`pr-8 font-bold text-slate-900 ${BUSINESS_HP_TEXT.section}`}>Tạo lịch phỏng vấn</h3>
         {candidateName ? (
-          <p className="mt-1 text-xs text-slate-500">Ứng viên: {candidateName}</p>
+          <p className={`mt-1 text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>Ứng viên: {candidateName}</p>
         ) : null}
-        <p className="mt-2 text-xs leading-relaxed text-slate-600">
+        <p className={`mt-2 leading-relaxed text-slate-600 ${BUSINESS_HP_TEXT.body}`}>
           Bắt buộc tạo lịch phỏng vấn để đánh giá hồ sơ là <span className="font-semibold text-emerald-700">Đạt</span>.
         </p>
 
         <div className="mt-4 space-y-3">
           <label className="block">
-            <span className="text-xs font-semibold text-slate-700">Ngày phỏng vấn *</span>
+            <span className={`font-semibold text-slate-700 ${BUSINESS_HP_TEXT.caption}`}>Ngày phỏng vấn *</span>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0077B6]"
+              className={`mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-[#0077B6] ${BUSINESS_HP_TEXT.body}`}
             />
           </label>
           <label className="block">
-            <span className="text-xs font-semibold text-slate-700">Giờ phỏng vấn *</span>
+            <span className={`font-semibold text-slate-700 ${BUSINESS_HP_TEXT.caption}`}>Giờ phỏng vấn *</span>
             <input
               type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0077B6]"
+              className={`mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-[#0077B6] ${BUSINESS_HP_TEXT.body}`}
             />
           </label>
         </div>
@@ -79,7 +82,7 @@ export default function ApplicationInterviewScheduleModal({
             type="button"
             disabled={loading}
             onClick={onClose}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+            className={`rounded-lg border border-slate-200 px-3 py-2 font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 ${BUSINESS_HP_TEXT.button}`}
           >
             Hủy
           </button>
@@ -87,7 +90,7 @@ export default function ApplicationInterviewScheduleModal({
             type="button"
             disabled={loading || !date || !time}
             onClick={handleSubmit}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[#0077B6] px-3 py-2 text-xs font-semibold text-white hover:bg-[#006399] disabled:cursor-not-allowed disabled:opacity-50"
+            className={`inline-flex items-center gap-1.5 rounded-lg bg-[#0077B6] px-3 py-2 text-white hover:bg-[#006399] disabled:cursor-not-allowed disabled:opacity-50 ${BUSINESS_HP_TEXT.buttonPrimary}`}
           >
             {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
             {loading ? 'Đang lưu...' : 'Tạo lịch'}

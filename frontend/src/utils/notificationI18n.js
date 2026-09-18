@@ -31,9 +31,29 @@ const TITLE_MAP = {
     en: 'Credit top-up rejected',
     ja: 'クレジットチャージが却下されました'
   },
+  'Job đã được duyệt trên Sàn CTV': {
+    en: 'Job approved on CTV Marketplace',
+    ja: 'CTVマーケットでジョブが承認されました',
+  },
   'Job đã được WS duyệt trên Sàn CTV': {
     en: 'Job approved on CTV Marketplace',
-    ja: 'CTVマーケットでジョブが承認されました'
+    ja: 'CTVマーケットでジョブが承認されました',
+  },
+  'Job bị từ chối trên Sàn CTV': {
+    en: 'Job rejected on CTV Marketplace',
+    ja: 'CTVマーケットでジョブが却下されました',
+  },
+  'Yêu cầu thanh toán phí giới thiệu': {
+    en: 'Referral fee payment request',
+    ja: '紹介手数料の支払い依頼',
+  },
+  'Scout Performance — có gợi ý mới': {
+    en: 'Scout Performance — new recommendations',
+    ja: 'Scout Performance — 新しい提案',
+  },
+  'Đơn tiến cử được phê duyệt': {
+    en: 'Nomination approved',
+    ja: '推薦が承認されました',
   },
   'Job Sàn CTV chờ duyệt': {
     en: 'CTV Marketplace job pending approval',
@@ -62,6 +82,103 @@ const TITLE_MAP = {
 };
 
 const CONTENT_PATTERNS = [
+  {
+    regex: /^(.+) đã tiến cử hồ sơ (.+) cho JD (.+)\.$/u,
+    en: (ctv, candidate, jd) => `${ctv} nominated candidate ${candidate} for job ${jd}.`,
+    ja: (ctv, candidate, jd) => `${ctv}が候補者${candidate}をJD ${jd}に推薦しました。`,
+  },
+  {
+    regex: /^(.+) gửi tin nhắn mới về đơn tiến cử (.+)\.$/u,
+    en: (sender, code) => `${sender} sent a new message about nomination ${code}.`,
+    ja: (sender, code) => `${sender}が推薦${code}について新しいメッセージを送信しました。`,
+  },
+  {
+    regex: /^JD "(.+)" đã được WS duyệt và đăng lên Sàn CTV\.$/u,
+    en: (title) => `Job "${title}" was approved by WS and published on the CTV Marketplace.`,
+    ja: (title) => `JD「${title}」がWSにより承認され、CTVマーケットに掲載されました。`,
+  },
+  {
+    regex: /^JD "(.+)" chưa được duyệt lên Sàn CTV\.(.*)$/u,
+    en: (title, suffix) => {
+      const reason = String(suffix || '').replace(/^\s*Lý do:\s*/u, '').trim();
+      return reason
+        ? `Job "${title}" was not approved for the CTV Marketplace. Reason: ${reason}`
+        : `Job "${title}" was not approved for the CTV Marketplace.`;
+    },
+    ja: (title, suffix) => {
+      const reason = String(suffix || '').replace(/^\s*Lý do:\s*/u, '').trim();
+      return reason
+        ? `JD「${title}」はCTVマーケットに承認されませんでした。理由：${reason}`
+        : `JD「${title}」はCTVマーケットに承認されませんでした。`;
+    },
+  },
+  {
+    regex: /^WS đã tạo yêu cầu thanh toán phí giới thiệu ([\d.,\s]+VNĐ) cho đơn tiến cử (.+) — (.+)\.$/u,
+    en: (amount, code, candidate) =>
+      `WS created a referral fee payment request for ${amount} for nomination ${code} — ${candidate}.`,
+    ja: (amount, code, candidate) =>
+      `WSが推薦${code}（${candidate}）の紹介手数料支払い依頼${amount}を作成しました。`,
+  },
+  {
+    regex: /^WS đã tạo yêu cầu thanh toán phí giới thiệu cho đơn tiến cử (.+) — (.+)\.$/u,
+    en: (code, candidate) =>
+      `WS created a referral fee payment request for nomination ${code} — ${candidate}.`,
+    ja: (code, candidate) =>
+      `WSが推薦${code}（${candidate}）の紹介手数料支払い依頼を作成しました。`,
+  },
+  {
+    regex: /^JobShare WS đã chuẩn bị (.+) cho (.+)\. Bấm để xem chi tiết\.$/u,
+    en: (summary, company) => `JobShare WS prepared ${summary} for ${company}. Tap to view details.`,
+    ja: (summary, company) => `JobShare WSが${company}向けに${summary}を用意しました。タップして詳細を表示。`,
+  },
+  {
+    regex: /^JobShare WS đã gửi (\d+) hồ sơ ứng viên trong cuộc trò chuyện Scout Performance\.$/u,
+    en: (count) => `JobShare WS sent ${count} candidate profile(s) in the Scout Performance chat.`,
+    ja: (count) => `JobShare WSがScout Performanceチャットで候補者プロフィール${count}件を送信しました。`,
+  },
+  {
+    regex: /^(.+) gửi tin nhắn trong cuộc trò chuyện Scout Performance\.$/u,
+    en: (name) => `${name} sent a message in the Scout Performance chat.`,
+    ja: (name) => `${name}がScout Performanceチャットでメッセージを送信しました。`,
+  },
+  {
+    regex: /^JobShare WS đã từ chối yêu cầu Scout Performance\.$/u,
+    en: () => 'JobShare WS rejected the Scout Performance request.',
+    ja: () => 'JobShare WSがScout Performanceの依頼を却下しました。',
+  },
+  {
+    regex: /^JobShare WS đã từ chối yêu cầu đăng job lên Sàn CTV\.$/u,
+    en: () => 'JobShare WS rejected the request to list the job on the CTV Marketplace.',
+    ja: () => 'JobShare WSがCTVマーケットへのジョブ掲載依頼を却下しました。',
+  },
+  {
+    regex: /^Job(?: "([^"]+)")? đã được publish lên Sàn HR Partner\.$/u,
+    en: (title) =>
+      title
+        ? `Job "${title}" has been published on the HR Partner Marketplace.`
+        : 'Job has been published on the HR Partner Marketplace.',
+    ja: (title) =>
+      title
+        ? `ジョブ「${title}」がHR Partnerマーケットに公開されました。`
+        : 'ジョブがHR Partnerマーケットに公開されました。',
+  },
+  {
+    regex: /^Đơn tiến cử (.+) cho hồ sơ (.+) đã được admin phê duyệt$/u,
+    en: (code, candidate) => `Nomination ${code} for candidate ${candidate} was approved by admin.`,
+    ja: (code, candidate) => `候補者${candidate}の推薦${code}が管理者により承認されました。`,
+  },
+  {
+    regex: /^Đơn tiến cử (.+) đã được cập nhật trạng thái$/u,
+    en: (code) => `Nomination ${code} status was updated.`,
+    ja: (code) => `推薦${code}のステータスが更新されました。`,
+  },
+  {
+    regex: /^Hồ sơ (.+) đã vào công ty - đơn tiến cử (.+?)(?: ngày (.+))?\. Bạn có thể gửi yêu cầu thanh toán trong phần chat đơn tiến cử\.$/u,
+    en: (candidate, code, date) =>
+      `Candidate ${candidate} joined the company — nomination ${code}${date ? ` on ${date}` : ''}. You can submit a payment request in the nomination chat.`,
+    ja: (candidate, code, date) =>
+      `候補者${candidate}が入社しました — 推薦${code}${date ? `（${date}）` : ''}。推薦チャットから支払い依頼を送信できます。`,
+  },
   {
     regex: /^Hồ sơ (.+) đã được tạo đơn tiến cử hộ - đơn tiến cử (.+)$/u,
     en: (a, b) => `Candidate ${a} was nominated by admin - nomination ${b}`,
@@ -98,9 +215,9 @@ const CONTENT_PATTERNS = [
     ja: (a, b) => `候補者${a}は推薦${b}の内定を辞退しました`
   },
   {
-    regex: /^Hồ sơ (.+) đã vào công ty - đơn tiến cử (.+?)(?: ngày (.+))?$/u,
+    regex: /^Hồ sơ (.+) đã vào công ty - đơn tiến cử (.+?)(?: ngày (.+))?\.?$/u,
     en: (a, b, c) => `Candidate ${a} joined the company - nomination ${b}${c ? ` on ${c}` : ''}`,
-    ja: (a, b, c) => `候補者${a}が入社しました - 推薦${b}${c ? `（${c}）` : ''}`
+    ja: (a, b, c) => `候補者${a}が入社しました - 推薦${b}${c ? `（${c}）` : ''}`,
   },
   {
     regex: /^Hồ sơ (.+) đã hủy giữa chừng tại đơn tiến cử (.+)$/u,

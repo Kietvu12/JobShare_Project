@@ -30,29 +30,7 @@ const BusinessLayoutWrapper = () => {
       className="business-app-ui flex h-screen overflow-hidden bg-gray-50"
       style={{ fontFamily: BUSINESS_UI_FONT }}
     >
-      <style>{`
-        ${BUSINESS_UI_TYPOGRAPHY_STYLES}
-        /* Custom scrollbar cho main content */
-        main::-webkit-scrollbar {
-          width: 6px;
-        }
-        main::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        main::-webkit-scrollbar-thumb {
-          background: #3b82f6;
-          border-radius: 3px;
-        }
-        main::-webkit-scrollbar-thumb:hover {
-          background: #2563eb;
-        }
-        
-        /* Firefox */
-        main {
-          scrollbar-width: thin;
-          scrollbar-color: #3b82f6 transparent;
-        }
-      `}</style>
+      <style>{BUSINESS_UI_TYPOGRAPHY_STYLES}</style>
       
       <BusinessSidebar
         businessUser={businessUser}

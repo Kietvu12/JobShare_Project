@@ -13,6 +13,12 @@ export const jdBuilderI18n = {
     marketplaceSubmitting: 'Đang gửi WS duyệt đưa job lên sàn CTV...',
     marketplaceHint: 'Tạo & lưu JD bằng chat — sau khi lưu, hệ thống tự gửi WS duyệt đưa job lên sàn.',
     marketplaceSaveError: 'JD đã lưu nhưng không gửi được yêu cầu lên sàn. Bạn có thể thử lại tại Sàn CTV.',
+    scoutHearing: {
+      submitting: 'Đang gửi yêu cầu Scout Ủy Thác...',
+      hint: 'Bạn đang tạo JD cho Scout Ủy Thác. Chat với AI để hoàn thiện JD — sau khi lưu, hệ thống sẽ tự gửi yêu cầu hearing.',
+      performanceError: 'Không thể gửi yêu cầu Scout Ủy Thác.',
+      performanceErrorRetry: 'Không thể gửi yêu cầu Scout Ủy Thác. Vui lòng thử lại.',
+    },
     panel: {
       createHeading: 'Tạo JD với AI',
       editHeading: 'Chỉnh sửa JD với AI',
@@ -96,6 +102,12 @@ export const jdBuilderI18n = {
     marketplaceSubmitting: 'Submitting marketplace listing for WS approval...',
     marketplaceHint: 'Create & save JD via chat — after saving, the system submits to WS for marketplace listing.',
     marketplaceSaveError: 'JD saved but marketplace request failed. You can retry from CTV Marketplace.',
+    scoutHearing: {
+      submitting: 'Submitting Scout Performance request...',
+      hint: 'You are creating a JD for Scout Performance. Chat with AI to finish the JD — after saving, the system will submit the hearing request automatically.',
+      performanceError: 'Could not submit Scout Performance request.',
+      performanceErrorRetry: 'Could not submit Scout Performance request. Please try again.',
+    },
     panel: {
       createHeading: 'Create JD with AI',
       editHeading: 'Edit JD with AI',
@@ -179,6 +191,12 @@ export const jdBuilderI18n = {
     marketplaceSubmitting: 'CTVマーケット掲載のWS承認を送信中...',
     marketplaceHint: 'チャットでJDを作成・保存 — 保存後、システムがWSにマーケット掲載を自動送信します。',
     marketplaceSaveError: 'JDは保存されましたがマーケット申請に失敗しました。CTVマーケットから再試行できます。',
+    scoutHearing: {
+      submitting: 'Scout Performance依頼を送信中...',
+      hint: 'Scout Performance用のJDを作成中です。AIチャットでJDを完成させてください — 保存後、システムがhearing依頼を自動送信します。',
+      performanceError: 'Scout Performance依頼を送信できませんでした。',
+      performanceErrorRetry: 'Scout Performance依頼を送信できませんでした。もう一度お試しください。',
+    },
     panel: {
       createHeading: 'AIでJD作成',
       editHeading: 'AIでJD編集',

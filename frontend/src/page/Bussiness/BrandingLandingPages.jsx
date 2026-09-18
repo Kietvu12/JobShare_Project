@@ -9,24 +9,24 @@ import { isCompanyBuilderContent } from '../../utils/companyLandingPageSchema';
 import BusinessQuickActionsPageLayout from '../../component/Bussiness/BusinessQuickActionsPageLayout.jsx';
 import { useLanguage } from '../../context/LanguageContext';
 import { getBrandingCopy } from '../../i18n/businessAppI18n';
-
-const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif";
+import {
+  BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
+  BUSINESS_HP_TEXT,
+  BUSINESS_UI_FONT,
+} from '../../utils/businessHomepageTypography.js';
 
 const shellStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
-  .business-homepage-scroll::-webkit-scrollbar { width: 4px; }
-  .business-homepage-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-  .business-homepage-shell { --hp-zoom: 1; }
-  @media (min-width: 1024px) and (max-width: 1279px) { .business-homepage-shell { --hp-zoom: 0.9; } }
-  @media (min-width: 1280px) and (max-width: 1535px) { .business-homepage-shell { --hp-zoom: 0.86; } }
-  .business-homepage-ui { zoom: var(--hp-zoom); }
+  ${BUSINESS_HOMEPAGE_PAGE_BASE_STYLES}
+  .branding-landing-pages-shell {
+    font-family: ${BUSINESS_UI_FONT};
+  }
+  .branding-landing-pages-shell .business-homepage-ui {
+    height: 100%;
+    min-height: 0;
+  }
   @supports not (zoom: 1) {
-    .business-homepage-ui {
-      transform: scale(var(--hp-zoom));
-      transform-origin: top left;
-      width: calc(100% / var(--hp-zoom));
+    .branding-landing-pages-shell .business-homepage-ui {
+      height: calc(100% / var(--hp-zoom));
     }
   }
 `;
@@ -140,28 +140,25 @@ export default function BrandingLandingPages() {
         onClose={closeAlertModal}
       />
 
-      <div
-        className="business-homepage-shell flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto bg-[#f4f6f8] xl:overflow-hidden"
-        style={{ fontFamily: PAGE_FONT }}
-      >
-        <div className="business-homepage-ui flex h-full min-h-0 w-full flex-1 flex-col p-2.5 sm:p-3">
+      <div className="business-homepage-shell branding-landing-pages-shell flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto bg-[#f4f6f8] xl:overflow-hidden">
+        <div className="business-homepage-ui business-app-ui flex h-full min-h-0 w-full flex-1 flex-col p-2.5 sm:p-3">
           {loading ? (
             <div className="flex flex-1 items-center justify-center gap-2 py-20 text-slate-500">
               <Loader2 className="h-5 w-5 animate-spin text-[#0077B6]" />
-              <span className="text-sm">{copy.loading}</span>
+              <span className={BUSINESS_HP_TEXT.bodyLg}>{copy.loading}</span>
             </div>
           ) : (
             <BusinessQuickActionsPageLayout onNavigate={(path) => navigate(path)}>
-              <nav className="mb-2 flex shrink-0 flex-wrap items-center gap-1 text-[11px] text-slate-500 lg:text-xs">
-                <Link to="/business" className="font-medium text-[#0077B6] hover:underline">
+              <nav className={`mb-2 flex shrink-0 flex-wrap items-center gap-1 ${BUSINESS_HP_TEXT.meta}`}>
+                <Link to="/business" className={`font-medium text-[#0077B6] hover:underline ${BUSINESS_HP_TEXT.link}`}>
                   {copy.breadcrumb.home}
                 </Link>
                 <ChevronRight className="h-3 w-3 shrink-0 text-slate-400" />
-                <Link to="/business/saiyo" className="font-medium text-[#0077B6] hover:underline">
+                <Link to="/business/saiyo" className={`font-medium text-[#0077B6] hover:underline ${BUSINESS_HP_TEXT.link}`}>
                   {copy.breadcrumb.current}
                 </Link>
                 <ChevronRight className="h-3 w-3 shrink-0 text-slate-400" />
-                <span className="font-semibold text-slate-700">{copy.landingPagesManageTitle}</span>
+                <span className={`font-semibold text-slate-700 ${BUSINESS_HP_TEXT.body}`}>{copy.landingPagesManageTitle}</span>
               </nav>
               <BrandingLandingPageDashboard
                 copy={copy}

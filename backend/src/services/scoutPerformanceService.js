@@ -27,6 +27,7 @@ import {
   formatCurrentLocationRegion,
 } from './businessScoutService.js';
 import { collaboratorNotificationService } from './collaboratorNotificationService.js';
+import { nominationEmailService } from './nominationEmailService.js';
 import {
   createWsChatPerformanceOpenedMessage,
   createWsChatSimilarCandidatesRequestMessage,
@@ -987,11 +988,12 @@ async function createRecommendationsForRequest({ requestId, cvIds, transaction }
   });
   const cvMap = new Map(cvs.map((cv) => [Number(cv.id), cv]));
   const created = [];
+  const newlyAddedCvIds = [];
   let sortOrder = 0;
   for (const cvId of cvIds) {
     const cv = cvMap.get(Number(cvId));
     if (!cv) continue;
-    const [rec] = await BusinessScoutPerformanceRecommendation.findOrCreate({
+    const [rec, isNew] = await BusinessScoutPerformanceRecommendation.findOrCreate({
       where: { requestId, cvId: Number(cvId) },
       defaults: {
         source: inferRecommendationSource(cv),
@@ -999,13 +1001,105 @@ async function createRecommendationsForRequest({ requestId, cvIds, transaction }
       },
       transaction,
     });
+    if (isNew) {
+      newlyAddedCvIds.push(Number(cvId));
+    }
     if (rec.sortOrder !== sortOrder) {
       await rec.update({ sortOrder }, { transaction });
     }
     created.push(rec);
     sortOrder += 1;
   }
-  return created;
+  return { recommendations: created, newlyAddedCvIds };
+}
+
+async function resolveCollaboratorEmailAddress(collaboratorId, collaboratorRow) {
+  const inline = String(collaboratorRow?.email || '').trim();
+  if (inline) return inline;
+  const id = Number(collaboratorId);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  const row = await Collaborator.findByPk(id, { attributes: ['id', 'email'] });
+  return String(row?.email || '').trim() || null;
+}
+
+/** Admin gửi hồ sơ CTV cho DN qua Scout Performance — tag hồ sơ, thông báo + email CTV. */
+async function notifyCollaboratorsWhenAdminSharesPerformanceProfiles({
+  requestId,
+  newlyAddedCvIds,
+  business,
+}) {
+  if (!Array.isArray(newlyAddedCvIds) || newlyAddedCvIds.length === 0) return;
+
+  const uniqueIds = [...new Set(newlyAddedCvIds.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0))];
+  if (!uniqueIds.length) return;
+
+  const now = new Date();
+  await CVStorage.update(
+    { scoutPerformanceTaggedAt: now },
+    { where: { id: { [Op.in]: uniqueIds } } },
+  );
+
+  const cvs = await CVStorage.findAll({
+    where: { id: { [Op.in]: uniqueIds } },
+    include: [
+      { model: Collaborator, as: 'collaborator', required: false, attributes: ['id', 'name', 'email'] },
+      { model: Collaborator, as: 'scoutListedByCollaborator', required: false, attributes: ['id', 'name', 'email'] },
+    ],
+  });
+
+  const companyName = business?.companyName || 'Doanh nghiệp';
+  for (const cv of cvs) {
+    const candidateName = cv.name || cv.code || `CV #${cv.id}`;
+    const cvCode = cv.code || null;
+
+    const notifyTargets = new Map();
+    if (cv.collaboratorId) {
+      notifyTargets.set(Number(cv.collaboratorId), cv.collaborator);
+    }
+    const listedById = cv.scoutListedByCollaboratorId ? Number(cv.scoutListedByCollaboratorId) : null;
+    if (listedById && !notifyTargets.has(listedById)) {
+      notifyTargets.set(listedById, cv.scoutListedByCollaborator);
+    }
+
+    for (const [collaboratorId, collaborator] of notifyTargets) {
+      try {
+        await collaboratorNotificationService.notifyScoutPerformanceProfileShared({
+          collaboratorId,
+          cvId: cv.id,
+          candidateName,
+          companyName,
+          requestId,
+        });
+      } catch (notifyErr) {
+        console.error('[ScoutPerformance] notify CTV error:', notifyErr?.message || notifyErr);
+      }
+
+      const to = await resolveCollaboratorEmailAddress(collaboratorId, collaborator);
+      if (!to) {
+        console.warn(
+          `[ScoutPerformance] skip email CTV #${collaboratorId} (cv #${cv.id}): missing collaborator email`,
+        );
+        continue;
+      }
+      try {
+        const mailResult = await nominationEmailService.sendCollaboratorScoutPerformanceSharedEmail({
+          to,
+          cvId: cv.id,
+          cvCode,
+          candidateName,
+          companyName,
+          requestId,
+        });
+        if (mailResult?.skipped) {
+          console.warn(
+            `[ScoutPerformance] skip email CTV #${collaboratorId} (cv #${cv.id}): ${mailResult.reason || 'skipped'}`,
+          );
+        }
+      } catch (mailErr) {
+        console.error('[ScoutPerformance] email CTV error:', mailErr?.message || mailErr);
+      }
+    }
+  }
 }
 
 export async function sharePerformanceCandidatesToBusiness({
@@ -1016,7 +1110,10 @@ export async function sharePerformanceCandidatesToBusiness({
   note,
   viaChat = false,
 }) {
-  return sequelize.transaction(async (transaction) => {
+  let newlyAddedCvIds = [];
+  let businessForNotify = null;
+
+  const shareResult = await sequelize.transaction(async (transaction) => {
     const request = await BusinessScoutPerformanceRequest.findByPk(requestId, {
       include: [
         { model: Business, as: 'business', attributes: ['id', 'companyName', 'contactName'] },
@@ -1050,11 +1147,13 @@ export async function sharePerformanceCandidatesToBusiness({
       throw err;
     }
 
-    const recommendations = await createRecommendationsForRequest({
+    const { recommendations, newlyAddedCvIds: addedIds } = await createRecommendationsForRequest({
       requestId: request.id,
       cvIds: normalizedCvIds,
       transaction,
     });
+    newlyAddedCvIds = addedIds;
+    businessForNotify = request.business;
 
     let primaryUnlock = request.scoutUnlockId
       ? await BusinessScoutUnlock.findByPk(request.scoutUnlockId, { transaction })
@@ -1129,6 +1228,20 @@ export async function sharePerformanceCandidatesToBusiness({
       newlyApproved: wasPending,
     };
   });
+
+  if (newlyAddedCvIds.length) {
+    try {
+      await notifyCollaboratorsWhenAdminSharesPerformanceProfiles({
+        requestId: shareResult.requestId,
+        newlyAddedCvIds,
+        business: businessForNotify,
+      });
+    } catch (collabNotifyErr) {
+      console.error('[ScoutPerformance] notify collaborators after share:', collabNotifyErr?.message || collabNotifyErr);
+    }
+  }
+
+  return shareResult;
 }
 
 export async function approveScoutPerformanceRequest({
@@ -1138,6 +1251,10 @@ export async function approveScoutPerformanceRequest({
   note,
   recommendationCvIds = [],
 }) {
+  let newlyAddedCvIds = [];
+  let businessForNotify = null;
+  let approvedRequestId = requestId;
+
   const formatted = await sequelize.transaction(async (transaction) => {
     const request = await loadRequestForAction(requestId, transaction);
     if (collaboratorId) assertCtvCanHandleRequest(request, collaboratorId);
@@ -1149,11 +1266,14 @@ export async function approveScoutPerformanceRequest({
       throw err;
     }
 
-    const recommendations = await createRecommendationsForRequest({
+    const { recommendations, newlyAddedCvIds: addedIds } = await createRecommendationsForRequest({
       requestId: request.id,
       cvIds,
       transaction,
     });
+    newlyAddedCvIds = addedIds;
+    businessForNotify = request.business;
+    approvedRequestId = request.id;
 
     let primaryUnlock = null;
     for (const cvId of cvIds) {
@@ -1220,6 +1340,18 @@ export async function approveScoutPerformanceRequest({
 
     return result;
   });
+
+  if (newlyAddedCvIds.length) {
+    try {
+      await notifyCollaboratorsWhenAdminSharesPerformanceProfiles({
+        requestId: approvedRequestId,
+        newlyAddedCvIds,
+        business: businessForNotify,
+      });
+    } catch (collabNotifyErr) {
+      console.error('[ScoutPerformance] notify collaborators after approve:', collabNotifyErr?.message || collabNotifyErr);
+    }
+  }
 
   try {
     const { syncWsChatAfterPerformanceApproval } = await import('./businessWsChatService.js');

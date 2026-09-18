@@ -23,7 +23,8 @@ import {
 } from '../../utils/scoutCandidateDisplay'
 import ScoutMatchBadge from './ScoutMatchBadge'
 import { useLanguage } from '../../context/LanguageContext'
-import { getLocalizedScoutDisplayName } from '../../i18n/businessApp/scout.js'
+import { getLocalizedScoutDisplayName, getScoutProfilePanelCopy } from '../../i18n/businessApp/scout.js'
+import { getCandidateCopy } from '../../i18n/businessApp/candidates.js'
 
 const ICON_SM = { width: 10, height: 10 }
 
@@ -83,7 +84,7 @@ export default function ScoutCandidateProfilePanel({
   onClose = null,
   treatAsUnlocked = false,
   hideContact = false,
-  accessLabel = 'Hồ sơ đã mở — thông tin đầy đủ',
+  accessLabel: accessLabelProp = null,
   accessLabelColor = '#047857',
   footerNote = null,
   showLockedHint = false,
@@ -94,6 +95,10 @@ export default function ScoutCandidateProfilePanel({
   className = '',
 }) {
   const { language } = useLanguage()
+  const panelCopy = useMemo(() => getScoutProfilePanelCopy(language), [language])
+  const { fields, sections } = useMemo(() => getCandidateCopy(language).detail, [language])
+  const accessLabel = accessLabelProp ?? panelCopy.defaultAccessLabel
+
   const isUnlocked = treatAsUnlocked || Boolean(candidate?.isUnlocked)
   const showIdentity = isUnlocked && !candidate?.isPerformancePartial
   const useFullProfileSections = isUnlocked || Boolean(candidate?.isPerformancePartial)
@@ -107,7 +112,7 @@ export default function ScoutCandidateProfilePanel({
   if (!candidate) {
     return (
       <div className={`scout-detail-body rounded-xl border border-slate-100 bg-white text-center text-slate-400 ${className}`} style={{ padding: 20 }}>
-        Chưa có dữ liệu hồ sơ
+        {panelCopy.noData}
       </div>
     )
   }
@@ -129,26 +134,26 @@ export default function ScoutCandidateProfilePanel({
     : normalizeScoutWorkExperiencesTier2(candidate.workExperiences)
 
   const contactRows = [
-    ['Email', candidate.email],
-    ['SĐT', candidate.phone],
-    ['Furigana', candidate.furigana],
-    ['Ngày sinh', formatScoutDate(candidate.birthDate)],
-    ['Giới tính', formatScoutGender(candidate.gender)],
-    ['Địa chỉ hiện tại', candidate.addressCurrent],
-    ['Địa chỉ gốc', candidate.addressOrigin],
-    ['Mã bưu điện', candidate.postalCode],
-  ].filter(([label, v]) => {
-    if (shouldHideContact && (label === 'Email' || label === 'SĐT')) return false
-    return v && v !== '—'
+    { key: 'email', label: fields.email, value: candidate.email },
+    { key: 'phone', label: fields.phone, value: candidate.phone },
+    { key: 'furigana', label: fields.furigana, value: candidate.furigana },
+    { key: 'birthDate', label: fields.birthDate, value: formatScoutDate(candidate.birthDate) },
+    { key: 'gender', label: fields.gender, value: formatScoutGender(candidate.gender) },
+    { key: 'addressCurrent', label: fields.addressCurrent, value: candidate.addressCurrent },
+    { key: 'addressOrigin', label: fields.addressOrigin, value: candidate.addressOrigin },
+    { key: 'postalCode', label: fields.postalCode, value: candidate.postalCode },
+  ].filter(({ key, value }) => {
+    if (shouldHideContact && (key === 'email' || key === 'phone')) return false
+    return value && value !== '—'
   })
 
   const visaRows = [
-    ['Tư cách lưu trú', residenceLabel],
-    ['Ngày hết hạn visa', formatScoutDate(candidate.visaExpirationDate)],
-    ['Nơi cư trú hiện tại', candidate.currentResidence],
-    ['Quốc gia khác', candidate.otherCountry],
-    ['Hộ chiếu', formatScoutYesNo(candidate.passport)],
-  ].filter(([, v]) => v && v !== '—')
+    { key: 'residence', label: fields.residenceStatus, value: residenceLabel },
+    { key: 'visaExpiry', label: fields.visaExpiry, value: formatScoutDate(candidate.visaExpirationDate) },
+    { key: 'currentResidence', label: fields.currentResidence, value: candidate.currentResidence },
+    { key: 'otherCountry', label: fields.otherCountry, value: candidate.otherCountry },
+    { key: 'passport', label: fields.passport, value: formatScoutYesNo(candidate.passport) },
+  ].filter(({ value }) => value && value !== '—')
 
   const displayName = (showIdentity && candidate.name)
     ? candidate.name
@@ -184,7 +189,7 @@ export default function ScoutCandidateProfilePanel({
               <ScoutMatchBadge score={matchScore} />
               {matchJobTitle ? (
                 <span className="scout-detail-caption text-slate-500">
-                  với JD: {matchJobTitle}
+                  {panelCopy.matchWithJd(matchJobTitle)}
                 </span>
               ) : null}
             </div>
@@ -195,7 +200,7 @@ export default function ScoutCandidateProfilePanel({
             type="button"
             onClick={onClose}
             style={{ width: 18, height: 18, borderRadius: 3, border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            aria-label="Đóng"
+            aria-label={panelCopy.close}
           >
             <X {...ICON_SM} aria-hidden />
           </button>
@@ -204,25 +209,25 @@ export default function ScoutCandidateProfilePanel({
 
       {/* Tier 1 — lặp lại thông tin từ list card */}
       <ScoutDetailGrid>
-        <ScoutDetailField label="Kinh nghiệm" value={experienceYears} hl={hl} />
-        <ScoutDetailField label="Địa điểm mong muốn" value={candidate.desiredWorkLocation} hl={hl} />
-        <ScoutDetailField label="Mức lương mong muốn" value={isScoutEmptyDisplayValue(desiredSalary) ? null : desiredSalary} hl={hl} />
-        <ScoutDetailField label="JLPT / Ngoại ngữ" value={isScoutEmptyDisplayValue(languageSummary) ? null : languageSummary} hl={hl} />
+        <ScoutDetailField label={fields.experience} value={experienceYears} hl={hl} />
+        <ScoutDetailField label={fields.desiredLocation} value={candidate.desiredWorkLocation} hl={hl} />
+        <ScoutDetailField label={fields.desiredSalary} value={isScoutEmptyDisplayValue(desiredSalary) ? null : desiredSalary} hl={hl} />
+        <ScoutDetailField label={fields.jlptLanguages} value={isScoutEmptyDisplayValue(languageSummary) ? null : languageSummary} hl={hl} />
       </ScoutDetailGrid>
 
       {/* Tier 2 — preview ẩn danh trước unlock */}
       {!isUnlocked && (
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e2e8f0' }}>
-          <ScoutSectionTitle>Thông tin preview (ẩn danh)</ScoutSectionTitle>
+          <ScoutSectionTitle>{panelCopy.previewSectionTitle}</ScoutSectionTitle>
           <ScoutDetailGrid>
-            <ScoutDetailField label="Độ tuổi (khoảng)" value={approximateAge} hl={hl} />
-            <ScoutDetailField label="Sẵn sàng nhập công ty" value={availability} hl={hl} />
-            <ScoutDetailField label="Tư cách lưu trú" value={residenceLabel !== '—' ? residenceLabel : null} hl={hl} />
+            <ScoutDetailField label={panelCopy.approximateAge} value={approximateAge} hl={hl} />
+            <ScoutDetailField label={panelCopy.availability} value={availability} hl={hl} />
+            <ScoutDetailField label={fields.residenceStatus} value={residenceLabel !== '—' ? residenceLabel : null} hl={hl} />
           </ScoutDetailGrid>
 
           {educations.length > 0 && (
             <>
-              <ScoutSectionTitle>Học vấn</ScoutSectionTitle>
+              <ScoutSectionTitle>{sections.education}</ScoutSectionTitle>
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {educations.map((edu, i) => (
                   <li key={i} className="scout-detail-body text-slate-600" style={{ paddingLeft: 8, borderLeft: '2px solid #e2e8f0' }}>
@@ -237,7 +242,7 @@ export default function ScoutCandidateProfilePanel({
 
           {certificates.length > 0 && (
             <>
-              <ScoutSectionTitle>Chứng chỉ</ScoutSectionTitle>
+              <ScoutSectionTitle>{sections.certificates}</ScoutSectionTitle>
               <div className="flex flex-wrap gap-1">
                 {certificates.map((cert, i) => (
                   <span key={i} className="scout-detail-body rounded-lg bg-blue-50 px-2 py-0.5 text-blue-700">
@@ -250,7 +255,7 @@ export default function ScoutCandidateProfilePanel({
 
           {workExperiences.length > 0 && (
             <>
-              <ScoutSectionTitle>Kinh nghiệm làm việc (ẩn danh)</ScoutSectionTitle>
+              <ScoutSectionTitle>{panelCopy.workHistoryAnonymous}</ScoutSectionTitle>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {workExperiences.map((work, i) => (
                   <div key={i} style={{ padding: 6, borderRadius: 6, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
@@ -267,7 +272,7 @@ export default function ScoutCandidateProfilePanel({
 
       {prSummary && (
         <div style={{ marginTop: 8, padding: 8, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-          <div className="scout-detail-caption text-slate-400" style={{ marginBottom: 4 }}>PR / Giới thiệu</div>
+          <div className="scout-detail-caption text-slate-400" style={{ marginBottom: 4 }}>{sections.pr}</div>
           <div className="scout-detail-body text-slate-600" style={{ lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
             {hl(prSummary)}
           </div>
@@ -276,7 +281,7 @@ export default function ScoutCandidateProfilePanel({
 
       {skills.length > 0 && (
         <div style={{ marginTop: 8 }}>
-          <div className="scout-detail-caption text-slate-400" style={{ marginBottom: 4 }}>Kỹ năng</div>
+          <div className="scout-detail-caption text-slate-400" style={{ marginBottom: 4 }}>{sections.skills}</div>
           <div className="flex flex-wrap gap-1">
             {skills.map((skill) => (
               <span key={skill} className="scout-detail-body rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-600">
@@ -289,7 +294,7 @@ export default function ScoutCandidateProfilePanel({
 
       {highlightQuery && Array.isArray(candidate.searchSnippets) && candidate.searchSnippets.length > 0 && (
         <div style={{ marginTop: 8, padding: 8, background: '#fffbeb', borderRadius: 8, border: '1px solid #fde68a' }}>
-          <div className="scout-detail-caption font-semibold text-amber-800" style={{ marginBottom: 4 }}>Khớp từ khóa</div>
+          <div className="scout-detail-caption font-semibold text-amber-800" style={{ marginBottom: 4 }}>{panelCopy.searchKeywordMatch}</div>
           {candidate.searchSnippets.map((snippet) => (
             <div key={snippet} className="scout-detail-body text-slate-600" style={{ lineHeight: 1.45 }}>
               {hl(snippet)}
@@ -307,10 +312,10 @@ export default function ScoutCandidateProfilePanel({
 
           {contactRows.length > 0 && (
             <>
-              <ScoutSectionTitle>Liên hệ & cá nhân</ScoutSectionTitle>
+              <ScoutSectionTitle>{panelCopy.contactAndPersonal}</ScoutSectionTitle>
               <ScoutDetailGrid>
-                {contactRows.map(([label, value]) => (
-                  <ScoutDetailField key={label} label={label} value={value} hl={hl} />
+                {contactRows.map(({ key, label, value }) => (
+                  <ScoutDetailField key={key} label={label} value={value} hl={hl} />
                 ))}
               </ScoutDetailGrid>
             </>
@@ -318,10 +323,10 @@ export default function ScoutCandidateProfilePanel({
 
           {visaRows.length > 0 && (
             <>
-              <ScoutSectionTitle>Visa & cư trú</ScoutSectionTitle>
+              <ScoutSectionTitle>{sections.visaResidence}</ScoutSectionTitle>
               <ScoutDetailGrid>
-                {visaRows.map(([label, value]) => (
-                  <ScoutDetailField key={label} label={label} value={value} hl={hl} />
+                {visaRows.map(({ key, label, value }) => (
+                  <ScoutDetailField key={key} label={label} value={value} hl={hl} />
                 ))}
               </ScoutDetailGrid>
             </>
@@ -329,17 +334,17 @@ export default function ScoutCandidateProfilePanel({
 
           {(candidate.currentIncome != null || candidate.desiredIncome != null) && (
             <>
-              <ScoutSectionTitle>Lương</ScoutSectionTitle>
+              <ScoutSectionTitle>{sections.salary}</ScoutSectionTitle>
               <ScoutDetailGrid>
-                <ScoutDetailField label="Lương hiện tại" value={formatScoutIncome(candidate.currentIncome)} hl={hl} />
-                <ScoutDetailField label="Lương mong muốn" value={formatScoutIncome(candidate.desiredIncome)} hl={hl} />
+                <ScoutDetailField label={fields.currentSalary} value={formatScoutIncome(candidate.currentIncome)} hl={hl} />
+                <ScoutDetailField label={fields.desiredSalarySection} value={formatScoutIncome(candidate.desiredIncome)} hl={hl} />
               </ScoutDetailGrid>
             </>
           )}
 
           {isUnlocked && educations.length > 0 && (
             <>
-              <ScoutSectionTitle>Học vấn</ScoutSectionTitle>
+              <ScoutSectionTitle>{sections.education}</ScoutSectionTitle>
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {educations.map((edu, i) => (
                   <li key={i} className="scout-detail-body text-slate-600" style={{ paddingLeft: 8, borderLeft: '2px solid #e2e8f0' }}>
@@ -354,7 +359,7 @@ export default function ScoutCandidateProfilePanel({
 
           {workExperiences.length > 0 && !isScoutWorkExperienceAnonymized(workExperiences[0]) && (
             <>
-              <ScoutSectionTitle>Lịch sử công việc</ScoutSectionTitle>
+              <ScoutSectionTitle>{sections.workHistory}</ScoutSectionTitle>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {workExperiences.map((work, i) => (
                   <div key={i} style={{ padding: 6, borderRadius: 6, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
@@ -384,7 +389,7 @@ export default function ScoutCandidateProfilePanel({
 
           {certificates.length > 0 && isUnlocked && (
             <>
-              <ScoutSectionTitle>Chứng chỉ</ScoutSectionTitle>
+              <ScoutSectionTitle>{sections.certificates}</ScoutSectionTitle>
               <div className="flex flex-wrap gap-1">
                 {certificates.map((cert, i) => (
                   <span key={i} className="scout-detail-body rounded-lg bg-blue-50 px-2 py-0.5 text-blue-700">
@@ -397,7 +402,7 @@ export default function ScoutCandidateProfilePanel({
 
           {candidate.motivation && (
             <>
-              <ScoutSectionTitle>Động lực</ScoutSectionTitle>
+              <ScoutSectionTitle>{sections.motivation}</ScoutSectionTitle>
               <div className="scout-detail-body text-slate-600" style={{ lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>{hl(candidate.motivation)}</div>
             </>
           )}

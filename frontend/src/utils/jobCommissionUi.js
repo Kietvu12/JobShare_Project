@@ -1,3 +1,5 @@
+import { localizedJobValueLabel } from './jobValueLocalizedLabel.js';
+
 /**
  * API có thể trả jobCommissionType (camel) hoặc job_commission_type (snake).
  * Nếu chỉ đọc một kiểu, job percent bị coi nhầm là fixed → % campaign không áp vào effectivePercent (list 30% / detail 40%).
@@ -227,16 +229,57 @@ export function pickPrimaryCommissionJobValue(rows) {
   return rows.find((jv) => hasJobValueCommissionAmount(jv)) ?? rows[0];
 }
 
+function resolveCommissionUiLang(language) {
+  if (language === 'en') return 'en';
+  if (language === 'ja' || language === 'jp') return 'ja';
+  return 'vi';
+}
+
+function commissionContactLabel(language) {
+  const lang = resolveCommissionUiLang(language);
+  if (lang === 'en') return 'Contact';
+  if (lang === 'ja') return 'お問い合わせ';
+  return 'Liên hệ';
+}
+
+function commissionTypeDisplayName(type, language) {
+  const raw = String(type?.typename || type?.name || '').trim();
+  const lang = resolveCommissionUiLang(language);
+  const lower = raw.toLowerCase();
+  if (lang === 'en') {
+    if (!raw || lower === 'phí' || lower === 'commission') return 'Fee';
+    return raw;
+  }
+  if (lang === 'ja') {
+    if (!raw || lower === 'phí' || lower === 'commission') return '手数料';
+    return raw;
+  }
+  return raw || 'Phí';
+}
+
+function formatCommissionAmount(num, commissionType, language) {
+  const lang = resolveCommissionUiLang(language);
+  if (commissionType === 'percent') {
+    if (lang === 'en') return `${num}% of first-year income`;
+    if (lang === 'ja') return `${num}%（初年度年収）`;
+    return `${num}% thu nhập năm đầu`;
+  }
+  const locale = lang === 'en' ? 'en-US' : lang === 'ja' ? 'ja-JP' : 'vi-VN';
+  const suffix = lang === 'en' ? ' JPY (fixed)' : lang === 'ja' ? ' 円（固定）' : 'đ (cố định)';
+  return `${Number(num).toLocaleString(locale)}${suffix}`;
+}
+
 /** Nhãn phí đọc từ job (điều kiện phí khi tạo JD) — dùng modal đăng sàn CTV */
 export function formatJobCommissionSummary(job, language = 'vi') {
-  const contactLabel = language === 'en' ? 'Contact' : language === 'ja' ? 'お問い合わせ' : 'Liên hệ';
+  const contactLabel = commissionContactLabel(language);
   if (!job) return contactLabel;
 
+  const lang = resolveCommissionUiLang(language);
   const campaignPct = resolveCampaignPercentFromJob(job);
   if (campaignPct != null && campaignPct > 0) {
-    return language === 'en'
-      ? `Campaign: ${campaignPct}% of annual income`
-      : `Campaign: ${campaignPct}% thu nhập năm`;
+    if (lang === 'en') return `Campaign: ${campaignPct}% of first-year income`;
+    if (lang === 'ja') return `キャンペーン: 初年度年収の${campaignPct}%`;
+    return `Campaign: ${campaignPct}% thu nhập năm`;
   }
 
   const commissionType = normalizeJobCommissionType(job);
@@ -245,8 +288,8 @@ export function formatJobCommissionSummary(job, language = 'vi') {
 
   return rows
     .map((jv) => {
-      const typeName = jv.type?.typename || jv.type?.name || 'Phí';
-      const valueRefName = jv.valueRef?.valuename || jv.valueRef?.name || '';
+      const typeName = commissionTypeDisplayName(jv.type, language);
+      const valueRefName = localizedJobValueLabel(lang, jv.valueRef || jv.value_ref);
       const label = valueRefName ? `${typeName}: ${valueRefName}` : typeName;
       const raw = jv.value;
       if (raw == null || raw === '') {
@@ -255,10 +298,7 @@ export function formatJobCommissionSummary(job, language = 'vi') {
       }
       const num = parseFloat(String(raw));
       if (!Number.isFinite(num)) return `${label}: ${raw}`;
-      if (commissionType === 'percent') {
-        return language === 'en' ? `${label}: ${num}% of annual income` : `${label}: ${num}% thu nhập năm`;
-      }
-      return `${label}: ${Number(num).toLocaleString('vi-VN')} Y`;
+      return `${label}: ${formatCommissionAmount(num, commissionType, language)}`;
     })
     .join('\n');
 }

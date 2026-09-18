@@ -3238,12 +3238,22 @@ export const CVStorage = sequelize.define(
       field: 'admin_supplement_marks',
       allowNull: true
     },
-    /** Scout sàn: 0=off, 1=listed, 2=suspended */
+    /** Scout sàn: 0=off, 1=listed, 2=suspended, 3=reserve (dự bị) */
     scoutStatus: {
       type: DataTypes.TINYINT,
       allowNull: false,
       defaultValue: 0,
       field: 'scout_status'
+    },
+    scoutReserveAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'scout_reserve_at',
+    },
+    scoutRefreshedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'scout_refreshed_at',
     },
     scoutPublicSummary: {
       type: DataTypes.TEXT,
@@ -3269,7 +3279,13 @@ export const CVStorage = sequelize.define(
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: true,
       field: 'scout_listed_by_collaborator_id'
-    }
+    },
+    /** Admin đã gửi hồ sơ cho DN qua Scout Performance — hiển thị tag trên danh sách CTV */
+    scoutPerformanceTaggedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'scout_performance_tagged_at',
+    },
   },
   {
     tableName: 'cv_storages',

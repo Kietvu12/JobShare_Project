@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { BUSINESS_HP_TEXT } from '../../utils/businessHomepageTypography.js';
 import { getTemplatePages, isHtmlTemplate } from '../../constants/templatePageRegistry';
 import { buildCompanyContentFromTemplate } from '../../utils/companyLandingPageSchema';
 import HtmlTemplatePageViewer from '../../page/LandingPage/HtmlTemplatePageViewer';
@@ -28,7 +29,7 @@ export default function TemplateLivePreview({ templateKey, companyName = '', cla
 
   if (isHtml && !htmlHomePage) {
     return (
-      <div className={`flex items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 py-12 text-xs text-slate-400 ${className}`}>
+      <div className={`flex items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 py-12 text-slate-400 ${BUSINESS_HP_TEXT.caption} ${className}`}>
         Không có trang preview
       </div>
     );
@@ -36,7 +37,7 @@ export default function TemplateLivePreview({ templateKey, companyName = '', cla
 
   if (!isHtml && !reactHomePage) {
     return (
-      <div className={`flex items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 py-12 text-xs text-slate-400 ${className}`}>
+      <div className={`flex items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 py-12 text-slate-400 ${BUSINESS_HP_TEXT.caption} ${className}`}>
         Không có trang preview
       </div>
     );

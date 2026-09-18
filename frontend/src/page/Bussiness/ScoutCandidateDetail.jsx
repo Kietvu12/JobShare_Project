@@ -15,8 +15,14 @@ import { highlightSearchText } from '../../utils/searchTextHighlight'
 import { getScoutCandidateDetailUrl, getScoutListUrl, resolveScoutEntryMode } from '../../utils/scoutCandidateDetailUrl'
 import { setScoutPerformanceHearingPending } from '../../utils/scoutPerformanceHearingPending'
 import { downloadScoutOriginalCvFiles } from '../../utils/scoutCvDownload'
-import { BUSINESS_UI_FONT, BUSINESS_UI_FONT_IMPORT } from '../../utils/businessUiFont'
+import {
+  BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
+  BUSINESS_HP_TEXT,
+  BUSINESS_UI_FONT,
+} from '../../utils/businessHomepageTypography.js'
 import { useLanguage } from '../../context/LanguageContext'
+import { getLocalizedJobTitle } from '../../i18n/businessApp/jdBuilder'
+import { buildExistingNominationNoticeBody } from '../../utils/businessApplicationDisplay'
 import { getScoutWorkspaceCopy } from '../../i18n/businessApp/scoutWorkspace'
 import {
   ScoutUnlockOptionCard,
@@ -33,30 +39,39 @@ import {
 } from './Scout'
 import ScoutPerformancePipelineBar from '../../component/Bussiness/ScoutPerformancePipelineBar'
 
-const PAGE_FONT = BUSINESS_UI_FONT
-
 const detailPageStyles = `
-  ${BUSINESS_UI_FONT_IMPORT}
+  ${BUSINESS_HOMEPAGE_PAGE_BASE_STYLES}
+  .scout-candidate-detail-shell {
+    font-family: ${BUSINESS_UI_FONT};
+  }
+  .scout-candidate-detail-shell .business-homepage-ui {
+    height: 100%;
+    min-height: 0;
+  }
+  @supports not (zoom: 1) {
+    .scout-candidate-detail-shell .business-homepage-ui {
+      height: calc(100% / var(--hp-zoom));
+    }
+  }
   .scout-detail-ui {
-    --scout-detail-fs-title: 14px;
-    --scout-detail-fs-body: 13px;
-    --scout-detail-fs-caption: 12px;
-    font-size: var(--scout-detail-fs-body);
+    font-size: var(--biz-hp-body);
     line-height: 1.45;
     color: #334155;
   }
   .scout-detail-ui .scout-detail-title {
-    font-size: var(--scout-detail-fs-title);
+    font-size: var(--biz-hp-title);
     font-weight: 700;
     line-height: 1.35;
+    color: #0f172a;
   }
   .scout-detail-ui .scout-detail-body {
-    font-size: var(--scout-detail-fs-body);
+    font-size: var(--biz-hp-body);
     line-height: 1.45;
   }
   .scout-detail-ui .scout-detail-caption {
-    font-size: var(--scout-detail-fs-caption);
+    font-size: var(--biz-hp-caption);
     line-height: 1.4;
+    color: #64748b;
   }
   .scout-search-highlight {
     background-color: #fef08a !important;
@@ -81,6 +96,8 @@ export default function ScoutCandidateDetail() {
   })
   const { language } = useLanguage()
   const scoutWorkspaceCopy = useMemo(() => getScoutWorkspaceCopy(language), [language])
+  const cd = scoutWorkspaceCopy.candidateDetail
+  const cw = scoutWorkspaceCopy.common
   const { credit: userCredit, user } = useBusinessUser()
 
   const [candidate, setCandidate] = useState(null)
@@ -158,13 +175,13 @@ export default function ScoutCandidateDetail() {
       setActionModal({
         open: true,
         kind: 'notice',
-        title: 'Gửi yêu cầu thất bại',
+        title: cd.notices.requestFailedTitle,
         message: st.performanceError,
         noticeVariant: 'error',
       })
       clearNavState()
     }
-  }, [location.pathname, location.search, location.state, navigate])
+  }, [location.pathname, location.search, location.state, navigate, cd.notices.requestFailedTitle])
 
   const loadJobs = useCallback(async () => {
     if (jobs.length > 0) return jobs
@@ -263,7 +280,7 @@ export default function ScoutCandidateDetail() {
 
   const loadCandidate = useCallback(async () => {
     if (!numericCvId || Number.isNaN(numericCvId)) {
-      setError('ID hồ sơ không hợp lệ')
+      setError(cd.notices.invalidId)
       setLoading(false)
       return
     }
@@ -285,17 +302,17 @@ export default function ScoutCandidateDetail() {
         }
       } else {
         setCandidate(null)
-        setError(res?.message || 'Không tải được hồ sơ ứng viên')
+        setError(res?.message || cd.notices.loadError)
       }
     } catch (e) {
       if (loadSeq !== candidateLoadSeqRef.current) return
       console.error(e)
       setCandidate(null)
-      setError('Không tải được hồ sơ ứng viên')
+      setError(cd.notices.loadError)
     } finally {
       if (loadSeq === candidateLoadSeqRef.current) setLoading(false)
     }
-  }, [numericCvId, searchQuery])
+  }, [numericCvId, searchQuery, cd.notices.invalidId, cd.notices.loadError])
 
   useEffect(() => {
     loadCandidate()
@@ -328,6 +345,16 @@ export default function ScoutCandidateDetail() {
     () => jobs.find((j) => String(j.id) === String(selectedJobId)) || null,
     [jobs, selectedJobId],
   )
+
+  const selectedJobTitle = useMemo(
+    () => (selectedJob ? getLocalizedJobTitle(selectedJob, language) : null),
+    [selectedJob, language],
+  )
+
+  const localizeJobRecord = useCallback((job) => {
+    if (!job) return ''
+    return getLocalizedJobTitle(job, language) || job.title || ''
+  }, [language])
 
   const isPerformanceUnlock = candidate?.isUnlocked && candidate?.unlockType === 'scout_performance'
 
@@ -362,7 +389,7 @@ export default function ScoutCandidateDetail() {
     setActionModal({
       open: true,
       kind: 'credit-confirm',
-      title: 'Mở hồ sơ bằng Scout Credit',
+      title: cd.notices.creditConfirmTitle,
       message: '',
       noticeVariant: 'info',
     })
@@ -382,13 +409,17 @@ export default function ScoutCandidateDetail() {
           }
         }
         closeActionModal()
-        openNoticeModal('Đã mở hồ sơ', res.message || 'Bạn có thể xem email, SĐT và thông tin liên hệ đầy đủ.', 'success')
+        openNoticeModal(
+          cd.notices.unlockSuccessTitle,
+          res.message || cd.notices.unlockSuccessBody,
+          'success',
+        )
       } else {
-        openNoticeModal('Mở hồ sơ thất bại', res?.message || 'Không thể mở liên hệ ứng viên.', 'error')
+        openNoticeModal(cd.notices.unlockFailTitle, res?.message || cd.notices.unlockFailBody, 'error')
       }
     } catch (e) {
       console.error(e)
-      openNoticeModal('Mở hồ sơ thất bại', 'Không thể mở liên hệ ứng viên. Vui lòng thử lại.', 'error')
+      openNoticeModal(cd.notices.unlockFailTitle, cd.notices.unlockFailRetry, 'error')
     } finally {
       setUnlocking(false)
     }
@@ -404,7 +435,7 @@ export default function ScoutCandidateDetail() {
     setActionModal({
       open: true,
       kind: 'performance-confirm',
-      title: 'Mở hồ sơ bằng Scout Performance',
+      title: cd.notices.performanceConfirmTitle,
       message: '',
       noticeVariant: 'info',
     })
@@ -494,15 +525,15 @@ export default function ScoutCandidateDetail() {
           wantsSimilarCandidates: !!req?.wantsSimilarCandidates,
           nominationCreated: !!nomination,
           nominationAlreadyExists: !!nomination?.alreadyExists,
-          nominationJobTitle: nomination?.job?.title || selectedJob?.title || '',
+          nominationJobTitle: localizeJobRecord(nomination?.job || selectedJob),
         })
         loadCandidate()
       } else {
-        openNoticeModal('Gửi yêu cầu thất bại', res?.message || 'Không thể gửi yêu cầu Scout Performance.', 'error')
+        openNoticeModal(cd.notices.requestFailedTitle, res?.message || cd.notices.performanceFailBody, 'error')
       }
     } catch (e) {
       console.error(e)
-      openNoticeModal('Gửi yêu cầu thất bại', 'Không thể gửi yêu cầu Scout Performance. Vui lòng thử lại.', 'error')
+      openNoticeModal(cd.notices.requestFailedTitle, cd.notices.performanceFailRetry, 'error')
     } finally {
       setPerformanceRequesting(false)
     }
@@ -515,19 +546,30 @@ export default function ScoutCandidateDetail() {
       const res = await apiService.attachScoutCandidateToJob(candidate.id, { jobId, note })
       if (res?.success) {
         setAttachJobOpen(false)
+        const jobTitle = localizeJobRecord(res.data?.job)
         openNoticeModal(
-          res.data?.alreadyExists ? 'Đã có đơn tiến cử' : 'Đã tạo đơn tiến cử',
-          res.message || (res.data?.alreadyExists
-            ? `Ứng viên đã có đơn tiến cử cho JD "${res.data?.job?.title || ''}".`
-            : `Đã tạo đơn tiến cử cho hồ sơ này vào JD "${res.data?.job?.title || ''}".`),
+          cd.notices.nominationCreatedTitle,
+          res.message || cd.notices.nominationCreatedBody(jobTitle),
           'success',
         )
       } else {
-        openNoticeModal('Tạo đơn tiến cử thất bại', res?.message || 'Không thể tạo đơn tiến cử.', 'error')
+        openNoticeModal(cd.notices.nominationFailTitle, res?.message || cd.notices.nominationFailBody, 'error')
       }
     } catch (e) {
+      const existing = e?.data?.data?.existingApplication
+      if (e?.status === 409 && e?.data?.code === 'NOMINATION_ALREADY_EXISTS' && existing) {
+        setAttachJobOpen(false)
+        const jobTitle = localizeJobRecord(existing.job)
+        const detail = buildExistingNominationNoticeBody(existing, language)
+        openNoticeModal(
+          cd.notices.nominationExistsTitle,
+          [e.message || cd.notices.nominationExistsBody(jobTitle), detail].filter(Boolean).join('\n\n'),
+          'info',
+        )
+        return
+      }
       console.error(e)
-      openNoticeModal('Tạo đơn tiến cử thất bại', 'Không thể tạo đơn tiến cử.', 'error')
+      openNoticeModal(cd.notices.nominationFailTitle, e?.message || cd.notices.nominationFailBody, 'error')
     } finally {
       setAttachJobLoading(false)
     }
@@ -561,11 +603,11 @@ export default function ScoutCandidateDetail() {
         } : prev))
         goToWsChat(sessionId || res.data?.request?.sessionId)
       } else {
-        openNoticeModal('Gửi yêu cầu thất bại', res?.message || 'Không thể gửi yêu cầu tìm ứng viên tương tự.', 'error')
+        openNoticeModal(cd.notices.requestFailedTitle, res?.message || cd.notices.similarFailBody, 'error')
       }
     } catch (e) {
       console.error(e)
-      openNoticeModal('Gửi yêu cầu thất bại', 'Không thể gửi yêu cầu tìm ứng viên tương tự.', 'error')
+      openNoticeModal(cd.notices.requestFailedTitle, cd.notices.similarFailBody, 'error')
     } finally {
       setPerformanceRequesting(false)
     }
@@ -598,15 +640,15 @@ export default function ScoutCandidateDetail() {
     try {
       const count = await downloadScoutOriginalCvFiles(apiService, candidate.id)
       openNoticeModal(
-        'Đã bắt đầu tải CV',
-        count > 1 ? `Đang tải ${count} file CV gốc.` : 'Đang tải file CV gốc.',
+        cd.notices.cvDownloadStartedTitle,
+        count > 1 ? cd.notices.cvDownloadingMany(count) : cd.notices.cvDownloadingOne,
         'success',
       )
     } catch (e) {
       if (e?.code === 'NO_ORIGINAL_CV' || e?.message === 'NO_ORIGINAL_CV') {
-        openNoticeModal('Không có CV gốc', 'Hồ sơ này chưa có file CV gốc để tải.', 'error')
+        openNoticeModal(cd.notices.cvNoFileTitle, cd.notices.cvNoFileBody, 'error')
       } else {
-        openNoticeModal('Tải CV thất bại', e?.message || 'Không thể tải CV gốc. Vui lòng thử lại.', 'error')
+        openNoticeModal(cd.notices.cvDownloadFailTitle, e?.message || cd.notices.cvDownloadFailBody, 'error')
       }
     } finally {
       setDownloadingCv(false)
@@ -622,56 +664,57 @@ export default function ScoutCandidateDetail() {
   return (
     <>
       <style>{detailPageStyles}</style>
-      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#f4f6f8]" style={{ fontFamily: PAGE_FONT }}>
-        <div className="w-full shrink-0 border-b border-slate-200/80 bg-white px-3 py-2.5 sm:px-4">
+      <div className="business-homepage-shell scout-candidate-detail-shell flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#f4f6f8]">
+        <div className="business-homepage-ui business-app-ui flex h-full min-h-0 w-full flex-col overflow-hidden">
+          <div className="w-full shrink-0 border-b border-slate-200/80 bg-white px-4 py-2.5 sm:px-5 sm:py-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => navigate(backToScoutUrl)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              className={`inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-600 hover:bg-slate-50 ${BUSINESS_HP_TEXT.button}`}
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Quay lại Scout
+              {cd.backToScout}
             </button>
             <a
               href={backToScoutUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-medium text-[#0077B6] hover:underline"
+              className={`inline-flex items-center gap-1 text-[#0077B6] hover:underline ${BUSINESS_HP_TEXT.link}`}
             >
-              Mở danh sách Scout
+              {cd.openScoutList}
               <ExternalLink className="h-3 w-3" />
             </a>
           </div>
-        </div>
+          </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-2.5 sm:p-3 lg:p-4">
+          <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4 lg:p-5">
           {loading && !candidate ? (
             <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-20 text-slate-500">
               <Loader2 className="h-5 w-5 animate-spin text-[#0077B6]" />
-              <span className="text-sm">Đang tải hồ sơ...</span>
+              <span className={BUSINESS_HP_TEXT.bodyLg}>{cd.loadingProfile}</span>
             </div>
           ) : error || !candidate ? (
             <div className="w-full rounded-xl border border-slate-200 bg-white px-6 py-12 text-center">
-              <p className="text-sm font-semibold text-slate-800">{error || 'Không tìm thấy hồ sơ'}</p>
+              <p className={`font-semibold text-slate-800 ${BUSINESS_HP_TEXT.bodyLg}`}>{error || cd.notFound}</p>
               <button
                 type="button"
                 onClick={() => navigate(backToScoutUrl)}
-                className="mt-4 rounded-lg bg-[#0077B6] px-4 py-2 text-xs font-semibold text-white hover:bg-[#006399]"
+                className={`mt-4 rounded-lg bg-[#0077B6] px-4 py-2 text-white hover:bg-[#006399] ${BUSINESS_HP_TEXT.buttonPrimary}`}
               >
-                Về danh sách Scout
+                {cd.backToList}
               </button>
             </div>
           ) : (
-            <div className="scout-detail-ui flex w-full flex-col gap-3 lg:gap-4">
+            <div className="scout-detail-ui flex w-full flex-col gap-4 lg:gap-5">
               {(performanceDetailLoading) && (
-                <div className="scout-detail-caption text-slate-500">Đang tải gợi ý WS...</div>
+                <div className="scout-detail-caption text-slate-500">{cd.loadingWsSuggestions}</div>
               )}
 
               {performanceDetail?.recommendations?.length > 0 && (
                 <div className="w-full rounded-xl border border-blue-100 bg-[#e8f4fa] p-3 sm:p-4">
                   <div className="scout-detail-title mb-2 text-[#006399]">
-                    Gợi ý từ JobShare WS ({performanceDetail.recommendations.length})
+                    {cd.wsSuggestions(performanceDetail.recommendations.length)}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {performanceDetail.recommendations.map((rec) => {
@@ -717,9 +760,9 @@ export default function ScoutCandidateDetail() {
                   || (candidate.unlockType === 'scout_performance' && !candidate.performanceContactReleased)
                 }
                 matchScore={selectedJobMatchScore}
-                matchJobTitle={selectedJob?.title || null}
+                matchJobTitle={selectedJobTitle}
                 accessLabel={candidate.isUnlocked
-                  ? (isPerformanceUnlock ? 'Hồ sơ đã mở — Scout Ủy Thác' : 'Hồ sơ đã mở — thông tin đầy đủ')
+                  ? (isPerformanceUnlock ? cd.accessLabelPerformance : cd.accessLabelCredit)
                   : undefined}
                 accessLabelColor={isPerformanceUnlock ? '#0077B6' : '#047857'}
               />
@@ -739,17 +782,17 @@ export default function ScoutCandidateDetail() {
                       <ScoutUnlockOptionCard
                         icon={Unlock}
                         iconWrapClass="bg-[#f3e8ff]"
-                        title="Scout Trực Tiếp"
-                        subtitle={`Credit hiện có: ${credit}`}
-                        description="Dùng credit để mở ngay email, SĐT và thông tin liên hệ."
+                        title={cd.creditCard.title}
+                        subtitle={cd.creditCard.subtitle(credit)}
+                        description={cd.creditCard.description}
                         footer={(
                           <div className="flex items-baseline gap-1">
-                            <div className="scout-detail-title text-lg text-slate-800">{scoutCreditCost}</div>
-                            <div className="scout-detail-body font-semibold text-slate-500">credit</div>
+                            <div className="biz-hp-stat text-slate-800">{scoutCreditCost}</div>
+                            <div className="scout-detail-body font-semibold text-slate-500">{cd.creditCard.creditUnit}</div>
                           </div>
                         )}
-                        buttonLabel="Mở liên hệ ứng viên"
-                        loadingLabel="Đang mở..."
+                        buttonLabel={cd.creditCard.button}
+                        loadingLabel={cd.creditCard.opening}
                         onClick={handleUnlockClick}
                         disabled={credit < scoutCreditCost}
                         loading={unlocking}
@@ -766,20 +809,20 @@ export default function ScoutCandidateDetail() {
                     <div className="flex h-full flex-col">
                       <ScoutUnlockOptionCard
                         icon={Users}
-                        title="Scout Ủy Thác"
-                        subtitle="Nhờ WS tiếp cận thay bạn"
-                        description="WS chủ động tiếp cận ứng viên, xác nhận mức độ quan tâm và hỗ trợ kết nối phù hợp."
+                        title={cd.managedCard.title}
+                        subtitle={cd.managedCard.subtitle}
+                        description={cd.managedCard.description}
                         footer={(
                           <p className="scout-detail-caption font-semibold text-slate-500">
-                            Không tốn credit. Phí tuyển dụng tương ứng với kinh nghiệm và năng lực của ứng viên
+                            {cd.managedCard.footer}
                           </p>
                         )}
                         buttonLabel={
                           candidate?.unlockType === 'scout_performance'
-                            ? 'Đã gửi yêu cầu WS'
-                            : 'Uỷ thác WS tiếp cận ứng viên (Recommend)'
+                            ? cd.managedCard.sent
+                            : cd.managedCard.button
                         }
-                        loadingLabel="Đang gửi yêu cầu..."
+                        loadingLabel={cd.managedCard.sending}
                         onClick={handlePerformanceRequestClick}
                         disabled={
                           (candidate?.isUnlocked && candidate?.unlockType !== 'scout_performance')
@@ -798,14 +841,14 @@ export default function ScoutCandidateDetail() {
               ) : null}
 
               {showManagedSoftPromo ? (
-                <div className="w-full rounded-lg border border-slate-100 bg-slate-50/90 px-3 py-2.5 text-xs text-slate-600">
-                  Chưa tự tin tự liên hệ ứng viên?{' '}
+                <div className={`w-full rounded-lg border border-slate-100 bg-slate-50/90 px-3 py-2.5 text-slate-600 ${BUSINESS_HP_TEXT.body}`}>
+                  {cd.softPromo.text}{' '}
                   <button
                     type="button"
                     onClick={handlePerformanceRequestClick}
                     className="font-semibold text-[#0077B6] underline decoration-[#0077B6]/30 underline-offset-2 hover:text-[#006399]"
                   >
-                    Nhờ WS hỗ trợ tiếp cận →
+                    {cd.softPromo.cta}
                   </button>
                 </div>
               ) : null}
@@ -823,13 +866,13 @@ export default function ScoutCandidateDetail() {
                     className="scout-detail-body w-full rounded-xl bg-[#0077B6] py-3 font-bold text-white hover:bg-[#006399] disabled:cursor-not-allowed disabled:bg-slate-300"
                   >
                     {performanceRequesting
-                      ? 'Đang gửi yêu cầu...'
+                      ? cd.stickyManaged.sending
                       : candidate?.unlockType === 'scout_performance'
-                        ? 'Đã gửi yêu cầu WS'
-                        : 'Ủy thác WS'}
+                        ? cd.stickyManaged.sent
+                        : cd.stickyManaged.button}
                   </button>
                   <p className="scout-detail-caption mt-1.5 text-center text-slate-500">
-                    Không tốn Credit · Phí giới thiệu khi tuyển thành công
+                    {cd.stickyManaged.hint}
                   </p>
                 </div>
               ) : null}
@@ -842,11 +885,13 @@ export default function ScoutCandidateDetail() {
                     disabled={credit < scoutCreditCost || unlocking}
                     className="scout-detail-body w-full rounded-xl bg-[#0077B6] py-3 font-bold text-white hover:bg-[#006399] disabled:cursor-not-allowed disabled:bg-[#94c5e0]"
                   >
-                    {unlocking ? 'Đang mở...' : `Mở thông tin liên hệ – ${scoutCreditCost} Credit`}
+                    {unlocking ? cd.stickyCredit.opening : cd.stickyCredit.unlock(scoutCreditCost)}
                   </button>
                   <p className="scout-detail-caption mt-1.5 text-center text-slate-500">
-                    Số dư: {credit} credit
-                    {credit >= scoutCreditCost ? ` · Còn lại sau mở: ${credit - scoutCreditCost}` : ' · Chưa đủ credit'}
+                    {cd.stickyCredit.balance(credit)}
+                    {credit >= scoutCreditCost
+                      ? cd.stickyCredit.remaining(credit - scoutCreditCost)
+                      : cd.stickyCredit.insufficient}
                   </p>
                 </div>
               ) : null}
@@ -855,7 +900,7 @@ export default function ScoutCandidateDetail() {
                 <div className="w-full rounded-xl border border-emerald-100 bg-[#ecfdf5] p-3 sm:p-4">
                   <div className="scout-detail-title mb-2 flex items-center gap-1.5 text-[#047857]">
                     <Check {...SCOUT_DETAIL_ICON_MD} color="#047857" aria-hidden />
-                    Đã mở hồ sơ bằng Scout Trực Tiếp
+                    {cd.unlockedCredit.title}
                   </div>
                   <div className="flex flex-col gap-1.5 sm:flex-row">
                     <button
@@ -863,7 +908,7 @@ export default function ScoutCandidateDetail() {
                       onClick={() => setAttachJobOpen(true)}
                       className="scout-detail-body flex-1 rounded-lg bg-[#0077B6] py-2 font-semibold text-white hover:bg-[#006399]"
                     >
-                      Tạo đơn tiến cử cho hồ sơ này
+                      {cd.unlockedCredit.createNomination}
                     </button>
                     <button
                       type="button"
@@ -876,14 +921,14 @@ export default function ScoutCandidateDetail() {
                       ) : (
                         <Download className="h-3.5 w-3.5" />
                       )}
-                      {downloadingCv ? 'Đang tải...' : 'Tải CV gốc'}
+                      {downloadingCv ? cd.unlockedCredit.downloading : cd.unlockedCredit.downloadCv}
                     </button>
                     <button
                       type="button"
                       onClick={() => navigate('/business/applications')}
                       className="scout-detail-body flex-1 rounded-lg border border-slate-200 py-2 font-semibold text-slate-700 hover:bg-slate-50"
                     >
-                      Xem Quản lý tiến cử
+                      {cd.unlockedCredit.viewApplications}
                     </button>
                   </div>
                 </div>
@@ -893,7 +938,7 @@ export default function ScoutCandidateDetail() {
                 <div className="w-full rounded-xl border border-blue-100 bg-[#e8f4fa] p-3 sm:p-4">
                   <div className="scout-detail-title mb-2 flex items-center gap-1.5 text-[#006399]">
                     <Check {...SCOUT_DETAIL_ICON_MD} color="#006399" aria-hidden />
-                    Scout Ủy Thác — đang theo dõi tiến độ
+                    {cd.unlockedPerformance.title}
                   </div>
                   <div className="flex flex-col gap-1.5 sm:flex-row">
                     <button
@@ -901,7 +946,7 @@ export default function ScoutCandidateDetail() {
                       onClick={() => navigate('/business/applications')}
                       className="scout-detail-body flex-1 rounded-lg bg-[#0077B6] py-2 font-semibold text-white hover:bg-[#006399]"
                     >
-                      Quản lý ứng viên
+                      {cd.unlockedPerformance.manageApplications}
                     </button>
                     {candidate.performanceContactReleased ? (
                       <button
@@ -915,11 +960,11 @@ export default function ScoutCandidateDetail() {
                         ) : (
                           <Download className="h-3.5 w-3.5" />
                         )}
-                        {downloadingCv ? 'Đang tải...' : 'Tải CV gốc'}
+                        {downloadingCv ? cd.unlockedCredit.downloading : cd.unlockedCredit.downloadCv}
                       </button>
                     ) : (
                       <p className="scout-detail-caption flex flex-1 items-center text-slate-600">
-                        Liên hệ & CV sẽ mở sau khi WS tiến cử vào JD.
+                        {cd.unlockedPerformance.contactLocked}
                       </p>
                     )}
                   </div>
@@ -927,6 +972,7 @@ export default function ScoutCandidateDetail() {
               )}
             </div>
           )}
+          </div>
         </div>
       </div>
 
@@ -1030,10 +1076,10 @@ export default function ScoutCandidateDetail() {
         }
         confirmLabel={
           actionModal.kind === 'similar-candidates-prompt'
-            ? 'Có'
-            : 'Xác nhận'
+            ? cd.actionModal.yes
+            : cd.actionModal.confirm
         }
-        cancelLabel={actionModal.kind === 'similar-candidates-prompt' ? 'Không' : 'Hủy'}
+        cancelLabel={actionModal.kind === 'similar-candidates-prompt' ? cd.actionModal.no : cw.cancel}
       />
     </>
   )

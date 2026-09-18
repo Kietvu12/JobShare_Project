@@ -15,6 +15,7 @@ import {
   isNominationIntroMessage,
 } from '../../utils/nominationIntroMessage.js';
 import { textMayContainPhoneNumber } from '../../utils/chatPhoneDetect.js';
+import { BUSINESS_HP_TEXT } from '../../utils/businessHomepageTypography';
 
 /** Đồng bộ logic folder với NominationDetailContent (cvPath → snapshot gốc / template) */
 function parseNominationCvPath(cvPath) {
@@ -133,14 +134,14 @@ function isInterviewReminderContent(text) {
 
 function EmbeddedChatEvent({ icon: Icon, children, createdAt, formatDate }) {
   return (
-    <div className="flex w-full justify-center py-0.5">
-      <div className="w-full max-w-[min(100%,300px)] rounded-lg border border-slate-200/90 bg-slate-50 px-2.5 py-2">
-        <div className="flex items-start gap-1.5 text-[11px] leading-snug text-slate-700">
-          {Icon ? <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0077B6]" aria-hidden /> : null}
+    <div className="flex w-full justify-center py-1">
+      <div className={`w-full max-w-[min(100%,320px)] rounded-lg border border-slate-200/90 bg-slate-50 px-3 py-2.5 ${BUSINESS_HP_TEXT.body}`}>
+        <div className="flex items-start gap-2 leading-snug text-slate-700">
+          {Icon ? <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#0077B6]" aria-hidden /> : null}
           <div className="min-w-0 flex-1 whitespace-pre-wrap text-left">{children}</div>
         </div>
         {createdAt && formatDate ? (
-          <p className="mt-1 text-right text-[10px] text-slate-400">{formatDate(createdAt)}</p>
+          <p className={`mt-1.5 text-right text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>{formatDate(createdAt)}</p>
         ) : null}
       </div>
     </div>
@@ -168,6 +169,8 @@ const NominationChat = ({
   onOpenInfoPanel,
   /** Nhúng trong panel cố định chiều cao (Sàn CTV) — không đẩy scroll trang */
   embeddedPanel = false,
+  /** embeddedPanel: ẩn tiêu đề lặp (trang Tin nhắn DN đã có toolbar) */
+  hideEmbeddedHeader = false,
   /** Doanh nghiệp: không đổi trạng thái tự do — dùng CTA theo bước trên màn quản lý ứng viên */
   disableBusinessFreeStatusChange = false,
   /** default | subtle | hidden — thanh SĐT WS */
@@ -1009,17 +1012,19 @@ const NominationChat = ({
   return (
     <div
       className={`flex h-full min-h-0 flex-col overflow-hidden ${
+        embeddedBusiness ? 'business-app-ui nomination-chat-embedded' : ''
+      } ${
         embeddedPanel
           ? 'rounded-none border-0 shadow-none'
           : 'rounded-2xl border shadow-sm sm:rounded-lg'
       }`}
       style={{ backgroundColor: 'white', borderColor: embeddedPanel ? 'transparent' : CARD_BORDER }}
     >
-      {embeddedPanel ? (
-        <div className="shrink-0 border-b border-slate-100 bg-white px-3 py-2">
-          <p className="truncate text-xs font-semibold text-slate-900">{mobileHeaderName || t.chatTitle}</p>
+      {embeddedPanel && !hideEmbeddedHeader ? (
+        <div className={`shrink-0 border-b border-slate-100 bg-white ${embeddedBusiness ? 'px-3.5 py-2.5 sm:px-4' : 'px-3 py-2'}`}>
+          <p className={`truncate font-semibold text-slate-900 ${embeddedBusiness ? BUSINESS_HP_TEXT.bodyLg : 'text-xs'}`}>{mobileHeaderName || t.chatTitle}</p>
           {introJobTitle && introJobTitle !== '—' ? (
-            <p className="truncate text-[10px] text-slate-500">{introJobTitle}</p>
+            <p className={`truncate text-slate-500 ${embeddedBusiness ? BUSINESS_HP_TEXT.caption : 'text-[10px]'}`}>{introJobTitle}</p>
           ) : null}
         </div>
       ) : null}
@@ -1378,8 +1383,8 @@ const NominationChat = ({
           <div
             ref={messagesContainerRef}
             onScroll={handleMessagesScroll}
-            className={`relative z-[1] min-h-0 flex-1 overflow-y-auto overscroll-contain p-2.5 sm:p-3 ${
-              embeddedPanel ? 'space-y-2 bg-slate-50/40' : 'space-y-3 min-h-[220px] sm:min-h-[200px]'
+            className={`relative z-[1] min-h-0 flex-1 overflow-y-auto overscroll-contain ${
+              embeddedBusiness ? 'space-y-2.5 bg-slate-50/40 p-3 sm:p-3.5' : embeddedPanel ? 'space-y-2 bg-slate-50/40 p-2.5 sm:p-3' : 'space-y-3 min-h-[220px] sm:min-h-[200px] p-2.5 sm:p-3'
             }`}
           >
             {loading ? (
@@ -1389,9 +1394,9 @@ const NominationChat = ({
             ) : (
               <>
                 {visibleMessages.length === 0 && (
-                  <p className="py-10 text-center text-sm text-slate-500">
+                  <p className={`py-10 text-center text-slate-500 ${embeddedBusiness ? BUSINESS_HP_TEXT.body : 'text-sm'}`}>
                     {userType === 'business' && embeddedPanel
-                      ? 'Chưa có tin nhắn. Bắt đầu trao đổi về ứng viên này.'
+                      ? (t.chatEmptyNominationBusiness || t.chatNoMessages)
                       : t.chatNoMessages}
                   </p>
                 )}
@@ -1572,7 +1577,7 @@ const NominationChat = ({
                       className={`flex w-full items-end gap-1.5 ${isSender ? 'justify-end' : 'justify-start'}`}
                     >
                       {!isSender && (
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-[10px] font-bold text-slate-700 ring-2 ring-white">
+                        <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 font-bold text-slate-700 ring-2 ring-white ${embeddedBusiness ? `h-9 w-9 ${BUSINESS_HP_TEXT.caption}` : 'h-8 w-8 text-[10px]'}`}>
                           {getMessageAvatar(message) ? (
                             <img src={getMessageAvatar(message)} alt={senderAdminName} className="h-full w-full object-cover" />
                           ) : (
@@ -1581,15 +1586,15 @@ const NominationChat = ({
                         </div>
                       )}
                       <div
-                        className={`rounded-2xl px-3 py-2 ${
-                          embeddedBusiness ? 'max-w-[88%] text-[11px]' : 'max-w-[78%] sm:max-w-[72%]'
+                        className={`rounded-2xl ${
+                          embeddedBusiness ? `max-w-[88%] px-3.5 py-2.5 ${BUSINESS_HP_TEXT.body}` : 'max-w-[78%] px-3 py-2 sm:max-w-[72%]'
                         }`}
                         style={cardStyle}
                       >
                         {messageDisplayContent !== '[Attachment]' && (
                           <LinkifiedText
                             text={messageDisplayContent}
-                            className="text-xs whitespace-pre-wrap font-medium"
+                            className={`whitespace-pre-wrap font-medium ${embeddedBusiness ? BUSINESS_HP_TEXT.body : 'text-xs'}`}
                             style={{ color: isSender ? '#ffffff' : '#050505' }}
                             linkStyle={{
                               color: isSender ? '#dbeafe' : '#2563eb',
@@ -1637,7 +1642,7 @@ const NominationChat = ({
                             );
                           })()
                         )}
-                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] leading-tight opacity-80" style={{ color: isSender ? 'rgba(255,255,255,0.85)' : '#65676b' }}>
+                        <div className={`mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 leading-tight opacity-80 ${embeddedBusiness ? BUSINESS_HP_TEXT.caption : 'text-[10px]'}`} style={{ color: isSender ? 'rgba(255,255,255,0.85)' : '#65676b' }}>
                           <span className="whitespace-nowrap">{sentAtLabel}</span>
                           {userType === 'admin' && <span className="whitespace-nowrap">{senderLabel}</span>}
                           {userType === 'admin' && isAdminMessage && <span className="whitespace-nowrap">{formatCtvSeenLabel(message.isReadByCollaborator)}</span>}
@@ -1663,7 +1668,7 @@ const NominationChat = ({
       {showPhoneNotice ? (
         <div
           className={`shrink-0 rounded-lg border px-2.5 py-1.5 leading-snug text-amber-900 ${
-            embeddedPanel ? 'mx-2.5 mb-1.5 border-amber-100 bg-amber-50/90 text-[10px]' : 'mx-2 mb-1 px-3 py-2 text-xs sm:mx-4'
+            embeddedBusiness ? `mx-3 mb-2 border-amber-100 bg-amber-50/90 px-3 py-2 ${BUSINESS_HP_TEXT.caption}` : embeddedPanel ? 'mx-2.5 mb-1.5 border-amber-100 bg-amber-50/90 text-[10px]' : 'mx-2 mb-1 px-3 py-2 text-xs sm:mx-4'
           }`}
         >
           {t.chatContactInfoNotice}
@@ -1671,7 +1676,7 @@ const NominationChat = ({
       ) : null}
       <form
         onSubmit={handleSendMessage}
-        className={`shrink-0 border-t bg-white ${embeddedPanel ? 'sticky bottom-0 z-10 px-2.5 py-2 shadow-[0_-2px_8px_rgba(15,23,42,0.04)] sm:px-3' : 'px-2 py-1.5 sm:p-4'}`}
+        className={`shrink-0 border-t bg-white ${embeddedBusiness ? 'sticky bottom-0 z-10 px-3 py-2.5 shadow-[0_-2px_8px_rgba(15,23,42,0.04)] sm:px-3.5 sm:py-3' : embeddedPanel ? 'sticky bottom-0 z-10 px-2.5 py-2 shadow-[0_-2px_8px_rgba(15,23,42,0.04)] sm:px-3' : 'px-2 py-1.5 sm:p-4'}`}
         style={{ borderColor: CARD_BORDER }}
       >
         {selectedAttachment && (
@@ -1697,7 +1702,7 @@ const NominationChat = ({
             type="button"
             onClick={() => attachmentInputRef.current?.click()}
             className={`flex shrink-0 items-center justify-center rounded-lg border ${
-              embeddedPanel ? 'h-10 w-10' : 'h-8 w-8 rounded-full sm:h-auto sm:w-auto sm:rounded-xl sm:px-3 sm:py-2'
+              embeddedBusiness ? 'h-11 w-11' : embeddedPanel ? 'h-10 w-10' : 'h-8 w-8 rounded-full sm:h-auto sm:w-auto sm:rounded-xl sm:px-3 sm:py-2'
             }`}
             style={{ borderColor: '#e5e7eb', color: '#64748b', backgroundColor: '#fff' }}
             disabled={sending}
@@ -1751,15 +1756,17 @@ const NominationChat = ({
             placeholder={t.chatMessagePlaceholder}
             rows={1}
             className={`flex-1 resize-none box-border focus:outline-none focus:ring-2 focus:ring-[#0077B6]/20 ${
-              embeddedPanel
-                ? 'h-10 min-h-10 max-h-10 rounded-lg px-3 py-0 text-[13px] leading-10'
-                : 'min-h-8 rounded-full px-3 py-2.5 text-sm sm:rounded-xl'
+              embeddedBusiness
+                ? `h-11 min-h-11 max-h-11 rounded-lg px-3.5 py-0 leading-[2.75rem] ${BUSINESS_HP_TEXT.body}`
+                : embeddedPanel
+                  ? 'h-10 min-h-10 max-h-10 rounded-lg px-3 py-0 text-[13px] leading-10'
+                  : 'min-h-8 rounded-full px-3 py-2.5 text-sm sm:rounded-xl'
             }`}
             style={{
               backgroundColor: embeddedPanel ? '#fff' : '#f8fafc',
               border: '1px solid #e5e7eb',
               color: '#111827',
-              height: embeddedPanel ? '2.5rem' : '32px',
+              height: embeddedBusiness ? '2.75rem' : embeddedPanel ? '2.5rem' : '32px',
               overflowY: embeddedPanel ? 'hidden' : 'hidden',
             }}
             disabled={sending}
@@ -1770,7 +1777,7 @@ const NominationChat = ({
             onMouseEnter={() => setHoveredSendButton(true)}
             onMouseLeave={() => setHoveredSendButton(false)}
             className={`flex shrink-0 items-center justify-center rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-              embeddedPanel ? 'h-10 w-10' : 'h-8 w-8 rounded-xl sm:h-auto sm:w-auto sm:px-4 sm:py-2'
+              embeddedBusiness ? 'h-11 w-11' : embeddedPanel ? 'h-10 w-10' : 'h-8 w-8 rounded-xl sm:h-auto sm:w-auto sm:px-4 sm:py-2'
             }`}
             style={{
               backgroundColor: hoveredSendButton ? '#006399' : '#0077B6',

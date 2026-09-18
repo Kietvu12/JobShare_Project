@@ -222,6 +222,15 @@ export const brandingI18n = {
     view: 'Xem',
     recentActivity: 'Hoạt động gần đây',
     noActivity: 'Chưa có hoạt động',
+    landingActivity: {
+      createdCompany: (title) => `Đã tạo trang giới thiệu doanh nghiệp "${title}"`,
+      createdRecruitment: (title) => `Đã tạo landing page "${title}"`,
+      published: (title) => `Landing page "${title}" đã được phát hành`,
+      paused: (title) => `Landing page "${title}" đã tạm dừng`,
+      closed: (title) => `Landing page "${title}" đã đóng`,
+      viewMilestone: (title, views) => `Landing page "${title}" vượt ${views} lượt xem`,
+      formSubmitted: (title) => `Có form ứng tuyển mới từ landing page "${title}"`,
+    },
     statusLabels: { 0: 'Nháp', 1: 'Đang hoạt động', 2: 'Tạm dừng', 3: 'Đã đóng' },
     statusStyle: {
       0: { color: '#64748b', bg: '#f1f5f9' },
@@ -380,6 +389,15 @@ export const brandingI18n = {
     view: 'View',
     recentActivity: 'Recent activity',
     noActivity: 'No activity yet',
+    landingActivity: {
+      createdCompany: (title) => `Created company intro page "${title}"`,
+      createdRecruitment: (title) => `Created landing page "${title}"`,
+      published: (title) => `Landing page "${title}" was published`,
+      paused: (title) => `Landing page "${title}" was paused`,
+      closed: (title) => `Landing page "${title}" was closed`,
+      viewMilestone: (title, views) => `Landing page "${title}" reached ${views} views`,
+      formSubmitted: (title) => `New application form from landing page "${title}"`,
+    },
     statusLabels: { 0: 'Draft', 1: 'Active', 2: 'Paused', 3: 'Closed' },
     statusStyle: {
       0: { color: '#64748b', bg: '#f1f5f9' },
@@ -538,6 +556,15 @@ export const brandingI18n = {
     view: '表示',
     recentActivity: '最近のアクティビティ',
     noActivity: 'アクティビティがありません',
+    landingActivity: {
+      createdCompany: (title) => `会社紹介ページ「${title}」を作成しました`,
+      createdRecruitment: (title) => `LP「${title}」を作成しました`,
+      published: (title) => `LP「${title}」を公開しました`,
+      paused: (title) => `LP「${title}」を一時停止しました`,
+      closed: (title) => `LP「${title}」をクローズしました`,
+      viewMilestone: (title, views) => `LP「${title}」の閲覧数が${views}を突破しました`,
+      formSubmitted: (title) => `LP「${title}」から新しい応募フォームがあります`,
+    },
     statusLabels: { 0: '下書き', 1: '公開中', 2: '一時停止', 3: 'クローズ' },
     statusStyle: {
       0: { color: '#64748b', bg: '#f1f5f9' },
@@ -672,6 +699,57 @@ export function getLandingPageStatusMeta(status, language = 'vi') {
     label: copy.statusLabels[num] || copy.statusLabels[0],
     ...(copy.statusStyle[num] || copy.statusStyle[0]),
   };
+}
+
+function extractLandingActivityPageTitle(message) {
+  if (!message || typeof message !== 'string') return '';
+  const quoted = message.match(/"([^"]+)"/);
+  if (quoted?.[1]) return quoted[1];
+  const jpQuoted = message.match(/「([^」]+)」/);
+  if (jpQuoted?.[1]) return jpQuoted[1];
+  return message.trim();
+}
+
+function extractLandingActivityViewCount(message) {
+  if (!message || typeof message !== 'string') return null;
+  const match = message.match(/vượt\s+(\d[\d,]*)/i)
+    || message.match(/reached\s+(\d[\d,]*)/i)
+    || message.match(/閲覧数が(\d[\d,]*)/)
+    || message.match(/(\d[\d,]*)\s*(?:lượt xem|views)/i);
+  if (!match?.[1]) return null;
+  const n = parseInt(String(match[1]).replace(/,/g, ''), 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Localize stored Vietnamese activity log lines using activity_type + parsed title. */
+export function localizeLandingPageActivity(activity, language = 'vi') {
+  const copy = getBrandingCopy(language);
+  const templates = copy.landingActivity;
+  const rawMessage = activity?.message || '';
+  const title = extractLandingActivityPageTitle(rawMessage);
+  const type = String(activity?.type || '').toLowerCase();
+
+  switch (type) {
+    case 'created':
+      if (/trang giới thiệu doanh nghiệp|company intro page|会社紹介ページ/i.test(rawMessage)) {
+        return templates.createdCompany(title);
+      }
+      return templates.createdRecruitment(title);
+    case 'published':
+      return templates.published(title);
+    case 'paused':
+      return templates.paused(title);
+    case 'closed':
+      return templates.closed(title);
+    case 'view_milestone': {
+      const views = extractLandingActivityViewCount(rawMessage) ?? activity?.metadata?.views ?? '—';
+      return templates.viewMilestone(title, views);
+    }
+    case 'form_submitted':
+      return templates.formSubmitted(title);
+    default:
+      return rawMessage;
+  }
 }
 
 export function formatBrandingDate(value, language = 'vi') {

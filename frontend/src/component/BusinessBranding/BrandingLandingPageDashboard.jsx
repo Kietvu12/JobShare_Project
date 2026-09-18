@@ -8,8 +8,9 @@ import {
   Building2,
 } from 'lucide-react';
 import { isCompanyBuilderContent } from '../../utils/companyLandingPageSchema';
-import { getLandingPageStatusMeta, formatBrandingDate } from '../../i18n/businessAppI18n';
+import { getLandingPageStatusMeta, formatBrandingDate, localizeLandingPageActivity } from '../../i18n/businessAppI18n';
 import { getLocalizedJobTitle } from '../../i18n/businessApp/jdBuilder';
+import { BUSINESS_HP_TEXT } from '../../utils/businessHomepageTypography.js';
 
 const BRAND = '#0077B6';
 
@@ -31,17 +32,14 @@ export default function BrandingLandingPageDashboard({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <h2 className="text-sm font-bold text-slate-900 sm:text-base">{copy.landingPagesManageTitle}</h2>
-      <p className="text-[11px] leading-snug text-slate-600 sm:text-xs">{copy.landingPagesManageSubtitle}</p>
-
       {statsEmpty && !hasPublishedPage ? (
         <div className="rounded-xl border border-dashed border-[#0077B6]/35 bg-[#e8f4fa]/60 px-4 py-4 text-center sm:text-left">
-          <p className="text-xs font-semibold text-slate-800 sm:text-sm">{copy.statsEmptyTitle}</p>
-          <p className="mt-1 text-[11px] leading-relaxed text-slate-600 sm:text-xs">{copy.statsEmptyBody}</p>
+          <p className={`font-semibold text-slate-800 ${BUSINESS_HP_TEXT.bodyLg}`}>{copy.statsEmptyTitle}</p>
+          <p className={`mt-1 leading-relaxed text-slate-600 ${BUSINESS_HP_TEXT.body}`}>{copy.statsEmptyBody}</p>
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#006399]"
+            className={`mt-3 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] px-4 py-2 text-white transition-colors hover:bg-[#006399] ${BUSINESS_HP_TEXT.buttonPrimary}`}
           >
             <Plus className="h-3.5 w-3.5" />
             {copy.statsEmptyCta}
@@ -65,9 +63,9 @@ export default function BrandingLandingPageDashboard({
                 >
                   <Icon className="h-4 w-4" style={{ color: accent ? BRAND : s.color }} />
                 </div>
-                <span className="text-[10px] font-medium leading-snug text-slate-500 sm:text-xs">{s.label}</span>
+                <span className={`font-medium leading-snug text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>{s.label}</span>
               </div>
-              <div className="text-xl font-bold tabular-nums text-slate-800">{s.value}</div>
+              <div className={`tabular-nums text-slate-800 ${BUSINESS_HP_TEXT.display}`}>{s.value}</div>
             </div>
           );
         })}
@@ -82,13 +80,13 @@ export default function BrandingLandingPageDashboard({
             >
               <Building2 className="h-5 w-5" style={{ color: BRAND }} strokeWidth={2} />
             </div>
-            <h2 className="mb-1.5 text-xs font-bold text-slate-800">{copy.companyPageTitle}</h2>
-            <p className="text-[10px] leading-snug text-slate-500">{copy.companyPageDesc}</p>
+            <h2 className={`mb-1.5 font-bold text-slate-800 ${BUSINESS_HP_TEXT.section}`}>{copy.companyPageTitle}</h2>
+            <p className={`leading-snug text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>{copy.companyPageDesc}</p>
           </div>
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="mt-4 flex w-full shrink-0 items-center justify-center gap-1 rounded-lg bg-[#0077B6] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#006399]"
+            className={`mt-4 flex w-full shrink-0 items-center justify-center gap-1 rounded-lg bg-[#0077B6] px-3 py-2 text-white transition-colors hover:bg-[#006399] ${BUSINESS_HP_TEXT.buttonPrimary}`}
           >
             <Plus className="h-3.5 w-3.5" />
             {copy.create}
@@ -97,23 +95,23 @@ export default function BrandingLandingPageDashboard({
 
         <div className="min-w-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xs font-bold text-slate-900 sm:text-sm">{copy.allLandingPages}</h2>
+            <h2 className={`font-bold text-slate-900 ${BUSINESS_HP_TEXT.section}`}>{copy.allLandingPages}</h2>
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="text-[10px] font-semibold text-[#0077B6] hover:text-[#006399] sm:text-xs"
+              className={`font-semibold text-[#0077B6] hover:text-[#006399] ${BUSINESS_HP_TEXT.link}`}
             >
               {copy.createNew}
             </button>
           </div>
 
           {displayPages.length === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-400">{copy.noLandingPages}</div>
+            <div className={`py-8 text-center text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>{copy.noLandingPages}</div>
           ) : (
             <div className="overflow-x-auto business-homepage-scroll">
-              <table className="w-full border-collapse text-xs">
+              <table className={`w-full border-collapse ${BUSINESS_HP_TEXT.body}`}>
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/80 text-[10px] uppercase tracking-wide text-slate-400">
+                  <tr className={`border-b border-slate-100 bg-slate-50/80 uppercase tracking-wide text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>
                     <th className="px-2 py-2 text-left font-semibold">{copy.tableName}</th>
                     <th className="px-2 py-2 text-left font-semibold">{copy.tableType}</th>
                     <th className="px-2 py-2 text-center font-semibold">{copy.tableViews}</th>
@@ -136,7 +134,7 @@ export default function BrandingLandingPageDashboard({
                         <td className="px-2 py-2 text-center tabular-nums text-slate-600">{p.formSubmissionsCount}</td>
                         <td className="px-2 py-2">
                           <span
-                            className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                            className={`rounded-full px-2 py-0.5 font-semibold ${BUSINESS_HP_TEXT.micro}`}
                             style={{ color: st.color, background: st.bg }}
                           >
                             {st.label}
@@ -147,7 +145,7 @@ export default function BrandingLandingPageDashboard({
                             <button
                               type="button"
                               onClick={() => openEditor(p)}
-                              className="rounded-md bg-[#e8f4fa] px-2 py-1 text-[10px] font-semibold text-[#0077B6] hover:bg-[#cce5f0]"
+                              className={`rounded-md bg-[#e8f4fa] px-2 py-1 font-semibold text-[#0077B6] hover:bg-[#cce5f0] ${BUSINESS_HP_TEXT.caption}`}
                             >
                               {copy.edit}
                             </button>
@@ -156,7 +154,7 @@ export default function BrandingLandingPageDashboard({
                                 <button
                                   type="button"
                                   onClick={() => copyPublicLink(p)}
-                                  className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-200"
+                                  className={`rounded-md bg-slate-100 px-2 py-1 font-semibold text-slate-600 hover:bg-slate-200 ${BUSINESS_HP_TEXT.caption}`}
                                 >
                                   {copy.copyLink}
                                 </button>
@@ -164,7 +162,7 @@ export default function BrandingLandingPageDashboard({
                                   href={p.publicPath}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 no-underline hover:bg-slate-200"
+                                  className={`rounded-md bg-slate-100 px-2 py-1 font-semibold text-slate-600 no-underline hover:bg-slate-200 ${BUSINESS_HP_TEXT.caption}`}
                                 >
                                   {copy.view}
                                 </a>
@@ -183,15 +181,17 @@ export default function BrandingLandingPageDashboard({
       </div>
 
       <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
-        <h2 className="mb-3 text-xs font-bold text-[#0077B6]">{copy.recentActivity}</h2>
+        <h2 className={`mb-3 font-bold text-[#0077B6] ${BUSINESS_HP_TEXT.section}`}>{copy.recentActivity}</h2>
         {activities.length === 0 ? (
-          <div className="text-xs text-slate-400">{copy.noActivity}</div>
+          <div className={BUSINESS_HP_TEXT.caption}>{copy.noActivity}</div>
         ) : (
           <div className="flex flex-col divide-y divide-slate-100">
             {activities.map((a) => (
               <div key={a.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
-                <div className="flex-1 text-xs text-slate-700">{a.message}</div>
-                <div className="shrink-0 whitespace-nowrap text-[10px] text-slate-400">
+                <div className={`flex-1 text-slate-700 ${BUSINESS_HP_TEXT.body}`}>
+                  {localizeLandingPageActivity(a, language)}
+                </div>
+                <div className={`shrink-0 whitespace-nowrap text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>
                   {formatDate(a.createdAt, language)}
                 </div>
               </div>

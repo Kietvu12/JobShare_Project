@@ -28,7 +28,7 @@ export default function ScoutInsufficientCreditModal({
     <>
       <style>{creditPricingModalStyles}</style>
       <div
-        className="credit-pricing-modal-overlay fixed inset-0 z-[120] flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-3 md:p-6"
+        className="business-app-ui credit-pricing-modal-overlay fixed inset-0 z-[120] flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-3 md:p-6"
         role="dialog"
         aria-modal="true"
         aria-labelledby="scout-insufficient-credit-title"

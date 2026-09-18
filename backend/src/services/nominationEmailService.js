@@ -1141,6 +1141,64 @@ Hotline: (+81) 8094411975（日本）/ (+84) 906130296（ベトナム）`;
     `;
 
     return emailService.sendEmail({ to, subject, text, html });
-  }
+  },
+
+  async sendCollaboratorScoutPerformanceSharedEmail({
+    to,
+    cvId,
+    cvCode,
+    candidateName,
+    companyName,
+    requestId = null,
+  }) {
+    if (!to) return { skipped: true, reason: 'missing_email' };
+
+    const safeCandidate = escapeHtml(candidateName || 'N/A');
+    const safeCode = escapeHtml(cvCode || (cvId ? String(cvId) : 'N/A'));
+    const safeCompany = escapeHtml(companyName || 'Doanh nghiệp');
+    const detailUrl = escapeHtml(
+      requestId
+        ? `${FRONTEND_URL}/agent/scout-performance?requestId=${requestId}`
+        : `${FRONTEND_URL}/agent/candidates/${cvId}`,
+    );
+
+    const detailUrlPlain = requestId
+      ? `${FRONTEND_URL}/agent/scout-performance?requestId=${requestId}`
+      : `${FRONTEND_URL}/agent/candidates/${cvId}`;
+
+    const subject = '[WS Job Share] Scout ủy thác / スカウト委託 / Managed Scout profile';
+    const text = `JobShare WS đã gửi hồ sơ ứng viên của bạn cho doanh nghiệp qua dịch vụ Scout ủy thác.
+
+Mã hồ sơ: ${cvCode || cvId || 'N/A'}
+Ứng viên: ${candidateName || 'N/A'}
+Doanh nghiệp: ${companyName || 'Doanh nghiệp'}
+
+Hồ sơ được gắn nhãn «Scout ủy thác» trên danh sách ứng viên của bạn.
+Xem chi tiết: ${detailUrlPlain}
+
+Workstation JobShare
+Email: jobshare@work-station.vn`;
+
+    const html = `
+      <div style="font-family: Arial, Helvetica, sans-serif; color: #111827; line-height: 1.55;">
+        <p style="margin: 0 0 8px;">
+          JobShare WS đã gửi hồ sơ ứng viên của bạn cho <strong>${safeCompany}</strong> qua dịch vụ <strong>Scout ủy thác</strong>.
+        </p>
+        <p style="margin: 0 0 8px;">
+          Mã hồ sơ: ${safeCode}<br/>
+          Ứng viên: ${safeCandidate}
+        </p>
+        <p style="margin: 0 0 8px;">
+          Hồ sơ được gắn nhãn «Scout ủy thác» trên danh sách ứng viên của bạn.
+        </p>
+        <p style="margin: 0;">
+          <a href="${detailUrl}" style="color: #2563eb; text-decoration: underline;">Xem chi tiết trên hệ thống</a>
+        </p>
+        <p style="margin: 14px 0 0; font-weight: 700;">Workstation JobShare</p>
+      </div>
+    `;
+
+    return emailService.sendEmail({ to, subject, text, html });
+  },
 };
 

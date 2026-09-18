@@ -211,11 +211,17 @@ export const businessScoutController = {
         jobId,
         note,
       });
+      if (data.alreadyExists) {
+        return res.status(409).json({
+          success: false,
+          code: 'NOMINATION_ALREADY_EXISTS',
+          message: 'Đã có đơn ứng tuyển tương tự cho hồ sơ và JD này.',
+          data,
+        });
+      }
       res.json({
         success: true,
-        message: data.alreadyExists
-          ? 'Ứng viên đã có đơn tiến cử cho JD này'
-          : 'Đã tạo đơn tiến cử cho hồ sơ này',
+        message: 'Đã tạo đơn tiến cử cho hồ sơ này',
         data,
       });
     } catch (error) {

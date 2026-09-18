@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "./styles/meiryo-ui.css";
 @import "./styles/cv-template-typography.css";
+@import "./styles/wjsScrollKit.css";
 @import "@fontsource/noto-sans-jp/japanese-400.css";
 @import "@fontsource/noto-sans-jp/japanese-700.css";
 

@@ -19,10 +19,14 @@ import {
 } from '../../utils/businessApplicationEvaluation'
 import { useLanguage } from '../../context/LanguageContext'
 import { getJobApplicationStatusLabelByLanguage } from '../../utils/jobApplicationStatus'
-import { getApplicationProfileReviewCopy } from '../../i18n/businessApp/applications'
+import { getApplicationDrawerCopy, getApplicationProfileReviewCopy } from '../../i18n/businessApp/applications'
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
 
-import { BUSINESS_UI_FONT } from '../../utils/businessUiFont'
+import {
+  BUSINESS_HOMEPAGE_TYPOGRAPHY_STYLES,
+  BUSINESS_HP_TEXT,
+  BUSINESS_UI_FONT,
+} from '../../utils/businessHomepageTypography.js'
 
 const BRAND = '#0077B6'
 const STATUS_SCREENING = 5
@@ -37,27 +41,26 @@ function resolveInitialDrawerTab(app) {
   return 'chat'
 }
 
-function getProfilePanelMeta(app) {
+function getProfilePanelMeta(app, drawerCopy) {
+  const access = drawerCopy?.profileAccess || {}
   if (app?.sourceType === 'scout_credit') {
     return {
-      accessLabel: 'Hồ sơ đầy đủ (Scout Credit)',
+      accessLabel: access.scoutCredit,
       accessLabelColor: BRAND,
       footerNote: null,
     }
   }
   if (app?.sourceType === 'scout_performance') {
     return {
-      accessLabel: 'Hồ sơ Scout Performance',
+      accessLabel: access.scoutPerformance,
       accessLabelColor: '#f59e0b',
       footerNote: null,
     }
   }
   return {
-    accessLabel: 'Hồ sơ đầy đủ (tiến cử Sàn CTV)',
+    accessLabel: access.ctvMarketplace,
     accessLabelColor: BRAND,
-    footerNote: app?.candidateProfile?.scoutStillLocked
-      ? 'Doanh nghiệp xem được hồ sơ nhờ tiến cử Sàn CTV. Trên Scout vẫn hiển thị khóa cho đến khi mở bằng credit.'
-      : null,
+    footerNote: app?.candidateProfile?.scoutStillLocked ? access.ctvScoutLockedNote : null,
   }
 }
 
@@ -116,6 +119,7 @@ export default function BusinessApplicationDetailDrawer({
   const [drawerTab, setDrawerTab] = useState('chat')
   const [downloadingCv, setDownloadingCv] = useState(false)
   const [cvDownloadNotice, setCvDownloadNotice] = useState('')
+  const [cvDownloadNoticeKind, setCvDownloadNoticeKind] = useState(null)
   const [evaluationUpdating, setEvaluationUpdating] = useState(false)
   const [interviewModalOpen, setInterviewModalOpen] = useState(false)
   const [interviewSaving, setInterviewSaving] = useState(false)
@@ -124,6 +128,8 @@ export default function BusinessApplicationDetailDrawer({
   const [failReason, setFailReason] = useState('')
   const [statusUpdating, setStatusUpdating] = useState(false)
   const [statusChangeError, setStatusChangeError] = useState('')
+
+  const drawerCopy = copy.applications.drawer || getApplicationDrawerCopy(language)
 
   const reviewCopy = useMemo(
     () => getApplicationProfileReviewCopy(language),
@@ -148,7 +154,10 @@ export default function BusinessApplicationDetailDrawer({
   const showProfileView = profileOnly || Boolean(selectedApp?.canViewFullProfile)
   const showChatTab = !profileOnly && selectedApp?.hasNominationChat !== false
 
-  const profileMeta = useMemo(() => getProfilePanelMeta(selectedApp), [selectedApp])
+  const profileMeta = useMemo(
+    () => getProfilePanelMeta(selectedApp, drawerCopy),
+    [selectedApp, drawerCopy],
+  )
   const profileCandidate = useMemo(
     () => buildProfileCandidate(selectedApp, selectedApp?.candidateProfile),
     [selectedApp],
@@ -247,7 +256,7 @@ export default function BusinessApplicationDetailDrawer({
       )
       if (result.skipped) return
       if (!result.success) {
-        setStatusChangeError(result.message || 'Không thể cập nhật trạng thái')
+        setStatusChangeError(result.message || drawerCopy.statusUpdateError)
         return
       }
       if (result.patch) {
@@ -255,11 +264,11 @@ export default function BusinessApplicationDetailDrawer({
       }
       handleStatusUpdated()
     } catch (e) {
-      setStatusChangeError(e?.message || 'Không thể cập nhật trạng thái')
+      setStatusChangeError(e?.message || drawerCopy.statusUpdateError)
     } finally {
       setStatusUpdating(false)
     }
-  }, [selectedApp?.id, selectedApp?.status, statusUpdating, applyApplicationPatch, handleStatusUpdated])
+  }, [selectedApp?.id, selectedApp?.status, statusUpdating, applyApplicationPatch, handleStatusUpdated, drawerCopy.statusUpdateError])
 
   const handleEvaluationChange = useCallback(async (nextEvaluation) => {
     if (!selectedApp?.id || evaluationUpdating) return
@@ -288,7 +297,7 @@ export default function BusinessApplicationDetailDrawer({
         status: STATUS_REJECTED_CLIENT,
         rejectNote: note || undefined,
       })
-      if (!res?.success) throw new Error(res?.message || 'Không thể cập nhật đánh giá')
+      if (!res?.success) throw new Error(res?.message || drawerCopy.evaluationUpdateErrorShort)
       applyApplicationPatch({
         status: STATUS_REJECTED_CLIENT,
         statusLabel: getJobApplicationStatusLabelByLanguage(STATUS_REJECTED_CLIENT, language),
@@ -299,7 +308,7 @@ export default function BusinessApplicationDetailDrawer({
       setEvaluationNotice(reviewCopy.fail)
       handleStatusUpdated()
     } catch (e) {
-      setEvaluationNotice(e?.message || 'Không thể cập nhật đánh giá.')
+      setEvaluationNotice(e?.message || drawerCopy.evaluationUpdateError)
     } finally {
       setEvaluationUpdating(false)
     }
@@ -311,6 +320,8 @@ export default function BusinessApplicationDetailDrawer({
     language,
     handleStatusUpdated,
     reviewCopy.fail,
+    drawerCopy.evaluationUpdateError,
+    drawerCopy.evaluationUpdateErrorShort,
   ])
 
   const handleInterviewScheduleSubmit = useCallback(async ({ date, time }) => {
@@ -321,7 +332,7 @@ export default function BusinessApplicationDetailDrawer({
     try {
       const dateTime = new Date(`${date}T${time}`)
       if (Number.isNaN(dateTime.getTime())) {
-        throw new Error('Ngày giờ phỏng vấn không hợp lệ')
+        throw new Error(drawerCopy.invalidInterviewDateTime)
       }
       const memo = buildInterviewReminderMemo({ date, time, language })
       const res = await apiService.updateBusinessApplicationStatus(selectedApp.id, {
@@ -329,7 +340,7 @@ export default function BusinessApplicationDetailDrawer({
         interviewDate: dateTime.toISOString(),
         memo,
       })
-      if (!res?.success) throw new Error(res?.message || 'Không thể lưu lịch phỏng vấn')
+      if (!res?.success) throw new Error(res?.message || drawerCopy.saveInterviewError)
 
       applyApplicationPatch({
         status: STATUS_WAITING_INTERVIEW,
@@ -350,13 +361,11 @@ export default function BusinessApplicationDetailDrawer({
 
       setInterviewModalOpen(false)
       setEvaluationNotice(
-        wasAlreadyPass
-          ? 'Đã cập nhật lịch phỏng vấn.'
-          : 'Đã đánh giá: Đạt — đã tạo lịch phỏng vấn.',
+        wasAlreadyPass ? drawerCopy.interviewUpdated : drawerCopy.interviewPassScheduled,
       )
       handleStatusUpdated()
     } catch (e) {
-      setEvaluationNotice(e?.message || 'Không thể lưu lịch phỏng vấn.')
+      setEvaluationNotice(e?.message || drawerCopy.saveInterviewError)
     } finally {
       setInterviewSaving(false)
     }
@@ -367,25 +376,31 @@ export default function BusinessApplicationDetailDrawer({
     applyApplicationPatch,
     language,
     handleStatusUpdated,
+    drawerCopy,
   ])
 
   const handleDownloadOriginalCv = useCallback(async () => {
     if (!selectedApp?.id || downloadingCv) return
     setCvDownloadNotice('')
+    setCvDownloadNoticeKind(null)
     setDownloadingCv(true)
     try {
       const count = await downloadApplicationOriginalCvFiles(apiService, selectedApp.id)
-      setCvDownloadNotice(count > 1 ? `Đang tải ${count} file CV gốc.` : 'Đang tải file CV gốc.')
+      setCvDownloadNotice(
+        count > 1 ? drawerCopy.cvDownloadingMany(count) : drawerCopy.cvDownloadingOne,
+      )
+      setCvDownloadNoticeKind('success')
     } catch (e) {
       if (e?.code === 'NO_ORIGINAL_CV' || e?.message === 'NO_ORIGINAL_CV') {
-        setCvDownloadNotice('Hồ sơ này chưa có file CV gốc để tải.')
+        setCvDownloadNotice(drawerCopy.cvNoFile)
       } else {
-        setCvDownloadNotice(e?.message || 'Không thể tải CV gốc. Vui lòng thử lại.')
+        setCvDownloadNotice(e?.message || drawerCopy.cvDownloadError)
       }
+      setCvDownloadNoticeKind('warning')
     } finally {
       setDownloadingCv(false)
     }
-  }, [selectedApp?.id, downloadingCv])
+  }, [selectedApp?.id, downloadingCv, drawerCopy])
 
   const canDownloadCv = Boolean(selectedApp?.canViewFullProfile || profileOnly)
 
@@ -402,10 +417,10 @@ export default function BusinessApplicationDetailDrawer({
         ) : (
           <Download className="h-3 w-3" />
         )}
-        {downloadingCv ? 'Đang tải...' : 'Tải CV gốc'}
+        {downloadingCv ? drawerCopy.downloading : drawerCopy.downloadOriginalCv}
       </button>
       {cvDownloadNotice ? (
-        <p className={`biz-ui-caption max-w-[10rem] text-right ${cvDownloadNotice.includes('Không') || cvDownloadNotice.includes('chưa') ? 'text-amber-700' : 'text-emerald-700'}`}>
+        <p className={`biz-ui-caption max-w-[10rem] text-right ${cvDownloadNoticeKind === 'warning' ? 'text-amber-700' : 'text-emerald-700'}`}>
           {cvDownloadNotice}
         </p>
       ) : null}
@@ -457,9 +472,6 @@ export default function BusinessApplicationDetailDrawer({
           ) : null}
         </div>
       </div>
-      <p className="biz-ui-caption mt-1 text-slate-500">
-        {selectedApp.statusLabel || getJobApplicationStatusLabelByLanguage(STATUS_SCREENING, language)}
-      </p>
       {evaluationNotice ? (
         <p className="biz-ui-caption mt-2 text-[#006399]">{evaluationNotice}</p>
       ) : null}
@@ -468,47 +480,39 @@ export default function BusinessApplicationDetailDrawer({
 
   const drawerHeaderBar = (
     <div className="sticky top-0 z-20 shrink-0 border-b border-slate-200 bg-white shadow-sm">
-      <div className="flex items-start gap-2 px-4 pt-3 pb-2">
-        <div className="min-w-0 flex-1">
-          <p className="biz-ui-body truncate font-bold text-slate-900">
-            {selectedApp?.candidateName || '—'}
-          </p>
-          <p className="biz-ui-caption mt-0.5 truncate text-slate-500">
-            {[selectedApp?.jobTitle, selectedApp?.jobCode].filter(Boolean).join(' · ') || '—'}
-          </p>
-        </div>
+      <div className={`relative px-4 ${isWsPreNomination ? 'py-2' : 'pb-3 pt-2'}`}>
         <button
           type="button"
           onClick={onClose}
-          className="shrink-0 rounded-lg p-1.5 transition-colors hover:bg-slate-100"
-          aria-label="Đóng"
+          className="absolute right-3 top-2 z-10 rounded-lg p-1.5 transition-colors hover:bg-slate-100"
+          aria-label={drawerCopy.close}
         >
           <X className="h-4 w-4 text-slate-500" />
         </button>
+        {!isWsPreNomination ? (
+          <div className="pr-10">
+            <label
+              htmlFor="business-application-drawer-status"
+              className="biz-ui-caption mb-1.5 block font-semibold text-slate-600"
+            >
+              {copy.applications.table.status}
+            </label>
+            <BusinessApplicationStatusSelect
+              id="business-application-drawer-status"
+              status={selectedApp?.status}
+              statusCategory={selectedApp?.statusCategory}
+              statusLabel={selectedApp?.statusLabel}
+              statusOptions={portalStatusOptions}
+              onChange={handleDrawerStatusChange}
+              updating={statusUpdating}
+              disabled={drawerLoading}
+            />
+            {statusChangeError ? (
+              <p className="biz-ui-caption mt-1.5 text-rose-600">{statusChangeError}</p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
-      {!isWsPreNomination ? (
-        <div className="border-t border-slate-100 px-4 py-3">
-          <label
-            htmlFor="business-application-drawer-status"
-            className="biz-ui-caption mb-1.5 block font-semibold text-slate-600"
-          >
-            {copy.applications.table.status}
-          </label>
-          <BusinessApplicationStatusSelect
-            id="business-application-drawer-status"
-            status={selectedApp?.status}
-            statusCategory={selectedApp?.statusCategory}
-            statusLabel={selectedApp?.statusLabel}
-            statusOptions={portalStatusOptions}
-            onChange={handleDrawerStatusChange}
-            updating={statusUpdating}
-            disabled={drawerLoading}
-          />
-          {statusChangeError ? (
-            <p className="biz-ui-caption mt-1.5 text-rose-600">{statusChangeError}</p>
-          ) : null}
-        </div>
-      ) : null}
     </div>
   )
 
@@ -517,10 +521,12 @@ export default function BusinessApplicationDetailDrawer({
   const activeTab = profileOnly ? 'profile' : drawerTab
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex bg-slate-900/40 backdrop-blur-[1px]"
-      onClick={onClose}
-    >
+    <>
+      <style>{BUSINESS_HOMEPAGE_TYPOGRAPHY_STYLES}</style>
+      <div
+        className="fixed inset-0 z-50 flex bg-slate-900/40 backdrop-blur-[1px]"
+        onClick={onClose}
+      >
       <div
         className="business-app-ui ml-auto flex h-full flex-col border-l border-slate-200 bg-white shadow-2xl"
         style={{ width: 'min(100vw, 560px)', fontFamily: BUSINESS_UI_FONT }}
@@ -537,7 +543,7 @@ export default function BusinessApplicationDetailDrawer({
                 activeTab === 'profile' ? 'border-[#0077B6] text-[#0077B6]' : 'border-transparent text-slate-500'
               }`}
             >
-              <User className="h-3.5 w-3.5" /> Hồ sơ ứng viên
+              <User className="h-3.5 w-3.5" /> {drawerCopy.tabProfile}
             </button>
             <button
               type="button"
@@ -546,7 +552,7 @@ export default function BusinessApplicationDetailDrawer({
                 activeTab === 'chat' ? 'border-[#0077B6] text-[#0077B6]' : 'border-transparent text-slate-500'
               }`}
             >
-              <MessageSquare className="h-3.5 w-3.5" /> Chat 3 bên
+              <MessageSquare className="h-3.5 w-3.5" /> {drawerCopy.tabChat}
             </button>
           </div>
         )}
@@ -561,7 +567,7 @@ export default function BusinessApplicationDetailDrawer({
 
         {drawerLoading && (
           <div className="biz-ui-caption flex items-center gap-2 border-b border-slate-100 bg-[#e8f4fa]/40 px-4 py-2 text-slate-500">
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0077B6]" /> Đang tải hồ sơ...
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0077B6]" /> {drawerCopy.loadingProfile}
           </div>
         )}
 
@@ -571,7 +577,7 @@ export default function BusinessApplicationDetailDrawer({
               <div className="flex-1 overflow-y-auto p-3 business-homepage-scroll">
                 {selectedApp.interviewDate ? (
                   <div className="mb-3 rounded-xl border border-amber-100 bg-amber-50/80 p-3">
-                    <div className="biz-ui-caption font-bold text-amber-900">Nhắc lịch phỏng vấn</div>
+                    <div className="biz-ui-caption font-bold text-amber-900">{drawerCopy.interviewReminderTitle}</div>
                     <p className="biz-ui-body mt-1 text-amber-950">
                       {formatInterviewReminderLabel(selectedApp.interviewDate, language)}
                     </p>
@@ -581,14 +587,14 @@ export default function BusinessApplicationDetailDrawer({
                         onClick={() => setInterviewModalOpen(true)}
                         className="biz-ui-caption mt-2 font-semibold text-[#0077B6] hover:underline"
                       >
-                        Sửa lịch phỏng vấn
+                        {drawerCopy.editInterviewSchedule}
                       </button>
                     ) : null}
                   </div>
                 ) : null}
                 {drawerLoading && !profileCandidate ? (
                   <div className="biz-ui-body flex items-center justify-center gap-2 py-12 text-slate-500">
-                    <Loader2 className="h-4 w-4 animate-spin text-[#0077B6]" /> Đang tải hồ sơ...
+                    <Loader2 className="h-4 w-4 animate-spin text-[#0077B6]" /> {drawerCopy.loadingProfile}
                   </div>
                 ) : (
                   <ScoutCandidateProfilePanel
@@ -611,14 +617,14 @@ export default function BusinessApplicationDetailDrawer({
               cvStorageId={selectedApp.cvStorageId || selectedApp.cvId || null}
               introCandidateName={selectedApp.candidateName || '—'}
               introJobTitle={selectedApp.jobTitle || '—'}
-              mobileHeaderName={selectedApp.candidateName || 'Chat 3 bên'}
+              mobileHeaderName={selectedApp.candidateName || drawerCopy.chatFallbackTitle}
               mobileHeaderAvatar={(selectedApp.candidateName || '?').charAt(0).toUpperCase()}
               onStatusUpdated={handleStatusUpdated}
               disableBusinessFreeStatusChange
             />
           ) : (
-            <div className="flex flex-1 items-center justify-center px-4 py-8 text-center text-xs text-slate-400">
-              Không có nội dung hiển thị.
+            <div className={`flex flex-1 items-center justify-center px-4 py-8 text-center text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>
+              {drawerCopy.emptyContent}
             </div>
           )}
         </div>
@@ -638,7 +644,7 @@ export default function BusinessApplicationDetailDrawer({
           onClick={() => !evaluationUpdating && setFailModalOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-4 shadow-xl"
+            className="business-app-ui w-full max-w-md rounded-xl border border-slate-200 bg-white p-4 shadow-xl sm:p-5"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-labelledby="profile-fail-title"
@@ -676,6 +682,7 @@ export default function BusinessApplicationDetailDrawer({
           </div>
         </div>
       ) : null}
-    </div>
+      </div>
+    </>
   )
 }

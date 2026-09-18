@@ -48,39 +48,39 @@ export function getHealthRatingBadgeClass(rating) {
 export function HealthOverviewGrid({ cards, title = 'Recruitment Health' }) {
   return (
     <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-2.5 py-1.5">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5 sm:px-5 sm:py-3">
         <h2 className="text-xs font-semibold text-slate-800 sm:text-sm">{title}</h2>
-        <span className="text-[10px] text-slate-400">Di chuột vào điểm để xem cách tính</span>
+        <span className="text-xs sm:text-sm text-slate-400">Di chuột vào điểm để xem cách tính</span>
       </div>
-      <div className="grid grid-cols-2 gap-1.5 p-1.5 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 p-3 sm:gap-2.5 sm:p-4 lg:grid-cols-4">
         {cards.map((c) => {
           const Icon = c.icon;
           const showScore = c.showScore !== false;
           return (
             <div
               key={c.label}
-              className="min-w-0 rounded-md border border-slate-100 bg-slate-50/50 p-1.5"
+              className="min-w-0 rounded-lg border border-slate-100 bg-slate-50/50 p-2.5 sm:p-3"
               title={c.tooltip || ''}
             >
               <div className="mb-0.5 flex min-w-0 items-center gap-1">
                 <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-violet-50 text-violet-600">
                   <Icon className="h-3 w-3" />
                 </div>
-                <span className="truncate text-[10px] font-medium text-slate-600">{c.label}</span>
+                <span className="truncate text-xs sm:text-sm font-medium text-slate-600">{c.label}</span>
               </div>
               {showScore ? (
                 <p className="text-sm font-bold leading-none text-indigo-600">
                   {c.score}
-                  <span className="text-[10px] font-normal text-slate-500">/100</span>
+                  <span className="text-xs sm:text-sm font-normal text-slate-500">/100</span>
                 </p>
               ) : (
-                <p className="text-[11px] font-semibold leading-snug text-slate-600">{c.scoreDisplay}</p>
+                <p className="text-xs sm:text-sm font-semibold leading-snug text-slate-600">{c.scoreDisplay}</p>
               )}
-              <span className={`mt-0.5 inline-block rounded-full px-1.5 py-px text-[10px] font-semibold ${getHealthRatingBadgeClass(c.rating)}`}>
+              <span className={`mt-0.5 inline-block rounded-full px-1.5 py-px text-xs sm:text-sm font-semibold ${getHealthRatingBadgeClass(c.rating)}`}>
                 {c.rating}
               </span>
               {c.lines?.filter(Boolean).slice(0, 2).map((line) => (
-                <p key={line} className="mt-0.5 truncate text-[10px] leading-snug text-slate-500">{line}</p>
+                <p key={line} className="mt-0.5 truncate text-xs sm:text-sm leading-snug text-slate-500">{line}</p>
               ))}
             </div>
           );
@@ -99,21 +99,21 @@ export function AiMatchOverviewCard({
 }) {
   return (
     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/80 px-2.5 py-1.5">
+      <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/80 px-4 py-2.5 sm:px-5 sm:py-3">
         <Target className="h-3.5 w-3.5 shrink-0 text-[#0077B6]" />
         <span className="text-xs font-semibold text-slate-800">AI gợi ý ứng viên</span>
-        <span className="ml-auto rounded-full bg-[#0077B6]/10 px-2 py-0.5 text-[10px] font-semibold text-[#0077B6]">
+        <span className="ml-auto rounded-full bg-[#0077B6]/10 px-2 py-0.5 text-xs sm:text-sm font-semibold text-[#0077B6]">
           Scout
         </span>
       </div>
-      <div className="min-w-0 space-y-2 p-2.5">
+      <div className="min-w-0 space-y-3 p-4 sm:p-5">
         <p className="text-xs font-semibold text-slate-900 sm:text-sm">
           {matchLoading
             ? 'Đang phân tích ứng viên phù hợp...'
             : `Có ${matchedTotal.toLocaleString('vi-VN')} hồ sơ phù hợp với JD này`}
         </p>
         {matchError ? (
-          <p className="rounded-md border border-amber-100 bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
+          <p className="rounded-md border border-amber-100 bg-amber-50 px-2 py-1 text-xs sm:text-sm text-amber-800">
             {matchError}
           </p>
         ) : null}
@@ -121,7 +121,7 @@ export function AiMatchOverviewCard({
           {matchStats.map((m) => (
             <div key={m.label} className="min-w-0 rounded-md bg-slate-50 px-1.5 py-1">
               <p className="text-sm font-bold text-slate-900">{matchLoading ? '…' : m.value}</p>
-              <p className="line-clamp-2 text-[10px] leading-snug text-slate-500">{m.label}</p>
+              <p className="line-clamp-2 text-xs sm:text-sm leading-snug text-slate-500">{m.label}</p>
             </div>
           ))}
         </div>
@@ -130,12 +130,12 @@ export function AiMatchOverviewCard({
             const Icon = item.icon;
             return (
               <div key={item.label} className="grid grid-cols-1 items-start gap-0.5 sm:grid-cols-[minmax(0,9rem)_1fr] sm:gap-2">
-                <span className="flex min-w-0 items-center gap-1 text-[10px] text-slate-500">
+                <span className="flex min-w-0 items-center gap-1 text-xs sm:text-sm text-slate-500">
                   <Icon className="h-3 w-3 shrink-0 text-slate-400" />
                   <span className="truncate">{item.label}</span>
                 </span>
                 <span
-                  className={`min-w-0 break-words text-[11px] font-medium line-clamp-2 sm:text-right ${item.valueColor ? '' : 'text-slate-800'}`}
+                  className={`min-w-0 break-words text-xs sm:text-sm font-medium line-clamp-2 sm:text-right ${item.valueColor ? '' : 'text-slate-800'}`}
                   style={item.valueColor ? { color: item.valueColor } : undefined}
                 >
                   {truncateText(item.value, 120)}
@@ -156,18 +156,18 @@ export function TopCandidatesOverview({
 }) {
   return (
     <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center gap-1.5 border-b border-slate-100 px-2.5 py-1.5">
+      <div className="flex items-center gap-1.5 border-b border-slate-100 px-4 py-2.5 sm:px-5 sm:py-3">
         <h2 className="text-xs font-semibold text-slate-800 sm:text-sm">Top ứng viên phù hợp</h2>
         <Info className="h-3 w-3 shrink-0 text-slate-300" />
       </div>
-      <div className="p-2.5">
+      <div className="p-4 sm:p-5">
         {matchLoading ? (
-          <div className="flex items-center justify-center gap-2 py-6 text-[11px] text-slate-500">
+          <div className="flex items-center justify-center gap-2 py-6 text-xs sm:text-sm text-slate-500">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Đang tải gợi ý AI...
           </div>
         ) : topCandidates.length === 0 ? (
-          <p className="py-6 text-center text-[11px] text-slate-500">Chưa có ứng viên phù hợp hoặc JD chưa đồng bộ vector.</p>
+          <p className="py-6 text-center text-xs sm:text-sm text-slate-500">Chưa có ứng viên phù hợp hoặc JD chưa đồng bộ vector.</p>
         ) : (
           <ul className="flex flex-col gap-1.5">
             {topCandidates.map((c, i) => {
@@ -184,14 +184,14 @@ export function TopCandidatesOverview({
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-xs font-semibold text-slate-900">{c.name}</p>
-                        <p className="line-clamp-1 text-[10px] text-slate-500">{truncateText(c.role, 80)}</p>
+                        <p className="line-clamp-1 text-xs sm:text-sm text-slate-500">{truncateText(c.role, 80)}</p>
                       </div>
                     </div>
-                    <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                    <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs sm:text-sm font-semibold text-emerald-700">
                       {c.match}% match
                     </span>
                   </div>
-                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500">
+                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-slate-500">
                     <span className="inline-flex items-center gap-1">
                       <Calendar className="h-3 w-3 shrink-0" />
                       {c.exp}
@@ -204,7 +204,7 @@ export function TopCandidatesOverview({
                   {tags.length > 0 ? (
                     <div className="mt-1.5 flex flex-wrap gap-1">
                       {tags.map((sk) => (
-                        <span key={sk} className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] text-slate-600">
+                        <span key={sk} className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-xs sm:text-sm text-slate-600">
                           {sk}
                         </span>
                       ))}
@@ -219,7 +219,7 @@ export function TopCandidatesOverview({
           <button
             type="button"
             onClick={onViewAll}
-            className="inline-flex items-center gap-1 rounded-lg border border-[#0077B6]/25 bg-[#0077B6]/5 px-2.5 py-1 text-[11px] font-semibold text-[#0077B6] transition-colors hover:bg-[#0077B6]/10"
+            className="inline-flex items-center gap-1 rounded-lg border border-[#0077B6]/25 bg-[#0077B6]/5 px-2.5 py-1 text-xs sm:text-sm font-semibold text-[#0077B6] transition-colors hover:bg-[#0077B6]/10"
           >
             Xem tất cả ứng viên match
             <ArrowRight className="h-3 w-3" />
@@ -235,43 +235,41 @@ const SERVICE_STATUS_IDLE = 'bg-slate-100 text-slate-600 ring-1 ring-slate-200/8
 
 export function ServicesActivityOverview({ serviceButtons, activities }) {
   return (
-    <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-      <section className="rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm">
-        <h2 className="mb-2 text-xs font-semibold text-slate-800 sm:text-sm">Dịch vụ cho JD này</h2>
-        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-2 lg:grid-cols-2 lg:items-stretch">
+      <section className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:min-h-[11rem]">
+        <h2 className="mb-3 shrink-0 text-xs font-semibold text-slate-800 sm:text-sm">Dịch vụ cho JD này</h2>
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-3 sm:items-stretch">
           {serviceButtons.map((sv) => {
-            const Icon = sv.icon;
             const active = sv.active;
             return (
               <button
                 key={sv.id}
                 type="button"
                 onClick={sv.onClick}
-                className="flex flex-col items-start gap-1.5 rounded-lg border border-slate-200 bg-slate-50/80 p-2 text-left transition hover:border-[#0077B6]/30 hover:bg-[#f8fbfd]"
+                className="flex h-full min-h-[4.75rem] flex-col justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/80 p-3 text-left transition hover:border-[#0077B6]/30 hover:bg-[#f8fbfd] sm:min-h-0"
               >
-                <div className="flex w-full items-center justify-between gap-1">
-                  <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${sv.iconBg}`}>
-                    <Icon className={`h-3.5 w-3.5 ${sv.iconColor}`} />
-                  </span>
-                  <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${active ? SERVICE_STATUS_ACTIVE : SERVICE_STATUS_IDLE}`}>
-                    {active ? 'Đang dùng' : 'Chưa dùng'}
-                  </span>
+                <span
+                  className={`self-end rounded-full px-2 py-0.5 text-xs font-bold ${active ? SERVICE_STATUS_ACTIVE : SERVICE_STATUS_IDLE}`}
+                >
+                  {active ? 'Đang dùng' : 'Chưa dùng'}
+                </span>
+                <div className="min-w-0 space-y-1">
+                  <span className="block text-xs font-semibold leading-snug text-slate-800 sm:text-sm">{sv.label}</span>
+                  {sv.hint ? (
+                    <span className="block text-xs leading-snug text-slate-500 sm:text-sm">{sv.hint}</span>
+                  ) : null}
                 </div>
-                <span className="text-[11px] font-semibold leading-snug text-slate-800">{sv.label}</span>
-                {sv.hint ? (
-                  <span className="text-[10px] leading-snug text-slate-500">{sv.hint}</span>
-                ) : null}
               </button>
             );
           })}
         </div>
       </section>
-      <section className="rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm">
-        <h2 className="mb-2 text-xs font-semibold text-slate-800 sm:text-sm">Hoạt động gần đây</h2>
+      <section className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:min-h-[11rem]">
+        <h2 className="mb-3 text-xs font-semibold text-slate-800 sm:text-sm">Hoạt động gần đây</h2>
         {activities.length === 0 ? (
-          <p className="text-[11px] text-slate-500">Chưa có hoạt động.</p>
+          <p className="flex flex-1 items-center text-xs text-slate-500 sm:text-sm">Chưa có hoạt động.</p>
         ) : (
-          <ul className="max-h-36 space-y-1.5 overflow-y-auto">
+          <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
             {activities.map((a) => {
               const Icon = a.icon;
               return (
@@ -280,9 +278,9 @@ export function ServicesActivityOverview({ serviceButtons, activities }) {
                     <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${a.iconBg}`}>
                       <Icon className={`h-3 w-3 ${a.iconColor}`} />
                     </span>
-                    <span className="text-[11px] leading-snug text-slate-600">{a.text}</span>
+                    <span className="text-xs sm:text-sm leading-snug text-slate-600">{a.text}</span>
                   </span>
-                  <span className="shrink-0 text-[10px] text-slate-400">{a.time}</span>
+                  <span className="shrink-0 text-xs sm:text-sm text-slate-400">{a.time}</span>
                 </li>
               );
             })}

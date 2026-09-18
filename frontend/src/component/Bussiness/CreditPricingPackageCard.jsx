@@ -13,6 +13,7 @@ export default function CreditPricingPackageCard({
   submittingKey = null,
   submitCopy,
   priceLocale = 'vi-VN',
+  language = 'vi',
   compact = false,
   interactive = false,
 }) {
@@ -96,7 +97,7 @@ export default function CreditPricingPackageCard({
         </p>
         {pkg.originalPriceYen ? (
           <p className="biz-ui-micro mt-1 line-through">
-            {formatYenAmount(pkg.originalPriceYen)}
+            {formatYenAmount(pkg.originalPriceYen, language)}
           </p>
         ) : null}
       </div>
@@ -139,7 +140,7 @@ export default function CreditPricingPackageCard({
       </button>
 
       <p className={`biz-ui-micro text-center font-medium ${compact ? 'mt-2.5' : 'mt-3 2xl:mt-4'}`}>
-        {formatCreditAmount(pkg.credits)}
+        {formatCreditAmount(pkg.credits, language)}
       </p>
     </article>
   );

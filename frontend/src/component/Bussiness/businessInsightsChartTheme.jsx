@@ -29,7 +29,7 @@ export const INSIGHTS_DONUT_COLORS = ['#0077B6', '#38bdf8', '#0ea5e9', '#7dd3fc'
 export const CHART_MARGIN = { top: 8, right: 12, left: 4, bottom: 0 }
 export const CHART_MARGIN_BAR = { top: 20, right: 12, left: 4, bottom: 0 }
 
-export const axisTick = { fontSize: 10, fill: '#64748b', fontFamily: 'inherit' }
+export const axisTick = { fontSize: 12, fill: '#64748b', fontFamily: 'inherit' }
 export const gridStroke = '#eef2f6'
 
 const tooltipBox = {
@@ -38,7 +38,7 @@ const tooltipBox = {
   borderRadius: 10,
   boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
   padding: '8px 10px',
-  fontSize: 11,
+  fontSize: 12,
 }
 
 export function InsightChartTooltip({ active, payload, label }) {
@@ -102,18 +102,23 @@ export function ChartLegendRow({ items, className = '' }) {
 }
 
 export function ChartPeriodPills({ value, onChange, options = ['Tuần', 'Tháng', 'Năm'] }) {
+  const normalized = options.map((opt) => (
+    typeof opt === 'object' && opt != null && 'value' in opt
+      ? opt
+      : { value: opt, label: opt }
+  ))
   return (
     <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50/80 p-0.5">
-      {options.map((opt) => (
+      {normalized.map((opt) => (
         <button
-          key={opt}
+          key={opt.value}
           type="button"
-          onClick={() => onChange?.(opt)}
-          className={`rounded-md px-2 py-0.5 text-[10px] font-semibold transition-colors sm:px-2.5 sm:py-1 sm:text-[11px] ${
-            value === opt ? 'bg-white text-[#0077B6] shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          onClick={() => onChange?.(opt.value)}
+          className={`rounded-md px-2 py-0.5 text-xs font-semibold transition-colors sm:px-2.5 sm:py-1 sm:text-sm ${
+            value === opt.value ? 'bg-white text-[#0077B6] shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          {opt}
+          {opt.label}
         </button>
       ))}
     </div>
@@ -163,12 +168,19 @@ export function TableSparkline({ values, color = INSIGHTS_BRAND, width = 72, hei
   )
 }
 
-export function InsightsTrendAreaChart({ data, height = 200 }) {
+export function InsightsTrendAreaChart({ data, height = 200, fill = false, className = '', series = INSIGHTS_SERIES }) {
   return (
-    <div className="w-full" style={{ height }}>
+    <div
+      className={
+        fill
+          ? `w-full min-h-[220px] xl:min-h-0 xl:flex-1 ${className}`.trim()
+          : `w-full ${className}`.trim()
+      }
+      style={fill ? undefined : { height }}
+    >
       <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <AreaChart data={data} margin={CHART_MARGIN}>
-          <BusinessChartGradients />
+          <BusinessChartGradients ids={series.map((s) => s.gradientId)} />
           <CartesianGrid stroke={gridStroke} vertical={false} strokeDasharray="4 4" />
           <XAxis dataKey="date" tick={axisTick} axisLine={false} tickLine={false} dy={4} />
           <YAxis
@@ -181,7 +193,7 @@ export function InsightsTrendAreaChart({ data, height = 200 }) {
             tickCount={5}
           />
           <Tooltip content={<InsightChartTooltip />} cursor={{ stroke: '#cbd5e1', strokeWidth: 1 }} />
-          {INSIGHTS_SERIES.map((s) => (
+          {series.map((s) => (
             <Area
               key={s.key}
               type="monotone"
@@ -236,7 +248,7 @@ export function InsightsDonutChart({ data, centerLabel, centerValue, height = 14
   )
 }
 
-export function InsightsBarChart({ data, dataKey = 'value', height = 168 }) {
+export function InsightsBarChart({ data, dataKey = 'value', height = 168, barLabel = 'Tuyển thành công' }) {
   return (
     <div className="w-full" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%" minWidth={0}>
@@ -248,7 +260,7 @@ export function InsightsBarChart({ data, dataKey = 'value', height = 168 }) {
           <Tooltip content={<InsightChartTooltip />} cursor={{ fill: 'rgba(0,119,182,0.06)' }} />
           <Bar
             dataKey={dataKey}
-            name="Tuyển thành công"
+            name={barLabel}
             fill="url(#insights-bar-dept)"
             radius={[8, 8, 0, 0]}
             maxBarSize={36}

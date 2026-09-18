@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Briefcase, Loader2, RotateCw, Search, X, Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import ScoutCandidateFilterFields, { SCOUT_FILTER_INPUT_CLASS } from '../Bussiness/ScoutCandidateFilterFields'
-import ScoutCandidateHoverTip from '../Bussiness/ScoutCandidateHoverTip'
+import { ScoutCandidateHoverHost } from '../Bussiness/ScoutCandidateHoverTip'
 import ScoutMatchBadge from '../Bussiness/ScoutMatchBadge'
 import FilterBlock from '../Shared/FilterBlock'
 import FilterSelectDropdown from '../Shared/FilterSelectDropdown'
@@ -83,9 +83,6 @@ const pickerStyles = `
     line-height: 1.35;
     font-weight: 600;
   }
-  .admin-scout-picker-scroll::-webkit-scrollbar { width: 5px; }
-  .admin-scout-picker-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-  .admin-scout-picker-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
   .scout-search-highlight {
     background-color: #fef08a !important;
     color: #92400e !important;
@@ -93,11 +90,11 @@ const pickerStyles = `
     border-radius: 2px;
     font-weight: 600;
   }
-  .admin-scout-picker-scroll .group:last-child .scout-candidate-hover-tip {
+  .admin-scout-picker-scroll .group:last-child .scout-candidate-hover-tip-anchor {
     top: auto;
     bottom: 100%;
-    margin-top: 0;
-    margin-bottom: 0.25rem;
+    padding-top: 0;
+    padding-bottom: 0.25rem;
   }
 `
 
@@ -174,7 +171,13 @@ function AdminScoutCandidatePickerRow({
   ].filter((chip) => !isScoutEmptyDisplayValue(chip.value))
 
   return (
-    <div className="group relative">
+    <ScoutCandidateHoverHost
+      className="group relative"
+      candidate={candidate}
+      hl={hl}
+      matchScore={matchScore}
+      language={language}
+    >
       <label
         className={`flex w-full cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 transition-colors sm:px-4 sm:py-3.5 ${
           selected
@@ -242,13 +245,7 @@ function AdminScoutCandidatePickerRow({
           ) : null}
         </div>
       </label>
-      <ScoutCandidateHoverTip
-        candidate={candidate}
-        hl={hl}
-        matchScore={matchScore}
-        language={language}
-      />
-    </div>
+    </ScoutCandidateHoverHost>
   )
 }
 

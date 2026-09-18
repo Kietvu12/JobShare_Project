@@ -18,6 +18,9 @@ import {
   canCandidateBeListedOnScout,
   getScoutStatusLabel,
   getScoutStatusStyle,
+  hasScoutPerformanceTag,
+  getScoutPerformanceTagLabel,
+  getScoutPerformanceTagStyle,
   isScoutListed,
 } from '../../utils/scoutStatus.js';
 import { formatPhoneForDisplay } from '../../utils/cvPhoneUtils.js';
@@ -49,6 +52,8 @@ import QuickCreateCandidateDrawer from './QuickCreateCandidateDrawer';
 import { shouldRestoreCandidatesListState, CANDIDATES_LIST_STORAGE_PREFIX } from '../../utils/routerNavigationHistory';
 
 const SHOW_SCOUT_UI = true;
+/** Admin/CTV: ẩn thao tác đưa lên hoặc gỡ Scout (đăng lại qua Scout dự bị / luồng admin). */
+const SHOW_SCOUT_LIST_ACTIONS = false;
 
 const readCandidatesListSession = (variant) => {
   try {
@@ -671,30 +676,66 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
   };
   /** Cùng trường `cv_storages.status` với cột badge (1 hợp lệ xanh, 3 trùng đỏ, 4 quá hạn, 5 khởi tạo thất bại) — Admin & CTV */
   const statusOptions = getCVStatusOptions(language);
-  const colCount = isAdmin ? (SHOW_SCOUT_UI ? 11 : 10) : (SHOW_SCOUT_UI ? 7 : 6);
+  const showScoutColumn = isAdmin && SHOW_SCOUT_UI;
+  const colCount = isAdmin ? (showScoutColumn ? 11 : 10) : 6;
 
   const displayName = (c) => c.name || c.fullName || c.nameKanji || 'N/A';
 
-  const renderScoutStatusBadge = (candidate) => {
-    if (!SHOW_SCOUT_UI) return null;
-    const scoutStyle = getScoutStatusStyle(candidate);
+  const renderScoutPerformanceNameTag = (candidate) => {
+    if (isAdmin || !hasScoutPerformanceTag(candidate)) return null;
+    const perfStyle = getScoutPerformanceTagStyle();
     return (
       <span
-        className="inline-flex rounded px-1 py-0.5 text-[8px] font-medium xl:px-1 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
+        className="inline-flex shrink-0 items-center rounded px-1 py-0.5 text-[8px] font-semibold lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
         style={{
-          backgroundColor: scoutStyle.bg,
-          color: scoutStyle.color,
-          border: `1px solid ${scoutStyle.border}`,
+          backgroundColor: perfStyle.bg,
+          color: perfStyle.color,
+          border: `1px solid ${perfStyle.border}`,
         }}
-        title={getScoutStatusLabel(candidate, language)}
+        title={t.candidatesPageScoutPerformanceTagHint || getScoutPerformanceTagLabel(language)}
       >
-        {getScoutStatusLabel(candidate, language)}
+        {getScoutPerformanceTagLabel(language)}
       </span>
     );
   };
 
+  const renderScoutStatusBadge = (candidate) => {
+    if (!showScoutColumn) return null;
+    const scoutStyle = getScoutStatusStyle(candidate);
+    const perfTagged = hasScoutPerformanceTag(candidate);
+    const perfStyle = getScoutPerformanceTagStyle();
+    return (
+      <div className="flex flex-col gap-0.5">
+        <span
+          className="inline-flex rounded px-1 py-0.5 text-[8px] font-medium xl:px-1 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
+          style={{
+            backgroundColor: scoutStyle.bg,
+            color: scoutStyle.color,
+            border: `1px solid ${scoutStyle.border}`,
+          }}
+          title={getScoutStatusLabel(candidate, language)}
+        >
+          {getScoutStatusLabel(candidate, language)}
+        </span>
+        {perfTagged && (
+          <span
+            className="inline-flex rounded px-1 py-0.5 text-[8px] font-semibold xl:px-1 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
+            style={{
+              backgroundColor: perfStyle.bg,
+              color: perfStyle.color,
+              border: `1px solid ${perfStyle.border}`,
+            }}
+            title={t.candidatesPageScoutPerformanceTagHint || getScoutPerformanceTagLabel(language)}
+          >
+            {getScoutPerformanceTagLabel(language)}
+          </span>
+        )}
+      </div>
+    );
+  };
+
   const canShowScoutAction = (candidate) => {
-    if (!SHOW_SCOUT_UI) return false;
+    if (!SHOW_SCOUT_UI || !SHOW_SCOUT_LIST_ACTIONS) return false;
     if (!canOperateOnCandidate(candidate) || isCvPromotedInactive(candidate)) return false;
     return isScoutListed(candidate) || canCandidateBeListedOnScout(candidate);
   };
@@ -1248,7 +1289,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
         </div>
       )}
 
-      {SHOW_SCOUT_UI && selectedRows.size > 0 && (
+      {SHOW_SCOUT_UI && SHOW_SCOUT_LIST_ACTIONS && selectedRows.size > 0 && (
         <div
           className="mb-2 flex flex-shrink-0 flex-wrap items-center gap-1.5 rounded-xl border px-2.5 py-2 text-xs lg:gap-1.5 lg:px-2 lg:py-1.5 lg:text-[11px] xl:gap-2 xl:px-3 xl:py-2 xl:text-xs"
           style={{ borderColor: '#bfdbfe', backgroundColor: 'rgba(239, 246, 255, 0.85)' }}
@@ -1431,8 +1472,9 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                     <div className="min-w-0 flex-1 space-y-2">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <div className="flex items-start gap-1.5">
+                          <div className="flex flex-wrap items-start gap-1.5">
                             <span className="text-base font-semibold text-gray-900">{displayName(candidate)}</span>
+                            {renderScoutPerformanceNameTag(candidate)}
                             {renderMissingFieldBadges(candidate, { className: 'ml-1' })}
                             {(isCvPromotedInactive(candidate) || (!isAdmin && isCvUnavailableForNomination(candidate))) && (
                               <AlertTriangle
@@ -1480,7 +1522,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                           </span>
                         )}
                       </div>
-                      {SHOW_SCOUT_UI && (
+                      {showScoutColumn && (
                       <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
                         {renderScoutStatusBadge(candidate)}
                         {canShowScoutAction(candidate) && (
@@ -1656,7 +1698,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                   <div className="flex items-center gap-0 xl:gap-0.5">{t.candidateName} {getSortIcon('name')}</div>
                 </th>
                 <th className="min-w-[70px] px-px py-1.5 text-left text-[8px] font-bold xl:min-w-[92px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>{t.cvStatus || t.status}</th>
-                {SHOW_SCOUT_UI && (
+                {showScoutColumn && (
                 <th className="min-w-[58px] px-px py-1.5 text-left text-[8px] font-bold xl:min-w-[76px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>{t.candidatesPageScoutCol || 'Scout'}</th>
                 )}
                 <th
@@ -1729,8 +1771,9 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                       </td>
                       <td className="cursor-pointer px-px py-px text-[8px] align-middle xl:px-0.5 xl:py-0.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>
                         <div>
-                          <div className="mb-0.5 flex items-start gap-1 xl:gap-1">
+                          <div className="mb-0.5 flex flex-wrap items-start gap-1 xl:gap-1">
                             <span className="font-medium">{displayName(candidate)}</span>
+                            {renderScoutPerformanceNameTag(candidate)}
                             {renderMissingFieldBadges(candidate, { className: 'ml-1' })}
                             {(isCvPromotedInactive(candidate) || (!isAdmin && isCvUnavailableForNomination(candidate))) && (
                               <span
@@ -1788,7 +1831,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                           </span>
                         )}
                       </td>
-                      {SHOW_SCOUT_UI && (
+                      {showScoutColumn && (
                       <td className="px-px py-px align-middle xl:px-0.5 xl:py-0.5" onClick={(e) => e.stopPropagation()}>
                         {renderScoutStatusBadge(candidate)}
                       </td>

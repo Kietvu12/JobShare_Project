@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import apiService from '../../services/api';
+import BusinessSidebarQuickActions from '../Bussiness/BusinessSidebarQuickActions.jsx';
 
 /** Màu chủ đạo — active state & biểu đồ */
 const BRAND = {
@@ -112,7 +113,7 @@ const I18N = {
     serviceRequests: 'サービス依頼',
     paymentManagement: '支払い管理',
     knowledgeHub: 'ナレッジハブ',
-    insights: 'Report & insight',
+    insights: 'レポート・インサイト',
     settings: '設定',
     recruitmentHealth: 'Recruitment Health',
     healthScoreHint: '採用健全性スコア',
@@ -232,9 +233,9 @@ function RecruitmentDonut({ percent, size, strokeWidth = 7, strokeColor = BRAND.
 
 function NavSpacer({ collapsed }) {
   if (collapsed) {
-    return <div className="mx-auto my-1.5 h-px w-7 bg-slate-200" aria-hidden />;
+    return <div className="mx-auto my-2 h-px w-7 bg-slate-200" aria-hidden />;
   }
-  return <div className="my-1.5 h-px bg-slate-200/90" aria-hidden />;
+  return <div className="my-2 h-px bg-slate-200/90" aria-hidden />;
 }
 
 const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) => {
@@ -304,24 +305,27 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
 
   const toggleCollapse = () => setCollapsed((v) => !v);
 
+  const navActiveClass =
+    'biz-sidebar-nav-active bg-[#0077B6] font-semibold !text-white [&_svg]:!text-white';
+
   const navLinkClass = (active, compact = false, nested = false) => {
     if (compact) {
-      return `flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-200 ${
+      return `flex items-center justify-center transition-all duration-200 ${
         active
-          ? 'bg-[#0077B6] !text-white shadow-sm [&_svg]:!text-white'
-          : 'text-slate-500 hover:bg-slate-50'
+          ? `h-10 w-full rounded-none ${navActiveClass}`
+          : 'mx-auto h-9 w-9 rounded-xl text-slate-500 hover:bg-slate-50'
       }`;
+    }
+    if (active) {
+      const activeShape = nested
+        ? 'gap-1.5 -mx-1.5 rounded-none py-2.5 pl-3.5 pr-2'
+        : 'gap-2 -mx-1.5 rounded-none py-2.5 px-2.5';
+      return `flex items-center font-medium transition-all duration-200 biz-ui-nav ${activeShape} ${navActiveClass}`;
     }
     const sizeClass = nested
       ? 'gap-1.5 rounded-lg py-1 pl-3.5 pr-2 biz-ui-nav'
       : 'gap-2 rounded-xl px-2.5 py-1.5 biz-ui-nav';
-    return `flex items-center font-medium transition-all duration-200 ${sizeClass} ${
-      active
-        ? 'bg-[#0077B6] font-semibold !text-white shadow-sm [&_svg]:!text-white'
-        : nested
-          ? 'text-slate-600 hover:bg-slate-50'
-          : 'text-slate-600 hover:bg-slate-50'
-    }`;
+    return `flex items-center font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 ${sizeClass}`;
   };
 
   const nestedDashClass = (active) =>
@@ -346,10 +350,10 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
     <Link
       key={key}
       to={to}
-      className={`flex items-start gap-2 rounded-lg py-1 pl-6 pr-2 biz-ui-nav font-medium transition-all duration-200 ${
+      className={`flex items-start gap-2 py-1 pl-6 pr-2 biz-ui-nav font-medium transition-all duration-200 ${
         isLinkActive
-          ? 'bg-[#0077B6] font-semibold !text-white shadow-sm'
-          : 'text-slate-600 hover:bg-slate-50'
+          ? `-mx-1.5 rounded-none py-2.5 pl-6 pr-2 ${navActiveClass}`
+          : 'rounded-lg text-slate-600 hover:bg-slate-50'
       }`}
     >
       <span className={nestedBulletClass(isLinkActive)} aria-hidden />
@@ -372,7 +376,7 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
         <Link
           key={item.id}
           to={item.path}
-          className={`mx-auto ${navLinkClass(active, true)}`}
+          className={navLinkClass(active, true)}
           title={t[item.label]}
           onClick={() => onNavigate?.()}
         >
@@ -412,7 +416,7 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
               {t[section.label]}
             </div>
           )}
-          <div className="space-y-0.5">
+          <div className="space-y-1">
             {section.items.map((item) => renderNavItem(item, {
               nested: Boolean(section.nested),
               forceExpanded,
@@ -433,37 +437,41 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
         }`}
       >
         {showExpanded ? (
-          <div className="biz-sidebar-health-expanded overflow-visible rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="biz-sidebar-health-donut-wrap relative flex h-10 w-10 shrink-0 items-center justify-center overflow-visible">
-                <RecruitmentDonut percent={healthScore} size={40} strokeWidth={4} className="biz-sidebar-health-donut-lg" />
-                <span className="absolute biz-ui-caption font-bold leading-none text-slate-800">
+          <div className="biz-sidebar-health-expanded overflow-visible rounded-lg border border-slate-100 bg-slate-50/80 p-2 shadow-sm">
+            <div className="flex items-center gap-1.5">
+              <div className="biz-sidebar-health-donut-wrap relative flex h-9 w-9 shrink-0 items-center justify-center overflow-visible">
+                <RecruitmentDonut percent={healthScore} size={36} strokeWidth={3.5} className="biz-sidebar-health-donut-lg" />
+                <span className="absolute text-[10px] font-bold leading-none text-slate-800">
                   {healthLoading ? '…' : healthScore}
                 </span>
               </div>
-              <div className="min-w-0 flex-1 leading-snug">
-                <div className="biz-ui-micro font-semibold uppercase tracking-wide text-slate-400">
+              <div className="min-w-0 flex-1 leading-tight">
+                <div className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">
                   {t.recruitmentHealth}
                 </div>
-                <div className="biz-ui-section font-bold text-slate-800">
+                <div className="text-xs font-bold text-slate-800">
                   {healthLoading ? t.healthLoading : `${healthScore}% · ${healthSummaryDays}`}
                 </div>
-                <div className="biz-ui-micro text-[#0077B6]">
+                <div className="text-[10px] font-medium text-[#0077B6]">
                   {healthLoading ? '…' : healthRatingLabel}
                 </div>
               </div>
             </div>
 
-            <p className="biz-sidebar-health-footnote biz-ui-micro mt-1.5 leading-snug text-slate-400 [overflow-wrap:anywhere]">
+            <p className="biz-sidebar-health-footnote mt-1 text-[9px] leading-snug text-slate-400 [overflow-wrap:anywhere]">
               {t.healthScoreHint}
             </p>
+            <BusinessSidebarQuickActions collapsed={false} />
           </div>
         ) : (
-          <div className="relative flex items-center justify-center py-0.5">
-            <RecruitmentDonut percent={healthScore} size={36} strokeWidth={4} />
-            <span className="absolute biz-ui-micro font-bold text-[#0077B6]">
-              {healthLoading ? '…' : healthScore}
-            </span>
+          <div className="flex flex-col items-center gap-2 py-0.5">
+            <div className="relative flex items-center justify-center">
+              <RecruitmentDonut percent={healthScore} size={36} strokeWidth={4} />
+              <span className="absolute biz-ui-micro font-bold text-[#0077B6]">
+                {healthLoading ? '…' : healthScore}
+              </span>
+            </div>
+            <BusinessSidebarQuickActions collapsed />
           </div>
         )}
       </div>
@@ -477,8 +485,6 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
   return (
     <>
       <style>{`
-        .business-sidebar-scroll::-webkit-scrollbar { display: none; }
-        .business-sidebar-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         .biz-sidebar-footer-block { overflow: visible; }
         .biz-sidebar-health-donut-wrap svg {
           max-width: none;
@@ -509,8 +515,13 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
             padding-bottom: 0.25rem;
           }
           aside.business-sidebar-desktop .biz-ui-nav {
-            padding-top: 0.2rem;
-            padding-bottom: 0.2rem;
+            padding-top: 0.3125rem;
+            padding-bottom: 0.3125rem;
+          }
+          aside.business-sidebar-desktop .biz-sidebar-nav-active.biz-ui-nav {
+            padding-top: 0.625rem;
+            padding-bottom: 0.625rem;
+            border-radius: 0;
           }
           aside.business-sidebar-desktop .biz-sidebar-nav svg {
             width: 0.875rem;
@@ -520,15 +531,15 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
             padding-bottom: 0.125rem;
           }
           aside.business-sidebar-desktop .biz-sidebar-health-expanded {
-            padding: 0.5rem;
+            padding: 0.375rem;
           }
           aside.business-sidebar-desktop .biz-sidebar-health-donut-wrap {
-            width: 2.25rem;
-            height: 2.25rem;
+            width: 2rem;
+            height: 2rem;
           }
           aside.business-sidebar-desktop .biz-sidebar-health-donut-lg {
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
           }
           aside.business-sidebar-desktop .biz-sidebar-footer-block {
             padding: 0.375rem;

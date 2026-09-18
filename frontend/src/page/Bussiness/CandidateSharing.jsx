@@ -19,7 +19,6 @@ import {
 } from '../../utils/marketplaceListingFlow'
 import {
   MARKETPLACE_PLATFORM_FEE_PERCENT,
-  MIN_CTV_RATING_OPTIONS,
   buildMarketplaceRequirements,
   computeListingFeeSplitPreview,
 } from '../../utils/marketplaceListingSettings'
@@ -30,53 +29,45 @@ import {
 } from '../../utils/businessSimpleCommission'
 import { normalizeJobSalaryCurrency } from '../../utils/jobSalaryCurrency'
 import { useLanguage } from '../../context/LanguageContext'
-import { getBusinessAppCopy, getHomepageSolutionCards } from '../../i18n/businessAppI18n'
+import {
+  getBusinessAppCopy,
+  getHomepageSolutionCards,
+  getCandidateSharingCopy,
+  getMarketplaceListingStatusLabel,
+  getMarketplaceListingStatusStyle,
+  getMarketplaceSettlementStatusLabel,
+  formatMarketplaceDate,
+  formatMarketplaceJobPickerLabel,
+  getApplicationStatusLabelForMarketplace,
+  getNominationStatusBadgeStyle,
+  formatPlatformStat,
+  getMarketplaceListingReferralFeeLabel,
+} from '../../i18n/businessAppI18n'
+import { getLocalizedJobTitle } from '../../i18n/businessApp/jdBuilder'
+import {
+  BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
+  BUSINESS_HP_TEXT,
+  BUSINESS_UI_FONT,
+} from '../../utils/businessHomepageTypography'
 
-const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 const BRAND = '#0077B6'
 const PIPELINE_STATUSES = new Set([2, 3, 5, 7, 8, 9, 11, 12])
 
-const scrollbarStyle = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
-  .ctv-scrollbar::-webkit-scrollbar { width: 4px; }
-  .ctv-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .ctv-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-  .ctv-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-  .ctv-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
-  .ctv-onboard-scroll::-webkit-scrollbar { display: none; }
-  .ctv-onboard-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+const CTV_TABLE_HEAD_ROW = `border-b border-slate-100 bg-slate-50/80 uppercase tracking-wide text-slate-400 font-semibold ${BUSINESS_HP_TEXT.caption}`
+const CTV_FILTER_LABEL = `font-semibold text-slate-600 ${BUSINESS_HP_TEXT.caption}`
+const CTV_FILTER_SELECT = `mt-1 block rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-slate-800 ${BUSINESS_HP_TEXT.body}`
+const CTV_SHELL_PAD = 'p-3 sm:p-4'
+const CTV_STACK_GAP = 'gap-3 sm:gap-4'
+const CTV_PANEL_HEAD = 'px-4 py-3 sm:px-5 sm:py-3.5'
+const CTV_JOBS_TOOLBAR =
+  'flex shrink-0 flex-wrap items-end gap-x-3 gap-y-2 border-b border-slate-100 bg-white sm:gap-x-4'
+const CTV_JOBS_FILTERS = 'flex min-w-0 flex-1 flex-wrap items-end justify-end gap-2 sm:gap-3'
+const CTV_TH = 'px-3 py-2.5 font-semibold sm:px-4 sm:py-3'
+const CTV_TD = 'px-3 py-2.5 sm:px-4 sm:py-3'
+const CTV_COUNT_BADGE = `rounded-full bg-[#e8f4fa] px-1.5 py-0.5 font-bold text-[#0077B6] ${BUSINESS_HP_TEXT.micro}`
+const CTV_STATUS_BADGE = `${BUSINESS_HP_TEXT.micro} font-semibold`
 
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-  .business-homepage-scroll::-webkit-scrollbar { width: 4px; }
-  .business-homepage-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-
-  .business-homepage-shell {
-    --hp-zoom: 1;
-  }
-  @media (min-width: 1024px) and (max-width: 1279px) {
-    .business-homepage-shell { --hp-zoom: 0.88; }
-  }
-  @media (min-width: 1280px) and (max-width: 1535px) {
-    .business-homepage-shell { --hp-zoom: 0.8; }
-  }
-  @media (min-width: 1536px) and (max-width: 1919px) {
-    .business-homepage-shell { --hp-zoom: 0.94; }
-  }
-  @media (min-width: 1920px) {
-    .business-homepage-shell { --hp-zoom: 1; }
-  }
-  .business-homepage-ui {
-    zoom: var(--hp-zoom);
-  }
-  @supports not (zoom: 1) {
-    .business-homepage-ui {
-      transform: scale(var(--hp-zoom));
-      transform-origin: top left;
-      width: calc(100% / var(--hp-zoom));
-    }
-  }
+const CTV_MARKETPLACE_LAYOUT_STYLES = `
   .ctv-marketplace-dashboard {
     height: 100%;
     min-height: 0;
@@ -89,66 +80,81 @@ const scrollbarStyle = `
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
-    min-height: 280px;
-  }
-  @media (min-width: 1280px) {
-    .ctv-marketplace-table-panel {
-      min-height: 320px;
-    }
+    min-height: 0;
+    height: 100%;
   }
   .ctv-marketplace-table-body {
     flex: 1 1 auto;
-    min-height: 220px;
+    min-height: 0;
     overflow: auto;
+    overscroll-behavior: contain;
+  }
+  .ctv-marketplace-workspace {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+  .ctv-marketplace-workspace--split {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
   .ctv-marketplace-col {
     min-height: 0;
     height: 100%;
     max-height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .ctv-marketplace-col--table {
+    flex: 1 1 auto;
+    min-height: 0;
   }
   .ctv-marketplace-body {
     min-height: 0;
     flex: 1 1 auto;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .business-app-ui .ctv-marketplace-table-ui {
+    font-size: var(--biz-hp-body);
+    line-height: 1.5;
+    color: #334155;
+  }
+  .business-app-ui .ctv-marketplace-table-ui th,
+  .business-app-ui .ctv-marketplace-table-ui td {
+    vertical-align: middle;
+  }
+  .business-app-ui .ctv-marketplace-table-body thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: rgb(248 250 252 / 0.96);
+    box-shadow: 0 1px 0 rgb(241 245 249);
   }
 `
 
-const unifiedBenefits = [
-  { icon: Sparkles, title: 'Tạo JD nhanh bằng AI', desc: 'Soạn JD chuẩn tuyển dụng, tối ưu cho Sàn CTV.' },
-  { icon: Wallet, title: 'Không phí trả trước', desc: 'Chỉ thanh toán phí tuyển dụng khi tuyển thành công.' },
-  { icon: Link2, title: 'Kết nối trực tiếp mạng CTV WS', desc: 'CTV JobShare tiếp cận JD và tiến cử trên nền tảng.' },
-  { icon: SlidersHorizontal, title: 'Tự set phí theo ngân sách', desc: 'Thiết lập mức phí tuyển dụng linh hoạt theo JD.' },
-]
+const pageStyles = `${BUSINESS_HOMEPAGE_PAGE_BASE_STYLES}${CTV_MARKETPLACE_LAYOUT_STYLES}`
 
-const processSteps = [
-  { num: '01', title: 'Chọn JD của bạn', desc: 'Chọn JD có sẵn hoặc tạo JD mới trên JobShare.' },
-  { num: '02', title: 'Thiết lập phí', desc: 'Cài đặt phí thưởng CTV bạn sẵn sàng trả khi tuyển thành công.' },
-  { num: '03', title: 'Đăng lên Sàn CTV', desc: 'Đăng lên Sàn cộng tác viên tuyển dụng WS.' },
-  { num: '04', title: 'CTV tiến cử', desc: 'CTV JobShare tiếp cận & tiến cử trực tiếp cho doanh nghiệp.' },
-]
-
-const compareDimensions = [
-  { key: 'how', label: 'Cách làm', ctv: 'DN đăng JD + tự thiết lập phí tuyển dụng', managed: 'WS hearing nhu cầu & sàng lọc hồ sơ' },
-  { key: 'ws', label: 'Vai trò WS', ctv: 'Nền tảng & hỗ trợ vận hành Sàn', managed: 'WS trung gian, đồng hành quy trình' },
-  { key: 'connect', label: 'Kết nối', ctv: 'CTV kết nối & tiến cử trực tiếp cho DN', managed: 'WS điều phối, DN nhận hồ sơ đã lọc' },
-  { key: 'fee', label: 'Phí', ctv: 'Chỉ trả khi tuyển thành công (theo JD)', managed: 'Phí dịch vụ khoảng 20–30% thu nhập năm' },
-  { key: 'control', label: 'Mức chủ động', ctv: 'DN chủ động ngân sách & JD', managed: 'WS dẫn dắt, DN tập trung quyết định cuối' },
-]
-
-function formatPlatformStat(value, suffix = '') {
-  if (value == null || Number.isNaN(Number(value))) return '—'
-  return `${Number(value).toLocaleString('vi-VN')}${suffix}`
+const ONBOARDING_ICON_MAP = {
+  sparkles: Sparkles,
+  wallet: Wallet,
+  link: Link2,
+  sliders: SlidersHorizontal,
 }
 
 const CTV_CARD = 'rounded-xl border border-slate-200 bg-white shadow-sm'
 
 function CtvKpiCard({ icon: Icon, iconBg, iconColor, title, value, subValue }) {
   return (
-    <div className={`${CTV_CARD} p-2.5`}>
-      <div className="flex items-start gap-2">
+    <div className={`${CTV_CARD} p-3 sm:p-3.5`}>
+      <div className="flex items-start gap-2.5">
         <div
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
           style={{ background: iconBg }}
@@ -156,10 +162,10 @@ function CtvKpiCard({ icon: Icon, iconBg, iconColor, title, value, subValue }) {
           <Icon className="h-3.5 w-3.5" style={{ color: iconColor }} strokeWidth={2} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] leading-tight text-slate-500">{title}</div>
-          <div className="mt-0.5 text-base font-bold tabular-nums leading-tight text-slate-900">{value}</div>
+          <div className={`leading-tight ${BUSINESS_HP_TEXT.caption}`}>{title}</div>
+          <div className={`mt-0.5 tabular-nums leading-tight ${BUSINESS_HP_TEXT.stat}`}>{value}</div>
           {subValue ? (
-            <div className="mt-0.5 text-[10px] font-medium text-slate-600">{subValue}</div>
+            <div className={`mt-0.5 font-medium text-slate-600 ${BUSINESS_HP_TEXT.caption}`}>{subValue}</div>
           ) : null}
         </div>
       </div>
@@ -183,36 +189,39 @@ function OnboardingView({
   onNavigate,
   breadcrumbHome,
   breadcrumbCurrent,
+  cs,
+  language,
 }) {
+  const ob = cs.onboarding
   const platformKpis = [
     {
       icon: Users,
-      label: 'CTV đang hoạt động',
-      value: formatPlatformStat(platformOverview?.activeCtv),
+      label: ob.platformKpis.activeCtv,
+      value: formatPlatformStat(platformOverview?.activeCtv, '', language),
     },
     {
       icon: Briefcase,
-      label: 'JD đang chạy trên Sàn CTV',
-      value: formatPlatformStat(platformOverview?.activeListings),
+      label: ob.platformKpis.activeListings,
+      value: formatPlatformStat(platformOverview?.activeListings, '', language),
     },
     {
       icon: UserCheck,
-      label: 'Ứng viên đã được tiến cử',
-      value: formatPlatformStat(platformOverview?.totalNominations),
+      label: ob.platformKpis.totalNominations,
+      value: formatPlatformStat(platformOverview?.totalNominations, '', language),
     },
     {
       icon: BarChart3,
-      label: 'Tỷ lệ tuyển thành công TB',
+      label: ob.platformKpis.successRate,
       value: platformOverview?.successRatePercent != null
         ? `${platformOverview.successRatePercent}%`
-        : '—',
+        : cs.common.emDash,
     },
   ]
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 sm:gap-4 2xl:gap-5 min-w-0 pb-2">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 sm:gap-5 2xl:gap-6 min-w-0 pb-3 sm:pb-4">
       <div className="shrink-0">
-        <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
+        <nav aria-label="Breadcrumb" className={BUSINESS_HP_TEXT.meta}>
           <button
             type="button"
             onClick={() => onNavigate('/business')}
@@ -225,84 +234,84 @@ function OnboardingView({
         </nav>
       </div>
 
-      <div className="rounded-xl border border-[#0077B6]/20 bg-gradient-to-br from-[#e8f4fa] to-white p-4 sm:p-5 shadow-sm">
-        <p className="text-[10px] font-bold uppercase tracking-wide text-[#0077B6] sm:text-[11px]">Sàn CTV · WS JobShare</p>
-        <h1 className="mt-1 text-base font-bold leading-snug text-slate-900 sm:text-lg 2xl:text-xl">
-          Đăng JD với ngân sách tuyển dụng của doanh nghiệp — CTV JobShare tiến cử trực tiếp cho doanh nghiệp.
+      <div className="rounded-xl border border-[#0077B6]/20 bg-gradient-to-br from-[#e8f4fa] to-white p-5 sm:p-6 shadow-sm">
+        <p className={`font-bold uppercase tracking-wide text-[#0077B6] ${BUSINESS_HP_TEXT.caption}`}>{ob.kicker}</p>
+        <h1 className={`mt-1 leading-snug ${BUSINESS_HP_TEXT.title}`}>
+          {ob.heroTitle}
         </h1>
-        <p className="mt-2 max-w-2xl text-[11px] leading-relaxed text-slate-600 sm:text-xs">
-          Chọn JD có sẵn hoặc tạo JD mới trên JobShare, thiết lập phí và đăng lên Sàn cộng tác viên tuyển dụng WS.
+        <p className={`mt-2 max-w-2xl leading-relaxed text-slate-600 ${BUSINESS_HP_TEXT.body}`}>
+          {ob.heroBody}
         </p>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <button
             type="button"
             onClick={onCreate}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0077B6] px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#006399] sm:text-sm"
+            className={`inline-flex items-center justify-center gap-2 rounded-lg bg-[#0077B6] px-4 py-2.5 text-white transition-colors hover:bg-[#006399] ${BUSINESS_HP_TEXT.buttonPrimary}`}
           >
-            Đăng JD lên Sàn CTV
+            {ob.ctaPost}
             <ArrowRight className="h-4 w-4" />
           </button>
           {hasMarketplaceData ? (
             <button
               type="button"
               onClick={onViewDetails}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 sm:text-sm"
+              className={`inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-slate-700 transition-colors hover:bg-slate-50 ${BUSINESS_HP_TEXT.button}`}
             >
-              Vào quản lý Sàn CTV
+              {ob.ctaManage}
             </button>
           ) : null}
         </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-3 py-2.5 sm:px-4">
-          <h2 className="text-xs font-bold text-slate-900 sm:text-sm">So sánh nhanh: Sàn CTV vs Scout Ủy Thác</h2>
-          <p className="mt-0.5 text-[10px] text-slate-500 sm:text-[11px]">Chọn mô hình phù hợp ngân sách và mức chủ động của doanh nghiệp.</p>
+        <div className="border-b border-slate-100 px-4 py-3 sm:px-5 sm:py-4">
+          <h2 className={BUSINESS_HP_TEXT.section}>{ob.compareTitle}</h2>
+          <p className={`mt-0.5 ${BUSINESS_HP_TEXT.caption}`}>{ob.compareSubtitle}</p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[520px] border-collapse text-[10px] sm:text-[11px]">
+          <table className={`w-full min-w-[520px] border-collapse ctv-marketplace-table-ui ${BUSINESS_HP_TEXT.body}`}>
             <thead>
               <tr className="bg-slate-50 text-left text-slate-500">
-                <th className="px-3 py-2 font-semibold sm:px-4">Tiêu chí</th>
-                <th className="px-3 py-2 font-semibold text-[#0077B6] sm:px-4">Sàn CTV</th>
-                <th className="px-3 py-2 font-semibold text-[#E879A8] sm:px-4">Scout Ủy Thác</th>
+                <th className="px-4 py-2.5 font-semibold sm:px-5 sm:py-3">{ob.compareCriterion}</th>
+                <th className="px-4 py-2.5 font-semibold text-[#0077B6] sm:px-5 sm:py-3">{ob.compareCtv}</th>
+                <th className="px-4 py-2.5 font-semibold text-[#E879A8] sm:px-5 sm:py-3">{ob.compareManaged}</th>
               </tr>
             </thead>
             <tbody>
-              {compareDimensions.map((row) => (
+              {ob.compareRows.map((row) => (
                 <tr key={row.key} className="border-t border-slate-100">
-                  <td className="px-3 py-2 font-semibold text-slate-700 sm:px-4">{row.label}</td>
-                  <td className="px-3 py-2 text-slate-600 sm:px-4">{row.ctv}</td>
-                  <td className="px-3 py-2 text-slate-600 sm:px-4">{row.managed}</td>
+                  <td className="px-4 py-2.5 font-semibold text-slate-700 sm:px-5 sm:py-3">{row.label}</td>
+                  <td className="px-4 py-2.5 text-slate-600 sm:px-5 sm:py-3">{row.ctv}</td>
+                  <td className="px-4 py-2.5 text-slate-600 sm:px-5 sm:py-3">{row.managed}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div className="border-t border-slate-100 px-3 py-2 text-right sm:px-4">
+        <div className="border-t border-slate-100 px-4 py-3 text-right sm:px-5">
           <button
             type="button"
             onClick={() => onNavigate('/business/scout/managed')}
-            className="text-[10px] font-semibold text-[#0077B6] hover:underline sm:text-[11px]"
+            className={BUSINESS_HP_TEXT.link}
           >
-            Tìm hiểu Scout Ủy Thác →
+            {ob.compareLearnManaged}
           </button>
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
-        <h2 className="text-xs font-bold text-slate-900 sm:text-sm">Lợi ích & tính năng</h2>
-        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-          {unifiedBenefits.map((item) => {
-            const Icon = item.icon
+      <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+        <h2 className={BUSINESS_HP_TEXT.section}>{ob.benefitsTitle}</h2>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+          {ob.benefits.map((item) => {
+            const Icon = ONBOARDING_ICON_MAP[item.iconKey] || Sparkles
             return (
-              <div key={item.title} className="flex gap-2.5 rounded-lg border border-slate-100 bg-slate-50/50 p-2.5 sm:p-3">
+              <div key={item.title} className="flex gap-3 rounded-lg border border-slate-100 bg-slate-50/50 p-3.5 sm:p-4">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e8f4fa]">
                   <Icon className="h-4 w-4 text-[#0077B6]" strokeWidth={2} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-[11px] font-bold text-slate-800 sm:text-xs">{item.title}</h3>
-                  <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500 sm:text-[11px]">{item.desc}</p>
+                  <h3 className={`font-bold text-slate-800 ${BUSINESS_HP_TEXT.body}`}>{item.title}</h3>
+                  <p className={`mt-0.5 leading-relaxed ${BUSINESS_HP_TEXT.caption}`}>{item.desc}</p>
                 </div>
               </div>
             )
@@ -310,37 +319,37 @@ function OnboardingView({
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 2xl:p-5 shrink-0">
-        <h2 className="text-xs font-bold text-slate-800 mb-3 sm:mb-4">Quy trình 4 bước trên Sàn CTV</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-          {processSteps.map((step, idx) => (
-            <div key={step.num} className="relative flex flex-col gap-1.5 sm:gap-2">
-              {idx < processSteps.length - 1 && (
+      <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 2xl:p-6 shrink-0">
+        <h2 className={`mb-4 sm:mb-5 ${BUSINESS_HP_TEXT.section}`}>{ob.processTitle}</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
+          {ob.processSteps.map((step, idx) => (
+            <div key={step.num} className="relative flex flex-col gap-2 sm:gap-2.5">
+              {idx < ob.processSteps.length - 1 && (
                 <div className="hidden xl:block absolute top-4 left-[calc(100%-8px)] w-full h-px bg-[#cce5f0] z-0" />
               )}
-              <span className="inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#0077B6] text-white text-[10px] sm:text-xs font-bold relative z-10">
+              <span className={`inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#0077B6] text-white font-bold relative z-10 ${BUSINESS_HP_TEXT.caption}`}>
                 {step.num}
               </span>
-              <h3 className="text-[11px] sm:text-xs font-bold text-slate-800">{step.title}</h3>
-              <p className="text-[10px] sm:text-xs text-slate-500 leading-relaxed">{step.desc}</p>
+              <h3 className={`font-bold text-slate-800 ${BUSINESS_HP_TEXT.body}`}>{step.title}</h3>
+              <p className={`text-slate-500 leading-relaxed ${BUSINESS_HP_TEXT.caption}`}>{step.desc}</p>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200/90 bg-white p-3 sm:p-4">
-        <h2 className="text-xs font-bold text-slate-900 sm:text-sm">Số liệu nền tảng Sàn CTV</h2>
-        <p className="mt-0.5 text-[10px] text-slate-500 sm:text-[11px]">Cập nhật theo hoạt động thực tế trên JobShare.</p>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+      <div className="rounded-xl border border-slate-200/90 bg-white p-4 sm:p-5">
+        <h2 className={BUSINESS_HP_TEXT.section}>{ob.platformStatsTitle}</h2>
+        <p className={`mt-1 ${BUSINESS_HP_TEXT.caption}`}>{ob.platformStatsSubtitle}</p>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
           {platformKpis.map((kpi) => {
             const Icon = kpi.icon
             return (
-              <div key={kpi.label} className="rounded-lg border border-slate-100 bg-slate-50/80 p-2.5 sm:p-3">
+              <div key={kpi.label} className="rounded-lg border border-slate-100 bg-slate-50/80 p-3.5 sm:p-4">
                 <div className="mb-1.5 flex items-center gap-1.5">
                   <Icon className="h-3.5 w-3.5 text-[#0077B6]" strokeWidth={2} />
-                  <span className="text-[9px] font-medium leading-snug text-slate-500 sm:text-[10px]">{kpi.label}</span>
+                  <span className={`font-medium leading-snug ${BUSINESS_HP_TEXT.caption}`}>{kpi.label}</span>
                 </div>
-                <div className="text-base font-bold tabular-nums text-slate-900 sm:text-lg">{kpi.value}</div>
+                <div className={`tabular-nums ${BUSINESS_HP_TEXT.stat}`}>{kpi.value}</div>
               </div>
             )
           })}
@@ -350,34 +359,24 @@ function OnboardingView({
   )
 }
 
-function formatDateShort(value) {
-  if (!value) return '—'
-  try {
-    return new Date(value).toLocaleDateString('vi-VN')
-  } catch {
-    return '—'
-  }
-}
 
-function formatJobPickerLabel(job) {
-  if (!job) return ''
-  const title = job.title || job.titleEn || job.titleJp || `Job #${job.id}`
-  const code = job.jobCode || job.job_code || ''
-  return code ? `${title} (${code})` : title
-}
-
-const businessModalTitleClass = 'text-[11px] font-bold leading-snug text-slate-900 sm:text-xs'
-const businessModalSubtitleClass = 'mt-0.5 text-[10px] font-medium leading-relaxed text-slate-600 sm:text-[11px]'
-const businessLabelClass = 'block text-[10px] font-semibold text-slate-700 mb-1 sm:text-[11px]'
+const businessModalTitleClass = `font-bold leading-snug text-slate-900 ${BUSINESS_HP_TEXT.section}`
+const businessModalSubtitleClass = `mt-0.5 font-medium leading-relaxed text-slate-600 ${BUSINESS_HP_TEXT.body}`
+const businessLabelClass = `block font-semibold text-slate-700 mb-1 ${BUSINESS_HP_TEXT.caption}`
 const businessInputClass =
-  'w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[10px] sm:text-[11px] text-slate-900 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/25'
+  `w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-slate-900 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/25 ${BUSINESS_HP_TEXT.body}`
 const businessBtnSecondaryClass =
-  'w-full sm:w-auto rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50 sm:px-4 sm:py-2 sm:text-[11px]'
+  `w-full sm:w-auto rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50 sm:px-4 sm:py-2 ${BUSINESS_HP_TEXT.button}`
 const businessBtnPrimaryClass =
-  'w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] px-3 py-1.5 text-[10px] font-bold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] disabled:opacity-60 sm:px-4 sm:py-2 sm:text-[11px]'
+  `w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] px-3 py-1.5 font-bold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] disabled:opacity-60 sm:px-4 sm:py-2 ${BUSINESS_HP_TEXT.buttonPrimary}`
+const businessBtnQuickCreateClass =
+  `w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#0077B6]/35 bg-[#e8f4fa] px-3 py-1.5 font-bold text-[#0077B6] transition-colors hover:bg-[#0077B6]/10 disabled:opacity-60 sm:px-4 sm:py-2 ${BUSINESS_HP_TEXT.buttonPrimary}`
 
 function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
   const navigate = useNavigate()
+  const { language } = useLanguage()
+  const cs = useMemo(() => getCandidateSharingCopy(language), [language])
+  const cm = cs.createModal
   const [jobId, setJobId] = useState('')
   const [selectedJob, setSelectedJob] = useState(null)
   const [jobSearchQuery, setJobSearchQuery] = useState('')
@@ -552,7 +551,7 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
       return
     }
     if (!platformBillingAck) {
-      alert('Vui lòng xác nhận cam kết xác nhận tuyển thành công trên nền tảng JobShare.')
+      alert(cs.alerts.billingAckRequired)
       return
     }
     savePendingMarketplaceListingDraft(buildListingDraftFromForm())
@@ -566,11 +565,11 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
   }
 
   const handleCreate = async () => {
-    if (!jobId) { alert('Chọn công việc'); return }
+    if (!jobId) { alert(cs.alerts.selectJob); return }
     const commissionError = validateCommissionForMarketplace(jobCommissionType, jobValues)
     if (commissionError) { alert(commissionError); return }
     if (!platformBillingAck) {
-      alert('Vui lòng xác nhận cam kết xác nhận tuyển thành công trên nền tảng JobShare.')
+      alert(cs.alerts.billingAckRequired)
       return
     }
     setCreating(true)
@@ -586,7 +585,7 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
       }
     } catch (e) {
       console.error(e)
-      alert(e?.message || 'Tạo thất bại')
+      alert(e?.message || cs.alerts.createFailed)
     } finally {
       setCreating(false)
     }
@@ -598,20 +597,20 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10050] flex items-center justify-center p-4"
+      className="business-app-ui fixed inset-0 z-[10050] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="create-listing-modal-title"
+      style={{ fontFamily: BUSINESS_UI_FONT }}
     >
       <button
         type="button"
-        aria-label="Đóng"
+        aria-label={cs.common.close}
         className="absolute inset-0 bg-slate-900/45"
         onClick={() => !creating && onClose?.()}
       />
       <div
         className="relative z-10 flex w-full max-w-3xl max-h-[90vh] min-h-0 justify-center pointer-events-none"
-        style={{ fontFamily: PAGE_FONT }}
       >
         <div className="create-listing-modal pointer-events-auto relative flex w-full max-w-3xl max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl antialiased">
         <button
@@ -619,7 +618,7 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
           onClick={() => !creating && onClose?.()}
           disabled={creating}
           className="absolute right-2.5 top-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"
-          aria-label="Đóng hộp thoại"
+          aria-label={cs.common.closeDialog}
         >
           <X className="h-3.5 w-3.5" strokeWidth={2} />
         </button>
@@ -635,16 +634,16 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
             </div>
             <div className="min-w-0 pt-0.5">
               <h2 id="create-listing-modal-title" className={businessModalTitleClass}>
-                Đăng JD lên Sàn CTV
+                {cm.title}
               </h2>
               <p className={businessModalSubtitleClass}>
-                Chọn công việc, thiết lập phí thưởng CTV và gửi WS duyệt.
+                {cm.subtitle}
               </p>
             </div>
           </div>
         </div>
         ) : (
-          <h2 id="create-listing-modal-title" className="sr-only">Chưa có job nào</h2>
+          <h2 id="create-listing-modal-title" className="sr-only">{cm.noJobsTitle}</h2>
         )}
 
         <div className={`ctv-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-3 space-y-3 ${showNoJobsEmpty ? 'pt-10' : ''}`}>
@@ -660,16 +659,16 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
                 className="mb-4 w-full max-w-[220px] object-contain"
                 draggable={false}
               />
-              <p className="text-sm font-semibold text-slate-800">Chưa có job nào</p>
-              <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-slate-500">
-                Tạo JD mới để bắt đầu đăng tin và kết nối với CTV HR Partner trên JobShare.
+              <p className={`font-semibold text-slate-800 ${BUSINESS_HP_TEXT.bodyLg}`}>{cm.noJobsTitle}</p>
+              <p className={`mt-1.5 max-w-sm leading-relaxed ${BUSINESS_HP_TEXT.caption}`}>
+                {cm.noJobsBody}
               </p>
               <button
                 type="button"
                 onClick={handleEmptyQuickCreate}
-                className="mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-[#0077B6] px-4 py-2.5 text-xs font-bold text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] sm:text-sm"
+                className={`mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-[#0077B6] px-4 py-2.5 text-white shadow-sm shadow-[#0077B6]/15 transition-colors hover:bg-[#006399] ${BUSINESS_HP_TEXT.buttonPrimary}`}
               >
-                Tạo nhanh
+                {cm.quickCreate}
               </button>
             </div>
           ) : (
@@ -677,19 +676,19 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
           <section className="rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 sm:p-3">
             <div className="relative">
               <label className={businessLabelClass}>
-                Chọn JD cần CTV hỗ trợ <span className="text-red-500">*</span>
+                {cm.selectJobLabel} <span className="text-red-500">*</span>
               </label>
               {selectedJob ? (
                 <div className="flex items-center gap-2 rounded-lg border border-[#0077B6]/30 bg-white px-3 py-2.5 shadow-sm">
-                  <span className="flex-1 min-w-0 text-[11px] font-medium text-slate-800 truncate sm:text-xs">
-                    {formatJobPickerLabel(selectedJob)}
+                  <span className={`flex-1 min-w-0 font-medium text-slate-800 truncate ${BUSINESS_HP_TEXT.body}`}>
+                    {formatMarketplaceJobPickerLabel(selectedJob, language)}
                   </span>
                   <button
                     type="button"
                     onClick={clearSelectedJob}
                     disabled={creating}
                     className="shrink-0 rounded-md p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-600 disabled:opacity-50"
-                    aria-label="Bỏ chọn JD"
+                    aria-label={cm.clearJob}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -705,28 +704,28 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
                       setJobSearchOpen(true)
                     }}
                     onFocus={() => setJobSearchOpen(true)}
-                    placeholder="Nhập mã JD hoặc tiêu đề công việc..."
+                    placeholder={cm.jobSearchPlaceholder}
                     className={`${businessInputClass} pl-9`}
                     autoComplete="off"
                   />
                   {jobSearchOpen && jobSearchQuery.trim() ? (
                     <div className="absolute z-10 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg ctv-scrollbar">
                       {jobSearchLoading ? (
-                        <div className="flex items-center gap-2 px-3 py-2.5 text-[11px] text-slate-500">
+                        <div className={`flex items-center gap-2 px-3 py-2.5 ${BUSINESS_HP_TEXT.caption}`}>
                           <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0077B6]" />
-                          Đang tìm...
+                          {cm.searching}
                         </div>
                       ) : jobSearchResults.length === 0 ? (
-                        <p className="px-3 py-2.5 text-[11px] text-slate-500">Không tìm thấy JD phù hợp.</p>
+                        <p className={`px-3 py-2.5 ${BUSINESS_HP_TEXT.caption}`}>{cm.noJobMatch}</p>
                       ) : (
                         jobSearchResults.map((j) => (
                           <button
                             key={j.id}
                             type="button"
                             onClick={() => pickJob(j)}
-                            className="w-full px-3 py-2.5 text-left text-[11px] font-medium text-slate-800 transition-colors hover:bg-[#0077B6]/5 hover:text-[#0077B6] sm:text-xs"
+                            className={`w-full px-3 py-2.5 text-left font-medium text-slate-800 transition-colors hover:bg-[#0077B6]/5 hover:text-[#0077B6] ${BUSINESS_HP_TEXT.body}`}
                           >
-                            {formatJobPickerLabel(j)}
+                            {formatMarketplaceJobPickerLabel(j, language)}
                           </button>
                         ))
                       )}
@@ -735,14 +734,14 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
                 </div>
               )}
               {initialJobId && selectedJob && String(selectedJob.id) === String(initialJobId) ? (
-                <p className="mt-2 text-[10px] font-semibold text-[#0077B6]">JD vừa tạo đã được chọn sẵn.</p>
+                <p className={`mt-2 font-semibold text-[#0077B6] ${BUSINESS_HP_TEXT.caption}`}>{cm.preselectedJob}</p>
               ) : null}
             </div>
 
             {loadingJobMeta && jobId ? (
-              <div className="mt-3 flex items-center gap-2 text-[11px] font-medium text-slate-500">
+              <div className={`mt-3 flex items-center gap-2 font-medium text-slate-500 ${BUSINESS_HP_TEXT.body}`}>
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0077B6]" />
-                Đang tải thông tin JD...
+                {cm.loadingJobMeta}
               </div>
             ) : null}
           </section>
@@ -760,50 +759,50 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
 
           {feeSplitPreview ? (
             <section className="rounded-lg border border-[#0077B6]/25 bg-[#e8f4fa]/50 p-3 sm:p-4">
-              <p className="mb-2 text-[11px] font-bold text-slate-800 sm:text-xs">Minh bạch phí thưởng cho CTV</p>
+              <p className={`mb-2 font-bold text-slate-800 ${BUSINESS_HP_TEXT.section}`}>{cm.feeSplitTitle}</p>
               <div className="grid gap-2 sm:grid-cols-3">
                 <div className="rounded-lg border border-slate-200/80 bg-white px-3 py-2">
-                  <p className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">DN trả tối đa</p>
-                  <p className="mt-0.5 text-xs font-bold text-[#0077B6]">{feeSplitPreview.businessPaysLabel}</p>
+                  <p className={`font-semibold uppercase tracking-wide text-slate-400 ${BUSINESS_HP_TEXT.micro}`}>{cm.feeSplitBusiness}</p>
+                  <p className={`mt-0.5 font-bold text-[#0077B6] ${BUSINESS_HP_TEXT.body}`}>{feeSplitPreview.businessPaysLabel}</p>
                 </div>
                 <div className="rounded-lg border border-emerald-200/80 bg-emerald-50/80 px-3 py-2">
-                  <p className="text-[9px] font-semibold uppercase tracking-wide text-emerald-700">CTV nhận</p>
-                  <p className="mt-0.5 text-xs font-bold text-emerald-800">{feeSplitPreview.ctvReceivesLabel}</p>
+                  <p className={`font-semibold uppercase tracking-wide text-emerald-700 ${BUSINESS_HP_TEXT.micro}`}>{cm.feeSplitCtv}</p>
+                  <p className={`mt-0.5 font-bold text-emerald-800 ${BUSINESS_HP_TEXT.body}`}>{feeSplitPreview.ctvReceivesLabel}</p>
                 </div>
                 <div className="rounded-lg border border-amber-200/80 bg-amber-50/80 px-3 py-2">
-                  <p className="text-[9px] font-semibold uppercase tracking-wide text-amber-700">Phí nền tảng WS</p>
-                  <p className="mt-0.5 text-xs font-bold text-amber-900">{feeSplitPreview.platformFeeLabel}</p>
+                  <p className={`font-semibold uppercase tracking-wide text-amber-700 ${BUSINESS_HP_TEXT.micro}`}>{cm.feeSplitPlatform}</p>
+                  <p className={`mt-0.5 font-bold text-amber-900 ${BUSINESS_HP_TEXT.body}`}>{feeSplitPreview.platformFeeLabel}</p>
                 </div>
               </div>
-              <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-                CTV thấy hai con số trên sàn trước khi tiến cử — khuyến khích tham gia minh bạch.
+              <p className={`mt-2 leading-relaxed ${BUSINESS_HP_TEXT.caption}`}>
+                {cm.feeSplitHint}
               </p>
             </section>
           ) : null}
 
           <section className="rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 sm:p-3">
-            <label className={businessLabelClass}>Điểm CTV tối thiểu được tiến cử</label>
+            <label className={businessLabelClass}>{cm.minRatingLabel}</label>
             <select
               value={minCtvRating}
               onChange={(e) => setMinCtvRating(Number(e.target.value))}
               disabled={creating}
               className={businessInputClass}
             >
-              {MIN_CTV_RATING_OPTIONS.map((opt) => (
+              {cm.minCtvRatingOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
-            <p className="mt-1.5 text-[10px] leading-relaxed text-slate-500">
-              Lọc CTV chất lượng thấp khi tiến cử trực tiếp (không qua WS sàng lọc).
+            <p className={`mt-1.5 leading-relaxed ${BUSINESS_HP_TEXT.caption}`}>
+              {cm.minRatingHint}
             </p>
           </section>
 
           <section className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-3 space-y-1.5">
-            <p className="text-[11px] font-bold text-slate-800 sm:text-xs">Quy tắc tiến cử trên Sàn CTV</p>
-            <ul className="list-disc space-y-1 pl-4 text-[10px] leading-relaxed text-slate-600 sm:text-[11px]">
-              <li>Email doanh nghiệp chỉ dùng để <strong>thông báo</strong> — hồ sơ phải ghi nhận trong mục Quản lý tiến cử.</li>
-              <li>Doanh nghiệp <strong>xác nhận tuyển thành công trên JobShare</strong> để kích hoạt thanh toán &amp; chia phí.</li>
-              <li>JobShare thu {MARKETPLACE_PLATFORM_FEE_PERCENT}% phí thành công — CTV nhận {100 - MARKETPLACE_PLATFORM_FEE_PERCENT}%.</li>
+            <p className={`font-bold text-slate-800 ${BUSINESS_HP_TEXT.section}`}>{cm.rulesTitle}</p>
+            <ul className={`list-disc space-y-1 pl-4 leading-relaxed text-slate-600 ${BUSINESS_HP_TEXT.body}`}>
+              <li>{cm.rules[0]}</li>
+              <li>{cm.rules[1]}</li>
+              <li>{typeof cm.rules[2] === 'function' ? cm.rules[2](MARKETPLACE_PLATFORM_FEE_PERCENT) : cm.rules[2]}</li>
             </ul>
             <label className="flex cursor-pointer items-start gap-2 pt-1">
               <input
@@ -813,15 +812,15 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
                 disabled={creating}
                 className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#0077B6] focus:ring-[#0077B6]/30"
               />
-              <span className="text-[10px] leading-relaxed text-slate-700 sm:text-[11px]">
-                Tôi cam kết xác nhận tuyển thành công trên nền tảng JobShare và thanh toán qua hệ thống (không tự thỏa thuận ngoài sàn).
+              <span className={`leading-relaxed text-slate-700 ${BUSINESS_HP_TEXT.body}`}>
+                {cm.billingAck}
                 <span className="text-red-500"> *</span>
               </span>
             </label>
           </section>
 
           <section className="rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 sm:p-3">
-            <label className={businessLabelClass}>Hạn tuyển</label>
+            <label className={businessLabelClass}>{cm.deadlineLabel}</label>
             <input
               type="date"
               value={recruitmentDeadline}
@@ -835,10 +834,10 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
 
         {!showNoJobsEmpty && !jobsAvailability.loading ? (
         <div className="shrink-0 flex flex-col gap-1.5 border-t border-slate-100 bg-slate-50/50 px-4 py-3">
-          <p className="text-[9px] leading-relaxed text-slate-500 sm:text-[10px]">
-            <strong className="font-semibold text-slate-600">Tạo nhanh:</strong>
+          <p className={`leading-relaxed ${BUSINESS_HP_TEXT.caption}`}>
+            <strong className="font-semibold text-slate-600">{cm.footerQuickCreateStrong}</strong>
             {' '}
-            Tạo JD mới bằng AI rồi tự gửi WS duyệt đưa lên sàn (dùng phí thưởng &amp; hạn tuyển đã nhập bên trên).
+            {cm.footerQuickCreateBody}
           </p>
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           <button
@@ -847,15 +846,15 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
             disabled={creating}
             className={businessBtnSecondaryClass}
           >
-            Hủy
+            {cs.common.cancel}
           </button>
           <button
             type="button"
             disabled={creating}
             onClick={handleQuickCreate}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#0077B6]/35 bg-[#e8f4fa] px-3 py-1.5 text-[10px] font-bold text-[#0077B6] transition-colors hover:bg-[#0077B6]/10 disabled:opacity-60 sm:px-4 sm:py-2 sm:text-[11px]"
+            className={businessBtnQuickCreateClass}
           >
-            Tạo nhanh
+            {cm.quickCreate}
           </button>
           <button
             type="button"
@@ -866,10 +865,10 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
             {creating ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Đang xử lý...
+                {cm.processing}
               </>
             ) : (
-              'Gửi WS duyệt'
+              cm.submitWs
             )}
           </button>
           </div>
@@ -914,40 +913,9 @@ function isDeadlinePast(value) {
   return d < now
 }
 
-function listingStatusStyle(statusCode, label) {
-  const code = Number(statusCode)
-  if (code === MARKETPLACE_LISTING_STATUS.PUBLISHED || label === 'Đang chạy') {
-    return { bg: '#d1fae5', color: '#059669' }
-  }
-  if (code === MARKETPLACE_LISTING_STATUS.PENDING_APPROVAL || (label && label.includes('chờ WS'))) {
-    return { bg: '#fef9c3', color: '#d97706' }
-  }
-  if (code === MARKETPLACE_LISTING_STATUS.DRAFT || label === 'Nháp') {
-    return { bg: '#f1f5f9', color: '#64748b' }
-  }
-  if (code === MARKETPLACE_LISTING_STATUS.PAUSED || label === 'Tạm dừng') {
-    return { bg: '#e2e8f0', color: '#475569' }
-  }
-  if (code === MARKETPLACE_LISTING_STATUS.CLOSED || label === 'Đã đóng') {
-    return { bg: '#fee2e2', color: '#dc2626' }
-  }
-  return { bg: '#f1f5f9', color: '#64748b' }
-}
-
-const statusColor = (s) => {
-  if (s === 'Đang chạy') return { bg: '#d1fae5', color: '#059669' }
-  if (s === 'Đang chờ WS duyệt' || s === 'Chờ WS duyệt') return { bg: '#fef9c3', color: '#d97706' }
-  if (s === 'Nháp') return { bg: '#f1f5f9', color: '#64748b' }
-  if (s === 'Tạm dừng') return { bg: '#e2e8f0', color: '#475569' }
-  if (s === 'Đã đóng') return { bg: '#fee2e2', color: '#dc2626' }
-  if (s === 'Mới gửi') return { bg: '#dbeafe', color: '#2563eb' }
-  if (s === 'Đang xử lý') return { bg: '#ede9fe', color: '#7c3aed' }
-  return { bg: '#f1f5f9', color: '#64748b' }
-}
-
-function openSanCtvListingDetail(navigate, listingId) {
-  if (!listingId || !navigate) return
-  navigate(`/business/candidate-sharing/listings/${encodeURIComponent(String(listingId))}`)
+function openSanCtvListingDetail(navigate, jobId) {
+  if (!jobId || !navigate) return
+  navigate(`/business/candidate-sharing/jobs/${encodeURIComponent(String(jobId))}`)
 }
 
 const Avatar = ({ id, size = 24, bg = '#e0e7ff', color = '#4f46e5' }) => (
@@ -958,26 +926,39 @@ const Avatar = ({ id, size = 24, bg = '#e0e7ff', color = '#4f46e5' }) => (
 
 const VALID_TABS = ['jobs', 'nominations', 'candidates', 'costs']
 
-function ThreeWayChatPanel({ selectedNomination }) {
+function ThreeWayChatPanel({ selectedNomination, cs, language }) {
+  const introJobTitle = selectedNomination
+    ? (
+      getLocalizedJobTitle(
+        {
+          title: selectedNomination.jobTitle,
+          titleEn: selectedNomination.jobTitleEn,
+          titleJp: selectedNomination.jobTitleJp,
+          id: selectedNomination.jobId,
+        },
+        language,
+      ) || selectedNomination.jobTitleLocalized || selectedNomination.jobTitle || cs.common.emDash
+    )
+    : cs.common.emDash
   return (
-    <div className="flex h-full min-h-0 max-h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {selectedNomination ? (
           <NominationChat
             jobApplicationId={selectedNomination.id}
             userType="business"
             currentStatus={selectedNomination.status}
-            introCandidateName={selectedNomination.candidateName || '—'}
-            introJobTitle={selectedNomination.jobTitle || '—'}
-            mobileHeaderName={selectedNomination.candidateName || 'Chat 3 bên'}
+            introCandidateName={selectedNomination.candidateName || cs.common.emDash}
+            introJobTitle={introJobTitle}
+            mobileHeaderName={selectedNomination.candidateName || cs.common.threeWayChat}
             mobileHeaderAvatar={(selectedNomination.candidateName || '?').charAt(0).toUpperCase()}
             embeddedPanel
             disableBusinessFreeStatusChange
             contactBarVariant="subtle"
           />
         ) : (
-          <div className="flex flex-1 items-center justify-center px-4 py-8 text-center text-xs text-slate-400">
-            Chọn một đơn tiến cử ở bảng bên trái để trao đổi với CTV và WS
+          <div className={`flex flex-1 items-center justify-center px-5 py-10 text-center text-slate-400 sm:px-6 ${BUSINESS_HP_TEXT.caption}`}>
+            {cs.dashboard.chatPickNomination}
           </div>
         )}
       </div>
@@ -989,10 +970,12 @@ const CandidateSharing = () => {
   const navigate = useNavigate()
   const { language } = useLanguage()
   const copy = useMemo(() => getBusinessAppCopy(language), [language])
+  const cs = useMemo(() => getCandidateSharingCopy(language), [language])
+  const db = cs.dashboard
   const breadcrumbCurrent = useMemo(() => {
     const card = getHomepageSolutionCards(language).find((c) => c.tagId === 'hr-partner-network')
-    return card?.title || 'Sàn cộng tác viên tuyển dụng WS'
-  }, [language])
+    return card?.title || cs.marketplaceSubtitle
+  }, [language, cs.marketplaceSubtitle])
   const breadcrumbHome = copy.jobs.breadcrumb.home
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -1097,23 +1080,23 @@ const CandidateSharing = () => {
         icon: Briefcase,
         iconBg: '#e8f4fa',
         iconColor: BRAND,
-        title: 'JD đã đăng',
+        title: db.kpiListings,
         value: s.totalListings ?? 0,
-        subValue: `${s.activeOnMarket ?? 0} đang chạy`,
+        subValue: db.kpiListingsSub(s.activeOnMarket ?? 0),
       },
       {
         icon: FileText,
         iconBg: '#ffedd5',
         iconColor: '#ea580c',
-        title: 'Đơn tiến cử',
+        title: db.kpiNominations,
         value: s.totalNominations ?? 0,
-        subValue: `${s.totalInterests ?? 0} CTV quan tâm`,
+        subValue: db.kpiNominationsSub(s.totalInterests ?? 0),
       },
       {
         icon: Users,
         iconBg: '#dbeafe',
         iconColor: '#2563eb',
-        title: 'Ứng viên đang xử lý',
+        title: db.kpiPipeline,
         value: s.pipelineCandidates ?? 0,
         subValue: null,
       },
@@ -1121,32 +1104,32 @@ const CandidateSharing = () => {
         icon: UserCheck,
         iconBg: '#dcfce7',
         iconColor: '#16a34a',
-        title: 'Tuyển thành công',
+        title: db.kpiHired,
         value: s.hired ?? 0,
-        subValue: s.pendingApproval ? `${s.pendingApproval} chờ duyệt` : null,
+        subValue: s.pendingApproval ? db.kpiPendingApproval(s.pendingApproval) : null,
       },
     ]
-  }, [stats])
+  }, [stats, db])
 
   const jobsData = useMemo(() => listings.map((l) => {
     const deadlineRaw = l.recruitmentDeadline || l.job?.deadline
     return {
       id: l.id,
       jobId: l.job?.id,
-      title: l.job?.title || '—',
-      code: l.job?.jobCode || '—',
-      referralFee: l.feeLabel || '—',
-      status: l.statusLabel,
+      title: getLocalizedJobTitle(l.job, language) || cs.common.emDash,
+      code: l.job?.jobCode || cs.common.emDash,
+      referralFee: getMarketplaceListingReferralFeeLabel(l, language),
+      status: getMarketplaceListingStatusLabel(l.status, language),
       statusCode: l.status,
       ctvCount: l.interestCount,
       nominationCount: l.nominationsCount,
-      deadline: formatDateShort(deadlineRaw),
+      deadline: formatMarketplaceDate(deadlineRaw, language),
       deadlineRaw,
       expiringSoon: isDeadlineExpiringSoon(deadlineRaw),
       deadlinePast: isDeadlinePast(deadlineRaw),
       raw: l,
     }
-  }), [listings])
+  }), [listings, language, cs.common.emDash])
 
   const filteredJobsData = useMemo(() => jobsData.filter((job) => {
     if (jobFilterStatus !== '' && String(job.statusCode) !== jobFilterStatus) return false
@@ -1159,27 +1142,33 @@ const CandidateSharing = () => {
     return true
   }), [jobsData, jobFilterStatus, jobFilterDeadline, jobFilterHasNomination, jobFilterHasInterest])
 
-  const nominationsData = useMemo(() => nominations.map((n) => ({
-    nominationId: n.id,
-    id: (n.candidateName || '?').charAt(0).toUpperCase(),
-    name: n.candidateName,
-    subName: n.candidateSub ? `(${n.candidateSub})` : '',
-    position: n.jobTitle,
-    posCode: n.jobCode,
-    ctv: n.ctvName,
-    rating: n.matchScore,
-    date: formatDateShort(n.appliedAt),
-    status: n.statusLabel,
-    statusCode: n.status,
-    cvStorageId: n.cvStorageId,
-    raw: n,
-  })), [nominations])
+  const nominationsData = useMemo(() => nominations.map((n) => {
+    const jobTitleLocalized = getLocalizedJobTitle(
+      { title: n.jobTitle, titleEn: n.jobTitleEn, titleJp: n.jobTitleJp, id: n.jobId },
+      language,
+    ) || n.jobTitle
+    return {
+      nominationId: n.id,
+      id: (n.candidateName || '?').charAt(0).toUpperCase(),
+      name: n.candidateName,
+      subName: n.candidateSub ? `(${n.candidateSub})` : '',
+      position: jobTitleLocalized,
+      posCode: n.jobCode,
+      ctv: n.ctvName,
+      rating: n.matchScore,
+      date: formatMarketplaceDate(n.appliedAt, language),
+      status: getApplicationStatusLabelForMarketplace(n.status, language),
+      statusCode: n.status,
+      cvStorageId: n.cvStorageId,
+      raw: { ...n, jobTitleLocalized },
+    }
+  }), [nominations, language])
 
   const tabs = [
-    { key: 'jobs', label: 'Danh sách JD' },
-    { key: 'nominations', label: 'Đơn tiến cử' },
-    { key: 'candidates', label: 'Ứng viên' },
-    { key: 'costs', label: 'Thanh toán & chia phí' },
+    { key: 'jobs', label: db.tabs.jobs },
+    { key: 'nominations', label: db.tabs.nominations },
+    { key: 'candidates', label: db.tabs.candidates },
+    { key: 'costs', label: db.tabs.costs },
   ]
 
   const hasListings = listings.length > 0 || (stats?.totalListings ?? 0) > 0
@@ -1202,9 +1191,20 @@ const CandidateSharing = () => {
 
   useEffect(() => {
     if (!urlListingId) return
-    const nom = urlNominationId
-    const path = `/business/candidate-sharing/listings/${encodeURIComponent(String(urlListingId))}`
-    navigate(nom ? `${path}?tab=nominations&nominationId=${encodeURIComponent(String(nom))}` : path, { replace: true })
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await apiService.getBusinessCandidateSharingListing(urlListingId)
+        const jid = res?.data?.listing?.jobId ?? res?.data?.listing?.job?.id
+        if (cancelled || !res?.success || !jid) return
+        const nom = urlNominationId
+        const path = `/business/candidate-sharing/jobs/${encodeURIComponent(String(jid))}`
+        navigate(nom ? `${path}?tab=nominations&nominationId=${encodeURIComponent(String(nom))}` : path, { replace: true })
+      } catch {
+        /* giữ query listingId — user ở dashboard */
+      }
+    })()
+    return () => { cancelled = true }
   }, [urlListingId, urlNominationId, navigate])
 
   useEffect(() => {
@@ -1237,44 +1237,44 @@ const CandidateSharing = () => {
     try {
       const res = await apiService.pauseBusinessCandidateSharingListing(listingId)
       if (res?.success) await loadData()
-      else alert(res?.message || 'Không thể tạm dừng JD trên Sàn CTV')
+      else alert(res?.message || cs.alerts.pauseFailed)
     } catch (e) {
-      alert(e?.message || 'Không thể tạm dừng JD trên Sàn CTV')
+      alert(e?.message || cs.alerts.pauseFailed)
     } finally {
       setListingActionBusyId(null)
     }
-  }, [loadData])
+  }, [loadData, cs.alerts.pauseFailed])
 
   const handleListingClose = useCallback(async (listingId) => {
-    if (!window.confirm('Đóng JD này trên Sàn CTV? CTV sẽ không tiếp cử thêm.')) return
+    if (!window.confirm(db.confirmCloseListing)) return
     setListingActionBusyId(listingId)
     setOpenListingMenuId(null)
     try {
       const res = await apiService.closeBusinessCandidateSharingListing(listingId)
       if (res?.success) await loadData()
-      else alert(res?.message || 'Không thể đóng JD')
+      else alert(res?.message || cs.alerts.closeFailed)
     } catch (e) {
-      alert(e?.message || 'Không thể đóng JD')
+      alert(e?.message || cs.alerts.closeFailed)
     } finally {
       setListingActionBusyId(null)
     }
-  }, [loadData])
+  }, [loadData, cs.alerts.closeFailed, db.confirmCloseListing])
 
   const handleListingExtend = useCallback(async (job) => {
-    const next = window.prompt('Gia hạn hạn tuyển (YYYY-MM-DD):', job.deadlineRaw?.slice(0, 10) || '')
+    const next = window.prompt(db.promptExtend, job.deadlineRaw?.slice(0, 10) || '')
     if (!next) return
     setListingActionBusyId(job.id)
     setOpenListingMenuId(null)
     try {
       const res = await apiService.updateBusinessCandidateSharingListing(job.id, { recruitmentDeadline: next })
       if (res?.success) await loadData()
-      else alert(res?.message || 'Không thể gia hạn')
+      else alert(res?.message || cs.alerts.extendFailed)
     } catch (e) {
-      alert(e?.message || 'Không thể gia hạn')
+      alert(e?.message || cs.alerts.extendFailed)
     } finally {
       setListingActionBusyId(null)
     }
-  }, [loadData])
+  }, [loadData, cs.alerts.extendFailed, db.promptExtend])
 
   const handleListingEditFee = useCallback((job) => {
     setOpenListingMenuId(null)
@@ -1289,20 +1289,20 @@ const CandidateSharing = () => {
     try {
       const res = await apiService.submitBusinessCandidateSharingListing(listingId)
       if (res?.success) await loadData()
-      else alert(res?.message || 'Không thể gửi duyệt')
+      else alert(res?.message || cs.alerts.submitFailed)
     } catch (e) {
-      alert(e?.message || 'Không thể gửi duyệt')
+      alert(e?.message || cs.alerts.submitFailed)
     } finally {
       setListingActionBusyId(null)
     }
-  }, [loadData])
+  }, [loadData, cs.alerts.submitFailed])
 
   const HIRE_CONFIRM_ELIGIBLE = new Set([11, 12])
 
   const handleConfirmHire = useCallback(async (nomination, e) => {
     e?.stopPropagation?.()
     if (!nomination?.id || confirmingHireId) return
-    if (!window.confirm(`Xác nhận "${nomination.candidateName || 'ứng viên'}" đã tuyển thành công?\n\nThao tác này kích hoạt quy trình thanh toán & chia phí trên JobShare.`)) {
+    if (!window.confirm(db.confirmHire(nomination.candidateName || cs.common.candidateFallback))) {
       return
     }
     setConfirmingHireId(nomination.id)
@@ -1311,32 +1311,41 @@ const CandidateSharing = () => {
       if (res?.success) {
         await loadData()
       } else {
-        alert(res?.message || 'Không thể xác nhận tuyển thành công')
+        alert(res?.message || cs.alerts.confirmHireFailed)
       }
     } catch (err) {
-      alert(err?.message || 'Không thể xác nhận tuyển thành công')
+      alert(err?.message || cs.alerts.confirmHireFailed)
     } finally {
       setConfirmingHireId(null)
     }
-  }, [confirmingHireId, loadData])
+  }, [confirmingHireId, loadData, cs.alerts.confirmHireFailed, cs.common.candidateFallback, db])
 
   const showChatColumn = tab !== 'costs' && tab !== 'jobs'
 
   const tablePanelClass =
-    'ctv-marketplace-table-panel overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm shrink-0'
+    'ctv-marketplace-table-panel min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm'
   const tableBodyScrollClass = 'ctv-marketplace-table-body ctv-scrollbar overflow-x-auto'
+
+  const tbl = db.table
+  const nominationHeaders = [
+    tbl.candidate,
+    tbl.position,
+    tbl.collaborator,
+    tbl.date,
+    tbl.status,
+  ]
 
   const renderNominationsTable = (list, emptyMessage, { showHireAction = false } = {}) => (
     <div className={tableBodyScrollClass}>
-      <table className="w-full min-w-[640px] border-collapse text-xs">
+      <table className={`w-full min-w-[640px] border-collapse ctv-marketplace-table-ui ${BUSINESS_HP_TEXT.body}`}>
         <thead>
-          <tr className="border-b border-slate-100 bg-slate-50/80 text-[10px] uppercase tracking-wide text-slate-400">
-            {['Ứng viên', 'Vị trí', 'Cộng tác viên', 'Ngày', 'Trạng thái', ...(showHireAction ? [''] : [])].map((h, idx) => (
+          <tr className={CTV_TABLE_HEAD_ROW}>
+            {[...nominationHeaders, ...(showHireAction ? [''] : [])].map((h, idx) => (
               <th
                 key={h || `action-${idx}`}
-                className={`px-3 py-2 font-semibold ${h === 'Ngày' || h === 'Trạng thái' || h === '' ? 'text-center' : 'text-left'}`}
+                className={`${CTV_TH} ${h === tbl.date || h === tbl.status || h === '' ? 'text-center' : 'text-left'}`}
               >
-                {h === '' ? 'Thao tác' : h}
+                {h === '' ? cs.common.actions : h}
               </th>
             ))}
           </tr>
@@ -1344,12 +1353,12 @@ const CandidateSharing = () => {
         <tbody>
           {list.length === 0 ? (
             <tr>
-              <td colSpan={showHireAction ? 6 : 5} className="px-3 py-16 text-center align-top text-slate-400">
+              <td colSpan={showHireAction ? 6 : 5} className={`${CTV_TD} h-full min-h-[12rem] text-center align-middle text-slate-400`}>
                 {emptyMessage}
               </td>
             </tr>
           ) : list.map((n) => {
-            const sc = statusColor(n.status)
+            const sc = getNominationStatusBadgeStyle(n.statusCode)
             const sel = String(selectedNomination?.id) === String(n.nominationId)
             const statusCode = Number(n.statusCode)
             const canConfirmHire = showHireAction && HIRE_CONFIRM_ELIGIBLE.has(statusCode)
@@ -1360,41 +1369,41 @@ const CandidateSharing = () => {
                 className={`cursor-pointer border-t border-slate-100 transition-colors ${sel ? 'bg-[#e8f4fa]/80' : 'hover:bg-slate-50/80'}`}
                 onClick={() => setSelectedNomination(n.raw)}
               >
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <Avatar id={n.id} size={22} />
+                <td className={CTV_TD}>
+                  <div className="flex items-center gap-2.5">
+                    <Avatar id={n.id} size={24} />
                     <div>
                       <div className="font-semibold text-slate-800">{n.name}</div>
-                      {n.subName ? <div className="text-[10px] text-slate-400">{n.subName}</div> : null}
+                      {n.subName ? <div className={`text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>{n.subName}</div> : null}
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-2">
+                <td className={CTV_TD}>
                   <div className="font-medium text-slate-800">{n.position}</div>
-                  <div className="text-[10px] text-slate-400">{n.posCode}</div>
+                  <div className={`text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>{n.posCode}</div>
                 </td>
-                <td className="px-3 py-2 font-medium text-slate-700">{n.ctv}</td>
-                <td className="px-3 py-2 text-center text-slate-500">{n.date}</td>
-                <td className="px-3 py-2 text-center">
-                  <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ color: sc.color, background: sc.bg }}>
+                <td className={`${CTV_TD} font-medium text-slate-700`}>{n.ctv}</td>
+                <td className={`${CTV_TD} text-center text-slate-500`}>{n.date}</td>
+                <td className={`${CTV_TD} text-center`}>
+                  <span className={`rounded-full px-2 py-0.5 ${CTV_STATUS_BADGE}`} style={{ color: sc.color, background: sc.bg }}>
                     {n.status}
                   </span>
                 </td>
                 {showHireAction ? (
-                  <td className="px-3 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                  <td className={`${CTV_TD} text-center`} onClick={(e) => e.stopPropagation()}>
                     {canConfirmHire ? (
                       <button
                         type="button"
                         disabled={confirmingHireId === n.nominationId}
                         onClick={(e) => handleConfirmHire(n.raw, e)}
-                        className="rounded-md bg-emerald-600 px-2 py-1 text-[10px] font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                        className={`rounded-md bg-emerald-600 px-2.5 py-1.5 font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 ${BUSINESS_HP_TEXT.button}`}
                       >
-                        {confirmingHireId === n.nominationId ? '...' : 'Xác nhận tuyển'}
+                        {confirmingHireId === n.nominationId ? '...' : db.confirmHireBtn}
                       </button>
                     ) : hireDone ? (
-                      <span className="text-[10px] font-medium text-emerald-600">Đã xác nhận</span>
+                      <span className={`font-medium text-emerald-600 ${BUSINESS_HP_TEXT.caption}`}>{db.hireConfirmed}</span>
                     ) : (
-                      <span className="text-[10px] text-slate-300">—</span>
+                      <span className={`text-slate-300 ${BUSINESS_HP_TEXT.caption}`}>—</span>
                     )}
                   </td>
                 ) : null}
@@ -1408,7 +1417,7 @@ const CandidateSharing = () => {
 
   const marketplaceShell = (
     <>
-      <style>{scrollbarStyle}</style>
+      <style>{pageStyles}</style>
       <CreateListingModal
         open={showCreate}
         onClose={closeCreateModal}
@@ -1416,15 +1425,19 @@ const CandidateSharing = () => {
         initialJobId={createJobId}
       />
       <div
-        className="business-homepage-shell min-h-0 h-full overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden"
-        style={{ fontFamily: PAGE_FONT }}
+        className="business-homepage-shell flex min-h-0 h-full flex-col overflow-x-hidden bg-[#f4f6f8] xl:overflow-hidden"
+        style={{ fontFamily: BUSINESS_UI_FONT }}
       >
-        <div className="business-homepage-ui flex h-full min-h-0 w-full flex-1 flex-col p-2.5 sm:p-3">
-          <BusinessQuickActionsPageLayout onNavigate={navigate} className="min-h-0 flex-1">
-            <div className="ctv-marketplace-dashboard flex h-full min-h-0 flex-col overflow-hidden">
-              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
-        <header className="flex shrink-0 flex-wrap items-center justify-between gap-2">
-          <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500 lg:text-xs">
+        <div className={`business-homepage-ui business-app-ui flex h-full min-h-0 w-full flex-1 flex-col ${CTV_SHELL_PAD}`}>
+          <BusinessQuickActionsPageLayout
+            onNavigate={navigate}
+            className="min-h-0 flex-1 xl:overflow-hidden"
+            mainClassName="min-h-0 flex-1 xl:h-full xl:overflow-hidden"
+          >
+            <div className="ctv-marketplace-dashboard flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+              <div className={`flex h-full min-h-0 flex-1 flex-col overflow-hidden ${CTV_STACK_GAP}`}>
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 sm:gap-4 pb-0.5">
+          <nav aria-label="Breadcrumb" className={BUSINESS_HP_TEXT.meta}>
             <button
               type="button"
               onClick={() => navigate('/business')}
@@ -1438,25 +1451,25 @@ const CandidateSharing = () => {
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#0077B6] px-3 py-2 text-[11px] font-semibold text-white shadow-sm transition-colors hover:bg-[#006399] sm:text-xs"
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#0077B6] px-3 py-2 text-white shadow-sm transition-colors hover:bg-[#006399] ${BUSINESS_HP_TEXT.buttonPrimary}`}
           >
-            <Plus className="h-3.5 w-3.5" /> Đăng JD lên Sàn CTV
+            <Plus className="h-3.5 w-3.5" /> {db.postJob}
           </button>
         </header>
 
-        <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid shrink-0 grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 xl:shrink-0">
           {statCards.map((card) => (
             <CtvKpiCard key={card.title} {...card} />
           ))}
         </div>
 
-        <div className="flex shrink-0 gap-4 overflow-x-auto border-b border-slate-200 scrollbar-hide">
+        <div className="flex shrink-0 gap-5 overflow-x-auto border-b border-slate-200 px-0.5 scrollbar-hide sm:gap-6 xl:shrink-0">
           {tabs.map((t) => (
             <button
               key={t.key}
               type="button"
               onClick={() => handleTabChange(t.key)}
-              className={`-mb-px shrink-0 border-b-2 px-1 pb-2 text-[11px] font-semibold transition-colors sm:text-xs ${
+              className={`-mb-px shrink-0 border-b-2 px-2 pb-2.5 pt-0.5 font-semibold transition-colors sm:px-3 sm:pb-3 ${BUSINESS_HP_TEXT.body} ${
                 tab === t.key
                   ? 'border-[#0077B6] text-[#0077B6]'
                   : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -1467,86 +1480,88 @@ const CandidateSharing = () => {
           ))}
         </div>
 
-        <div className="ctv-marketplace-body min-h-0 flex-1 overflow-hidden">
+        <div className="ctv-marketplace-body">
             <div
               className={
                 showChatColumn
-                  ? 'grid h-full min-h-0 grid-cols-1 gap-2 overflow-hidden lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] lg:gap-3'
-                  : 'min-h-0 overflow-hidden'
+                  ? 'ctv-marketplace-workspace--split grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] lg:gap-4'
+                  : 'ctv-marketplace-workspace'
               }
             >
-          <div className="ctv-marketplace-col ctv-scrollbar flex min-h-0 flex-col gap-2.5">
+          <div className="ctv-marketplace-col ctv-marketplace-col--table flex min-h-0 flex-1 flex-col">
             {tab === 'jobs' && (
               <div className={tablePanelClass}>
-                <div className={`${CTV_CARD} flex shrink-0 flex-wrap items-center justify-between gap-2 border-0 px-3 py-2 shadow-none`}>
-                  <span className="text-xs font-bold text-slate-900 sm:text-sm">JD đã đăng trên Sàn CTV</span>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                    {filteredJobsData.length}/{jobsData.length}
-                  </span>
-                </div>
-                <div className="flex shrink-0 flex-wrap items-end gap-2 border-b border-slate-100 bg-white px-3 py-2">
-                  <label className="text-[10px] font-semibold text-slate-600">
-                    Trạng thái
-                    <select
-                      value={jobFilterStatus}
-                      onChange={(e) => setJobFilterStatus(e.target.value)}
-                      className="mt-0.5 block min-w-[7.5rem] rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-800"
-                    >
-                      <option value="">Tất cả</option>
-                      <option value="0">Nháp</option>
-                      <option value="1">Đang chờ WS duyệt</option>
-                      <option value="3">Đang chạy</option>
-                      <option value="4">Tạm dừng</option>
-                      <option value="5">Đã đóng</option>
-                    </select>
-                  </label>
-                  <label className="text-[10px] font-semibold text-slate-600">
-                    Thời hạn
-                    <select
-                      value={jobFilterDeadline}
-                      onChange={(e) => setJobFilterDeadline(e.target.value)}
-                      className="mt-0.5 block min-w-[7.5rem] rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-800"
-                    >
-                      <option value="">Tất cả</option>
-                      <option value="expiring">Sắp hết hạn</option>
-                      <option value="expired">Đã hết hạn</option>
-                    </select>
-                  </label>
-                  <label className="text-[10px] font-semibold text-slate-600">
-                    Đơn tiến cử
-                    <select
-                      value={jobFilterHasNomination}
-                      onChange={(e) => setJobFilterHasNomination(e.target.value)}
-                      className="mt-0.5 block min-w-[6.5rem] rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-800"
-                    >
-                      <option value="">Tất cả</option>
-                      <option value="yes">Có</option>
-                      <option value="no">Không</option>
-                    </select>
-                  </label>
-                  <label className="text-[10px] font-semibold text-slate-600">
-                    CTV quan tâm
-                    <select
-                      value={jobFilterHasInterest}
-                      onChange={(e) => setJobFilterHasInterest(e.target.value)}
-                      className="mt-0.5 block min-w-[6.5rem] rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-800"
-                    >
-                      <option value="">Tất cả</option>
-                      <option value="yes">Có</option>
-                      <option value="no">Không</option>
-                    </select>
-                  </label>
+                <div className={`${CTV_JOBS_TOOLBAR} ${CTV_PANEL_HEAD}`}>
+                  <div className="flex shrink-0 items-center gap-2 pb-0.5 sm:pb-1">
+                    <span className={BUSINESS_HP_TEXT.section}>{db.jobsPanelTitle}</span>
+                    <span className={`rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-600 ${BUSINESS_HP_TEXT.micro}`}>
+                      {filteredJobsData.length}/{jobsData.length}
+                    </span>
+                  </div>
+                  <div className={CTV_JOBS_FILTERS}>
+                    <label className={CTV_FILTER_LABEL}>
+                      {db.filters.status}
+                      <select
+                        value={jobFilterStatus}
+                        onChange={(e) => setJobFilterStatus(e.target.value)}
+                        className={`${CTV_FILTER_SELECT} min-w-[6.5rem] sm:min-w-[7rem]`}
+                      >
+                        <option value="">{cs.common.all}</option>
+                        <option value="0">{getMarketplaceListingStatusLabel(0, language)}</option>
+                        <option value="1">{getMarketplaceListingStatusLabel(1, language)}</option>
+                        <option value="3">{getMarketplaceListingStatusLabel(3, language)}</option>
+                        <option value="4">{getMarketplaceListingStatusLabel(4, language)}</option>
+                        <option value="5">{getMarketplaceListingStatusLabel(5, language)}</option>
+                      </select>
+                    </label>
+                    <label className={CTV_FILTER_LABEL}>
+                      {db.filters.deadline}
+                      <select
+                        value={jobFilterDeadline}
+                        onChange={(e) => setJobFilterDeadline(e.target.value)}
+                        className={`${CTV_FILTER_SELECT} min-w-[6.5rem] sm:min-w-[7rem]`}
+                      >
+                        <option value="">{cs.common.all}</option>
+                        <option value="expiring">{db.filters.expiring}</option>
+                        <option value="expired">{db.filters.expired}</option>
+                      </select>
+                    </label>
+                    <label className={CTV_FILTER_LABEL}>
+                      {db.filters.nominations}
+                      <select
+                        value={jobFilterHasNomination}
+                        onChange={(e) => setJobFilterHasNomination(e.target.value)}
+                        className={`${CTV_FILTER_SELECT} min-w-[5.5rem] sm:min-w-[6rem]`}
+                      >
+                        <option value="">{cs.common.all}</option>
+                        <option value="yes">{cs.common.yes}</option>
+                        <option value="no">{cs.common.no}</option>
+                      </select>
+                    </label>
+                    <label className={CTV_FILTER_LABEL}>
+                      {db.filters.interests}
+                      <select
+                        value={jobFilterHasInterest}
+                        onChange={(e) => setJobFilterHasInterest(e.target.value)}
+                        className={`${CTV_FILTER_SELECT} min-w-[5.5rem] sm:min-w-[6rem]`}
+                      >
+                        <option value="">{cs.common.all}</option>
+                        <option value="yes">{cs.common.yes}</option>
+                        <option value="no">{cs.common.no}</option>
+                      </select>
+                    </label>
+                  </div>
                 </div>
                 <div className={tableBodyScrollClass}>
-                  <table className="w-full min-w-[800px] border-collapse text-xs">
+                  <table className={`w-full min-w-[800px] border-collapse ctv-marketplace-table-ui ${BUSINESS_HP_TEXT.body}`}>
                     <thead>
-                      <tr className="border-b border-slate-100 bg-slate-50/80 text-[10px] uppercase tracking-wide text-slate-400">
-                        {['JD', 'Phí giới thiệu', 'Trạng thái', 'CTV', 'Đơn tiến cử', 'Hạn', ''].map((h) => (
+                      <tr className={CTV_TABLE_HEAD_ROW}>
+                        {[tbl.job, tbl.referralFee, tbl.status, tbl.ctv, tbl.nominations, tbl.deadline, ''].map((h) => (
                           <th
                             key={h || 'actions'}
-                            className={`px-2 py-1.5 font-semibold sm:px-3 ${h === 'JD' || h === 'Phí giới thiệu' ? 'text-left' : 'text-center'}`}
+                            className={`${CTV_TH} ${h === tbl.job || h === tbl.referralFee ? 'text-left' : 'text-center'}`}
                           >
-                            {h === '' ? 'Thao tác' : h}
+                            {h === '' ? cs.common.actions : h}
                           </th>
                         ))}
                       </tr>
@@ -1554,16 +1569,16 @@ const CandidateSharing = () => {
                     <tbody>
                       {filteredJobsData.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-3 py-10 text-center align-top text-[11px] text-slate-400">
+                          <td colSpan={7} className={`${CTV_TD} h-full min-h-[12rem] text-center align-middle text-slate-400 ${BUSINESS_HP_TEXT.body}`}>
                             {jobsData.length === 0
-                              ? 'Chưa có JD trên Sàn CTV. Bấm "+ Đăng JD lên Sàn CTV" để bắt đầu.'
-                              : 'Không có JD khớp bộ lọc.'}
+                              ? db.emptyJobsNone
+                              : db.emptyJobsFilter}
                           </td>
                         </tr>
                       ) : filteredJobsData.map((job) => {
-                        const sc = listingStatusStyle(job.statusCode, job.status)
+                        const sc = getMarketplaceListingStatusStyle(job.statusCode)
                         const busy = listingActionBusyId === job.id
-                        const openDetail = () => openSanCtvListingDetail(navigate, job.id)
+                        const openDetail = () => openSanCtvListingDetail(navigate, job.jobId)
                         return (
                           <tr
                             key={job.id}
@@ -1578,71 +1593,71 @@ const CandidateSharing = () => {
                             } : undefined}
                             className={`border-t border-slate-100 hover:bg-slate-50/70 ${job.jobId ? 'cursor-pointer' : ''}`}
                           >
-                            <td className="px-2 py-1.5 sm:px-3 sm:py-2">
+                            <td className={CTV_TD}>
                               <div className="font-semibold text-slate-800">{job.title}</div>
-                              <div className="text-[10px] text-slate-400">{job.code}</div>
+                              <div className={`text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>{job.code}</div>
                             </td>
-                            <td className="max-w-[200px] px-2 py-1.5 text-[11px] leading-snug text-slate-600 sm:px-3">
+                            <td className={`max-w-[200px] leading-snug text-slate-600 ${CTV_TD} ${BUSINESS_HP_TEXT.body}`}>
                               <span className="line-clamp-2" title={job.referralFee}>
                                 {formatReferralFeeCell(job.referralFee)}
                               </span>
                             </td>
-                            <td className="px-2 py-1.5 text-center sm:px-3">
-                              <span className="rounded-full px-2 py-0.5 text-[9px] font-semibold" style={{ color: sc.color, background: sc.bg }}>
+                            <td className={`${CTV_TD} text-center`}>
+                              <span className={`rounded-full px-2 py-0.5 font-semibold ${BUSINESS_HP_TEXT.micro}`} style={{ color: sc.color, background: sc.bg }}>
                                 {job.status}
                               </span>
                             </td>
-                            <td className="px-2 py-1.5 text-center font-medium tabular-nums text-slate-700 sm:px-3">{job.ctvCount ?? '—'}</td>
-                            <td className="px-2 py-1.5 text-center font-medium tabular-nums text-slate-700 sm:px-3">{job.nominationCount ?? '—'}</td>
-                            <td className="px-2 py-1.5 text-center sm:px-3">
+                            <td className={`${CTV_TD} text-center font-medium tabular-nums text-slate-700`}>{job.ctvCount ?? '—'}</td>
+                            <td className={`${CTV_TD} text-center font-medium tabular-nums text-slate-700`}>{job.nominationCount ?? '—'}</td>
+                            <td className={`${CTV_TD} text-center`}>
                               <div className="text-slate-600">{job.deadline}</div>
                               {job.expiringSoon ? (
-                                <div className="mt-0.5 inline-flex items-center gap-0.5 text-[9px] font-semibold text-amber-700">
+                                <div className={`mt-0.5 inline-flex items-center gap-0.5 font-semibold text-amber-700 ${BUSINESS_HP_TEXT.micro}`}>
                                   <AlertTriangle className="h-3 w-3" aria-hidden />
-                                  Sắp hết hạn
+                                  {tbl.expiringSoon}
                                 </div>
                               ) : null}
                             </td>
-                            <td className="relative px-2 py-1.5 text-center sm:px-3" onClick={(e) => e.stopPropagation()}>
+                            <td className={`relative ${CTV_TD} text-center`} onClick={(e) => e.stopPropagation()}>
                               <button
                                 type="button"
                                 disabled={busy}
                                 onClick={() => setOpenListingMenuId((prev) => (prev === job.id ? null : job.id))}
                                 className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                                aria-label="Thao tác"
+                                aria-label={cs.common.actions}
                               >
                                 {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
                               </button>
                               {openListingMenuId === job.id ? (
                                 <div className="absolute right-2 top-full z-20 mt-1 min-w-[10.5rem] rounded-lg border border-slate-200 bg-white py-1 text-left shadow-lg sm:right-3">
                                   {job.jobId ? (
-                                    <button type="button" className="block w-full px-3 py-1.5 text-left text-[10px] font-medium text-slate-700 hover:bg-slate-50" onClick={() => openDetail()}>
-                                      Xem chi tiết
+                                    <button type="button" className={`block w-full px-3 py-1.5 text-left font-medium text-slate-700 hover:bg-slate-50 ${BUSINESS_HP_TEXT.body}`} onClick={() => openDetail()}>
+                                      {db.menu.viewDetail}
                                     </button>
                                   ) : null}
                                   {job.jobId ? (
-                                    <button type="button" className="block w-full px-3 py-1.5 text-left text-[10px] font-medium text-slate-700 hover:bg-slate-50" onClick={() => handleListingEditFee(job)}>
-                                      Chỉnh phí giới thiệu
+                                    <button type="button" className={`block w-full px-3 py-1.5 text-left font-medium text-slate-700 hover:bg-slate-50 ${BUSINESS_HP_TEXT.body}`} onClick={() => handleListingEditFee(job)}>
+                                      {db.menu.editFee}
                                     </button>
                                   ) : null}
                                   {Number(job.statusCode) === MARKETPLACE_LISTING_STATUS.DRAFT ? (
-                                    <button type="button" className="block w-full px-3 py-1.5 text-left text-[10px] font-medium text-[#0077B6] hover:bg-slate-50" onClick={() => handleListingSubmitDraft(job.id)}>
-                                      Gửi WS duyệt
+                                    <button type="button" className={`block w-full px-3 py-1.5 text-left font-medium text-[#0077B6] hover:bg-slate-50 ${BUSINESS_HP_TEXT.body}`} onClick={() => handleListingSubmitDraft(job.id)}>
+                                      {db.menu.submitWs}
                                     </button>
                                   ) : null}
                                   {Number(job.statusCode) === MARKETPLACE_LISTING_STATUS.PUBLISHED ? (
-                                    <button type="button" className="block w-full px-3 py-1.5 text-left text-[10px] font-medium text-slate-700 hover:bg-slate-50" onClick={() => handleListingPause(job.id)}>
-                                      Tạm dừng
+                                    <button type="button" className={`block w-full px-3 py-1.5 text-left font-medium text-slate-700 hover:bg-slate-50 ${BUSINESS_HP_TEXT.body}`} onClick={() => handleListingPause(job.id)}>
+                                      {db.menu.pause}
                                     </button>
                                   ) : null}
                                   {[MARKETPLACE_LISTING_STATUS.PUBLISHED, MARKETPLACE_LISTING_STATUS.PAUSED].includes(Number(job.statusCode)) ? (
-                                    <button type="button" className="block w-full px-3 py-1.5 text-left text-[10px] font-medium text-rose-700 hover:bg-rose-50" onClick={() => handleListingClose(job.id)}>
-                                      Đóng JD
+                                    <button type="button" className={`block w-full px-3 py-1.5 text-left font-medium text-rose-700 hover:bg-rose-50 ${BUSINESS_HP_TEXT.body}`} onClick={() => handleListingClose(job.id)}>
+                                      {db.menu.closeJob}
                                     </button>
                                   ) : null}
                                   {(job.expiringSoon || Number(job.statusCode) === MARKETPLACE_LISTING_STATUS.PUBLISHED) ? (
-                                    <button type="button" className="block w-full px-3 py-1.5 text-left text-[10px] font-medium text-amber-800 hover:bg-amber-50" onClick={() => handleListingExtend(job)}>
-                                      Gia hạn
+                                    <button type="button" className={`block w-full px-3 py-1.5 text-left font-medium text-amber-800 hover:bg-amber-50 ${BUSINESS_HP_TEXT.body}`} onClick={() => handleListingExtend(job)}>
+                                      {db.menu.extend}
                                     </button>
                                   ) : null}
                                 </div>
@@ -1659,56 +1674,63 @@ const CandidateSharing = () => {
 
             {tab === 'nominations' && (
               <div className={tablePanelClass}>
-                <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2.5">
-                  <span className="text-xs font-bold text-slate-900 sm:text-sm">Đơn tiến cử</span>
-                  <span className="rounded-full bg-[#e8f4fa] px-1.5 py-0.5 text-[10px] font-bold text-[#0077B6]">{nominationsData.length}</span>
+                <div className={`flex items-center gap-2.5 border-b border-slate-100 ${CTV_PANEL_HEAD}`}>
+                  <span className={BUSINESS_HP_TEXT.section}>{db.tabs.nominations}</span>
+                  <span className={CTV_COUNT_BADGE}>{nominationsData.length}</span>
                 </div>
-                {renderNominationsTable(nominationsData, 'Chưa có đơn tiến cử', { showHireAction: true })}
+                {renderNominationsTable(nominationsData, db.emptyNominations, { showHireAction: true })}
               </div>
             )}
 
             {tab === 'candidates' && (
               <div className={tablePanelClass}>
-                <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2.5">
-                  <span className="text-xs font-bold text-slate-900 sm:text-sm">Ứng viên đang xử lý</span>
-                  <span className="rounded-full bg-[#e8f4fa] px-1.5 py-0.5 text-[10px] font-bold text-[#0077B6]">{candidatesData.length}</span>
+                <div className={`flex items-center gap-2.5 border-b border-slate-100 ${CTV_PANEL_HEAD}`}>
+                  <span className={BUSINESS_HP_TEXT.section}>{db.kpiPipeline}</span>
+                  <span className={CTV_COUNT_BADGE}>{candidatesData.length}</span>
                 </div>
-                {renderNominationsTable(candidatesData, 'Chưa có ứng viên trong pipeline', { showHireAction: true })}
+                {renderNominationsTable(candidatesData, db.emptyCandidates, { showHireAction: true })}
               </div>
             )}
 
             {tab === 'costs' && (
               <div className={tablePanelClass}>
-                <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-2.5">
-                  <span className="text-xs font-bold text-slate-900 sm:text-sm">Thanh toán &amp; chia phí</span>
-                  <span className="rounded-full bg-[#e8f4fa] px-1.5 py-0.5 text-[10px] font-bold text-[#0077B6]">{settlements.length}</span>
+                <div className={`flex shrink-0 items-center justify-between border-b border-slate-100 ${CTV_PANEL_HEAD}`}>
+                  <span className={BUSINESS_HP_TEXT.section}>{db.tabs.costs}</span>
+                  <span className={CTV_COUNT_BADGE}>{settlements.length}</span>
                 </div>
                 {settlements.length === 0 ? (
-                  <div className={`${tableBodyScrollClass} flex items-start justify-center px-3 py-16 text-center text-xs text-slate-400`}>
-                    Chưa có giao dịch thanh toán
+                  <div className={`${tableBodyScrollClass} flex flex-1 items-center justify-center px-4 py-8 text-center text-slate-400 ${BUSINESS_HP_TEXT.body}`}>
+                    {db.emptySettlements}
                   </div>
                 ) : (
                   <div className={tableBodyScrollClass}>
-                    <table className="w-full border-collapse text-xs">
+                    <table className={`w-full border-collapse ctv-marketplace-table-ui ${BUSINESS_HP_TEXT.body}`}>
                       <thead>
-                        <tr className="border-b border-slate-100 bg-slate-50/80 text-[10px] uppercase tracking-wide text-slate-400">
-                          {['Ứng viên', 'Vị trí', 'Trạng thái', 'Số tiền (DN → WS)', 'Ngày'].map((h) => (
-                            <th key={h} className="px-3 py-2 text-left font-semibold">{h}</th>
+                        <tr className={CTV_TABLE_HEAD_ROW}>
+                          {[tbl.candidate, tbl.position, tbl.status, tbl.amountBusinessToWs, tbl.date].map((h) => (
+                            <th key={h} className={`${CTV_TH} text-left`}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {settlements.map((set) => (
                           <tr key={set.id} className="border-t border-slate-100 hover:bg-slate-50/60">
-                            <td className="px-3 py-2 font-semibold text-slate-800">{set.candidateName || '—'}</td>
-                            <td className="px-3 py-2 text-slate-600">{set.jobTitle} {set.jobCode ? `(${set.jobCode})` : ''}</td>
-                            <td className="px-3 py-2">
-                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${set.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                                {set.statusLabel}
+                            <td className={`${CTV_TD} font-semibold text-slate-800`}>{set.candidateName || cs.common.emDash}</td>
+                            <td className={`${CTV_TD} text-slate-600`}>
+                              {getLocalizedJobTitle(
+                                { title: set.jobTitle, titleEn: set.jobTitleEn, titleJp: set.jobTitleJp },
+                                language,
+                              ) || set.jobTitle}
+                              {' '}
+                              {set.jobCode ? `(${set.jobCode})` : ''}
+                            </td>
+                            <td className={CTV_TD}>
+                              <span className={`rounded-full px-2 py-0.5 font-semibold ${CTV_STATUS_BADGE} ${set.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                {getMarketplaceSettlementStatusLabel(set.status, language)}
                               </span>
                             </td>
-                            <td className="px-3 py-2 tabular-nums font-semibold text-slate-800">{Number(set.totalAmountBusiness || 0).toLocaleString('vi-VN')}đ</td>
-                            <td className="px-3 py-2 text-slate-500">{formatDateShort(set.createdAt)}</td>
+                            <td className={`${CTV_TD} tabular-nums font-semibold text-slate-800`}>{Number(set.totalAmountBusiness || 0).toLocaleString(language === 'ja' ? 'ja-JP' : language === 'en' ? 'en-US' : 'vi-VN')}đ</td>
+                            <td className={`${CTV_TD} text-slate-500`}>{formatMarketplaceDate(set.createdAt, language)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1720,9 +1742,9 @@ const CandidateSharing = () => {
           </div>
 
           {showChatColumn && (
-            <div className="ctv-marketplace-col ctv-scrollbar flex min-h-0 flex-col">
-              <div className="flex min-h-[min(380px,48vh)] flex-1 flex-col lg:min-h-[320px]">
-                <ThreeWayChatPanel selectedNomination={selectedNomination} />
+            <div className="ctv-marketplace-col min-h-0 flex flex-col overflow-hidden">
+              <div className="flex min-h-0 flex-1 flex-col">
+                <ThreeWayChatPanel selectedNomination={selectedNomination} cs={cs} language={language} />
               </div>
             </div>
           )}
@@ -1739,7 +1761,7 @@ const CandidateSharing = () => {
   if (loading) {
     return (
       <>
-        <style>{scrollbarStyle}</style>
+        <style>{pageStyles}</style>
         <CreateListingModal
           open={showCreate}
           onClose={closeCreateModal}
@@ -1747,8 +1769,8 @@ const CandidateSharing = () => {
           initialJobId={createJobId}
         />
         <div className="h-full min-h-0 w-full flex items-center justify-center bg-slate-50">
-          <div className="flex items-center gap-2 text-slate-500 text-sm">
-            <Loader2 className="w-5 h-5 animate-spin" /> Đang tải sàn CTV...
+          <div className={`flex items-center gap-2 text-slate-500 ${BUSINESS_HP_TEXT.body}`}>
+            <Loader2 className="w-5 h-5 animate-spin" /> {cs.loading.marketplace}
           </div>
         </div>
       </>
@@ -1758,15 +1780,15 @@ const CandidateSharing = () => {
   if (showOnboarding) {
     return (
       <>
-        <style>{scrollbarStyle}</style>
+        <style>{pageStyles}</style>
         <CreateListingModal
           open={showCreate}
           onClose={closeCreateModal}
           onCreated={handleCreatedListing}
           initialJobId={createJobId}
         />
-        <div className="business-homepage-shell min-h-0 h-full overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden" style={{ fontFamily: PAGE_FONT }}>
-          <div className="business-homepage-ui flex h-full min-h-0 w-full flex-1 flex-col p-2.5 sm:p-3">
+        <div className="business-homepage-shell min-h-0 h-full overflow-x-hidden bg-[#f4f6f8] xl:h-full xl:overflow-hidden" style={{ fontFamily: BUSINESS_UI_FONT }}>
+          <div className={`business-homepage-ui business-app-ui flex h-full min-h-0 w-full flex-1 flex-col ${CTV_SHELL_PAD}`}>
             <BusinessQuickActionsPageLayout onNavigate={navigate}>
               <OnboardingView
                 hasMarketplaceData={hasListings}
@@ -1776,6 +1798,8 @@ const CandidateSharing = () => {
                 onNavigate={navigate}
                 breadcrumbHome={breadcrumbHome}
                 breadcrumbCurrent={breadcrumbCurrent}
+                cs={cs}
+                language={language}
               />
             </BusinessQuickActionsPageLayout>
           </div>

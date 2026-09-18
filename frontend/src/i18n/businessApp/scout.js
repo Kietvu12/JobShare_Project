@@ -175,6 +175,18 @@ export const scoutI18n = {
       business: 'Business',
       conversational: 'Hội thoại',
     },
+    profilePanel: {
+      noData: 'Chưa có dữ liệu hồ sơ',
+      close: 'Đóng',
+      defaultAccessLabel: 'Hồ sơ đã mở — thông tin đầy đủ',
+      previewSectionTitle: 'Thông tin preview (ẩn danh)',
+      approximateAge: 'Độ tuổi (khoảng)',
+      availability: 'Sẵn sàng nhập công ty',
+      workHistoryAnonymous: 'Kinh nghiệm làm việc (ẩn danh)',
+      contactAndPersonal: 'Liên hệ & cá nhân',
+      searchKeywordMatch: 'Khớp từ khóa',
+      matchWithJd: (title) => `với JD: ${title}`,
+    },
   },
   en: {
     suitableFor: 'Best for:',
@@ -239,6 +251,18 @@ export const scoutI18n = {
       native: 'Native',
       business: 'Business',
       conversational: 'Conversational',
+    },
+    profilePanel: {
+      noData: 'No profile data yet',
+      close: 'Close',
+      defaultAccessLabel: 'Profile unlocked — full details',
+      previewSectionTitle: 'Preview (anonymous)',
+      approximateAge: 'Approximate age',
+      availability: 'Available to join',
+      workHistoryAnonymous: 'Work experience (anonymous)',
+      contactAndPersonal: 'Contact & personal',
+      searchKeywordMatch: 'Keyword matches',
+      matchWithJd: (title) => `for JD: ${title}`,
     },
   },
   ja: {
@@ -305,8 +329,24 @@ export const scoutI18n = {
       business: 'ビジネス',
       conversational: '会話',
     },
+    profilePanel: {
+      noData: 'プロフィールデータがありません',
+      close: '閉じる',
+      defaultAccessLabel: 'プロフィール開示 — 詳細情報',
+      previewSectionTitle: 'プレビュー（匿名）',
+      approximateAge: '年齢（目安）',
+      availability: '入社可能時期',
+      workHistoryAnonymous: '職歴（匿名）',
+      contactAndPersonal: '連絡先・個人情報',
+      searchKeywordMatch: 'キーワード一致',
+      matchWithJd: (title) => `JD: ${title}`,
+    },
   },
 };
+
+export function getScoutProfilePanelCopy(language) {
+  return scoutI18n[language]?.profilePanel || scoutI18n.vi.profilePanel;
+}
 
 export function getScoutSolutionCards(language) {
   return scoutI18n[language]?.solutionCards || scoutI18n.vi.solutionCards;

@@ -15,6 +15,7 @@ import {
   fetchScoutCvBusinessJobMatches,
   getMatchScorePercent,
 } from '../../utils/businessJobAiMatching'
+import { buildExistingNominationNoticeBody } from '../../utils/businessApplicationDisplay'
 import {
   normalizeScoutCertificates,
   normalizeScoutEducations,
@@ -43,61 +44,67 @@ import {
   getLocalizedScoutPipelineMeta,
   getLocalizedScoutUnlockSourceMeta,
 } from '../../i18n/businessAppI18n'
+import {
+  BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
+  BUSINESS_HP_TEXT,
+  BUSINESS_UI_FONT,
+} from '../../utils/businessHomepageTypography.js'
 
 const ANONYMOUS_AVATAR = 'https://api.dicebear.com/7.x/shapes/svg?seed=scout-unlocked'
 const BRAND = '#0077B6'
-const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 
 function isScoutPerformanceUnlock(candidate) {
   return candidate?.unlockType === 'scout_performance'
 }
 
 const detailPageStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+  ${BUSINESS_HOMEPAGE_PAGE_BASE_STYLES}
+  .business-candidates-detail-shell {
+    font-family: ${BUSINESS_UI_FONT};
+  }
+  .business-candidates-detail-shell .business-homepage-ui {
+    height: 100%;
+    min-height: 0;
+  }
+  @supports not (zoom: 1) {
+    .business-candidates-detail-shell .business-homepage-ui {
+      height: calc(100% / var(--hp-zoom));
+    }
+  }
   .business-candidates-ui {
     line-height: 1.45;
     color: #334155;
-    --cand-gap: 10px;
-    --cand-side-col: minmax(240px, 320px);
+    font-size: var(--biz-hp-body);
+    --cand-gap: 14px;
+    --cand-section-gap: 12px;
+    --cand-side-col: minmax(260px, 340px);
     --cand-radius: 12px;
-    --cand-fs-2xs: 8px;
-    --cand-fs-xs: 9px;
-    --cand-fs-sm: 10px;
-    --cand-fs-md: 11px;
-    --cand-fs-lg: 12px;
-    --cand-icon: 12px;
-    --cand-avatar-list: 28px;
+    --cand-icon: var(--biz-hp-jd-icon);
+    --cand-avatar-list: 32px;
     --cand-avatar-profile: 40px;
   }
-  @media (min-width: 1536px) {
+  @media (min-width: 640px) {
     .business-candidates-ui {
-      --cand-fs-2xs: 9px;
-      --cand-fs-xs: 10px;
-      --cand-fs-sm: 11px;
-      --cand-fs-md: 12px;
-      --cand-fs-lg: 13px;
-      --cand-icon: 13px;
-      --cand-avatar-list: 32px;
+      --cand-gap: 16px;
+      --cand-section-gap: 14px;
       --cand-avatar-profile: 44px;
     }
   }
-  @media (max-height: 900px) and (min-width: 1024px) {
+  @media (min-width: 1024px) {
     .business-candidates-ui {
-      --cand-fs-2xs: 7px;
-      --cand-fs-xs: 8px;
-      --cand-fs-sm: 9px;
-      --cand-fs-md: 10px;
-      --cand-fs-lg: 11px;
-      --cand-icon: 11px;
-      --cand-avatar-list: 26px;
-      --cand-avatar-profile: 36px;
+      --cand-gap: 18px;
+      --cand-section-gap: 16px;
     }
   }
-  .business-candidates-ui .cand-fs-2xs { font-size: var(--cand-fs-2xs); line-height: 1.4; }
-  .business-candidates-ui .cand-fs-xs { font-size: var(--cand-fs-xs); line-height: 1.45; }
-  .business-candidates-ui .cand-fs-sm { font-size: var(--cand-fs-sm); line-height: 1.45; }
-  .business-candidates-ui .cand-fs-md { font-size: var(--cand-fs-md); line-height: 1.4; }
-  .business-candidates-ui .cand-fs-lg { font-size: var(--cand-fs-lg); line-height: 1.35; }
+  .business-candidates-ui .cand-fs-2xs { font-size: var(--biz-hp-micro); line-height: 1.4; }
+  .business-candidates-ui .cand-fs-xs { font-size: var(--biz-hp-caption); line-height: 1.45; }
+  .business-candidates-ui .cand-fs-sm { font-size: var(--biz-hp-body); line-height: 1.45; }
+  .business-candidates-ui .cand-fs-md { font-size: var(--biz-hp-body-lg); line-height: 1.4; }
+  .business-candidates-ui .cand-fs-lg { font-size: var(--biz-hp-title); line-height: 1.35; }
+  .business-candidates-ui h3.cand-fs-sm {
+    font-size: var(--biz-hp-section);
+    line-height: 1.4;
+  }
   .business-candidates-ui .cand-icon {
     width: var(--cand-icon);
     height: var(--cand-icon);
@@ -112,11 +119,63 @@ const detailPageStyles = `
   @media (min-width: 1280px) {
     .business-candidates-detail-grid.has-sidebar {
       grid-template-columns: minmax(0, 1fr) var(--cand-side-col);
+      flex: 1;
+      min-height: 0;
+      height: 100%;
+      align-content: stretch;
+    }
+  }
+  .business-candidates-detail-body {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+  }
+  @media (min-width: 1280px) {
+    .business-candidates-detail-body {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .business-candidates-detail-body .business-candidates-ui {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .business-candidates-detail-body .business-candidates-detail-grid.has-sidebar {
+      flex: 1;
+      min-height: 0;
+    }
+    .business-candidates-detail-col {
+      min-height: 0;
+      max-height: 100%;
+      overflow-y: auto;
+      overscroll-behavior: contain;
     }
   }
   .business-candidates-ui .cand-surface {
     border-radius: var(--cand-radius);
-    padding: 8px;
+    padding: 12px;
+  }
+  @media (min-width: 640px) {
+    .business-candidates-ui .cand-surface {
+      padding: 16px;
+    }
+  }
+  @media (min-width: 1024px) {
+    .business-candidates-ui .cand-surface {
+      padding: 18px;
+    }
+  }
+  .business-candidates-ui .cand-detail-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cand-section-gap);
+  }
+  @media (min-width: 640px) {
+    .business-candidates-ui .cand-detail-stack {
+      gap: var(--cand-gap);
+    }
   }
   .business-candidates-ui .cand-prose {
     max-width: 42rem;
@@ -132,11 +191,6 @@ const detailPageStyles = `
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
-  .candidate-scrollbar::-webkit-scrollbar { width: 4px; }
-  .candidate-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .candidate-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-  .candidate-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-  .candidate-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
 `
 
 async function loadBusinessJobsByIds(jobIds) {
@@ -224,11 +278,11 @@ function MatchedJobsRecommendations({
 
   return (
     <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
-      <div className="mb-2 flex items-center gap-1.5">
+      <div className="mb-3 flex items-center gap-2">
         <Sparkles className="cand-icon text-[#0077B6]" aria-hidden />
         <h3 className="cand-fs-sm font-bold text-slate-900">{mj.title}</h3>
       </div>
-      <p className="cand-fs-2xs mb-2 text-slate-500">
+      <p className="cand-fs-2xs mb-3 text-slate-500">
         {mj.subtitle}
       </p>
 
@@ -242,7 +296,7 @@ function MatchedJobsRecommendations({
       ) : items.length === 0 ? (
         <p className="cand-fs-xs py-2 text-slate-400">{mj.empty}</p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-3">
           {items.map(({ jobId, score, job }) => {
             const key = String(jobId)
             const isAttached = attachedJobIds.has(key)
@@ -251,7 +305,7 @@ function MatchedJobsRecommendations({
             return (
               <li
                 key={key}
-                className="rounded-lg border border-slate-100 bg-slate-50/80 p-2"
+                className="rounded-lg border border-slate-100 bg-slate-50/80 p-3 sm:p-3.5"
               >
                 <div className="flex items-start gap-2">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#e8f4fa] text-[#0077B6]">
@@ -263,7 +317,7 @@ function MatchedJobsRecommendations({
                       <ScoutMatchBadge
                         score={score}
                         language={language}
-                        className="!shrink-0 !text-[10px]"
+                        className="!shrink-0 cand-fs-xs"
                         iconClassName="h-2.5 w-2.5"
                       />
                     </div>
@@ -325,7 +379,7 @@ function AvatarCircle({ candidate, size, language = 'vi' }) {
 function MetricCard({ label, value, sub }) {
   if (!value || value === '—') return null
   return (
-    <div className="rounded-lg border border-slate-200/80 bg-white px-2 py-1.5 shadow-sm">
+    <div className="rounded-lg border border-slate-200/80 bg-white px-3 py-2.5 shadow-sm sm:px-4 sm:py-3">
       <p className="cand-fs-2xs font-medium text-slate-400">{label}</p>
       <p className="cand-fs-sm font-bold tracking-tight text-slate-900">{value}</p>
       {sub ? <p className="cand-fs-2xs text-slate-400">{sub}</p> : null}
@@ -429,7 +483,7 @@ function CandidateHeaderMenu({ detailCopy, onDownloadCv, onScrollStatus, onComin
 function SectionCard({ title, children, className = '' }) {
   return (
     <div className={`cand-surface border border-slate-200/80 bg-white shadow-sm ${className}`}>
-      {title ? <h3 className="cand-fs-sm mb-2 font-bold text-slate-900">{title}</h3> : null}
+      {title ? <h3 className="cand-fs-sm mb-3 font-bold text-slate-900">{title}</h3> : null}
       {children}
     </div>
   )
@@ -495,9 +549,9 @@ function CandidateDetail({
   const prText = sanitizeCandidateDisplayText(getScoutPrSummary(candidate))
 
   return (
-    <div className="candidate-scrollbar flex min-h-0 flex-col gap-2 pb-1">
+    <div className="business-candidates-detail-col candidate-scrollbar cand-detail-stack flex min-h-0 flex-col pb-2">
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
-        <div className="flex items-start gap-2.5">
+        <div className="flex items-start gap-3 sm:gap-4">
           <div className="relative shrink-0">
             <AvatarCircle candidate={candidate} size={40} language={language} />
             <div className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white bg-emerald-500 text-white">
@@ -547,7 +601,7 @@ function CandidateDetail({
       ) : null}
 
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 sm:mb-4">
           <h3 className="cand-fs-sm font-bold text-slate-900">{d.profileInfo}</h3>
           {candidate.code ? (
             <button
@@ -560,7 +614,7 @@ function CandidateDetail({
             </button>
           ) : null}
         </div>
-        <div className="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
           <DetailField label={f.desiredPosition} value={role} />
           <DetailField label={f.experience} value={expYears !== '—' ? expYears : null} />
           <DetailField label={f.jlptLanguages} value={jlptSummary} />
@@ -570,7 +624,7 @@ function CandidateDetail({
             value={!isScoutEmptyDisplayValue(salaryText) ? salaryText : null}
           />
         </div>
-        <div className="grid gap-2 border-t border-slate-100 pt-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 border-t border-slate-100 pt-3 sm:grid-cols-2 sm:gap-4 sm:pt-4 lg:grid-cols-3">
           <DetailField label={f.email} value={candidate.email} />
           <DetailField label={f.phone} value={candidate.phone} />
           <DetailField label={f.furigana} value={candidate.furigana} />
@@ -595,9 +649,9 @@ function CandidateDetail({
 
       {educations.length > 0 && (
         <SectionCard title={s.education}>
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-3">
             {educations.map((edu, i) => (
-              <li key={i} className="cand-fs-sm border-l-2 border-slate-200 pl-2 text-slate-600">
+              <li key={i} className="cand-fs-sm border-l-2 border-slate-200 pl-3 text-slate-600">
                 <span className="font-semibold text-slate-900">{edu.period}</span>
                 {' — '}
                 {edu.content}
@@ -609,9 +663,9 @@ function CandidateDetail({
 
       {workExperiences.length > 0 && (
         <SectionCard title={s.workHistory}>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {workExperiences.map((work, i) => (
-              <div key={i} className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+              <div key={i} className="rounded-lg border border-slate-100 bg-slate-50/80 p-3.5 sm:p-4">
                 <div className="cand-fs-sm font-bold text-slate-900">{sanitizeCandidateDisplayText(work.companyName) || work.companyName}</div>
                 <div className="cand-fs-xs mt-0.5 text-slate-500">{work.period}</div>
                 {work.description !== '—' && (
@@ -739,7 +793,7 @@ function CandidateSidebar({
     })
 
   return (
-    <div className="candidate-scrollbar flex min-h-0 flex-col gap-2">
+    <div className="business-candidates-detail-col candidate-scrollbar cand-detail-stack flex min-h-0 flex-col">
       <div id="pipeline-control" ref={pipelineControlRef} className="cand-surface border border-slate-200/80 bg-white shadow-sm">
         <label className="cand-fs-sm mb-1 block font-bold text-slate-900" htmlFor="pipeline-status-select">
           {copy.detail?.headerMenu?.updateStatus || sb.statusTitle}
@@ -749,7 +803,7 @@ function CandidateSidebar({
           value={candidate.pipelineStatus || 'new'}
           disabled={!canEditPipeline || pipelineUpdating}
           onChange={(e) => onPipelineStatusChange?.(e.target.value)}
-          className={`cand-fs-sm w-full rounded-md border border-slate-200 px-2 py-1.5 font-semibold text-slate-700 ${
+          className={`cand-fs-sm w-full rounded-lg border border-slate-200 px-3 py-2 font-semibold text-slate-700 ${
             canEditPipeline ? 'bg-white cursor-pointer' : 'cursor-not-allowed bg-slate-50'
           } disabled:opacity-70`}
           title={
@@ -774,10 +828,10 @@ function CandidateSidebar({
       </div>
 
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
-        <h3 className="cand-fs-sm mb-1.5 font-bold text-slate-900">{sb.activity}</h3>
-        <ul className="relative border-l-2 border-slate-200 pl-3">
+        <h3 className="cand-fs-sm mb-3 font-bold text-slate-900">{sb.activity}</h3>
+        <ul className="relative border-l-2 border-slate-200 pl-4">
           {timeline.map((item, i) => (
-            <li key={`${item.action}-${i}`} className="relative pb-2 last:pb-0">
+            <li key={`${item.action}-${i}`} className="relative pb-3 last:pb-0">
               <span className="absolute -left-[calc(0.75rem+1px)] top-1 h-2 w-2 rounded-full bg-[#0077B6]" />
               <p className="cand-fs-xs font-medium leading-snug text-slate-800">{item.action}</p>
               {item.date && item.date !== '—' ? (
@@ -870,7 +924,7 @@ function CandidateSidebar({
   )
 }
 
-export default function BusinessUnlockedCandidateDetail() {
+function BusinessUnlockedCandidateDetail() {
   const { candidateId } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -916,27 +970,31 @@ export default function BusinessUnlockedCandidateDetail() {
     try {
       const res = await apiService.attachScoutCandidateToJob(candidate.id, { jobId })
       if (res?.success) {
-        if (res.data?.alreadyExists) {
-          window.alert(candidateCopy.list.nomination?.alreadyExists || d.attachError)
-        } else {
-          const ac = d.attachConfirm
-          const go = window.confirm(
-            `${ac?.successTitle || 'Đã đưa vào tuyển chọn'}\n${ac?.successBody || ''}\n\n${ac?.goApplications || 'Mở quản lý ứng viên'}?`,
-          )
-          if (go) navigate('/business/applications')
-        }
+        const ac = d.attachConfirm
+        const go = window.confirm(
+          `${ac?.successTitle || 'Đã đưa vào tuyển chọn'}\n${ac?.successBody || ''}\n\n${ac?.goApplications || 'Mở quản lý ứng viên'}?`,
+        )
+        if (go) navigate('/business/applications')
         setAttachedJobIds((prev) => new Set([...prev, String(jobId)]))
         setAttachConfirm(null)
       } else {
         window.alert(res?.message || d.attachError)
       }
     } catch (e) {
+      const existing = e?.data?.data?.existingApplication
+      if (e?.status === 409 && e?.data?.code === 'NOMINATION_ALREADY_EXISTS' && existing) {
+        const detail = buildExistingNominationNoticeBody(existing, language)
+        window.alert([e.message || candidateCopy.list.nomination?.alreadyExists, detail].filter(Boolean).join('\n\n'))
+        setAttachedJobIds((prev) => new Set([...prev, String(jobId)]))
+        setAttachConfirm(null)
+        return
+      }
       console.error(e)
       window.alert(e?.message || d.attachError)
     } finally {
       setAttachingJobId(null)
     }
-  }, [attachConfirm?.jobId, candidate?.id, candidateCopy.list.nomination?.alreadyExists, d.attachError, d.attachConfirm, navigate])
+  }, [attachConfirm?.jobId, candidate?.id, candidateCopy.list.nomination?.alreadyExists, d.attachError, d.attachConfirm, language, navigate])
 
   const handleNominationSuccess = useCallback((data) => {
     const jobId = data?.job?.id ?? data?.application?.jobId
@@ -1033,12 +1091,10 @@ export default function BusinessUnlockedCandidateDetail() {
   return (
     <>
       <style>{detailPageStyles}</style>
-      <div
-        className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#f4f6f8]"
-        style={{ fontFamily: PAGE_FONT }}
-      >
-        <div className="w-full shrink-0 border-b border-slate-200/80 bg-white px-3 py-1.5 sm:px-4">
-          <nav className="flex min-w-0 items-center gap-1 text-xs text-slate-500">
+      <div className="business-homepage-shell business-candidates-detail-shell flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#f4f6f8]">
+        <div className="business-homepage-ui business-app-ui flex h-full min-h-0 w-full flex-col overflow-hidden">
+          <div className="w-full shrink-0 border-b border-slate-200/80 bg-white px-4 py-2.5 sm:px-5 sm:py-3">
+          <nav className={`flex min-w-0 items-center gap-1 ${BUSINESS_HP_TEXT.meta}`}>
             <button
               type="button"
               onClick={() => navigate(backToListUrl)}
@@ -1056,10 +1112,10 @@ export default function BusinessUnlockedCandidateDetail() {
               </>
             ) : null}
           </nav>
-        </div>
+          </div>
 
-        <div className="candidate-scrollbar min-h-0 flex-1 overflow-y-auto p-2 lg:p-3">
-          <div className="business-candidates-ui w-full">
+          <div className="business-candidates-detail-body candidate-scrollbar min-h-0 flex-1 p-3 sm:p-4 lg:p-5">
+            <div className="business-candidates-ui w-full min-h-0">
             {error && !candidateLoading && !candidate ? (
               <div className="cand-surface flex flex-col items-center justify-center border border-slate-200/80 bg-white px-6 py-12 text-center shadow-sm">
                 <p className="cand-fs-sm font-semibold text-slate-800">
@@ -1106,7 +1162,7 @@ export default function BusinessUnlockedCandidateDetail() {
                     language={language}
                   />
                 ) : candidateLoading ? (
-                  <div className="cand-surface hidden border border-slate-200/80 bg-white p-3 shadow-sm xl:block">
+                  <div className="business-candidates-detail-col cand-surface hidden border border-slate-200/80 bg-white p-3 shadow-sm xl:block">
                     <div className="cand-fs-xs flex items-center gap-1.5 text-slate-400">
                       <Loader2 className="cand-icon animate-spin" />
                       {copy.common.loading}
@@ -1115,6 +1171,7 @@ export default function BusinessUnlockedCandidateDetail() {
                 ) : null}
               </div>
             )}
+            </div>
           </div>
         </div>
       </div>
@@ -1147,3 +1204,5 @@ export default function BusinessUnlockedCandidateDetail() {
     </>
   )
 }
+
+export default BusinessUnlockedCandidateDetail

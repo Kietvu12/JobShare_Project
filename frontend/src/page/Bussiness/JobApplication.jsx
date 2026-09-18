@@ -22,6 +22,7 @@ import {
   buildJobByIdMap,
   formatApplicationDateLocalized,
   formatApplicationDateTimeLocalized,
+  formatApplicationInterviewDateLocalized,
   formatApplicationRelativeTimeLocalized,
   localizeApplication,
   localizeApplications,
@@ -35,47 +36,36 @@ import {
   getKanbanColumns,
 } from '../../i18n/businessAppI18n'
 import { getLocalizedJobTitle } from '../../i18n/businessApp/jdBuilder'
+import {
+  BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
+  BUSINESS_HP_TEXT,
+  BUSINESS_UI_FONT,
+} from '../../utils/businessHomepageTypography.js'
 
-const PAGE_FONT = "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
 const BRAND = '#0077B6'
 const BRAND_LIGHT = '#e8f4fa'
 
+const APP_FILTER_CONTROL_CLASS =
+  `rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-slate-600 outline-none focus:border-[#0077B6]/50 focus:ring-1 focus:ring-[#0077B6]/30 ${BUSINESS_HP_TEXT.body}`
+
+const APP_FILTER_SEARCH_INPUT_CLASS =
+  `bg-transparent outline-none w-full text-slate-700 placeholder:text-slate-400 ${BUSINESS_HP_TEXT.body}`
+
 const applicationsPageStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
-  .business-homepage-scroll::-webkit-scrollbar { width: 4px; }
-  .business-homepage-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-  .business-homepage-shell { --hp-zoom: 1; }
-  @media (min-width: 1024px) and (max-width: 1279px) {
-    .business-homepage-shell { --hp-zoom: 0.9; }
+  ${BUSINESS_HOMEPAGE_PAGE_BASE_STYLES}
+  .job-applications-shell {
+    font-family: ${BUSINESS_UI_FONT};
   }
-  @media (min-width: 1280px) and (max-width: 1535px) {
-    .business-homepage-shell { --hp-zoom: 0.86; }
+  .job-applications-shell .business-homepage-ui {
+    height: 100%;
+    min-height: 0;
   }
-  @media (min-width: 1024px) and (max-height: 760px) {
-    .business-homepage-shell { --hp-zoom: 0.78; }
-  }
-  @media (min-width: 1024px) and (min-height: 761px) and (max-height: 860px) {
-    .business-homepage-shell { --hp-zoom: 0.84; }
-  }
-  @media (min-width: 1536px) and (min-height: 861px) {
-    .business-homepage-shell { --hp-zoom: 0.94; }
-  }
-  @media (min-width: 1920px) and (min-height: 900px) {
-    .business-homepage-shell { --hp-zoom: 1; }
-  }
-  .business-homepage-ui { zoom: var(--hp-zoom); }
   @supports not (zoom: 1) {
-    .business-homepage-ui {
-      transform: scale(var(--hp-zoom));
-      transform-origin: top left;
-      width: calc(100% / var(--hp-zoom));
+    .job-applications-shell .business-homepage-ui {
+      height: calc(100% / var(--hp-zoom));
     }
   }
 `
-
-const scrollbarHideStyle = applicationsPageStyles
 
 const LIST_TAB = 'all'
 const CTV_SOURCE_TYPES = new Set(['ctv_marketplace', 'ctv_nomination'])
@@ -90,11 +80,11 @@ function ApplicationSourceCell({ app }) {
   const showCtv = CTV_SOURCE_TYPES.has(app.sourceType) && app.ctvName
   return (
     <>
-      <span className="text-xs font-semibold" style={{ color: app.sourceColor }}>
+      <span className={`font-semibold ${BUSINESS_HP_TEXT.body}`} style={{ color: app.sourceColor }}>
         {app.sourceLabel}
       </span>
       {showCtv ? (
-        <div className="mt-0.5 text-xs text-slate-500 truncate" title={app.ctvName}>
+        <div className={`mt-0.5 truncate text-slate-500 ${BUSINESS_HP_TEXT.caption}`} title={app.ctvName}>
           CTV: {app.ctvName}
         </div>
       ) : null}
@@ -117,14 +107,14 @@ function KanbanCard({ app, onOpen, onDragStart }) {
       onClick={() => onOpen(app)}
       className="cursor-pointer rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing"
     >
-      <div className="text-xs font-semibold text-slate-800 truncate sm:text-sm">{app.candidateName}</div>
-      <div className="mt-0.5 text-xs text-slate-500 truncate">{app.jobTitle}</div>
+      <div className={`truncate font-semibold text-slate-800 ${BUSINESS_HP_TEXT.body}`}>{app.candidateName}</div>
+      <div className={`mt-0.5 truncate text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>{app.jobTitle}</div>
       <div className="mt-2 flex items-center justify-between gap-1">
-        <span className="text-[11px] font-semibold truncate" style={{ color: app.sourceColor }}>
+        <span className={`truncate font-semibold ${BUSINESS_HP_TEXT.caption}`} style={{ color: app.sourceColor }}>
           {app.sourceLabel}
         </span>
         <span
-          className="shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold sm:text-xs"
+          className={`shrink-0 rounded px-1.5 py-0.5 font-semibold ${BUSINESS_HP_TEXT.micro}`}
           style={{ color: stageStyle.color, background: stageStyle.bg }}
         >
           {app.statusLabel}
@@ -167,8 +157,8 @@ function ApplicationsKanban({ applications, onOpen, onStatusChange, updatingId, 
           onDrop={handleDrop(col)}
         >
           <div className="flex items-center justify-between border-b border-slate-100 px-2.5 py-2">
-            <span className="text-xs font-bold text-slate-700">{col.label}</span>
-            <span className="rounded-full bg-white px-1.5 py-0.5 text-[11px] font-bold text-slate-500 tabular-nums sm:text-xs">
+            <span className={`font-bold text-slate-700 ${BUSINESS_HP_TEXT.body}`}>{col.label}</span>
+            <span className={`rounded-full bg-white px-1.5 py-0.5 font-bold tabular-nums text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>
               {grouped[col.id]?.length || 0}
             </span>
           </div>
@@ -182,7 +172,7 @@ function ApplicationsKanban({ applications, onOpen, onStatusChange, updatingId, 
               />
             ))}
             {updatingId && grouped[col.id]?.some((a) => a.id === updatingId) && (
-              <div className="text-center text-xs text-slate-400 py-1">{updatingLabel}</div>
+              <div className={`py-1 text-center text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>{updatingLabel}</div>
             )}
           </div>
         </div>
@@ -192,11 +182,12 @@ function ApplicationsKanban({ applications, onOpen, onStatusChange, updatingId, 
 }
 
 function PieChart({ stats, emptyLabel, totalLabel }) {
+  const [hoverTip, setHoverTip] = useState(null)
   const slices = stats?.bySource || []
   const total = stats?.total || 0
   if (!total) {
     return (
-      <div className="text-xs text-slate-400 text-center py-3">
+      <div className={`py-3 text-center text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>
         {emptyLabel}
       </div>
     )
@@ -226,26 +217,64 @@ function PieChart({ stats, emptyLabel, totalLabel }) {
     }
   })
 
+  const showTip = (slice, e) => {
+    setHoverTip({
+      label: slice.label,
+      value: slice.value,
+      percent: slice.percent,
+      x: e.clientX,
+      y: e.clientY,
+    })
+  }
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <svg width={90} height={90} viewBox="0 0 100 100" style={{ flexShrink: 0 }}>
-        {paths.map((slice, i) => (
-          <path key={i} d={slice.path} fill={slice.color} stroke="white" strokeWidth="2" />
-        ))}
-        <circle cx="50" cy="50" r="25" fill="white" />
-        <text x="50" y="48" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1e293b">
-          {total}
-        </text>
-        <text x="50" y="60" textAnchor="middle" fontSize="7" fill="#64748b">
-          {totalLabel}
-        </text>
-      </svg>
-      <div className="flex-1 flex flex-col gap-1 min-w-0">
+    <div className="flex flex-col gap-2">
+      <div className="relative flex justify-center">
+        <svg width={76} height={76} viewBox="0 0 100 100" className="shrink-0">
+          {paths.map((slice, i) => (
+            <path
+              key={i}
+              d={slice.path}
+              fill={slice.color}
+              stroke="white"
+              strokeWidth="2"
+              className="cursor-pointer transition-opacity hover:opacity-90"
+              onMouseEnter={(e) => showTip(slice, e)}
+              onMouseMove={(e) => showTip(slice, e)}
+              onMouseLeave={() => setHoverTip(null)}
+            />
+          ))}
+          <circle cx="50" cy="50" r="25" fill="white" pointerEvents="none" />
+          <text x="50" y="48" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1e293b" pointerEvents="none">
+            {total}
+          </text>
+          <text x="50" y="60" textAnchor="middle" fontSize="7" fill="#64748b" pointerEvents="none">
+            {totalLabel}
+          </text>
+        </svg>
+        {hoverTip ? (
+          <div
+            className="pointer-events-none fixed z-[100] max-w-[220px] rounded-md border border-slate-700/20 bg-slate-900 px-2 py-1.5 text-[10px] leading-snug text-white shadow-lg"
+            style={{ left: hoverTip.x + 10, top: hoverTip.y + 10 }}
+            role="tooltip"
+          >
+            <div className="font-semibold">{hoverTip.label}</div>
+            <div className="text-slate-200">
+              {hoverTip.value} ({hoverTip.percent}%)
+            </div>
+          </div>
+        ) : null}
+      </div>
+      <div className="flex w-full flex-col gap-1.5">
         {paths.map((d, i) => (
-          <div key={i} className="text-xs flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-sm shrink-0" style={{ background: d.color }} />
-            <span className="text-slate-600 font-medium flex-1 truncate">{d.label}</span>
-            <span className="text-slate-500 font-semibold shrink-0">
+          <div
+            key={i}
+            className="flex items-start gap-1 text-[9px] leading-snug text-slate-600 sm:text-[10px]"
+            title={`${d.label}: ${d.value} (${d.percent}%)`}
+          >
+            <div className="mt-1 h-2 w-2 shrink-0 rounded-sm" style={{ background: d.color }} />
+            <span className="min-w-0 flex-1 break-words font-medium">{d.label}</span>
+            <span className="shrink-0 tabular-nums font-semibold text-slate-500">
               {d.value} ({d.percent}%)
             </span>
           </div>
@@ -261,8 +290,8 @@ const StatCard = ({ label, value, accent }) => (
       accent ? 'border-[#cce5f0]/80 bg-[#e8f4fa]' : 'border-slate-200/90 bg-white'
     }`}
   >
-    <p className="text-xs font-medium text-slate-500 sm:text-sm">{label}</p>
-    <p className="text-xl font-bold tabular-nums leading-tight text-slate-800 sm:text-2xl">{value ?? 0}</p>
+    <p className={`font-medium text-slate-500 ${BUSINESS_HP_TEXT.micro}`}>{label}</p>
+    <p className={`tabular-nums leading-tight text-slate-800 ${BUSINESS_HP_TEXT.stat}`}>{value ?? 0}</p>
   </div>
 )
 
@@ -284,23 +313,23 @@ function ApplicationMobileCard({ app, isSelected, onOpen, tableLabels, language,
           { label: tableLabels.source, value: app.sourceLabel, color: app.sourceColor, sub: CTV_SOURCE_TYPES.has(app.sourceType) && app.ctvName ? `CTV: ${app.ctvName}` : null },
         ].map((row) => (
           <div key={row.label} className="flex items-start justify-between gap-3">
-            <span className="shrink-0 text-xs text-slate-400 sm:text-sm">{row.label}</span>
+            <span className={`shrink-0 text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>{row.label}</span>
             <div className="min-w-0 text-right">
               <div
-                className="text-xs font-semibold text-slate-800 sm:text-sm"
+                className={`font-semibold text-slate-800 ${BUSINESS_HP_TEXT.body}`}
                 style={row.color ? { color: row.color } : undefined}
               >
                 {row.value || '—'}
               </div>
-              {row.sub ? <div className="text-xs text-slate-400">{row.sub}</div> : null}
+              {row.sub ? <div className={`text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>{row.sub}</div> : null}
             </div>
           </div>
         ))}
 
         <div className="flex items-start justify-between gap-3">
-          <span className="shrink-0 text-xs text-slate-400 sm:text-sm">{tableLabels.status}</span>
+          <span className={`shrink-0 text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>{tableLabels.status}</span>
           <span
-            className="rounded-md px-2 py-0.5 text-xs font-semibold"
+            className={`rounded-md px-2 py-0.5 font-semibold ${BUSINESS_HP_TEXT.caption}`}
             style={{ color: stageStyle.color, background: stageStyle.bg }}
           >
             {app.statusLabel}
@@ -308,26 +337,26 @@ function ApplicationMobileCard({ app, isSelected, onOpen, tableLabels, language,
         </div>
 
         <div className="flex items-start justify-between gap-3">
-          <span className="shrink-0 text-xs text-slate-400 sm:text-sm">{tableLabels.appliedAt}</span>
+          <span className={`shrink-0 text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>{tableLabels.appliedAt}</span>
           <div className="text-right">
-            <div className="text-xs font-medium text-slate-700 sm:text-sm">{formatApplicationDateLocalized(app.appliedAt, language)}</div>
-            <div className="text-xs text-slate-400">{formatApplicationRelativeTimeLocalized(app.appliedAt, language)}</div>
+            <div className={`font-medium text-slate-700 ${BUSINESS_HP_TEXT.body}`}>{formatApplicationDateLocalized(app.appliedAt, language)}</div>
+            <div className={BUSINESS_HP_TEXT.caption}>{formatApplicationRelativeTimeLocalized(app.appliedAt, language)}</div>
           </div>
         </div>
 
         <div className="flex items-start justify-between gap-3">
-          <span className="shrink-0 text-xs text-slate-400 sm:text-sm">{tableLabels.interviewDate}</span>
+          <span className={`shrink-0 text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>{tableLabels.interviewDate}</span>
           <div className="text-right">
-            <div className="text-xs font-medium text-slate-700 sm:text-sm">{formatApplicationDateTimeLocalized(app.interviewDate, language)}</div>
+            <div className={`font-medium text-slate-700 ${BUSINESS_HP_TEXT.body}`}>{formatApplicationDateTimeLocalized(app.interviewDate, language)}</div>
             {app.interviewDate ? (
-              <div className="text-xs text-slate-400">{formatApplicationRelativeTimeLocalized(app.interviewDate, language)}</div>
+              <div className={BUSINESS_HP_TEXT.caption}>{formatApplicationRelativeTimeLocalized(app.interviewDate, language)}</div>
             ) : null}
           </div>
         </div>
 
         {showChatBadge && (app.unreadCount > 0) && (
           <div className="flex items-center justify-end gap-1 pt-1">
-            <span className="rounded-full bg-rose-500 px-1.5 py-px text-[11px] font-bold text-white sm:text-xs">
+            <span className={`rounded-full bg-rose-500 px-1.5 py-px font-bold text-white ${BUSINESS_HP_TEXT.micro}`}>
               {unreadLabel(app.unreadCount)}
             </span>
             <MessageSquare className="h-3.5 w-3.5 text-[#0077B6]/70" />
@@ -341,21 +370,23 @@ function ApplicationMobileCard({ app, isSelected, onOpen, tableLabels, language,
 function ApplicationsSidebarCharts({ localizedStats, stageData, appCopy }) {
   return (
     <>
-      <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-3.5">
-        <h2 className="mb-2 text-sm font-bold text-[#0077B6]">{appCopy.sidebar.sourceRatio}</h2>
+      <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-2.5 shadow-sm">
+        <h2 className={`mb-1.5 font-bold text-[#0077B6] ${BUSINESS_HP_TEXT.caption}`}>{appCopy.sidebar.sourceRatio}</h2>
         <PieChart stats={localizedStats} emptyLabel={appCopy.sidebar.noData} totalLabel={appCopy.sidebar.total} />
       </div>
 
-      <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-3.5">
-        <h2 className="mb-2 text-sm font-bold text-[#0077B6]">{appCopy.sidebar.statusBreakdown}</h2>
+      <div className="shrink-0 rounded-xl border border-slate-200/90 bg-white p-2.5 shadow-sm">
+        <h2 className={`mb-1.5 font-bold text-[#0077B6] ${BUSINESS_HP_TEXT.caption}`}>{appCopy.sidebar.statusBreakdown}</h2>
         <div className="flex flex-col gap-2">
           {stageData.length === 0 ? (
-            <div className="text-xs text-slate-400">{appCopy.sidebar.noData}</div>
+            <div className={BUSINESS_HP_TEXT.caption}>{appCopy.sidebar.noData}</div>
           ) : stageData.map((stage, i) => (
             <div key={i}>
-              <div className="mb-0.5 flex items-center justify-between gap-2">
-                <span className="text-xs font-medium text-slate-500 sm:text-sm">{stage.label}</span>
-                <span className="text-xs font-bold tabular-nums text-slate-800 sm:text-sm">{stage.value}</span>
+              <div className="mb-0.5 flex items-start justify-between gap-2">
+                <span className="min-w-0 flex-1 break-words text-[10px] font-medium leading-snug text-slate-500 sm:text-[11px]" title={stage.label}>
+                  {stage.label}
+                </span>
+                <span className="shrink-0 text-[10px] font-bold tabular-nums text-slate-800 sm:text-[11px]">{stage.value}</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
                 <div className="h-full rounded-full transition-all" style={{ width: `${stage.width * 100}%`, background: stage.color }} />
@@ -609,14 +640,11 @@ const JobApplication = () => {
 
   return (
     <>
-      <style>{scrollbarHideStyle}</style>
-      <div
-        className="business-homepage-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#f4f6f8]"
-        style={{ fontFamily: PAGE_FONT }}
-      >
-        <div className="business-homepage-ui flex h-full min-h-0 flex-1 flex-col p-2.5 sm:p-3">
+      <style>{applicationsPageStyles}</style>
+      <div className="business-homepage-shell job-applications-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#f4f6f8]">
+        <div className="business-homepage-ui business-app-ui flex h-full min-h-0 flex-1 flex-col p-2.5 sm:p-3">
           <div className="mb-2 shrink-0 sm:mb-2.5">
-            <nav aria-label="Breadcrumb" className="text-xs text-slate-500 sm:text-sm">
+            <nav aria-label="Breadcrumb" className={BUSINESS_HP_TEXT.meta}>
               <button
                 type="button"
                 onClick={() => navigate('/business')}
@@ -631,11 +659,18 @@ const JobApplication = () => {
 
           <BusinessQuickActionsPageLayout
             onNavigate={navigate}
-            showSidebar={!drawerOpen}
-            sidebarExtraTop={sidebarCharts}
-            sidebarSize="wide"
-            showMobileFab={!drawerOpen}
             className="min-h-0 flex-1"
+            showSidebar={!drawerOpen}
+            sidebarSize="narrow"
+            sidebarExtraTop={(
+              <div className="flex flex-col gap-2.5">
+                {sidebarCharts}
+              </div>
+            )}
+            showNotifications={false}
+            showQuickActionsPanel={false}
+            showSidebarFloating={false}
+            showMobileFab={false}
           >
               <div className="flex min-h-0 flex-1 flex-col gap-2.5 sm:gap-3">
               <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-2.5">
@@ -653,13 +688,13 @@ const JobApplication = () => {
                       placeholder={appCopy.filters.searchPlaceholder}
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
-                      className="bg-transparent outline-none w-full text-xs text-slate-700 placeholder:text-slate-400 sm:text-sm"
+                      className={APP_FILTER_SEARCH_INPUT_CLASS}
                     />
                   </div>
                   <select
                     value={jobFilter}
                     onChange={(e) => setJobFilter(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-600 outline-none focus:border-[#0077B6]/50 focus:ring-1 focus:ring-[#0077B6]/30 sm:w-auto sm:max-w-[180px] sm:text-sm"
+                    className={`w-full sm:w-auto sm:max-w-[180px] ${APP_FILTER_CONTROL_CLASS}`}
                   >
                     <option value="">{appCopy.filters.allJobs}</option>
                     {jobs.map((j) => (
@@ -669,7 +704,7 @@ const JobApplication = () => {
                   <select
                     value={sourceFilter}
                     onChange={(e) => setSourceFilter(e.target.value)}
-                    className="w-[calc(50%-4px)] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-600 outline-none focus:ring-1 focus:ring-[#0077B6]/30 sm:w-auto sm:text-sm"
+                    className={`w-[calc(50%-4px)] sm:w-auto ${APP_FILTER_CONTROL_CLASS}`}
                   >
                     {sourceOptions.map((o) => (
                       <option key={o.value} value={o.value}>{o.label}</option>
@@ -678,7 +713,7 @@ const JobApplication = () => {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-[calc(50%-4px)] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-600 outline-none focus:ring-1 focus:ring-[#0077B6]/30 sm:w-auto sm:text-sm"
+                    className={`w-[calc(50%-4px)] sm:w-auto ${APP_FILTER_CONTROL_CLASS}`}
                   >
                     <option value="">{appCopy.filters.allStatus}</option>
                     {statusOptions.map((o) => (
@@ -689,7 +724,7 @@ const JobApplication = () => {
                     type="date"
                     value={appliedFrom}
                     onChange={(e) => setAppliedFrom(e.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-600 sm:text-sm"
+                    className={APP_FILTER_CONTROL_CLASS}
                     title={appCopy.filters.appliedFrom}
                     aria-label={appCopy.filters.appliedFrom}
                   />
@@ -697,7 +732,7 @@ const JobApplication = () => {
                     type="date"
                     value={appliedTo}
                     onChange={(e) => setAppliedTo(e.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-600 sm:text-sm"
+                    className={APP_FILTER_CONTROL_CLASS}
                     title={appCopy.filters.appliedTo}
                     aria-label={appCopy.filters.appliedTo}
                   />
@@ -724,11 +759,11 @@ const JobApplication = () => {
                 {loading ? (
                   <div className="flex items-center justify-center gap-2 py-16 text-slate-500">
                     <Loader2 className="w-4 h-4 animate-spin text-[#0077B6]" />
-                    <span className="text-xs sm:text-sm">{appCopy.loading}</span>
+                    <span className={BUSINESS_HP_TEXT.body}>{appCopy.loading}</span>
                   </div>
                 ) : viewMode === 'kanban' ? (
                   localizedApplications.length === 0 ? (
-                    <div className="py-12 text-center text-xs text-slate-400">{appCopy.empty}</div>
+                    <div className={`py-12 text-center text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>{appCopy.empty}</div>
                   ) : (
                     <ApplicationsKanban
                       applications={localizedApplications}
@@ -743,7 +778,7 @@ const JobApplication = () => {
                   <>
                     <div className="min-h-0 flex-1 overflow-auto scrollbar-hide lg:hidden">
                       {localizedApplications.length === 0 ? (
-                        <div className="py-12 text-center text-xs text-slate-400">{appCopy.empty}</div>
+                        <div className={`py-12 text-center text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>{appCopy.empty}</div>
                       ) : localizedApplications.map((app) => (
                         <ApplicationMobileCard
                           key={app.id}
@@ -758,22 +793,22 @@ const JobApplication = () => {
                     </div>
 
                     <div className="hidden min-h-0 flex-1 overflow-auto scrollbar-hide lg:block">
-                    <table className="w-full min-w-[720px] text-left text-xs border-collapse table-fixed sm:text-sm">
+                    <table className={`w-full min-w-[920px] table-fixed border-collapse text-left ${BUSINESS_HP_TEXT.body}`}>
                       <colgroup>
-                        <col style={{ width: '26%' }} />
-                        <col style={{ width: '24%' }} />
-                        <col style={{ width: '11%' }} />
-                        <col style={{ width: '12%' }} />
-                        <col style={{ width: '11%' }} />
-                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '22%' }} />
+                        <col style={{ width: '20%' }} />
+                        <col style={{ width: '10%' }} />
+                        <col style={{ width: '16%' }} />
+                        <col style={{ width: '14%' }} />
+                        <col style={{ width: '14%' }} />
                         <col style={{ width: '4%' }} />
                       </colgroup>
                       <thead>
-                        <tr className="text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-100 bg-slate-50/80 sm:text-xs">
+                        <tr className="border-b border-slate-100 bg-slate-50/80 text-[10px] font-semibold uppercase tracking-wide text-slate-400 sm:text-[11px]">
                           {[appCopy.table.candidate, appCopy.table.job, appCopy.table.source, appCopy.table.status, appCopy.table.appliedAt, appCopy.table.interviewDate, ''].map((h, i) => (
                             <th
                               key={i}
-                              className={`font-semibold py-2.5 ${i === 0 ? 'pl-3 pr-4' : i === 1 ? 'pl-2 pr-3' : i === 6 ? 'px-2 text-right' : 'px-3'} ${i === 6 ? 'text-right' : 'text-left'}`}
+                              className={`whitespace-nowrap font-semibold py-2.5 ${i === 0 ? 'pl-3 pr-4' : i === 1 ? 'pl-2 pr-3' : i === 6 ? 'px-2 text-right' : 'px-3'} ${i === 6 ? 'text-right' : 'text-left'}`}
                             >
                               {h}
                             </th>
@@ -783,7 +818,7 @@ const JobApplication = () => {
                       <tbody>
                         {localizedApplications.length === 0 ? (
                           <tr>
-                            <td colSpan={7} className="py-10 text-center text-slate-400 text-xs">
+                            <td colSpan={7} className={`py-10 text-center text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>
                               {appCopy.empty}
                             </td>
                           </tr>
@@ -802,7 +837,7 @@ const JobApplication = () => {
                                 <div className="truncate font-semibold text-slate-800" title={app.candidateName}>
                                   {app.candidateName}
                                 </div>
-                                <div className="truncate text-xs text-slate-400" title={app.candidateEmail || undefined}>
+                                <div className={`truncate text-slate-400 ${BUSINESS_HP_TEXT.caption}`} title={app.candidateEmail || undefined}>
                                   {app.candidateEmail || '—'}
                                 </div>
                               </td>
@@ -810,15 +845,16 @@ const JobApplication = () => {
                                 <div className="truncate font-semibold text-slate-800" title={app.jobTitle}>
                                   {app.jobTitle}
                                 </div>
-                                <div className="truncate text-xs text-slate-400" title={app.jobCode || undefined}>
+                                <div className={`truncate text-slate-400 ${BUSINESS_HP_TEXT.caption}`} title={app.jobCode || undefined}>
                                   {app.jobCode || '—'}
                                 </div>
                               </td>
                               <td className="px-3 py-2.5">
                                 <ApplicationSourceCell app={app} />
                               </td>
-                              <td className="max-w-0 px-3 py-2.5">
+                              <td className="min-w-[8.5rem] px-3 py-2.5 align-top">
                                 <BusinessApplicationStatusSelect
+                                  compact
                                   status={app.status}
                                   statusCategory={app.statusCategory}
                                   statusLabel={app.statusLabel}
@@ -827,20 +863,24 @@ const JobApplication = () => {
                                   updating={statusUpdatingId === app.id}
                                 />
                               </td>
-                              <td className="px-3 py-2.5 text-slate-500">
-                                {formatApplicationDateLocalized(app.appliedAt, language)}
-                                <div className="text-xs text-slate-400">{formatApplicationRelativeTimeLocalized(app.appliedAt, language)}</div>
+                              <td className="whitespace-nowrap px-3 py-2.5 align-top text-slate-500">
+                                <div>{formatApplicationDateLocalized(app.appliedAt, language)}</div>
+                                <div className={`whitespace-nowrap ${BUSINESS_HP_TEXT.caption}`}>
+                                  {formatApplicationRelativeTimeLocalized(app.appliedAt, language)}
+                                </div>
                               </td>
-                              <td className="px-3 py-2.5 text-slate-500">
-                                {formatApplicationDateTimeLocalized(app.interviewDate, language)}
+                              <td className="whitespace-nowrap px-3 py-2.5 align-top text-slate-500">
+                                <div>{formatApplicationInterviewDateLocalized(app.interviewDate, language)}</div>
                                 {app.interviewDate ? (
-                                  <div className="text-xs text-slate-400">{formatApplicationRelativeTimeLocalized(app.interviewDate, language)}</div>
+                                  <div className={`whitespace-nowrap ${BUSINESS_HP_TEXT.caption}`}>
+                                    {formatApplicationRelativeTimeLocalized(app.interviewDate, language)}
+                                  </div>
                                 ) : null}
                               </td>
                               <td className="px-3 py-2.5 text-right">
                                 <div className="flex items-center justify-end gap-1">
                                   {showChatBadge && app.unreadCount > 0 && (
-                                    <span className="text-[11px] font-bold text-white bg-rose-500 rounded-full px-1.5 py-px min-w-[18px] text-center sm:text-xs">
+                                    <span className={`min-w-[18px] rounded-full bg-rose-500 px-1.5 py-px text-center font-bold text-white ${BUSINESS_HP_TEXT.micro}`}>
                                       {app.unreadCount}
                                     </span>
                                   )}
@@ -862,7 +902,7 @@ const JobApplication = () => {
 
                 {!loading && viewMode === 'table' && pagination.totalPages > 0 && (
                   <div className="flex flex-col gap-2 border-t border-slate-100 bg-slate-50/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-                    <span className="text-xs text-slate-500 sm:text-sm">
+                    <span className={`text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>
                       {appCopy.pagination.showing(pageStart, pageEnd, pagination.total)}
                     </span>
                     <div className="flex items-center gap-1">
@@ -874,7 +914,7 @@ const JobApplication = () => {
                       >
                         <ChevronLeft className="w-3.5 h-3.5" />
                       </button>
-                      <span className="text-xs font-semibold text-slate-600 px-1 tabular-nums sm:text-sm">
+                      <span className={`px-1 font-semibold tabular-nums text-slate-600 ${BUSINESS_HP_TEXT.body}`}>
                         {pagination.page}/{pagination.totalPages}
                       </span>
                       <button

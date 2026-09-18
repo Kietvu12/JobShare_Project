@@ -2,6 +2,10 @@ import React, { useMemo } from 'react'
 import { Gauge } from 'lucide-react'
 import { getScoutMatchBadgeClass } from '../../utils/scoutCandidateDisplay'
 import { getCandidateCopy, getScoutMatchBadgeCopy } from '../../i18n/businessAppI18n'
+import { BUSINESS_HP_TEXT } from '../../utils/businessHomepageTypography.js'
+
+/** Cỡ chữ badge — cùng scale micro/body, không ép màu slate */
+const MATCH_BADGE_TEXT = 'text-xs font-bold leading-none sm:text-sm'
 
 export default function ScoutMatchBadge({
   score,
@@ -16,7 +20,7 @@ export default function ScoutMatchBadge({
 
   return (
     <span
-      className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold leading-none ${getScoutMatchBadgeClass(n)} ${className}`.trim()}
+      className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 ${MATCH_BADGE_TEXT} ${getScoutMatchBadgeClass(n)} ${className}`.trim()}
       title={copy.title}
     >
       <Gauge className={iconClassName} aria-hidden />
@@ -40,7 +44,7 @@ export function CandidateListMatchCorner({
   if (n == null || !Number.isFinite(n)) {
     return (
       <span
-        className={`inline-flex max-w-[7.5rem] items-center rounded-full border border-dashed border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold leading-tight text-slate-500 ${className}`.trim()}
+        className={`inline-flex max-w-[7.5rem] items-center rounded-full border border-dashed border-slate-200 bg-slate-50 px-2 py-0.5 font-semibold leading-tight ${BUSINESS_HP_TEXT.caption} ${className}`.trim()}
         title={pendingText}
       >
         {pendingText}
@@ -53,7 +57,7 @@ export function CandidateListMatchCorner({
       <ScoutMatchBadge
         score={n}
         language={language}
-        className={`shrink-0 !px-2 !py-0.5 !text-[10px] ${className}`.trim()}
+        className={`shrink-0 !px-2 !py-0.5 ${MATCH_BADGE_TEXT} ${className}`.trim()}
         iconClassName="h-2.5 w-2.5"
       />
     </span>

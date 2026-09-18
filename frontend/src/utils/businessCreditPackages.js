@@ -40,12 +40,20 @@ export const BUSINESS_CREDIT_PACKAGES = [
   },
 ];
 
-export function formatCreditAmount(value) {
-  return `${Number(value).toLocaleString('vi-VN')} credit`;
+function creditFormatLocale(language) {
+  if (language === 'ja') return 'ja-JP';
+  if (language === 'en') return 'en-US';
+  return 'vi-VN';
 }
 
-export function formatYenAmount(value) {
-  return `${Number(value).toLocaleString('vi-VN')} yên`;
+export function formatCreditAmount(value, language = 'vi') {
+  const unit = language === 'ja' ? 'クレジット' : language === 'en' ? 'credits' : 'credit';
+  return `${Number(value).toLocaleString(creditFormatLocale(language))} ${unit}`;
+}
+
+export function formatYenAmount(value, language = 'vi') {
+  const unit = language === 'ja' ? '円' : language === 'en' ? 'yen' : 'yên';
+  return `${Number(value).toLocaleString(creditFormatLocale(language))} ${unit}`;
 }
 
 export function getCreditPackageByKey(key) {

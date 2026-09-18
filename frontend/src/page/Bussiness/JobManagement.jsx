@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  Plus, Search, MoreHorizontal, LayoutList, LayoutGrid,
+  Plus, Search, MoreHorizontal,
   Briefcase,
   Copy, Pause, XCircle, Eye, Pencil, Loader2, ChevronDown, RotateCcw,
   Trash2,
@@ -17,10 +17,10 @@ import {
   getDateLocale,
   getJobDateFilterOptions,
   getJobRowMenuItems,
-  getJobSortOptions,
   getJobStatusFilterOptions,
   getJobStatusMeta,
   getJobStatusTabs,
+  getDraftThreadDisplayTitle,
   getLocalizedJobTitle,
   getRecruitmentLabel,
 } from '../../i18n/businessAppI18n'
@@ -29,9 +29,11 @@ import {
   listJobBuilderThreads,
   deleteJobBuilderThread,
 } from '../../utils/jobBuilderThreadStorage'
-
-const BUSINESS_JOBS_FONT =
-  "'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif"
+import {
+  BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
+  BUSINESS_HP_TEXT,
+  BUSINESS_UI_FONT,
+} from '../../utils/businessHomepageTypography.js'
 
 const JD_NAVY = '#0f2744'
 const JD_NAVY_MID = '#1e3a5f'
@@ -52,7 +54,7 @@ const HIRED_STATUSES = new Set([14, 15])
 const EMPTY_JOB_STATS = { candidates: 0, referrals: 0, interviews: 0, hired: 0 }
 
 const FILTER_SELECT_CLASS =
-  'w-full rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium leading-snug text-slate-700 outline-none focus:border-[#0077B6]/40 sm:min-h-[28px] sm:py-1 sm:text-[11px]'
+  `w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 font-medium text-slate-700 outline-none focus:border-[#0077B6]/40 focus:ring-1 focus:ring-[#0077B6]/30 ${BUSINESS_HP_TEXT.body}`
 
 function buildJobStatsMap(applications = []) {
   const map = {}
@@ -98,27 +100,17 @@ function getRowIconVariant(jobId) {
   return ROW_ICON_VARIANTS[n % ROW_ICON_VARIANTS.length]
 }
 
-function JobTableHeader({ jobsCopy, allSelected, onToggleAll, hasItems }) {
+function JobTableHeader({ jobsCopy }) {
   return (
     <thead>
-      <tr className="border-b border-slate-200 bg-white text-left text-[10px] font-semibold uppercase tracking-wide text-[#0077B6]">
-        <th className="w-9 px-2 py-2">
-          <input
-            type="checkbox"
-            checked={allSelected}
-            disabled={!hasItems}
-            onChange={onToggleAll}
-            aria-label={jobsCopy.table.selectAll}
-            className="h-3.5 w-3.5 rounded border-slate-300 text-[#0077B6] focus:ring-[#0077B6]/30"
-          />
-        </th>
-        <th className="business-jobs-col-name px-2 py-2">{jobsCopy.table.name}</th>
-        <th className="business-jobs-col-salary px-2 py-2">{jobsCopy.table.salary}</th>
-        <th className="business-jobs-col-status px-2 py-2">{jobsCopy.table.status}</th>
-        <th className="business-jobs-col-location px-2 py-2">{jobsCopy.table.location}</th>
-        <th className="business-jobs-col-referrals px-2 py-2 text-center">{jobsCopy.table.referrals}</th>
-        <th className="business-jobs-col-updated px-2 py-2">{jobsCopy.table.updated}</th>
-        <th className="business-jobs-actions-col px-2 py-2 text-right">{jobsCopy.table.actions}</th>
+      <tr className="border-b border-slate-200 bg-white text-left text-xs font-semibold uppercase tracking-wide text-[#0077B6] sm:text-xs">
+        <th className="business-jobs-col-name">{jobsCopy.table.name}</th>
+        <th className="business-jobs-col-salary">{jobsCopy.table.salary}</th>
+        <th className="business-jobs-col-status">{jobsCopy.table.status}</th>
+        <th className="business-jobs-col-location">{jobsCopy.table.location}</th>
+        <th className="business-jobs-col-referrals text-center">{jobsCopy.table.referrals}</th>
+        <th className="business-jobs-col-updated">{jobsCopy.table.updated}</th>
+        <th className="business-jobs-actions-col text-right">{jobsCopy.table.actions}</th>
       </tr>
     </thead>
   )
@@ -183,8 +175,6 @@ function JobTableRowActions({ job, menuItems, commonCopy, onMenuAction }) {
 function JobTableRow({
   job,
   stats,
-  selected,
-  onToggleSelect,
   onOpen,
   onMenuAction,
   language,
@@ -203,23 +193,14 @@ function JobTableRow({
       className="group cursor-pointer border-b border-slate-100 transition hover:bg-slate-50/90"
       onClick={() => onOpen(job.id)}
     >
-      <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={() => onToggleSelect(job.id)}
-          aria-label={jobsCopy.table.selectRow}
-          className="h-3.5 w-3.5 rounded border-slate-300 text-[#0077B6] focus:ring-[#0077B6]/30"
-        />
-      </td>
-      <td className="business-jobs-col-name px-2 py-2">
-        <div className="flex min-w-0 items-center gap-2.5">
+      <td className="business-jobs-col-name">
+        <div className="flex min-w-0 items-center gap-3">
           <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${iconVariant.bg} ${iconVariant.text}`}>
             <Briefcase className="h-3.5 w-3.5" />
           </div>
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold text-slate-900 sm:text-sm">{title}</p>
-            <p className="truncate text-[11px] text-slate-500">
+            <p className="truncate text-xs text-slate-500 sm:text-sm">
               {getJobCode(job)}
               <span className="text-slate-300"> · </span>
               {getRecruitmentLabel(job, language)}
@@ -227,24 +208,24 @@ function JobTableRow({
           </div>
         </div>
       </td>
-      <td className="business-jobs-col-salary px-2 py-2">
+      <td className="business-jobs-col-salary">
         <p className="text-xs font-semibold text-slate-900 sm:text-sm">{formatJobSalary(job, language)}</p>
       </td>
-      <td className="business-jobs-col-status px-2 py-2">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-700 sm:text-xs">
+      <td className="business-jobs-col-status">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 sm:text-sm">
           <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dot}`} />
           {statusMeta.label}
         </span>
       </td>
-      <td className="business-jobs-col-location max-w-[9rem] truncate px-2 py-2 text-xs text-slate-700">{getJobLocation(job)}</td>
-      <td className="business-jobs-col-referrals px-2 py-2 text-center">
+      <td className="business-jobs-col-location max-w-[9rem] truncate text-xs text-slate-700">{getJobLocation(job)}</td>
+      <td className="business-jobs-col-referrals text-center">
         <span className="text-base font-bold tabular-nums text-[#0077B6]">{metrics.referrals}</span>
         <span className="sr-only">{jobsCopy.metrics.referrals}</span>
       </td>
-      <td className="business-jobs-col-updated whitespace-nowrap px-2 py-2 text-[11px] text-slate-500">
+      <td className="business-jobs-col-updated whitespace-nowrap text-xs text-slate-500 sm:text-sm">
         {formatDate(job.updatedAt || job.updated_at, dateLocale)}
       </td>
-      <td className="business-jobs-actions-col px-2 py-2" onClick={(e) => e.stopPropagation()}>
+      <td className="business-jobs-actions-col" onClick={(e) => e.stopPropagation()}>
         <JobTableRowActions
           job={job}
           menuItems={menuItems}
@@ -258,43 +239,42 @@ function JobTableRow({
 
 function DraftTableRow({ thread, onOpen, onDelete, jobsCopy, commonCopy, language }) {
   const dateLocale = getDateLocale(language)
-  const title = thread.title || jobsCopy.draft.defaultTitle
+  const title = getDraftThreadDisplayTitle(thread.title, language)
 
   return (
     <tr
       className="group business-jobs-draft-row cursor-pointer border-b border-slate-100 bg-amber-50/15 transition hover:bg-amber-50/30"
       onClick={() => onOpen(thread.id)}
     >
-      <td className="px-2 py-2" />
-      <td className="business-jobs-col-name px-2 py-2">
-        <div className="flex min-w-0 items-center gap-2.5">
+      <td className="business-jobs-col-name">
+        <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100/80 text-amber-700">
             <Briefcase className="h-3.5 w-3.5" />
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
               <p className="truncate text-xs font-semibold text-slate-900 sm:text-sm">{title}</p>
-              <span className="rounded-full bg-amber-100/90 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+              <span className="rounded-full bg-amber-100/90 px-1.5 py-0.5 text-xs font-semibold text-amber-800">
                 {jobsCopy.draft.badge}
               </span>
             </div>
-            <p className="truncate text-[11px] text-slate-500">{jobsCopy.draft.hint}</p>
+            <p className="truncate text-xs text-slate-500 sm:text-sm">{jobsCopy.draft.hint}</p>
           </div>
         </div>
       </td>
-      <td className="business-jobs-col-salary px-2 py-2 text-xs text-slate-400">—</td>
-      <td className="business-jobs-col-status px-2 py-2">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-amber-700 sm:text-xs">
+      <td className="business-jobs-col-salary text-xs text-slate-400">—</td>
+      <td className="business-jobs-col-status">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 sm:text-sm">
           <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
           {jobsCopy.status.draft}
         </span>
       </td>
-      <td className="business-jobs-col-location px-2 py-2 text-xs text-slate-400">—</td>
-      <td className="business-jobs-col-referrals px-2 py-2 text-center text-xs text-slate-400">—</td>
-      <td className="business-jobs-col-updated whitespace-nowrap px-2 py-2 text-[11px] text-slate-500">
+      <td className="business-jobs-col-location text-xs text-slate-400">—</td>
+      <td className="business-jobs-col-referrals text-center text-xs text-slate-400">—</td>
+      <td className="business-jobs-col-updated whitespace-nowrap text-xs text-slate-500 sm:text-sm">
         {formatDate(thread.updatedAt, dateLocale)}
       </td>
-      <td className="business-jobs-actions-col px-2 py-2" onClick={(e) => e.stopPropagation()}>
+      <td className="business-jobs-actions-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-end gap-1">
           <button
             type="button"
@@ -302,7 +282,7 @@ function DraftTableRow({ thread, onOpen, onDelete, jobsCopy, commonCopy, languag
               e.stopPropagation()
               onOpen(thread.id)
             }}
-            className="rounded-md bg-[#0077B6] px-2 py-1 text-[10px] font-semibold text-white hover:bg-[#006399] sm:text-[11px]"
+            className="rounded-md bg-[#0077B6] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-[#006399] sm:text-sm"
           >
             {jobsCopy.draft.continueCta}
           </button>
@@ -349,7 +329,7 @@ function JobListPagination({
     <div
       className={
         embedded
-          ? 'flex shrink-0 flex-col gap-2 border-t border-slate-100 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between lg:px-4'
+          ? 'flex shrink-0 flex-col gap-2 border-t border-slate-100 bg-white px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between lg:px-5'
           : 'flex flex-col gap-2 rounded-xl border border-slate-200/90 bg-white px-3 py-2 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:px-4'
       }
     >
@@ -434,7 +414,7 @@ function jobMatchesDateFilter(job, dateFilter) {
 function JobFilterField({ label, children }) {
   return (
     <label className="block min-w-0">
-      <span className="business-jobs-filter-label mb-0 block font-semibold leading-tight text-slate-500">{label}</span>
+      <span className="business-jobs-filter-label mb-1 block text-xs font-semibold leading-tight text-slate-500 sm:text-sm">{label}</span>
       {children}
     </label>
   )
@@ -465,62 +445,57 @@ function getJobCode(job) {
 }
 
 const jobListStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+  ${BUSINESS_HOMEPAGE_PAGE_BASE_STYLES}
   .business-jobs-list-shell {
     height: 100%;
     min-height: 0;
-    font-family: ${BUSINESS_JOBS_FONT};
+    font-family: ${BUSINESS_UI_FONT};
     background: #f4f6f8;
-    --jobs-zoom: 1;
   }
-  @media (min-width: 1024px) and (max-width: 1535px) {
-    .business-jobs-list-shell { --jobs-zoom: 0.88; }
-  }
-  @media (min-width: 1536px) and (max-width: 1919px) {
-    .business-jobs-list-shell { --jobs-zoom: 0.92; }
-  }
-  @media (min-width: 1024px) and (max-height: 860px) {
-    .business-jobs-list-shell { --jobs-zoom: 0.86; }
-  }
-  .business-jobs-ui {
-    zoom: var(--jobs-zoom);
+  .business-jobs-ui.business-homepage-ui {
     height: 100%;
     min-height: 0;
   }
   @supports not (zoom: 1) {
-    .business-jobs-ui {
-      transform: scale(var(--jobs-zoom));
-      transform-origin: top left;
-      width: calc(100% / var(--jobs-zoom));
-      height: calc(100% / var(--jobs-zoom));
+    .business-jobs-ui.business-homepage-ui {
+      height: calc(100% / var(--hp-zoom));
     }
   }
-  .business-jobs-list-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
-  .business-jobs-list-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-  .business-jobs-list-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
   .business-jobs-table thead th {
     white-space: nowrap;
   }
+  .business-jobs-table th,
+  .business-jobs-table td {
+    padding: 0.75rem 0.875rem;
+  }
+  @media (min-width: 640px) {
+    .business-jobs-table th,
+    .business-jobs-table td {
+      padding: 0.875rem 1rem;
+    }
+  }
+  .business-jobs-table th:first-child,
+  .business-jobs-table td.business-jobs-col-name {
+    padding-left: 1rem;
+  }
+  @media (min-width: 640px) {
+    .business-jobs-table th:first-child,
+    .business-jobs-table td.business-jobs-col-name {
+      padding-left: 1.25rem;
+    }
+    .business-jobs-table .business-jobs-actions-col {
+      padding-right: 1.25rem;
+    }
+  }
   .business-jobs-table tbody tr:last-child td {
     border-bottom: none;
-  }
-  .business-jobs-filter-panel {
-    font-size: 11px;
-    line-height: 1.35;
-  }
-  .business-jobs-filter-panel .business-jobs-filter-label {
-    font-size: 10px;
-  }
-  .business-jobs-filter-panel input,
-  .business-jobs-filter-panel button[aria-haspopup="listbox"] {
-    font-size: inherit;
   }
   .business-jobs-table .business-jobs-actions-col {
     position: sticky;
     right: 0;
     z-index: 1;
-    min-width: 7.5rem;
-    padding-right: 0.75rem;
+    min-width: 8rem;
+    padding-right: 1rem;
     background: #ffffff;
     box-shadow: -6px 0 8px -6px rgba(15, 23, 42, 0.08);
   }
@@ -554,14 +529,6 @@ const jobListStyles = `
     }
     .business-jobs-tabs::-webkit-scrollbar { display: none; }
     .business-jobs-tabs button { white-space: nowrap; flex-shrink: 0; }
-    .business-jobs-toolbar {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0.5rem;
-    }
-    .business-jobs-toolbar-controls {
-      justify-content: space-between;
-    }
     .business-jobs-metric-col {
       min-width: 48px;
     }
@@ -595,7 +562,7 @@ function JobRowMenu({ job, onClose, onAction, menuItems, closeMenuLabel }) {
               key={id}
               type="button"
               onClick={() => onAction(id)}
-              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs ${
+              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs sm:text-sm ${
                 danger
                   ? 'text-rose-600 hover:bg-rose-50'
                   : 'text-slate-700 hover:bg-slate-50'
@@ -613,116 +580,6 @@ function JobRowMenu({ job, onClose, onAction, menuItems, closeMenuLabel }) {
   )
 }
 
-function JobGridCard({
-  job,
-  stats,
-  onOpen,
-  onMenuAction,
-  language,
-  jobsCopy,
-  commonCopy,
-  menuItems,
-}) {
-  const statusMeta = getJobStatusMeta(job.status, language)
-  const title = getJobTitle(job, language)
-  const iconVariant = getRowIconVariant(job.id)
-  const metrics = stats || EMPTY_JOB_STATS
-  const dateLocale = getDateLocale(language)
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onOpen(job.id)}
-      onKeyDown={(e) => e.key === 'Enter' && onOpen(job.id)}
-      className="group relative flex cursor-pointer flex-col gap-3 rounded-xl border border-slate-200/90 bg-white p-3 transition hover:border-[#0077B6]/25 hover:bg-[#f8fbfd] sm:p-4"
-    >
-      <div className="flex items-start gap-3">
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${iconVariant.bg} ${iconVariant.text}`}>
-          <Briefcase className="h-4 w-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-slate-900">{title}</p>
-          <p className="mt-0.5 text-xs text-slate-500">{getJobCode(job)}</p>
-          <span className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-slate-700">
-            <span className={`h-2 w-2 rounded-full ${statusMeta.dot}`} />
-            {statusMeta.label}
-          </span>
-        </div>
-        <div onClick={(e) => e.stopPropagation()}>
-          <JobTableRowActions
-            job={job}
-            menuItems={menuItems}
-            commonCopy={commonCopy}
-            onMenuAction={onMenuAction}
-          />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 text-center sm:grid-cols-4">
-        {[
-          [metrics.candidates, jobsCopy.metrics.candidates],
-          [metrics.referrals, jobsCopy.metrics.referrals],
-          [metrics.interviews, jobsCopy.metrics.interviews],
-          [metrics.hired, jobsCopy.metrics.hired],
-        ].map(([value, label]) => (
-          <div key={label}>
-            <p className="text-base font-bold text-[#0077B6]">{value}</p>
-            <p className="mt-0.5 text-[10px] text-slate-500">{label}</p>
-          </div>
-        ))}
-      </div>
-      <p className="text-[10px] text-slate-400">
-        {commonCopy.updatedAt(formatDate(job.updatedAt || job.updated_at, dateLocale))}
-      </p>
-    </div>
-  )
-}
-
-function JobGridDraftCard({ thread, onOpen, onDelete, jobsCopy, commonCopy, language }) {
-  const dateLocale = getDateLocale(language)
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onOpen(thread.id)}
-      onKeyDown={(e) => e.key === 'Enter' && onOpen(thread.id)}
-      className="group flex cursor-pointer items-start gap-3 rounded-xl border border-dashed border-amber-200/80 bg-amber-50/25 p-3 transition hover:border-amber-300/80 sm:p-3.5"
-    >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-        <Briefcase className="h-4 w-4" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="truncate text-sm font-semibold text-slate-900">{thread.title || jobsCopy.draft.defaultTitle}</h3>
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">{jobsCopy.draft.badge}</span>
-        </div>
-        <p className="mt-1 text-[11px] text-slate-500">{jobsCopy.draft.hint}</p>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            onOpen(thread.id)
-          }}
-          className="mt-2 rounded-md bg-[#0077B6] px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-[#006399]"
-        >
-          {jobsCopy.draft.continueCta}
-        </button>
-        <p className="mt-1.5 text-[10px] text-slate-400">{commonCopy.updatedAt(formatDate(thread.updatedAt, dateLocale))}</p>
-      </div>
-      <div className="shrink-0 self-start" onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          onClick={() => onDelete(thread)}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-400 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-600"
-          aria-label={jobsCopy.menu.delete}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      </div>
-    </div>
-  )
-}
-
 const JobManagement = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -732,7 +589,6 @@ const JobManagement = () => {
   const jobsCopy = copy.jobs
   const commonCopy = copy.common
   const statusTabs = useMemo(() => getJobStatusTabs(language), [language])
-  const sortOptions = useMemo(() => getJobSortOptions(language), [language])
   const statusFilterOptions = useMemo(() => getJobStatusFilterOptions(language), [language])
   const dateFilterOptions = useMemo(() => getJobDateFilterOptions(language), [language])
   const menuItems = useMemo(() => getJobRowMenuItems(jobsCopy), [jobsCopy])
@@ -746,12 +602,9 @@ const JobManagement = () => {
   const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || '')
   const [locationFilter, setLocationFilter] = useState(searchParams.get('location') || '')
   const [dateFilter, setDateFilter] = useState(searchParams.get('date') || '')
-  const [sortBy, setSortBy] = useState('updated')
-  const [viewMode, setViewMode] = useState('list')
   const [jobStatsMap, setJobStatsMap] = useState({})
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
-  const [selectedJobIds, setSelectedJobIds] = useState(() => new Set())
   const searchTimerRef = useRef(null)
 
   const loadApplicationStats = useCallback(async () => {
@@ -837,16 +690,16 @@ const JobManagement = () => {
     jobs.forEach((job) => {
       const id = getJobCategoryId(job)
       if (!id) return
-      const label = getJobCategoryName(job) || `Ngành #${id}`
+      const label = getJobCategoryName(job) || jobsCopy.filters.categoryFallback(id)
       map.set(id, label)
     })
     return [
-      { value: '', label: 'Tất cả ngành nghề' },
+      { value: '', label: jobsCopy.filters.allCategory },
       ...Array.from(map.entries())
-        .sort((a, b) => a[1].localeCompare(b[1], 'vi'))
+        .sort((a, b) => a[1].localeCompare(b[1], dateLocale))
         .map(([value, label]) => ({ value, label })),
     ]
-  }, [jobs])
+  }, [jobs, jobsCopy.filters.allCategory, jobsCopy.filters.categoryFallback, dateLocale])
 
   const locationOptions = useMemo(() => {
     const set = new Set()
@@ -891,16 +744,10 @@ const JobManagement = () => {
     if (dateFilter) {
       list = list.filter((job) => jobMatchesDateFilter(job, dateFilter))
     }
-    return [...list].sort((a, b) => {
-      if (sortBy === 'title') {
-        return getJobTitle(a, language).localeCompare(getJobTitle(b, language), dateLocale)
-      }
-      if (sortBy === 'created') {
-        return new Date(b.createdAt || b.created_at || 0) - new Date(a.createdAt || a.created_at || 0)
-      }
-      return new Date(b.updatedAt || b.updated_at || 0) - new Date(a.updatedAt || a.updated_at || 0)
-    })
-  }, [jobs, sortBy, statusTab, categoryFilter, locationFilter, dateFilter, statusTabs, dateLocale])
+    return [...list].sort(
+      (a, b) => new Date(b.updatedAt || b.updated_at || 0) - new Date(a.updatedAt || a.updated_at || 0),
+    )
+  }, [jobs, statusTab, categoryFilter, locationFilter, dateFilter, statusTabs])
 
   const showDraftThreads = statusTab === 'all' || statusTab === 'draft'
 
@@ -922,38 +769,9 @@ const JobManagement = () => {
     return listItems.slice(start, start + pageSize)
   }, [listItems, pageSize, safePage])
 
-  const pagedJobIds = useMemo(
-    () => pagedListItems.filter((item) => item.type === 'job').map((item) => String(item.job.id)),
-    [pagedListItems],
-  )
-
-  const allPagedJobsSelected = pagedJobIds.length > 0 && pagedJobIds.every((id) => selectedJobIds.has(id))
-
-  const toggleSelectJob = (jobId) => {
-    const id = String(jobId)
-    setSelectedJobIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  const toggleSelectAllPagedJobs = () => {
-    setSelectedJobIds((prev) => {
-      const next = new Set(prev)
-      if (allPagedJobsSelected) {
-        pagedJobIds.forEach((id) => next.delete(id))
-      } else {
-        pagedJobIds.forEach((id) => next.add(id))
-      }
-      return next
-    })
-  }
-
   useEffect(() => {
     setPage(1)
-  }, [searchInput, statusTab, categoryFilter, locationFilter, dateFilter, sortBy, pageSize])
+  }, [searchInput, statusTab, categoryFilter, locationFilter, dateFilter, pageSize])
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages)
@@ -976,7 +794,7 @@ const JobManagement = () => {
   }
 
   const handleDeleteDraftThread = async (thread) => {
-    const title = thread.title || jobsCopy.draft.defaultTitle
+    const title = getDraftThreadDisplayTitle(thread.title, language)
     if (!window.confirm(jobsCopy.alerts.draftDeleteConfirm(title))) return
     try {
       await deleteJobBuilderThread(thread.id)
@@ -1054,10 +872,10 @@ const JobManagement = () => {
   return (
     <>
       <style>{jobListStyles}</style>
-      <div className="business-jobs-list-shell flex h-full min-h-0 flex-col overflow-hidden">
-        <div className="business-jobs-ui flex h-full min-h-0 flex-col overflow-hidden">
-        <div className="shrink-0 space-y-1.5 p-2.5 lg:px-3 lg:pt-2.5 lg:pb-1.5">
-          <nav aria-label="Breadcrumb" className="text-[11px] text-slate-500">
+      <div className="business-homepage-shell business-jobs-list-shell flex h-full min-h-0 flex-col overflow-hidden">
+        <div className="business-homepage-ui business-jobs-ui business-app-ui flex h-full min-h-0 flex-col overflow-hidden">
+        <div className="shrink-0 space-y-2 p-2.5 lg:px-3 lg:pt-2.5 lg:pb-1.5">
+          <nav aria-label="Breadcrumb" className="text-xs text-slate-500 sm:text-sm">
             <button
               type="button"
               onClick={() => navigate('/business')}
@@ -1069,38 +887,38 @@ const JobManagement = () => {
             <span className="font-medium text-slate-700">{jobsCopy.breadcrumb.current}</span>
           </nav>
 
-          <div className="business-jobs-filter-panel rounded-xl border border-slate-200/90 bg-white p-2 shadow-sm">
-            <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
-              <div className="relative flex flex-1 items-center rounded-md border border-slate-200 bg-white px-2 py-0.5 sm:min-h-[28px] sm:py-1">
+          <div className="business-jobs-filter-panel rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-3.5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative flex flex-1 items-center rounded-lg border border-slate-200 bg-white px-2.5 py-2">
                 <input
                   type="text"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder={jobsCopy.searchPlaceholder}
-                  className="min-w-0 flex-1 bg-transparent pr-7 text-[10px] text-slate-800 outline-none placeholder:text-slate-400 sm:text-[11px]"
+                  className="min-w-0 flex-1 bg-transparent pr-8 text-xs text-slate-800 outline-none placeholder:text-slate-400 sm:text-sm"
                 />
-                <Search className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-slate-400" />
+                <Search className="pointer-events-none absolute right-2.5 h-4 w-4 text-slate-400" />
               </div>
               <button
                 type="button"
                 onClick={() => navigate('/business/jobs/create')}
-                className="inline-flex shrink-0 items-center justify-center gap-1 rounded-md bg-[#0077B6] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-md shadow-[#0077B6]/20 ring-1 ring-[#0077B6]/25 transition hover:bg-[#006399] sm:min-h-[28px] sm:px-3 sm:py-1 sm:text-[11px]"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] px-3 py-2 text-xs font-bold text-white shadow-md shadow-[#0077B6]/20 ring-1 ring-[#0077B6]/25 transition hover:bg-[#006399] sm:text-sm"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-4 w-4" />
                 {jobsCopy.createShort}
               </button>
               <button
                 type="button"
                 onClick={clearFilters}
                 disabled={!hasActiveFilters}
-                className="inline-flex shrink-0 items-center justify-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-[28px] sm:py-1 sm:text-[11px]"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35 sm:text-sm"
               >
                 <RotateCcw className="h-3 w-3" />
                 {commonCopy.clearFilters}
               </button>
             </div>
 
-            <div className="mt-1.5 grid grid-cols-2 gap-1.5 xl:grid-cols-4">
+            <div className="mt-2 grid grid-cols-2 gap-2 xl:grid-cols-4">
               <JobFilterField label={jobsCopy.filters.status}>
                 <FilterSelectDropdown
                   value={statusTab}
@@ -1109,7 +927,7 @@ const JobManagement = () => {
                   placeholder={jobsCopy.filters.allStatus}
                   className={FILTER_SELECT_CLASS}
                   maxPanelHeight={220}
-                  optionSize="compact"
+                  optionSize="comfortable"
                 />
               </JobFilterField>
               <JobFilterField label={jobsCopy.filters.category}>
@@ -1122,7 +940,7 @@ const JobManagement = () => {
                   searchPlaceholder={jobsCopy.filters.searchCategory}
                   className={FILTER_SELECT_CLASS}
                   maxPanelHeight={240}
-                  optionSize="compact"
+                  optionSize="comfortable"
                 />
               </JobFilterField>
               <JobFilterField label={jobsCopy.filters.location}>
@@ -1135,7 +953,7 @@ const JobManagement = () => {
                   searchPlaceholder={jobsCopy.filters.searchLocation}
                   className={FILTER_SELECT_CLASS}
                   maxPanelHeight={240}
-                  optionSize="compact"
+                  optionSize="comfortable"
                 />
               </JobFilterField>
               <JobFilterField label={jobsCopy.filters.date}>
@@ -1146,63 +964,26 @@ const JobManagement = () => {
                   placeholder={jobsCopy.filters.allTime}
                   className={FILTER_SELECT_CLASS}
                   maxPanelHeight={200}
-                  optionSize="compact"
+                  optionSize="comfortable"
                 />
               </JobFilterField>
             </div>
 
-            <div className="business-jobs-toolbar mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
-              <div className="business-jobs-tabs flex flex-wrap items-center gap-1 sm:gap-1.5">
-                {statusTabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => handleStatusTab(tab.id)}
-                    className={`rounded-md px-2 py-0.5 text-[10px] font-semibold transition sm:text-[11px] ${
-                      statusTab === tab.id
-                        ? 'bg-[#0077B6]/12 text-[#0077B6] ring-1 ring-[#0077B6]/25'
-                        : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
-                    }`}
-                  >
-                    {tab.label} ({tabCounts[tab.id] ?? 0})
-                  </button>
-                ))}
-              </div>
-              <div className="business-jobs-toolbar-controls flex items-center gap-1.5">
-                <div className="relative flex items-center gap-1">
-                  <div className="relative">
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                      aria-label={commonCopy.sortLabel}
-                      className="appearance-none rounded-md border border-slate-200 bg-white py-0.5 pl-2 pr-5 text-[10px] font-medium text-slate-700 outline-none"
-                    >
-                      {sortOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-1 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
-                  </div>
-                </div>
-                <div className="flex rounded-md border border-slate-200 p-px">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('list')}
-                    className={`rounded p-0.5 ${viewMode === 'list' ? 'bg-[#0077B6] text-white' : 'text-slate-400 hover:text-slate-600'}`}
-                    aria-label={commonCopy.listView}
-                  >
-                    <LayoutList className="h-3 w-3" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('grid')}
-                    className={`rounded p-0.5 ${viewMode === 'grid' ? 'bg-[#0077B6] text-white' : 'text-slate-400 hover:text-slate-600'}`}
-                    aria-label={commonCopy.gridView}
-                  >
-                    <LayoutGrid className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
+            <div className="business-jobs-tabs mt-2 flex flex-wrap items-center gap-1 sm:gap-1.5">
+              {statusTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => handleStatusTab(tab.id)}
+                  className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition sm:text-sm ${
+                    statusTab === tab.id
+                      ? 'bg-[#0077B6]/12 text-[#0077B6] ring-1 ring-[#0077B6]/25'
+                      : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                  }`}
+                >
+                  {tab.label} ({tabCounts[tab.id] ?? 0})
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -1220,16 +1001,16 @@ const JobManagement = () => {
                 className="mb-3 w-full max-w-[200px] object-contain"
                 draggable={false}
               />
-              <p className="max-w-md text-xs font-medium leading-relaxed text-slate-700">
+              <p className="max-w-md text-sm font-medium leading-relaxed text-slate-700 sm:text-base">
                 {jobsCopy.empty.title}
               </p>
-              <p className="mt-1 max-w-md text-[11px] leading-relaxed text-slate-500">
+              <p className="mt-1 max-w-md text-xs leading-relaxed text-slate-500 sm:text-sm">
                 {jobsCopy.empty.hint}
               </p>
               <button
                 type="button"
                 onClick={() => navigate('/business/jobs/create')}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-95"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:opacity-95 sm:text-sm"
                 style={{ backgroundColor: JD_NAVY_MID }}
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -1238,75 +1019,38 @@ const JobManagement = () => {
             </div>
           ) : (
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
-              {viewMode === 'grid' ? (
-                <div className="business-jobs-list-scroll grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-y-auto p-2 md:grid-cols-2 lg:p-3">
-                  {pagedListItems.map((item) => (
-                    item.type === 'draft' ? (
-                      <JobGridDraftCard
-                        key={item.thread.id}
-                        thread={item.thread}
-                        onOpen={openDraftThread}
-                        onDelete={handleDeleteDraftThread}
-                        jobsCopy={jobsCopy}
-                        commonCopy={commonCopy}
-                        language={language}
-                      />
-                    ) : (
-                      <JobGridCard
-                        key={item.job.id}
-                        job={item.job}
-                        stats={getJobStats(item.job, jobStatsMap)}
-                        onOpen={openJobDetail}
-                        onMenuAction={handleMenuAction}
-                        language={language}
-                        jobsCopy={jobsCopy}
-                        commonCopy={commonCopy}
-                        menuItems={menuItems}
-                      />
-                    )
-                  ))}
-                </div>
-              ) : (
-                <div className="business-jobs-list-scroll min-h-0 flex-1 overflow-auto">
-                    <table className="business-jobs-table w-full min-w-[920px] border-collapse">
-                      <JobTableHeader
-                        jobsCopy={jobsCopy}
-                        allSelected={allPagedJobsSelected}
-                        onToggleAll={toggleSelectAllPagedJobs}
-                        hasItems={pagedJobIds.length > 0}
-                      />
-                      <tbody>
-                        {pagedListItems.map((item) => (
-                          item.type === 'draft' ? (
-                            <DraftTableRow
-                              key={item.thread.id}
-                              thread={item.thread}
-                              onOpen={openDraftThread}
-                              onDelete={handleDeleteDraftThread}
-                              jobsCopy={jobsCopy}
-                              commonCopy={commonCopy}
-                              language={language}
-                            />
-                          ) : (
-                            <JobTableRow
-                              key={item.job.id}
-                              job={item.job}
-                              stats={getJobStats(item.job, jobStatsMap)}
-                              selected={selectedJobIds.has(String(item.job.id))}
-                              onToggleSelect={toggleSelectJob}
-                              onOpen={openJobDetail}
-                              onMenuAction={handleMenuAction}
-                              language={language}
-                              jobsCopy={jobsCopy}
-                              commonCopy={commonCopy}
-                              menuItems={menuItems}
-                            />
-                          )
-                        ))}
-                      </tbody>
-                    </table>
-                </div>
-              )}
+              <div className="business-jobs-list-scroll min-h-0 flex-1 overflow-auto">
+                <table className="business-jobs-table w-full min-w-[920px] border-collapse">
+                  <JobTableHeader jobsCopy={jobsCopy} />
+                  <tbody>
+                    {pagedListItems.map((item) => (
+                      item.type === 'draft' ? (
+                        <DraftTableRow
+                          key={item.thread.id}
+                          thread={item.thread}
+                          onOpen={openDraftThread}
+                          onDelete={handleDeleteDraftThread}
+                          jobsCopy={jobsCopy}
+                          commonCopy={commonCopy}
+                          language={language}
+                        />
+                      ) : (
+                        <JobTableRow
+                          key={item.job.id}
+                          job={item.job}
+                          stats={getJobStats(item.job, jobStatsMap)}
+                          onOpen={openJobDetail}
+                          onMenuAction={handleMenuAction}
+                          language={language}
+                          jobsCopy={jobsCopy}
+                          commonCopy={commonCopy}
+                          menuItems={menuItems}
+                        />
+                      )
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               <JobListPagination
                 embedded
                 page={safePage}

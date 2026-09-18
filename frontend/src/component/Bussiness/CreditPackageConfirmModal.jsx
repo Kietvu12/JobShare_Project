@@ -12,6 +12,7 @@ export default function CreditPackageConfirmModal({
   unlockCost = 5,
   copy,
   priceLocale = 'vi-VN',
+  language = 'vi',
 }) {
   useEffect(() => {
     if (!open) return undefined
@@ -60,7 +61,7 @@ export default function CreditPackageConfirmModal({
           </div>
           <div className="flex justify-between gap-3">
             <dt className="text-slate-500">{copy.creditsAmount}</dt>
-            <dd className="font-semibold text-[#0077B6]">{formatCreditAmount(pkg.credits)}</dd>
+            <dd className="font-semibold text-[#0077B6]">{formatCreditAmount(pkg.credits, language)}</dd>
           </div>
           <div className="flex justify-between gap-3">
             <dt className="text-slate-500">{copy.priceLabel}</dt>
@@ -76,7 +77,7 @@ export default function CreditPackageConfirmModal({
           </div>
           <div className="flex justify-between gap-3">
             <dt className="text-slate-500">{copy.paymentTotal}</dt>
-            <dd className="font-bold text-slate-900">{formatYenAmount(pkg.priceYen)}</dd>
+            <dd className="font-bold text-slate-900">{formatYenAmount(pkg.priceYen, language)}</dd>
           </div>
         </dl>
 
@@ -95,7 +96,7 @@ export default function CreditPackageConfirmModal({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0077B6] px-4 py-2 text-sm font-semibold text-white hover:bg-[#006399] disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0077B6] px-4 py-2 text-sm font-semibold text-white hover:bg-[#006399] hover:text-white disabled:opacity-60"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {copy.confirm}
