@@ -45,7 +45,7 @@ export const landingHeaderI18n = {
   },
   ja: {
     menu: 'Menu',
-    registerLines: ['無料登録'],
+    registerLines: ['無料で', '企業登録する'],
     loginLines: ['ログイン'],
     navLabels: [
       'JobShare Businessとは',

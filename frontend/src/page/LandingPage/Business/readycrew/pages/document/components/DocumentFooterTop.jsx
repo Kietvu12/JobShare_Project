@@ -67,7 +67,7 @@ export default function DocumentFooterTop() {
           <ol className="footer-top-topic-path__list">
             <li className="footer-top-topic-path__item">
               <Link className="footer-top-topic-path__anchor" to="/">
-                ビジネスマッチングのレディクルTOP
+                JobShare for Business TOP
               </Link>
             </li>
             <li className="footer-top-topic-path__item">

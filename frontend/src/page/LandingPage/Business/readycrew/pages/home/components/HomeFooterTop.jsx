@@ -1,4 +1,4 @@
-import { ArrowIcon, PhoneIcon } from '../../../components/layout/icons'
+import { PhoneIcon } from '../../../components/layout/icons'
 import SiteLink from '../../../components/layout/SiteLink'
 import footerCharacterImage from '../../../../../../../assets/char.jpg'
 
@@ -25,7 +25,7 @@ export default function HomeFooterTop() {
                 採用をもっとスマートに。
               </p>
               <p className="footer-top-conversion__desc">
-                Workstation Jobなら、ビジネス・人材採用の手間を削減。
+                Workstation JobShareなら、ビジネス・人材採用の手間を削減。
                 <br className="u-br-hd u-br-spu" />
                 優れた人材を効率的に採用するための求人プラットフォームです。
               </p>
@@ -41,7 +41,7 @@ export default function HomeFooterTop() {
                     className="footer-top-conversion__contact-btn o-btn-bg o-btn-bg--white m-element-side-space"
                     to="/business/register"
                   >
-                    <span className="footer-top-conversion__btn-text o-btn-bg__text">無料で登録する</span>
+                    <span className="footer-top-conversion__btn-text o-btn-bg__text">無料で企業登録する</span>
                   </SiteLink>
                 </div>
                 <a className="footer-top-conversion__tel" href="tel:080-9441-1975">
@@ -52,12 +52,6 @@ export default function HomeFooterTop() {
                   <span className="footer-top-conversion__time">10:00 〜 18:00 (平日)</span>
                 </a>
               </div>
-              <SiteLink to="/partner/" className="header-sub__anchor o-anchor-text">
-                <span className="o-anchor-text__icon--white">
-                  <ArrowIcon />
-                </span>
-                <span className="o-anchor-text__text c-text-white">受注企業様はこちら</span>
-              </SiteLink>
             </div>
           </div>
         </div>
@@ -66,9 +60,9 @@ export default function HomeFooterTop() {
         <div className="footer-top-topic-path__contents">
           <ol className="footer-top-topic-path__list">
             <li className="footer-top-topic-path__item">
-              <a className="footer-top-topic-path__anchor" href="https://readycrew.jp">
-                ビジネスマッチングのレディクルTOP
-              </a>
+              <SiteLink className="footer-top-topic-path__anchor" to="/">
+                JobShare for Business TOP
+              </SiteLink>
             </li>
           </ol>
         </div>

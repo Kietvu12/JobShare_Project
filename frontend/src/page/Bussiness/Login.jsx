@@ -5,6 +5,7 @@ import {
   Mail, Lock, AlertCircle, Loader2, Eye, EyeOff, Globe, MessageCircle, ArrowLeft, CheckCircle,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useLangFromQuery } from '../../hooks/useLangFromQuery';
 import { translations } from '../../translations/translations';
 import logoImage from '../../assets/Login_files/logo-removebg-preview-C0FMBBYQ.png';
 import apiService from '../../services/api';
@@ -12,6 +13,7 @@ import apiService from '../../services/api';
 const Login = () => {
   const navigate = useNavigate();
   const { language, changeLanguage } = useLanguage();
+  useLangFromQuery();
   const t = translations[language] || translations.vi;
 
   const [formData, setFormData] = useState({ email: '', password: '' });

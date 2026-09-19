@@ -1,4 +1,3 @@
-import { ArrowIcon } from '../../../components/layout/icons'
 import SiteLink from '../../../components/layout/SiteLink'
 import { useLanguage } from '../../../../../../../context/LanguageContext'
 import { getHomeConversionCopy } from '../../../../../../../i18n/businessApp/homeConversion'
@@ -38,16 +37,6 @@ export default function HomeConversion() {
                     {copy.cta}
                   </span>
                 </p>
-              </SiteLink>
-              <SiteLink to="/partner/" className="o-anchor-text m-conversion-bnr__partner-anchor">
-                <span className="o-anchor-text__icon--white">
-                  <ArrowIcon />
-                </span>
-                <span
-                  className={`o-anchor-text__text c-text-white${isJapanese ? '' : ' m-conversion-bnr__partner-link--i18n'}`}
-                >
-                  {copy.partnerLink}
-                </span>
               </SiteLink>
             </div>
             <picture className="m-conversion-bnr__picture">

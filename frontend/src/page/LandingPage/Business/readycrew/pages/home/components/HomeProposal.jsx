@@ -50,6 +50,7 @@ export default function HomeProposal() {
                   </li>
                 ))}
               </ol>
+              {item.ctaLabel ? <span className="front-page-proposal__cta">{item.ctaLabel}</span> : null}
             </SiteLink>
           ))}
         </div>

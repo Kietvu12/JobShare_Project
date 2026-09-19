@@ -6,7 +6,18 @@ const SUBJECT_EN = {
   'direct-scout': 'Direct Scout',
   'managed-scout': 'Managed Scout',
   'employer-branding': 'Employer Branding',
-  'hr-partner-network': 'HR Partner',
+  'hr-partner-network': 'CTV Marketplace',
+}
+
+// Thứ tự hiển thị theo spec landing: Scout Trực Tiếp → Scout Ủy Thác → Sàn CTV → Thương hiệu Tuyển dụng
+const LANDING_CARD_ORDER = ['direct-scout', 'managed-scout', 'hr-partner-network', 'employer-branding']
+
+const ICON_DIR = '/landing/business/assets/images/front-page'
+const ICON_BY_TAG = {
+  'direct-scout': `${ICON_DIR}/front-page-proposal-icon-scout.svg`,
+  'managed-scout': `${ICON_DIR}/front-page-proposal-icon-02.svg`,
+  'hr-partner-network': `${ICON_DIR}/front-page-proposal-icon-network.svg`,
+  'employer-branding': `${ICON_DIR}/front-page-proposal-icon-01.svg`,
 }
 
 export const homeProposalI18n = {
@@ -38,14 +49,18 @@ export function getHomeProposalCopy(language) {
 }
 
 export function getProposalItems(language) {
-  const cards = homepageExtrasI18n[language]?.solutionCards || homepageExtrasI18n.vi.solutionCards
+  const allCards = homepageExtrasI18n[language]?.solutionCards || homepageExtrasI18n.vi.solutionCards
+  const cards = [...allCards].sort(
+    (a, b) => LANDING_CARD_ORDER.indexOf(a.tagId) - LANDING_CARD_ORDER.indexOf(b.tagId),
+  )
 
   return cards.map((card, index) => {
     const base = {
       href: card.path,
       iconVariant: ICON_VARIANTS[index],
-      iconSrc: `/landing/business/assets/images/front-page/front-page-proposal-icon-0${index + 1}.svg`,
+      iconSrc: ICON_BY_TAG[card.tagId] || `${ICON_DIR}/front-page-proposal-icon-0${index + 1}.svg`,
       tags: card.features,
+      ctaLabel: card.ctaLabel,
     }
 
     if (language === 'ja') {

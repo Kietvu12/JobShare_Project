@@ -25,7 +25,7 @@ export const homeConversionI18n = {
       'JobShare Businessは、優秀な人材との出会いから、',
       '採用成功までを一気通貫でサポートします。',
     ],
-    cta: '無料相談はこちら!',
+    cta: '無料相談する',
     partnerLink: '受注企業様はこちら',
     imageAlt: 'JobShare Business 採用支援',
   },

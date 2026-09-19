@@ -6,6 +6,7 @@ import {
   ChevronLeft, ChevronRight, Check, Eye, EyeOff, Upload, X,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useLangFromQuery } from '../../hooks/useLangFromQuery';
 import apiService from '../../services/api';
 import { JobCategoryDualPickerField, formatJobCategorySelection } from '../../component/Shared/JobCategoryDualPickerModal';
 
@@ -125,7 +126,7 @@ const C = {
 
 const css = {
   root: {
-    fontFamily: "'Barlow', sans-serif",
+    fontFamily: "'Noto Sans JP', 'Barlow', sans-serif",
     background: C.white,
     minHeight: '100vh',
   },
@@ -161,7 +162,7 @@ const css = {
   req: { color: C.red, marginLeft: 3 },
   input: {
     width: '100%', padding: '11px 14px',
-    fontFamily: "'Barlow', sans-serif", fontSize: 14, color: C.gray,
+    fontFamily: "'Noto Sans JP', 'Barlow', sans-serif", fontSize: 14, color: C.gray,
     background: '#fafafa', border: `1.5px solid ${C.border}`,
     borderRadius: 10, outline: 'none', boxSizing: 'border-box',
     transition: 'border .2s, box-shadow .2s',
@@ -176,7 +177,7 @@ const css = {
   errText: { fontSize: 12, color: C.red, marginTop: 4 },
   btnPrimary: (disabled) => ({
     background: disabled ? '#ccc' : C.red,
-    color: C.white, fontFamily: "'Barlow', sans-serif",
+    color: C.white, fontFamily: "'Noto Sans JP', 'Barlow', sans-serif",
     fontSize: 14, fontWeight: 700, padding: '10px 24px',
     border: 'none', borderRadius: 50, cursor: disabled ? 'not-allowed' : 'pointer',
     letterSpacing: '.3px',
@@ -186,7 +187,7 @@ const css = {
   }),
   btnSecondary: (disabled) => ({
     background: C.white,
-    color: C.gray, fontFamily: "'Barlow', sans-serif",
+    color: C.gray, fontFamily: "'Noto Sans JP', 'Barlow', sans-serif",
     fontSize: 14, fontWeight: 600, padding: '10px 20px',
     border: `1.5px solid ${C.border}`, borderRadius: 50,
     cursor: disabled ? 'not-allowed' : 'pointer',
@@ -345,6 +346,7 @@ const ReviewRow = ({ label, value }) => (
 const Register = () => {
   const navigate = useNavigate();
   const { language, changeLanguage } = useLanguage();
+  useLangFromQuery();
   const ht = HEADER_I18N[language] || HEADER_I18N.vi;
   const pt = PAGE_I18N[language] || PAGE_I18N.vi;
 
@@ -360,7 +362,13 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [licenseFile, setLicenseFile] = useState(null);
   const [categoryTree, setCategoryTree] = useState([]);
-  const [langTab, setLangTab] = useState('vi');
+  const [defaultLangTab] = useState(() => {
+    // Tab nhập nội dung mặc định theo ngôn ngữ đang xem (?lang= từ landing, hoặc ngôn ngữ hiện tại); JA dùng key 'jp'.
+    const fromQuery = new URLSearchParams(window.location.search).get('lang');
+    const lang = ['vi', 'en', 'ja'].includes(fromQuery) ? fromQuery : language;
+    return lang === 'ja' ? 'jp' : lang === 'en' ? 'en' : 'vi';
+  });
+  const [langTab, setLangTab] = useState(defaultLangTab);
 
   const handleCategoryTreeLoaded = useCallback((tree) => {
     setCategoryTree(tree);
@@ -463,12 +471,12 @@ const Register = () => {
       if (step === 1 || step === 2) setLangTab('vi');
       return;
     }
-    setLangTab('vi');
+    setLangTab(defaultLangTab);
     setStep((s) => Math.min(4, s + 1));
   };
 
   const goBack = () => {
-    setLangTab('vi');
+    setLangTab(defaultLangTab);
     setStep((s) => Math.max(1, s - 1));
   };
 
@@ -580,7 +588,7 @@ const Register = () => {
       </Helmet>
 
       <link
-        href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
         rel="stylesheet"
       />
 

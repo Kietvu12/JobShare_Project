@@ -5,7 +5,6 @@ import HomeCorporation from './components/HomeCorporation'
 import HomeFaq from './components/HomeFaq'
 import HomeFlow from './components/HomeFlow'
 import HomeFooterTop from './components/HomeFooterTop'
-import HomeNews from './components/HomeNews'
 import HomeProposal from './components/HomeProposal'
 import HomeReason from './components/HomeReason'
 import HomeVisual from './components/HomeVisual'
@@ -26,7 +25,7 @@ export default function HomePage() {
           <HomeConversion />
           {/* <HomeCase /> */}
           <HomeFlow />
-          <HomeNews />
+          {/* <HomeNews /> — tạm ẩn: data tin tức còn là của ReadyCrew, chờ tin JobShare */}
           <HomeFaq />
         </div>
       </div>

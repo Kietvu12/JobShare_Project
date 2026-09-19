@@ -1,4 +1,4 @@
-import { ArrowIcon, PhoneIcon } from '../../../components/layout/icons'
+import { PhoneIcon } from '../../../components/layout/icons'
 import SiteLink from '../../../components/layout/SiteLink'
 import { FlowSteps } from '../data/flow-steps'
 
@@ -34,7 +34,7 @@ export default function HomeFlow() {
                   {index === 0 ? (
                     <div className="front-page-flow__contact">
                       <SiteLink className="front-page-flow__contact-subject o-btn-bg o-btn-bg--red" to="/contact_rc/">
-                        <p className="front-page-flow__contact-subject-text o-btn-bg__text">無料相談はこちら!</p>
+                        <p className="front-page-flow__contact-subject-text o-btn-bg__text">無料相談する</p>
                       </SiteLink>
                       <a className="front-page-flow__contact-info" href="tel:080-9441-1975">
                         <div className="front-page-flow__contact-tel">
@@ -60,28 +60,12 @@ export default function HomeFlow() {
                 <span className="front-page-flow__tel-text">080-9441-1975</span>
                 <span className="front-page-flow__time">10:00 〜 18:00 (平日)</span>
               </a>
-              <SiteLink to="/partner/" className="header-sub__anchor o-anchor-text">
-                <span className="o-anchor-text__icon--white">
-                  <ArrowIcon />
-                </span>
-                <span className="o-anchor-text__text c-text-white">受注企業様はこちら</span>
-              </SiteLink>
             </div>
             <SiteLink
               className="front-page-flow__download-btn o-btn-bg o-btn-bg--hover-border m-element-side-space"
               to="/inquiry_docs_rc/"
             >
               <span className="front-page-flow__anchor-text o-btn-bg__text">資料ダウンロード</span>
-            </SiteLink>
-            <SiteLink
-              className="front-page-flow__contact-btn o-btn-bg o-btn-bg--white o-btn-bg--hover-border m-element-side-space"
-              to="/contact_rc/"
-            >
-              <span className="front-page-flow__anchor-text o-btn-bg__text">
-                外注先を無料で
-                <br className="br-sp" />
-                相談する
-              </span>
             </SiteLink>
           </div>
         </div>

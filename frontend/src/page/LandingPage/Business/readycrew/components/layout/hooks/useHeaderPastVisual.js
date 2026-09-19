@@ -21,14 +21,16 @@ export function isPastPageVisual() {
   const headerMain = document.querySelector('.header-main')
 
   if (!visual) {
-    return window.scrollY > 80
+    return (document.scrollingElement?.scrollTop ?? 0) + (document.body?.scrollTop ?? 0) + window.scrollY > 80
   }
 
   const headerHeight = headerMain?.offsetHeight ?? 70
   const headerTop = headerMain?.getBoundingClientRect().top ?? 0
-  const visualBottom = visual.offsetTop + visual.offsetHeight
+  // Dùng getBoundingClientRect thay offsetTop: offsetTop lệch khi offsetParent không phải body
+  // (dẫn tới thanh phụ header vẫn chữ trắng khi đã cuộn qua khỏi hero).
+  const visualBottom = visual.getBoundingClientRect().bottom
 
-  return window.scrollY + headerTop + headerHeight >= visualBottom - 8
+  return headerTop + headerHeight >= visualBottom - 8
 }
 
 export function useHeaderPastVisual(pathname) {
@@ -53,12 +55,13 @@ export function useHeaderPastVisual(pathname) {
 
     update()
     const timeoutId = window.setTimeout(update, 200)
-    window.addEventListener('scroll', onScroll, { passive: true })
+    // capture: trang này cuộn trong <body> (overflow: auto), sự kiện scroll của phần tử không nổi lên window nếu không bắt ở capture
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true })
     window.addEventListener('resize', onScroll)
 
     return () => {
       window.clearTimeout(timeoutId)
-      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('scroll', onScroll, { capture: true })
       window.removeEventListener('resize', onScroll)
       if (frameId) window.cancelAnimationFrame(frameId)
       document.querySelector('.header')?.classList.remove('header--past-visual')

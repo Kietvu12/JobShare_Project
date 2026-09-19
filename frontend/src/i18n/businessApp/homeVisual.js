@@ -53,7 +53,7 @@ export const homeVisualI18n = {
     },
     btnDownloadLines: ['サービス資料を', 'ダウンロード'],
     btnRegisterLines: ['無料で', '企業登録する'],
-    btnConsultLines: ['採用について', '相談する'],
+    btnConsultLines: ['無料', '相談する'],
     heroAlt: 'JobShare Business ダッシュボード',
     badgeAlt:
       '技術系外国人材データベース40,000+ HRパートナーネットワーク500+ 東南アジア初AI外国人採用プラットフォーム',

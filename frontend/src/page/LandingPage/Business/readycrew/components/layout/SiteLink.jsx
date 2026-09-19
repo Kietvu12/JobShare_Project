@@ -14,6 +14,11 @@ export default function SiteLink({ to, className, children, target, rel }) {
     );
   }
 
+  // Giữ ngôn ngữ đang xem khi sang luồng đăng ký/đăng nhập (trang ngoài landing, không có prefix /{lang}).
+  const landingLocale = basePath.match(/^\/(vi|en|ja)\/business/)?.[1]
+  const isAuthFlow = /^\/business\/(register|login)$/.test(to)
+  const href = landingLocale && isAuthFlow ? `${to}?lang=${landingLocale}` : to
+
   const path = normalizeInternalPath(stripBusinessLandingBase(new URL(to, window.location.origin).pathname, basePath));
   if (isInternalNavPath(path)) {
     return (
@@ -24,7 +29,7 @@ export default function SiteLink({ to, className, children, target, rel }) {
   }
 
   return (
-    <a href={to} className={className}>
+    <a href={href} className={className}>
       {children}
     </a>
   );
