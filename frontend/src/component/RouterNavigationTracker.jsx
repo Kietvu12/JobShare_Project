@@ -1,11 +1,16 @@
 import { useLayoutEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { syncRouterPathname } from '../utils/routerNavigationHistory';
+import { scrollAppToTop } from '../utils/scrollAppToTop';
 import { capturePageAttribution, syncAttributionToAddressBar } from '../utils/utmTracking';
 
 /** Ghi nhớ pathname trước mỗi lần chuyển route (dùng cho restore state danh sách ứng viên). */
 export default function RouterNavigationTracker() {
   const location = useLocation();
+
+  useLayoutEffect(() => {
+    scrollAppToTop();
+  }, [location.pathname]);
 
   useLayoutEffect(() => {
     syncRouterPathname(location.pathname);

@@ -39,7 +39,7 @@ export default function HomeConversion() {
                   </span>
                 </p>
               </SiteLink>
-              <SiteLink to="/partner/" className="header-sub__anchor o-anchor-text">
+              <SiteLink to="/partner/" className="o-anchor-text m-conversion-bnr__partner-anchor">
                 <span className="o-anchor-text__icon--white">
                   <ArrowIcon />
                 </span>

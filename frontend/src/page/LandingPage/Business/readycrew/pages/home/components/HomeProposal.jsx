@@ -2,15 +2,6 @@ import SiteLink from '../../../components/layout/SiteLink'
 import { useLanguage } from '../../../../../../../context/LanguageContext'
 import { getHomeProposalCopy, getProposalItems } from '../../../../../../../i18n/businessApp/homeProposal'
 
-function BgArrow() {
-  return (
-    <div className="m-btn-bg-arrow__inner">
-      <span className="m-btn-bg-arrow__arrow m-btn-bg-arrow__arrow--first" />
-      <span className="m-btn-bg-arrow__arrow m-btn-bg-arrow__arrow--second" />
-    </div>
-  )
-}
-
 export default function HomeProposal() {
   const { language } = useLanguage()
   const copy = getHomeProposalCopy(language)
@@ -29,14 +20,6 @@ export default function HomeProposal() {
           {copy.titleMid}
           <span className="c-text-red-4">{copy.titleHighlight2}</span>
         </h2>
-        <SiteLink className="front-page-proposal__btn o-btn-border--gray m-btn-bg-arrow" to="/proposal/">
-          <span
-            className={`front-page-news__anchor-text m-btn-bg-arrow__text${isJapanese ? '' : ' front-page-proposal__btn-text--i18n'}`}
-          >
-            {copy.viewAllBtn}
-          </span>
-          <BgArrow />
-        </SiteLink>
         <div className="front-page-proposal__body front-page-proposal__body--2x2">
           {items.map((item) => (
             <SiteLink key={item.href} className="front-page-proposal__item" to={item.href}>
