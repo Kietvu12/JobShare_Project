@@ -20,7 +20,8 @@ export default function BusinessApplicationStatusSelect({
 }) {
   const stageStyle = getStatusCategoryStyle(statusCategory)
   const current = status != null && status !== '' ? Number(status) : 2
-  const busy = disabled || updating
+  const noNextStep = (statusOptions?.length || 0) <= 1
+  const busy = disabled || updating || noNextStep
 
   return (
     <div
@@ -37,7 +38,7 @@ export default function BusinessApplicationStatusSelect({
           const next = Number(e.target.value)
           if (next !== current) onChange(next)
         }}
-        className={`w-full min-w-0 cursor-pointer appearance-none whitespace-nowrap rounded-lg font-semibold outline-none ring-1 ring-inset ring-black/5 focus:ring-[#0077B6]/40 disabled:cursor-not-allowed disabled:opacity-70 ${
+        className={`w-full min-w-0 cursor-pointer appearance-none whitespace-nowrap rounded-lg font-semibold outline-none ring-1 ring-inset ring-black/5 focus:ring-[#0077B6]/40 disabled:cursor-default ${noNextStep ? '' : 'disabled:opacity-70'} ${
           compact
             ? 'py-1 pl-2 pr-7 text-[10px] sm:text-[11px]'
             : `py-2 pl-3 pr-9 ${BUSINESS_HP_TEXT.body}`

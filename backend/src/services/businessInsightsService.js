@@ -3,10 +3,12 @@ import {
   Job,
   JobApplication,
   JobCategory,
+  BusinessCtvMarketplaceListing,
   BusinessCtvMarketplaceSettlement,
   BusinessCreditHistory,
 } from '../models/index.js';
 import { getJobApplicationStatus } from '../constants/jobApplicationStatus.js';
+import { SCOUT_CREDIT_REFERENCE_TYPE } from '../constants/scoutCredit.js';
 import {
   loadSourceMaps,
   resolveSourceType,
@@ -15,6 +17,27 @@ import {
 
 const HIRED_STATUSES = [12, 14, 15];
 const INTERVIEW_STATUSES = [7, 8, 9];
+
+export const INSIGHT_SERVICE_KEYS = ['scout_credit', 'scout_performance', 'ctv_marketplace'];
+
+/** Giá niêm yết gói Basic: 30.000 yên / 1.000 credit */
+const SCOUT_CREDIT_YEN_PER_CREDIT = 30;
+/** Scout Ủy Thác: 15–25% thu nhập năm khi tuyển thành công — dùng mức giữa để ước tính */
+const SCOUT_PERFORMANCE_ESTIMATE_FEE_PERCENT = 20;
+const DEFAULT_MARKETPLACE_PLATFORM_FEE_PERCENT = 20;
+
+function normalizeInsightService(raw) {
+  const key = String(raw || '').trim().toLowerCase();
+  return INSIGHT_SERVICE_KEYS.includes(key) ? key : 'all';
+}
+
+/** Gộp nguồn ứng viên về 3 dịch vụ trả phí (+ other) */
+function resolveInsightService(sourceType) {
+  if (sourceType === 'ctv_marketplace' || sourceType === 'ctv_nomination') return 'ctv_marketplace';
+  if (sourceType === 'scout_credit') return 'scout_credit';
+  if (sourceType === 'scout_performance') return 'scout_performance';
+  return 'other';
+}
 
 const PERIOD_MAP = {
   week: 'week',
@@ -26,10 +49,10 @@ const PERIOD_MAP = {
 };
 
 const SOURCE_DISPLAY = {
-  ctv_marketplace: 'CTV (HR Partner)',
-  ctv_nomination: 'CTV (HR Partner)',
-  scout_credit: 'Scout (Mở bảng credit)',
-  scout_performance: 'Scout Performance',
+  ctv_marketplace: 'Sàn CTV',
+  ctv_nomination: 'Sàn CTV',
+  scout_credit: 'Scout Credit',
+  scout_performance: 'Scout Ủy Thác',
   landing: 'Website công ty',
   other: 'Khác',
 };
@@ -43,26 +66,26 @@ function resolveInsightLang(raw) {
 
 const SOURCE_LABELS_I18N = {
   vi: {
-    ctv_marketplace: 'CTV (HR Partner)',
-    ctv_nomination: 'CTV (HR Partner)',
-    scout_credit: 'Scout (Mở bảng credit)',
-    scout_performance: 'Scout Performance',
+    ctv_marketplace: 'Sàn CTV',
+    ctv_nomination: 'Sàn CTV',
+    scout_credit: 'Scout Credit',
+    scout_performance: 'Scout Ủy Thác',
     landing: 'Website công ty',
     other: 'Khác',
   },
   en: {
-    ctv_marketplace: 'CTV (HR Partner)',
-    ctv_nomination: 'CTV (HR Partner)',
-    scout_credit: 'Scout (credit unlock)',
-    scout_performance: 'Scout Performance',
+    ctv_marketplace: 'Collaborator Marketplace',
+    ctv_nomination: 'Collaborator Marketplace',
+    scout_credit: 'Scout Credit',
+    scout_performance: 'Managed Scout',
     landing: 'Company website',
     other: 'Other',
   },
   ja: {
-    ctv_marketplace: 'CTV（HRパートナー）',
-    ctv_nomination: 'CTV（HRパートナー）',
-    scout_credit: 'Scout（クレジット）',
-    scout_performance: 'Scout Performance',
+    ctv_marketplace: '採用パートナーマーケット',
+    ctv_nomination: '採用パートナーマーケット',
+    scout_credit: 'Scout Credit',
+    scout_performance: '委託スカウト',
     landing: '企業サイト',
     other: 'その他',
   },
@@ -520,32 +543,171 @@ function buildHighlights({
   return items.slice(0, 4);
 }
 
-async function sumRecruitmentCost(businessId, start, end) {
-  const settlements = await BusinessCtvMarketplaceSettlement.findAll({
-    where: {
-      businessId,
-      created_at: { [Op.between]: [start, end] },
-    },
-    attributes: ['totalAmountBusiness'],
-  });
-  const settlementTotal = settlements.reduce(
-    (s, r) => s + Number(r.totalAmountBusiness || 0),
-    0,
-  );
+function hireDateOf(a) {
+  return a?.nyushaDate || appDate(a);
+}
 
+function isHiredApp(a) {
+  return HIRED_STATUSES.includes(Number(a.status));
+}
+
+function estimateMarketplaceHireFee(listing, app) {
+  if (!listing) return 0;
+  const value = Number(listing.referralFeeValue) || 0;
+  if (value <= 0) return 0;
+  if (String(listing.referralFeeType || 'percent') !== 'percent') return value;
+  const salary = Number(app.yearlySalary) || 0;
+  let fee = (salary * value) / 100;
+  const cap = Number(listing.maxBonusAmount) || 0;
+  if (cap > 0) fee = Math.min(fee, cap);
+  return fee;
+}
+
+async function loadCostSources(businessId) {
+  const [settlements, listings] = await Promise.all([
+    BusinessCtvMarketplaceSettlement.findAll({
+      where: { businessId },
+      attributes: ['jobApplicationId', 'totalAmountBusiness', 'created_at'],
+      raw: true,
+    }),
+    BusinessCtvMarketplaceListing.findAll({
+      where: { businessId },
+      attributes: ['jobId', 'referralFeeType', 'referralFeeValue', 'maxBonusAmount', 'platformFeePercent'],
+      raw: true,
+    }),
+  ]);
+  const listingByJobId = new Map();
+  listings.forEach((l) => {
+    if (!listingByJobId.has(Number(l.jobId))) listingByJobId.set(Number(l.jobId), l);
+  });
+  return {
+    settlements,
+    settledAppIds: new Set(settlements.map((s) => Number(s.jobApplicationId))),
+    listingByJobId,
+  };
+}
+
+/**
+ * Chi phí tuyển dụng (JPY) tách theo dịch vụ trong khoảng [start, end].
+ * - Scout Credit: credit đã trừ cho lượt mở hồ sơ × giá niêm yết / credit
+ * - Sàn CTV: settlement thực tế; lượt tuyển chưa có settlement → ước tính theo phí DN đặt trên tin đăng
+ * - Scout Ủy Thác: ước tính % thu nhập năm của ứng viên tuyển thành công
+ */
+async function computeServiceCosts({ businessId, start, end, apps, maps, costSources }) {
   const creditRows = await BusinessCreditHistory.findAll({
     where: {
       businessId,
       changeAmount: { [Op.lt]: 0 },
+      referenceType: SCOUT_CREDIT_REFERENCE_TYPE,
       created_at: { [Op.between]: [start, end] },
     },
     attributes: ['changeAmount'],
+    raw: true,
   });
   const creditsUsed = creditRows.reduce((s, r) => s + Math.abs(Number(r.changeAmount) || 0), 0);
-  // Ước tính 10.000đ / credit nếu chưa có hóa đơn settlement
-  const creditEstimateVnd = creditsUsed * 10000;
 
-  return settlementTotal + creditEstimateVnd;
+  const costs = {
+    scout_credit: { amount: creditsUsed * SCOUT_CREDIT_YEN_PER_CREDIT, estimated: false, creditsUsed },
+    scout_performance: { amount: 0, estimated: false, missingSalary: 0 },
+    ctv_marketplace: { amount: 0, estimated: false, missingSalary: 0 },
+  };
+
+  costSources.settlements.forEach((s) => {
+    if (inRange(s.created_at, start, end)) {
+      costs.ctv_marketplace.amount += Number(s.totalAmountBusiness) || 0;
+    }
+  });
+
+  apps.forEach((a) => {
+    if (!isHiredApp(a) || !inRange(hireDateOf(a), start, end)) return;
+    const service = resolveInsightService(resolveSourceType(a, maps));
+    if (service === 'scout_performance') {
+      const salary = Number(a.yearlySalary) || 0;
+      costs.scout_performance.estimated = true;
+      if (salary > 0) {
+        costs.scout_performance.amount += (salary * SCOUT_PERFORMANCE_ESTIMATE_FEE_PERCENT) / 100;
+      } else {
+        costs.scout_performance.missingSalary += 1;
+      }
+      return;
+    }
+    if (service === 'ctv_marketplace' && !costSources.settledAppIds.has(Number(a.id))) {
+      const listing = costSources.listingByJobId.get(Number(a.jobId));
+      const fee = estimateMarketplaceHireFee(listing, a);
+      costs.ctv_marketplace.estimated = true;
+      if (fee > 0) costs.ctv_marketplace.amount += fee;
+      else costs.ctv_marketplace.missingSalary += 1;
+    }
+  });
+
+  Object.values(costs).forEach((c) => { c.amount = Math.round(c.amount); });
+  return costs;
+}
+
+function totalCostFor(costs, service) {
+  if (service !== 'all') return costs[service]?.amount || 0;
+  return INSIGHT_SERVICE_KEYS.reduce((s, k) => s + (costs[k]?.amount || 0), 0);
+}
+
+function buildServiceBreakdown({ jobsInRange, appsInRange, maps, costs, lang }) {
+  const rows = INSIGHT_SERVICE_KEYS.map((key) => {
+    const serviceApps = appsInRange.filter((a) => resolveInsightService(resolveSourceType(a, maps)) === key);
+    const jobIds = new Set(serviceApps.map((a) => Number(a.jobId)));
+    if (key === 'ctv_marketplace') {
+      jobsInRange.forEach((j) => {
+        if (maps.marketplaceJobIds.has(Number(j.id))) jobIds.add(Number(j.id));
+      });
+    }
+    const nominations = serviceApps.length;
+    const interviews = serviceApps.filter(
+      (a) => INTERVIEW_STATUSES.includes(Number(a.status)) || isHiredApp(a),
+    ).length;
+    const hires = serviceApps.filter(isHiredApp).length;
+    const cost = costs[key] || { amount: 0, estimated: false };
+    return {
+      key,
+      label: insightSourceLabel(key, lang),
+      jobs: jobIds.size,
+      nominations,
+      interviews,
+      hires,
+      interviewRate: nominations ? Math.round((interviews / nominations) * 1000) / 10 : 0,
+      hireRate: nominations ? Math.round((hires / nominations) * 1000) / 10 : 0,
+      cost: cost.amount,
+      costEstimated: Boolean(cost.estimated),
+      costPerHire: hires ? Math.round(cost.amount / hires) : null,
+      costPerNomination: nominations ? Math.round(cost.amount / nominations) : null,
+      creditsUsed: cost.creditsUsed ?? null,
+      missingSalary: cost.missingSalary || 0,
+    };
+  });
+
+  const totalHires = rows.reduce((s, r) => s + r.hires, 0);
+  const totalCost = rows.reduce((s, r) => s + r.cost, 0);
+  rows.forEach((r) => {
+    r.hireShare = totalHires ? Math.round((r.hires / totalHires) * 1000) / 10 : 0;
+    r.costShare = totalCost ? Math.round((r.cost / totalCost) * 1000) / 10 : 0;
+  });
+
+  const withCostPerHire = rows.filter((r) => r.costPerHire != null && r.hires > 0);
+  const bestCostPerHire = withCostPerHire.length
+    ? withCostPerHire.reduce((best, r) => (r.costPerHire < best.costPerHire ? r : best)).key
+    : null;
+  const withRate = rows.filter((r) => r.nominations > 0);
+  const bestHireRate = withRate.length
+    ? withRate.reduce((best, r) => (r.hireRate > best.hireRate ? r : best)).key
+    : null;
+
+  return {
+    rows,
+    bestCostPerHire,
+    bestHireRate,
+    assumptions: {
+      scoutCreditYenPerCredit: SCOUT_CREDIT_YEN_PER_CREDIT,
+      scoutPerformanceFeePercent: SCOUT_PERFORMANCE_ESTIMATE_FEE_PERCENT,
+      marketplacePlatformFeePercent: DEFAULT_MARKETPLACE_PLATFORM_FEE_PERCENT,
+    },
+  };
 }
 
 export async function getBusinessInsightsReport({
@@ -555,8 +717,10 @@ export async function getBusinessInsightsReport({
   period = 'month',
   departmentId,
   lang = 'vi',
+  service = 'all',
 }) {
   const insightLang = resolveInsightLang(lang);
+  const serviceFilter = normalizeInsightService(service);
   const range = parseDateRange({ from, to, period });
   const { start, end, prevStart, prevEnd, period: p } = range;
 
@@ -566,20 +730,31 @@ export async function getBusinessInsightsReport({
     return {
       dateRange: { from: start.toISOString(), to: end.toISOString(), label: formatRangeLabel(start, end, insightLang) },
       period: p,
+      service: serviceFilter,
+      currency: 'JPY',
       kpis: {
         totalJobs: 0,
         totalNominations: 0,
         interviewCount: 0,
         hiredCount: 0,
-        recruitmentCostVnd: 0,
+        recruitmentCost: 0,
+        recruitmentCostEstimated: false,
+        costPerHire: null,
         changes: {
           totalJobs: 0,
           totalNominations: 0,
           interviewCount: 0,
           hiredCount: 0,
-          recruitmentCostVnd: 0,
+          recruitmentCost: 0,
         },
       },
+      serviceBreakdown: buildServiceBreakdown({
+        jobsInRange: [],
+        appsInRange: [],
+        maps: { marketplaceJobIds: new Set(), unlockCvIds: new Set(), perfCvIds: new Set() },
+        costs: {},
+        lang: insightLang,
+      }),
       trend: emptyTrend,
       funnel: [],
       funnelConversionRate: '0%',
@@ -609,7 +784,7 @@ export async function getBusinessInsightsReport({
     ...(departmentId ? { jobCategoryId: parseInt(departmentId, 10) } : {}),
   };
 
-  const [jobs, applications, maps, recruitmentCost, prevRecruitmentCost] = await Promise.all([
+  const [allJobs, applications, maps, costSources] = await Promise.all([
     Job.findAll({
       where: jobWhere,
       attributes: ['id', 'title', 'titleEn', 'titleJp', 'jobCode', 'status', 'jobCategoryId', 'businessSectorKey', 'createdAt'],
@@ -620,18 +795,46 @@ export async function getBusinessInsightsReport({
     JobApplication.findAll({
       where: { jobId: { [Op.in]: ownedJobIds } },
       attributes: [
-        'id', 'jobId', 'status', 'appliedAt', 'nyushaDate',
+        'id', 'jobId', 'status', 'appliedAt', 'nyushaDate', 'yearlySalary',
         'cvId', 'collaboratorId', 'adminId', 'applicantId',
       ],
       raw: true,
     }),
     loadSourceMaps(businessId, ownedJobIds),
-    sumRecruitmentCost(businessId, start, end),
-    sumRecruitmentCost(businessId, prevStart, prevEnd),
+    loadCostSources(businessId),
   ]);
 
-  const jobIds = new Set(jobs.map((j) => Number(j.id)));
-  const apps = applications.filter((a) => jobIds.has(Number(a.jobId)));
+  const allJobIds = new Set(allJobs.map((j) => Number(j.id)));
+  const allApps = applications.filter((a) => allJobIds.has(Number(a.jobId)));
+
+  const [costs, prevCosts] = await Promise.all([
+    computeServiceCosts({ businessId, start, end, apps: allApps, maps, costSources }),
+    computeServiceCosts({ businessId, start: prevStart, end: prevEnd, apps: allApps, maps, costSources }),
+  ]);
+  const recruitmentCost = totalCostFor(costs, serviceFilter);
+  const prevRecruitmentCost = totalCostFor(prevCosts, serviceFilter);
+  const recruitmentCostEstimated = serviceFilter === 'all'
+    ? INSIGHT_SERVICE_KEYS.some((k) => costs[k]?.estimated)
+    : Boolean(costs[serviceFilter]?.estimated);
+
+  const serviceBreakdown = buildServiceBreakdown({
+    jobsInRange: allJobs.filter((j) => inRange(j.createdAt, start, end)),
+    appsInRange: allApps.filter((a) => inRange(appDate(a), start, end)),
+    maps,
+    costs,
+    lang: insightLang,
+  });
+
+  let apps = allApps;
+  let jobs = allJobs;
+  if (serviceFilter !== 'all') {
+    apps = allApps.filter((a) => resolveInsightService(resolveSourceType(a, maps)) === serviceFilter);
+    const serviceJobIds = new Set(apps.map((a) => Number(a.jobId)));
+    if (serviceFilter === 'ctv_marketplace') {
+      maps.marketplaceJobIds.forEach((id) => serviceJobIds.add(Number(id)));
+    }
+    jobs = allJobs.filter((j) => serviceJobIds.has(Number(j.id)));
+  }
 
   const appsInRange = apps.filter((a) => inRange(appDate(a), start, end));
   const appsPrevRange = apps.filter((a) => inRange(appDate(a), prevStart, prevEnd));
@@ -659,7 +862,7 @@ export async function getBusinessInsightsReport({
     totalNominations: pctChange(totalNominations, prevNominations),
     interviewCount: pctChange(interviewCount, prevInterview),
     hiredCount: pctChange(hiredCount, prevHired),
-    recruitmentCostVnd: pctChange(recruitmentCost, prevRecruitmentCost),
+    recruitmentCost: pctChange(recruitmentCost, prevRecruitmentCost),
   };
 
   const trend = buildTrendSeries(jobs, apps, start, end, p);
@@ -726,21 +929,26 @@ export async function getBusinessInsightsReport({
       label: formatRangeLabel(start, end, insightLang),
     },
     period: p,
+    service: serviceFilter,
+    currency: 'JPY',
     kpis: {
       totalJobs,
       totalNominations,
       interviewCount,
       hiredCount,
-      recruitmentCostVnd: recruitmentCost,
+      recruitmentCost,
+      recruitmentCostEstimated,
+      costPerHire: hiredCount ? Math.round(recruitmentCost / hiredCount) : null,
       changes,
       sparklines: {
         totalJobs: buildSparkline(trend, 'jd'),
         totalNominations: buildSparkline(trend, 'tiencu'),
         interviewCount: buildSparkline(trend, 'phongvan'),
         hiredCount: buildSparkline(trend, 'tuyendung'),
-        recruitmentCostVnd: buildSparkline(trend, 'tuyendung').map((v) => Math.round((recruitmentCost / Math.max(hiredCount, 1)) * v)),
+        recruitmentCost: buildSparkline(trend, 'tuyendung').map((v) => Math.round((recruitmentCost / Math.max(hiredCount, 1)) * v)),
       },
     },
+    serviceBreakdown,
     trend,
     funnel,
     funnelConversionRate: `${funnelConversion}%`,

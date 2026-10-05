@@ -767,6 +767,18 @@ export async function approveAndPublishListing({
     console.error('[candidateSharing] notifyBusinessListingApproved:', err?.message || err);
   }
 
+  try {
+    const { fireBusinessNotificationEmail, notifyPartnerJobPublished } = await import('./businessNotificationEmail/businessNotificationEmailHooks.js');
+    fireBusinessNotificationEmail(notifyPartnerJobPublished({
+      businessId: listing.businessId,
+      jobId: listing.jobId,
+      jobTitle: listing.job?.title || listing.job?.jobCode || '',
+      locale: 'ja',
+    }));
+  } catch (mailErr) {
+    console.error('[candidateSharing] PARTNER_JOB_PUBLISHED email:', mailErr?.message || mailErr);
+  }
+
   if (!skipWsSync) {
     try {
       const { syncWsChatAfterListingApproval } = await import('./businessWsChatService.js');
@@ -829,6 +841,19 @@ export async function rejectListing({
     });
   } catch (err) {
     console.error('[candidateSharing] notifyBusinessListingRejected:', err?.message || err);
+  }
+
+  try {
+    const { fireBusinessNotificationEmail, notifyPartnerJobRevisionRequired } = await import('./businessNotificationEmail/businessNotificationEmailHooks.js');
+    fireBusinessNotificationEmail(notifyPartnerJobRevisionRequired({
+      businessId: listing.businessId,
+      jobId: full?.job?.id ?? listing.jobId,
+      jobTitle: jobTitle || '',
+      reason: rejectionReason?.trim() || adminNote?.trim() || '',
+      locale: 'ja',
+    }));
+  } catch (mailErr) {
+    console.error('[candidateSharing] PARTNER_JOB_REVISION email:', mailErr?.message || mailErr);
   }
 
   if (!skipWsSync) {

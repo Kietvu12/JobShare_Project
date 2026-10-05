@@ -9,7 +9,7 @@ import apiService from '../../services/api';
 import NominationChat from '../Chat/NominationChat';
 import NominationTimeline from '../Chat/NominationTimeline';
 import NominationDetailMetaPanels from './NominationDetailMetaPanels';
-import { getJobApplicationStatusOptionsByLanguage, getJobApplicationStatusLabelByLanguage } from '../../utils/jobApplicationStatus';
+import { getJobApplicationStatusOptionsByLanguage, getJobApplicationStatusLabelByLanguage, JOB_APPLICATION_STATUS_MAX } from '../../utils/jobApplicationStatus';
 import { useLanguage } from '../../context/LanguageContext';
 import { translations } from '../../translations/translations';
 
@@ -290,7 +290,7 @@ const NominationDetailContent = ({ variant, embeddedBasePath = '/candidate' }) =
     if (!nomination?.id) return;
     const statusNum = newStatus != null ? parseInt(newStatus, 10) : nomination.status;
     const effectiveReason = statusModalAttachReason ? statusReason.trim() : null;
-    if (Number.isNaN(statusNum) || statusNum < 1 || statusNum > 16) {
+    if (Number.isNaN(statusNum) || statusNum < 1 || statusNum > JOB_APPLICATION_STATUS_MAX) {
       alert(t.selectValidStatus);
       return;
     }

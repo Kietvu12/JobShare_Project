@@ -1,0 +1,737 @@
+<?xml version="1.0" encoding="utf-8"?><x:worksheet xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><x:sheetFormatPr defaultRowHeight="15" /><x:cols><x:col min="1" max="1" width="7" hidden="0" customWidth="1" /><x:col min="2" max="2" width="28" hidden="0" customWidth="1" /><x:col min="3" max="3" width="30" hidden="0" customWidth="1" /><x:col min="4" max="4" width="48" hidden="0" customWidth="1" /><x:col min="5" max="5" width="74" hidden="0" customWidth="1" /><x:col min="6" max="6" width="30" hidden="0" customWidth="1" /><x:col min="7" max="7" width="50" hidden="0" customWidth="1" /><x:col min="8" max="8" width="42" hidden="0" customWidth="1" /><x:col min="9" max="9" width="50" hidden="0" customWidth="1" /><x:col min="10" max="10" width="10" hidden="0" customWidth="1" /></x:cols><x:sheetData><x:row r="1" ht="38" customHeight="1"><x:c r="A1" s="6" t="str"><x:v>ID</x:v></x:c><x:c r="B1" s="6" t="str"><x:v>Template Key</x:v></x:c><x:c r="C1" s="6" t="str"><x:v>Trigger / Tính năng</x:v></x:c><x:c r="D1" s="6" t="str"><x:v>Tiêu đề mail (JP → EN)</x:v></x:c><x:c r="E1" s="6" t="str"><x:v>Nội dung mail (JP → EN)</x:v></x:c><x:c r="F1" s="6" t="str"><x:v>CTA (JP → EN)</x:v></x:c><x:c r="G1" s="6" t="str"><x:v>CTA link đến đâu / Suggested route</x:v></x:c><x:c r="H1" s="6" t="str"><x:v>Biến bắt buộc</x:v></x:c><x:c r="I1" s="6" t="str"><x:v>Ghi chú triển khai</x:v></x:c><x:c r="J1" s="6" t="str"><x:v>Priority</x:v></x:c></x:row><x:row r="2" ht="118" customHeight="1"><x:c r="A2" s="16" t="str"><x:v>01</x:v></x:c><x:c r="B2" s="16" t="str"><x:v>BROCHURE_DOWNLOADED</x:v></x:c><x:c r="C2" s="16" t="str"><x:v>Người dùng tải tài liệu giới thiệu JobShare Business</x:v></x:c><x:c r="D2" s="16" t="str"><x:v>JP:
+【JobShare Business】サービス資料をダウンロードいただきありがとうございます
+
+EN:
+【JobShare Business】Thank you for downloading our service brochure</x:v></x:c><x:c r="E2" s="16" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+この度は、JobShare Businessのサービス資料をダウンロードいただき、ありがとうございます。
+
+JobShare Businessでは、ダイレクトスカウト、スカウト委託、採用パートナーネットワーク、採用ブランディングなど、企業の採用課題に合わせた複数の採用手法をご利用いただけます。
+
+ご不明点やご相談がございましたら、お気軽にお問い合わせください。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+Thank you for downloading the JobShare Business service brochure.
+
+JobShare Business offers multiple recruitment solutions tailored to your hiring needs, including Direct Scout, Managed Scout, our Recruitment Partner Network, and Employer Branding services.
+
+If you have any questions or would like to discuss your recruitment needs, please feel free to contact us.</x:v></x:c><x:c r="F2" s="16" t="str"><x:v>JP:
+JobShare Businessを見る
+
+EN:
+Explore JobShare Business</x:v></x:c><x:c r="G2" s="16" t="str"><x:v>Public JobShare Business introduction page. Suggested: /{lang}/business</x:v></x:c><x:c r="H2" s="16" t="str"><x:v>company_name, user_name, lang</x:v></x:c><x:c r="I2" s="16" t="str"><x:v>CTA có thể bỏ nếu muốn mail cảm ơn thuần túy.</x:v></x:c><x:c r="J2" s="16" t="str"><x:v>P1</x:v></x:c></x:row><x:row r="3" ht="118" customHeight="1"><x:c r="A3" s="14" t="str"><x:v>02</x:v></x:c><x:c r="B3" s="14" t="str"><x:v>CONTACT_RECEIVED</x:v></x:c><x:c r="C3" s="14" t="str"><x:v>Người dùng gửi form Contact</x:v></x:c><x:c r="D3" s="14" t="str"><x:v>JP:
+【JobShare Business】お問い合わせを受け付けました
+
+EN:
+【JobShare Business】We have received your inquiry</x:v></x:c><x:c r="E3" s="14" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+JobShare Businessへお問い合わせいただき、ありがとうございます。
+
+以下の内容でお問い合わせを受け付けました。
+
+会社名：{{company_name}}
+メールアドレス：{{email}}
+業種：{{industry}}
+
+お問い合わせ内容：
+{{inquiry_content}}
+
+内容を確認のうえ、WorkstationのJobShare Business担当者より順次ご連絡いたします。
+今しばらくお待ちください。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+Thank you for contacting JobShare Business.
+
+We have received your inquiry with the following information:
+
+Company: {{company_name}}
+Email: {{email}}
+Industry: {{industry}}
+
+Inquiry:
+{{inquiry_content}}
+
+A JobShare Business representative from Workstation will review your inquiry and contact you shortly.
+Thank you for your patience.</x:v></x:c><x:c r="F3" s="14" t="str"><x:v>—</x:v></x:c><x:c r="G3" s="14" t="str"><x:v>Không bắt buộc CTA. Optional: /{lang}/business</x:v></x:c><x:c r="H3" s="14" t="str"><x:v>company_name, user_name, email, industry, inquiry_content</x:v></x:c><x:c r="I3" s="14" t="str"><x:v>Mail xác nhận tiếp nhận; không cần đăng nhập.</x:v></x:c><x:c r="J3" s="14" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="4" ht="118" customHeight="1"><x:c r="A4" s="16" t="str"><x:v>03</x:v></x:c><x:c r="B4" s="16" t="str"><x:v>COMPANY_REGISTERED</x:v></x:c><x:c r="C4" s="16" t="str"><x:v>Đăng ký tài khoản doanh nghiệp thành công</x:v></x:c><x:c r="D4" s="16" t="str"><x:v>JP:
+【JobShare Business】企業アカウントの登録が完了しました
+
+EN:
+【JobShare Business】Your company account has been successfully created</x:v></x:c><x:c r="E4" s="16" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+JobShare Businessへの企業登録が完了しました。
+
+以下よりログインして、求人作成や候補者検索などの機能をご利用いただけます。
+
+今後ともJobShare Businessをよろしくお願いいたします。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+Your JobShare Business company account has been successfully registered.
+
+You can now log in to create job postings, search for candidates, and use other JobShare Business features.
+
+Thank you for using JobShare Business.</x:v></x:c><x:c r="F4" s="16" t="str"><x:v>JP:
+JobShare Businessにログイン
+
+EN:
+Log in to JobShare Business</x:v></x:c><x:c r="G4" s="16" t="str"><x:v>/business/login?returnUrl=/business</x:v></x:c><x:c r="H4" s="16" t="str"><x:v>company_name, user_name</x:v></x:c><x:c r="I4" s="16" t="str"><x:v>Nếu bật email verification thì phối hợp với template 23.</x:v></x:c><x:c r="J4" s="16" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="5" ht="118" customHeight="1"><x:c r="A5" s="14" t="str"><x:v>04</x:v></x:c><x:c r="B5" s="14" t="str"><x:v>NEW_PARTNER_REFERRAL</x:v></x:c><x:c r="C5" s="14" t="str"><x:v>CTV/Recruitment Partner tiến cử hồ sơ mới qua Sàn CTV</x:v></x:c><x:c r="D5" s="14" t="str"><x:v>JP:
+【JobShare Business】新しい候補者が推薦されました
+
+EN:
+【JobShare Business】A new candidate has been referred</x:v></x:c><x:c r="E5" s="14" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+採用パートナーネットワーク経由で、新しい候補者が推薦されました。
+
+求人：{{job_title}}
+候補者：{{candidate_name}}
+推薦者：{{partner_name}}
+推薦番号：{{referral_id}}
+
+候補者のプロフィール・CVをご確認のうえ、選考可否をご対応ください。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+A new candidate has been referred through the JobShare Recruitment Partner Network.
+
+Job: {{job_title}}
+Candidate: {{candidate_name}}
+Referred by: {{partner_name}}
+Referral ID: {{referral_id}}
+
+Please review the candidate profile and CV and proceed with the appropriate screening action.</x:v></x:c><x:c r="F5" s="14" t="str"><x:v>JP:
+推薦内容を確認する
+
+EN:
+View referral details</x:v></x:c><x:c r="G5" s="14" t="str"><x:v>Quản lý ứng viên - application detail. Suggested: /business/applications/{{application_id}}</x:v></x:c><x:c r="H5" s="14" t="str"><x:v>company_name, user_name, job_title, candidate_name, partner_name, referral_id, application_id</x:v></x:c><x:c r="I5" s="14" t="str"><x:v>Không đưa SĐT/email ứng viên trực tiếp trong mail.</x:v></x:c><x:c r="J5" s="14" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="6" ht="118" customHeight="1"><x:c r="A6" s="16" t="str"><x:v>05</x:v></x:c><x:c r="B6" s="16" t="str"><x:v>DIRECT_SCOUT_UNLOCKED</x:v></x:c><x:c r="C6" s="16" t="str"><x:v>Doanh nghiệp dùng Credit để mở hồ sơ ứng viên</x:v></x:c><x:c r="D6" s="16" t="str"><x:v>JP:
+【JobShare Business】候補者情報を開示しました
+
+EN:
+【JobShare Business】Candidate information has been unlocked</x:v></x:c><x:c r="E6" s="16" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+ダイレクトスカウトで以下の候補者情報を開示しました。
+
+候補者：{{candidate_name}}
+使用Credit：{{used_credit}} Credit
+現在のCredit残高：{{remaining_credit}} Credit
+
+候補者のCVおよび連絡先はJobShare Business上でご確認いただけます。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+You have unlocked the following candidate through Direct Scout.
+
+Candidate: {{candidate_name}}
+Credits used: {{used_credit}}
+Remaining balance: {{remaining_credit}} Credits
+
+The candidate's CV and contact information are now available in JobShare Business.</x:v></x:c><x:c r="F6" s="16" t="str"><x:v>JP:
+候補者の詳細を見る
+
+EN:
+View candidate details</x:v></x:c><x:c r="G6" s="16" t="str"><x:v>/business/candidates/{{candidate_id}}</x:v></x:c><x:c r="H6" s="16" t="str"><x:v>company_name, user_name, candidate_name, used_credit, remaining_credit, candidate_id</x:v></x:c><x:c r="I6" s="16" t="str"><x:v>Mail xác nhận action đã trừ Credit.</x:v></x:c><x:c r="J6" s="16" t="str"><x:v>P1</x:v></x:c></x:row><x:row r="7" ht="118" customHeight="1"><x:c r="A7" s="14" t="str"><x:v>06</x:v></x:c><x:c r="B7" s="14" t="str"><x:v>MANAGED_SCOUT_REQUESTED</x:v></x:c><x:c r="C7" s="14" t="str"><x:v>Doanh nghiệp gửi yêu cầu Scout Ủy Thác tới Workstation</x:v></x:c><x:c r="D7" s="14" t="str"><x:v>JP:
+【JobShare Business】スカウト委託のご依頼を受け付けました
+
+EN:
+【JobShare Business】Your Managed Scout request has been received</x:v></x:c><x:c r="E7" s="14" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+以下の候補者について、Workstationへのスカウト委託依頼を受け付けました。
+
+候補者：{{candidate_name}}
+依頼番号：{{request_id}}
+
+担当者が内容を確認し、候補者へのアプローチおよび今後のお手続きをご案内いたします。
+
+進捗状況はJobShare Businessからご確認いただけます。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+We have received your Managed Scout request for the following candidate.
+
+Candidate: {{candidate_name}}
+Request ID: {{request_id}}
+
+Our team will review the request and proceed with candidate outreach and the next required steps.
+
+You can track the request status in JobShare Business.</x:v></x:c><x:c r="F7" s="14" t="str"><x:v>JP:
+依頼状況を確認する
+
+EN:
+View request status</x:v></x:c><x:c r="G7" s="14" t="str"><x:v>Managed Scout request/candidate detail. Suggested: /business/scout/managed/requests/{{request_id}}</x:v></x:c><x:c r="H7" s="14" t="str"><x:v>company_name, user_name, candidate_name, request_id</x:v></x:c><x:c r="I7" s="14" t="str"><x:v>Deep link về đúng request/candidate.</x:v></x:c><x:c r="J7" s="14" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="8" ht="118" customHeight="1"><x:c r="A8" s="16" t="str"><x:v>07</x:v></x:c><x:c r="B8" s="16" t="str"><x:v>FREE_LP_CREATED</x:v></x:c><x:c r="C8" s="16" t="str"><x:v>Tạo Landing Page miễn phí thành công</x:v></x:c><x:c r="D8" s="16" t="str"><x:v>JP:
+【JobShare Business】採用ランディングページを作成しました
+
+EN:
+【JobShare Business】Your recruitment landing page has been created</x:v></x:c><x:c r="E8" s="16" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+JobShare Businessで採用ランディングページが作成されました。
+
+ページ名：{{landing_page_name}}
+
+公開前に、文章・画像・求人情報などの内容をご確認ください。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+Your recruitment landing page has been successfully created in JobShare Business.
+
+Page name: {{landing_page_name}}
+
+Please review the text, images, and job information before publishing the page.</x:v></x:c><x:c r="F8" s="16" t="str"><x:v>JP:
+ランディングページを確認・編集する
+
+EN:
+Review and edit landing page</x:v></x:c><x:c r="G8" s="16" t="str"><x:v>/business/saiyo/landing-pages/{{landing_page_id}}/edit</x:v></x:c><x:c r="H8" s="16" t="str"><x:v>company_name, user_name, landing_page_name, landing_page_id</x:v></x:c><x:c r="I8" s="16" t="str"><x:v>Create/save thành công, chưa phải publish.</x:v></x:c><x:c r="J8" s="16" t="str"><x:v>P1</x:v></x:c></x:row><x:row r="9" ht="118" customHeight="1"><x:c r="A9" s="14" t="str"><x:v>08</x:v></x:c><x:c r="B9" s="14" t="str"><x:v>CREDIT_TOPUP_REQUESTED</x:v></x:c><x:c r="C9" s="14" t="str"><x:v>Gửi yêu cầu nạp Credit tới Workstation</x:v></x:c><x:c r="D9" s="14" t="str"><x:v>JP:
+【JobShare Business】Credit追加申請を受け付けました
+
+EN:
+【JobShare Business】Your Credit top-up request has been received</x:v></x:c><x:c r="E9" s="14" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+以下の内容でCredit追加申請を受け付けました。
+
+申請Credit：{{credit_amount}} Credit
+申請日時：{{requested_at}}
+ステータス：確認中
+
+Workstationにて内容を確認後、Creditを付与いたします。
+反映まで今しばらくお待ちください。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+We have received your Credit top-up request.
+
+Requested Credits: {{credit_amount}}
+Requested at: {{requested_at}}
+Status: Under review
+
+Workstation will review your request and add the Credits once approved.
+Thank you for your patience.</x:v></x:c><x:c r="F9" s="14" t="str"><x:v>JP:
+申請状況を確認する
+
+EN:
+View request status</x:v></x:c><x:c r="G9" s="14" t="str"><x:v>/business/service-requests/{{request_id}}</x:v></x:c><x:c r="H9" s="14" t="str"><x:v>company_name, user_name, credit_amount, requested_at, request_id</x:v></x:c><x:c r="I9" s="14" t="str"><x:v>Credit chưa được cộng tại thời điểm này.</x:v></x:c><x:c r="J9" s="14" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="10" ht="118" customHeight="1"><x:c r="A10" s="16" t="str"><x:v>09</x:v></x:c><x:c r="B10" s="16" t="str"><x:v>CREDIT_ADDED</x:v></x:c><x:c r="C10" s="16" t="str"><x:v>Workstation duyệt và cộng Credit</x:v></x:c><x:c r="D10" s="16" t="str"><x:v>JP:
+【JobShare Business】Creditが追加されました
+
+EN:
+【JobShare Business】Credits have been added to your account</x:v></x:c><x:c r="E10" s="16" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+Creditの追加が完了しました。
+
+追加Credit：{{credit_amount}} Credit
+現在の残高：{{current_balance}} Credit
+
+Creditはダイレクトスカウトで候補者情報を開示する際にご利用いただけます。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+Your Credit top-up has been completed.
+
+Credits added: {{credit_amount}}
+Current balance: {{current_balance}} Credits
+
+You can use Credits to unlock candidate information through Direct Scout.</x:v></x:c><x:c r="F10" s="16" t="str"><x:v>JP:
+候補者を探す
+
+EN:
+Search candidates</x:v></x:c><x:c r="G10" s="16" t="str"><x:v>/business/scout/direct</x:v></x:c><x:c r="H10" s="16" t="str"><x:v>company_name, user_name, credit_amount, current_balance</x:v></x:c><x:c r="I10" s="16" t="str"><x:v>CTA dẫn thẳng Scout Trực Tiếp.</x:v></x:c><x:c r="J10" s="16" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="11" ht="118" customHeight="1"><x:c r="A11" s="14" t="str"><x:v>10</x:v></x:c><x:c r="B11" s="14" t="str"><x:v>CANDIDATE_STATUS_CHANGED</x:v></x:c><x:c r="C11" s="14" t="str"><x:v>Trạng thái hồ sơ/ứng viên thay đổi</x:v></x:c><x:c r="D11" s="14" t="str"><x:v>JP:
+【JobShare Business】候補者の選考ステータスが更新されました
+
+EN:
+【JobShare Business】Candidate status has been updated</x:v></x:c><x:c r="E11" s="14" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+以下の候補者について、選考ステータスが更新されました。
+
+候補者：{{candidate_name}}
+求人：{{job_title}}
+候補者ソース：{{candidate_source}}
+
+{{old_status}} → {{new_status}}
+
+詳細はJobShare Businessからご確認ください。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+The screening status of the following candidate has been updated.
+
+Candidate: {{candidate_name}}
+Job: {{job_title}}
+Candidate source: {{candidate_source}}
+
+{{old_status}} → {{new_status}}
+
+Please log in to JobShare Business for details.</x:v></x:c><x:c r="F11" s="14" t="str"><x:v>JP:
+候補者の詳細を見る
+
+EN:
+View candidate details</x:v></x:c><x:c r="G11" s="14" t="str"><x:v>/business/applications/{{application_id}}</x:v></x:c><x:c r="H11" s="14" t="str"><x:v>company_name, user_name, candidate_name, job_title, candidate_source, old_status, new_status, application_id</x:v></x:c><x:c r="I11" s="14" t="str"><x:v>Dùng chung cho 3 nguồn sau khi vào pipeline.</x:v></x:c><x:c r="J11" s="14" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="12" ht="118" customHeight="1"><x:c r="A12" s="16" t="str"><x:v>11</x:v></x:c><x:c r="B12" s="16" t="str"><x:v>REFERRAL_MESSAGE_NEW</x:v></x:c><x:c r="C12" s="16" t="str"><x:v>Có tin nhắn mới trong một đơn tiến cử</x:v></x:c><x:c r="D12" s="16" t="str"><x:v>JP:
+【JobShare Business】推薦案件 {{referral_id}} に新しいメッセージがあります
+
+EN:
+【JobShare Business】New message regarding referral {{referral_id}}</x:v></x:c><x:c r="E12" s="16" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+推薦案件について、新しいメッセージが届きました。
+
+推薦番号：{{referral_id}}
+求人：{{job_title}}
+候補者：{{candidate_name}}
+送信者：{{sender_name}}
+
+メッセージ：
+{{message_preview}}
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+You have received a new message regarding a candidate referral.
+
+Referral ID: {{referral_id}}
+Job: {{job_title}}
+Candidate: {{candidate_name}}
+Sender: {{sender_name}}
+
+Message:
+{{message_preview}}</x:v></x:c><x:c r="F12" s="16" t="str"><x:v>JP:
+メッセージを確認する
+
+EN:
+View message</x:v></x:c><x:c r="G12" s="16" t="str"><x:v>/business/messages?referral_id={{referral_id}}</x:v></x:c><x:c r="H12" s="16" t="str"><x:v>company_name, user_name, referral_id, job_title, candidate_name, sender_name, message_preview</x:v></x:c><x:c r="I12" s="16" t="str"><x:v>Preview ~120 ký tự; không đưa attachment vào mail.</x:v></x:c><x:c r="J12" s="16" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="13" ht="118" customHeight="1"><x:c r="A13" s="14" t="str"><x:v>12</x:v></x:c><x:c r="B13" s="14" t="str"><x:v>SERVICE_REQUEST_CREATED</x:v></x:c><x:c r="C13" s="14" t="str"><x:v>Gửi yêu cầu dịch vụ thành công</x:v></x:c><x:c r="D13" s="14" t="str"><x:v>JP:
+【JobShare Business】サービスリクエストを受け付けました
+
+EN:
+【JobShare Business】Your service request has been received</x:v></x:c><x:c r="E13" s="14" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+以下の内容でサービスリクエストを受け付けました。
+
+サービス：{{service_name}}
+リクエスト番号：{{request_id}}
+申請日時：{{requested_at}}
+
+ご依頼内容：
+{{request_content}}
+
+Workstation担当者が内容を確認し、順次ご連絡いたします。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+We have received your service request.
+
+Service: {{service_name}}
+Request ID: {{request_id}}
+Submitted at: {{requested_at}}
+
+Request details:
+{{request_content}}
+
+A Workstation representative will review your request and contact you shortly.</x:v></x:c><x:c r="F13" s="14" t="str"><x:v>JP:
+リクエスト状況を確認する
+
+EN:
+View request status</x:v></x:c><x:c r="G13" s="14" t="str"><x:v>/business/service-requests/{{request_id}}</x:v></x:c><x:c r="H13" s="14" t="str"><x:v>company_name, user_name, service_name, request_id, requested_at, request_content</x:v></x:c><x:c r="I13" s="14" t="str"><x:v>Một template dùng chung cho LP premium / ads / event / profile / dịch vụ khác.</x:v></x:c><x:c r="J13" s="14" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="14" ht="118" customHeight="1"><x:c r="A14" s="16" t="str"><x:v>13</x:v></x:c><x:c r="B14" s="16" t="str"><x:v>WORKSTATION_MESSAGE_NEW</x:v></x:c><x:c r="C14" s="16" t="str"><x:v>Có tin nhắn mới từ Admin/CA Workstation</x:v></x:c><x:c r="D14" s="16" t="str"><x:v>JP:
+【JobShare Business】Workstationから新しいメッセージがあります
+
+EN:
+【JobShare Business】You have a new message from Workstation</x:v></x:c><x:c r="E14" s="16" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+Workstation担当者から新しいメッセージが届きました。
+
+担当者：{{sender_name}}
+
+メッセージ：
+{{message_preview}}
+
+JobShare Businessへログインして、内容をご確認ください。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+You have received a new message from a Workstation representative.
+
+Representative: {{sender_name}}
+
+Message:
+{{message_preview}}
+
+Please log in to JobShare Business to view the full message.</x:v></x:c><x:c r="F14" s="16" t="str"><x:v>JP:
+メッセージを確認する
+
+EN:
+View message</x:v></x:c><x:c r="G14" s="16" t="str"><x:v>/business/messages?conversation_id={{conversation_id}}</x:v></x:c><x:c r="H14" s="16" t="str"><x:v>company_name, user_name, sender_name, message_preview, conversation_id</x:v></x:c><x:c r="I14" s="16" t="str"><x:v>Có thể dùng chung backend NEW_MESSAGE với template 11.</x:v></x:c><x:c r="J14" s="16" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="15" ht="118" customHeight="1"><x:c r="A15" s="14" t="str"><x:v>14</x:v></x:c><x:c r="B15" s="14" t="str"><x:v>PARTNER_JOB_PUBLISHED</x:v></x:c><x:c r="C15" s="14" t="str"><x:v>JD trên Sàn CTV được duyệt và bắt đầu chạy</x:v></x:c><x:c r="D15" s="14" t="str"><x:v>JP:
+【JobShare Business】求人の掲載を開始しました
+
+EN:
+【JobShare Business】Your job posting is now live</x:v></x:c><x:c r="E15" s="14" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+求人の確認が完了し、採用パートナーネットワークへの掲載を開始しました。
+
+求人：{{job_title}}
+掲載ステータス：掲載中
+紹介料：{{referral_fee}}
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+Your job posting has been approved and is now live on the JobShare Recruitment Partner Network.
+
+Job: {{job_title}}
+Status: Active
+Referral fee: {{referral_fee}}</x:v></x:c><x:c r="F15" s="14" t="str"><x:v>JP:
+掲載状況を確認する
+
+EN:
+View posting status</x:v></x:c><x:c r="G15" s="14" t="str"><x:v>/business/candidate-sharing/jobs/{{job_id}}</x:v></x:c><x:c r="H15" s="14" t="str"><x:v>company_name, user_name, job_title, referral_fee, job_id</x:v></x:c><x:c r="I15" s="14" t="str"><x:v>Gửi sau khi status chuyển Active.</x:v></x:c><x:c r="J15" s="14" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="16" ht="118" customHeight="1"><x:c r="A16" s="16" t="str"><x:v>15</x:v></x:c><x:c r="B16" s="16" t="str"><x:v>PARTNER_JOB_REVISION_REQUIRED</x:v></x:c><x:c r="C16" s="16" t="str"><x:v>JD trên Sàn CTV cần sửa trước khi duyệt</x:v></x:c><x:c r="D16" s="16" t="str"><x:v>JP:
+【JobShare Business】求人内容のご確認をお願いします
+
+EN:
+【JobShare Business】Please review your job posting</x:v></x:c><x:c r="E16" s="16" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+求人内容について、確認・修正が必要な項目があります。
+
+求人：{{job_title}}
+
+確認事項：
+{{review_comment}}
+
+内容をご確認のうえ、修正をお願いいたします。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+Your job posting requires some additional review or updates.
+
+Job: {{job_title}}
+
+Review comments:
+{{review_comment}}
+
+Please review the comments and update the job posting accordingly.</x:v></x:c><x:c r="F16" s="16" t="str"><x:v>JP:
+求人を修正する
+
+EN:
+Edit job posting</x:v></x:c><x:c r="G16" s="16" t="str"><x:v>/business/candidate-sharing/jobs/{{job_id}}/edit</x:v></x:c><x:c r="H16" s="16" t="str"><x:v>company_name, user_name, job_title, review_comment, job_id</x:v></x:c><x:c r="I16" s="16" t="str"><x:v>Không dùng wording rejected nếu chỉ yêu cầu sửa.</x:v></x:c><x:c r="J16" s="16" t="str"><x:v>P1</x:v></x:c></x:row><x:row r="17" ht="118" customHeight="1"><x:c r="A17" s="14" t="str"><x:v>16A</x:v></x:c><x:c r="B17" s="14" t="str"><x:v>MANAGED_SCOUT_HEARING_ACCEPTED</x:v></x:c><x:c r="C17" s="14" t="str"><x:v>WS hearing xong và ứng viên đồng ý ứng tuyển</x:v></x:c><x:c r="D17" s="14" t="str"><x:v>JP:
+【JobShare Business】候補者が応募を希望しています
+
+EN:
+【JobShare Business】The candidate would like to apply</x:v></x:c><x:c r="E17" s="14" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+候補者へのヒアリングが完了し、応募希望を確認しました。
+
+候補者：{{candidate_name}}
+求人：{{job_title}}
+
+Workstationにて応募書類を確認・更新後、正式に推薦いたします。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+We have completed the candidate hearing and confirmed that the candidate would like to proceed with the application.
+
+Candidate: {{candidate_name}}
+Job: {{job_title}}
+
+Workstation will review and update the application documents before formally referring the candidate.</x:v></x:c><x:c r="F17" s="14" t="str"><x:v>JP:
+候補者の状況を確認する
+
+EN:
+View candidate status</x:v></x:c><x:c r="G17" s="14" t="str"><x:v>/business/scout/managed/requests/{{request_id}}</x:v></x:c><x:c r="H17" s="14" t="str"><x:v>company_name, user_name, candidate_name, job_title, request_id</x:v></x:c><x:c r="I17" s="14" t="str"><x:v>Trạng thái trước tiến cử chính thức.</x:v></x:c><x:c r="J17" s="14" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="18" ht="118" customHeight="1"><x:c r="A18" s="16" t="str"><x:v>16B</x:v></x:c><x:c r="B18" s="16" t="str"><x:v>MANAGED_SCOUT_HEARING_DECLINED</x:v></x:c><x:c r="C18" s="16" t="str"><x:v>WS hearing xong và ứng viên từ chối ứng tuyển</x:v></x:c><x:c r="D18" s="16" t="str"><x:v>JP:
+【JobShare Business】候補者へのヒアリング結果のお知らせ
+
+EN:
+【JobShare Business】Candidate hearing result</x:v></x:c><x:c r="E18" s="16" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+候補者へのヒアリングが完了しましたが、今回は応募を希望されませんでした。
+
+候補者：{{candidate_name}}
+
+必要に応じて、類似候補者の検索をWorkstationへご依頼いただけます。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+We have completed the candidate hearing; however, the candidate has decided not to proceed with the application at this time.
+
+Candidate: {{candidate_name}}
+
+If needed, you can ask Workstation to search for similar candidates.</x:v></x:c><x:c r="F18" s="16" t="str"><x:v>JP:
+詳細を確認する
+
+EN:
+View details</x:v></x:c><x:c r="G18" s="16" t="str"><x:v>/business/scout/managed/requests/{{request_id}}</x:v></x:c><x:c r="H18" s="16" t="str"><x:v>company_name, user_name, candidate_name, request_id</x:v></x:c><x:c r="I18" s="16" t="str"><x:v>Web có thể gợi ý tìm ứng viên tương tự.</x:v></x:c><x:c r="J18" s="16" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="19" ht="118" customHeight="1"><x:c r="A19" s="14" t="str"><x:v>17</x:v></x:c><x:c r="B19" s="14" t="str"><x:v>SERVICE_REQUEST_STATUS_CHANGED</x:v></x:c><x:c r="C19" s="14" t="str"><x:v>Trạng thái yêu cầu dịch vụ thay đổi</x:v></x:c><x:c r="D19" s="14" t="str"><x:v>JP:
+【JobShare Business】サービスリクエストのステータスが更新されました
+
+EN:
+【JobShare Business】Your service request status has been updated</x:v></x:c><x:c r="E19" s="14" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+サービスリクエストのステータスが更新されました。
+
+サービス：{{service_name}}
+リクエスト番号：{{request_id}}
+
+{{old_status}} → {{new_status}}
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+The status of your service request has been updated.
+
+Service: {{service_name}}
+Request ID: {{request_id}}
+
+{{old_status}} → {{new_status}}</x:v></x:c><x:c r="F19" s="14" t="str"><x:v>JP:
+リクエストを確認する
+
+EN:
+View request</x:v></x:c><x:c r="G19" s="14" t="str"><x:v>/business/service-requests/{{request_id}}</x:v></x:c><x:c r="H19" s="14" t="str"><x:v>company_name, user_name, service_name, request_id, old_status, new_status</x:v></x:c><x:c r="I19" s="14" t="str"><x:v>Chỉ gửi status user-facing.</x:v></x:c><x:c r="J19" s="14" t="str"><x:v>P1</x:v></x:c></x:row><x:row r="20" ht="118" customHeight="1"><x:c r="A20" s="16" t="str"><x:v>18</x:v></x:c><x:c r="B20" s="16" t="str"><x:v>LANDING_PAGE_PUBLISHED</x:v></x:c><x:c r="C20" s="16" t="str"><x:v>Landing Page được publish ra URL công khai</x:v></x:c><x:c r="D20" s="16" t="str"><x:v>JP:
+【JobShare Business】採用ランディングページを公開しました
+
+EN:
+【JobShare Business】Your recruitment landing page is now live</x:v></x:c><x:c r="E20" s="16" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+採用ランディングページが公開されました。
+
+ページ名：{{landing_page_name}}
+公開URL：{{public_url}}
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+Your recruitment landing page has been successfully published.
+
+Page name: {{landing_page_name}}
+Public URL: {{public_url}}</x:v></x:c><x:c r="F20" s="16" t="str"><x:v>JP:
+公開ページを見る
+
+EN:
+View published page</x:v></x:c><x:c r="G20" s="16" t="str"><x:v>{{public_url}}</x:v></x:c><x:c r="H20" s="16" t="str"><x:v>company_name, user_name, landing_page_name, public_url</x:v></x:c><x:c r="I20" s="16" t="str"><x:v>CTA là URL public thật, không phải editor.</x:v></x:c><x:c r="J20" s="16" t="str"><x:v>P1</x:v></x:c></x:row><x:row r="21" ht="118" customHeight="1"><x:c r="A21" s="14" t="str"><x:v>19</x:v></x:c><x:c r="B21" s="14" t="str"><x:v>PAYMENT_REQUEST_CREATED</x:v></x:c><x:c r="C21" s="14" t="str"><x:v>WS tạo yêu cầu thanh toán mới</x:v></x:c><x:c r="D21" s="14" t="str"><x:v>JP:
+【JobShare Business】お支払いのご依頼があります
+
+EN:
+【JobShare Business】A new payment request has been issued</x:v></x:c><x:c r="E21" s="14" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+新しいお支払い依頼が発行されました。
+
+サービス：{{service_name}}
+求人：{{job_title}}
+候補者：{{candidate_name}}
+費用種別：{{fee_type}}
+金額：{{amount}}
+支払期限：{{due_date}}
+
+請求書・関連資料はJobShare Businessからご確認いただけます。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+A new payment request has been issued.
+
+Service: {{service_name}}
+Job: {{job_title}}
+Candidate: {{candidate_name}}
+Fee type: {{fee_type}}
+Amount: {{amount}}
+Payment due date: {{due_date}}
+
+The invoice and related documents are available in JobShare Business.</x:v></x:c><x:c r="F21" s="14" t="str"><x:v>JP:
+支払い内容を確認する
+
+EN:
+Review payment details</x:v></x:c><x:c r="G21" s="14" t="str"><x:v>/business/billing?tab=payments&amp;payment_id={{payment_id}}</x:v></x:c><x:c r="H21" s="14" t="str"><x:v>company_name, user_name, service_name, job_title, candidate_name, fee_type, amount, due_date, payment_id</x:v></x:c><x:c r="I21" s="14" t="str"><x:v>job/candidate có thể nullable. Chi tiết cần file PDF/Excel nếu có.</x:v></x:c><x:c r="J21" s="14" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="22" ht="118" customHeight="1"><x:c r="A22" s="16" t="str"><x:v>20</x:v></x:c><x:c r="B22" s="16" t="str"><x:v>PAYMENT_CONFIRMED</x:v></x:c><x:c r="C22" s="16" t="str"><x:v>WS xác nhận đã nhận thanh toán</x:v></x:c><x:c r="D22" s="16" t="str"><x:v>JP:
+【JobShare Business】お支払いを確認しました
+
+EN:
+【JobShare Business】Your payment has been confirmed</x:v></x:c><x:c r="E22" s="16" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+お支払いの確認が完了しました。
+
+金額：{{amount}}
+支払番号：{{payment_id}}
+
+お支払いいただき、ありがとうございます。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+We have confirmed your payment.
+
+Amount: {{amount}}
+Payment ID: {{payment_id}}
+
+Thank you for your payment.</x:v></x:c><x:c r="F22" s="16" t="str"><x:v>JP:
+支払い詳細を見る
+
+EN:
+View payment details</x:v></x:c><x:c r="G22" s="16" t="str"><x:v>/business/billing?tab=payments&amp;payment_id={{payment_id}}</x:v></x:c><x:c r="H22" s="16" t="str"><x:v>company_name, user_name, amount, payment_id</x:v></x:c><x:c r="I22" s="16" t="str"><x:v>Trigger khi payment status = Confirmed/Paid.</x:v></x:c><x:c r="J22" s="16" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="23" ht="118" customHeight="1"><x:c r="A23" s="14" t="str"><x:v>21</x:v></x:c><x:c r="B23" s="14" t="str"><x:v>INVOICE_ISSUED</x:v></x:c><x:c r="C23" s="14" t="str"><x:v>Hóa đơn được phát hành</x:v></x:c><x:c r="D23" s="14" t="str"><x:v>JP:
+【JobShare Business】請求書が発行されました
+
+EN:
+【JobShare Business】Your invoice has been issued</x:v></x:c><x:c r="E23" s="14" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+請求書が発行されました。
+
+請求書番号：{{invoice_number}}
+金額：{{amount}}
+発行日：{{issued_date}}
+
+JobShare Businessよりご確認・ダウンロードいただけます。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+A new invoice has been issued.
+
+Invoice number: {{invoice_number}}
+Amount: {{amount}}
+Issue date: {{issued_date}}
+
+You can view and download the invoice from JobShare Business.</x:v></x:c><x:c r="F23" s="14" t="str"><x:v>JP:
+請求書を確認する
+
+EN:
+View invoice</x:v></x:c><x:c r="G23" s="14" t="str"><x:v>/business/billing?tab=invoices&amp;invoice_id={{invoice_id}}</x:v></x:c><x:c r="H23" s="14" t="str"><x:v>company_name, user_name, invoice_number, amount, issued_date, invoice_id</x:v></x:c><x:c r="I23" s="14" t="str"><x:v>Có thể attach PDF hoặc download trên platform theo security policy.</x:v></x:c><x:c r="J23" s="14" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="24" ht="118" customHeight="1"><x:c r="A24" s="16" t="str"><x:v>22</x:v></x:c><x:c r="B24" s="16" t="str"><x:v>PARTNER_JOB_EXPIRING</x:v></x:c><x:c r="C24" s="16" t="str"><x:v>JD đang chạy trên Sàn CTV sắp hết hạn</x:v></x:c><x:c r="D24" s="16" t="str"><x:v>JP:
+【JobShare Business】掲載中の求人がまもなく終了します
+
+EN:
+【JobShare Business】Your job posting will expire soon</x:v></x:c><x:c r="E24" s="16" t="str"><x:v>JP:
+{{company_name}}
+{{user_name}} 様
+
+以下の求人の掲載終了日が近づいています。
+
+求人：{{job_title}}
+掲載終了日：{{expiry_date}}
+
+引き続き募集する場合は、掲載期間を延長してください。
+
+EN:
+Dear {{user_name}},
+{{company_name}}
+
+The following job posting is approaching its expiration date.
+
+Job: {{job_title}}
+Expiration date: {{expiry_date}}
+
+If you would like to continue recruiting, please extend the posting period.</x:v></x:c><x:c r="F24" s="16" t="str"><x:v>JP:
+求人を延長する
+
+EN:
+Extend job posting</x:v></x:c><x:c r="G24" s="16" t="str"><x:v>/business/candidate-sharing/jobs/{{job_id}}</x:v></x:c><x:c r="H24" s="16" t="str"><x:v>company_name, user_name, job_title, expiry_date, job_id</x:v></x:c><x:c r="I24" s="16" t="str"><x:v>Đề xuất gửi 7 ngày trước hết hạn, tránh duplicate.</x:v></x:c><x:c r="J24" s="16" t="str"><x:v>P1</x:v></x:c></x:row><x:row r="25" ht="118" customHeight="1"><x:c r="A25" s="14" t="str"><x:v>23</x:v></x:c><x:c r="B25" s="14" t="str"><x:v>EMAIL_VERIFICATION</x:v></x:c><x:c r="C25" s="14" t="str"><x:v>Xác thực email tài khoản</x:v></x:c><x:c r="D25" s="14" t="str"><x:v>JP:
+【JobShare Business】メールアドレスの確認をお願いします
+
+EN:
+【JobShare Business】Please verify your email address</x:v></x:c><x:c r="E25" s="14" t="str"><x:v>JP:
+{{user_name}} 様
+
+JobShare Businessへのご登録ありがとうございます。
+
+以下のボタンからメールアドレスの確認を完了してください。
+
+EN:
+Dear {{user_name}},
+
+Thank you for registering with JobShare Business.
+
+Please verify your email address using the button below.</x:v></x:c><x:c r="F25" s="14" t="str"><x:v>JP:
+メールアドレスを確認する
+
+EN:
+Verify email address</x:v></x:c><x:c r="G25" s="14" t="str"><x:v>{{verification_url}}</x:v></x:c><x:c r="H25" s="14" t="str"><x:v>user_name, verification_url</x:v></x:c><x:c r="I25" s="14" t="str"><x:v>Token expiry + one-time use.</x:v></x:c><x:c r="J25" s="14" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="26" ht="118" customHeight="1"><x:c r="A26" s="16" t="str"><x:v>24</x:v></x:c><x:c r="B26" s="16" t="str"><x:v>PASSWORD_RESET</x:v></x:c><x:c r="C26" s="16" t="str"><x:v>Yêu cầu reset mật khẩu</x:v></x:c><x:c r="D26" s="16" t="str"><x:v>JP:
+【JobShare Business】パスワード再設定のご案内
+
+EN:
+【JobShare Business】Password reset request</x:v></x:c><x:c r="E26" s="16" t="str"><x:v>JP:
+{{user_name}} 様
+
+パスワード再設定のリクエストを受け付けました。
+
+以下のリンクより、新しいパスワードを設定してください。
+
+この操作に心当たりがない場合は、本メールを破棄してください。
+
+EN:
+Dear {{user_name}},
+
+We received a request to reset your JobShare Business password.
+
+Please use the link below to set a new password.
+
+If you did not request a password reset, please disregard this email.</x:v></x:c><x:c r="F26" s="16" t="str"><x:v>JP:
+パスワードを再設定する
+
+EN:
+Reset password</x:v></x:c><x:c r="G26" s="16" t="str"><x:v>{{reset_password_url}}</x:v></x:c><x:c r="H26" s="16" t="str"><x:v>user_name, reset_password_url</x:v></x:c><x:c r="I26" s="16" t="str"><x:v>Token expiry + one-time use; không log raw token.</x:v></x:c><x:c r="J26" s="16" t="str"><x:v>P0</x:v></x:c></x:row></x:sheetData><x:conditionalFormatting sqref="J2:J26"><x:cfRule type="expression" dxfId="0" priority="1"><x:formula>J2="P0"</x:formula></x:cfRule><x:cfRule type="expression" dxfId="1" priority="2"><x:formula>J2="P1"</x:formula></x:cfRule><x:cfRule type="expression" dxfId="2" priority="3"><x:formula>J2="P2"</x:formula></x:cfRule></x:conditionalFormatting><x:pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3" /></x:worksheet>

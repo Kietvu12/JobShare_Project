@@ -26,6 +26,8 @@ import {
   getInsightsJobStatusLabel,
   formatInsightsRecruitmentCost,
   localizeInsightsDeptName,
+  getInsightsServiceOptions,
+  INSIGHTS_SERVICE_COLORS,
 } from '../../i18n/businessApp/businessInsights.js'
 import { getLocalizedJobTitle } from '../../i18n/businessApp/jdBuilder.js'
 import BusinessQuickActionsPageLayout from '../../component/Bussiness/BusinessQuickActionsPageLayout.jsx'
@@ -81,6 +83,158 @@ function Panel({ title, action, children, className = '', bodyClass = '', fill =
   )
 }
 
+function ServiceFilterBar({ value, onChange, options, ariaLabel }) {
+  return (
+    <div role="tablist" aria-label={ariaLabel} className="flex flex-wrap gap-1.5">
+      {options.map((opt) => {
+        const active = value === opt.value
+        const color = INSIGHTS_SERVICE_COLORS[opt.value]
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(opt.value)}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 transition-colors ${BUSINESS_HP_TEXT.button} ${
+              active
+                ? 'border-[#0077B6] bg-[#0077B6] text-white shadow-sm'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-[#0077B6]/40 hover:text-[#0077B6]'
+            }`}
+          >
+            {color ? (
+              <span
+                className={`h-2 w-2 shrink-0 rounded-full ${active ? 'ring-2 ring-white/70' : ''}`}
+                style={{ background: color }}
+              />
+            ) : null}
+            {opt.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function ShareBar({ value, color }) {
+  return (
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+      <div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, value))}%`, background: color }} />
+    </div>
+  )
+}
+
+function ServiceComparisonPanel({ breakdown, activeService, onSelect, ins, language }) {
+  const rows = breakdown?.rows || []
+  const hasData = rows.some((r) => r.nominations > 0 || r.cost > 0 || r.jobs > 0)
+  const fmtCost = (v) => formatInsightsRecruitmentCost(v, language)
+
+  return (
+    <Panel
+      title={ins.compareTitle}
+      action={<p className={`max-w-2xl text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>{ins.compareSubtitle}</p>}
+    >
+      {!hasData ? (
+        <p className={INSIGHTS_EMPTY}>{ins.compareEmpty}</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className={`${INSIGHTS_TABLE} min-w-[920px]`}>
+            <thead>
+              <tr className={INSIGHTS_TABLE_HEAD}>
+                <th className="pb-2 pr-3 text-left font-semibold">{ins.compareColService}</th>
+                <th className="pb-2 pr-3 text-right font-semibold">{ins.compareColJobs}</th>
+                <th className="pb-2 pr-3 text-right font-semibold">{ins.compareColNominations}</th>
+                <th className="pb-2 pr-3 text-right font-semibold">{ins.compareColInterviews}</th>
+                <th className="pb-2 pr-3 text-right font-semibold">{ins.compareColHires}</th>
+                <th className="pb-2 pr-3 text-right font-semibold">{ins.compareColHireRate}</th>
+                <th className="pb-2 pr-3 text-right font-semibold">{ins.compareColCost}</th>
+                <th className="pb-2 pr-3 text-right font-semibold">{ins.compareColCostPerHire}</th>
+                <th className="w-40 pb-2 pr-3 text-left font-semibold">{ins.compareColShare}</th>
+                <th className="pb-2 text-right font-semibold" aria-hidden />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const color = INSIGHTS_SERVICE_COLORS[row.key]
+                const active = activeService === row.key
+                return (
+                  <tr
+                    key={row.key}
+                    className={`border-b border-slate-100 last:border-0 ${active ? 'bg-[#e8f4fa]/70' : 'hover:bg-slate-50/60'}`}
+                  >
+                    <td className="py-2.5 pr-3">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
+                        <span className="font-semibold text-slate-900">{ins.services[row.key] || row.label}</span>
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1 pl-[1.125rem]">
+                        {breakdown.bestCostPerHire === row.key ? (
+                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                            {ins.compareBestCost}
+                          </span>
+                        ) : null}
+                        {breakdown.bestHireRate === row.key ? (
+                          <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700">
+                            {ins.compareBestRate}
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">{row.jobs}</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">{row.nominations}</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">{row.interviews}</td>
+                    <td className="py-2.5 pr-3 text-right font-semibold tabular-nums text-slate-900">{row.hires}</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">{row.hireRate}%</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">
+                      <span className="font-medium text-slate-900">{fmtCost(row.cost)}</span>
+                      {row.costEstimated ? (
+                        <span className="ml-1 text-xs text-amber-600">({ins.estimatedTag})</span>
+                      ) : null}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">
+                      {row.costPerHire != null ? (
+                        <span className="font-semibold text-slate-900">{fmtCost(row.costPerHire)}</span>
+                      ) : (
+                        <span className="text-slate-400">{ins.compareNoHire}</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 pr-3">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <ShareBar value={row.hireShare} color={color} />
+                          <span className="w-12 shrink-0 text-right text-xs tabular-nums text-slate-600">{row.hireShare}%</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <ShareBar value={row.costShare} color="#94a3b8" />
+                          <span className="w-12 shrink-0 text-right text-xs tabular-nums text-slate-400">{row.costShare}%</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-2.5 text-right">
+                      <button
+                        type="button"
+                        onClick={() => onSelect(active ? 'all' : row.key)}
+                        className={`${INSIGHTS_TOOLBAR_BTN} ${active ? 'border-[#0077B6] text-[#0077B6]' : ''}`}
+                      >
+                        {active ? ins.serviceClearFilter : ins.compareViewOnly}
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {breakdown?.assumptions ? (
+        <p className={`mt-2 border-t border-slate-100 pt-2 leading-relaxed text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>
+          {ins.compareCostNote(breakdown.assumptions)}
+        </p>
+      ) : null}
+    </Panel>
+  )
+}
+
 const ReportInsight = () => {
   const navigate = useNavigate()
   const { language } = useLanguage()
@@ -94,7 +248,9 @@ const ReportInsight = () => {
     { id: 'positions', label: ins.tabPositions },
     { id: 'jd', label: ins.tabJd },
   ]), [ins])
+  const serviceOptions = useMemo(() => getInsightsServiceOptions(language), [language])
   const [trendPeriod, setTrendPeriod] = useState('month')
+  const [service, setService] = useState('all')
   const [detailTab, setDetailTab] = useState('dept')
   const [showCustomReports, setShowCustomReports] = useState(false)
   const [report, setReport] = useState(null)
@@ -108,6 +264,7 @@ const ReportInsight = () => {
       const res = await apiService.getBusinessInsightsReport({
         period: trendPeriod || 'month',
         lang: language,
+        service,
       })
       if (res?.success) {
         setReport(res.data)
@@ -119,7 +276,7 @@ const ReportInsight = () => {
     } finally {
       setLoading(false)
     }
-  }, [trendPeriod, language, ins.loadError])
+  }, [trendPeriod, language, service, ins.loadError])
 
   useEffect(() => {
     loadReport()
@@ -195,13 +352,19 @@ const ReportInsight = () => {
       },
       {
         label: ins.kpiRecruitmentCost,
-        value: formatInsightsRecruitmentCost(kpis.recruitmentCostVnd, language),
-        change: fmtChange(kpis.changes?.recruitmentCostVnd ?? 0),
-        up: (kpis.changes?.recruitmentCostVnd ?? 0) <= 0,
+        value: formatInsightsRecruitmentCost(kpis.recruitmentCost, language),
+        sub: [
+          kpis.costPerHire != null
+            ? ins.costPerHireHint(formatInsightsRecruitmentCost(kpis.costPerHire, language))
+            : null,
+          kpis.recruitmentCostEstimated ? `(${ins.estimatedTag})` : null,
+        ].filter(Boolean).join(' '),
+        change: fmtChange(kpis.changes?.recruitmentCost ?? 0),
+        up: (kpis.changes?.recruitmentCost ?? 0) <= 0,
         icon: FileText,
         color: '#ca8a04',
         bg: '#fefce8',
-        sparkline: sparks.recruitmentCostVnd || [],
+        sparkline: sparks.recruitmentCost || [],
         sparkGradId: 'kpi-spark-cost',
       },
     ]
@@ -390,6 +553,19 @@ const ReportInsight = () => {
               </button>
             </div>
           </div>
+          <div className="mt-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <ServiceFilterBar
+              value={service}
+              onChange={setService}
+              options={serviceOptions}
+              ariaLabel={ins.serviceFilterAria}
+            />
+            {service !== 'all' ? (
+              <p className={`text-slate-600 ${BUSINESS_HP_TEXT.caption}`}>
+                {ins.serviceFilteredNote(ins.services[service])}
+              </p>
+            ) : null}
+          </div>
         </div>
 
         <BusinessQuickActionsPageLayout onNavigate={navigate} className="min-h-0 flex-1">
@@ -428,6 +604,9 @@ const ReportInsight = () => {
                         <p className={`font-medium leading-snug text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>{m.label}</p>
                       </div>
                       <p className={`mt-1 tabular-nums ${BUSINESS_HP_TEXT.stat}`}>{m.value}</p>
+                      {m.sub ? (
+                        <p className={BUSINESS_HP_TEXT.micro}>{m.sub}</p>
+                      ) : null}
                       <p
                         className={`mt-0.5 inline-flex items-center gap-0.5 ${INSIGHTS_CHANGE} ${
                           m.up ? 'text-emerald-600' : 'text-rose-600'
@@ -446,6 +625,16 @@ const ReportInsight = () => {
                   )
                 })}
               </div>
+            </section>
+
+            <section aria-label={ins.compareTitle}>
+              <ServiceComparisonPanel
+                breakdown={report?.serviceBreakdown}
+                activeService={service}
+                onSelect={setService}
+                ins={ins}
+                language={language}
+              />
             </section>
 
             {/* Tầng 2 — Biểu đồ chính + conversion + insights */}

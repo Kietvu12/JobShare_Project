@@ -169,6 +169,21 @@ export const businessScoutController = {
         cvId,
       });
 
+      if (!result.alreadyUnlocked) {
+        try {
+          const { fireBusinessNotificationEmail, notifyDirectScoutUnlocked } = await import('../../services/businessNotificationEmail/businessNotificationEmailHooks.js');
+          fireBusinessNotificationEmail(notifyDirectScoutUnlocked({
+            businessId: req.business.id,
+            candidateId: cvId,
+            candidateName: result.candidate?.name || result.candidate?.displayName || 'Candidate',
+            creditCost: result.creditCost,
+            locale: 'ja',
+          }));
+        } catch (mailErr) {
+          console.error('[scout unlock] notification email:', mailErr?.message || mailErr);
+        }
+      }
+
       const business = await Business.findByPk(req.business.id, {
         attributes: ['id', 'credit'],
       });

@@ -14,6 +14,10 @@ import PricePage from './readycrew/pages/price/PricePage';
 import ResultsPage from './readycrew/pages/results/ResultsPage';
 import SitePage, { SitePageNotFound } from './readycrew/pages/SitePage';
 import AboutUsPage from '../../Shared/AboutUsPage';
+import DownloadPage from './readycrew/pages/download/DownloadPage';
+import ContactPage from './readycrew/pages/contact/ContactPage';
+import PublicBlogListPage from '../PublicBlogListPage';
+import BlogDetailPage from '../../BlogDetailPage';
 
 const REACT_PAGE_KEYS = new Set([
   'index',
@@ -25,6 +29,9 @@ const REACT_PAGE_KEYS = new Set([
   'document',
   'news',
   'about-us',
+  'download',
+  'inquiry_docs_rc',
+  'contact_rc',
 ]);
 
 export default function BusinessLandingHome() {
@@ -53,7 +60,12 @@ export default function BusinessLandingHome() {
           <Route path="seminar" element={<SeminarPage />} />
           <Route path="document" element={<DocumentPage />} />
           <Route path="news" element={<NewsPage />} />
+          <Route path="blog" element={<PublicBlogListPage />} />
+          <Route path="blog/:postSlug" element={<BlogDetailPage />} />
           <Route path="about-us" element={<AboutUsPage />} />
+          <Route path="download" element={<DownloadPage />} />
+          <Route path="inquiry_docs_rc" element={<DownloadPage />} />
+          <Route path="contact_rc" element={<ContactPage />} />
           <Route path="*" element={<SitePageNotFound />} />
         </Route>
       </Routes>

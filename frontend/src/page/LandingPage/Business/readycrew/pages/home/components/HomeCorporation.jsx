@@ -1,11 +1,15 @@
+import { useMemo } from 'react'
 import { useLanguage } from '../../../../../../../context/LanguageContext'
 import { getHomeCorporationCopy } from '../../../../../../../i18n/businessApp/homeCorporation'
 import { CorporationLogos } from '../data/corporation-logos'
+import './homeCorporationMarquee.css'
 
 export default function HomeCorporation() {
   const { language } = useLanguage()
   const copy = getHomeCorporationCopy(language)
   const isJapanese = language === 'ja'
+
+  const marqueeLogos = useMemo(() => [...CorporationLogos, ...CorporationLogos], [])
 
   return (
     <section
@@ -13,12 +17,15 @@ export default function HomeCorporation() {
     >
       <div className="front-page-corporation__upper l-wrapper--large-on-bg">
         <div className="front-page-corporation__contents">
-          <div className="front-page-corporation-slider js-corp-marquee">
-            <div className="front-page-corporation-slider__wrapper js-corp-marquee__wrapper">
-              {CorporationLogos.map((logo, index) => (
-                <div key={`${logo.src}-${index}`} className="front-page-corporation-slider__item js-corp-marquee__item">
+          <div className="front-page-corporation-slider business-corp-marquee">
+            <div className="business-corp-marquee__track">
+              {marqueeLogos.map((logo, index) => (
+                <div
+                  key={`${logo.src}-${index}`}
+                  className="front-page-corporation-slider__item business-corp-marquee__item"
+                >
                   <img
-                    className="front-page-corporation-slider__item-body js-corp-marquee__item-body"
+                    className="front-page-corporation-slider__item-body"
                     src={logo.src}
                     alt={logo.alt}
                     loading="lazy"

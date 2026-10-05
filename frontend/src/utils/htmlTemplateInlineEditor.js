@@ -1296,9 +1296,11 @@ export function setupInlineEditor(doc, {
 
   const onClick = (e) => {
     if (closestFromEvent(e, '.wjs-block-delete, .wjs-img-delete')) return;
-    const bg = closestFromEvent(e, '[data-wjs-type="bg-image"]');
+    /* Text/ảnh con nằm trong vùng bg-image (hero slideshow) — ưu tiên sửa chữ/ảnh, không mở popup nền */
+    if (closestFromEvent(e, '.wjs-editable[data-wjs-field]')) return;
     const img = closestFromEvent(e, '[data-wjs-type="image"]');
-    const target = bg || img;
+    const bg = closestFromEvent(e, '[data-wjs-type="bg-image"]');
+    const target = img || bg;
     if (!target) return;
     wjsDebug('inline', 'image click', {
       sectionId: target.dataset.wjsSection,

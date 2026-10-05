@@ -64,7 +64,7 @@ export default function HomeVisual() {
               <div className="fpv_btn_group">
                 <SiteLink
                   className="fpv_btn_group_download o-btn-bg o-btn-bg--hover-border"
-                  to="/inquiry_docs_rc/"
+                  to="/download"
                 >
                   <span className="front-page-visual__btn-text o-btn-bg__text">
                     {copy.btnDownloadLines.map((line, index) => (
@@ -77,7 +77,7 @@ export default function HomeVisual() {
                 </SiteLink>
                 <SiteLink
                   className="fpv_btn_group_contact_rc o-btn-bg o-btn-bg--white o-btn-bg--hover-border"
-                  to="/contact_rc/"
+                  to="/business/register"
                 >
                   <span className="front-page-visual__btn-text o-btn-bg__text o-btn-bg__text--red">
                     {copy.btnRegisterLines.map((line, index) => (
@@ -90,7 +90,7 @@ export default function HomeVisual() {
                 </SiteLink>
                 <SiteLink
                   className="fpv_btn_group__contact_sl o-btn-bg o-btn-bg--white o-btn-bg--hover-border"
-                  to="/sl_cp2025/"
+                  to="/contact_rc/"
                 >
                   <span className="front-page-visual__btn-text o-btn-bg__text o-btn-bg__text--red">
                     {copy.btnConsultLines.map((line, index) => (

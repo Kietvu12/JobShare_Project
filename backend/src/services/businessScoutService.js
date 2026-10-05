@@ -25,6 +25,7 @@ import {
   MARKETPLACE_LISTING_STATUS_LABELS,
 } from '../constants/candidateSharing.js';
 import candidateSharingService from './candidateSharingService.js';
+import { STATUS_WAITING_WS, STATUS_SCOUT_CONTACTED_WAITING } from '../constants/jobApplicationStatus.js';
 async function attachPerformanceRequestMeta(businessId, payload) {
   if (!businessId || !payload?.id) return payload;
   if (payload.isUnlocked && payload.unlockType && payload.unlockType !== SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE) {
@@ -1299,7 +1300,7 @@ export async function nominateAccessibleCandidateToJob({ businessId, cvId, jobId
     cvId: safeCvId,
     cvCode: cv.code || null,
     title: cv.name || cv.desiredPosition || 'Ứng viên',
-    status: 5,
+    status: access.accessType === SCOUT_UNLOCK_TYPES.SCOUT_CREDIT ? STATUS_SCOUT_CONTACTED_WAITING : 5,
     appliedAt: new Date(),
     memo: note?.trim() || `Doanh nghiệp tiến cử (${access.accessType})`,
   });
@@ -1328,7 +1329,7 @@ export async function attachScoutCandidateToJob({
   cvId,
   jobId,
   note,
-  initialStatus = 5,
+  initialStatus = null,
 }) {
   const safeCvId = parseInt(cvId, 10);
   const safeJobId = parseInt(jobId, 10);
@@ -1373,7 +1374,12 @@ export async function attachScoutCandidateToJob({
     };
   }
 
-  const safeInitialStatus = Number.isFinite(Number(initialStatus)) ? Number(initialStatus) : 5;
+  const defaultInitialStatus = unlock.unlockType === SCOUT_UNLOCK_TYPES.SCOUT_PERFORMANCE
+    ? STATUS_WAITING_WS
+    : STATUS_SCOUT_CONTACTED_WAITING;
+  const safeInitialStatus = initialStatus != null && Number.isFinite(Number(initialStatus))
+    ? Number(initialStatus)
+    : defaultInitialStatus;
   const application = await JobApplication.create({
     jobId: safeJobId,
     cvId: safeCvId,

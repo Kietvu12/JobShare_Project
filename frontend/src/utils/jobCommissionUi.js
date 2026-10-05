@@ -168,8 +168,8 @@ export function resolveCommissionBannerLabel(job, { useAdminAPI, language = 'vi'
 
   if (useAdminAPI) {
     if (directCtv) {
-      if (lang === 'en') return 'Direct referral fee for CTV';
-      if (lang === 'ja') return 'CTVへの直接紹介料';
+      if (lang === 'en') return 'Direct referral fee for collaborator';
+      if (lang === 'ja') return '採用パートナーへの直接紹介料';
       return 'Phí giới thiệu trực tiếp cho CTV';
     }
     if (lang === 'en') return 'Referral fee (JS receives)';

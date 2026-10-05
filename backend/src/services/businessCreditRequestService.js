@@ -91,6 +91,18 @@ export async function createBusinessCreditRequest({ businessId, amount, note, pa
     console.error('[CreditRequest] ws chat message failed:', err?.message || err);
   }
 
+  try {
+    const { fireBusinessNotificationEmail, notifyCreditTopupRequested } = await import('./businessNotificationEmail/businessNotificationEmailHooks.js');
+    fireBusinessNotificationEmail(notifyCreditTopupRequested({
+      businessId,
+      requestId: formatted.requestCode || formatted.id,
+      amount: formatted.amount,
+      locale: 'ja',
+    }));
+  } catch (mailErr) {
+    console.error('[CreditRequest] notification email:', mailErr?.message || mailErr);
+  }
+
   return { request: formatted, wsChat };
 }
 
@@ -242,6 +254,18 @@ export async function approveBusinessCreditRequest({ requestId, adminId, adminNo
       });
     } catch (err) {
       console.error('[CreditRequest] ws chat approval sync failed:', err?.message || err);
+    }
+
+    try {
+      const { fireBusinessNotificationEmail, notifyCreditAdded } = await import('./businessNotificationEmail/businessNotificationEmailHooks.js');
+      fireBusinessNotificationEmail(notifyCreditAdded({
+        businessId: request.businessId,
+        amount: request.amount,
+        balanceAfter: result?.history?.balanceAfter ?? result?.business?.credit,
+        locale: 'ja',
+      }));
+    } catch (mailErr) {
+      console.error('[CreditRequest] credit added email:', mailErr?.message || mailErr);
     }
 
     return formatted;

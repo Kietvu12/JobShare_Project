@@ -6,6 +6,7 @@ import apiService, { normalizePostImageUrl } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { translations } from '../../translations/translations';
 import {
+  isBusinessPublicPath,
   isCandidatePublicPath,
   publicCanonicalUrl,
   resolvePublicBlogPrefix,
@@ -141,6 +142,7 @@ export default function PublicBlogListPage() {
 
   const publicSurface = useMemo(() => {
     if (isCandidatePublicPath(pathname)) return 'candidate';
+    if (isBusinessPublicPath(pathname)) return 'business';
     return 'collaborator';
   }, [pathname]);
 

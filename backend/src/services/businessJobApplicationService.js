@@ -11,8 +11,21 @@ import {
   BusinessScoutPerformanceRequest,
   JobCategory,
 } from '../models/index.js';
-import { getJobApplicationStatus, STATUS_PAID, STATUS_JOINED_COMPANY } from '../constants/jobApplicationStatus.js';
+import {
+  getJobApplicationStatus,
+  isValidJobApplicationStatus,
+  JOB_APPLICATION_STATUS_MAX,
+  MANAGED_PRE_NOMINATION_STATUSES,
+  STATUS_PAID,
+  STATUS_JOINED_COMPANY,
+  STATUS_SCHEDULING_INTERVIEW,
+  STATUS_INTERVIEWING,
+  STATUS_OFFER_SENT,
+  STATUS_WAITING_TO_JOIN,
+} from '../constants/jobApplicationStatus.js';
+import { SCOUT_PERFORMANCE_REQUEST_STATUS } from '../constants/scoutCredit.js';
 import { buildUnlockedScoutPayload, buildPerformanceUnlockedScoutPayload } from './businessScoutService.js';
+import { getPerformanceRequestMetaForBusiness } from './scoutPerformanceService.js';
 import { statusMessageService } from './statusMessageService.js';
 import { collaboratorNotificationService } from './collaboratorNotificationService.js';
 import { syncWsChatAfterJoinedCompany } from './businessWsChatService.js';
@@ -20,7 +33,54 @@ import { buildCvFileListPayload } from '../controllers/collaborator/cvController
 
 const SENDER_TYPE_BUSINESS = 5;
 const HIRED_STATUSES = [12, 14, 15];
-const REJECTED_STATUSES = [4, 6, 10, 13, 16];
+const REJECTED_STATUSES = [4, 6, 10, 13, 16, 17, 18];
+/** Doanh nghiệp không tự chuyển sang các trạng thái WS xử lý (trùng, sàng lọc WS, Scout Ủy Thác bước 1–6) */
+const BUSINESS_WS_ONLY_TARGET_STATUSES = new Set([1, 2, 3, 4, 20, 21, 22, 23]);
+
+/**
+ * Bước chuyển hợp lệ của doanh nghiệp theo nguồn — đồng bộ frontend utils/businessApplicationStatusFlow.js.
+ * Trạng thái "dừng" không có bước tiếp theo; 16 (huỷ giữa chừng) chọn được ở mọi bước chưa kết thúc.
+ */
+function getBusinessAllowedNextStatuses(sourceType, status) {
+  const n = Number(status);
+  const isScoutCredit = sourceType === 'scout_credit';
+  const isScoutPerformance = sourceType === 'scout_performance';
+  const hasPayment = !isScoutCredit && sourceType !== 'landing' && sourceType !== 'other';
+
+  if (isScoutCredit && n === 19) return [5, 17, 18, 16];
+  if (isScoutPerformance && n === 23) return [5, 6, 7, 16];
+  if (!isScoutCredit && !isScoutPerformance && n === 2) return [5, 6, 7, 16];
+
+  switch (n) {
+    case 3:
+    case 5: return [7, 6, 16];
+    case 7: return [9, 16];
+    case 8: return [9, 7, 16];
+    case 9: return [11, 10, 7, 16];
+    case 11: return [12, 13, 16];
+    case 12: return [14, 16];
+    case 14: return hasPayment ? [15, 16] : [16];
+    default: return [];
+  }
+}
+
+function parseStatusFilter(status) {
+  const list = String(status)
+    .split(',')
+    .map((s) => parseInt(s.trim(), 10))
+    .filter((n) => Number.isInteger(n));
+  if (!list.length) return null;
+  return list.length === 1 ? list[0] : { [Op.in]: list };
+}
+
+function localDateString(d = new Date()) {
+  const pad = (v) => String(v).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+const AUTO_TRANSITION_INTERVAL_MS = 60 * 1000;
+const autoTransitionLastRun = new Map();
+const SCOUT_CREDIT_APPROACH_STATUSES = new Set([17, 18, 19]);
 const WS_CTV_SOURCE_TYPES = new Set(['ctv_marketplace', 'ctv_nomination', 'scout_performance']);
 const OTHER_SOURCE_TYPES = new Set(['landing', 'other']);
 
@@ -181,6 +241,7 @@ function formatApplication(row, maps, unreadMap = {}, { withFullProfile = false 
     ctvId: j.collaboratorId,
     appliedAt: j.appliedAt || j.createdAt,
     interviewDate: j.interviewDate,
+    nyushaDate: j.nyushaDate || null,
     memo: j.memo || null,
     rejectNote: j.rejectNote || null,
     unreadCount: unreadMap[String(j.id)] || 0,
@@ -261,6 +322,7 @@ export async function listBusinessJobApplications({
     };
   }
 
+  await applyScheduledStatusTransitions(businessId, ownedJobIds);
   const maps = await loadSourceMaps(businessId, ownedJobIds);
 
   const where = {
@@ -268,7 +330,8 @@ export async function listBusinessJobApplications({
   };
 
   if (status != null && status !== '') {
-    where.status = parseInt(status, 10);
+    const statusFilter = parseStatusFilter(status);
+    if (statusFilter != null) where.status = statusFilter;
   }
 
   if (appliedFrom || appliedTo) {
@@ -401,6 +464,7 @@ export async function getBusinessJobApplicationStats({ businessId }) {
     };
   }
 
+  await applyScheduledStatusTransitions(businessId, ownedJobIds);
   const maps = await loadSourceMaps(businessId, ownedJobIds);
   const rows = await JobApplication.findAll({
     where: { jobId: { [Op.in]: ownedJobIds } },
@@ -457,6 +521,7 @@ export async function getBusinessJobApplicationById({ businessId, applicationId 
   const ownedJobIds = await getOwnedJobIds(businessId);
   if (!ownedJobIds.length) return null;
 
+  await applyScheduledStatusTransitions(businessId, ownedJobIds);
   const maps = await loadSourceMaps(businessId, ownedJobIds);
   const row = await JobApplication.findOne({
     where: { id: applicationId, jobId: { [Op.in]: ownedJobIds } },
@@ -482,7 +547,27 @@ export async function getBusinessJobApplicationById({ businessId, applicationId 
 
   if (!row) return null;
   const unreadMap = await loadUnreadCounts([row.id]);
-  return formatApplication(row, maps, unreadMap, { withFullProfile: true });
+  const application = formatApplication(row, maps, unreadMap, { withFullProfile: true });
+  if (application.sourceType === 'scout_performance' && application.cvId) {
+    try {
+      const meta = await getPerformanceRequestMetaForBusiness({ businessId, cvId: application.cvId });
+      if (meta) {
+        const closed = [
+          SCOUT_PERFORMANCE_REQUEST_STATUS.REJECTED,
+          SCOUT_PERFORMANCE_REQUEST_STATUS.CANCELLED,
+        ].includes(meta.status);
+        application.performanceRequest = {
+          id: meta.id,
+          status: meta.status,
+          wantsSimilarCandidates: meta.wantsSimilarCandidates,
+          canRequestSimilar: !closed && !meta.wantsSimilarCandidates,
+        };
+      }
+    } catch (metaError) {
+      console.error('[businessJobApplication] performanceRequest meta:', metaError?.message || metaError);
+    }
+  }
+  return application;
 }
 
 function parseJsonField(value) {
@@ -605,13 +690,54 @@ export async function updateBusinessJobApplicationStatus({
   rejectNote,
   paymentAmount,
   interviewDate,
+  nyushaDate,
   memo,
 }) {
   const statusNum = parseInt(status, 10);
-  if (Number.isNaN(statusNum) || statusNum < 1 || statusNum > 17) {
-    const err = new Error('Trạng thái không hợp lệ (phải từ 1 đến 17)');
+  if (!isValidJobApplicationStatus(statusNum)) {
+    const err = new Error(`Trạng thái không hợp lệ (phải từ 1 đến ${JOB_APPLICATION_STATUS_MAX})`);
     err.statusCode = 400;
     throw err;
+  }
+
+  const current = await getBusinessJobApplicationById({ businessId, applicationId });
+  if (!current) {
+    const err = new Error('Không tìm thấy đơn tiến cử');
+    err.statusCode = 404;
+    throw err;
+  }
+  const currentStatusNum = Number(current.status);
+  if (currentStatusNum !== statusNum) {
+    if (current.sourceType === 'scout_performance' && MANAGED_PRE_NOMINATION_STATUSES.includes(currentStatusNum)) {
+      const err = new Error('Trạng thái Scout Ủy Thác trước tiến cử do WS xử lý — doanh nghiệp chỉ theo dõi');
+      err.statusCode = 403;
+      throw err;
+    }
+    if (BUSINESS_WS_ONLY_TARGET_STATUSES.has(statusNum)) {
+      const err = new Error('Trạng thái này do WS xử lý');
+      err.statusCode = 403;
+      throw err;
+    }
+    if (SCOUT_CREDIT_APPROACH_STATUSES.has(statusNum) && current.sourceType !== 'scout_credit') {
+      const err = new Error('Trạng thái tiếp cận chỉ áp dụng cho ứng viên Scout Credit');
+      err.statusCode = 400;
+      throw err;
+    }
+    if (!getBusinessAllowedNextStatuses(current.sourceType, currentStatusNum).includes(statusNum)) {
+      const err = new Error('Không thể chuyển sang trạng thái này từ bước hiện tại');
+      err.statusCode = 400;
+      throw err;
+    }
+    if (statusNum === STATUS_SCHEDULING_INTERVIEW && !interviewDate) {
+      const err = new Error('Vui lòng chọn ngày phỏng vấn');
+      err.statusCode = 400;
+      throw err;
+    }
+    if (statusNum === STATUS_OFFER_SENT && !nyushaDate) {
+      const err = new Error('Vui lòng chọn ngày vào công ty dự kiến');
+      err.statusCode = 400;
+      throw err;
+    }
   }
 
   if (statusNum === STATUS_PAID) {
@@ -633,6 +759,9 @@ export async function updateBusinessJobApplicationStatus({
   if (interviewDate) {
     jobApplication.interviewDate = interviewDate;
   }
+  if (nyushaDate) {
+    jobApplication.nyushaDate = String(nyushaDate).slice(0, 10);
+  }
   if (memo !== undefined) {
     jobApplication.memo = memo != null && String(memo).trim() !== ''
       ? String(memo).trim()
@@ -641,14 +770,40 @@ export async function updateBusinessJobApplicationStatus({
   await jobApplication.save();
 
   if (oldStatus !== statusNum) {
+    await runStatusChangeSideEffects({
+      jobApplication,
+      oldStatus,
+      statusNum,
+      businessId,
+      note: rejectNote != null ? String(rejectNote).trim() || null : null,
+      paymentAmount: statusNum === STATUS_PAID && paymentAmount != null ? parseFloat(paymentAmount) : null,
+      changedBy: 'business',
+      interviewDate: interviewDate || jobApplication.interviewDate,
+    });
+  }
+
+  const application = await getBusinessJobApplicationById({ businessId, applicationId });
+  return { application };
+}
+
+async function runStatusChangeSideEffects({
+  jobApplication,
+  oldStatus,
+  statusNum,
+  businessId,
+  note = null,
+  paymentAmount = null,
+  changedBy = 'business',
+  interviewDate = null,
+}) {
     try {
       await statusMessageService.createStatusMessage({
-        jobApplicationId: applicationId,
+        jobApplicationId: jobApplication.id,
         oldStatus,
         newStatus: statusNum,
         businessId,
-        note: rejectNote != null ? String(rejectNote).trim() || null : null,
-        paymentAmount: statusNum === STATUS_PAID && paymentAmount != null ? parseFloat(paymentAmount) : null,
+        note,
+        paymentAmount,
       });
     } catch (messageError) {
       console.error('[businessJobApplication] createStatusMessage:', messageError?.message || messageError);
@@ -701,10 +856,102 @@ export async function updateBusinessJobApplicationStatus({
         console.error('[businessJobApplication] syncWsChatAfterJoinedCompany:', adminNotifyError?.message || adminNotifyError);
       }
     }
-  }
 
-  const application = await getBusinessJobApplicationById({ businessId, applicationId });
-  return { application };
+    if (oldStatus !== statusNum && changedBy !== 'business') {
+      try {
+        const ownedJobIds = jobApplication.jobId ? [Number(jobApplication.jobId)] : [];
+        const maps = ownedJobIds.length ? await loadSourceMaps(businessId, ownedJobIds) : {
+          marketplaceJobIds: new Set(),
+          unlockCvIds: new Set(),
+          perfCvIds: new Set(),
+        };
+        const sourceType = resolveSourceType(jobApplication, maps);
+        const { dispatchApplicationStatusEmails, fireBusinessNotificationEmail } = await import('./businessNotificationEmail/businessNotificationEmailHooks.js');
+        fireBusinessNotificationEmail(dispatchApplicationStatusEmails({
+          applicationId: jobApplication.id,
+          oldStatus,
+          newStatus: statusNum,
+          sourceType,
+          changedBy,
+          interviewDate,
+        }));
+      } catch (emailErr) {
+        console.error('[businessJobApplication] status email:', emailErr?.message || emailErr);
+      }
+    }
+}
+
+/**
+ * Tự chuyển trạng thái theo ngày đã set:
+ * - Đang xếp lịch PV (7, legacy 8) → Đang phỏng vấn (9) khi tới interview_date
+ * - Chờ vào công ty (12) → Đã vào công ty (14) khi tới nyusha_date
+ */
+async function applyScheduledStatusTransitions(businessId, jobIds) {
+  if (!jobIds.length) return;
+  const lastRun = autoTransitionLastRun.get(businessId) || 0;
+  if (Date.now() - lastRun < AUTO_TRANSITION_INTERVAL_MS) return;
+  autoTransitionLastRun.set(businessId, Date.now());
+
+  try {
+    const due = await JobApplication.findAll({
+      where: {
+        jobId: { [Op.in]: jobIds },
+        [Op.or]: [
+          {
+            status: { [Op.in]: [STATUS_SCHEDULING_INTERVIEW, 8] },
+            interviewDate: { [Op.ne]: null, [Op.lte]: new Date() },
+          },
+          {
+            status: STATUS_WAITING_TO_JOIN,
+            nyushaDate: { [Op.ne]: null, [Op.lte]: localDateString() },
+          },
+        ],
+      },
+    });
+    for (const jobApplication of due) {
+      const oldStatus = Number(jobApplication.status);
+      const statusNum = oldStatus === STATUS_WAITING_TO_JOIN ? STATUS_JOINED_COMPANY : STATUS_INTERVIEWING;
+      jobApplication.status = statusNum;
+      await jobApplication.save();
+      await runStatusChangeSideEffects({
+        jobApplication,
+        oldStatus,
+        statusNum,
+        businessId,
+        changedBy: 'system',
+        interviewDate: jobApplication.interviewDate,
+      });
+    }
+  } catch (err) {
+    console.error('[businessJobApplication] applyScheduledStatusTransitions:', err?.message || err);
+  }
+}
+
+export async function notifyAdminJobApplicationStatusChange({
+  jobApplication,
+  oldStatus,
+  newStatus,
+  interviewDate = null,
+}) {
+  const jobId = jobApplication.jobId;
+  const job = jobId
+    ? await Job.findByPk(jobId, { attributes: ['id', 'businessId'] })
+    : null;
+  const businessId = job?.businessId;
+  if (!businessId) return;
+
+  const ownedJobIds = [Number(jobId)];
+  const maps = await loadSourceMaps(businessId, ownedJobIds);
+  const sourceType = resolveSourceType(jobApplication, maps);
+  const { dispatchApplicationStatusEmails, fireBusinessNotificationEmail } = await import('./businessNotificationEmail/businessNotificationEmailHooks.js');
+  fireBusinessNotificationEmail(dispatchApplicationStatusEmails({
+    applicationId: jobApplication.id,
+    oldStatus,
+    newStatus,
+    sourceType,
+    changedBy: 'admin',
+    interviewDate: interviewDate || jobApplication.interviewDate,
+  }));
 }
 
 export default {
@@ -716,4 +963,5 @@ export default {
   updateBusinessJobApplicationStatus,
   resolveSourceType,
   SOURCE_LABELS,
+  notifyAdminJobApplicationStatusChange,
 };

@@ -12,12 +12,12 @@ export const BUSINESS_APPLICATION_SOURCE = {
     tab: 'ws_ctv',
   },
   scout_performance: {
-    label: 'Scout Performance',
+    label: 'Scout Ủy Thác',
     color: '#f59e0b',
     tab: 'ws_ctv',
   },
   scout_credit: {
-    label: 'Scout Credit',
+    label: 'Scout Trực Tiếp',
     color: '#3b82f6',
     tab: 'scout_credit',
   },
@@ -36,7 +36,7 @@ export const BUSINESS_APPLICATION_SOURCE = {
 export const BUSINESS_APPLICATION_TABS = [
   { key: 'all', label: 'Tất cả' },
   { key: 'ws_ctv', label: 'Tiến cử (WS/CTV)' },
-  { key: 'scout_credit', label: 'Scout Credit' },
+  { key: 'scout_credit', label: 'Scout Trực Tiếp' },
   { key: 'hired', label: 'Đã tuyển dụng' },
   { key: 'rejected', label: 'Không phù hợp' },
   { key: 'other', label: 'Khác' },

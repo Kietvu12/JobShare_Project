@@ -2454,11 +2454,11 @@ export const Post = sequelize.define(
       allowNull: false,
       defaultValue: 1
     },
-    /** Bitmask: 1=agent CTV home, 2=public CTV landing, 4=public candidate landing */
+    /** Bitmask: 1=agent CTV, 2=public CTV, 4=public candidate, 8=business Knowledge Hub */
     visibilityMask: {
       type: DataTypes.TINYINT.UNSIGNED,
       allowNull: false,
-      defaultValue: 7,
+      defaultValue: 15,
       field: 'visibility_mask'
     },
     categoryId: {

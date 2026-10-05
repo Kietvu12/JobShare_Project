@@ -6,6 +6,7 @@ import { getLocalizedJobTitle } from '../i18n/businessApp/jdBuilder.js';
 import { getDateLocale } from '../i18n/businessApp/jobs.js';
 import { formatBusinessRelativeTime } from '../i18n/businessApp/index.js';
 import { getJobApplicationStatusLabelByLanguage } from './jobApplicationStatus.js';
+import { getBusinessStatusLabel } from './businessApplicationStatusFlow.js';
 
 const NOMINATED_BY_VI_KEYS = {
   'Doanh nghiệp': 'business',
@@ -74,7 +75,7 @@ export function localizeApplication(app, language = 'vi', jobById = {}) {
   return {
     ...app,
     jobTitle,
-    statusLabel: getJobApplicationStatusLabelByLanguage(app.status, language),
+    statusLabel: getBusinessStatusLabel(app.status, app.sourceType, language),
     sourceLabel: getApplicationSourceLabel(app.sourceType, language),
     nominatedBy: getNominatedByLabel(app.nominatedBy, language),
   };

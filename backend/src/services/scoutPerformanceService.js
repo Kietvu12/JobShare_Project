@@ -375,6 +375,18 @@ export async function createScoutPerformanceRequest({
     wantsSimilarCandidates: wantsSimilar,
   });
 
+  try {
+    const { fireBusinessNotificationEmail, notifyManagedScoutRequested } = await import('./businessNotificationEmail/businessNotificationEmailHooks.js');
+    fireBusinessNotificationEmail(notifyManagedScoutRequested({
+      businessId,
+      requestId: result.request.id,
+      jobTitle: job?.title || jobTitle || '',
+      locale: 'ja',
+    }));
+  } catch (mailErr) {
+    console.error('[ScoutPerformance] MANAGED_SCOUT_REQUESTED email:', mailErr?.message || mailErr);
+  }
+
   return {
     ...requestRow,
     requestCode: buildPerformanceRequestCode(result.request.id, result.request.requestedAt),

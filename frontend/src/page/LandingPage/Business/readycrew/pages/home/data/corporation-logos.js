@@ -18,5 +18,5 @@ const BASE_LOGOS = [
   { src: logo8, alt: '導入企業ロゴ 8' },
 ];
 
-/** Lặp logo để marquee chạy mượt như bản gốc Ready Crew */
-export const CorporationLogos = [...BASE_LOGOS, ...BASE_LOGOS, ...BASE_LOGOS];
+/** Danh sách gốc — lặp thêm khi render marquee (CSS), tránh nhân 3 lần + plugin jQuery. */
+export const CorporationLogos = BASE_LOGOS;

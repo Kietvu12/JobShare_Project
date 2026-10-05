@@ -976,7 +976,7 @@ export async function createBusinessServiceRequest({ businessId, serviceKey, ser
     note,
   });
 
-  return {
+  const payload = {
     requestCode,
     serviceKey: key,
     serviceTitle: title,
@@ -984,6 +984,20 @@ export async function createBusinessServiceRequest({ businessId, serviceKey, ser
     sessionId: session?.id || null,
     messageId: message?.id || null,
   };
+
+  try {
+    const { fireBusinessNotificationEmail, notifyServiceRequestCreated } = await import('./businessNotificationEmail/businessNotificationEmailHooks.js');
+    fireBusinessNotificationEmail(notifyServiceRequestCreated({
+      businessId,
+      requestId: requestCode || session?.id || message?.id,
+      serviceTitle: title,
+      locale: 'ja',
+    }));
+  } catch (mailErr) {
+    console.error('[ServiceRequest] confirmation email:', mailErr?.message || mailErr);
+  }
+
+  return payload;
 }
 
 /** Backfill: pending credit requests chưa có tin nhắn chat (yêu cầu tạo trước khi bật sync). */
@@ -1440,6 +1454,21 @@ export async function sendWsChatMessageFromAdmin({
 
   await touchSessionPreview(session, { content: trimmed, cvCount: cvAttachments.length });
 
+  if (trimmed) {
+    try {
+      const { fireBusinessNotificationEmail, notifyWorkstationMessageNew } = await import('./businessNotificationEmail/businessNotificationEmailHooks.js');
+      fireBusinessNotificationEmail(notifyWorkstationMessageNew({
+        businessId: session.businessId,
+        conversationId: session.id,
+        senderName: 'Workstation',
+        messagePreview: trimmed,
+        locale: 'ja',
+      }));
+    } catch (mailErr) {
+      console.error('[WsChat] WORKSTATION_MESSAGE_NEW email:', mailErr?.message || mailErr);
+    }
+  }
+
   if (uniqueCvIds.length) {
     await collaboratorNotificationService.createAndEmit({
       businessId: session.businessId,
@@ -1870,6 +1899,26 @@ export async function submitReferralPaymentInWsChat({
   });
 
   await touchSessionPreview(session, { content: invoiceContent });
+
+  try {
+    const { fireBusinessNotificationEmail, notifyPaymentRequestCreated, notifyInvoiceIssued } = await import('./businessNotificationEmail/businessNotificationEmailHooks.js');
+    fireBusinessNotificationEmail(notifyPaymentRequestCreated({
+      businessId: session.businessId,
+      paymentId: invoice.id,
+      amount: invoice.amount,
+      dueDate: invoice.dueDate || invoice.due_date || '',
+      locale: 'ja',
+    }));
+    fireBusinessNotificationEmail(notifyInvoiceIssued({
+      businessId: session.businessId,
+      invoiceId: invoice.id,
+      invoiceCode: invoice.invoiceCode,
+      amount: invoice.amount,
+      locale: 'ja',
+    }));
+  } catch (mailErr) {
+    console.error('[WsChat] payment/invoice email:', mailErr?.message || mailErr);
+  }
 
   return {
     invoice,

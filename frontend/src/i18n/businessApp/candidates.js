@@ -34,19 +34,19 @@ const pipelineMeta = {
 
 const unlockMeta = {
   vi: {
-    scout_credit: { label: 'Scout Credit', color: '#0369a1', bg: '#e0f2fe' },
+    scout_credit: { label: 'Scout Trực Tiếp', color: '#0369a1', bg: '#e0f2fe' },
     scout_performance: { label: 'Scout Ủy Thác', color: '#0f766e', bg: '#ccfbf1' },
     ctv_marketplace: { label: 'Sàn CTV', color: '#6d28d9', bg: '#ede9fe' },
   },
   en: {
     scout_credit: { label: 'Scout Credit', color: '#0369a1', bg: '#e0f2fe' },
     scout_performance: { label: 'Managed Scout', color: '#0f766e', bg: '#ccfbf1' },
-    ctv_marketplace: { label: 'CTV Marketplace', color: '#6d28d9', bg: '#ede9fe' },
+    ctv_marketplace: { label: 'Collaborator Marketplace', color: '#6d28d9', bg: '#ede9fe' },
   },
   ja: {
     scout_credit: { label: 'Scout Credit', color: '#0369a1', bg: '#e0f2fe' },
     scout_performance: { label: '委託スカウト', color: '#0f766e', bg: '#ccfbf1' },
-    ctv_marketplace: { label: 'CTVマーケット', color: '#6d28d9', bg: '#ede9fe' },
+    ctv_marketplace: { label: '採用パートナーマーケット', color: '#6d28d9', bg: '#ede9fe' },
   },
 };
 
@@ -128,7 +128,7 @@ export const candidatesI18n = {
       clickHint: 'Bấm vào hồ sơ để xem chi tiết trong tab mới',
       nominatedToJob: 'Tiến cử vào JD',
       emptyAll: 'Không tìm thấy ứng viên phù hợp.',
-      emptyScoutCredit: 'Không tìm thấy ứng viên Scout Credit.',
+      emptyScoutCredit: 'Không tìm thấy ứng viên Scout Trực Tiếp.',
       emptyScoutPerformance: 'Không tìm thấy ứng viên Scout Ủy Thác.',
       emptyCtvMarketplace: 'Không tìm thấy ứng viên tiến cử từ Sàn CTV.',
       loadError: 'Không tải được danh sách ứng viên',
@@ -211,7 +211,7 @@ export const candidatesI18n = {
         creditUsed: 'Credit đã dùng',
         overview: 'Tổng quan',
         pipeline: 'Pipeline',
-        scoutCredit: 'Scout Credit',
+        scoutCredit: 'Scout Trực Tiếp',
         recommendations: (n) => `${n} gợi ý`,
       },
       matchedJobs: {
@@ -308,7 +308,7 @@ export const candidatesI18n = {
   },
   en: {
     list: {
-      emptyBody: 'You do not have any candidate profiles yet. Find talent via Scout or receive nominations from CTV partners on the marketplace.',
+      emptyBody: 'You do not have any candidate profiles yet. Find talent via Scout or receive nominations from collaborator partners on the marketplace.',
       emptyCta: 'Find candidates on Scout',
       unlockSourceLabel: 'Profile source',
       unlockSourceAll: 'All sources',
@@ -328,11 +328,11 @@ export const candidatesI18n = {
       emptyAll: 'No matching candidates found.',
       emptyScoutCredit: 'No Scout Credit candidates found.',
       emptyScoutPerformance: 'No Managed Scout candidates found.',
-      emptyCtvMarketplace: 'No CTV marketplace nominations found.',
+      emptyCtvMarketplace: 'No Collaborator marketplace nominations found.',
       loadError: 'Could not load candidate list',
       nomination: {
         title: 'Create nomination',
-        subtitle: 'Select a JD published on the CTV marketplace',
+        subtitle: 'Select a JD published on the Collaborator marketplace',
         candidatePrefix: 'Candidate',
         selectJob: 'Select JD',
         selectJobPlaceholder: 'Choose a job to nominate',
@@ -349,8 +349,8 @@ export const candidatesI18n = {
         loadingJobs: 'Loading jobs...',
         onMarketplaceBadge: 'On marketplace',
         notOnMarketplaceBadge: 'Not on marketplace',
-        goToMarketplace: 'Go to CTV Marketplace',
-        jobNotOnMarketplace: (title, status) => `JD "${title}" is not published on the CTV marketplace${status ? ` (status: ${status})` : ''}. Please publish the job first.`,
+        goToMarketplace: 'Go to Collaborator Marketplace',
+        jobNotOnMarketplace: (title, status) => `JD "${title}" is not published on the Collaborator marketplace${status ? ` (status: ${status})` : ''}. Please publish the job first.`,
         createNomination: 'Create nomination',
       },
     },
@@ -506,7 +506,7 @@ export const candidatesI18n = {
   },
   ja: {
     list: {
-      emptyBody: 'まだ候補者プロフィールがありません。Scoutで探すか、CTVマーケット経由の推薦を受け取ってください。',
+      emptyBody: 'まだ候補者プロフィールがありません。Scoutで探すか、採用パートナーマーケット経由の推薦を受け取ってください。',
       emptyCta: 'Scoutで候補者を探す',
       unlockSourceLabel: 'プロフィール元',
       unlockSourceAll: 'すべてのソース',
@@ -526,11 +526,11 @@ export const candidatesI18n = {
       emptyAll: '該当する候補者が見つかりません。',
       emptyScoutCredit: 'Scout Creditの候補者が見つかりません。',
       emptyScoutPerformance: 'Scout Performanceの候補者が見つかりません。',
-      emptyCtvMarketplace: 'CTVマーケット経由の候補者が見つかりません。',
+      emptyCtvMarketplace: '採用パートナーマーケット経由の候補者が見つかりません。',
       loadError: '候補者リストを読み込めませんでした',
       nomination: {
         title: '推薦を作成',
-        subtitle: 'CTVマーケットに掲載済みのJDを選択',
+        subtitle: '採用パートナーマーケットに掲載済みのJDを選択',
         candidatePrefix: '候補者',
         selectJob: 'JDを選択',
         selectJobPlaceholder: '推薦先JDを選択',
@@ -547,8 +547,8 @@ export const candidatesI18n = {
         loadingJobs: 'JDリストを読み込み中...',
         onMarketplaceBadge: '掲載中',
         notOnMarketplaceBadge: '未掲載',
-        goToMarketplace: 'CTVマーケットへ',
-        jobNotOnMarketplace: (title, status) => `JD「${title}」はCTVマーケットに未掲載${status ? `（${status}）` : ''}です。先に掲載してください。`,
+        goToMarketplace: '採用パートナーマーケットへ',
+        jobNotOnMarketplace: (title, status) => `JD「${title}」は採用パートナーマーケットに未掲載${status ? `（${status}）` : ''}です。先に掲載してください。`,
         createNomination: '推薦を作成',
       },
     },

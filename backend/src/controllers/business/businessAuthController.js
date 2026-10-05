@@ -5,6 +5,12 @@ import crypto from 'crypto';
 import path from 'path';
 import sequelize from '../../config/database.js';
 import emailService from '../../services/emailService.js';
+import {
+  fireBusinessNotificationEmail,
+  notifyEmailVerification,
+  notifyPasswordReset,
+  notifyCompanyRegistered,
+} from '../../services/businessNotificationEmail/businessNotificationEmailHooks.js';
 import { deleteFileFromS3, getSignedUrlForFile, uploadBufferToS3 } from '../../services/s3Service.js';
 
 const EMAIL_VERIFY_EXPIRES_HOURS = parseInt(process.env.EMAIL_VERIFY_EXPIRES_HOURS || '72', 10);
@@ -340,12 +346,13 @@ export const businessAuthController = {
 
       try {
         const verifyUrl = buildVerifyEmailUrl(verifyData.token);
-        const emailContent = buildRegistrationVerificationEmail(verifyUrl);
-        await emailService.sendEmail({
-          to: business.email,
-          subject: emailContent.subject,
-          text: emailContent.text,
-          html: emailContent.html
+        await notifyEmailVerification({
+          businessId: business.id,
+          email: business.email,
+          userName: business.contactName || business.companyName,
+          companyName: business.companyName,
+          verificationUrl: verifyUrl,
+          locale: 'ja',
         });
       } catch (emailError) {
         console.error('[business register] Send verification email failed:', emailError);
@@ -519,6 +526,7 @@ export const businessAuthController = {
 
       if (!alreadyVerified) {
         await activateBusinessAfterEmailVerification(business, now);
+        fireBusinessNotificationEmail(notifyCompanyRegistered({ businessId: business.id, locale: 'ja' }));
       } else if (!business.approvedAt || business.status !== 1) {
         await activateBusinessAfterEmailVerification(business, business.emailVerifiedAt || now);
       }
@@ -574,12 +582,13 @@ export const businessAuthController = {
 
       try {
         const verifyUrl = buildVerifyEmailUrl(verifyData.token);
-        const emailContent = buildRegistrationVerificationEmail(verifyUrl);
-        await emailService.sendEmail({
-          to: business.email,
-          subject: emailContent.subject,
-          text: emailContent.text,
-          html: emailContent.html
+        await notifyEmailVerification({
+          businessId: business.id,
+          email: business.email,
+          userName: business.contactName || business.companyName,
+          companyName: business.companyName,
+          verificationUrl: verifyUrl,
+          locale: 'ja',
         });
       } catch (emailError) {
         console.error('[business resendVerification] Send email failed:', emailError);
@@ -650,10 +659,16 @@ export const businessAuthController = {
       });
 
       const resetUrl = buildResetPasswordUrl(payload);
-      const { subject, html } = buildPasswordResetEmail(resetUrl);
 
       try {
-        await emailService.sendEmail({ to: business.email, subject, html });
+        await notifyPasswordReset({
+          businessId: business.id,
+          email: business.email,
+          userName: business.contactName || business.companyName,
+          companyName: business.companyName,
+          resetUrl,
+          locale: 'ja',
+        });
       } catch (emailError) {
         console.error('[business forgotPassword] Send email failed:', emailError);
         return res.status(500).json({

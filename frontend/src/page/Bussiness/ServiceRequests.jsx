@@ -4,6 +4,7 @@ import { Loader2, Info, X } from 'lucide-react';
 import apiService from '../../services/api';
 import ServiceRequestModal from '../../component/Bussiness/ServiceRequestModal';
 import ServiceRequestAccountSidebar from '../../component/Bussiness/ServiceRequestAccountSidebar';
+import BusinessServiceFeeSimulator from '../../component/Bussiness/BusinessServiceFeeSimulator.jsx';
 import { getBusinessServiceRequestCatalog, getServiceByKey } from '../../utils/businessServiceRequestCatalog';
 import { getServiceRequestsCopy } from '../../i18n/businessApp/serviceRequests';
 import {
@@ -142,7 +143,7 @@ export default function ServiceRequests() {
           </nav>
 
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_260px] xl:grid-cols-[minmax(0,1fr)_280px]">
-            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+            <div className="business-homepage-scroll flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto lg:pr-1">
               <header className="shrink-0 space-y-2">
                 <h1 className={SR_PAGE_TITLE}>
                   {srCopy.pageTitle}
@@ -159,7 +160,13 @@ export default function ServiceRequests() {
                 </p>
               </header>
 
-              <div className={SR_CATALOG_PANEL}>
+              <BusinessServiceFeeSimulator className="shrink-0" highlight />
+
+              <h2 className="shrink-0 text-base font-bold text-slate-900 sm:text-lg">
+                {srCopy.otherServicesHeading}
+              </h2>
+
+              <div className={`-mt-2 ${SR_CATALOG_PANEL}`}>
                 <div className={SR_CATALOG_GRID}>
                   {catalog.map((service) => {
                     const Icon = service.icon;

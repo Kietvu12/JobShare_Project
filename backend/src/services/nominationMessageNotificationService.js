@@ -124,6 +124,27 @@ export async function dispatchNominationMessageNotifications({
     }
   }
 
+  if ([1, 2, 3].includes(senderType) && jobApplication.jobId) {
+    try {
+      const job = jobApplication.job || await Job.findByPk(jobApplication.jobId, {
+        attributes: ['id', 'businessId', 'title'],
+      });
+      if (job?.businessId && senderType !== 5) {
+        const { fireBusinessNotificationEmail, notifyReferralMessageNew } = await import('./businessNotificationEmail/businessNotificationEmailHooks.js');
+        const senderLabel = await resolveSenderLabel({ senderType, message, jobApplication });
+        fireBusinessNotificationEmail(notifyReferralMessageNew({
+          businessId: job.businessId,
+          referralId: jobApplication.id,
+          senderName: senderLabel,
+          messagePreview: preview,
+          locale: 'ja',
+        }));
+      }
+    } catch (mailErr) {
+      console.error('[nominationMessageNotify] business email:', mailErr?.message || mailErr);
+    }
+  }
+
   if (!isApplicantThread && collaboratorId && [1, 3, 5].includes(senderType)) {
     try {
       await collaboratorNotificationService.notifyIncomingMessage({

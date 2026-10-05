@@ -32,7 +32,7 @@ if (process.env.NODE_ENV !== 'test') {
 
 export default {
   // Server
-  port: process.env.PORT || 3000,
+  port: process.env.PORT || 3001,
   nodeEnv: process.env.NODE_ENV || 'development',
   
   // Database
@@ -111,8 +111,15 @@ export default {
     microsoftTenantId: process.env.MICROSOFT_TENANT_ID || 'common',
     microsoftClientId: process.env.MICROSOFT_CLIENT_ID || '',
     microsoftClientSecret: process.env.MICROSOFT_CLIENT_SECRET || '',
-    microsoftMailFrom: process.env.MICROSOFT_MAIL_FROM || process.env.MAIL_FROM_ADDRESS || process.env.EMAIL_FROM || ''
+    microsoftMailFrom: process.env.MICROSOFT_MAIL_FROM || process.env.MAIL_FROM_ADDRESS || process.env.EMAIL_FROM || '',
+    /** Email nhận lead tải tài liệu Business landing (tuỳ chọn) */
+    businessDocumentLeadEmail: (process.env.BUSINESS_DOCUMENT_LEAD_EMAIL || '').trim() || null,
+    /** Email nhận lead form liên hệ Business landing (tuỳ chọn; fallback BUSINESS_DOCUMENT_LEAD_EMAIL) */
+    businessContactLeadEmail: (process.env.BUSINESS_CONTACT_LEAD_EMAIL || '').trim() || null,
   },
+
+  /** PDF đính kèm form tải tài liệu JobShare Business (tuỳ chọn — mặc định tìm trong backend/assets) */
+  businessDocumentPdfPath: (process.env.BUSINESS_DOCUMENT_PDF_PATH || '').trim() || null,
 
   /** Email nhận thông báo khi có đơn tiến cử mới (phân tách bằng dấu phẩy; ghi đè bằng NOMINATION_NEW_ADMIN_EMAILS) */
   nominationNewAdminEmails: (() => {

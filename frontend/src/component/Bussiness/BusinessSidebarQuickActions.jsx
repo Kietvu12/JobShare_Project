@@ -165,21 +165,27 @@ export default function BusinessSidebarQuickActions({ collapsed = false, onNavig
               showMenu();
             }
           }}
-          className={`flex items-center gap-1.5 rounded-lg border border-slate-200/90 bg-white text-left shadow-sm transition-colors hover:border-[#0077B6]/30 hover:bg-[#f8fbfd] ${
-            collapsed ? 'h-8 w-8 justify-center p-0' : 'w-full px-2 py-1.5'
-          } ${open ? 'border-[#0077B6]/35 bg-[#e8f4fa]' : ''}`}
+          className={`group flex items-center gap-2 rounded-lg text-left text-white shadow-md shadow-[#0077B6]/30 transition-all hover:bg-[#006399] hover:shadow-lg hover:shadow-[#0077B6]/35 ${
+            collapsed ? 'h-9 w-9 justify-center p-0' : 'w-full px-2.5 py-2'
+          } ${open ? 'bg-[#005a8c] ring-2 ring-[#0077B6]/30' : 'bg-[#0077B6]'}`}
           aria-expanded={open}
           aria-haspopup="menu"
           aria-label={copy.homepage.quickActions}
           title={copy.homepage.quickActions}
         >
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#e8f4fa] text-[#0077B6]">
-            <Zap className="h-3 w-3" strokeWidth={2.25} />
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/20 text-white">
+            <Zap className="h-3.5 w-3.5 fill-amber-300 text-amber-300" strokeWidth={2.25} />
           </span>
           {!collapsed ? (
-            <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-slate-800">
-              {copy.homepage.quickActions}
-            </span>
+            <>
+              <span className="min-w-0 flex-1 truncate text-xs font-bold text-white">
+                {copy.homepage.quickActions}
+              </span>
+              <ArrowUpRight
+                className={`h-3.5 w-3.5 shrink-0 text-white/80 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 ${open ? 'rotate-45' : ''}`}
+                strokeWidth={2.5}
+              />
+            </>
           ) : null}
         </button>
       </div>

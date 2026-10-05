@@ -20,6 +20,18 @@ function stripHtml(html) {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * Portal DN (Knowledge Hub + dashboard tin tức): mọi bài published có ít nhất một kênh hiển thị.
+ * Bài cũ default mask=7 (thiếu bit business) vẫn hiện; admin có thể thu hẹp mask sau.
+ */
+export function postVisibilityWhereForBusinessPortal() {
+  return {
+    visibilityMask: {
+      [Op.gt]: 0,
+    },
+  };
+}
+
 export function postVisibilityWhereForSurface(surface, { agentHome = false } = {}) {
   if (agentHome) {
     return sequelize.where(
@@ -44,11 +56,7 @@ export function postVisibilityWhereForSurface(surface, { agentHome = false } = {
     );
   }
   if (s === 'business' || s === 'business_knowledge' || s === 'knowledge') {
-    return sequelize.where(
-      sequelize.literal(`(\`Post\`.\`visibility_mask\` & ${POST_VISIBILITY_BUSINESS_KNOWLEDGE})`),
-      Op.gt,
-      0
-    );
+    return postVisibilityWhereForBusinessPortal();
   }
   const publicBits = POST_VISIBILITY_PUBLIC_CTV | POST_VISIBILITY_PUBLIC_CANDIDATE;
   return sequelize.where(

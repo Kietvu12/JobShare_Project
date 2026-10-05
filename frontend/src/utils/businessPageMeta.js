@@ -22,7 +22,7 @@ const PAGE_META = [
   { path: '/business/scout/managed', end: false, icon: Search, title: { vi: 'Scout Ủy Thác', en: 'Managed Scout', ja: '委託スカウト' } },
   { path: '/business/saiyo', end: false, icon: Users, title: { vi: 'Saiyo Branding', en: 'Saiyo Branding', ja: 'Saiyo ブランディング' } },
   { path: '/business/saiyo/landing-pages', end: true, icon: Users, title: { vi: 'Quản lý Landing Page', en: 'Landing page management', ja: 'LP管理' } },
-  { path: '/business/candidate-sharing', end: false, icon: Users2, title: { vi: 'Sàn CTV', en: 'WS CTV Marketplace', ja: 'WS CTVマーケット' } },
+  { path: '/business/candidate-sharing', end: false, icon: Users2, title: { vi: 'Sàn CTV', en: 'WS Collaborator Marketplace', ja: 'WS採用パートナーマーケット' } },
   { path: '/business/knowledge', end: false, icon: BookOpen, title: { vi: 'Knowledge Hub', en: 'Knowledge Hub', ja: 'ナレッジハブ' } },
   { path: '/business/insights', end: false, icon: PieChart, title: { vi: 'Report & insight', en: 'Reports & insights', ja: 'レポート・インサイト' } },
   { path: '/business/messages', end: false, icon: MessageSquare, title: { vi: 'Tin nhắn', en: 'Messages', ja: 'メッセージ' } },

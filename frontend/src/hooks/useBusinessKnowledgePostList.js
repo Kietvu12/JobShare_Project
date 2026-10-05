@@ -16,10 +16,10 @@ export default function useBusinessKnowledgePostList(limit = 6) {
         const res = await apiService.getBusinessKnowledgePosts({
           page: 1,
           limit: fetchLimit,
-          sortBy: 'published_at',
+          sortBy: 'publishedAt',
           sortOrder: 'DESC',
         });
-        const list = res?.data?.posts || [];
+        const list = res?.success ? (res?.data?.posts || []) : [];
         if (!cancelled) setPosts(Array.isArray(list) ? list : []);
       } catch {
         if (!cancelled) setPosts([]);

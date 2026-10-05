@@ -262,7 +262,7 @@ const CollaboratorLayout = () => {
           <div className="mx-auto w-full max-w-[1200px] px-4 py-3 md:px-6">
             <div className="flex items-center justify-between gap-4">
             <Link to={prefix || '/'} className="flex-shrink-0">
-              <img src="/logo.png" alt="Job Share" className="h-6 w-auto md:h-7" />
+              <img src="/logo.png" alt="Job Share" className="h-6 w-auto max-h-7 max-w-[160px] object-contain object-left md:h-7" />
             </Link>
 
             <nav className="hidden items-center gap-6 lg:flex">
@@ -339,7 +339,7 @@ const CollaboratorLayout = () => {
           >
             <div className="flex items-center justify-between px-5 py-4">
               <Link to={prefix || '/'} onClick={() => setMobileMenuOpen(false)}>
-                <img src="/logo.png" alt="Job Share" className="h-6 w-auto" />
+                <img src="/logo.png" alt="Job Share" className="h-6 w-auto max-w-[160px] object-contain object-left" />
               </Link>
               <button
                 type="button"

@@ -162,8 +162,11 @@ export default function HtmlTemplatePageViewer({
     const x = clientX - rect.left;
     const y = clientY - rect.top;
     const hit = doc.elementFromPoint(x, y);
-    const direct = hit?.closest('[data-wjs-type="image"], [data-wjs-type="bg-image"], .wjs-editable-img');
+    const direct = hit?.closest('[data-wjs-type="image"], .wjs-editable-img');
     if (direct) return direct;
+    if (hit?.closest('.wjs-editable[data-wjs-field]')) return null;
+    const bgDirect = hit?.closest('[data-wjs-type="bg-image"]');
+    if (bgDirect) return bgDirect;
 
     const zones = [...doc.querySelectorAll('[data-wjs-type="bg-image"]')];
     for (const zone of zones) {

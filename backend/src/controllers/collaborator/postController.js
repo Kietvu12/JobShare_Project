@@ -4,6 +4,7 @@ import { resolveS3DisplayUrl, attachResolvedPostBodyHtml } from '../../utils/pos
 import { buildPostShareImageUrl } from '../../utils/publicShareUrls.js';
 import {
   findPublishedPostBySlugOrId,
+  postVisibilityWhereForBusinessPortal,
   postVisibilityWhereForSurface,
 } from '../../services/postPublicService.js';
 
@@ -11,7 +12,7 @@ import {
 function postVisibilityWhereForRequest(req) {
   const base = String(req.baseUrl || '');
   if (base.includes('/business/knowledge')) {
-    return postVisibilityWhereForSurface('business');
+    return postVisibilityWhereForBusinessPortal();
   }
   const isPublic = base.includes('/public/posts');
   if (!isPublic) {

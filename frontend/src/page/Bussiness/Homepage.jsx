@@ -20,6 +20,7 @@ import BusinessQuickActionsPanel, { getDefaultBusinessQuickActions } from '../..
 import BusinessQuickActionsPageLayout from '../../component/Bussiness/BusinessQuickActionsPageLayout.jsx';
 import BusinessNotificationsPanel from '../../component/Bussiness/BusinessNotificationsPanel.jsx';
 import { getBusinessServiceTag } from '../../component/Bussiness/BusinessServiceCardTag.jsx';
+import BusinessServiceFeeSimulator from '../../component/Bussiness/BusinessServiceFeeSimulator.jsx';
 
 import {
   BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
@@ -384,7 +385,7 @@ function HomepageSidebar({
 
 function HomepageMain({ displayName, onNavigate, copy, cardLabels, solutionCards }) {
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 sm:gap-3.5">
+    <div className="flex min-h-0 flex-col gap-3 pb-2 sm:gap-3.5 sm:pb-3">
       <header className="shrink-0">
         <h1 className="text-xl font-bold leading-tight text-slate-900 sm:text-2xl">{copy.homepage.greeting(displayName)}</h1>
         <p className="mt-1 text-sm leading-snug text-slate-600 sm:text-base">
@@ -408,6 +409,8 @@ function HomepageMain({ displayName, onNavigate, copy, cardLabels, solutionCards
         ))}
       </div>
 
+      <BusinessServiceFeeSimulator className="shrink-0" onNavigate={onNavigate} />
+
       <div className="flex shrink-0 flex-col gap-3 rounded-xl border border-[#0077B6]/15 bg-white px-3 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4 sm:py-3.5">
         <p className="min-w-0 flex-1 text-sm leading-snug text-slate-700">
           <span className="font-semibold text-slate-900">{copy.homepage.consultTitle}</span>
@@ -423,9 +426,7 @@ function HomepageMain({ displayName, onNavigate, copy, cardLabels, solutionCards
         </button>
       </div>
 
-      <div className="shrink-0 pb-1">
-        <HomepageNewsSection />
-      </div>
+      <HomepageNewsSection />
     </div>
   );
 }
@@ -457,11 +458,14 @@ const Homepage = () => {
     <>
       <style>{homepageStyles}</style>
       <div
-        className="business-homepage-shell flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto bg-[#f4f6f8] xl:overflow-hidden"
+        className="business-homepage-shell flex h-full min-h-0 flex-col overflow-x-hidden bg-[#f4f6f8]"
         style={{ fontFamily: PAGE_FONT }}
       >
         <div className="business-homepage-ui flex h-full min-h-0 w-full flex-1 flex-col p-2.5 sm:p-3">
-          <BusinessQuickActionsPageLayout onNavigate={handleNavigate}>
+          <BusinessQuickActionsPageLayout
+            onNavigate={handleNavigate}
+            mainClassName="min-h-0 flex-1"
+          >
             <HomepageMain
               displayName={displayName}
               onNavigate={handleNavigate}

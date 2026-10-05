@@ -341,7 +341,7 @@ export const scoutWorkspaceI18n = {
         requestFailedTitle: 'Gửi yêu cầu thất bại',
         invalidId: 'ID hồ sơ không hợp lệ',
         loadError: 'Không tải được hồ sơ ứng viên',
-        creditConfirmTitle: 'Mở hồ sơ bằng Scout Credit',
+        creditConfirmTitle: 'Mở hồ sơ bằng Scout Trực Tiếp',
         performanceConfirmTitle: 'Mở hồ sơ bằng Scout Performance',
         unlockSuccessTitle: 'Đã mở hồ sơ',
         unlockSuccessBody: 'Bạn có thể xem email, SĐT và thông tin liên hệ đầy đủ.',

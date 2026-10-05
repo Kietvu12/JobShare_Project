@@ -98,3 +98,21 @@
     animation: none;
   }
 }
+
+.page-news-tab__all,
+.page-news-tab__anchor,
+.page-news-pagination .page-numbers {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-align: inherit;
+}
+
+.page-news-list__empty {
+  padding: 2rem 0;
+  text-align: center;
+  color: #666;
+}

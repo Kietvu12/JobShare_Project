@@ -45,6 +45,7 @@ const BRAND = '#0077B6'
 
 const CTV_TAB_INDEX = 0
 const WS_TAB_INDEX = 1
+const SCOUT_ONLY_STATUS_VALUES = new Set([17, 18, 19, 20, 21])
 
 const messageStyles = BUSINESS_HOMEPAGE_PAGE_BASE_STYLES
 
@@ -316,7 +317,8 @@ const Message = () => {
   }, [searchParams, urlWsView])
 
   const statusFilterOptions = useMemo(
-    () => getJobApplicationStatusOptionsByLanguage(language),
+    () => getJobApplicationStatusOptionsByLanguage(language)
+      .filter((o) => !SCOUT_ONLY_STATUS_VALUES.has(Number(o.value))),
     [language],
   )
 

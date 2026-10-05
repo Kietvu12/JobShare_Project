@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ChevronRight, Plus, Loader2, X, BarChart3,
   FileText, Users, ArrowRight, Search, Briefcase,
@@ -138,6 +138,33 @@ const CTV_MARKETPLACE_LAYOUT_STYLES = `
     background: rgb(248 250 252 / 0.96);
     box-shadow: 0 1px 0 rgb(241 245 249);
   }
+
+  @keyframes biz-hp-card-slide-in {
+    from { opacity: 0; transform: translateY(28px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .biz-hp-solution-card-wrap,
+  .ctv-motion-wrap {
+    animation: biz-hp-card-slide-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  .biz-hp-solution-card,
+  .ctv-motion-card {
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease;
+    will-change: transform;
+  }
+  .biz-hp-solution-card:hover,
+  .ctv-motion-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 16px 32px -12px rgba(0, 119, 182, 0.35);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .biz-hp-solution-card-wrap,
+    .ctv-motion-wrap { animation: none; }
+    .biz-hp-solution-card,
+    .ctv-motion-card { transition: none; }
+    .biz-hp-solution-card:hover,
+    .ctv-motion-card:hover { transform: none; }
+  }
 `
 
 const pageStyles = `${BUSINESS_HOMEPAGE_PAGE_BASE_STYLES}${CTV_MARKETPLACE_LAYOUT_STYLES}`
@@ -219,7 +246,7 @@ function OnboardingView({
   ]
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 sm:gap-5 2xl:gap-6 min-w-0 pb-3 sm:pb-4">
+    <div className="flex w-full min-w-0 flex-col gap-4 pb-3 sm:gap-5 sm:pb-4 2xl:gap-6">
       <div className="shrink-0">
         <nav aria-label="Breadcrumb" className={BUSINESS_HP_TEXT.meta}>
           <button
@@ -234,12 +261,15 @@ function OnboardingView({
         </nav>
       </div>
 
-      <div className="rounded-xl border border-[#0077B6]/20 bg-gradient-to-br from-[#e8f4fa] to-white p-5 sm:p-6 shadow-sm">
+      <div
+        className="ctv-motion-wrap ctv-motion-card rounded-xl border border-[#0077B6]/20 bg-gradient-to-br from-[#e8f4fa] to-white p-5 shadow-sm sm:p-6"
+        style={{ animationDelay: '0.06s' }}
+      >
         <p className={`font-bold uppercase tracking-wide text-[#0077B6] ${BUSINESS_HP_TEXT.caption}`}>{ob.kicker}</p>
         <h1 className={`mt-1 leading-snug ${BUSINESS_HP_TEXT.title}`}>
           {ob.heroTitle}
         </h1>
-        <p className={`mt-2 max-w-2xl leading-relaxed text-slate-600 ${BUSINESS_HP_TEXT.body}`}>
+        <p className={`mt-2 max-w-3xl leading-relaxed text-slate-600 ${BUSINESS_HP_TEXT.body}`}>
           {ob.heroBody}
         </p>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -263,7 +293,10 @@ function OnboardingView({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div
+        className="ctv-motion-wrap overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+        style={{ animationDelay: '0.14s' }}
+      >
         <div className="border-b border-slate-100 px-4 py-3 sm:px-5 sm:py-4">
           <h2 className={BUSINESS_HP_TEXT.section}>{ob.compareTitle}</h2>
           <p className={`mt-0.5 ${BUSINESS_HP_TEXT.caption}`}>{ob.compareSubtitle}</p>
@@ -299,19 +332,28 @@ function OnboardingView({
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+      <div
+        className="ctv-motion-wrap rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
+        style={{ animationDelay: '0.2s' }}
+      >
         <h2 className={BUSINESS_HP_TEXT.section}>{ob.benefitsTitle}</h2>
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-          {ob.benefits.map((item) => {
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
+          {ob.benefits.map((item, index) => {
             const Icon = ONBOARDING_ICON_MAP[item.iconKey] || Sparkles
             return (
-              <div key={item.title} className="flex gap-3 rounded-lg border border-slate-100 bg-slate-50/50 p-3.5 sm:p-4">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e8f4fa]">
-                  <Icon className="h-4 w-4 text-[#0077B6]" strokeWidth={2} />
-                </div>
-                <div className="min-w-0">
-                  <h3 className={`font-bold text-slate-800 ${BUSINESS_HP_TEXT.body}`}>{item.title}</h3>
-                  <p className={`mt-0.5 leading-relaxed ${BUSINESS_HP_TEXT.caption}`}>{item.desc}</p>
+              <div
+                key={item.title}
+                className="biz-hp-solution-card-wrap h-full min-w-0"
+                style={{ animationDelay: `${0.24 + index * 0.08}s` }}
+              >
+                <div className="ctv-motion-card flex h-full gap-3 rounded-lg border border-slate-100 bg-slate-50/50 p-3.5 sm:p-4">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e8f4fa]">
+                    <Icon className="h-4 w-4 text-[#0077B6]" strokeWidth={2} />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className={`font-bold text-slate-800 ${BUSINESS_HP_TEXT.body}`}>{item.title}</h3>
+                    <p className={`mt-0.5 leading-relaxed ${BUSINESS_HP_TEXT.caption}`}>{item.desc}</p>
+                  </div>
                 </div>
               </div>
             )
@@ -319,37 +361,55 @@ function OnboardingView({
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 2xl:p-6 shrink-0">
+      <div
+        className="ctv-motion-wrap shrink-0 rounded-xl border border-slate-200 bg-white p-4 sm:p-5 2xl:p-6"
+        style={{ animationDelay: '0.28s' }}
+      >
         <h2 className={`mb-4 sm:mb-5 ${BUSINESS_HP_TEXT.section}`}>{ob.processTitle}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4">
           {ob.processSteps.map((step, idx) => (
-            <div key={step.num} className="relative flex flex-col gap-2 sm:gap-2.5">
-              {idx < ob.processSteps.length - 1 && (
-                <div className="hidden xl:block absolute top-4 left-[calc(100%-8px)] w-full h-px bg-[#cce5f0] z-0" />
-              )}
-              <span className={`inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#0077B6] text-white font-bold relative z-10 ${BUSINESS_HP_TEXT.caption}`}>
-                {step.num}
-              </span>
-              <h3 className={`font-bold text-slate-800 ${BUSINESS_HP_TEXT.body}`}>{step.title}</h3>
-              <p className={`text-slate-500 leading-relaxed ${BUSINESS_HP_TEXT.caption}`}>{step.desc}</p>
+            <div
+              key={step.num}
+              className="biz-hp-solution-card-wrap h-full min-w-0"
+              style={{ animationDelay: `${0.32 + idx * 0.08}s` }}
+            >
+              <div className="ctv-motion-card relative flex h-full flex-col gap-2 rounded-lg border border-transparent bg-white p-1 sm:gap-2.5">
+                {idx < ob.processSteps.length - 1 && (
+                  <div className="absolute left-[calc(100%-8px)] top-4 z-0 hidden h-px w-full bg-[#cce5f0] xl:block" />
+                )}
+                <span className={`relative z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#0077B6] font-bold text-white sm:h-9 sm:w-9 ${BUSINESS_HP_TEXT.caption}`}>
+                  {step.num}
+                </span>
+                <h3 className={`font-bold text-slate-800 ${BUSINESS_HP_TEXT.body}`}>{step.title}</h3>
+                <p className={`leading-relaxed text-slate-500 ${BUSINESS_HP_TEXT.caption}`}>{step.desc}</p>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200/90 bg-white p-4 sm:p-5">
+      <div
+        className="ctv-motion-wrap rounded-xl border border-slate-200/90 bg-white p-4 sm:p-5"
+        style={{ animationDelay: '0.36s' }}
+      >
         <h2 className={BUSINESS_HP_TEXT.section}>{ob.platformStatsTitle}</h2>
         <p className={`mt-1 ${BUSINESS_HP_TEXT.caption}`}>{ob.platformStatsSubtitle}</p>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-          {platformKpis.map((kpi) => {
+          {platformKpis.map((kpi, index) => {
             const Icon = kpi.icon
             return (
-              <div key={kpi.label} className="rounded-lg border border-slate-100 bg-slate-50/80 p-3.5 sm:p-4">
-                <div className="mb-1.5 flex items-center gap-1.5">
-                  <Icon className="h-3.5 w-3.5 text-[#0077B6]" strokeWidth={2} />
-                  <span className={`font-medium leading-snug ${BUSINESS_HP_TEXT.caption}`}>{kpi.label}</span>
+              <div
+                key={kpi.label}
+                className="biz-hp-solution-card-wrap h-full min-w-0"
+                style={{ animationDelay: `${0.4 + index * 0.08}s` }}
+              >
+                <div className="ctv-motion-card h-full rounded-lg border border-slate-100 bg-slate-50/80 p-3.5 sm:p-4">
+                  <div className="mb-1.5 flex items-center gap-1.5">
+                    <Icon className="h-3.5 w-3.5 text-[#0077B6]" strokeWidth={2} />
+                    <span className={`font-medium leading-snug ${BUSINESS_HP_TEXT.caption}`}>{kpi.label}</span>
+                  </div>
+                  <div className={`tabular-nums ${BUSINESS_HP_TEXT.stat}`}>{kpi.value}</div>
                 </div>
-                <div className={`tabular-nums ${BUSINESS_HP_TEXT.stat}`}>{kpi.value}</div>
               </div>
             )
           })}
@@ -977,19 +1037,18 @@ const CandidateSharing = () => {
     return card?.title || cs.marketplaceSubtitle
   }, [language, cs.marketplaceSubtitle])
   const breadcrumbHome = copy.jobs.breadcrumb.home
-  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const urlTab = searchParams.get('tab')
   const urlNominationId = searchParams.get('nominationId')
   const urlListingId = searchParams.get('listingId')
   const urlJobId = searchParams.get('jobId')
   const urlCreate = searchParams.get('create')
+  const urlView = searchParams.get('view')
 
   const [tab, setTab] = useState(() => (
     urlTab && VALID_TABS.includes(urlTab) ? urlTab : 'jobs'
   ))
   const [loading, setLoading] = useState(true)
-  const [forceDashboard, setForceDashboard] = useState(false)
   const [stats, setStats] = useState(null)
   const [platformOverview, setPlatformOverview] = useState(null)
   const [jobFilterStatus, setJobFilterStatus] = useState('')
@@ -1005,6 +1064,7 @@ const CandidateSharing = () => {
   const [confirmingHireId, setConfirmingHireId] = useState(null)
   const [showCreate, setShowCreate] = useState(() => urlCreate === '1' || !!urlJobId)
   const [createJobId, setCreateJobId] = useState(() => urlJobId || '')
+  const listingJustCreatedRef = useRef(false)
 
   useEffect(() => {
     if (urlCreate === '1' || urlJobId) {
@@ -1015,10 +1075,13 @@ const CandidateSharing = () => {
 
   const closeCreateModal = () => {
     setShowCreate(false)
-    if (urlCreate || urlJobId) {
+    const justCreated = listingJustCreatedRef.current
+    listingJustCreatedRef.current = false
+    if (urlCreate || urlJobId || justCreated) {
       const next = new URLSearchParams(searchParams)
       next.delete('create')
       next.delete('jobId')
+      if (justCreated) next.set('view', 'dashboard')
       setSearchParams(next, { replace: true })
     }
   }
@@ -1176,18 +1239,21 @@ const CandidateSharing = () => {
   const deepLinkDashboard = Boolean(
     urlNominationId
     || urlListingId
-    || (urlTab && VALID_TABS.includes(urlTab) && urlTab !== 'jobs'),
+    || urlView === 'dashboard'
+    || (urlTab && VALID_TABS.includes(urlTab)),
   )
 
-  const showOnboarding = !loading && !forceDashboard && !deepLinkDashboard && !hasListings
+  const showOnboarding = !loading && !deepLinkDashboard
 
   const enterMarketplaceDashboard = useCallback(() => {
-    setForceDashboard(true)
-  }, [])
+    const next = new URLSearchParams(searchParams)
+    next.set('view', 'dashboard')
+    setSearchParams(next)
+  }, [searchParams, setSearchParams])
 
-  useEffect(() => {
-    if (deepLinkDashboard) setForceDashboard(true)
-  }, [deepLinkDashboard])
+  const backToMarketplaceIntro = useCallback(() => {
+    navigate('/business/candidate-sharing')
+  }, [navigate])
 
   useEffect(() => {
     if (!urlListingId) return
@@ -1207,11 +1273,6 @@ const CandidateSharing = () => {
     return () => { cancelled = true }
   }, [urlListingId, urlNominationId, navigate])
 
-  useEffect(() => {
-    if (deepLinkDashboard) return
-    setForceDashboard(false)
-  }, [location.key, deepLinkDashboard])
-
   const openCreateModal = () => setShowCreate(true)
 
   const handleTabChange = useCallback((key) => {
@@ -1219,6 +1280,7 @@ const CandidateSharing = () => {
     const next = new URLSearchParams(searchParams)
     if (key === 'jobs') next.delete('tab')
     else next.set('tab', key)
+    next.set('view', 'dashboard')
     setSearchParams(next, { replace: true })
   }, [searchParams, setSearchParams])
 
@@ -1228,6 +1290,7 @@ const CandidateSharing = () => {
   )
 
   const handleCreatedListing = useCallback(async () => {
+    listingJustCreatedRef.current = true
     await loadData()
   }, [loadData])
 
@@ -1446,7 +1509,15 @@ const CandidateSharing = () => {
               {breadcrumbHome}
             </button>
             <span className="mx-1.5 text-slate-400">&gt;</span>
-            <span className="font-medium text-slate-700">{breadcrumbCurrent}</span>
+            <button
+              type="button"
+              onClick={backToMarketplaceIntro}
+              className="transition hover:text-[#0077B6]"
+            >
+              {breadcrumbCurrent}
+            </button>
+            <span className="mx-1.5 text-slate-400">&gt;</span>
+            <span className="font-medium text-slate-700">{cs.onboarding.dashboardCrumb}</span>
           </nav>
           <button
             type="button"
@@ -1458,8 +1529,16 @@ const CandidateSharing = () => {
         </header>
 
         <div className="grid shrink-0 grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 xl:shrink-0">
-          {statCards.map((card) => (
-            <CtvKpiCard key={card.title} {...card} />
+          {statCards.map((card, index) => (
+            <div
+              key={card.title}
+              className="biz-hp-solution-card-wrap h-full min-w-0"
+              style={{ animationDelay: `${0.06 + index * 0.1}s` }}
+            >
+              <div className="ctv-motion-card h-full">
+                <CtvKpiCard {...card} />
+              </div>
+            </div>
           ))}
         </div>
 
@@ -1791,7 +1870,7 @@ const CandidateSharing = () => {
           <div className={`business-homepage-ui business-app-ui flex h-full min-h-0 w-full flex-1 flex-col ${CTV_SHELL_PAD}`}>
             <BusinessQuickActionsPageLayout onNavigate={navigate}>
               <OnboardingView
-                hasMarketplaceData={hasListings}
+                hasMarketplaceData={hasListings || nominations.length > 0}
                 platformOverview={platformOverview}
                 onCreate={openCreateModal}
                 onViewDetails={enterMarketplaceDashboard}

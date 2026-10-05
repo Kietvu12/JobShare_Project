@@ -1,30 +1,15 @@
-import {
-  getJobApplicationStatus,
-  getJobApplicationStatusOptionsByLanguage,
-} from './jobApplicationStatus'
+import { getJobApplicationStatus } from './jobApplicationStatus'
+import { getBusinessStatusOptions, STATUS_REQUIRES } from './businessApplicationStatusFlow'
+import { openBusinessStatusDetailDialog } from '../component/Bussiness/BusinessStatusDetailDialog.jsx'
 
-/** Trạng thái DN được chọn trên drawer / cột bảng Quản lý tiến cử */
-export const BUSINESS_APPLICATION_PORTAL_STATUS_VALUES = [5, 6, 8, 10, 11, 12, 13, 14]
-
-export function getBusinessApplicationPortalStatusOptions(language, currentStatus) {
-  const all = getJobApplicationStatusOptionsByLanguage(language)
-  const byValue = new Map(all.map((o) => [Number(o.value), o]))
-  const current = currentStatus != null && currentStatus !== '' ? Number(currentStatus) : null
-
-  const values = [...BUSINESS_APPLICATION_PORTAL_STATUS_VALUES]
-  if (Number.isFinite(current) && !values.includes(current)) {
-    values.unshift(current)
-  }
-
-  return values.map((v) => byValue.get(v)).filter(Boolean)
-}
-
-export function isAllowedBusinessApplicationPortalStatus(status) {
-  return BUSINESS_APPLICATION_PORTAL_STATUS_VALUES.includes(Number(status))
+/** Options dropdown trạng thái trên drawer / cột bảng Quản lý ứng viên — theo nguồn đơn */
+export function getBusinessApplicationPortalStatusOptions(language, currentStatus, sourceType) {
+  return getBusinessStatusOptions(currentStatus, sourceType, language)
 }
 
 /**
- * @returns {Promise<{ success: boolean, skipped?: boolean, message?: string }>}
+ * @param {{ value: number }[]} statusOptions - options từ getBusinessApplicationPortalStatusOptions (phần tử đầu = trạng thái hiện tại)
+ * @returns {Promise<{ success: boolean, skipped?: boolean, message?: string, patch?: object }>}
  */
 export async function changeBusinessApplicationStatus(
   apiService,
@@ -32,25 +17,23 @@ export async function changeBusinessApplicationStatus(
   newStatus,
   currentStatus,
   statusOptions = [],
+  language = 'vi',
 ) {
   if (Number(currentStatus) === Number(newStatus)) {
     return { success: true, skipped: true }
   }
 
-  if (!isAllowedBusinessApplicationPortalStatus(newStatus)) {
+  const option = statusOptions.find((o) => !o.isCurrent && Number(o.value) === Number(newStatus))
+  if (!option) {
     return { success: false, message: 'Trạng thái không được phép chọn' }
   }
 
   const payload = { status: newStatus }
-
-  if (newStatus === 15) {
-    const raw = window.prompt('Nhập số tiền thanh toán (VND):')
-    if (raw == null) return { success: false, skipped: true }
-    const paymentAmount = parseFloat(String(raw).replace(/,/g, ''))
-    if (Number.isNaN(paymentAmount) || paymentAmount < 0) {
-      return { success: false, message: 'Số tiền thanh toán không hợp lệ' }
-    }
-    payload.paymentAmount = paymentAmount
+  const requires = option.requires || STATUS_REQUIRES[newStatus]
+  if (requires) {
+    const extra = await openBusinessStatusDetailDialog(requires, language)
+    if (!extra) return { success: false, skipped: true }
+    Object.assign(payload, extra)
   }
 
   const res = await apiService.updateBusinessApplicationStatus(applicationId, payload)
@@ -58,12 +41,15 @@ export async function changeBusinessApplicationStatus(
     return { success: false, message: res?.message || 'Không thể cập nhật trạng thái' }
   }
 
-  return { success: true, patch: buildApplicationStatusPatch(newStatus, statusOptions) }
+  const patch = buildApplicationStatusPatch(newStatus, statusOptions)
+  if (payload.interviewDate) patch.interviewDate = payload.interviewDate
+  if (payload.nyushaDate) patch.nyushaDate = payload.nyushaDate
+  return { success: true, patch }
 }
 
 export function buildApplicationStatusPatch(newStatus, statusOptions = []) {
   const info = getJobApplicationStatus(newStatus)
-  const statusLabel = statusOptions.find((o) => Number(o.value) === Number(newStatus))?.label
+  const statusLabel = statusOptions.find((o) => Number(o.value) === Number(newStatus))?.statusLabel
   return {
     status: newStatus,
     statusLabel: statusLabel || info.label,

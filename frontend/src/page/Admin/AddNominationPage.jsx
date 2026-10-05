@@ -8,7 +8,7 @@ import {
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import apiService from '../../services/api';
 import CvFilePreview from '../../component/Admin/CvFilePreview';
-import { getJobApplicationStatus, getJobApplicationStatusOptions, getJobApplicationStatusLabelByLanguage } from '../../utils/jobApplicationStatus';
+import { getJobApplicationStatus, getJobApplicationStatusOptions, getJobApplicationStatusLabelByLanguage, JOB_APPLICATION_STATUS_MAX } from '../../utils/jobApplicationStatus';
 import { filterManagedCvsForCollaborator, parsePositiveIntId } from '../../utils/cvStatus';
 import { useLanguage } from '../../context/LanguageContext';
 import {
@@ -390,7 +390,7 @@ const AdminAddNominationPage = () => {
         const app = response.data.jobApplication;
         // Trạng thái từ API – tránh bị ghi đè bởi các setFormData sau
         const statusNum = app.status != null && app.status !== '' ? Number(app.status) : 2;
-        const safeStatus = (statusNum >= 1 && statusNum <= 16) ? statusNum : 2;
+        const safeStatus = (statusNum >= 1 && statusNum <= JOB_APPLICATION_STATUS_MAX) ? statusNum : 2;
         setNominationStatus(safeStatus);
 
         // Set job data first (kèm status để mọi prev sau đều giữ đúng)
@@ -1281,7 +1281,7 @@ const AdminAddNominationPage = () => {
         
         // Status – chỉ gửi khi là số 1–16, tránh gửi null/undefined
         const statusNum = typeof formData.status === 'string' ? parseInt(formData.status, 10) : formData.status;
-        if (statusNum >= 1 && statusNum <= 16) {
+        if (statusNum >= 1 && statusNum <= JOB_APPLICATION_STATUS_MAX) {
           updateData.status = statusNum;
         }
         
@@ -1439,7 +1439,7 @@ const AdminAddNominationPage = () => {
       
       // Status – luôn gửi số 1–16, mặc định 2
       const statusNum = typeof formData.status === 'string' ? parseInt(formData.status, 10) : formData.status;
-      jobApplicationData.status = (statusNum >= 1 && statusNum <= 16) ? statusNum : 2;
+      jobApplicationData.status = (statusNum >= 1 && statusNum <= JOB_APPLICATION_STATUS_MAX) ? statusNum : 2;
       
       // Financial
       if (formData.referralFee) {
@@ -4232,7 +4232,7 @@ onBlur={(e) => {
                   onChange={(e) => {
                     e.stopPropagation();
                     const v = parseInt(e.target.value, 10);
-                    if (!Number.isNaN(v) && v >= 1 && v <= 16) {
+                    if (!Number.isNaN(v) && v >= 1 && v <= JOB_APPLICATION_STATUS_MAX) {
                       setNominationStatus(v);
                       setFormData(prev => ({ ...prev, status: v }));
                     }

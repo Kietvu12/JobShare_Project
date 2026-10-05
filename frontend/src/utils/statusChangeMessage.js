@@ -1,4 +1,4 @@
-import { JOB_APPLICATION_STATUS_LABELS } from './jobApplicationStatus';
+import { JOB_APPLICATION_STATUS_LABELS, JOB_APPLICATION_STATUS_MAX } from './jobApplicationStatus';
 
 export const STATUS_CHANGE_THEME_MAP = {
   1: { headerBg: '#dc2626', bodyBg: '#fef2f2', outerBorder: '#fca5a5', chipBg: '#fee2e2', chipText: '#991b1b', accentText: '#991b1b' },
@@ -25,7 +25,7 @@ export function resolveStatusCodeFromName(statusName) {
   const normalizedStatus = normalizeText(statusName);
   if (!normalizedStatus) return null;
 
-  for (let i = 1; i <= 16; i += 1) {
+  for (let i = 1; i <= JOB_APPLICATION_STATUS_MAX; i += 1) {
     const vi = normalizeText(JOB_APPLICATION_STATUS_LABELS.vi?.[i]);
     const en = normalizeText(JOB_APPLICATION_STATUS_LABELS.en?.[i]);
     const ja = normalizeText(JOB_APPLICATION_STATUS_LABELS.ja?.[i]);

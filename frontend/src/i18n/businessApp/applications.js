@@ -3,7 +3,8 @@
 export const applicationsI18n = {
   vi: {
     title: 'Quản lý ứng viên',
-    subtitle: 'Theo dõi ứng viên theo JD từ Scout Credit, Scout Ủy Thác và Sàn CTV — cập nhật quy trình tuyển chọn',
+    subtitle: 'Theo dõi ứng viên theo JD từ Scout Trực Tiếp, Scout Ủy Thác và Sàn CTV — cập nhật quy trình tuyển chọn',
+    ctvPrefix: 'CTV',
     breadcrumb: {
       home: 'Trang chủ',
       current: 'Quản lý ứng viên',
@@ -11,7 +12,7 @@ export const applicationsI18n = {
     tabs: {
       all: 'Tất cả',
       ws_ctv: 'Tiến cử (WS/CTV)',
-      scout_credit: 'Scout Credit',
+      scout_credit: 'Scout Trực Tiếp',
       hired: 'Đã tuyển dụng',
       rejected: 'Không phù hợp',
       other: 'Khác',
@@ -31,19 +32,19 @@ export const applicationsI18n = {
       cancelled: 'Đã hủy',
     },
     kanban: {
-      new: 'Mới',
-      screening: 'Sàng lọc',
-      shortlist: 'Shortlist',
+      pre: 'Tiếp cận / Trước tiến cử',
+      screening: 'Kiểm tra hồ sơ',
       interview: 'Phỏng vấn',
       offer: 'Offer',
       hired: 'Đã tuyển',
+      closed: 'Đã đóng',
     },
     sources: {
       all: 'Nguồn: Tất cả',
       ctv_marketplace: 'Sàn CTV',
       ctv_nomination: 'Sàn CTV',
       scout_performance: 'Scout Ủy Thác',
-      scout_credit: 'Scout Credit',
+      scout_credit: 'Scout Trực Tiếp',
       landing: 'Branding LP',
       other: 'Khác',
     },
@@ -93,6 +94,18 @@ export const applicationsI18n = {
       confirmFail: 'Xác nhận không đạt',
       wsTrackingOnly: 'Trạng thái Scout Ủy Thác trước tiến cử do WS xử lý — doanh nghiệp chỉ theo dõi.',
     },
+    similarCandidates: {
+      modalTitle: 'Ủy thác WS tìm ứng viên tương tự?',
+      modalBodyFail: 'Ứng viên này đã được đóng tại JD. Bạn có muốn ủy thác JobShare WS tìm và tiến cử thêm ứng viên có hồ sơ tương tự không?',
+      modalBodyHearing: 'Ứng viên đã từ chối sau buổi hearing với WS và đã được đóng. Bạn có muốn ủy thác JobShare WS tìm và tiến cử thêm ứng viên có hồ sơ tương tự không?',
+      confirm: 'Ủy thác WS tìm ứng viên tương tự',
+      later: 'Để sau',
+      bannerTitle: 'Ứng viên đã đóng',
+      bannerBody: 'Bạn có thể ủy thác WS tìm và tiến cử ứng viên tương tự cho JD này.',
+      requested: 'Đã ủy thác WS tìm ứng viên tương tự — WS sẽ trao đổi qua Tin nhắn.',
+      openChat: 'Mở tin nhắn WS',
+      error: 'Không thể gửi yêu cầu tìm ứng viên tương tự. Vui lòng thử lại.',
+    },
     kanbanUpdating: 'Đang cập nhật...',
     nominatedBy: {
       business: 'Doanh nghiệp',
@@ -126,7 +139,7 @@ export const applicationsI18n = {
       interviewUpdated: 'Đã cập nhật lịch phỏng vấn.',
       interviewPassScheduled: 'Đã đánh giá: Đạt — đã tạo lịch phỏng vấn.',
       profileAccess: {
-        scoutCredit: 'Hồ sơ đầy đủ (Scout Credit)',
+        scoutCredit: 'Hồ sơ đầy đủ (Scout Trực Tiếp)',
         scoutPerformance: 'Hồ sơ Scout Performance',
         ctvMarketplace: 'Hồ sơ đầy đủ (tiến cử Sàn CTV)',
         ctvScoutLockedNote:
@@ -136,14 +149,15 @@ export const applicationsI18n = {
   },
   en: {
     title: 'Candidate selection',
-    subtitle: 'Track candidates by JD from Scout Credit, Scout Performance, and CTV Marketplace — update the selection process',
+    subtitle: 'Track candidates by JD from Scout Credit, Scout Performance, and Collaborator Marketplace — update the selection process',
+    ctvPrefix: 'Collaborator',
     breadcrumb: {
       home: 'Home',
       current: 'Candidate selection',
     },
     tabs: {
       all: 'All',
-      ws_ctv: 'Referrals (WS/CTV)',
+      ws_ctv: 'Referrals (WS/Collaborator)',
       scout_credit: 'Scout Credit',
       hired: 'Hired',
       rejected: 'Not a fit',
@@ -164,17 +178,17 @@ export const applicationsI18n = {
       cancelled: 'Cancelled',
     },
     kanban: {
-      new: 'New',
-      screening: 'Screening',
-      shortlist: 'Shortlist',
+      pre: 'Approach / Pre-nomination',
+      screening: 'Profile review',
       interview: 'Interview',
       offer: 'Offer',
       hired: 'Hired',
+      closed: 'Closed',
     },
     sources: {
       all: 'Source: All',
-      ctv_marketplace: 'CTV Marketplace',
-      ctv_nomination: 'CTV referral',
+      ctv_marketplace: 'Collaborator Marketplace',
+      ctv_nomination: 'Collaborator referral',
       scout_performance: 'Scout Performance (delegated)',
       scout_credit: 'Scout Credit',
       landing: 'Branding LP',
@@ -226,6 +240,18 @@ export const applicationsI18n = {
       confirmFail: 'Confirm rejection',
       wsTrackingOnly: 'Pre-nomination Scout Performance steps are handled by WS — view only for your company.',
     },
+    similarCandidates: {
+      modalTitle: 'Ask WS to find similar candidates?',
+      modalBodyFail: 'This candidate has been closed for this JD. Would you like JobShare WS to find and nominate more candidates with a similar profile?',
+      modalBodyHearing: 'The candidate declined after the WS hearing and has been closed. Would you like JobShare WS to find and nominate more candidates with a similar profile?',
+      confirm: 'Ask WS to find similar candidates',
+      later: 'Later',
+      bannerTitle: 'Candidate closed',
+      bannerBody: 'You can ask WS to find and nominate similar candidates for this JD.',
+      requested: 'Request sent — WS will follow up in Messages.',
+      openChat: 'Open WS messages',
+      error: 'Could not send the similar-candidates request. Please try again.',
+    },
     kanbanUpdating: 'Updating...',
     nominatedBy: {
       business: 'Business',
@@ -261,22 +287,23 @@ export const applicationsI18n = {
       profileAccess: {
         scoutCredit: 'Full profile (Scout Credit)',
         scoutPerformance: 'Scout Performance profile',
-        ctvMarketplace: 'Full profile (CTV Marketplace referral)',
+        ctvMarketplace: 'Full profile (Collaborator Marketplace referral)',
         ctvScoutLockedNote:
-          'You can view this profile via CTV Marketplace referral. On Scout it stays locked until unlocked with credits.',
+          'You can view this profile via Collaborator Marketplace referral. On Scout it stays locked until unlocked with credits.',
       },
     },
   },
   ja: {
     title: '選考管理',
-    subtitle: 'Scout Credit・Scout委託・CTVマーケット各ソースの候補者をJD別に追跡し、選考プロセスを更新',
+    subtitle: 'Scout Credit・Scout委託・採用パートナーマーケット各ソースの候補者をJD別に追跡し、選考プロセスを更新',
+    ctvPrefix: '採用パートナー',
     breadcrumb: {
       home: 'ホーム',
       current: '選考管理',
     },
     tabs: {
       all: 'すべて',
-      ws_ctv: '推薦（WS/CTV）',
+      ws_ctv: '推薦（WS／採用パートナー）',
       scout_credit: 'Scout Credit',
       hired: '採用済み',
       rejected: '不適合',
@@ -297,17 +324,17 @@ export const applicationsI18n = {
       cancelled: 'キャンセル',
     },
     kanban: {
-      new: '新規',
-      screening: '選考',
-      shortlist: 'Shortlist',
+      pre: 'アプローチ・推薦前',
+      screening: '書類確認',
       interview: '面接',
-      offer: 'Offer',
+      offer: '内定',
       hired: '採用',
+      closed: '終了',
     },
     sources: {
       all: 'ソース: すべて',
-      ctv_marketplace: 'CTVマーケット',
-      ctv_nomination: 'CTV推薦',
+      ctv_marketplace: '採用パートナーマーケット',
+      ctv_nomination: 'パートナー推薦',
       scout_performance: 'Scout委託',
       scout_credit: 'Scout Credit',
       landing: 'Branding LP',
@@ -359,6 +386,18 @@ export const applicationsI18n = {
       confirmFail: '不合格を確定',
       wsTrackingOnly: 'Scout委託の推薦前ステータスはWSが処理します — 企業は閲覧のみです。',
     },
+    similarCandidates: {
+      modalTitle: '類似候補者の紹介をWSに委託しますか？',
+      modalBodyFail: 'この候補者はこのJDでクローズされました。JobShare WSに類似プロフィールの候補者の探索・推薦を委託しますか？',
+      modalBodyHearing: '候補者がWSヒアリング後に辞退したため、クローズされました。JobShare WSに類似プロフィールの候補者の探索・推薦を委託しますか？',
+      confirm: '類似候補者の紹介をWSに委託',
+      later: '後で',
+      bannerTitle: '候補者クローズ',
+      bannerBody: 'このJDについて、類似候補者の探索・推薦をWSに委託できます。',
+      requested: '委託しました。WSからメッセージでご連絡します。',
+      openChat: 'WSメッセージを開く',
+      error: '類似候補者リクエストを送信できませんでした。もう一度お試しください。',
+    },
     kanbanUpdating: '更新中...',
     nominatedBy: {
       business: '企業',
@@ -394,9 +433,9 @@ export const applicationsI18n = {
       profileAccess: {
         scoutCredit: 'フルプロフィール（Scout Credit）',
         scoutPerformance: 'Scout委託プロフィール',
-        ctvMarketplace: 'フルプロフィール（CTVマーケット推薦）',
+        ctvMarketplace: 'フルプロフィール（採用パートナーマーケット推薦）',
         ctvScoutLockedNote:
-          'CTVマーケット推薦によりプロフィールを閲覧できます。Scout上はクレジットで開くまでロック表示のままです。',
+          '採用パートナーマーケット推薦によりプロフィールを閲覧できます。Scout上はクレジットで開くまでロック表示のままです。',
       },
     },
   },
@@ -427,12 +466,12 @@ export function getApplicationSourceOptions(language) {
 export function getKanbanColumns(language) {
   const k = applicationsI18n[language]?.kanban || applicationsI18n.vi.kanban;
   return [
-    { id: 'new', label: k.new, defaultStatus: 2, statuses: [2] },
-    { id: 'screening', label: k.screening, defaultStatus: 3, statuses: [3] },
-    { id: 'shortlist', label: k.shortlist, defaultStatus: 5, statuses: [5] },
-    { id: 'interview', label: k.interview, defaultStatus: 8, statuses: [7, 8, 9] },
+    { id: 'pre', label: k.pre, defaultStatus: null, statuses: [2, 3, 19, 20, 21, 22, 23] },
+    { id: 'screening', label: k.screening, defaultStatus: 5, statuses: [5] },
+    { id: 'interview', label: k.interview, defaultStatus: 7, statuses: [7, 8, 9] },
     { id: 'offer', label: k.offer, defaultStatus: 11, statuses: [11, 12] },
     { id: 'hired', label: k.hired, defaultStatus: 14, statuses: [14, 15] },
+    { id: 'closed', label: k.closed, defaultStatus: null, statuses: [1, 4, 6, 10, 13, 16, 17, 18] },
   ];
 }
 
@@ -442,6 +481,10 @@ export function getApplicationStageLabels(language) {
 
 export function getApplicationProfileReviewCopy(language) {
   return applicationsI18n[language]?.profileReview || applicationsI18n.vi.profileReview;
+}
+
+export function getApplicationSimilarCandidatesCopy(language) {
+  return applicationsI18n[language]?.similarCandidates || applicationsI18n.vi.similarCandidates;
 }
 
 export function getApplicationDrawerCopy(language) {

@@ -174,7 +174,7 @@ export function CandidateSharingListingLegacyRedirect() {
 
   useEffect(() => {
     if (!listingId) {
-      navigate('/business/candidate-sharing', { replace: true })
+      navigate('/business/candidate-sharing?tab=jobs', { replace: true })
       return undefined
     }
     let cancelled = false
@@ -187,10 +187,10 @@ export function CandidateSharingListingLegacyRedirect() {
         if (res?.success && jid) {
           navigate(`/business/candidate-sharing/jobs/${encodeURIComponent(String(jid))}${qs ? `?${qs}` : ''}`, { replace: true })
         } else {
-          navigate('/business/candidate-sharing', { replace: true })
+          navigate('/business/candidate-sharing?tab=jobs', { replace: true })
         }
       } catch {
-        if (!cancelled) navigate('/business/candidate-sharing', { replace: true })
+        if (!cancelled) navigate('/business/candidate-sharing?tab=jobs', { replace: true })
       }
     })()
     return () => { cancelled = true }
@@ -426,7 +426,7 @@ export default function CandidateSharingListingDetail() {
         <nav className={`mb-3 shrink-0 ${BUSINESS_HP_TEXT.meta}`} aria-label="Breadcrumb">
           <Link to="/business" className="hover:text-[#0077B6]">{breadcrumbHome}</Link>
           <span className="mx-1.5 text-slate-400">&gt;</span>
-          <Link to="/business/candidate-sharing" className="hover:text-[#0077B6]">{cs.breadcrumbMarketplace}</Link>
+          <Link to="/business/candidate-sharing?tab=jobs" className="hover:text-[#0077B6]">{cs.breadcrumbMarketplace}</Link>
           <span className="mx-1.5 text-slate-400">&gt;</span>
           <span className="font-medium text-slate-700">{cs.breadcrumbListingDetail}</span>
         </nav>
@@ -438,7 +438,7 @@ export default function CandidateSharingListingDetail() {
             {dt.notFoundBody(jobId)}
           </p>
           <Link
-            to="/business/candidate-sharing"
+            to="/business/candidate-sharing?tab=jobs"
             className={`mt-5 inline-flex items-center justify-center rounded-lg bg-[#0077B6] px-4 py-2.5 text-white hover:bg-[#006399] ${BUSINESS_HP_TEXT.buttonPrimary}`}
           >
             {dt.backToMarketplace}
@@ -456,7 +456,7 @@ export default function CandidateSharingListingDetail() {
         <nav className={`mb-3 shrink-0 flex flex-wrap items-center gap-1.5 ${BUSINESS_HP_TEXT.meta}`}>
           <Link to="/business" className="hover:text-slate-800">{breadcrumbHome}</Link>
           <ChevronRight className="h-3 w-3 shrink-0" aria-hidden />
-          <Link to="/business/candidate-sharing" className="hover:text-slate-800">{cs.breadcrumbMarketplace}</Link>
+          <Link to="/business/candidate-sharing?tab=jobs" className="hover:text-slate-800">{cs.breadcrumbMarketplace}</Link>
           <ChevronRight className="h-3 w-3 shrink-0" aria-hidden />
           <span className="font-medium text-slate-800">{cs.breadcrumbListingDetail}</span>
         </nav>

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import emailService from './emailService.js';
+import { notifyNewPartnerReferral } from './businessNotificationEmail/businessNotificationEmailHooks.js';
 import { getObjectStream, isFolderPath, isS3Key } from './s3Service.js';
 import { resolveCvFileForView } from '../utils/cvStorageResolver.js';
 import { Business, CVStorage, Job, JobApplication } from '../models/index.js';
@@ -10,15 +10,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const BACKEND_ROOT = path.resolve(__dirname, '../..');
 const FRONTEND_URL = (process.env.FRONTEND_URL || process.env.WEB_URL || 'http://localhost:5173').replace(/\/+$/, '');
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 function guessContentType(filename) {
   const ext = path.extname(String(filename || '')).toLowerCase();
@@ -174,54 +165,23 @@ export async function sendBusinessNewApplicationWithCv({
     const titleVi = jobTitleVi || job?.title || 'N/A';
     const titleEn = jobTitleEn || job?.titleEn || titleVi;
     const titleJp = jobTitleJp || job?.titleJp || titleVi;
-    const detailUrl = `${FRONTEND_URL}/business/applications`;
-    const company = business.companyName || 'Doanh nghiệp';
+    let partnerName = 'Partner';
+    if (application?.collaboratorId) {
+      const { Collaborator } = await import('../models/index.js');
+      const collab = await Collaborator.findByPk(application.collaboratorId, { attributes: ['name', 'code'] });
+      partnerName = collab?.name || collab?.code || partnerName;
+    }
 
-    const subject = `[JobShare] Đơn ứng tuyển mới #${appCode} — ${titleVi}`;
-    const text = `Xin chào ${company},
-
-Bạn có đơn ứng tuyển mới trên JobShare.
-
-- Mã đơn: ${appCode}
-- Ứng viên: ${name}
-- Vị trí: ${titleVi} / ${titleEn} / ${titleJp}
-- Mã JD: ${jobCode}
-
-${attachments.length ? 'CV đính kèm trong email này.' : 'CV chưa đính kèm được — vui lòng xem trong hệ thống.'}
-
-Xem chi tiết: ${detailUrl}
-
-Workstation JobShare
-`;
-
-    const safeCompany = escapeHtml(company);
-    const safeName = escapeHtml(name);
-    const safeApp = escapeHtml(appCode);
-    const safeJobCode = escapeHtml(jobCode);
-    const safeTitleVi = escapeHtml(titleVi);
-    const safeTitleEn = escapeHtml(titleEn);
-    const safeTitleJp = escapeHtml(titleJp);
-    const safeUrl = escapeHtml(detailUrl);
-
-    const html = `
-      <div style="font-family: Arial, sans-serif; font-size: 14px; color: #111827; line-height: 1.55;">
-        <p>Xin chào <strong>${safeCompany}</strong>,</p>
-        <p>Bạn có <strong>đơn ứng tuyển mới</strong> trên JobShare.</p>
-        <ul>
-          <li>Mã đơn: <strong>${safeApp}</strong></li>
-          <li>Ứng viên: <strong>${safeName}</strong></li>
-          <li>Vị trí: ${safeTitleVi} / ${safeTitleEn} / ${safeTitleJp}</li>
-          <li>Mã JD: ${safeJobCode}</li>
-        </ul>
-        <p>${attachments.length
-          ? 'CV của ứng viên được đính kèm trong email này.'
-          : 'Không đính kèm được file CV — vui lòng mở hệ thống để xem.'}</p>
-        <p><a href="${safeUrl}" style="color:#0077B6;">Xem đơn ứng tuyển trên JobShare</a></p>
-        <p style="margin-top:16px;font-weight:700;">Workstation JobShare</p>
-      </div>
-    `;
-
-    await emailService.sendEmail({ to, subject, text, html, attachments });
+    await notifyNewPartnerReferral({
+      businessId: resolvedBusinessId,
+      applicationId: application?.id ?? jobApplicationId,
+      candidateName: name,
+      jobTitle: titleVi,
+      partnerName,
+      referralId: appCode,
+      locale: 'ja',
+      attachments,
+    });
     return { success: true, to, attached: attachments.length > 0 };
   } catch (err) {
     console.error('[businessApplicationEmail] send failed:', err?.message || err);

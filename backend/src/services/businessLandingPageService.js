@@ -350,6 +350,18 @@ export async function createCompanyLandingPage({
     message: `Đã tạo trang giới thiệu doanh nghiệp "${pageTitle}"`,
   });
 
+  try {
+    const { fireBusinessNotificationEmail, notifyFreeLpCreated } = await import('./businessNotificationEmail/businessNotificationEmailHooks.js');
+    fireBusinessNotificationEmail(notifyFreeLpCreated({
+      businessId,
+      landingPageId: page.id,
+      pageTitle,
+      locale: 'ja',
+    }));
+  } catch (mailErr) {
+    console.error('[landingPage] FREE_LP_CREATED email:', mailErr?.message || mailErr);
+  }
+
   return formatLandingPage(await assertOwnedPage(businessId, page.id));
 }
 
@@ -480,7 +492,21 @@ export async function publishLandingPage({ businessId, pageId }) {
     activityType: LANDING_PAGE_ACTIVITY_TYPES.PUBLISHED,
     message: `Landing page "${page.title}" đã được phát hành`,
   });
-  return formatLandingPage(await assertOwnedPage(businessId, page.id));
+  const formatted = formatLandingPage(await assertOwnedPage(businessId, page.id));
+  try {
+    const { fireBusinessNotificationEmail, notifyLandingPagePublished, FRONTEND_URL } = await import('./businessNotificationEmail/businessNotificationEmailHooks.js');
+    const publicUrl = formatted.publicUrl || (formatted.slug ? `${FRONTEND_URL}/lp/${formatted.slug}` : FRONTEND_URL);
+    fireBusinessNotificationEmail(notifyLandingPagePublished({
+      businessId,
+      landingPageId: page.id,
+      pageTitle: page.title,
+      publicUrl,
+      locale: 'ja',
+    }));
+  } catch (mailErr) {
+    console.error('[landingPage] LANDING_PAGE_PUBLISHED email:', mailErr?.message || mailErr);
+  }
+  return formatted;
 }
 
 export async function pauseLandingPage({ businessId, pageId }) {

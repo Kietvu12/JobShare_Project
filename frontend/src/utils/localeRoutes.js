@@ -125,9 +125,22 @@ export function buildPublicShareJobUrl({
   return `${String(base).replace(/\/+$/, '')}${path}`;
 }
 
+export function isBusinessPublicPath(pathname) {
+  const path = String(pathname || '');
+  if (path.startsWith('/landing/business')) return true;
+  const locale = getLocaleFromPathname(path);
+  if (locale && (path === `/${locale}/business` || path.startsWith(`/${locale}/business/`))) {
+    return true;
+  }
+  return false;
+}
+
 export function resolvePublicBlogPrefix(pathname) {
   if (isCandidatePublicPath(pathname)) {
     return resolveCandidatePrefix(pathname);
+  }
+  if (isBusinessPublicPath(pathname)) {
+    return resolveBusinessLandingPrefix(pathname);
   }
   return resolveCollaboratorPrefix(pathname);
 }

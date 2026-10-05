@@ -11,6 +11,7 @@ export const NAV_ROUTES = [
   '/partner',
   '/inquiry_docs_rc',
   '/contact_rc',
+  '/download',
 ];
 
 export const ROUTES = [
@@ -26,6 +27,7 @@ export const ROUTES = [
   { path: '/partner', key: 'partner' },
   { path: '/inquiry_docs_rc', key: 'inquiry_docs_rc' },
   { path: '/contact_rc', key: 'contact_rc' },
+  { path: '/download', key: 'download' },
 ];
 
 export function normalizePath(path) {

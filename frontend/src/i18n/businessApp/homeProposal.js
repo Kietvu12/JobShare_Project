@@ -6,7 +6,7 @@ const SUBJECT_EN = {
   'direct-scout': 'Direct Scout',
   'managed-scout': 'Managed Scout',
   'employer-branding': 'Employer Branding',
-  'hr-partner-network': 'CTV Marketplace',
+  'hr-partner-network': 'Collaborator Marketplace',
 }
 
 // Thứ tự hiển thị theo spec landing: Scout Trực Tiếp → Scout Ủy Thác → Sàn CTV → Thương hiệu Tuyển dụng

@@ -32,6 +32,7 @@ import {
 import { useLanguage } from '../../context/LanguageContext'
 import { localizeApplications } from '../../utils/businessApplicationDisplay'
 import { getRecruitmentRating } from '../../utils/businessJobRecruitmentMetrics'
+import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
 import {
   BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
   BUSINESS_HP_TEXT,
@@ -176,6 +177,12 @@ function formatDate(value) {
 const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
   const navigate = useNavigate()
   const { language } = useLanguage()
+  const copy = useBusinessAppCopy()
+  const marketplaceLabel = copy.candidateSharing?.breadcrumbMarketplace
+    || (language === 'ja' ? '採用パートナーマーケット' : language === 'en' ? 'Collaborator Marketplace' : 'Sàn CTV')
+  const marketplaceHintOn = language === 'ja' ? '掲載済み' : language === 'en' ? 'Published' : 'Đã đưa lên sàn'
+  const marketplaceHintOff = language === 'ja' ? '推薦チャネルを拡大' : language === 'en' ? 'Expand referral channels' : 'Mở rộng kênh tiến cử'
+  const marketplaceCta = language === 'ja' ? 'マーケットに掲載' : language === 'en' ? 'Post to marketplace' : 'Đưa lên Sàn CTV'
   const { jobId: jobIdParam } = useParams()
   const jobId = jobIdProp ?? jobIdParam
   const [activeTab, setActiveTab] = useState('Tổng quan')
@@ -471,8 +478,8 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
       },
       {
         id: 'marketplace',
-        label: 'Sàn CTV',
-        hint: isOnCtvMarketplace ? 'Đã đưa lên sàn' : 'Mở rộng kênh tiến cử',
+        label: marketplaceLabel,
+        hint: isOnCtvMarketplace ? marketplaceHintOn : marketplaceHintOff,
         active: isOnCtvMarketplace,
         icon: marketplace.icon,
         iconColor: marketplace.iconColor,
@@ -490,7 +497,7 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
         onClick: () => navigate('/business/saiyo'),
       },
     ]
-  }, [job?.id, isOnCtvMarketplace, matchedTotal, scoutTotal, navigate])
+  }, [job?.id, isOnCtvMarketplace, matchedTotal, scoutTotal, navigate, marketplaceLabel, marketplaceHintOn, marketplaceHintOff])
 
   if (loading) {
     return (
@@ -586,7 +593,7 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
                 onClick={() => navigate(`/business/candidate-sharing?create=1&jobId=${job.id}`)}
                 className={JOB_DETAIL_OUTLINE_BTN_CLASS}
               >
-                Sàn CTV
+                {marketplaceLabel}
               </button>
             </div>
             </div>
@@ -679,7 +686,7 @@ const JobDetail = ({ embedded = false, jobId: jobIdProp }) => {
                   onClick={() => navigate(`/business/candidate-sharing?create=1&jobId=${job.id}`)}
                   className={JOB_DETAIL_OUTLINE_BTN_CLASS}
                 >
-                  Đưa lên Sàn CTV
+                  {marketplaceCta}
                 </button>
               </div>
             </div>

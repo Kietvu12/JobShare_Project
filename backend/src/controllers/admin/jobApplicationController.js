@@ -17,7 +17,14 @@ import {
 import { Op, QueryTypes } from 'sequelize';
 import sequelize from '../../config/database.js';
 import { statusMessageService } from '../../services/statusMessageService.js';
-import { STATUS_PAID, STATUS_DUPLICATE, STATUSES_ENDED, STATUSES_ACTIVE_BLOCK_DUPLICATE } from '../../constants/jobApplicationStatus.js';
+import {
+  STATUS_PAID,
+  STATUS_DUPLICATE,
+  STATUSES_ENDED,
+  STATUSES_ACTIVE_BLOCK_DUPLICATE,
+  JOB_APPLICATION_STATUS_MAX,
+  isValidJobApplicationStatus,
+} from '../../constants/jobApplicationStatus.js';
 import { canCVBeNominated, CV_STATUS_DUPLICATE } from '../../constants/cvStatus.js';
 import { collaboratorNotificationService } from '../../services/collaboratorNotificationService.js';
 import { nominationEmailService } from '../../services/nominationEmailService.js';
@@ -1011,10 +1018,10 @@ export const jobApplicationController = {
         }
       });
 
-      // Chuẩn hóa status: chỉ ghi khi là số 1–16; nếu không hợp lệ giữ nguyên giá trị cũ
+      // Chuẩn hóa status: chỉ ghi khi là mã hợp lệ; nếu không hợp lệ giữ nguyên giá trị cũ
       if (updateData.status !== undefined) {
         const statusNum = parseInt(updateData.status, 10);
-        if (!Number.isNaN(statusNum) && statusNum >= 1 && statusNum <= 16) {
+        if (isValidJobApplicationStatus(statusNum)) {
           jobApplication.status = statusNum;
         } else {
           jobApplication.status = oldData.status;
@@ -1543,10 +1550,10 @@ export const jobApplicationController = {
       }
 
       const statusNum = parseInt(status, 10);
-      if (Number.isNaN(statusNum) || statusNum < 1 || statusNum > 17) {
+      if (!isValidJobApplicationStatus(statusNum)) {
         return res.status(400).json({
           success: false,
-          message: 'Trạng thái không hợp lệ (phải từ 1 đến 17)'
+          message: `Trạng thái không hợp lệ (phải từ 1 đến ${JOB_APPLICATION_STATUS_MAX})`
         });
       }
 
@@ -1587,6 +1594,19 @@ export const jobApplicationController = {
       }
 
       await jobApplication.save();
+
+      if (oldStatus !== statusNum) {
+        try {
+          const { notifyAdminJobApplicationStatusChange } = await import('../../services/businessJobApplicationService.js');
+          await notifyAdminJobApplicationStatusChange({
+            jobApplication,
+            oldStatus,
+            newStatus: statusNum,
+          });
+        } catch (bizMailErr) {
+          console.error('[admin updateStatus] business notification email:', bizMailErr?.message || bizMailErr);
+        }
+      }
 
       // Cập nhật CV status/phase dựa trên job application status
       if (jobApplication.cvCode) {

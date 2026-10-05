@@ -35,7 +35,7 @@ export const SR_BTN_OUTLINE = `inline-flex w-fit shrink-0 items-center gap-2 rou
 export const SR_INTAKE_CARD = `${CARD} flex h-full min-h-0 flex-col overflow-hidden p-4 sm:p-5`;
 export const SR_CHECK = `mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0077B6] font-bold text-white ${BUSINESS_HP_TEXT.micro}`;
 export const SR_SUCCESS_BANNER = `mb-2 flex shrink-0 items-start justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 font-medium text-emerald-800 ${BUSINESS_HP_TEXT.body}`;
-export const SR_CATALOG_PANEL = `${CARD} business-homepage-scroll flex min-h-0 flex-1 flex-col overflow-y-auto p-3 sm:p-4`;
+export const SR_CATALOG_PANEL = `${CARD} flex shrink-0 flex-col p-3 sm:p-4`;
 export const SR_CATALOG_GRID =
   'sr-catalog-grid grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3 xl:gap-4';
 export const SR_SERVICE_CARD =

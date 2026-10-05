@@ -11,7 +11,7 @@ const serviceFields = {
       title: 'Yêu cầu nạp credit',
       shortDesc: 'Nạp thêm credit vào tài khoản để sử dụng các dịch vụ trên JobShare.',
       description:
-        'Gửi yêu cầu nạp credit vào ví doanh nghiệp. WS sẽ xác nhận số lượng, hướng dẫn thanh toán và cộng credit sau khi đối soát. Credit dùng cho Scout Credit, các tính năng trả phí trên nền tảng.',
+        'Gửi yêu cầu nạp credit vào ví doanh nghiệp. WS sẽ xác nhận số lượng, hướng dẫn thanh toán và cộng credit sau khi đối soát. Credit dùng cho Scout Trực Tiếp và các tính năng trả phí trên nền tảng.',
       ctaLabel: 'Nạp Credit',
       breadcrumb: 'Nạp credit',
     },
@@ -343,6 +343,7 @@ export const serviceRequestsI18n = {
     loading: 'Đang tải...',
     successSent: 'Đã gửi yêu cầu. WS sẽ liên hệ xác nhận trong thời gian sớm nhất.',
     continueCta: 'Tiếp tục',
+    otherServicesHeading: 'Các yêu cầu dịch vụ nổi bật khác',
     sidebar: {
       account: 'Tài khoản:',
       processing: (n) => `${n} yêu cầu đang xử lý`,
@@ -384,6 +385,7 @@ export const serviceRequestsI18n = {
     loading: 'Loading...',
     successSent: 'Request sent. WS will confirm with you shortly.',
     continueCta: 'Continue',
+    otherServicesHeading: 'Other featured service requests',
     sidebar: {
       account: 'Account:',
       processing: (n) => `${n} request(s) in progress`,
@@ -425,6 +427,7 @@ export const serviceRequestsI18n = {
     loading: '読み込み中...',
     successSent: '依頼を送信しました。WSが確認連絡をします。',
     continueCta: '続ける',
+    otherServicesHeading: 'その他のおすすめサービス依頼',
     sidebar: {
       account: 'アカウント:',
       processing: (n) => `処理中 ${n} 件`,

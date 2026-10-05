@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
+import { useLanguage } from '../../../../../../../context/LanguageContext'
 import { SUPPORTED_LOCALES, getLocaleFromPathname } from '../../../../../../../utils/localeRoutes'
 import { OG_LOCALE, buildLandingSeoUrl, landingSeoI18n } from '../../../../../../../i18n/businessApp/landingSeo'
 
@@ -16,26 +17,46 @@ function setMeta(attr, key, value) {
   return () => (created ? el.remove() : el.setAttribute('content', prev))
 }
 
+function resolveBusinessLandingSeoContext(pathname, language) {
+  const localeFromPath = getLocaleFromPathname(pathname)
+  if (localeFromPath && pathname.startsWith(`/${localeFromPath}/business`)) {
+    return {
+      locale: localeFromPath,
+      basePath: `/${localeFromPath}/business`,
+    }
+  }
+  if (pathname.startsWith('/landing/business')) {
+    const locale = landingSeoI18n[language] ? language : 'vi'
+    return { locale, basePath: '/landing/business' }
+  }
+  return null
+}
+
 /**
- * Meta SEO theo route/ngôn ngữ cho /{lang}/business/*.
- * Chỉ ghi đè khi đang ở URL có locale; trả lại giá trị cũ khi rời landing.
+ * Meta SEO theo route/ngôn ngữ cho /{lang}/business/* và /landing/business/*.
+ * Title trang chủ: JobShare (landingSeoI18n). Title trang con do hook từng trang đặt.
  */
 export function useLandingSeo() {
   const { pathname } = useLocation()
+  const { language } = useLanguage()
 
   useEffect(() => {
-    const locale = getLocaleFromPathname(pathname)
-    if (!locale || !pathname.startsWith(`/${locale}/business`)) return undefined
+    const ctx = resolveBusinessLandingSeoContext(pathname, language)
+    if (!ctx) return undefined
 
-    const sub = pathname.slice(`/${locale}/business`.length)
+    const { locale, basePath } = ctx
+    const sub = pathname.slice(basePath.length)
     const isHome = !sub || sub === '/'
-    const seo = landingSeoI18n[locale]
+    const seo = landingSeoI18n[locale] || landingSeoI18n.vi
     const url = buildLandingSeoUrl(locale, sub)
     const restores = []
-    const prevTitle = document.title
 
-    // Title các trang con do hook riêng của trang đặt; chỉ đặt cho trang chủ landing.
-    if (isHome) document.title = seo.title
+    const applyHomeTitle = () => {
+      if (isHome) document.title = seo.title
+    }
+    applyHomeTitle()
+    // Sau mọi useEffect của trang con (vd. useHomePage cũ) trong cùng lần render
+    queueMicrotask(applyHomeTitle)
 
     restores.push(
       setMeta('name', 'description', seo.description),
@@ -57,7 +78,6 @@ export function useLandingSeo() {
     }
     canonical.setAttribute('href', url)
 
-    // hreflang: thay thế toàn bộ bộ cũ bằng bộ của trang landing hiện tại
     const oldAlternates = [...document.head.querySelectorAll('link[rel="alternate"][hreflang]')]
     const oldParents = oldAlternates.map((el) => el.parentNode)
     oldAlternates.forEach((el) => el.remove())
@@ -76,7 +96,6 @@ export function useLandingSeo() {
       oldAlternates.forEach((el, i) => oldParents[i]?.appendChild(el))
       if (canonicalCreated) canonical.remove()
       else if (prevCanonical != null) canonical.setAttribute('href', prevCanonical)
-      document.title = prevTitle
     }
-  }, [pathname])
+  }, [pathname, language])
 }

@@ -1,11 +1,9 @@
 import { useEffect } from 'react'
 import { ensureSiteScripts } from '../../../lib/siteHtml'
 
-export const NEWS_PAGE_TITLE = 'お知らせ | JobShare for Business'
-
-export function useNewsPage() {
+export function useNewsPage(pageTitle) {
   useEffect(() => {
-    document.title = NEWS_PAGE_TITLE
+    if (pageTitle) document.title = pageTitle
     window.scrollTo(0, 0)
 
     ensureSiteScripts(['/landing/business/assets/js/page-news.js'])
@@ -13,5 +11,5 @@ export function useNewsPage() {
         document.querySelector('.js-loading')?.classList.add('is-loaded')
       })
       .catch(() => undefined)
-  }, [])
+  }, [pageTitle])
 }

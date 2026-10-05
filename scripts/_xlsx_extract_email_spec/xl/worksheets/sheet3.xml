@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?><x:worksheet xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><x:sheetFormatPr defaultRowHeight="15" /><x:cols><x:col min="1" max="1" width="7" hidden="0" customWidth="1" /><x:col min="2" max="2" width="28" hidden="0" customWidth="1" /><x:col min="3" max="3" width="30" hidden="0" customWidth="1" /><x:col min="4" max="4" width="48" hidden="0" customWidth="1" /><x:col min="5" max="5" width="74" hidden="0" customWidth="1" /><x:col min="6" max="6" width="30" hidden="0" customWidth="1" /><x:col min="7" max="7" width="50" hidden="0" customWidth="1" /><x:col min="8" max="8" width="42" hidden="0" customWidth="1" /><x:col min="9" max="9" width="50" hidden="0" customWidth="1" /><x:col min="10" max="10" width="10" hidden="0" customWidth="1" /></x:cols><x:sheetData><x:row r="1"><x:c r="A1" s="30" t="str"><x:v>ID</x:v></x:c><x:c r="B1" s="30" t="str"><x:v>Template Key</x:v></x:c><x:c r="C1" s="30" t="str"><x:v>Trigger / Tính năng</x:v></x:c><x:c r="D1" s="30" t="str"><x:v>Tiêu đề mail (JP → EN)</x:v></x:c><x:c r="E1" s="30" t="str"><x:v>Nội dung mail (JP → EN)</x:v></x:c><x:c r="F1" s="30" t="str"><x:v>CTA (JP → EN)</x:v></x:c><x:c r="G1" s="30" t="str"><x:v>CTA link đến đâu / Suggested route</x:v></x:c><x:c r="H1" s="30" t="str"><x:v>Biến bắt buộc</x:v></x:c><x:c r="I1" s="30" t="str"><x:v>Ghi chú triển khai</x:v></x:c><x:c r="J1" s="30" t="str"><x:v>Priority</x:v></x:c></x:row><x:row r="2" ht="100" customHeight="1"><x:c r="A2" s="14" t="str"><x:v>A1</x:v></x:c><x:c r="B2" s="14" t="str"><x:v>MANAGED_SCOUT_CONTRACT_COMPLETED</x:v></x:c><x:c r="C2" s="14" t="str"><x:v>Hợp đồng Scout Ủy Thác hoàn tất / dịch vụ bắt đầu</x:v></x:c><x:c r="D2" s="14" t="str"><x:v>JP:
+【JobShare Business】スカウト委託の手続きが完了しました
+
+EN:
+【JobShare Business】Your Managed Scout setup is complete</x:v></x:c><x:c r="E2" s="14" t="str"><x:v>JP:
+スカウト委託のお手続きが完了しました。求人を紐づける、または新しい求人を作成して、Workstationによる候補者ヒアリングを開始できます。
+
+EN:
+Your Managed Scout setup is complete. You can now link an existing job or create a new one so Workstation can begin candidate outreach and hearing.</x:v></x:c><x:c r="F2" s="14" t="str"><x:v>JP:
+詳細を確認する
+
+EN:
+View details</x:v></x:c><x:c r="G2" s="14" t="str"><x:v>/business/scout/managed/requests/{{request_id}}</x:v></x:c><x:c r="H2" s="14" t="str"><x:v>request_id, job_id(optional)</x:v></x:c><x:c r="I2" s="14" t="str"><x:v>Nên có vì flow Scout Ủy Thác phụ thuộc bước hợp đồng trước hearing.</x:v></x:c><x:c r="J2" s="14" t="str"><x:v>P1</x:v></x:c></x:row><x:row r="3" ht="100" customHeight="1"><x:c r="A3" s="14" t="str"><x:v>A2</x:v></x:c><x:c r="B3" s="14" t="str"><x:v>MANAGED_SCOUT_FORMAL_REFERRAL</x:v></x:c><x:c r="C3" s="14" t="str"><x:v>WS chính thức tiến cử ứng viên sau hearing</x:v></x:c><x:c r="D3" s="14" t="str"><x:v>JP:
+【JobShare Business】候補者を正式に推薦しました
+
+EN:
+【JobShare Business】A candidate has been formally referred</x:v></x:c><x:c r="E3" s="14" t="str"><x:v>JP:
+Workstationより候補者を正式に推薦しました。CV・候補者情報をご確認のうえ、書類選考をお願いいたします。
+
+EN:
+Workstation has formally referred a candidate. Please review the CV and candidate details and proceed with document screening.</x:v></x:c><x:c r="F3" s="14" t="str"><x:v>JP:
+候補者を確認する
+
+EN:
+Review candidate</x:v></x:c><x:c r="G3" s="14" t="str"><x:v>/business/applications/{{application_id}}</x:v></x:c><x:c r="H3" s="14" t="str"><x:v>application_id, candidate_name, job_title</x:v></x:c><x:c r="I3" s="14" t="str"><x:v>Phân biệt rõ hearing đồng ý và tiến cử chính thức.</x:v></x:c><x:c r="J3" s="14" t="str"><x:v>P0</x:v></x:c></x:row><x:row r="4" ht="100" customHeight="1"><x:c r="A4" s="14" t="str"><x:v>A3</x:v></x:c><x:c r="B4" s="14" t="str"><x:v>PAYMENT_OVERDUE_REMINDER</x:v></x:c><x:c r="C4" s="14" t="str"><x:v>Yêu cầu thanh toán quá hạn</x:v></x:c><x:c r="D4" s="14" t="str"><x:v>JP:
+【JobShare Business】お支払期限を過ぎています
+
+EN:
+【JobShare Business】Payment is overdue</x:v></x:c><x:c r="E4" s="14" t="str"><x:v>JP:
+以下のお支払いは期限を過ぎています。内容をご確認のうえ、お手続きをお願いいたします。
+
+EN:
+The following payment has passed its due date. Please review the payment details and complete the required action.</x:v></x:c><x:c r="F4" s="14" t="str"><x:v>JP:
+支払い内容を確認する
+
+EN:
+Review payment</x:v></x:c><x:c r="G4" s="14" t="str"><x:v>/business/billing?tab=payments&amp;payment_id={{payment_id}}</x:v></x:c><x:c r="H4" s="14" t="str"><x:v>payment_id, amount, due_date</x:v></x:c><x:c r="I4" s="14" t="str"><x:v>Đề xuất D+1/D+7; tránh spam nếu đang xử lý.</x:v></x:c><x:c r="J4" s="14" t="str"><x:v>P1</x:v></x:c></x:row><x:row r="5" ht="100" customHeight="1"><x:c r="A5" s="14" t="str"><x:v>A4</x:v></x:c><x:c r="B5" s="14" t="str"><x:v>INTERVIEW_SCHEDULE_UPDATED</x:v></x:c><x:c r="C5" s="14" t="str"><x:v>Lịch phỏng vấn được tạo/thay đổi</x:v></x:c><x:c r="D5" s="14" t="str"><x:v>JP:
+【JobShare Business】面接日程が更新されました
+
+EN:
+【JobShare Business】Interview schedule has been updated</x:v></x:c><x:c r="E5" s="14" t="str"><x:v>JP:
+候補者の面接日程が更新されました。JobShare Businessで最新情報をご確認ください。
+
+EN:
+The candidate's interview schedule has been updated. Please check JobShare Business for the latest details.</x:v></x:c><x:c r="F5" s="14" t="str"><x:v>JP:
+面接情報を確認する
+
+EN:
+View interview details</x:v></x:c><x:c r="G5" s="14" t="str"><x:v>/business/applications/{{application_id}}</x:v></x:c><x:c r="H5" s="14" t="str"><x:v>application_id, candidate_name, interview_at</x:v></x:c><x:c r="I5" s="14" t="str"><x:v>Chỉ implement nếu platform có quản lý lịch phỏng vấn.</x:v></x:c><x:c r="J5" s="14" t="str"><x:v>P2</x:v></x:c></x:row><x:row r="6" ht="100" customHeight="1"><x:c r="A6" s="14" t="str"><x:v>A5</x:v></x:c><x:c r="B6" s="14" t="str"><x:v>CREDIT_LOW_BALANCE</x:v></x:c><x:c r="C6" s="14" t="str"><x:v>Credit gần hết</x:v></x:c><x:c r="D6" s="14" t="str"><x:v>JP:
+【JobShare Business】Credit残高が少なくなっています
+
+EN:
+【JobShare Business】Your Credit balance is running low</x:v></x:c><x:c r="E6" s="14" t="str"><x:v>JP:
+ダイレクトスカウトで利用できるCredit残高が少なくなっています。必要に応じて追加申請をご検討ください。
+
+EN:
+Your available Direct Scout Credit balance is running low. Please consider requesting additional Credits if needed.</x:v></x:c><x:c r="F6" s="14" t="str"><x:v>JP:
+Creditを確認する
+
+EN:
+View Credits</x:v></x:c><x:c r="G6" s="14" t="str"><x:v>/business/scout/direct</x:v></x:c><x:c r="H6" s="14" t="str"><x:v>current_balance, low_balance_threshold</x:v></x:c><x:c r="I6" s="14" t="str"><x:v>Optional; threshold cấu hình, hạn chế tần suất.</x:v></x:c><x:c r="J6" s="14" t="str"><x:v>P2</x:v></x:c></x:row></x:sheetData><x:pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3" /></x:worksheet>

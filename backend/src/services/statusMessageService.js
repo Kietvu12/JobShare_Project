@@ -1,10 +1,10 @@
 import { Message, JobApplication, Job, CVStorage, Collaborator } from '../models/index.js';
-import { getJobApplicationStatus } from '../constants/jobApplicationStatus.js';
+import { getJobApplicationStatus, JOB_APPLICATION_STATUS_MAX } from '../constants/jobApplicationStatus.js';
 
 function getStatusLabel(status) {
   const num = status != null && status !== '' ? Number(status) : NaN;
-  if (Number.isNaN(num) || num < 1 || num > 16) {
-    return num >= 1 && num <= 17 ? `Trạng thái ${num}` : 'Trạng thái';
+  if (Number.isNaN(num) || num < 1 || num > JOB_APPLICATION_STATUS_MAX) {
+    return 'Trạng thái';
   }
   return getJobApplicationStatus(num).label;
 }
@@ -71,6 +71,9 @@ export const statusMessageService = {
       // Thêm thông tin bổ sung theo constants (14 = Đã vào công ty, 7/8 = phỏng vấn)
       if (newStatus === 14 && jobApplication.nyushaDate) {
         content += `\n**Ngày nyusha:** ${new Date(jobApplication.nyushaDate).toLocaleDateString('vi-VN')}\n`;
+      }
+      if ((newStatus === 11 || newStatus === 12) && jobApplication.nyushaDate) {
+        content += `\n**Ngày vào công ty dự kiến:** ${new Date(jobApplication.nyushaDate).toLocaleDateString('vi-VN')}\n`;
       }
       if ((newStatus === 7 || newStatus === 8) && jobApplication.interviewDate) {
         const ivDate = new Date(jobApplication.interviewDate);

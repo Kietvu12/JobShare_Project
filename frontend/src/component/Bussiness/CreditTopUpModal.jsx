@@ -139,7 +139,7 @@ export default function CreditTopUpModal({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <div>
             <div style={{ fontSize: FS.section, fontWeight: 700, color: '#1e293b' }}>
-              {isEdit ? 'Sửa yêu cầu nạp credit' : 'Nạp Scout Credit'}
+              {isEdit ? 'Sửa yêu cầu nạp credit' : 'Nạp Scout Trực Tiếp'}
             </div>
             <div style={{ fontSize: FS.caption, color: '#64748b', marginTop: 2 }}>
               Credit hiện tại: <strong>{Number(currentCredit || 0).toLocaleString('vi-VN')}</strong>

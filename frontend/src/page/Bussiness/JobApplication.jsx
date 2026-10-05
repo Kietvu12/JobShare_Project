@@ -17,7 +17,11 @@ import {
   getStatusCategoryStyle,
   isApplicationProfileOnly,
 } from '../../utils/businessApplicationSource'
-import { getJobApplicationStatusOptionsByLanguage } from '../../utils/jobApplicationStatus'
+import {
+  getBusinessStatusFilterGroups,
+  isAllowedBusinessStatusTransition,
+  parseBusinessStatusFilterValue,
+} from '../../utils/businessApplicationStatusFlow'
 import {
   buildJobByIdMap,
   formatApplicationDateLocalized,
@@ -76,7 +80,7 @@ function sumStatusCategories(stats, categories) {
     .reduce((acc, c) => acc + (c.value || 0), 0)
 }
 
-function ApplicationSourceCell({ app }) {
+function ApplicationSourceCell({ app, ctvPrefix = 'CTV' }) {
   const showCtv = CTV_SOURCE_TYPES.has(app.sourceType) && app.ctvName
   return (
     <>
@@ -85,7 +89,7 @@ function ApplicationSourceCell({ app }) {
       </span>
       {showCtv ? (
         <div className={`mt-0.5 truncate text-slate-500 ${BUSINESS_HP_TEXT.caption}`} title={app.ctvName}>
-          CTV: {app.ctvName}
+          {ctvPrefix}: {app.ctvName}
         </div>
       ) : null}
     </>
@@ -95,7 +99,7 @@ function ApplicationSourceCell({ app }) {
 function getKanbanColumnId(status, kanbanColumns) {
   const n = Number(status)
   const col = kanbanColumns.find((c) => c.statuses.includes(n))
-  return col?.id || 'new'
+  return col?.id || kanbanColumns[0]?.id
 }
 
 function KanbanCard({ app, onOpen, onDragStart }) {
@@ -132,14 +136,18 @@ function ApplicationsKanban({ applications, onOpen, onStatusChange, updatingId, 
     applications.forEach((app) => {
       const colId = getKanbanColumnId(app.status, kanbanColumns)
       if (map[colId]) map[colId].push(app)
-      else map.new.push(app)
     })
     return map
   }, [applications, kanbanColumns])
 
   const handleDrop = (column) => async (e) => {
     e.preventDefault()
-    if (!dragApp || Number(dragApp.status) === column.defaultStatus) {
+    if (
+      !dragApp
+      || column.defaultStatus == null
+      || Number(dragApp.status) === column.defaultStatus
+      || !isAllowedBusinessStatusTransition(dragApp.status, column.defaultStatus, dragApp.sourceType)
+    ) {
       setDragApp(null)
       return
     }
@@ -295,7 +303,7 @@ const StatCard = ({ label, value, accent }) => (
   </div>
 )
 
-function ApplicationMobileCard({ app, isSelected, onOpen, tableLabels, language, unreadLabel }) {
+function ApplicationMobileCard({ app, isSelected, onOpen, tableLabels, language, unreadLabel, ctvPrefix = 'CTV' }) {
   const stageStyle = getStatusCategoryStyle(app.statusCategory)
   const showChatBadge = !isApplicationProfileOnly(app)
   return (
@@ -310,7 +318,7 @@ function ApplicationMobileCard({ app, isSelected, onOpen, tableLabels, language,
         {[
           { label: tableLabels.candidate, value: app.candidateName, sub: app.candidateEmail || '—' },
           { label: tableLabels.job, value: app.jobTitle, sub: app.jobCode || '—' },
-          { label: tableLabels.source, value: app.sourceLabel, color: app.sourceColor, sub: CTV_SOURCE_TYPES.has(app.sourceType) && app.ctvName ? `CTV: ${app.ctvName}` : null },
+          { label: tableLabels.source, value: app.sourceLabel, color: app.sourceColor, sub: CTV_SOURCE_TYPES.has(app.sourceType) && app.ctvName ? `${ctvPrefix}: ${app.ctvName}` : null },
         ].map((row) => (
           <div key={row.label} className="flex items-start justify-between gap-3">
             <span className={`shrink-0 text-slate-400 ${BUSINESS_HP_TEXT.caption}`}>{row.label}</span>
@@ -431,9 +439,12 @@ const JobApplication = () => {
   const [selectedApp, setSelectedApp] = useState(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
-  const statusOptions = useMemo(() => getJobApplicationStatusOptionsByLanguage(language), [language])
+  const statusFilterGroups = useMemo(
+    () => getBusinessStatusFilterGroups(sourceFilter, language),
+    [sourceFilter, language],
+  )
   const portalStatusOptionsFor = useCallback(
-    (currentStatus) => getBusinessApplicationPortalStatusOptions(language, currentStatus),
+    (app) => getBusinessApplicationPortalStatusOptions(language, app?.status, app?.sourceType),
     [language],
   )
 
@@ -496,7 +507,11 @@ const JobApplication = () => {
       if (searchDebounced) params.search = searchDebounced
       if (jobFilter) params.jobId = jobFilter
       if (sourceFilter) params.sourceType = sourceFilter
-      if (statusFilter) params.status = statusFilter
+      if (statusFilter) {
+        const parsed = parseBusinessStatusFilterValue(statusFilter)
+        params.status = parsed.status
+        if (!sourceFilter && parsed.sourceType) params.sourceType = parsed.sourceType
+      }
       if (appliedFrom) params.appliedFrom = appliedFrom
       if (appliedTo) params.appliedTo = appliedTo
 
@@ -522,7 +537,8 @@ const JobApplication = () => {
         app.id,
         newStatus,
         app.status,
-        portalStatusOptionsFor(app.status),
+        portalStatusOptionsFor(app),
+        language,
       )
       if (result.skipped) return
       if (!result.success) {
@@ -531,7 +547,7 @@ const JobApplication = () => {
       }
       const patch = result.patch || buildApplicationStatusPatch(
         newStatus,
-        portalStatusOptionsFor(app.status),
+        portalStatusOptionsFor(app),
       )
       setApplications((prev) => prev.map((a) => (a.id === app.id ? { ...a, ...patch } : a)))
       setSelectedApp((prev) => (prev?.id === app.id ? { ...prev, ...patch } : prev))
@@ -541,7 +557,7 @@ const JobApplication = () => {
     } finally {
       setStatusUpdatingId(null)
     }
-  }, [portalStatusOptionsFor, loadStats])
+  }, [portalStatusOptionsFor, loadStats, language])
 
   useEffect(() => {
     loadJobs()
@@ -703,7 +719,10 @@ const JobApplication = () => {
                   </select>
                   <select
                     value={sourceFilter}
-                    onChange={(e) => setSourceFilter(e.target.value)}
+                    onChange={(e) => {
+                      setSourceFilter(e.target.value)
+                      setStatusFilter('')
+                    }}
                     className={`w-[calc(50%-4px)] sm:w-auto ${APP_FILTER_CONTROL_CLASS}`}
                   >
                     {sourceOptions.map((o) => (
@@ -716,8 +735,12 @@ const JobApplication = () => {
                     className={`w-[calc(50%-4px)] sm:w-auto ${APP_FILTER_CONTROL_CLASS}`}
                   >
                     <option value="">{appCopy.filters.allStatus}</option>
-                    {statusOptions.map((o) => (
-                      <option key={o.value} value={o.value}>{o.label}</option>
+                    {statusFilterGroups.map((g) => (
+                      <optgroup key={g.key} label={g.label}>
+                        {g.options.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
                   <input
@@ -788,6 +811,7 @@ const JobApplication = () => {
                           tableLabels={appCopy.table}
                           language={language}
                           unreadLabel={appCopy.unreadMessages}
+                          ctvPrefix={appCopy.ctvPrefix}
                         />
                       ))}
                     </div>
@@ -850,7 +874,7 @@ const JobApplication = () => {
                                 </div>
                               </td>
                               <td className="px-3 py-2.5">
-                                <ApplicationSourceCell app={app} />
+                                <ApplicationSourceCell app={app} ctvPrefix={appCopy.ctvPrefix} />
                               </td>
                               <td className="min-w-[8.5rem] px-3 py-2.5 align-top">
                                 <BusinessApplicationStatusSelect
@@ -858,7 +882,7 @@ const JobApplication = () => {
                                   status={app.status}
                                   statusCategory={app.statusCategory}
                                   statusLabel={app.statusLabel}
-                                  statusOptions={portalStatusOptionsFor(app.status)}
+                                  statusOptions={portalStatusOptionsFor(app)}
                                   onChange={(newStatus) => handleApplicationStatusChange(app, newStatus)}
                                   updating={statusUpdatingId === app.id}
                                 />

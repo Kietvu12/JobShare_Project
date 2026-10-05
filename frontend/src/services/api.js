@@ -658,6 +658,24 @@ const apiService = {
     return handleResponse(response);
   },
 
+  requestBusinessDocumentDownload: async (payload) => {
+    const response = await fetch(`${API_BASE_URL}/public/business/document-download`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  requestBusinessContactInquiry: async (payload) => {
+    const response = await fetch(`${API_BASE_URL}/public/business/contact-inquiry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
   verifyBusinessEmail: async (token) => {
     const response = await fetch(
       `${API_BASE_URL}/business/auth/verify-email?token=${encodeURIComponent(token || '')}`,

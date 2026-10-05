@@ -1,0 +1,798 @@
+{
+  "BROCHURE_DOWNLOADED": {
+    "id": "01",
+    "key": "BROCHURE_DOWNLOADED",
+    "trigger": "Người dùng tải tài liệu giới thiệu JobShare Business",
+    "priority": "P1",
+    "subject": {
+      "ja": "【JobShare Business】サービス資料をダウンロードいただきありがとうございます",
+      "en": "EN:\n【JobShare Business】Thank you for downloading our service brochure"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\nこの度は、JobShare Businessのサービス資料をダウンロードいただき、ありがとうございます。\n\nJobShare Businessでは、ダイレクトスカウト、スカウト委託、採用パートナーネットワーク、採用ブランディングなど、企業の採用課題に合わせた複数の採用手法をご利用いただけます。\n\nご不明点やご相談がございましたら、お気軽にお問い合わせください。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nThank you for downloading the JobShare Business service brochure.\n\nJobShare Business offers multiple recruitment solutions tailored to your hiring needs, including Direct Scout, Managed Scout, our Recruitment Partner Network, and Employer Branding services.\n\nIf you have any questions or would like to discuss your recruitment needs, please feel free to contact us."
+    },
+    "cta": {
+      "ja": "JobShare Businessを見る",
+      "en": "EN:\nExplore JobShare Business"
+    },
+    "ctaRoute": "Public JobShare Business introduction page. Suggested: /{lang}/business",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "lang"
+    ],
+    "notes": "CTA có thể bỏ nếu muốn mail cảm ơn thuần túy."
+  },
+  "CONTACT_RECEIVED": {
+    "id": "02",
+    "key": "CONTACT_RECEIVED",
+    "trigger": "Người dùng gửi form Contact",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】お問い合わせを受け付けました",
+      "en": "EN:\n【JobShare Business】We have received your inquiry"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\nJobShare Businessへお問い合わせいただき、ありがとうございます。\n\n以下の内容でお問い合わせを受け付けました。\n\n会社名：{{company_name}}\nメールアドレス：{{email}}\n業種：{{industry}}\n\nお問い合わせ内容：\n{{inquiry_content}}\n\n内容を確認のうえ、WorkstationのJobShare Business担当者より順次ご連絡いたします。\n今しばらくお待ちください。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nThank you for contacting JobShare Business.\n\nWe have received your inquiry with the following information:\n\nCompany: {{company_name}}\nEmail: {{email}}\nIndustry: {{industry}}\n\nInquiry:\n{{inquiry_content}}\n\nA JobShare Business representative from Workstation will review your inquiry and contact you shortly.\nThank you for your patience."
+    },
+    "cta": {
+      "ja": "",
+      "en": "—"
+    },
+    "ctaRoute": "Không bắt buộc CTA. Optional: /{lang}/business",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "email",
+      "industry",
+      "inquiry_content"
+    ],
+    "notes": "Mail xác nhận tiếp nhận; không cần đăng nhập."
+  },
+  "COMPANY_REGISTERED": {
+    "id": "03",
+    "key": "COMPANY_REGISTERED",
+    "trigger": "Đăng ký tài khoản doanh nghiệp thành công",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】企業アカウントの登録が完了しました",
+      "en": "EN:\n【JobShare Business】Your company account has been successfully created"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\nJobShare Businessへの企業登録が完了しました。\n\n以下よりログインして、求人作成や候補者検索などの機能をご利用いただけます。\n\n今後ともJobShare Businessをよろしくお願いいたします。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nYour JobShare Business company account has been successfully registered.\n\nYou can now log in to create job postings, search for candidates, and use other JobShare Business features.\n\nThank you for using JobShare Business."
+    },
+    "cta": {
+      "ja": "JobShare Businessにログイン",
+      "en": "EN:\nLog in to JobShare Business"
+    },
+    "ctaRoute": "/business/login?returnUrl=/business",
+    "requiredVars": [
+      "company_name",
+      "user_name"
+    ],
+    "notes": "Nếu bật email verification thì phối hợp với template 23."
+  },
+  "NEW_PARTNER_REFERRAL": {
+    "id": "04",
+    "key": "NEW_PARTNER_REFERRAL",
+    "trigger": "CTV/Recruitment Partner tiến cử hồ sơ mới qua Sàn CTV",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】新しい候補者が推薦されました",
+      "en": "EN:\n【JobShare Business】A new candidate has been referred"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\n採用パートナーネットワーク経由で、新しい候補者が推薦されました。\n\n求人：{{job_title}}\n候補者：{{candidate_name}}\n推薦者：{{partner_name}}\n推薦番号：{{referral_id}}\n\n候補者のプロフィール・CVをご確認のうえ、選考可否をご対応ください。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nA new candidate has been referred through the JobShare Recruitment Partner Network.\n\nJob: {{job_title}}\nCandidate: {{candidate_name}}\nReferred by: {{partner_name}}\nReferral ID: {{referral_id}}\n\nPlease review the candidate profile and CV and proceed with the appropriate screening action."
+    },
+    "cta": {
+      "ja": "推薦内容を確認する",
+      "en": "EN:\nView referral details"
+    },
+    "ctaRoute": "Quản lý ứng viên - application detail. Suggested: /business/applications/{{application_id}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "job_title",
+      "candidate_name",
+      "partner_name",
+      "referral_id",
+      "application_id"
+    ],
+    "notes": "Không đưa SĐT/email ứng viên trực tiếp trong mail."
+  },
+  "DIRECT_SCOUT_UNLOCKED": {
+    "id": "05",
+    "key": "DIRECT_SCOUT_UNLOCKED",
+    "trigger": "Doanh nghiệp dùng Credit để mở hồ sơ ứng viên",
+    "priority": "P1",
+    "subject": {
+      "ja": "【JobShare Business】候補者情報を開示しました",
+      "en": "EN:\n【JobShare Business】Candidate information has been unlocked"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\nダイレクトスカウトで以下の候補者情報を開示しました。\n\n候補者：{{candidate_name}}\n使用Credit：{{used_credit}} Credit\n現在のCredit残高：{{remaining_credit}} Credit\n\n候補者のCVおよび連絡先はJobShare Business上でご確認いただけます。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nYou have unlocked the following candidate through Direct Scout.\n\nCandidate: {{candidate_name}}\nCredits used: {{used_credit}}\nRemaining balance: {{remaining_credit}} Credits\n\nThe candidate's CV and contact information are now available in JobShare Business."
+    },
+    "cta": {
+      "ja": "候補者の詳細を見る",
+      "en": "EN:\nView candidate details"
+    },
+    "ctaRoute": "/business/candidates/{{candidate_id}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "candidate_name",
+      "used_credit",
+      "remaining_credit",
+      "candidate_id"
+    ],
+    "notes": "Mail xác nhận action đã trừ Credit."
+  },
+  "MANAGED_SCOUT_REQUESTED": {
+    "id": "06",
+    "key": "MANAGED_SCOUT_REQUESTED",
+    "trigger": "Doanh nghiệp gửi yêu cầu Scout Ủy Thác tới Workstation",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】スカウト委託のご依頼を受け付けました",
+      "en": "EN:\n【JobShare Business】Your Managed Scout request has been received"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\n以下の候補者について、Workstationへのスカウト委託依頼を受け付けました。\n\n候補者：{{candidate_name}}\n依頼番号：{{request_id}}\n\n担当者が内容を確認し、候補者へのアプローチおよび今後のお手続きをご案内いたします。\n\n進捗状況はJobShare Businessからご確認いただけます。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nWe have received your Managed Scout request for the following candidate.\n\nCandidate: {{candidate_name}}\nRequest ID: {{request_id}}\n\nOur team will review the request and proceed with candidate outreach and the next required steps.\n\nYou can track the request status in JobShare Business."
+    },
+    "cta": {
+      "ja": "依頼状況を確認する",
+      "en": "EN:\nView request status"
+    },
+    "ctaRoute": "Managed Scout request/candidate detail. Suggested: /business/scout/managed/requests/{{request_id}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "candidate_name",
+      "request_id"
+    ],
+    "notes": "Deep link về đúng request/candidate."
+  },
+  "FREE_LP_CREATED": {
+    "id": "07",
+    "key": "FREE_LP_CREATED",
+    "trigger": "Tạo Landing Page miễn phí thành công",
+    "priority": "P1",
+    "subject": {
+      "ja": "【JobShare Business】採用ランディングページを作成しました",
+      "en": "EN:\n【JobShare Business】Your recruitment landing page has been created"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\nJobShare Businessで採用ランディングページが作成されました。\n\nページ名：{{landing_page_name}}\n\n公開前に、文章・画像・求人情報などの内容をご確認ください。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nYour recruitment landing page has been successfully created in JobShare Business.\n\nPage name: {{landing_page_name}}\n\nPlease review the text, images, and job information before publishing the page."
+    },
+    "cta": {
+      "ja": "ランディングページを確認・編集する",
+      "en": "EN:\nReview and edit landing page"
+    },
+    "ctaRoute": "/business/saiyo/landing-pages/{{landing_page_id}}/edit",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "landing_page_name",
+      "landing_page_id"
+    ],
+    "notes": "Create/save thành công, chưa phải publish."
+  },
+  "CREDIT_TOPUP_REQUESTED": {
+    "id": "08",
+    "key": "CREDIT_TOPUP_REQUESTED",
+    "trigger": "Gửi yêu cầu nạp Credit tới Workstation",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】Credit追加申請を受け付けました",
+      "en": "EN:\n【JobShare Business】Your Credit top-up request has been received"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\n以下の内容でCredit追加申請を受け付けました。\n\n申請Credit：{{credit_amount}} Credit\n申請日時：{{requested_at}}\nステータス：確認中\n\nWorkstationにて内容を確認後、Creditを付与いたします。\n反映まで今しばらくお待ちください。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nWe have received your Credit top-up request.\n\nRequested Credits: {{credit_amount}}\nRequested at: {{requested_at}}\nStatus: Under review\n\nWorkstation will review your request and add the Credits once approved.\nThank you for your patience."
+    },
+    "cta": {
+      "ja": "申請状況を確認する",
+      "en": "EN:\nView request status"
+    },
+    "ctaRoute": "/business/service-requests/{{request_id}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "credit_amount",
+      "requested_at",
+      "request_id"
+    ],
+    "notes": "Credit chưa được cộng tại thời điểm này."
+  },
+  "CREDIT_ADDED": {
+    "id": "09",
+    "key": "CREDIT_ADDED",
+    "trigger": "Workstation duyệt và cộng Credit",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】Creditが追加されました",
+      "en": "EN:\n【JobShare Business】Credits have been added to your account"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\nCreditの追加が完了しました。\n\n追加Credit：{{credit_amount}} Credit\n現在の残高：{{current_balance}} Credit\n\nCreditはダイレクトスカウトで候補者情報を開示する際にご利用いただけます。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nYour Credit top-up has been completed.\n\nCredits added: {{credit_amount}}\nCurrent balance: {{current_balance}} Credits\n\nYou can use Credits to unlock candidate information through Direct Scout."
+    },
+    "cta": {
+      "ja": "候補者を探す",
+      "en": "EN:\nSearch candidates"
+    },
+    "ctaRoute": "/business/scout/direct",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "credit_amount",
+      "current_balance"
+    ],
+    "notes": "CTA dẫn thẳng Scout Trực Tiếp."
+  },
+  "CANDIDATE_STATUS_CHANGED": {
+    "id": "10",
+    "key": "CANDIDATE_STATUS_CHANGED",
+    "trigger": "Trạng thái hồ sơ/ứng viên thay đổi",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】候補者の選考ステータスが更新されました",
+      "en": "EN:\n【JobShare Business】Candidate status has been updated"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\n以下の候補者について、選考ステータスが更新されました。\n\n候補者：{{candidate_name}}\n求人：{{job_title}}\n候補者ソース：{{candidate_source}}\n\n{{old_status}} → {{new_status}}\n\n詳細はJobShare Businessからご確認ください。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nThe screening status of the following candidate has been updated.\n\nCandidate: {{candidate_name}}\nJob: {{job_title}}\nCandidate source: {{candidate_source}}\n\n{{old_status}} → {{new_status}}\n\nPlease log in to JobShare Business for details."
+    },
+    "cta": {
+      "ja": "候補者の詳細を見る",
+      "en": "EN:\nView candidate details"
+    },
+    "ctaRoute": "/business/applications/{{application_id}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "candidate_name",
+      "job_title",
+      "candidate_source",
+      "old_status",
+      "new_status",
+      "application_id"
+    ],
+    "notes": "Dùng chung cho 3 nguồn sau khi vào pipeline."
+  },
+  "REFERRAL_MESSAGE_NEW": {
+    "id": "11",
+    "key": "REFERRAL_MESSAGE_NEW",
+    "trigger": "Có tin nhắn mới trong một đơn tiến cử",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】推薦案件 {{referral_id}} に新しいメッセージがあります",
+      "en": "EN:\n【JobShare Business】New message regarding referral {{referral_id}}"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\n推薦案件について、新しいメッセージが届きました。\n\n推薦番号：{{referral_id}}\n求人：{{job_title}}\n候補者：{{candidate_name}}\n送信者：{{sender_name}}\n\nメッセージ：\n{{message_preview}}",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nYou have received a new message regarding a candidate referral.\n\nReferral ID: {{referral_id}}\nJob: {{job_title}}\nCandidate: {{candidate_name}}\nSender: {{sender_name}}\n\nMessage:\n{{message_preview}}"
+    },
+    "cta": {
+      "ja": "メッセージを確認する",
+      "en": "EN:\nView message"
+    },
+    "ctaRoute": "/business/messages?referral_id={{referral_id}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "referral_id",
+      "job_title",
+      "candidate_name",
+      "sender_name",
+      "message_preview"
+    ],
+    "notes": "Preview ~120 ký tự; không đưa attachment vào mail."
+  },
+  "SERVICE_REQUEST_CREATED": {
+    "id": "12",
+    "key": "SERVICE_REQUEST_CREATED",
+    "trigger": "Gửi yêu cầu dịch vụ thành công",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】サービスリクエストを受け付けました",
+      "en": "EN:\n【JobShare Business】Your service request has been received"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\n以下の内容でサービスリクエストを受け付けました。\n\nサービス：{{service_name}}\nリクエスト番号：{{request_id}}\n申請日時：{{requested_at}}\n\nご依頼内容：\n{{request_content}}\n\nWorkstation担当者が内容を確認し、順次ご連絡いたします。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nWe have received your service request.\n\nService: {{service_name}}\nRequest ID: {{request_id}}\nSubmitted at: {{requested_at}}\n\nRequest details:\n{{request_content}}\n\nA Workstation representative will review your request and contact you shortly."
+    },
+    "cta": {
+      "ja": "リクエスト状況を確認する",
+      "en": "EN:\nView request status"
+    },
+    "ctaRoute": "/business/service-requests/{{request_id}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "service_name",
+      "request_id",
+      "requested_at",
+      "request_content"
+    ],
+    "notes": "Một template dùng chung cho LP premium / ads / event / profile / dịch vụ khác."
+  },
+  "WORKSTATION_MESSAGE_NEW": {
+    "id": "13",
+    "key": "WORKSTATION_MESSAGE_NEW",
+    "trigger": "Có tin nhắn mới từ Admin/CA Workstation",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】Workstationから新しいメッセージがあります",
+      "en": "EN:\n【JobShare Business】You have a new message from Workstation"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\nWorkstation担当者から新しいメッセージが届きました。\n\n担当者：{{sender_name}}\n\nメッセージ：\n{{message_preview}}\n\nJobShare Businessへログインして、内容をご確認ください。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nYou have received a new message from a Workstation representative.\n\nRepresentative: {{sender_name}}\n\nMessage:\n{{message_preview}}\n\nPlease log in to JobShare Business to view the full message."
+    },
+    "cta": {
+      "ja": "メッセージを確認する",
+      "en": "EN:\nView message"
+    },
+    "ctaRoute": "/business/messages?conversation_id={{conversation_id}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "sender_name",
+      "message_preview",
+      "conversation_id"
+    ],
+    "notes": "Có thể dùng chung backend NEW_MESSAGE với template 11."
+  },
+  "PARTNER_JOB_PUBLISHED": {
+    "id": "14",
+    "key": "PARTNER_JOB_PUBLISHED",
+    "trigger": "JD trên Sàn CTV được duyệt và bắt đầu chạy",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】求人の掲載を開始しました",
+      "en": "EN:\n【JobShare Business】Your job posting is now live"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\n求人の確認が完了し、採用パートナーネットワークへの掲載を開始しました。\n\n求人：{{job_title}}\n掲載ステータス：掲載中\n紹介料：{{referral_fee}}",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nYour job posting has been approved and is now live on the JobShare Recruitment Partner Network.\n\nJob: {{job_title}}\nStatus: Active\nReferral fee: {{referral_fee}}"
+    },
+    "cta": {
+      "ja": "掲載状況を確認する",
+      "en": "EN:\nView posting status"
+    },
+    "ctaRoute": "/business/candidate-sharing/jobs/{{job_id}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "job_title",
+      "referral_fee",
+      "job_id"
+    ],
+    "notes": "Gửi sau khi status chuyển Active."
+  },
+  "PARTNER_JOB_REVISION_REQUIRED": {
+    "id": "15",
+    "key": "PARTNER_JOB_REVISION_REQUIRED",
+    "trigger": "JD trên Sàn CTV cần sửa trước khi duyệt",
+    "priority": "P1",
+    "subject": {
+      "ja": "【JobShare Business】求人内容のご確認をお願いします",
+      "en": "EN:\n【JobShare Business】Please review your job posting"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\n求人内容について、確認・修正が必要な項目があります。\n\n求人：{{job_title}}\n\n確認事項：\n{{review_comment}}\n\n内容をご確認のうえ、修正をお願いいたします。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nYour job posting requires some additional review or updates.\n\nJob: {{job_title}}\n\nReview comments:\n{{review_comment}}\n\nPlease review the comments and update the job posting accordingly."
+    },
+    "cta": {
+      "ja": "求人を修正する",
+      "en": "EN:\nEdit job posting"
+    },
+    "ctaRoute": "/business/candidate-sharing/jobs/{{job_id}}/edit",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "job_title",
+      "review_comment",
+      "job_id"
+    ],
+    "notes": "Không dùng wording rejected nếu chỉ yêu cầu sửa."
+  },
+  "MANAGED_SCOUT_HEARING_ACCEPTED": {
+    "id": "16A",
+    "key": "MANAGED_SCOUT_HEARING_ACCEPTED",
+    "trigger": "WS hearing xong và ứng viên đồng ý ứng tuyển",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】候補者が応募を希望しています",
+      "en": "EN:\n【JobShare Business】The candidate would like to apply"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\n候補者へのヒアリングが完了し、応募希望を確認しました。\n\n候補者：{{candidate_name}}\n求人：{{job_title}}\n\nWorkstationにて応募書類を確認・更新後、正式に推薦いたします。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nWe have completed the candidate hearing and confirmed that the candidate would like to proceed with the application.\n\nCandidate: {{candidate_name}}\nJob: {{job_title}}\n\nWorkstation will review and update the application documents before formally referring the candidate."
+    },
+    "cta": {
+      "ja": "候補者の状況を確認する",
+      "en": "EN:\nView candidate status"
+    },
+    "ctaRoute": "/business/scout/managed/requests/{{request_id}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "candidate_name",
+      "job_title",
+      "request_id"
+    ],
+    "notes": "Trạng thái trước tiến cử chính thức."
+  },
+  "MANAGED_SCOUT_HEARING_DECLINED": {
+    "id": "16B",
+    "key": "MANAGED_SCOUT_HEARING_DECLINED",
+    "trigger": "WS hearing xong và ứng viên từ chối ứng tuyển",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】候補者へのヒアリング結果のお知らせ",
+      "en": "EN:\n【JobShare Business】Candidate hearing result"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\n候補者へのヒアリングが完了しましたが、今回は応募を希望されませんでした。\n\n候補者：{{candidate_name}}\n\n必要に応じて、類似候補者の検索をWorkstationへご依頼いただけます。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nWe have completed the candidate hearing; however, the candidate has decided not to proceed with the application at this time.\n\nCandidate: {{candidate_name}}\n\nIf needed, you can ask Workstation to search for similar candidates."
+    },
+    "cta": {
+      "ja": "詳細を確認する",
+      "en": "EN:\nView details"
+    },
+    "ctaRoute": "/business/scout/managed/requests/{{request_id}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "candidate_name",
+      "request_id"
+    ],
+    "notes": "Web có thể gợi ý tìm ứng viên tương tự."
+  },
+  "SERVICE_REQUEST_STATUS_CHANGED": {
+    "id": "17",
+    "key": "SERVICE_REQUEST_STATUS_CHANGED",
+    "trigger": "Trạng thái yêu cầu dịch vụ thay đổi",
+    "priority": "P1",
+    "subject": {
+      "ja": "【JobShare Business】サービスリクエストのステータスが更新されました",
+      "en": "EN:\n【JobShare Business】Your service request status has been updated"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\nサービスリクエストのステータスが更新されました。\n\nサービス：{{service_name}}\nリクエスト番号：{{request_id}}\n\n{{old_status}} → {{new_status}}",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nThe status of your service request has been updated.\n\nService: {{service_name}}\nRequest ID: {{request_id}}\n\n{{old_status}} → {{new_status}}"
+    },
+    "cta": {
+      "ja": "リクエストを確認する",
+      "en": "EN:\nView request"
+    },
+    "ctaRoute": "/business/service-requests/{{request_id}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "service_name",
+      "request_id",
+      "old_status",
+      "new_status"
+    ],
+    "notes": "Chỉ gửi status user-facing."
+  },
+  "LANDING_PAGE_PUBLISHED": {
+    "id": "18",
+    "key": "LANDING_PAGE_PUBLISHED",
+    "trigger": "Landing Page được publish ra URL công khai",
+    "priority": "P1",
+    "subject": {
+      "ja": "【JobShare Business】採用ランディングページを公開しました",
+      "en": "EN:\n【JobShare Business】Your recruitment landing page is now live"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\n採用ランディングページが公開されました。\n\nページ名：{{landing_page_name}}\n公開URL：{{public_url}}",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nYour recruitment landing page has been successfully published.\n\nPage name: {{landing_page_name}}\nPublic URL: {{public_url}}"
+    },
+    "cta": {
+      "ja": "公開ページを見る",
+      "en": "EN:\nView published page"
+    },
+    "ctaRoute": "{{public_url}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "landing_page_name",
+      "public_url"
+    ],
+    "notes": "CTA là URL public thật, không phải editor."
+  },
+  "PAYMENT_REQUEST_CREATED": {
+    "id": "19",
+    "key": "PAYMENT_REQUEST_CREATED",
+    "trigger": "WS tạo yêu cầu thanh toán mới",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】お支払いのご依頼があります",
+      "en": "EN:\n【JobShare Business】A new payment request has been issued"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\n新しいお支払い依頼が発行されました。\n\nサービス：{{service_name}}\n求人：{{job_title}}\n候補者：{{candidate_name}}\n費用種別：{{fee_type}}\n金額：{{amount}}\n支払期限：{{due_date}}\n\n請求書・関連資料はJobShare Businessからご確認いただけます。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nA new payment request has been issued.\n\nService: {{service_name}}\nJob: {{job_title}}\nCandidate: {{candidate_name}}\nFee type: {{fee_type}}\nAmount: {{amount}}\nPayment due date: {{due_date}}\n\nThe invoice and related documents are available in JobShare Business."
+    },
+    "cta": {
+      "ja": "支払い内容を確認する",
+      "en": "EN:\nReview payment details"
+    },
+    "ctaRoute": "/business/billing?tab=payments&payment_id={{payment_id}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "service_name",
+      "job_title",
+      "candidate_name",
+      "fee_type",
+      "amount",
+      "due_date",
+      "payment_id"
+    ],
+    "notes": "job/candidate có thể nullable. Chi tiết cần file PDF/Excel nếu có."
+  },
+  "PAYMENT_CONFIRMED": {
+    "id": "20",
+    "key": "PAYMENT_CONFIRMED",
+    "trigger": "WS xác nhận đã nhận thanh toán",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】お支払いを確認しました",
+      "en": "EN:\n【JobShare Business】Your payment has been confirmed"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\nお支払いの確認が完了しました。\n\n金額：{{amount}}\n支払番号：{{payment_id}}\n\nお支払いいただき、ありがとうございます。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nWe have confirmed your payment.\n\nAmount: {{amount}}\nPayment ID: {{payment_id}}\n\nThank you for your payment."
+    },
+    "cta": {
+      "ja": "支払い詳細を見る",
+      "en": "EN:\nView payment details"
+    },
+    "ctaRoute": "/business/billing?tab=payments&payment_id={{payment_id}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "amount",
+      "payment_id"
+    ],
+    "notes": "Trigger khi payment status = Confirmed/Paid."
+  },
+  "INVOICE_ISSUED": {
+    "id": "21",
+    "key": "INVOICE_ISSUED",
+    "trigger": "Hóa đơn được phát hành",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】請求書が発行されました",
+      "en": "EN:\n【JobShare Business】Your invoice has been issued"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\n請求書が発行されました。\n\n請求書番号：{{invoice_number}}\n金額：{{amount}}\n発行日：{{issued_date}}\n\nJobShare Businessよりご確認・ダウンロードいただけます。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nA new invoice has been issued.\n\nInvoice number: {{invoice_number}}\nAmount: {{amount}}\nIssue date: {{issued_date}}\n\nYou can view and download the invoice from JobShare Business."
+    },
+    "cta": {
+      "ja": "請求書を確認する",
+      "en": "EN:\nView invoice"
+    },
+    "ctaRoute": "/business/billing?tab=invoices&invoice_id={{invoice_id}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "invoice_number",
+      "amount",
+      "issued_date",
+      "invoice_id"
+    ],
+    "notes": "Có thể attach PDF hoặc download trên platform theo security policy."
+  },
+  "PARTNER_JOB_EXPIRING": {
+    "id": "22",
+    "key": "PARTNER_JOB_EXPIRING",
+    "trigger": "JD đang chạy trên Sàn CTV sắp hết hạn",
+    "priority": "P1",
+    "subject": {
+      "ja": "【JobShare Business】掲載中の求人がまもなく終了します",
+      "en": "EN:\n【JobShare Business】Your job posting will expire soon"
+    },
+    "body": {
+      "ja": "{{company_name}}\n{{user_name}} 様\n\n以下の求人の掲載終了日が近づいています。\n\n求人：{{job_title}}\n掲載終了日：{{expiry_date}}\n\n引き続き募集する場合は、掲載期間を延長してください。",
+      "en": "EN:\nDear {{user_name}},\n{{company_name}}\n\nThe following job posting is approaching its expiration date.\n\nJob: {{job_title}}\nExpiration date: {{expiry_date}}\n\nIf you would like to continue recruiting, please extend the posting period."
+    },
+    "cta": {
+      "ja": "求人を延長する",
+      "en": "EN:\nExtend job posting"
+    },
+    "ctaRoute": "/business/candidate-sharing/jobs/{{job_id}}",
+    "requiredVars": [
+      "company_name",
+      "user_name",
+      "job_title",
+      "expiry_date",
+      "job_id"
+    ],
+    "notes": "Đề xuất gửi 7 ngày trước hết hạn, tránh duplicate."
+  },
+  "EMAIL_VERIFICATION": {
+    "id": "23",
+    "key": "EMAIL_VERIFICATION",
+    "trigger": "Xác thực email tài khoản",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】メールアドレスの確認をお願いします",
+      "en": "EN:\n【JobShare Business】Please verify your email address"
+    },
+    "body": {
+      "ja": "{{user_name}} 様\n\nJobShare Businessへのご登録ありがとうございます。\n\n以下のボタンからメールアドレスの確認を完了してください。",
+      "en": "EN:\nDear {{user_name}},\n\nThank you for registering with JobShare Business.\n\nPlease verify your email address using the button below."
+    },
+    "cta": {
+      "ja": "メールアドレスを確認する",
+      "en": "EN:\nVerify email address"
+    },
+    "ctaRoute": "{{verification_url}}",
+    "requiredVars": [
+      "user_name",
+      "verification_url"
+    ],
+    "notes": "Token expiry + one-time use."
+  },
+  "PASSWORD_RESET": {
+    "id": "24",
+    "key": "PASSWORD_RESET",
+    "trigger": "Yêu cầu reset mật khẩu",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】パスワード再設定のご案内",
+      "en": "EN:\n【JobShare Business】Password reset request"
+    },
+    "body": {
+      "ja": "{{user_name}} 様\n\nパスワード再設定のリクエストを受け付けました。\n\n以下のリンクより、新しいパスワードを設定してください。\n\nこの操作に心当たりがない場合は、本メールを破棄してください。",
+      "en": "EN:\nDear {{user_name}},\n\nWe received a request to reset your JobShare Business password.\n\nPlease use the link below to set a new password.\n\nIf you did not request a password reset, please disregard this email."
+    },
+    "cta": {
+      "ja": "パスワードを再設定する",
+      "en": "EN:\nReset password"
+    },
+    "ctaRoute": "{{reset_password_url}}",
+    "requiredVars": [
+      "user_name",
+      "reset_password_url"
+    ],
+    "notes": "Token expiry + one-time use; không log raw token."
+  },
+  "MANAGED_SCOUT_CONTRACT_COMPLETED": {
+    "id": "A1",
+    "key": "MANAGED_SCOUT_CONTRACT_COMPLETED",
+    "trigger": "Hợp đồng Scout Ủy Thác hoàn tất / dịch vụ bắt đầu",
+    "priority": "P1",
+    "subject": {
+      "ja": "【JobShare Business】スカウト委託の手続きが完了しました",
+      "en": "EN:\n【JobShare Business】Your Managed Scout setup is complete"
+    },
+    "body": {
+      "ja": "スカウト委託のお手続きが完了しました。求人を紐づける、または新しい求人を作成して、Workstationによる候補者ヒアリングを開始できます。",
+      "en": "EN:\nYour Managed Scout setup is complete. You can now link an existing job or create a new one so Workstation can begin candidate outreach and hearing."
+    },
+    "cta": {
+      "ja": "詳細を確認する",
+      "en": "EN:\nView details"
+    },
+    "ctaRoute": "/business/scout/managed/requests/{{request_id}}",
+    "requiredVars": [
+      "request_id",
+      "job_id(optional)"
+    ],
+    "notes": "Nên có vì flow Scout Ủy Thác phụ thuộc bước hợp đồng trước hearing."
+  },
+  "MANAGED_SCOUT_FORMAL_REFERRAL": {
+    "id": "A2",
+    "key": "MANAGED_SCOUT_FORMAL_REFERRAL",
+    "trigger": "WS chính thức tiến cử ứng viên sau hearing",
+    "priority": "P0",
+    "subject": {
+      "ja": "【JobShare Business】候補者を正式に推薦しました",
+      "en": "EN:\n【JobShare Business】A candidate has been formally referred"
+    },
+    "body": {
+      "ja": "Workstationより候補者を正式に推薦しました。CV・候補者情報をご確認のうえ、書類選考をお願いいたします。",
+      "en": "EN:\nWorkstation has formally referred a candidate. Please review the CV and candidate details and proceed with document screening."
+    },
+    "cta": {
+      "ja": "候補者を確認する",
+      "en": "EN:\nReview candidate"
+    },
+    "ctaRoute": "/business/applications/{{application_id}}",
+    "requiredVars": [
+      "application_id",
+      "candidate_name",
+      "job_title"
+    ],
+    "notes": "Phân biệt rõ hearing đồng ý và tiến cử chính thức."
+  },
+  "PAYMENT_OVERDUE_REMINDER": {
+    "id": "A3",
+    "key": "PAYMENT_OVERDUE_REMINDER",
+    "trigger": "Yêu cầu thanh toán quá hạn",
+    "priority": "P1",
+    "subject": {
+      "ja": "【JobShare Business】お支払期限を過ぎています",
+      "en": "EN:\n【JobShare Business】Payment is overdue"
+    },
+    "body": {
+      "ja": "以下のお支払いは期限を過ぎています。内容をご確認のうえ、お手続きをお願いいたします。",
+      "en": "EN:\nThe following payment has passed its due date. Please review the payment details and complete the required action."
+    },
+    "cta": {
+      "ja": "支払い内容を確認する",
+      "en": "EN:\nReview payment"
+    },
+    "ctaRoute": "/business/billing?tab=payments&payment_id={{payment_id}}",
+    "requiredVars": [
+      "payment_id",
+      "amount",
+      "due_date"
+    ],
+    "notes": "Đề xuất D+1/D+7; tránh spam nếu đang xử lý."
+  },
+  "INTERVIEW_SCHEDULE_UPDATED": {
+    "id": "A4",
+    "key": "INTERVIEW_SCHEDULE_UPDATED",
+    "trigger": "Lịch phỏng vấn được tạo/thay đổi",
+    "priority": "P2",
+    "subject": {
+      "ja": "【JobShare Business】面接日程が更新されました",
+      "en": "EN:\n【JobShare Business】Interview schedule has been updated"
+    },
+    "body": {
+      "ja": "候補者の面接日程が更新されました。JobShare Businessで最新情報をご確認ください。",
+      "en": "EN:\nThe candidate's interview schedule has been updated. Please check JobShare Business for the latest details."
+    },
+    "cta": {
+      "ja": "面接情報を確認する",
+      "en": "EN:\nView interview details"
+    },
+    "ctaRoute": "/business/applications/{{application_id}}",
+    "requiredVars": [
+      "application_id",
+      "candidate_name",
+      "interview_at"
+    ],
+    "notes": "Chỉ implement nếu platform có quản lý lịch phỏng vấn."
+  },
+  "CREDIT_LOW_BALANCE": {
+    "id": "A5",
+    "key": "CREDIT_LOW_BALANCE",
+    "trigger": "Credit gần hết",
+    "priority": "P2",
+    "subject": {
+      "ja": "【JobShare Business】Credit残高が少なくなっています",
+      "en": "EN:\n【JobShare Business】Your Credit balance is running low"
+    },
+    "body": {
+      "ja": "ダイレクトスカウトで利用できるCredit残高が少なくなっています。必要に応じて追加申請をご検討ください。",
+      "en": "EN:\nYour available Direct Scout Credit balance is running low. Please consider requesting additional Credits if needed."
+    },
+    "cta": {
+      "ja": "Creditを確認する",
+      "en": "EN:\nView Credits"
+    },
+    "ctaRoute": "/business/scout/direct",
+    "requiredVars": [
+      "current_balance",
+      "low_balance_threshold"
+    ],
+    "notes": "Optional; threshold cấu hình, hạn chế tần suất."
+  }
+}

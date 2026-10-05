@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { Send, Calendar, Clock, MessageCircle, Plus, Camera, X, DollarSign, RefreshCw, Paperclip, FileText, Archive, PanelRight } from 'lucide-react';
 import apiService from '../../services/api';
 import NominationChatContactBar from './NominationChatContactBar';
-import { getJobApplicationStatus, getJobApplicationStatusOptionsByLanguage, getJobApplicationStatusLabelByLanguage } from '../../utils/jobApplicationStatus';
+import { getJobApplicationStatus, getJobApplicationStatusOptionsByLanguage, getJobApplicationStatusLabelByLanguage, JOB_APPLICATION_STATUS_MAX } from '../../utils/jobApplicationStatus';
+import { getBusinessStatusOptions } from '../../utils/businessApplicationStatusFlow';
 import { useLanguage } from '../../context/LanguageContext';
 import { translations } from '../../translations/translations';
 import StatusChangeMessageCard from './StatusChangeMessageCard';
@@ -215,7 +216,7 @@ const NominationChat = ({
 
   // Form tin nhắn đổi trạng thái (admin) – hiển thị trong phần chat
   const [showStatusMessageForm, setShowStatusMessageForm] = useState(false);
-  const [statusFormStatus, setStatusFormStatus] = useState(() => (currentStatus != null && currentStatus >= 1 && currentStatus <= 16) ? Number(currentStatus) : 2);
+  const [statusFormStatus, setStatusFormStatus] = useState(() => (currentStatus != null && currentStatus >= 1 && currentStatus <= JOB_APPLICATION_STATUS_MAX) ? Number(currentStatus) : 2);
   const [statusFormReason, setStatusFormReason] = useState('');
   const [statusFormAttachReason, setStatusFormAttachReason] = useState(false);
   const [statusFormPaymentAmount, setStatusFormPaymentAmount] = useState('');
@@ -246,13 +247,17 @@ const NominationChat = ({
 
   // Modal thay đổi trạng thái (admin) – trong header chat
   const [showChangeStatusModal, setShowChangeStatusModal] = useState(false);
-  const [changeStatusSelected, setChangeStatusSelected] = useState(() => (currentStatus != null && currentStatus >= 1 && currentStatus <= 16) ? Number(currentStatus) : 2);
+  const [changeStatusSelected, setChangeStatusSelected] = useState(() => (currentStatus != null && currentStatus >= 1 && currentStatus <= JOB_APPLICATION_STATUS_MAX) ? Number(currentStatus) : 2);
   const [changeStatusReason, setChangeStatusReason] = useState('');
   const [changeStatusAttachReason, setChangeStatusAttachReason] = useState(false);
   const [changeStatusAmount, setChangeStatusAmount] = useState('');
   const [changeStatusInterviewDate, setChangeStatusInterviewDate] = useState('');
   const [changeStatusInterviewTime, setChangeStatusInterviewTime] = useState('');
+  const [changeStatusNyushaDate, setChangeStatusNyushaDate] = useState('');
   const [changeStatusSubmitting, setChangeStatusSubmitting] = useState(false);
+  /** Doanh nghiệp: 7 = Đang xếp lịch PV (set ngày), 11 = Đã gửi offer (set ngày vào dự kiến) */
+  const interviewScheduleStatus = userType === 'business' ? 7 : STATUS_INTERVIEW_SCHEDULE;
+  const changeStatusNeedsNyusha = userType === 'business' && Number(changeStatusSelected) === 11;
   const attachmentInputRef = useRef(null);
 
   const [showCvModal, setShowCvModal] = useState(false);
@@ -403,7 +408,7 @@ const NominationChat = ({
   // Đồng bộ trạng thái form với trạng thái đơn hiện tại (khi mở form hoặc currentStatus đổi)
   useEffect(() => {
     const v = currentStatus != null && currentStatus !== '' ? Number(currentStatus) : 2;
-    if (v >= 1 && v <= 16) setStatusFormStatus(v);
+    if (v >= 1 && v <= JOB_APPLICATION_STATUS_MAX) setStatusFormStatus(v);
   }, [currentStatus, showStatusMessageForm]);
 
   const scrollToBottom = () => {
@@ -728,7 +733,7 @@ const NominationChat = ({
   const handleConfirmChangeStatus = async () => {
     if (!jobApplicationId || changeStatusSubmitting) return;
     const statusNum = Number(changeStatusSelected);
-    if (Number.isNaN(statusNum) || statusNum < 1 || statusNum > 16) {
+    if (Number.isNaN(statusNum) || statusNum < 1 || statusNum > JOB_APPLICATION_STATUS_MAX) {
       alert(t.selectValidStatus);
       return;
     }
@@ -736,11 +741,15 @@ const NominationChat = ({
       alert(t.chatReasonRequired || 'Vui lòng nhập lý do.');
       return;
     }
-    if (statusNum === STATUS_INTERVIEW_SCHEDULE) {
+    if (statusNum === interviewScheduleStatus) {
       if (!changeStatusInterviewDate || !changeStatusInterviewTime) {
         alert(t.chatErrorInterviewRequired);
         return;
       }
+    }
+    if (changeStatusNeedsNyusha && !changeStatusNyushaDate) {
+      alert(t.chatErrorNyushaRequired);
+      return;
     }
     if (statusNum === STATUS_PAID) {
       const amount = parseFloat(changeStatusAmount);
@@ -789,10 +798,10 @@ const NominationChat = ({
         if (onScheduleInterview) onScheduleInterview();
         if (onStatusUpdated) onStatusUpdated();
         alert(t.chatSuccessInterviewScheduled);
-      } else if (statusNum === STATUS_INTERVIEW_SCHEDULE && userType === 'business') {
+      } else if (statusNum === interviewScheduleStatus && userType === 'business') {
         const dateTime = new Date(`${changeStatusInterviewDate}T${changeStatusInterviewTime}`);
         const response = await apiService.updateBusinessApplicationStatus(jobApplicationId, {
-          status: STATUS_INTERVIEW_SCHEDULE,
+          status: statusNum,
           interviewDate: dateTime.toISOString(),
           rejectNote: changeStatusAttachReason ? changeStatusReason.trim() : '',
           forceClearRejectNote: !changeStatusAttachReason,
@@ -817,6 +826,7 @@ const NominationChat = ({
           status: statusNum,
           rejectNote,
           paymentAmount,
+          ...(changeStatusNeedsNyusha ? { nyushaDate: changeStatusNyushaDate } : {}),
           forceClearRejectNote: !changeStatusAttachReason,
         });
         if (response.success) {
@@ -824,6 +834,7 @@ const NominationChat = ({
           setChangeStatusAttachReason(false);
           setChangeStatusReason('');
           setChangeStatusAmount('');
+          setChangeStatusNyushaDate('');
           loadMessages();
           if (onStatusUpdated) onStatusUpdated();
           alert(response.message || (t.updateSuccess || 'Cập nhật trạng thái thành công.'));
@@ -1083,7 +1094,7 @@ const NominationChat = ({
               <button
                 type="button"
                 onClick={() => {
-                  setChangeStatusSelected((currentStatus != null && currentStatus >= 1 && currentStatus <= 16) ? Number(currentStatus) : 2);
+                  setChangeStatusSelected((currentStatus != null && currentStatus >= 1 && currentStatus <= JOB_APPLICATION_STATUS_MAX) ? Number(currentStatus) : 2);
                   setChangeStatusReason('');
                   setChangeStatusAttachReason(false);
                   setChangeStatusAmount('');
@@ -1935,7 +1946,10 @@ const NominationChat = ({
                   className="w-full px-3 py-2 border rounded-lg text-sm"
                   style={{ borderColor: '#e5e7eb' }}
                 >
-                  {getJobApplicationStatusOptionsByLanguage(language).map((opt) => (
+                  {(userType === 'business'
+                    ? getBusinessStatusOptions(currentStatus, 'ctv_marketplace', language)
+                    : getJobApplicationStatusOptionsByLanguage(language)
+                  ).map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
@@ -1970,7 +1984,21 @@ const NominationChat = ({
                   </div>
                 )}
               </div>
-              {changeStatusSelected === STATUS_INTERVIEW_SCHEDULE && (
+              {changeStatusNeedsNyusha && (
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: '#374151' }}>
+                    {t.nyushaDate} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={changeStatusNyushaDate}
+                    onChange={(e) => setChangeStatusNyushaDate(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                    style={{ borderColor: '#e5e7eb' }}
+                  />
+                </div>
+              )}
+              {changeStatusSelected === interviewScheduleStatus && (
                 <>
                   <div>
                     <label className="block text-sm font-medium mb-1" style={{ color: '#374151' }}>{t.chatDate || 'Ngày'}</label>
@@ -2036,7 +2064,8 @@ const NominationChat = ({
                 onClick={handleConfirmChangeStatus}
                 disabled={changeStatusSubmitting ||
                   (changeStatusAttachReason && !changeStatusReason.trim()) ||
-                  (changeStatusSelected === STATUS_INTERVIEW_SCHEDULE && (!changeStatusInterviewDate || !changeStatusInterviewTime)) ||
+                  (changeStatusSelected === interviewScheduleStatus && (!changeStatusInterviewDate || !changeStatusInterviewTime)) ||
+                  (changeStatusNeedsNyusha && !changeStatusNyushaDate) ||
                   (changeStatusSelected === STATUS_PAID && (Number.isNaN(parseFloat(changeStatusAmount)) || parseFloat(changeStatusAmount) < 0))}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50"
                 style={{ backgroundColor: '#2563eb' }}

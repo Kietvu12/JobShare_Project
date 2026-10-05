@@ -1,0 +1,45 @@
+.business-corp-marquee {
+  overflow: hidden;
+  width: 100%;
+}
+
+.business-corp-marquee__track {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  width: max-content;
+  animation: business-corp-marquee-scroll 55s linear infinite;
+}
+
+.business-corp-marquee__item {
+  flex: 0 0 auto;
+  width: clamp(140px, 14vw, 220px);
+  height: auto;
+  margin: 0 16px;
+}
+
+.business-corp-marquee__item .front-page-corporation-slider__item-body {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+@keyframes business-corp-marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .business-corp-marquee__track {
+    animation: none;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+  }
+}

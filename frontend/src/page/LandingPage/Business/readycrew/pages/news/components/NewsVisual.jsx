@@ -1,3 +1,5 @@
+import { useLanguage } from '../../../../../../../context/LanguageContext'
+import { getHomeNewsCopy } from '../../../../../../../i18n/businessApp/homeNews'
 import BrandLogo from '../../../components/layout/BrandLogo'
 import newsModelImage from '../../../../../../../../middle_model_icon.png'
 
@@ -5,11 +7,14 @@ const MARQUEE_TEXT = 'JobShare for Business'
 const MARQUEE_ITEMS = Array.from({ length: 4 }, (_, index) => `${MARQUEE_TEXT}-${index}`)
 
 export default function NewsVisual() {
+  const { language } = useLanguage()
+  const copy = getHomeNewsCopy(language)
+
   return (
     <div className="page-news-visual l-article-mv-plus-lower news-visual">
       <div className="page-news-visual__contents l-article-mv__contents">
         <h1 className="page-news-visual__page-title l-article-mv__title">
-          <span className="page-news-visual__page-title-jp l-article-mv__title-jp">お知らせ</span>
+          <span className="page-news-visual__page-title-jp l-article-mv__title-jp">{copy.heading}</span>
         </h1>
         <div className="page-news-visual__images">
           <div className="page-news-visual__logo">

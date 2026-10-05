@@ -7,6 +7,7 @@ import { useCandidateAuth } from '../context/CandidateAuthContext';
 import { translations } from '../translations/translations';
 import BlogEventRegistrationSidebar from '../component/Shared/BlogEventRegistrationSidebar';
 import {
+  isBusinessPublicPath,
   isCandidatePublicPath,
   resolvePublicBlogPrefix,
 } from '../utils/localeRoutes';
@@ -85,6 +86,7 @@ export default function BlogDetailPage() {
 
   const blogSurface = useMemo(() => {
     if (isCandidatePublicPath(pathname)) return 'candidate';
+    if (isBusinessPublicPath(pathname)) return 'business';
     return 'collaborator';
   }, [pathname]);
 

@@ -1,4 +1,5 @@
 /** Business Report & Insights — VI / EN / JA */
+import { formatYenAmount } from '../../utils/businessCreditPackages.js';
 
 function resolveLang(language) {
   if (language === 'en' || language === 'ja') return language;
@@ -32,7 +33,38 @@ export const insightsI18n = {
     kpiTotalNominations: 'Tổng tiến cử nhận được',
     kpiInterviews: 'Ứng viên vào vòng phỏng vấn',
     kpiHired: 'Tuyển thành công',
-    kpiRecruitmentCost: 'Chi phí tuyển dụng (VNĐ)',
+    kpiRecruitmentCost: 'Chi phí tuyển dụng',
+    costPerHireHint: (v) => `${v} / lượt tuyển`,
+    estimatedTag: 'ước tính',
+    serviceFilterAria: 'Lọc theo dịch vụ',
+    services: {
+      all: 'Tất cả dịch vụ',
+      scout_credit: 'Scout Trực Tiếp',
+      scout_performance: 'Scout Ủy Thác',
+      ctv_marketplace: 'Sàn CTV',
+    },
+    serviceFilteredNote: (label) => `Toàn bộ số liệu bên dưới chỉ tính riêng cho ${label}.`,
+    serviceClearFilter: 'Xem tất cả dịch vụ',
+    compareTitle: 'So sánh hiệu quả theo dịch vụ',
+    compareSubtitle: 'Kết quả tuyển dụng và chi phí bỏ ra của từng kênh trong kỳ đang xem — để quyết định rót ngân sách vào đâu.',
+    compareColService: 'Dịch vụ',
+    compareColJobs: 'JD sử dụng',
+    compareColNominations: 'Tiến cử',
+    compareColInterviews: 'Phỏng vấn',
+    compareColHires: 'Tuyển thành công',
+    compareColHireRate: 'Tỷ lệ tuyển',
+    compareColCost: 'Chi phí',
+    compareColCostPerHire: 'Chi phí / lượt tuyển',
+    compareColShare: 'Tỷ trọng tuyển / chi phí',
+    compareViewOnly: 'Xem riêng',
+    compareBestCost: 'Chi phí/tuyển thấp nhất',
+    compareBestRate: 'Tỷ lệ tuyển cao nhất',
+    compareNoHire: 'Chưa có lượt tuyển',
+    compareEmpty: 'Chưa có dữ liệu dịch vụ trong kỳ này.',
+    compareCostNote: (a) =>
+      `Cách tính chi phí: Scout Trực Tiếp = credit đã dùng để mở hồ sơ × ${a.scoutCreditYenPerCredit} yên/credit (giá gói Basic). `
+      + `Sàn CTV = khoản đã quyết toán; lượt tuyển chưa quyết toán ước tính theo mức phí DN đặt trên tin (đã gồm ${a.marketplacePlatformFeePercent}% phí sàn). `
+      + `Scout Ủy Thác = ước tính ${a.scoutPerformanceFeePercent}% thu nhập năm của ứng viên tuyển thành công (biểu phí 15–25%).`,
     chartOverview: 'Hiệu quả tuyển dụng tổng quan',
     chartConversion: 'Tỷ lệ chuyển đổi tuyển dụng',
     conversionOverall: 'Tỷ lệ chung',
@@ -103,7 +135,38 @@ export const insightsI18n = {
     kpiTotalNominations: 'Nominations received',
     kpiInterviews: 'Candidates interviewed',
     kpiHired: 'Successful hires',
-    kpiRecruitmentCost: 'Recruitment cost (VND)',
+    kpiRecruitmentCost: 'Recruitment cost',
+    costPerHireHint: (v) => `${v} per hire`,
+    estimatedTag: 'estimated',
+    serviceFilterAria: 'Filter by service',
+    services: {
+      all: 'All services',
+      scout_credit: 'Scout Credit',
+      scout_performance: 'Managed Scout',
+      ctv_marketplace: 'Collaborator Marketplace',
+    },
+    serviceFilteredNote: (label) => `All figures below are for ${label} only.`,
+    serviceClearFilter: 'View all services',
+    compareTitle: 'Performance by service',
+    compareSubtitle: 'Hiring results and spend for each channel in this period — to decide where to put your budget next.',
+    compareColService: 'Service',
+    compareColJobs: 'Job posts',
+    compareColNominations: 'Nominations',
+    compareColInterviews: 'Interviews',
+    compareColHires: 'Hires',
+    compareColHireRate: 'Hire rate',
+    compareColCost: 'Cost',
+    compareColCostPerHire: 'Cost per hire',
+    compareColShare: 'Share of hires / cost',
+    compareViewOnly: 'View only',
+    compareBestCost: 'Lowest cost per hire',
+    compareBestRate: 'Highest hire rate',
+    compareNoHire: 'No hires yet',
+    compareEmpty: 'No service data for this period yet.',
+    compareCostNote: (a) =>
+      `How cost is calculated: Scout Credit = credits spent on profile unlocks × ${a.scoutCreditYenPerCredit} yen/credit (Basic package price). `
+      + `Collaborator Marketplace = settled amounts; unsettled hires are estimated from the fee set on the listing (including the ${a.marketplacePlatformFeePercent}% platform fee). `
+      + `Managed Scout = estimated at ${a.scoutPerformanceFeePercent}% of the hired candidate's annual income (fee range 15–25%).`,
     chartOverview: 'Overall recruitment performance',
     chartConversion: 'Recruitment conversion funnel',
     conversionOverall: 'Overall rate',
@@ -174,7 +237,38 @@ export const insightsI18n = {
     kpiTotalNominations: '受け取った推薦数',
     kpiInterviews: '面接に進んだ候補者',
     kpiHired: '採用成功',
-    kpiRecruitmentCost: '採用コスト（VND）',
+    kpiRecruitmentCost: '採用コスト',
+    costPerHireHint: (v) => `1名あたり ${v}`,
+    estimatedTag: '概算',
+    serviceFilterAria: 'サービスで絞り込み',
+    services: {
+      all: '全サービス',
+      scout_credit: 'Scout Credit',
+      scout_performance: '委託スカウト',
+      ctv_marketplace: '採用パートナーマーケット',
+    },
+    serviceFilteredNote: (label) => `以下の数値はすべて「${label}」のみを集計しています。`,
+    serviceClearFilter: '全サービスを表示',
+    compareTitle: 'サービス別の効果比較',
+    compareSubtitle: '表示期間における各チャネルの採用成果と費用。次に予算を投じる先の判断材料にご活用ください。',
+    compareColService: 'サービス',
+    compareColJobs: '利用JD',
+    compareColNominations: '推薦',
+    compareColInterviews: '面接',
+    compareColHires: '採用成功',
+    compareColHireRate: '採用率',
+    compareColCost: '費用',
+    compareColCostPerHire: '1名あたり費用',
+    compareColShare: '採用 / 費用の構成比',
+    compareViewOnly: '個別表示',
+    compareBestCost: '1名あたり費用が最安',
+    compareBestRate: '採用率が最高',
+    compareNoHire: '採用実績なし',
+    compareEmpty: 'この期間のサービス別データはまだありません。',
+    compareCostNote: (a) =>
+      `費用の算出方法：Scout Credit＝プロフィール開封に使用したクレジット × ${a.scoutCreditYenPerCredit}円/クレジット（Basicプラン価格）。`
+      + `採用パートナーマーケット＝精算済み金額。未精算の採用は掲載時に設定した報酬額（プラットフォーム手数料${a.marketplacePlatformFeePercent}%込み）で概算。`
+      + `委託スカウト＝採用者の年収 × ${a.scoutPerformanceFeePercent}%で概算（料金表15〜25%）。`,
     chartOverview: '採用パフォーマンス概要',
     chartConversion: '採用コンバージョン',
     conversionOverall: '全体率',
@@ -294,9 +388,20 @@ export function localizeInsightsJobStatusLabel(statusOrCode, language = 'vi') {
 }
 
 export function formatInsightsRecruitmentCost(amount, language = 'vi') {
-  const lang = resolveLang(language);
-  const locale = lang === 'ja' ? 'ja-JP' : lang === 'en' ? 'en-US' : 'vi-VN';
-  return `${Number(amount || 0).toLocaleString(locale)}đ`;
+  return formatYenAmount(Math.round(Number(amount) || 0), resolveLang(language));
+}
+
+export const INSIGHTS_SERVICE_FILTERS = ['all', 'scout_credit', 'scout_performance', 'ctv_marketplace'];
+
+export const INSIGHTS_SERVICE_COLORS = {
+  scout_credit: '#3b82f6',
+  scout_performance: '#f59e0b',
+  ctv_marketplace: '#8b5cf6',
+};
+
+export function getInsightsServiceOptions(language = 'vi') {
+  const copy = getBusinessInsightsCopy(language);
+  return INSIGHTS_SERVICE_FILTERS.map((value) => ({ value, label: copy.services[value] }));
 }
 
 export function localizeInsightsDeptName(name, language = 'vi') {

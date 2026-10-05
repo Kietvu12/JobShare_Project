@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Download, Loader2, MessageSquare, User, X } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Download, Loader2, MessageSquare, Sparkles, User, X } from 'lucide-react'
 import apiService from '../../services/api'
 import NominationChat from '../Chat/NominationChat'
 import ScoutCandidateProfilePanel from './ScoutCandidateProfilePanel'
@@ -18,8 +19,17 @@ import {
   resolveProfileEvaluation,
 } from '../../utils/businessApplicationEvaluation'
 import { useLanguage } from '../../context/LanguageContext'
-import { getJobApplicationStatusLabelByLanguage } from '../../utils/jobApplicationStatus'
-import { getApplicationDrawerCopy, getApplicationProfileReviewCopy } from '../../i18n/businessApp/applications'
+import { getJobApplicationStatus } from '../../utils/jobApplicationStatus'
+import {
+  buildBusinessStatusPatch,
+  isWsManagedPreNomination,
+} from '../../utils/businessApplicationStatusFlow'
+import {
+  getApplicationDrawerCopy,
+  getApplicationProfileReviewCopy,
+  getApplicationSimilarCandidatesCopy,
+  getApplicationSourceLabel,
+} from '../../i18n/businessApp/applications'
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
 
 import {
@@ -32,7 +42,13 @@ const BRAND = '#0077B6'
 const STATUS_SCREENING = 5
 const STATUS_WAITING_INTERVIEW = 8
 const STATUS_REJECTED_CLIENT = 6
-const WS_PRE_NOMINATION_STATUSES = new Set([2, 3, 4])
+const STATUS_HEARING_DECLINED = 4
+
+function isClosedStatus(status) {
+  if (Number(status) === 1) return false
+  const category = getJobApplicationStatus(status).category
+  return category === 'rejected' || category === 'cancelled'
+}
 
 function resolveInitialDrawerTab(app) {
   if (!app) return 'chat'
@@ -114,6 +130,7 @@ export default function BusinessApplicationDetailDrawer({
 }) {
   const { language } = useLanguage()
   const copy = useBusinessAppCopy()
+  const navigate = useNavigate()
   const [selectedApp, setSelectedApp] = useState(applicationProp || null)
   const [drawerLoading, setDrawerLoading] = useState(false)
   const [drawerTab, setDrawerTab] = useState('chat')
@@ -128,6 +145,10 @@ export default function BusinessApplicationDetailDrawer({
   const [failReason, setFailReason] = useState('')
   const [statusUpdating, setStatusUpdating] = useState(false)
   const [statusChangeError, setStatusChangeError] = useState('')
+  const [similarModalOpen, setSimilarModalOpen] = useState(false)
+  const [similarSubmitting, setSimilarSubmitting] = useState(false)
+  const [similarNotice, setSimilarNotice] = useState(null)
+  const similarPromptedRef = useRef(new Set())
 
   const drawerCopy = copy.applications.drawer || getApplicationDrawerCopy(language)
 
@@ -136,15 +157,26 @@ export default function BusinessApplicationDetailDrawer({
     [language],
   )
 
+  const similarCopy = useMemo(
+    () => getApplicationSimilarCandidatesCopy(language),
+    [language],
+  )
+
   const portalStatusOptions = useMemo(
-    () => getBusinessApplicationPortalStatusOptions(language, selectedApp?.status),
-    [language, selectedApp?.status],
+    () => getBusinessApplicationPortalStatusOptions(language, selectedApp?.status, selectedApp?.sourceType),
+    [language, selectedApp?.status, selectedApp?.sourceType],
   )
 
   const applicationStatus = Number(selectedApp?.status)
-  const isWsPreNomination = selectedApp?.sourceType === 'scout_performance'
-    && WS_PRE_NOMINATION_STATUSES.has(applicationStatus)
+  const isWsPreNomination = isWsManagedPreNomination(selectedApp?.sourceType, applicationStatus)
   const canShowProfileReview = applicationStatus === STATUS_SCREENING && !isWsPreNomination
+
+  const performanceRequest = selectedApp?.performanceRequest || null
+  const canSuggestSimilar = selectedApp?.sourceType === 'scout_performance'
+    && Boolean(performanceRequest?.id)
+    && performanceRequest?.canRequestSimilar !== false
+    && !performanceRequest?.wantsSimilarCandidates
+  const showSimilarBanner = canSuggestSimilar && isClosedStatus(applicationStatus)
 
   const profileOnly = useMemo(
     () => isApplicationProfileOnly(selectedApp),
@@ -231,7 +263,50 @@ export default function BusinessApplicationDetailDrawer({
     setFailModalOpen(false)
     setFailReason('')
     setStatusChangeError('')
+    setSimilarModalOpen(false)
+    setSimilarNotice(null)
   }, [selectedApp?.id])
+
+  const promptSimilarCandidates = useCallback(() => {
+    if (!selectedApp?.id) return
+    similarPromptedRef.current.add(selectedApp.id)
+    setSimilarModalOpen(true)
+  }, [selectedApp?.id])
+
+  useEffect(() => {
+    if (!open || drawerLoading || !selectedApp?.id) return
+    if (applicationStatus !== STATUS_HEARING_DECLINED || !canSuggestSimilar) return
+    if (similarPromptedRef.current.has(selectedApp.id)) return
+    promptSimilarCandidates()
+  }, [open, drawerLoading, selectedApp?.id, applicationStatus, canSuggestSimilar, promptSimilarCandidates])
+
+  const confirmSimilarCandidates = useCallback(async () => {
+    const requestId = performanceRequest?.id
+    if (!requestId || similarSubmitting) return
+    setSimilarSubmitting(true)
+    try {
+      const res = await apiService.requestSimilarScoutPerformanceCandidates(requestId, {})
+      if (!res?.success) throw new Error(res?.message || similarCopy.error)
+      setSelectedApp((prev) => (prev ? {
+        ...prev,
+        performanceRequest: {
+          ...(prev.performanceRequest || {}),
+          wantsSimilarCandidates: true,
+          canRequestSimilar: false,
+        },
+      } : prev))
+      setSimilarModalOpen(false)
+      setSimilarNotice({
+        kind: 'success',
+        text: res.message || similarCopy.requested,
+        sessionId: res.data?.request?.sessionId || null,
+      })
+    } catch (e) {
+      setSimilarNotice({ kind: 'error', text: e?.message || similarCopy.error })
+    } finally {
+      setSimilarSubmitting(false)
+    }
+  }, [performanceRequest?.id, similarSubmitting, similarCopy])
 
   const applyApplicationPatch = useCallback((patch) => {
     setSelectedApp((prev) => (prev ? { ...prev, ...patch } : prev))
@@ -253,6 +328,7 @@ export default function BusinessApplicationDetailDrawer({
         newStatus,
         selectedApp.status,
         portalStatusOptions,
+        language,
       )
       if (result.skipped) return
       if (!result.success) {
@@ -262,13 +338,25 @@ export default function BusinessApplicationDetailDrawer({
       if (result.patch) {
         applyApplicationPatch(result.patch)
       }
+      if (canSuggestSimilar && isClosedStatus(newStatus)) promptSimilarCandidates()
       handleStatusUpdated()
     } catch (e) {
       setStatusChangeError(e?.message || drawerCopy.statusUpdateError)
     } finally {
       setStatusUpdating(false)
     }
-  }, [selectedApp?.id, selectedApp?.status, statusUpdating, applyApplicationPatch, handleStatusUpdated, drawerCopy.statusUpdateError])
+  }, [
+    selectedApp?.id,
+    selectedApp?.status,
+    statusUpdating,
+    portalStatusOptions,
+    applyApplicationPatch,
+    canSuggestSimilar,
+    promptSimilarCandidates,
+    handleStatusUpdated,
+    drawerCopy.statusUpdateError,
+    language,
+  ])
 
   const handleEvaluationChange = useCallback(async (nextEvaluation) => {
     if (!selectedApp?.id || evaluationUpdating) return
@@ -299,13 +387,12 @@ export default function BusinessApplicationDetailDrawer({
       })
       if (!res?.success) throw new Error(res?.message || drawerCopy.evaluationUpdateErrorShort)
       applyApplicationPatch({
-        status: STATUS_REJECTED_CLIENT,
-        statusLabel: getJobApplicationStatusLabelByLanguage(STATUS_REJECTED_CLIENT, language),
-        statusCategory: 'rejected',
+        ...buildBusinessStatusPatch(STATUS_REJECTED_CLIENT, selectedApp.sourceType, language),
         rejectNote: note || null,
       })
       setFailModalOpen(false)
       setEvaluationNotice(reviewCopy.fail)
+      if (canSuggestSimilar) promptSimilarCandidates()
       handleStatusUpdated()
     } catch (e) {
       setEvaluationNotice(e?.message || drawerCopy.evaluationUpdateError)
@@ -314,10 +401,13 @@ export default function BusinessApplicationDetailDrawer({
     }
   }, [
     selectedApp?.id,
+    selectedApp?.sourceType,
     evaluationUpdating,
     failReason,
     applyApplicationPatch,
     language,
+    canSuggestSimilar,
+    promptSimilarCandidates,
     handleStatusUpdated,
     reviewCopy.fail,
     drawerCopy.evaluationUpdateError,
@@ -343,9 +433,7 @@ export default function BusinessApplicationDetailDrawer({
       if (!res?.success) throw new Error(res?.message || drawerCopy.saveInterviewError)
 
       applyApplicationPatch({
-        status: STATUS_WAITING_INTERVIEW,
-        statusLabel: getJobApplicationStatusLabelByLanguage(STATUS_WAITING_INTERVIEW, language),
-        statusCategory: 'interview',
+        ...buildBusinessStatusPatch(STATUS_WAITING_INTERVIEW, selectedApp.sourceType, language),
         interviewDate: dateTime.toISOString(),
       })
 
@@ -434,21 +522,16 @@ export default function BusinessApplicationDetailDrawer({
     <div className="sticky top-0 z-10 shrink-0 border-b border-slate-200 bg-white px-4 py-3 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <p className="biz-ui-body min-w-0 flex-1 font-bold text-slate-900">{reviewCopy.title}</p>
-        <div className="flex shrink-0 items-center gap-2">
-          <div
-            className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5"
-            role="group"
-            aria-label={reviewCopy.title}
-          >
+        <div className="flex shrink-0 items-center gap-2" role="group" aria-label={reviewCopy.title}>
             <button
               type="button"
               disabled={evaluationUpdating || drawerLoading}
               aria-pressed={passEvaluationSelected}
               onClick={() => handleEvaluationChange(PROFILE_EVALUATION.PASS)}
-              className={`biz-ui-caption rounded-md px-2.5 py-1.5 font-semibold whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-60 sm:px-3 ${
+              className={`biz-ui-caption rounded-lg border px-2.5 py-1.5 font-semibold whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-60 sm:px-3 ${
                 passEvaluationSelected
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-emerald-800'
+                  ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm'
+                  : 'border-emerald-500 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
               }`}
             >
               {reviewCopy.passSwitch || reviewCopy.pass}
@@ -458,15 +541,14 @@ export default function BusinessApplicationDetailDrawer({
               disabled={evaluationUpdating || drawerLoading}
               aria-pressed={failEvaluationSelected}
               onClick={() => handleEvaluationChange(PROFILE_EVALUATION.FAIL)}
-              className={`biz-ui-caption rounded-md px-2.5 py-1.5 font-semibold whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-60 sm:px-3 ${
+              className={`biz-ui-caption rounded-lg border px-2.5 py-1.5 font-semibold whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-60 sm:px-3 ${
                 failEvaluationSelected
-                  ? 'bg-rose-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-rose-800'
+                  ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
+                  : 'border-rose-500 bg-rose-50 text-rose-800 hover:bg-rose-100'
               }`}
             >
               {reviewCopy.failSwitch || reviewCopy.fail}
             </button>
-          </div>
           {evaluationUpdating ? (
             <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#0077B6]" aria-hidden />
           ) : null}
@@ -480,7 +562,7 @@ export default function BusinessApplicationDetailDrawer({
 
   const drawerHeaderBar = (
     <div className="sticky top-0 z-20 shrink-0 border-b border-slate-200 bg-white shadow-sm">
-      <div className={`relative px-4 ${isWsPreNomination ? 'py-2' : 'pb-3 pt-2'}`}>
+      <div className="relative px-4 pb-3 pt-2">
         <button
           type="button"
           onClick={onClose}
@@ -489,29 +571,32 @@ export default function BusinessApplicationDetailDrawer({
         >
           <X className="h-4 w-4 text-slate-500" />
         </button>
-        {!isWsPreNomination ? (
-          <div className="pr-10">
-            <label
-              htmlFor="business-application-drawer-status"
-              className="biz-ui-caption mb-1.5 block font-semibold text-slate-600"
-            >
-              {copy.applications.table.status}
-            </label>
-            <BusinessApplicationStatusSelect
-              id="business-application-drawer-status"
-              status={selectedApp?.status}
-              statusCategory={selectedApp?.statusCategory}
-              statusLabel={selectedApp?.statusLabel}
-              statusOptions={portalStatusOptions}
-              onChange={handleDrawerStatusChange}
-              updating={statusUpdating}
-              disabled={drawerLoading}
-            />
-            {statusChangeError ? (
-              <p className="biz-ui-caption mt-1.5 text-rose-600">{statusChangeError}</p>
+        <div className="pr-10">
+          <label
+            htmlFor="business-application-drawer-status"
+            className="biz-ui-caption mb-1.5 block font-semibold text-slate-600"
+          >
+            {copy.applications.table.status}
+            {selectedApp?.sourceType ? (
+              <span className="ml-1.5 font-normal text-slate-400">
+                · {getApplicationSourceLabel(selectedApp.sourceType, language)}
+              </span>
             ) : null}
-          </div>
-        ) : null}
+          </label>
+          <BusinessApplicationStatusSelect
+            id="business-application-drawer-status"
+            status={selectedApp?.status}
+            statusCategory={selectedApp?.statusCategory}
+            statusLabel={selectedApp?.statusLabel}
+            statusOptions={portalStatusOptions}
+            onChange={handleDrawerStatusChange}
+            updating={statusUpdating}
+            disabled={drawerLoading || isWsPreNomination}
+          />
+          {statusChangeError ? (
+            <p className="biz-ui-caption mt-1.5 text-rose-600">{statusChangeError}</p>
+          ) : null}
+        </div>
       </div>
     </div>
   )
@@ -560,6 +645,45 @@ export default function BusinessApplicationDetailDrawer({
         {isWsPreNomination ? (
           <div className="biz-ui-caption shrink-0 border-b border-amber-100 bg-amber-50 px-4 py-2 text-amber-900">
             {reviewCopy.wsTrackingOnly}
+          </div>
+        ) : null}
+
+        {showSimilarBanner ? (
+          <div className="shrink-0 border-b border-[#cce5f0] bg-[#e8f4fa]/70 px-4 py-2.5">
+            <p className="biz-ui-caption font-bold text-[#006399]">{similarCopy.bannerTitle}</p>
+            <p className="biz-ui-caption mt-0.5 text-slate-600">{similarCopy.bannerBody}</p>
+            <button
+              type="button"
+              onClick={promptSimilarCandidates}
+              className="biz-ui-caption mt-2 inline-flex items-center gap-1.5 rounded-lg bg-[#0077B6] px-3 py-1.5 font-semibold text-white hover:bg-[#006399]"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> {similarCopy.confirm}
+            </button>
+          </div>
+        ) : null}
+
+        {similarNotice ? (
+          <div
+            className={`biz-ui-caption shrink-0 border-b px-4 py-2 ${
+              similarNotice.kind === 'error'
+                ? 'border-rose-100 bg-rose-50 text-rose-700'
+                : 'border-emerald-100 bg-emerald-50 text-emerald-800'
+            }`}
+          >
+            {similarNotice.text}
+            {similarNotice.kind === 'success' ? (
+              <button
+                type="button"
+                onClick={() => navigate(
+                  similarNotice.sessionId
+                    ? `/business/messages?tab=ws&wsView=chat&sessionId=${similarNotice.sessionId}`
+                    : '/business/messages?tab=ws',
+                )}
+                className="ml-2 font-semibold text-[#0077B6] hover:underline"
+              >
+                {similarCopy.openChat}
+              </button>
+            ) : null}
           </div>
         ) : null}
 
@@ -677,6 +801,53 @@ export default function BusinessApplicationDetailDrawer({
               >
                 {evaluationUpdating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                 {reviewCopy.confirmFail}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {similarModalOpen ? (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4"
+          onClick={() => !similarSubmitting && setSimilarModalOpen(false)}
+        >
+          <div
+            className="business-app-ui w-full max-w-md rounded-xl border border-slate-200 bg-white p-4 shadow-xl sm:p-5"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-labelledby="similar-candidates-title"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e8f4fa]">
+                <Sparkles className="h-4 w-4 text-[#0077B6]" />
+              </div>
+              <div className="min-w-0">
+                <h4 id="similar-candidates-title" className="biz-ui-body font-bold text-slate-900">
+                  {similarCopy.modalTitle}
+                </h4>
+                <p className="biz-ui-caption mt-1 text-slate-600">
+                  {applicationStatus === STATUS_HEARING_DECLINED ? similarCopy.modalBodyHearing : similarCopy.modalBodyFail}
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={similarSubmitting}
+                onClick={() => setSimilarModalOpen(false)}
+                className="biz-ui-caption rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                {similarCopy.later}
+              </button>
+              <button
+                type="button"
+                disabled={similarSubmitting}
+                onClick={confirmSimilarCandidates}
+                className="biz-ui-caption inline-flex items-center gap-1.5 rounded-lg bg-[#0077B6] px-3 py-1.5 font-semibold text-white hover:bg-[#006399] disabled:opacity-60"
+              >
+                {similarSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                {similarCopy.confirm}
               </button>
             </div>
           </div>

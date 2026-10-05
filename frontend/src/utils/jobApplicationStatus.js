@@ -98,16 +98,65 @@ export const JOB_APPLICATION_STATUS = {
     value: 'candidate_withdrew',
     color: 'bg-gray-100 text-gray-800 border-gray-300',
     category: 'cancelled'
+  },
+  17: {
+    label: 'Scout Trực Tiếp: Contact sai / Không liên hệ được',
+    value: 'scout_contact_failed',
+    color: 'bg-red-100 text-red-800 border-red-300',
+    category: 'rejected'
+  },
+  18: {
+    label: 'Scout Trực Tiếp: Đã liên hệ – Ứng viên từ chối',
+    value: 'scout_contacted_declined',
+    color: 'bg-red-100 text-red-800 border-red-300',
+    category: 'rejected'
+  },
+  19: {
+    label: 'Scout Trực Tiếp: Đã liên hệ – Đang chờ phản hồi',
+    value: 'scout_contacted_waiting',
+    color: 'bg-amber-100 text-amber-800 border-amber-300',
+    category: 'processing'
+  },
+  20: {
+    label: 'Scout Ủy Thác: Đã hearing – Đồng ý tiến cử',
+    value: 'managed_hearing_agreed',
+    color: 'bg-sky-100 text-sky-800 border-sky-300',
+    category: 'processing'
+  },
+  21: {
+    label: 'Scout Ủy Thác: WS đang hoàn thiện hồ sơ',
+    value: 'managed_preparing_profile',
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    category: 'processing'
+  },
+  22: {
+    label: 'Scout Ủy Thác: Đang chờ hoàn tất hợp đồng',
+    value: 'managed_awaiting_contract',
+    color: 'bg-amber-100 text-amber-800 border-amber-300',
+    category: 'processing'
+  },
+  23: {
+    label: 'Scout Ủy Thác: WS mới tiến cử',
+    value: 'managed_nominated',
+    color: 'bg-blue-100 text-blue-800 border-blue-300',
+    category: 'processing'
   }
 };
 
+export const JOB_APPLICATION_STATUS_MAX = 23;
+
+export const isValidJobApplicationStatus = (status) => {
+  const n = Number(status);
+  return Number.isInteger(n) && n >= 1 && n <= JOB_APPLICATION_STATUS_MAX;
+};
+
 /**
- * @param {number|string|null|undefined} status - Mã trạng thái (1-16). Null/undefined/không hợp lệ → coi như 2 (Đang đợi xử lý hồ sơ WS)
+ * @param {number|string|null|undefined} status - Mã trạng thái (1–JOB_APPLICATION_STATUS_MAX). Null/undefined/không hợp lệ → coi như 2 (Đang đợi xử lý hồ sơ WS)
  * @returns {{ label: string, value: string, color: string, category: string }}
  */
 export const getJobApplicationStatus = (status) => {
   const num = status != null && status !== '' ? Number(status) : NaN;
-  if (num !== num || num < 1 || num > 16) {
+  if (num !== num || num < 1 || num > JOB_APPLICATION_STATUS_MAX) {
     return JOB_APPLICATION_STATUS[2];
   }
   return JOB_APPLICATION_STATUS[num] || JOB_APPLICATION_STATUS[2];
@@ -136,6 +185,13 @@ export const JOB_APPLICATION_STATUS_LABELS = {
     14: 'Đã vào công ty',
     15: 'Đã thanh toán',
     16: 'Ứng viên huỷ giữa chừng',
+    17: 'Scout Trực Tiếp: Contact sai / Không liên hệ được',
+    18: 'Scout Trực Tiếp: Đã liên hệ – Ứng viên từ chối',
+    19: 'Scout Trực Tiếp: Đã liên hệ – Đang chờ phản hồi',
+    20: 'Scout Ủy Thác: Đã hearing – Đồng ý tiến cử',
+    21: 'Scout Ủy Thác: WS đang hoàn thiện hồ sơ',
+    22: 'Scout Ủy Thác: Đang chờ hoàn tất hợp đồng',
+    23: 'Scout Ủy Thác: WS mới tiến cử',
   },
   en: {
     1: 'Duplicate profile',
@@ -154,6 +210,13 @@ export const JOB_APPLICATION_STATUS_LABELS = {
     14: 'Joined company',
     15: 'Paid',
     16: 'Candidate withdrew',
+    17: 'Scout Credit: Wrong contact / Unreachable',
+    18: 'Scout Credit: Contacted – Candidate declined',
+    19: 'Scout Credit: Contacted – Awaiting reply',
+    20: 'Managed Scout: Hearing done – Agreed to be nominated',
+    21: 'Managed Scout: WS preparing profile',
+    22: 'Managed Scout: Awaiting contract completion',
+    23: 'Managed Scout: Newly nominated by WS',
   },
   ja: {
     1: '重複',
@@ -172,6 +235,13 @@ export const JOB_APPLICATION_STATUS_LABELS = {
     14: '入社済み',
     15: '支払済み',
     16: '応募者辞退',
+    17: 'Scout Credit：連絡先誤り／連絡不可',
+    18: 'Scout Credit：連絡済み－候補者辞退',
+    19: 'Scout Credit：連絡済み－返答待ち',
+    20: '委託スカウト：ヒアリング済み－推薦に同意',
+    21: '委託スカウト：WSがプロフィール作成中',
+    22: '委託スカウト：契約手続き待ち',
+    23: '委託スカウト：WSから新規推薦',
   },
 };
 
@@ -184,7 +254,7 @@ export const getJobApplicationStatusLabelByLanguage = (status, language = 'vi') 
   const num = status != null && status !== '' ? Number(status) : 2;
   const lang = language === 'en' || language === 'ja' ? language : 'vi';
   const labels = JOB_APPLICATION_STATUS_LABELS[lang];
-  if (num < 1 || num > 16) return labels[2];
+  if (num < 1 || num > JOB_APPLICATION_STATUS_MAX) return labels[2];
   return labels[num] || labels[2];
 };
 
