@@ -8,8 +8,6 @@ import { getBusinessRegisterCopy } from '../../i18n/businessApp/businessRegister
 import heroImage from '../../assets/business-register-hero.jpg';
 import './businessRegister.css';
 
-const LANGUAGE_OPTIONS = ['vi', 'en', 'ja'];
-
 const EMPTY_FORM = {
   company: '',
   business: '',
@@ -95,7 +93,7 @@ function ArrowIcon() {
 
 const Register = () => {
   const navigate = useNavigate();
-  const { language, changeLanguage } = useLanguage();
+  const { language } = useLanguage();
   useLangFromQuery();
   const copy = useMemo(() => getBusinessRegisterCopy(language), [language]);
 
@@ -231,28 +229,6 @@ const Register = () => {
         <meta name="description" content={copy.metaDescription} />
       </Helmet>
       <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700;800&display=swap" rel="stylesheet" />
-
-      <header className="jr-topbar">
-        <div className="jr-topbar-inner">
-          <Link to="/" className="jr-topbar-logo">
-            <img src="/logo.png" alt="JobShare" />
-          </Link>
-          <div className="jr-topbar-actions">
-            {LANGUAGE_OPTIONS.map((lang) => (
-              <button
-                key={lang}
-                type="button"
-                className={`jr-lang-btn${language === lang ? ' is-active' : ''}`}
-                onClick={() => changeLanguage(lang)}
-                aria-label={lang}
-              >
-                {lang.toUpperCase()}
-              </button>
-            ))}
-            <Link to="/business/login" className="jr-topbar-login">{copy.loginLink}</Link>
-          </div>
-        </div>
-      </header>
 
       <main className="jr-page" lang={language === 'ja' ? 'ja' : language}>
         <section className="jr-hero" aria-labelledby="register-title">
@@ -537,7 +513,6 @@ const Register = () => {
         <p>{copy.toastBody}</p>
       </div>
 
-      <footer className="jr-footer-note">{copy.footer}</footer>
     </div>
   );
 };

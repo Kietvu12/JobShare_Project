@@ -141,8 +141,8 @@ export const insightsI18n = {
     serviceFilterAria: 'Filter by service',
     services: {
       all: 'All services',
-      scout_credit: 'Scout Credit',
-      scout_performance: 'Managed Scout',
+      scout_credit: 'Direct Scout',
+      scout_performance: 'Omakase Scout',
       ctv_marketplace: 'Collaborator Marketplace',
     },
     serviceFilteredNote: (label) => `All figures below are for ${label} only.`,
@@ -164,9 +164,9 @@ export const insightsI18n = {
     compareNoHire: 'No hires yet',
     compareEmpty: 'No service data for this period yet.',
     compareCostNote: (a) =>
-      `How cost is calculated: Scout Credit = credits spent on profile unlocks × ${a.scoutCreditYenPerCredit} yen/credit (Basic package price). `
+      `How cost is calculated: Direct Scout = credits spent on profile unlocks × ${a.scoutCreditYenPerCredit} yen/credit (Basic package price). `
       + `Collaborator Marketplace = settled amounts; unsettled hires are estimated from the fee set on the listing (including the ${a.marketplacePlatformFeePercent}% platform fee). `
-      + `Managed Scout = estimated at ${a.scoutPerformanceFeePercent}% of the hired candidate's annual income (fee range 15–25%).`,
+      + `Omakase Scout = estimated at ${a.scoutPerformanceFeePercent}% of the hired candidate's annual income (fee range 15–25%).`,
     chartOverview: 'Overall recruitment performance',
     chartConversion: 'Recruitment conversion funnel',
     conversionOverall: 'Overall rate',
@@ -243,8 +243,8 @@ export const insightsI18n = {
     serviceFilterAria: 'サービスで絞り込み',
     services: {
       all: '全サービス',
-      scout_credit: 'Scout Credit',
-      scout_performance: '委託スカウト',
+      scout_credit: 'ダイレクトスカウト',
+      scout_performance: 'おまかせスカウト',
       ctv_marketplace: '採用パートナーマーケット',
     },
     serviceFilteredNote: (label) => `以下の数値はすべて「${label}」のみを集計しています。`,
@@ -266,9 +266,9 @@ export const insightsI18n = {
     compareNoHire: '採用実績なし',
     compareEmpty: 'この期間のサービス別データはまだありません。',
     compareCostNote: (a) =>
-      `費用の算出方法：Scout Credit＝プロフィール開封に使用したクレジット × ${a.scoutCreditYenPerCredit}円/クレジット（Basicプラン価格）。`
+      `費用の算出方法：ダイレクトスカウト＝プロフィール開封に使用したクレジット × ${a.scoutCreditYenPerCredit}円/クレジット（Basicプラン価格）。`
       + `採用パートナーマーケット＝精算済み金額。未精算の採用は掲載時に設定した報酬額（プラットフォーム手数料${a.marketplacePlatformFeePercent}%込み）で概算。`
-      + `委託スカウト＝採用者の年収 × ${a.scoutPerformanceFeePercent}%で概算（料金表15〜25%）。`,
+      + `おまかせスカウト＝採用者の年収 × ${a.scoutPerformanceFeePercent}%で概算（料金表15〜25%）。`,
     chartOverview: '採用パフォーマンス概要',
     chartConversion: '採用コンバージョン',
     conversionOverall: '全体率',

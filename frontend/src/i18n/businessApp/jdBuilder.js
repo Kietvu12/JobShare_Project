@@ -103,10 +103,10 @@ export const jdBuilderI18n = {
     marketplaceHint: 'Create & save JD via chat — after saving, the system submits to WS for marketplace listing.',
     marketplaceSaveError: 'JD saved but marketplace request failed. You can retry from Collaborator Marketplace.',
     scoutHearing: {
-      submitting: 'Submitting Scout Performance request...',
-      hint: 'You are creating a JD for Scout Performance. Chat with AI to finish the JD — after saving, the system will submit the hearing request automatically.',
-      performanceError: 'Could not submit Scout Performance request.',
-      performanceErrorRetry: 'Could not submit Scout Performance request. Please try again.',
+      submitting: 'Submitting Omakase Scout request...',
+      hint: 'You are creating a JD for Omakase Scout. Chat with AI to finish the JD — after saving, the system will submit the hearing request automatically.',
+      performanceError: 'Could not submit Omakase Scout request.',
+      performanceErrorRetry: 'Could not submit Omakase Scout request. Please try again.',
     },
     panel: {
       createHeading: 'Create JD with AI',
@@ -192,10 +192,10 @@ export const jdBuilderI18n = {
     marketplaceHint: 'チャットでJDを作成・保存 — 保存後、システムがWSにマーケット掲載を自動送信します。',
     marketplaceSaveError: 'JDは保存されましたがマーケット申請に失敗しました。採用パートナーマーケットから再試行できます。',
     scoutHearing: {
-      submitting: 'Scout Performance依頼を送信中...',
-      hint: 'Scout Performance用のJDを作成中です。AIチャットでJDを完成させてください — 保存後、システムがhearing依頼を自動送信します。',
-      performanceError: 'Scout Performance依頼を送信できませんでした。',
-      performanceErrorRetry: 'Scout Performance依頼を送信できませんでした。もう一度お試しください。',
+      submitting: 'おまかせスカウト依頼を送信中...',
+      hint: 'おまかせスカウト用のJDを作成中です。AIチャットでJDを完成させてください — 保存後、システムがhearing依頼を自動送信します。',
+      performanceError: 'おまかせスカウト依頼を送信できませんでした。',
+      performanceErrorRetry: 'おまかせスカウト依頼を送信できませんでした。もう一度お試しください。',
     },
     panel: {
       createHeading: 'AIでJD作成',

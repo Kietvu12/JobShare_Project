@@ -63,9 +63,9 @@ export function getScoutPerformanceTagStyle() {
 
 export function getScoutPerformanceTagLabel(language = 'vi') {
   const labels = {
-    vi: 'Scout ủy thác',
-    en: 'Managed Scout',
-    ja: 'Scout委託',
+    vi: 'Scout Ủy Thác',
+    en: 'Omakase Scout',
+    ja: 'おまかせスカウト',
   };
   return labels[language] || labels.vi;
 }

@@ -193,6 +193,7 @@ function markText(el, sectionId, field, index, { color, isHeading = false } = {}
   el.setAttribute('data-wjs-field', field);
   if (index != null) el.setAttribute('data-wjs-index', String(index));
   el.setAttribute('contenteditable', 'true');
+  el.setAttribute('tabindex', '0');
   el.setAttribute('spellcheck', 'false');
   el.classList.add('wjs-editable');
   if (isHeading || /^h[1-6]$/i.test(el.tagName)) {
@@ -1176,6 +1177,7 @@ export function setupInlineEditor(doc, {
   onSectionEdit,
   onImageClick,
   onTextFocus,
+  onTextInput,
   onHeaderEdit,
   onBlockDelete,
   onImageFileDrop,
@@ -1216,25 +1218,11 @@ export function setupInlineEditor(doc, {
       onSelectSection?.(sectionId);
     }
 
-    if (editable && onTextFocus) {
-      const rect = editable.getBoundingClientRect();
-      const currentColor = editable.style.color
-        || doc.defaultView?.getComputedStyle(editable).color
-        || '#000000';
-      onTextFocus({
-        sectionId: editable.dataset.wjsSection,
-        field: editable.dataset.wjsField,
-        index: editable.dataset.wjsIndex != null ? Number(editable.dataset.wjsIndex) : undefined,
-        currentColor: rgbToHex(currentColor),
-        element: editable,
-        rect,
-      });
-    }
+    if (editable) notifyTextFocus(editable);
   };
 
-  const onBlur = (e) => {
-    const el = closestFromEvent(e, '.wjs-editable[data-wjs-field]');
-    if (!el) return;
+  const emitTextSave = (el) => {
+    if (!el?.classList?.contains('wjs-editable')) return;
     const value = getEditableFieldValue(el);
     const payload = {
       sectionId: el.dataset.wjsSection,
@@ -1243,12 +1231,71 @@ export function setupInlineEditor(doc, {
       value,
       editType: 'text',
     };
-    wjsDebug('inline', 'blur save', payload);
+    wjsDebug('inline', 'text save', payload);
     if (el.dataset.wjsSection === '__header__') {
       onHeaderEdit?.(payload);
     } else {
       onSectionEdit?.(payload);
     }
+    onTextInput?.(payload);
+  };
+
+  let inputDebounceId = null;
+  const onInput = (e) => {
+    const el = closestFromEvent(e, '.wjs-editable[data-wjs-field]');
+    if (!el) return;
+    if (inputDebounceId) clearTimeout(inputDebounceId);
+    inputDebounceId = setTimeout(() => {
+      inputDebounceId = null;
+      emitTextSave(el);
+    }, 450);
+  };
+
+  const onBlur = (e) => {
+    const el = closestFromEvent(e, '.wjs-editable[data-wjs-field]');
+    if (!el) return;
+    if (inputDebounceId) {
+      clearTimeout(inputDebounceId);
+      inputDebounceId = null;
+    }
+    emitTextSave(el);
+  };
+
+  const notifyTextFocus = (editable) => {
+    if (!editable || !onTextFocus) return;
+    const rect = editable.getBoundingClientRect();
+    const currentColor = editable.style.color
+      || doc.defaultView?.getComputedStyle(editable).color
+      || '#000000';
+    onTextFocus({
+      sectionId: editable.dataset.wjsSection,
+      field: editable.dataset.wjsField,
+      index: editable.dataset.wjsIndex != null ? Number(editable.dataset.wjsIndex) : undefined,
+      currentColor: rgbToHex(currentColor),
+      element: editable,
+      rect,
+    });
+  };
+
+  const onTextClick = (e) => {
+    const editable = closestFromEvent(e, '.wjs-editable[data-wjs-field]');
+    if (!editable) return;
+    e.stopPropagation();
+    const sectionEl = editable.closest('[data-wjs-section]');
+    const sectionId = sectionEl?.dataset?.wjsSection || editable.dataset.wjsSection;
+    const currentSelected = getSelectedSectionId?.() ?? selectedSectionId;
+    if (sectionId && sectionId !== currentSelected) {
+      wjsDebug('inline', 'text click selectSection', sectionId);
+      onSelectSection?.(sectionId);
+    }
+    try {
+      if (doc.activeElement !== editable) {
+        editable.focus({ preventScroll: true });
+      }
+    } catch {
+      editable.focus();
+    }
+    notifyTextFocus(editable);
   };
 
   const onSectionPickClick = (e) => {
@@ -1320,15 +1367,20 @@ export function setupInlineEditor(doc, {
   };
 
   doc.addEventListener('focusin', onFocusIn);
+  doc.addEventListener('input', onInput, true);
   doc.addEventListener('blur', onBlur, true);
+  doc.addEventListener('click', onTextClick, true);
   doc.addEventListener('click', onClick, true);
   doc.addEventListener('click', onSectionPickClick);
   doc.addEventListener('click', onBlockDeleteClick, true);
 
   return () => {
     wjsDebug('inline', 'cleanup setupInlineEditor');
+    if (inputDebounceId) clearTimeout(inputDebounceId);
     doc.removeEventListener('focusin', onFocusIn);
+    doc.removeEventListener('input', onInput, true);
     doc.removeEventListener('blur', onBlur, true);
+    doc.removeEventListener('click', onTextClick, true);
     doc.removeEventListener('click', onClick, true);
     doc.removeEventListener('click', onSectionPickClick);
     doc.removeEventListener('click', onBlockDeleteClick, true);

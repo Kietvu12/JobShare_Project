@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { ImagePlus, Loader2, X } from 'lucide-react';
 import { normalizePostImageUrl } from '../../services/api';
+import { useLandingPageEditorUi } from '../../context/LandingPageEditorUiContext';
 
 function Field({ label, children }) {
   return (
@@ -24,6 +25,7 @@ export default function LandingPageSeoPanel({
   onUploadOgImage,
   uploading = false,
 }) {
+  const seo = useLandingPageEditorUi().seoPanel;
   const fileRef = useRef(null);
   const ogPreview = metaImage ? normalizePostImageUrl(metaImage) : '';
 
@@ -31,50 +33,50 @@ export default function LandingPageSeoPanel({
 
   return (
     <div className="mb-4 pb-3 border-b border-slate-200">
-      <div className="text-[10px] font-bold text-slate-500 uppercase mb-2">SEO &amp; Chia sẻ</div>
+      <div className="text-[10px] font-bold text-slate-500 uppercase mb-2">{seo.heading}</div>
       <p className="text-[9px] text-slate-400 mb-2 leading-relaxed">
-        Cấu hình thẻ title, mô tả và ảnh khi chia sẻ lên mạng xã hội (Open Graph).
+        {seo.intro}
       </p>
 
-      <Field label="Meta title (thẻ &lt;title&gt;)">
+      <Field label={seo.metaTitle}>
         <input
           value={metaTitle}
           onChange={(e) => set({ metaTitle: e.target.value })}
           className={inputCls()}
-          placeholder="VD: Công ty ABC | Giới thiệu"
+          placeholder={seo.metaTitlePh}
         />
       </Field>
 
-      <Field label="Meta description">
+      <Field label={seo.metaDescription}>
         <textarea
           rows={2}
           value={metaDescription}
           onChange={(e) => set({ metaDescription: e.target.value })}
           className={inputCls()}
-          placeholder="Mô tả ngắn hiển thị trên Google / mạng xã hội (≤160 ký tự)"
+          placeholder={seo.metaDescriptionPh}
         />
       </Field>
 
-      <Field label="OG title (để trống = meta title)">
+      <Field label={seo.ogTitle}>
         <input
           value={ogTitle}
           onChange={(e) => set({ ogTitle: e.target.value })}
           className={inputCls()}
-          placeholder="Tiêu đề khi share Facebook, Zalo..."
+          placeholder={seo.ogTitlePh}
         />
       </Field>
 
-      <Field label="OG description (để trống = meta description)">
+      <Field label={seo.ogDescription}>
         <textarea
           rows={2}
           value={ogDescription}
           onChange={(e) => set({ ogDescription: e.target.value })}
           className={inputCls()}
-          placeholder="Mô tả khi chia sẻ link"
+          placeholder={seo.ogDescriptionPh}
         />
       </Field>
 
-      <Field label="Ảnh OG (Open Graph)">
+      <Field label={seo.ogImage}>
         <div className="flex gap-2 items-start">
           {ogPreview ? (
             <div className="relative w-16 h-16 rounded border border-slate-200 overflow-hidden shrink-0">
@@ -83,7 +85,7 @@ export default function LandingPageSeoPanel({
                 type="button"
                 onClick={() => set({ metaImage: '' })}
                 className="absolute top-0 right-0 bg-red-500 text-white rounded-bl p-0.5"
-                title="Xóa ảnh OG"
+                title={seo.ogImageRemove}
               >
                 <X className="w-3 h-3" />
               </button>
@@ -98,7 +100,7 @@ export default function LandingPageSeoPanel({
               value={metaImage}
               onChange={(e) => set({ metaImage: e.target.value })}
               className={inputCls()}
-              placeholder="URL hoặc tải ảnh lên"
+              placeholder={seo.ogImagePh}
             />
             <button
               type="button"
@@ -107,7 +109,7 @@ export default function LandingPageSeoPanel({
               className="mt-1 text-[10px] text-blue-600 font-semibold flex items-center gap-1 disabled:opacity-50"
             >
               {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-              Tải ảnh OG
+              {seo.ogImageUpload}
             </button>
             <input
               ref={fileRef}
@@ -125,12 +127,12 @@ export default function LandingPageSeoPanel({
         </div>
       </Field>
 
-      <Field label="Keywords">
+      <Field label={seo.keywords}>
         <input
           value={metaKeywords}
           onChange={(e) => set({ metaKeywords: e.target.value })}
           className={inputCls()}
-          placeholder="từ khóa, cách nhau bởi dấu phẩy"
+          placeholder={seo.keywordsPh}
         />
       </Field>
     </div>

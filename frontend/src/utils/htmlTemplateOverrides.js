@@ -1,5 +1,7 @@
 import { getTemplatePageRegistry, getTemplatePage } from '../constants/templatePageRegistry';
 import { isStoredMediaKey, normalizePostImageUrl } from '../services/api';
+import { getMergedOverrides } from './landingPageContentLocale';
+import { ensureSectionLocaleLayers, ensureContentLocalePack } from './landingPageLocaleSeed';
 
 /** Resolve đường dẫn ảnh template hoặc media đã upload (S3 / uploads) → URL hiển thị */
 export function resolveTemplateAssetUrl(templateFolder, path) {
@@ -175,9 +177,9 @@ const RECRUIT_HERO_DEFAULT_IMAGES = [
 ];
 
 /** Gộp defaults từ registry section + overrides đã lưu */
-export function getEffectiveSection(section) {
+export function getEffectiveSection(section, contentLocale = 'vi') {
   if (!section) return {};
-  const ov = section.overrides || {};
+  const ov = getMergedOverrides(section, contentLocale);
   let headingSource = {};
   if (typeof section.heading === 'string') headingSource = { main: section.heading };
   else if (section.heading && typeof section.heading === 'object') headingSource = { ...section.heading };
@@ -1586,6 +1588,7 @@ export function applyHtmlTemplateOverrides(doc, {
   documentMeta = null,
   builderPreview = false,
   previewMode = false,
+  contentLocale = 'vi',
 }) {
   if (!doc) return;
   ensureHeadingMainStyles(doc);
@@ -1598,7 +1601,7 @@ export function applyHtmlTemplateOverrides(doc, {
   });
 
   sections.forEach((section) => {
-    applySectionToDom(doc, getEffectiveSection(section), folder);
+    applySectionToDom(doc, getEffectiveSection(section, contentLocale), folder);
   });
 
   /* lp_recruite dùng grid page_block — flex+order trên <main> làm vỡ bố cục 2 cột */
@@ -1646,22 +1649,27 @@ export function mergePageSections(page, templateKey) {
   const savedById = Object.fromEntries(savedSections.map((s) => [s.id, s]));
   const regIds = new Set(regSections.map((s) => s.id));
 
-  const mergeOne = (saved, regSec) => seedHtmlSectionOverrides(resolveSectionRef({
-    ...regSec,
-    ...(saved || {}),
-    id: regSec.id,
-    type: (saved?.type === 'hero_slide' && regSec.type && regSec.type !== 'hero_slide')
-      ? regSec.type
-      : (saved?.type === 'hero_biz65' && regSec.type && regSec.type !== 'hero_biz65')
+  const mergeOne = (saved, regSec) => ensureSectionLocaleLayers(
+    seedHtmlSectionOverrides(resolveSectionRef({
+      ...regSec,
+      ...(saved || {}),
+      id: regSec.id,
+      type: (saved?.type === 'hero_slide' && regSec.type && regSec.type !== 'hero_slide')
         ? regSec.type
-        : (saved?.type || regSec.type),
-    label: saved?.label || regSec.label,
-    visible: saved?.visible ?? true,
-    overrides: {
-      ...(regSec.overrides || {}),
-      ...(saved?.overrides || {}),
-    },
-  }, templateKey));
+        : (saved?.type === 'hero_biz65' && regSec.type && regSec.type !== 'hero_biz65')
+          ? regSec.type
+          : (saved?.type || regSec.type),
+      label: saved?.label || regSec.label,
+      visible: saved?.visible ?? true,
+      overrides: {
+        ...(regSec.overrides || {}),
+        ...(saved?.overrides || {}),
+      },
+      overridesByLocale: saved?.overridesByLocale,
+    }, templateKey)),
+    templateKey,
+    regSec,
+  );
 
   const isPartialSave = savedSections.length > 0
     && savedSections.length < regSections.length
@@ -1685,9 +1693,10 @@ export function mergePageSections(page, templateKey) {
 }
 
 /** Gộp registry sections + overrides đã lưu khi load builder / public */
-export function mergeHtmlTemplateContent(content) {
+export function mergeHtmlTemplateContent(content, flatSeo = {}) {
   const templateKey = content.templateKey;
-  const mergedPages = (content.pages || []).map((page) => {
+  let base = ensureContentLocalePack(content, templateKey, flatSeo);
+  const mergedPages = (base.pages || []).map((page) => {
     const regPage = getTemplatePage(templateKey, page.templatePageId);
     if (!regPage) return page;
 
@@ -1699,5 +1708,5 @@ export function mergeHtmlTemplateContent(content) {
       sections: mergePageSections(page, templateKey),
     };
   });
-  return { ...content, pages: mergedPages };
+  return { ...base, pages: mergedPages };
 }

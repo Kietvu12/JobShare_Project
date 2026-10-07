@@ -4,7 +4,7 @@ const ICON_VARIANTS = ['first', 'second', 'third', 'fourth']
 
 const SUBJECT_EN = {
   'direct-scout': 'Direct Scout',
-  'managed-scout': 'Managed Scout',
+  'managed-scout': 'Omakase Scout',
   'employer-branding': 'Employer Branding',
   'hr-partner-network': 'Collaborator Marketplace',
 }

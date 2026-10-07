@@ -15,6 +15,16 @@ import PreviewViewportFrame from '../../component/BusinessBranding/PreviewViewpo
 import { getTemplatePage, getTemplatePageRegistry } from '../../constants/templatePageRegistry';
 import { getLandingPageTemplate } from '../../constants/landingPageTemplates';
 import { patchSectionFromInlineEdit, patchSectionFromInlineDelete } from '../../utils/htmlTemplateInlineEditor';
+import { patchSectionFromInlineEditForLocale } from '../../utils/landingPageContentLocale';
+import { normalizeEditorContentLocale } from '../../utils/landingPageEditorContentLocale';
+import {
+  patchPageTitleForLocale,
+  patchSeoInLocalePack,
+  resolveGlobalNavForLocale,
+  resolvePageTitleForLocale,
+  resolveSectionSidebarLabel,
+  resolveSeoForLocale,
+} from '../../utils/landingPageLocaleSeed';
 import { mergePageSections } from '../../utils/htmlTemplateOverrides';
 import {
   appendGlobalNavItem,
@@ -27,8 +37,6 @@ import {
 } from '../../utils/htmlBuilderHelpers';
 import {
   SECTION_TYPES,
-  MOTION_PRESETS,
-  NAV_ACTION_TYPES,
   createDefaultSection,
   createPageId,
   isCompanyBuilderContent,
@@ -38,14 +46,12 @@ import {
 import { scanLandingPagePublishReadiness } from '../../utils/landingPagePublishReadiness';
 import LandingPagePublishWarningModal from '../../component/BusinessBranding/LandingPagePublishWarningModal';
 import { useLanguage } from '../../context/LanguageContext';
-import { getBrandingCopy } from '../../i18n/businessAppI18n';
-
-const STATUS_COLORS = {
-  0: { label: 'Nháp', color: '#64748b', bg: '#f1f5f9' },
-  1: { label: 'Đang hoạt động', color: '#10b981', bg: '#d1fae5' },
-  2: { label: 'Tạm dừng', color: '#f59e0b', bg: '#fef3c7' },
-  3: { label: 'Đã đóng', color: '#dc2626', bg: '#fee2e2' },
-};
+import { getBrandingCopy, getLandingPageStatusMeta } from '../../i18n/businessAppI18n';
+import BusinessAppLanguageSwitcher from '../../component/Layout/BusinessAppLanguageSwitcher';
+import {
+  LandingPageEditorUiProvider,
+  useLandingPageEditorUi,
+} from '../../context/LandingPageEditorUiContext';
 
 function Field({ label, children }) {
   return (
@@ -60,19 +66,20 @@ function inputCls(extra = '') {
   return `w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs ${extra}`;
 }
 
-function NavActionEditor({ value, onChange, pages, sections }) {
+function NavActionEditor({ value, onChange, pages, sections, ui }) {
+  const sf = ui.sectionForm;
   const action = value || { type: 'anchor', target: '' };
   const set = (patch) => onChange({ ...action, ...patch });
 
   return (
     <div className="space-y-2 p-2 bg-slate-50 rounded-lg border border-slate-100">
-      <div className="text-[10px] font-bold text-slate-500 uppercase">Điều hướng</div>
+      <div className="text-[10px] font-bold text-slate-500 uppercase">{sf.navigation}</div>
       <select value={action.type || 'anchor'} onChange={(e) => set({ type: e.target.value, target: '' })} className={inputCls()}>
-        {NAV_ACTION_TYPES.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
+        {ui.navActions.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
       </select>
       {action.type === 'page' && (
         <select value={action.target || ''} onChange={(e) => set({ target: e.target.value })} className={inputCls()}>
-          <option value="">-- Chọn trang --</option>
+          <option value="">{sf.selectPage}</option>
           {(pages || []).map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
         </select>
       )}
@@ -81,7 +88,7 @@ function NavActionEditor({ value, onChange, pages, sections }) {
       )}
       {(action.type === 'anchor' || action.type === 'scroll') && (
         <select value={action.target || ''} onChange={(e) => set({ target: e.target.value })} className={inputCls()}>
-          <option value="">-- Chọn section --</option>
+          <option value="">{sf.selectSection}</option>
           {(sections || []).map((s) => <option key={s.id} value={s.id}>{s.type} ({s.id.slice(-6)})</option>)}
         </select>
       )}
@@ -89,7 +96,8 @@ function NavActionEditor({ value, onChange, pages, sections }) {
   );
 }
 
-function SectionPropsEditor({ section, onChange, pages, allSections }) {
+function SectionPropsEditor({ section, onChange, pages, allSections, ui }) {
+  const sf = ui.sectionForm;
   const p = section.props || {};
   const setProp = (key, val) => onChange({ ...section, props: { ...p, [key]: val } });
 
@@ -97,25 +105,25 @@ function SectionPropsEditor({ section, onChange, pages, allSections }) {
     case 'hero':
       return (
         <>
-          <Field label="Tiêu đề"><input value={p.headline || ''} onChange={(e) => setProp('headline', e.target.value)} className={inputCls()} /></Field>
-          <Field label="Mô tả"><textarea rows={2} value={p.subheadline || ''} onChange={(e) => setProp('subheadline', e.target.value)} className={inputCls()} /></Field>
-          <Field label="Nút CTA"><input value={p.ctaText || ''} onChange={(e) => setProp('ctaText', e.target.value)} className={inputCls()} /></Field>
-          <NavActionEditor value={p.ctaAction} onChange={(v) => setProp('ctaAction', v)} pages={pages} sections={allSections} />
-          <Field label="Loại media">
+          <Field label={sf.headline}><input value={p.headline || ''} onChange={(e) => setProp('headline', e.target.value)} className={inputCls()} /></Field>
+          <Field label={sf.description}><textarea rows={2} value={p.subheadline || ''} onChange={(e) => setProp('subheadline', e.target.value)} className={inputCls()} /></Field>
+          <Field label={sf.ctaText}><input value={p.ctaText || ''} onChange={(e) => setProp('ctaText', e.target.value)} className={inputCls()} /></Field>
+          <NavActionEditor value={p.ctaAction} onChange={(v) => setProp('ctaAction', v)} pages={pages} sections={allSections} ui={ui} />
+          <Field label={sf.mediaType}>
             <select value={p.mediaType || 'image'} onChange={(e) => setProp('mediaType', e.target.value)} className={inputCls()}>
-              <option value="image">Ảnh nền</option>
-              <option value="video">Video nền</option>
+              <option value="image">{sf.bgImage}</option>
+              <option value="video">{sf.bgVideo}</option>
             </select>
           </Field>
           {p.mediaType === 'video' ? (
             <>
-              <Field label="URL video"><input value={p.videoUrl || ''} onChange={(e) => setProp('videoUrl', e.target.value)} className={inputCls()} /></Field>
-              <Field label="Poster"><input value={p.posterUrl || ''} onChange={(e) => setProp('posterUrl', e.target.value)} className={inputCls()} /></Field>
+              <Field label={sf.videoUrl}><input value={p.videoUrl || ''} onChange={(e) => setProp('videoUrl', e.target.value)} className={inputCls()} /></Field>
+              <Field label={sf.poster}><input value={p.posterUrl || ''} onChange={(e) => setProp('posterUrl', e.target.value)} className={inputCls()} /></Field>
             </>
           ) : (
-            <Field label="URL ảnh nền"><input value={p.imageUrl || ''} onChange={(e) => setProp('imageUrl', e.target.value)} className={inputCls()} /></Field>
+            <Field label={sf.bgImageUrl}><input value={p.imageUrl || ''} onChange={(e) => setProp('imageUrl', e.target.value)} className={inputCls()} /></Field>
           )}
-          <Field label="Độ mờ overlay (0–1)">
+          <Field label={sf.overlayOpacity}>
             <input type="number" min={0} max={1} step={0.05} value={p.overlayOpacity ?? 0.35} onChange={(e) => setProp('overlayOpacity', Number(e.target.value))} className={inputCls()} />
           </Field>
         </>
@@ -123,14 +131,14 @@ function SectionPropsEditor({ section, onChange, pages, allSections }) {
     case 'text_image':
       return (
         <>
-          <Field label="Tiêu đề"><input value={p.title || ''} onChange={(e) => setProp('title', e.target.value)} className={inputCls()} /></Field>
-          <Field label="Phụ đề"><input value={p.subtitle || ''} onChange={(e) => setProp('subtitle', e.target.value)} className={inputCls()} /></Field>
-          <Field label="Nội dung"><textarea rows={4} value={p.body || ''} onChange={(e) => setProp('body', e.target.value)} className={inputCls()} /></Field>
-          <Field label="URL ảnh"><input value={p.imageUrl || ''} onChange={(e) => setProp('imageUrl', e.target.value)} className={inputCls()} /></Field>
-          <Field label="Vị trí ảnh">
+          <Field label={sf.headline}><input value={p.title || ''} onChange={(e) => setProp('title', e.target.value)} className={inputCls()} /></Field>
+          <Field label={sf.subtitle}><input value={p.subtitle || ''} onChange={(e) => setProp('subtitle', e.target.value)} className={inputCls()} /></Field>
+          <Field label={sf.body}><textarea rows={4} value={p.body || ''} onChange={(e) => setProp('body', e.target.value)} className={inputCls()} /></Field>
+          <Field label={sf.imageUrl}><input value={p.imageUrl || ''} onChange={(e) => setProp('imageUrl', e.target.value)} className={inputCls()} /></Field>
+          <Field label={sf.imagePosition}>
             <select value={p.imagePosition || 'right'} onChange={(e) => setProp('imagePosition', e.target.value)} className={inputCls()}>
-              <option value="right">Bên phải</option>
-              <option value="left">Bên trái</option>
+              <option value="right">{sf.imageRight}</option>
+              <option value="left">{sf.imageLeft}</option>
             </select>
           </Field>
         </>
@@ -138,89 +146,91 @@ function SectionPropsEditor({ section, onChange, pages, allSections }) {
     case 'features':
       return (
         <>
-          <Field label="Tiêu đề section"><input value={p.title || ''} onChange={(e) => setProp('title', e.target.value)} className={inputCls()} /></Field>
+          <Field label={sf.sectionTitle}><input value={p.title || ''} onChange={(e) => setProp('title', e.target.value)} className={inputCls()} /></Field>
           {(p.items || []).map((item, i) => (
             <div key={i} className="mb-2 p-2 border rounded-lg">
-              <Field label={`Mục ${i + 1} — tiêu đề`}><input value={item.title || ''} onChange={(e) => {
+              <Field label={sf.itemTitle(i + 1)}><input value={item.title || ''} onChange={(e) => {
                 const items = [...(p.items || [])];
                 items[i] = { ...items[i], title: e.target.value };
                 setProp('items', items);
               }} className={inputCls()} /></Field>
-              <Field label="Mô tả"><textarea rows={2} value={item.body || ''} onChange={(e) => {
+              <Field label={sf.description}><textarea rows={2} value={item.body || ''} onChange={(e) => {
                 const items = [...(p.items || [])];
                 items[i] = { ...items[i], body: e.target.value };
                 setProp('items', items);
               }} className={inputCls()} /></Field>
             </div>
           ))}
-          <button type="button" onClick={() => setProp('items', [...(p.items || []), { title: 'Mới', body: '' }])} className="text-[10px] text-blue-600 font-semibold">+ Thêm mục</button>
+          <button type="button" onClick={() => setProp('items', [...(p.items || []), { title: sf.newItemTitle, body: '' }])} className="text-[10px] text-blue-600 font-semibold">{sf.addItem}</button>
         </>
       );
     case 'gallery':
       return (
         <>
-          <Field label="Tiêu đề"><input value={p.title || ''} onChange={(e) => setProp('title', e.target.value)} className={inputCls()} /></Field>
+          <Field label={sf.headline}><input value={p.title || ''} onChange={(e) => setProp('title', e.target.value)} className={inputCls()} /></Field>
           {(p.images || []).map((img, i) => (
             <div key={i} className="mb-2 p-2 border rounded-lg">
-              <Field label={`Ảnh ${i + 1}`}><input value={img.url || ''} onChange={(e) => {
+              <Field label={`${sf.imageUrl} ${i + 1}`}><input value={img.url || ''} onChange={(e) => {
                 const images = [...(p.images || [])];
                 images[i] = { ...images[i], url: e.target.value };
                 setProp('images', images);
               }} className={inputCls()} /></Field>
-              <Field label="Chú thích"><input value={img.caption || ''} onChange={(e) => {
+              <Field label={sf.caption}><input value={img.caption || ''} onChange={(e) => {
                 const images = [...(p.images || [])];
                 images[i] = { ...images[i], caption: e.target.value };
                 setProp('images', images);
               }} className={inputCls()} /></Field>
             </div>
           ))}
-          <button type="button" onClick={() => setProp('images', [...(p.images || []), { url: '', caption: '' }])} className="text-[10px] text-blue-600 font-semibold">+ Thêm ảnh</button>
+          <button type="button" onClick={() => setProp('images', [...(p.images || []), { url: '', caption: '' }])} className="text-[10px] text-blue-600 font-semibold">{sf.addImage}</button>
         </>
       );
     case 'video':
       return (
         <>
-          <Field label="Tiêu đề"><input value={p.title || ''} onChange={(e) => setProp('title', e.target.value)} className={inputCls()} /></Field>
-          <Field label="URL video"><input value={p.videoUrl || ''} onChange={(e) => setProp('videoUrl', e.target.value)} className={inputCls()} /></Field>
-          <Field label="Poster"><input value={p.posterUrl || ''} onChange={(e) => setProp('posterUrl', e.target.value)} className={inputCls()} /></Field>
+          <Field label={sf.headline}><input value={p.title || ''} onChange={(e) => setProp('title', e.target.value)} className={inputCls()} /></Field>
+          <Field label={sf.videoUrl}><input value={p.videoUrl || ''} onChange={(e) => setProp('videoUrl', e.target.value)} className={inputCls()} /></Field>
+          <Field label={sf.poster}><input value={p.posterUrl || ''} onChange={(e) => setProp('posterUrl', e.target.value)} className={inputCls()} /></Field>
           <label className="flex items-center gap-2 text-xs text-slate-600">
             <input type="checkbox" checked={!!p.autoplay} onChange={(e) => setProp('autoplay', e.target.checked)} />
-            Tự phát (muted)
+            {sf.autoplayMuted}
           </label>
         </>
       );
     case 'cta':
       return (
         <>
-          <Field label="Tiêu đề"><input value={p.title || ''} onChange={(e) => setProp('title', e.target.value)} className={inputCls()} /></Field>
-          <Field label="Nội dung"><textarea rows={2} value={p.body || ''} onChange={(e) => setProp('body', e.target.value)} className={inputCls()} /></Field>
-          <Field label="Nút"><input value={p.buttonText || ''} onChange={(e) => setProp('buttonText', e.target.value)} className={inputCls()} /></Field>
-          <NavActionEditor value={p.buttonAction} onChange={(v) => setProp('buttonAction', v)} pages={pages} sections={allSections} />
-          <Field label="Màu nền"><input type="color" value={p.backgroundColor || '#2563eb'} onChange={(e) => setProp('backgroundColor', e.target.value)} className="w-full h-8 rounded cursor-pointer" /></Field>
+          <Field label={sf.headline}><input value={p.title || ''} onChange={(e) => setProp('title', e.target.value)} className={inputCls()} /></Field>
+          <Field label={sf.body}><textarea rows={2} value={p.body || ''} onChange={(e) => setProp('body', e.target.value)} className={inputCls()} /></Field>
+          <Field label={sf.button}><input value={p.buttonText || ''} onChange={(e) => setProp('buttonText', e.target.value)} className={inputCls()} /></Field>
+          <NavActionEditor value={p.buttonAction} onChange={(v) => setProp('buttonAction', v)} pages={pages} sections={allSections} ui={ui} />
+          <Field label={sf.bgColor}><input type="color" value={p.backgroundColor || '#2563eb'} onChange={(e) => setProp('backgroundColor', e.target.value)} className="w-full h-8 rounded cursor-pointer" /></Field>
         </>
       );
     case 'form':
       return (
         <>
-          <Field label="Tiêu đề form"><input value={p.title || ''} onChange={(e) => setProp('title', e.target.value)} className={inputCls()} /></Field>
-          <Field label="Nút gửi"><input value={p.submitText || ''} onChange={(e) => setProp('submitText', e.target.value)} className={inputCls()} /></Field>
+          <Field label={sf.formTitle}><input value={p.title || ''} onChange={(e) => setProp('title', e.target.value)} className={inputCls()} /></Field>
+          <Field label={sf.submitText}><input value={p.submitText || ''} onChange={(e) => setProp('submitText', e.target.value)} className={inputCls()} /></Field>
         </>
       );
     case 'spacer':
       return (
-        <Field label="Chiều cao (px)">
+        <Field label={sf.heightPx}>
           <input type="number" min={8} max={200} value={p.height || 48} onChange={(e) => setProp('height', Number(e.target.value))} className={inputCls()} />
         </Field>
       );
     default:
-      return <p className="text-xs text-slate-400">Không có thuộc tính</p>;
+      return <p className="text-xs text-slate-400">{ui.noProps}</p>;
   }
 }
 
-export default function BusinessLandingPageBuilder() {
+function BusinessLandingPageBuilderPage() {
   const { pageId } = useParams();
   const { language } = useLanguage();
+  const contentLocale = normalizeEditorContentLocale(language);
   const brandingCopy = useMemo(() => getBrandingCopy(language), [language]);
+  const lpCopy = useLandingPageEditorUi();
   const publishReadinessCopy = brandingCopy.publishReadiness;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -261,8 +271,15 @@ export default function BusinessLandingPageBuilder() {
         if (effectiveTemplateKey && loadedContent.templateKey !== effectiveTemplateKey) {
           loadedContent = { ...loadedContent, templateKey: effectiveTemplateKey };
         }
+        const flatSeo = {
+          metaTitle: lp.metaTitle || '',
+          metaDescription: lp.metaDescription || '',
+          metaKeywords: lp.metaKeywords || '',
+          ogTitle: lp.ogTitle || '',
+          ogDescription: lp.ogDescription || '',
+        };
         if (loadedContent.renderMode === 'html' && effectiveTemplateKey) {
-          loadedContent = mergeHtmlTemplateContent(loadedContent);
+          loadedContent = mergeHtmlTemplateContent(loadedContent, flatSeo);
         }
         wjsDebug('builder', 'loadPage', {
           pageId: lp.id,
@@ -297,6 +314,10 @@ export default function BusinessLandingPageBuilder() {
 
   const pages = content?.pages || [];
   const htmlMode = isHtmlBuilderContent(content);
+
+  useEffect(() => {
+    if (htmlMode) setPanelSyncKey((k) => k + 1);
+  }, [contentLocale, htmlMode]);
   const templateKey = content?.templateKey || page?.templateKey;
   const activeTemplateMeta = templateKey ? getLandingPageTemplate(templateKey) : null;
   const activePage = pages.find((p) => p.id === activePageId) || pages[0];
@@ -330,21 +351,42 @@ export default function BusinessLandingPageBuilder() {
   const headerNeedsReview = publishScan.issues.some((i) => i.type === 'sampleCompany' && !i.sectionId);
 
   const templateRegistry = htmlMode ? getTemplatePageRegistry(templateKey) : null;
-  const htmlGlobals = useMemo(() => ({
-    companyName: content?.companyName,
-    logoText: content?.sharedBlocks?.logoText || content?.companyName,
-    logoHidden: content?.sharedBlocks?.logoHidden,
-    announcement: content?.announcement,
-    theme: content?.theme,
-    globalNav: content?.globalNav,
-    pages: content?.pages,
-    currentTemplatePageId: activePage?.templatePageId,
-    registryNav: templateRegistry?.nav || [],
-    sharedBlocks: {
-      ...templateRegistry?.sharedBlocks,
-      ...content?.sharedBlocks,
-    },
-  }), [content?.companyName, content?.sharedBlocks, content?.announcement, content?.theme, content?.globalNav, content?.pages, activePage?.templatePageId, templateRegistry]);
+  const htmlGlobals = useMemo(() => {
+    const localePack = content?.localePack;
+    const packSite = localePack?.[contentLocale];
+    const announcement = packSite?.announcement ?? content?.announcement;
+    const globalNav = resolveGlobalNavForLocale(
+      content?.globalNav || [],
+      contentLocale,
+      localePack,
+    );
+    return {
+      companyName: content?.companyName,
+      logoText: content?.sharedBlocks?.logoText || content?.companyName,
+      logoHidden: content?.sharedBlocks?.logoHidden,
+      announcement,
+      theme: content?.theme,
+      globalNav,
+      pages: content?.pages,
+      currentTemplatePageId: activePage?.templatePageId,
+      registryNav: templateRegistry?.nav || [],
+      sharedBlocks: {
+        ...templateRegistry?.sharedBlocks,
+        ...content?.sharedBlocks,
+      },
+    };
+  }, [
+    content?.companyName,
+    content?.sharedBlocks,
+    content?.announcement,
+    content?.theme,
+    content?.globalNav,
+    content?.pages,
+    content?.localePack,
+    contentLocale,
+    activePage?.templatePageId,
+    templateRegistry,
+  ]);
 
   const updateContent = (patch) => setContent((prev) => ({ ...prev, ...patch }));
 
@@ -384,10 +426,10 @@ export default function BusinessLandingPageBuilder() {
     const { sectionId, blockKey, index } = payload;
     const sec = displaySections.find((s) => s.id === sectionId);
     if (!sec) return;
-    if (!window.confirm('Xóa khối này khỏi giao diện?')) return;
+    if (!window.confirm(lpCopy.alerts.deleteBlock)) return;
     const next = patchSectionFromInlineDelete(sec, { blockKey, index });
     if (next === sec) {
-      window.alert('Cần giữ ít nhất 1 mục trong section này.');
+      window.alert(lpCopy.alerts.keepOneBlock);
       return;
     }
     updateSection(sectionId, next);
@@ -402,7 +444,12 @@ export default function BusinessLandingPageBuilder() {
       wjsDebug('builder', 'inline edit — section not found', sectionId);
       return;
     }
-    const next = patchSectionFromInlineEdit(sec, payload);
+    const next = patchSectionFromInlineEditForLocale(
+      sec,
+      payload,
+      contentLocale,
+      patchSectionFromInlineEdit,
+    );
     wjsDebug('builder', 'inline edit', { sectionId, field: payload.field, editType: payload.editType });
     updateSection(sectionId, next);
     const isImageEdit = payload.editType === 'clear-image'
@@ -499,11 +546,11 @@ export default function BusinessLandingPageBuilder() {
       if (res?.success && res.data) {
         addMediaAsset(res.data);
       } else {
-        window.alert(res?.message || 'Upload thất bại');
+        window.alert(res?.message || lpCopy.uploadFailed);
       }
     } catch (e) {
       console.error(e);
-      window.alert('Upload thất bại');
+      window.alert(lpCopy.uploadFailed);
     } finally {
       setMediaUploading(false);
     }
@@ -516,7 +563,7 @@ export default function BusinessLandingPageBuilder() {
     try {
       const res = await apiService.uploadBusinessLandingPageMedia(pageId, file);
       if (!res?.success || !res.data) {
-        window.alert(res?.message || 'Upload thất bại');
+        window.alert(res?.message || lpCopy.uploadFailed);
         return;
       }
       addMediaAsset(res.data);
@@ -539,7 +586,7 @@ export default function BusinessLandingPageBuilder() {
       selectSection(sectionId);
     } catch (e) {
       console.error(e);
-      window.alert('Upload thất bại');
+      window.alert(lpCopy.uploadFailed);
     } finally {
       setMediaUploading(false);
     }
@@ -551,13 +598,13 @@ export default function BusinessLandingPageBuilder() {
     const builtIn = htmlMode && isBuiltInRegistrySection(sectionId);
 
     if (builtIn) {
-      if (!window.confirm('Ẩn section này khỏi trang?\n(Bật lại ở mục "Đã ẩn" hoặc panel phải)')) return;
+      if (!window.confirm(lpCopy.alerts.hideSection)) return;
       savePageSections(merged.map((s) => (s.id === sectionId ? { ...s, visible: false } : s)));
     } else if (htmlMode) {
-      if (!window.confirm('Xóa section này khỏi trang?')) return;
+      if (!window.confirm(lpCopy.alerts.deleteSectionFromPage)) return;
       savePageSections(merged.filter((s) => s.id !== sectionId));
     } else {
-      if (!window.confirm('Xóa section này?')) return;
+      if (!window.confirm(lpCopy.alerts.deleteSection)) return;
       const sections = merged.filter((s) => s.id !== sectionId);
       savePageSections(sections);
     }
@@ -591,7 +638,8 @@ export default function BusinessLandingPageBuilder() {
     if (!activePage?.templatePageId) return;
     const types = getAvailableSectionTypesForPage(templateKey, activePage.templatePageId);
     if (!types.length) return;
-    const raw = types.length === 1 ? '1' : window.prompt(`Loại section:\n${types.map((t, i) => `${i + 1}. ${t.label}`).join('\n')}\nNhập số`, '1');
+    const typeLines = types.map((t, i) => `${i + 1}. ${t.label}`).join('\n');
+    const raw = types.length === 1 ? '1' : window.prompt(lpCopy.alerts.pickSectionType(typeLines), '1');
     const picked = types[Number(raw) - 1]?.type;
     if (!picked) return;
     const sec = createHtmlSectionFromTemplate(templateKey, activePage.templatePageId, picked);
@@ -604,11 +652,11 @@ export default function BusinessLandingPageBuilder() {
   const addHtmlPage = () => {
     const available = getAvailableTemplatePages(templateKey, pages);
     if (!available.length) {
-      window.alert('Đã thêm hết các trang có trong template này.');
+      window.alert(lpCopy.alerts.allTemplatePagesAdded);
       return;
     }
     const label = available.map((p, i) => `${i + 1}. ${p.title} (${p.file})`).join('\n');
-    const pick = Number(window.prompt(`Chọn trang template:\n${label}\nNhập số`, '1')) - 1;
+    const pick = Number(window.prompt(lpCopy.alerts.pickTemplatePage(label), '1')) - 1;
     const tpl = available[pick];
     if (!tpl) return;
     const newPage = buildHtmlPageFromRegistry(templateKey, tpl.id, { companyName: content.companyName });
@@ -671,13 +719,22 @@ export default function BusinessLandingPageBuilder() {
     metaImage,
   };
 
+  const panelSeo = useMemo(
+    () => resolveSeoForLocale(content, contentLocale, seoPayload),
+    [content, contentLocale, metaTitle, metaDescription, metaKeywords, ogTitle, ogDescription],
+  );
+
   const handleSeoChange = (patch) => {
-    if (patch.metaTitle != null) setMetaTitle(patch.metaTitle);
-    if (patch.metaDescription != null) setMetaDescription(patch.metaDescription);
-    if (patch.metaKeywords != null) setMetaKeywords(patch.metaKeywords);
-    if (patch.ogTitle != null) setOgTitle(patch.ogTitle);
-    if (patch.ogDescription != null) setOgDescription(patch.ogDescription);
+    setContent((prev) => (prev ? patchSeoInLocalePack(prev, contentLocale, patch) : prev));
+    if (contentLocale === 'vi') {
+      if (patch.metaTitle != null) setMetaTitle(patch.metaTitle);
+      if (patch.metaDescription != null) setMetaDescription(patch.metaDescription);
+      if (patch.metaKeywords != null) setMetaKeywords(patch.metaKeywords);
+      if (patch.ogTitle != null) setOgTitle(patch.ogTitle);
+      if (patch.ogDescription != null) setOgDescription(patch.ogDescription);
+    }
     if (patch.metaImage != null) setMetaImage(patch.metaImage);
+    if (htmlMode) bumpPreview();
   };
 
   const handleOgImageUpload = async (file) => {
@@ -689,11 +746,11 @@ export default function BusinessLandingPageBuilder() {
         setMetaImage(storeValue);
         addMediaAsset(res.data);
       } else {
-        window.alert(res?.message || 'Upload thất bại');
+        window.alert(res?.message || lpCopy.uploadFailed);
       }
     } catch (e) {
       console.error(e);
-      window.alert('Upload thất bại');
+      window.alert(lpCopy.uploadFailed);
     } finally {
       setMediaUploading(false);
     }
@@ -711,11 +768,11 @@ export default function BusinessLandingPageBuilder() {
       if (res?.success) {
         setPage(res.data.landingPage);
       } else {
-        alert(res?.message || 'Lưu thất bại');
+        alert(res?.message || lpCopy.saveFailed);
       }
     } catch (e) {
       console.error(e);
-      alert('Lưu thất bại');
+      alert(lpCopy.saveFailed);
     } finally {
       setSaving(false);
     }
@@ -729,13 +786,13 @@ export default function BusinessLandingPageBuilder() {
       if (res?.success) {
         setPage(res.data.landingPage);
         setPublishWarningOpen(false);
-        alert('Đã phát hành!');
+        alert(lpCopy.publishedShort);
       } else {
-        alert(res?.message || 'Publish thất bại');
+        alert(res?.message || lpCopy.publishFailed);
       }
     } catch (e) {
       console.error(e);
-      alert('Publish thất bại');
+      alert(lpCopy.publishFailed);
     } finally {
       setPublishing(false);
     }
@@ -747,7 +804,7 @@ export default function BusinessLandingPageBuilder() {
       setPublishWarningOpen(true);
       return;
     }
-    if (!window.confirm('Phát hành trang giới thiệu? Link public sẽ có thể truy cập.')) return;
+    if (!window.confirm(lpCopy.publishSiteConfirm)) return;
     runPublish();
   };
 
@@ -755,7 +812,7 @@ export default function BusinessLandingPageBuilder() {
     return (
       <div className="flex items-center justify-center h-screen text-slate-500 gap-2">
         <Loader2 className="w-5 h-5 animate-spin" />
-        Đang tải builder...
+        {lpCopy.loadingBuilder}
       </div>
     );
   }
@@ -763,13 +820,13 @@ export default function BusinessLandingPageBuilder() {
   if (!page || !content) {
     return (
       <div className="p-6 text-center text-slate-500">
-        Không tìm thấy landing page.
-        <Link to="/business/saiyo" className="block mt-2 text-blue-600 text-sm">Quay lại Saiyo</Link>
+        {lpCopy.notFound}
+        <Link to="/business/saiyo" className="block mt-2 text-blue-600 text-sm">{lpCopy.backSaiyo}</Link>
       </div>
     );
   }
 
-  const st = STATUS_COLORS[page.status] || STATUS_COLORS[0];
+  const st = getLandingPageStatusMeta(page.status, language);
   const publicUrl = `${window.location.origin}${page.publicPath || `/lp/${page.slug}`}`;
   const previewPageSlug = activePage?.isHome ? '' : (activePage?.slug || '');
 
@@ -783,8 +840,9 @@ export default function BusinessLandingPageBuilder() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="flex-1 text-sm font-bold border-0 focus:ring-0 bg-transparent text-slate-800"
-          placeholder="Tên trang"
+          placeholder={lpCopy.pageNamePlaceholder}
         />
+        <BusinessAppLanguageSwitcher dense showLabel label={lpCopy.uiLanguageLabel} />
         {htmlMode && activeTemplateMeta && (
           <span
             className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border"
@@ -803,25 +861,25 @@ export default function BusinessLandingPageBuilder() {
         </span>
         {page.status === 1 && (
           <a href={publicUrl} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 flex items-center gap-1">
-            <ExternalLink className="w-3 h-3" /> Public
+            <ExternalLink className="w-3 h-3" /> {lpCopy.publicLink}
           </a>
         )}
-        <button type="button" onClick={() => setShowSeo((v) => !v)} className="text-[10px] px-2 py-1 border rounded-lg text-slate-600" title="Cuộn tới panel SEO bên phải">
-          SEO
+        <button type="button" onClick={() => setShowSeo((v) => !v)} className="text-[10px] px-2 py-1 border rounded-lg text-slate-600" title={lpCopy.seoHint}>
+          {lpCopy.seo}
         </button>
         <button type="button" disabled={saving} onClick={handleSave} className="flex items-center gap-1 text-xs px-3 py-1.5 border rounded-lg disabled:opacity-50">
           <Save className="w-3.5 h-3.5" />
-          {saving ? '...' : 'Lưu'}
+          {saving ? lpCopy.saving : lpCopy.save}
         </button>
         <button type="button" disabled={publishing} onClick={handlePublish} className="flex items-center gap-1 text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg disabled:opacity-50">
           <Send className="w-3.5 h-3.5" />
-          {publishing ? '...' : 'Publish'}
+          {publishing ? lpCopy.publishing : lpCopy.publish}
         </button>
       </header>
 
       {showSeo && (
         <div className="shrink-0 bg-amber-50 border-b border-amber-100 px-4 py-2 text-[10px] text-amber-800">
-          Cấu hình SEO ở panel bên phải — mục &quot;SEO &amp; Chia sẻ&quot;.
+          {lpCopy.seoHint}
         </div>
       )}
 
@@ -836,12 +894,12 @@ export default function BusinessLandingPageBuilder() {
         <aside className="w-56 shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden">
           <div className="p-2 border-b">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase">Trang</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase">{lpCopy.pages}</span>
               <button
                 type="button"
                 onClick={htmlMode ? addHtmlPage : addPage}
                 className="p-0.5 text-blue-600"
-                title={htmlMode ? 'Thêm trang từ template' : 'Thêm trang'}
+                title={htmlMode ? lpCopy.addPageFromTemplate : lpCopy.addPage}
               >
                 <Plus className="w-3.5 h-3.5" />
               </button>
@@ -860,7 +918,7 @@ export default function BusinessLandingPageBuilder() {
                 }}
                 className={`w-full text-left text-xs px-2 py-1.5 rounded-lg mb-0.5 ${activePageId === p.id ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
               >
-                {p.title}{p.isHome ? ' (chủ)' : ''}
+                {resolvePageTitleForLocale(p, contentLocale)}{p.isHome ? lpCopy.homeSuffix : ''}
                 {htmlMode && p.sourceFile && (
                   <span className="block text-[9px] text-slate-400 font-normal">{p.sourceFile}</span>
                 )}
@@ -870,9 +928,9 @@ export default function BusinessLandingPageBuilder() {
 
           <div className="p-2 flex-1 overflow-y-auto">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase">Sections</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase">{lpCopy.sections}</span>
               {htmlMode && (
-                <button type="button" onClick={addHtmlSection} className="p-0.5 text-blue-600" title="Thêm section">
+                <button type="button" onClick={addHtmlSection} className="p-0.5 text-blue-600" title={lpCopy.addSection}>
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -887,7 +945,7 @@ export default function BusinessLandingPageBuilder() {
                   onClick={() => selectSection('__header__', { scroll: true })}
                   className="flex-1 text-left text-[11px] px-2 py-1.5 truncate"
                 >
-                  Logo / Tên công ty
+                  {lpCopy.logoHeader}
                   {headerNeedsReview ? (
                     <span className="ml-1 text-[9px] font-bold text-amber-600">{publishReadinessCopy.sectionFlag}</span>
                   ) : null}
@@ -908,23 +966,23 @@ export default function BusinessLandingPageBuilder() {
                 >
                   {htmlMode && <GripVertical className="w-3 h-3 text-slate-300 shrink-0 ml-0.5" />}
                   <button type="button" onClick={() => selectSection(s.id, { scroll: true })} className="flex-1 text-left text-[11px] px-1 py-1.5 truncate">
-                    {s.label || meta?.label || s.type}
+                    {resolveSectionSidebarLabel(s, templateKey, contentLocale, meta?.label || s.type)}
                     {incompleteSectionIds.has(s.id) ? (
                       <span className="ml-1 text-[9px] font-bold text-amber-600">{publishReadinessCopy.sectionFlag}</span>
                     ) : null}
                   </button>
-                  <button type="button" onClick={() => moveSection(s.id, -1)} className="p-0.5 text-slate-400 hover:text-slate-600" title="Lên">
+                  <button type="button" onClick={() => moveSection(s.id, -1)} className="p-0.5 text-slate-400 hover:text-slate-600" title={lpCopy.moveUp}>
                     <ChevronUp className="w-3 h-3" />
                   </button>
-                  <button type="button" onClick={() => moveSection(s.id, 1)} className="p-0.5 text-slate-400 hover:text-slate-600" title="Xuống">
+                  <button type="button" onClick={() => moveSection(s.id, 1)} className="p-0.5 text-slate-400 hover:text-slate-600" title={lpCopy.moveDown}>
                     <ChevronDown className="w-3 h-3" />
                   </button>
                   {htmlMode && (
-                    <button type="button" onClick={() => duplicateSection(s.id)} className="p-0.5 text-slate-400 hover:text-blue-600" title="Nhân bản">
+                    <button type="button" onClick={() => duplicateSection(s.id)} className="p-0.5 text-slate-400 hover:text-blue-600" title={lpCopy.duplicate}>
                       <Copy className="w-3 h-3" />
                     </button>
                   )}
-                  <button type="button" onClick={() => removeSection(s.id)} className="p-0.5 text-red-400 hover:text-red-600" title={htmlMode ? 'Ẩn section' : 'Xóa section'}>
+                  <button type="button" onClick={() => removeSection(s.id)} className="p-0.5 text-red-400 hover:text-red-600" title={htmlMode ? lpCopy.hideSection : lpCopy.deleteSection}>
                     <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
@@ -933,12 +991,14 @@ export default function BusinessLandingPageBuilder() {
 
             {htmlMode && hiddenSections.length > 0 && (
               <div className="mt-2 pt-2 border-t border-slate-100">
-                <span className="text-[9px] font-bold text-slate-400 uppercase">Đã ẩn</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">{lpCopy.hiddenSections}</span>
                 {hiddenSections.map((s) => (
                   <div key={s.id} className="flex items-center gap-1 mb-1 rounded-lg border border-dashed border-slate-200 opacity-60">
-                    <span className="flex-1 text-[10px] px-2 py-1 truncate text-slate-500">{s.label || s.type}</span>
+                    <span className="flex-1 text-[10px] px-2 py-1 truncate text-slate-500">
+                      {resolveSectionSidebarLabel(s, templateKey, contentLocale, s.type)}
+                    </span>
                     <button type="button" onClick={() => { restoreSection(s.id); selectSection(s.id, { scroll: true }); }} className="text-[9px] px-1.5 py-0.5 text-blue-600">
-                      Hiện
+                      {lpCopy.showSection}
                     </button>
                   </div>
                 ))}
@@ -961,7 +1021,7 @@ export default function BusinessLandingPageBuilder() {
             )}
             {htmlMode && registryPage && (
               <p className="mt-2 text-[9px] text-slate-400 leading-relaxed">
-                Kéo thả để đổi thứ tự · Click section trên preview để chọn · {registryPage.file}
+                {lpCopy.dragHintRegistry(registryPage.file)}
               </p>
             )}
           </div>
@@ -970,16 +1030,17 @@ export default function BusinessLandingPageBuilder() {
         {/* Center: preview */}
         <main className="flex-1 flex flex-col min-h-0 min-w-0 bg-slate-200">
           <PreviewViewportFrame
-            title={`Sửa trực tiếp — ${activePage?.title || 'Preview'}`}
+            title={lpCopy.previewPageTitle(activePage?.title)}
             storageKey={`wjs-lp-preview-width-${pageId}`}
           >
             {htmlMode && activePage?.templatePageId ? (
               <HtmlTemplatePageViewer
                 templateKey={templateKey}
                 pageId={activePage.templatePageId}
-                title={activePage.title}
+                title={resolvePageTitleForLocale(activePage, contentLocale)}
                 sections={displaySections}
                 globals={htmlGlobals}
+                contentLocale={contentLocale}
                 editable
                 selectedSectionId={selectedSectionId}
                 scrollToSectionId={scrollToSectionId}
@@ -1009,11 +1070,11 @@ export default function BusinessLandingPageBuilder() {
         {/* Right: properties */}
         <aside className="w-72 shrink-0 bg-white border-l border-slate-200 overflow-y-auto p-3">
           <LandingPageSeoPanel
-            metaTitle={metaTitle}
-            metaDescription={metaDescription}
-            metaKeywords={metaKeywords}
-            ogTitle={ogTitle}
-            ogDescription={ogDescription}
+            metaTitle={panelSeo.metaTitle}
+            metaDescription={panelSeo.metaDescription}
+            metaKeywords={panelSeo.metaKeywords}
+            ogTitle={panelSeo.ogTitle}
+            ogDescription={panelSeo.ogDescription}
             metaImage={metaImage}
             onChange={handleSeoChange}
             onUploadOgImage={handleOgImageUpload}
@@ -1022,12 +1083,24 @@ export default function BusinessLandingPageBuilder() {
 
           {activePage && (
             <div className="mb-4 pb-3 border-b">
-              <div className="text-[10px] font-bold text-slate-500 uppercase mb-2">Trang đang sửa</div>
-              <Field label="Tên trang">
-                <input value={activePage.title || ''} onChange={(e) => updatePage(activePage.id, { title: e.target.value })} className={inputCls()} />
+              <div className="text-[10px] font-bold text-slate-500 uppercase mb-2">{lpCopy.editingPage}</div>
+              <Field label={lpCopy.pageTitle}>
+                <input
+                  value={resolvePageTitleForLocale(activePage, contentLocale)}
+                  onChange={(e) => {
+                    setContent((prev) => patchPageTitleForLocale(prev, activePage.id, contentLocale, e.target.value));
+                    if (contentLocale === 'vi') {
+                      updatePage(activePage.id, { title: e.target.value });
+                    } else if (contentLocale === 'ja') {
+                      updatePage(activePage.id, { titleJa: e.target.value });
+                    }
+                    bumpPreview();
+                  }}
+                  className={inputCls()}
+                />
               </Field>
               {!activePage.isHome && (
-                <Field label="Slug URL (/lp/.../)">
+                <Field label={lpCopy.pageSlug}>
                   <input value={activePage.slug || ''} onChange={(e) => updatePage(activePage.id, { slug: e.target.value.replace(/[^a-z0-9-]/gi, '').toLowerCase() })} className={inputCls()} />
                 </Field>
               )}
@@ -1035,8 +1108,8 @@ export default function BusinessLandingPageBuilder() {
           )}
 
           <div className="mb-4 pb-3 border-b">
-            <div className="text-[10px] font-bold text-slate-500 uppercase mb-2">Toàn site</div>
-            <Field label="Tên công ty hiển thị">
+            <div className="text-[10px] font-bold text-slate-500 uppercase mb-2">{lpCopy.siteWide}</div>
+            <Field label={lpCopy.companyDisplayName}>
               <input
                 value={content.companyName || ''}
                 onChange={(e) => {
@@ -1052,21 +1125,21 @@ export default function BusinessLandingPageBuilder() {
                 className={inputCls()}
               />
             </Field>
-            <Field label="Thông báo banner">
+            <Field label={lpCopy.announcement}>
               <input value={content.announcement || ''} onChange={(e) => updateContent({ announcement: e.target.value })} className={inputCls()} />
             </Field>
-            <Field label="Màu chủ đạo">
+            <Field label={lpCopy.primaryColor}>
               <input type="color" value={content.theme?.primaryColor || '#2563eb'} onChange={(e) => updateContent({ theme: { ...content.theme, primaryColor: e.target.value } })} className="w-full h-8 rounded cursor-pointer" />
             </Field>
           </div>
 
           {isHeaderSelected && htmlMode ? (
             <>
-              <div className="text-[10px] font-bold text-slate-500 uppercase mb-2">Logo / Header</div>
+              <div className="text-[10px] font-bold text-slate-500 uppercase mb-2">{lpCopy.logoPanelTitle}</div>
               <p className="text-[10px] text-blue-600 bg-blue-50 rounded-lg px-2 py-1.5 mb-3 leading-relaxed">
-                Click trực tiếp vào tên công ty trên preview hoặc sửa bên dưới.
+                {lpCopy.logoPanelHint}
               </p>
-              <Field label="Tên hiển thị (logo text)">
+              <Field label={lpCopy.logoText}>
                 <input
                   value={content.sharedBlocks?.logoText || content.companyName || ''}
                   onChange={(e) => {
@@ -1076,12 +1149,12 @@ export default function BusinessLandingPageBuilder() {
                 />
               </Field>
               <div className="mt-4 pt-3 border-t">
-                <div className="text-[10px] font-bold text-slate-500 uppercase mb-2">Menu điều hướng</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase mb-2">{lpCopy.globalNav}</div>
                 {(content.globalNav || []).map((nav, i) => {
                   const navPage = pages.find((p) => p.id === nav.pageId);
                   return (
                     <div key={nav.pageId || i} className="mb-2 p-2 border rounded-lg bg-slate-50">
-                      <Field label="Nhãn menu">
+                      <Field label={lpCopy.navLabel}>
                         <input
                           value={nav.label || ''}
                           onChange={(e) => {
@@ -1093,8 +1166,8 @@ export default function BusinessLandingPageBuilder() {
                           className={inputCls()}
                         />
                       </Field>
-                      <p className="text-[9px] text-slate-400 mb-1">Trang: {navPage?.title || nav.templatePageId}</p>
-                      <Field label="Anchor (#section)" hint="Để trống nếu link tới trang khác">
+                      <p className="text-[9px] text-slate-400 mb-1">{lpCopy.navPagePrefix(navPage?.title || nav.templatePageId)}</p>
+                      <Field label={lpCopy.navAnchor} hint={lpCopy.navAnchorHint}>
                         <input
                           value={nav.anchor || ''}
                           onChange={(e) => {
@@ -1116,7 +1189,12 @@ export default function BusinessLandingPageBuilder() {
             <>
               <div className="text-[10px] font-bold text-slate-500 uppercase mb-2 flex items-center gap-1">
                 <GripVertical className="w-3 h-3" />
-                {selectedSection.label || SECTION_TYPES.find((t) => t.type === selectedSection.type)?.label || selectedSection.type}
+                {resolveSectionSidebarLabel(
+                  selectedSection,
+                  templateKey,
+                  contentLocale,
+                  SECTION_TYPES.find((t) => t.type === selectedSection.type)?.label || selectedSection.type,
+                )}
               </div>
               {htmlMode ? (
                 <>
@@ -1129,10 +1207,10 @@ export default function BusinessLandingPageBuilder() {
                         bumpPreview();
                       }}
                     />
-                    Hiển thị section trên trang
+                    {lpCopy.showSectionOnPage}
                   </label>
                   <p className="text-[10px] text-blue-600 bg-blue-50 rounded-lg px-2 py-1.5 mb-3 leading-relaxed">
-                    Click chữ/ảnh trên preview để sửa. Hover khối (dịch vụ, FAQ…) → nút × đỏ để xóa trực tiếp.
+                    {lpCopy.inlineHintExtended}
                   </p>
                   <HtmlSectionPropsEditor
                     section={selectedSection}
@@ -1147,11 +1225,11 @@ export default function BusinessLandingPageBuilder() {
                 <>
               <label className="flex items-center gap-2 text-xs text-slate-600 mb-3">
                 <input type="checkbox" checked={selectedSection.visible !== false} onChange={(e) => updateSection(selectedSection.id, { visible: e.target.checked })} />
-                Hiển thị section
+                {lpCopy.showSectionShort}
               </label>
-              <Field label="Hiệu ứng (motion)">
+              <Field label={lpCopy.motion}>
                 <select value={selectedSection.motion || 'none'} onChange={(e) => updateSection(selectedSection.id, { motion: e.target.value })} className={inputCls()}>
-                  {MOTION_PRESETS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                  {lpCopy.motionPresets.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
                 </select>
               </Field>
               <SectionPropsEditor
@@ -1159,12 +1237,13 @@ export default function BusinessLandingPageBuilder() {
                 onChange={(next) => updateSection(selectedSection.id, next)}
                 pages={pages}
                 allSections={activePage?.sections || []}
+                ui={lpCopy}
               />
                 </>
               )}
             </>
           ) : (
-            <p className="text-xs text-slate-400">Chọn một section để chỉnh sửa</p>
+            <p className="text-xs text-slate-400">{lpCopy.selectSection}</p>
           )}
 
           {htmlMode && (
@@ -1187,5 +1266,13 @@ export default function BusinessLandingPageBuilder() {
         onPublishAnyway={runPublish}
       />
     </div>
+  );
+}
+
+export default function BusinessLandingPageBuilder() {
+  return (
+    <LandingPageEditorUiProvider>
+      <BusinessLandingPageBuilderPage />
+    </LandingPageEditorUiProvider>
   );
 }

@@ -92,7 +92,7 @@ const solutionCardsEn = [
   {
     num: '02',
     tagId: 'managed-scout',
-    title: 'Managed Scout',
+    title: 'Omakase Scout',
     subtitle: 'WS handles search & outreach',
     variant: 'neutral',
     painPoint: 'Too busy to screen and reach out to candidates',
@@ -103,7 +103,7 @@ const solutionCardsEn = [
       'Regular transparent progress reports',
     ],
     suitableFor: 'Busy teams with limited hiring bandwidth',
-    ctaLabel: 'Request Managed Scout',
+    ctaLabel: 'Request Omakase Scout',
     path: '/business/scout/managed',
   },
   {
@@ -163,7 +163,7 @@ const solutionCardsJa = [
   {
     num: '02',
     tagId: 'managed-scout',
-    title: '委託スカウト',
+    title: 'おまかせスカウト',
     subtitle: 'WSが探索・接触を代行',
     variant: 'neutral',
     painPoint: '選考・接触の時間が足りない',

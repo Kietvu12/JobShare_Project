@@ -138,6 +138,7 @@ import SeminarCampaignRequest from './page/Bussiness/SeminarCampaignRequest';
 import CompanyProfileRequest from './page/Bussiness/CompanyProfileRequest';
 import BusinessProfilePage from './page/Bussiness/BusinessProfilePage';
 import BusinessRegister from './page/Bussiness/Register';
+import BusinessMarketingLayout from './page/LandingPage/Business/BusinessMarketingLayout';
 import BusinessLogin from './page/Bussiness/Login';
 import BusinessVerifyEmail from './page/Bussiness/VerifyEmail';
 import BusinessResetPassword from './page/Bussiness/ResetPassword';
@@ -389,7 +390,14 @@ function App() {
           <Route path="/lp/:slug/:pageSlug" element={<PublicLandingPage />} />
 
           {/* Business auth - không dùng sidebar */}
-          <Route path="/business/register" element={<BusinessRegister />} />
+          <Route
+            path="/business/register"
+            element={(
+              <BusinessMarketingLayout>
+                <BusinessRegister />
+              </BusinessMarketingLayout>
+            )}
+          />
           <Route path="/business/login" element={<BusinessLogin />} />
           <Route path="/business/verify-email" element={<BusinessVerifyEmail />} />
           <Route path="/business/reset-password" element={<BusinessResetPassword />} />

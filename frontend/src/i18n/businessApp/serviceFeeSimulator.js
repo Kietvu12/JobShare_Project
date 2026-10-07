@@ -52,7 +52,7 @@ const copy = {
   },
   en: {
     title: 'Recruitment fee simulator',
-    subtitle: 'Enter your budget and expected salary to compare the estimated cost of Scout Credit, Managed Scout and the Collaborator Marketplace side by side — before choosing a service.',
+    subtitle: 'Enter your budget and expected salary to compare the estimated cost of Direct Scout, Omakase Scout and the Collaborator Marketplace side by side — before choosing a service.',
     inputHeadcount: 'Number of hires',
     inputAnnualIncome: 'Expected annual income per hire',
     inputLevel: 'Role level',
@@ -60,13 +60,13 @@ const copy = {
     inputBudget: 'Total recruitment budget',
     inputCtvFee: 'Your Collaborator Marketplace fee per hire',
     inputOpens: 'Profiles you expect to unlock per hire',
-    inputOpensHint: (credits) => `Scout Credit: ${credits} credits per profile unlock`,
+    inputOpensHint: (credits) => `Direct Scout: ${credits} credits per profile unlock`,
     useMaxCtvFee: (v) => `Use full budget: ${v} per hire`,
     ctvFeeOfIncome: (pct) => `≈ ${pct}% of annual income`,
     yenSuffix: 'yen',
     services: {
-      scout_credit: 'Scout Credit',
-      scout_performance: 'Managed Scout',
+      scout_credit: 'Direct Scout',
+      scout_performance: 'Omakase Scout',
       ctv_marketplace: 'Collaborator Marketplace',
     },
     models: {
@@ -93,15 +93,15 @@ const copy = {
     payUpfront: 'Prepaid',
     payOnSuccess: 'Pay on success',
     cta: {
-      scout_credit: 'Use Scout Credit',
-      scout_performance: 'Request Managed Scout',
+      scout_credit: 'Use Direct Scout',
+      scout_performance: 'Request Omakase Scout',
       ctv_marketplace: 'Post to the Marketplace',
     },
-    disclaimer: 'Figures are for reference only. Credit prices follow the current package price list; Managed Scout and Marketplace fees follow your actual contract / listing.',
+    disclaimer: 'Figures are for reference only. Credit prices follow the current package price list; Omakase Scout and Marketplace fees follow your actual contract / listing.',
   },
   ja: {
     title: '採用費用シミュレーター',
-    subtitle: '予算と想定年収を入力すると、Scout Credit・委託スカウト・採用パートナーマーケットの概算費用を並べて比較できます。サービス選択前の検討にご利用ください。',
+    subtitle: '予算と想定年収を入力すると、ダイレクトスカウト・おまかせスカウト・採用パートナーマーケットの概算費用を並べて比較できます。サービス選択前の検討にご利用ください。',
     inputHeadcount: '採用予定人数',
     inputAnnualIncome: '1名あたりの想定年収',
     inputLevel: 'ポジションのレベル',
@@ -109,13 +109,13 @@ const copy = {
     inputBudget: '採用予算（合計）',
     inputCtvFee: 'マーケットで設定する1名あたり報酬',
     inputOpens: '1名採用までに開封する想定プロフィール数',
-    inputOpensHint: (credits) => `Scout Credit：プロフィール開封1件 ${credits}クレジット`,
+    inputOpensHint: (credits) => `ダイレクトスカウト：プロフィール開封1件 ${credits}クレジット`,
     useMaxCtvFee: (v) => `予算を全額使う：1名あたり${v}`,
     ctvFeeOfIncome: (pct) => `年収の約${pct}%`,
     yenSuffix: '円',
     services: {
-      scout_credit: 'Scout Credit',
-      scout_performance: '委託スカウト',
+      scout_credit: 'ダイレクトスカウト',
+      scout_performance: 'おまかせスカウト',
       ctv_marketplace: '採用パートナーマーケット',
     },
     models: {
@@ -142,11 +142,11 @@ const copy = {
     payUpfront: '前払い',
     payOnSuccess: '成功報酬',
     cta: {
-      scout_credit: 'Scout Creditを使う',
-      scout_performance: '委託スカウトを依頼',
+      scout_credit: 'ダイレクトスカウトを使う',
+      scout_performance: 'おまかせスカウトを依頼',
       ctv_marketplace: 'マーケットに掲載',
     },
-    disclaimer: '数値は参考値です。クレジット価格は現行プラン料金、委託スカウト・マーケットの費用は実際の契約／掲載内容に準じます。',
+    disclaimer: '数値は参考値です。クレジット価格は現行プラン料金、おまかせスカウト・マーケットの費用は実際の契約／掲載内容に準じます。',
   },
 };
 

@@ -58,7 +58,7 @@ const I18N = {
   },
 };
 
-const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) => {
+const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false, scrollContainerRef = null }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { language } = useLanguage();
@@ -83,6 +83,43 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
   const notifPanelRef = useRef(null);
   const mobileNotifPanelRef = useRef(null);
   const notifStreamAbortRef = useRef(null);
+  const headerRef = useRef(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    setIsScrolled(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const scroller = scrollContainerRef?.current;
+    if (!scroller) return undefined;
+
+    const onScroll = () => setIsScrolled(scroller.scrollTop > 6);
+    onScroll();
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    return () => scroller.removeEventListener('scroll', onScroll);
+  }, [scrollContainerRef, location.pathname]);
+
+  useEffect(() => {
+    const headerEl = headerRef.current;
+    const scroller = scrollContainerRef?.current;
+    if (!headerEl) return undefined;
+
+    const syncHeight = () => {
+      const h = headerEl.offsetHeight;
+      headerEl.style.setProperty('--biz-app-header-h', `${h}px`);
+      if (scroller) scroller.style.setProperty('--business-header-height', `${h}px`);
+    };
+
+    syncHeight();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(syncHeight) : null;
+    ro?.observe(headerEl);
+    window.addEventListener('resize', syncHeight);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', syncHeight);
+    };
+  }, [scrollContainerRef, mobileNavOpen, notifOpen, companyDropdownOpen, userMenuOpen]);
 
   const {
     companyName = '',
@@ -376,7 +413,14 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false }) =
 
   return (
     <>
-    <header className="sticky top-0 z-40 shrink-0 border-b-0 bg-transparent lg:border-b lg:border-gray-200 lg:bg-white">
+    <header
+      ref={headerRef}
+      className={`sticky top-0 z-40 shrink-0 border-b bg-white transition-[box-shadow,background-color,border-color,margin] duration-200 ${
+        isScrolled
+          ? 'mb-0 border-gray-200 shadow-sm supports-[backdrop-filter]:bg-white/95 supports-[backdrop-filter]:backdrop-blur-sm'
+          : 'mb-2 border-gray-200/90 shadow-none sm:mb-2.5'
+      }`}
+    >
       {/* Mobile header — menu | title | avatar */}
       <div className="flex h-12 items-center justify-between gap-2 px-3 lg:hidden">
         <button

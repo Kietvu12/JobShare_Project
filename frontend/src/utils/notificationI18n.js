@@ -48,8 +48,8 @@ const TITLE_MAP = {
     ja: '紹介手数料の支払い依頼',
   },
   'Scout Performance — có gợi ý mới': {
-    en: 'Scout Performance — new recommendations',
-    ja: 'Scout Performance — 新しい提案',
+    en: 'Omakase Scout — new recommendations',
+    ja: 'おまかせスカウト — 新しい提案',
   },
   'Đơn tiến cử được phê duyệt': {
     en: 'Nomination approved',
@@ -68,16 +68,16 @@ const TITLE_MAP = {
     ja: '新しいSaiyo Branding申請'
   },
   'Tin nhắn Scout Performance mới': {
-    en: 'New Scout Performance message',
-    ja: 'Scout Performanceの新着メッセージ'
+    en: 'New Omakase Scout message',
+    ja: 'おまかせスカウトの新着メッセージ'
   },
   'Scout Performance — có hồ sơ mới': {
-    en: 'Scout Performance — new profile',
-    ja: 'Scout Performance — 新しい候補者'
+    en: 'Omakase Scout — new profile',
+    ja: 'おまかせスカウト — 新しい候補者'
   },
   'Scout Performance — yêu cầu bị từ chối': {
-    en: 'Scout Performance — request rejected',
-    ja: 'Scout Performance — 申請が却下されました'
+    en: 'Omakase Scout — request rejected',
+    ja: 'おまかせスカウト — 申請が却下されました'
   }
 };
 
@@ -133,18 +133,18 @@ const CONTENT_PATTERNS = [
   },
   {
     regex: /^JobShare WS đã gửi (\d+) hồ sơ ứng viên trong cuộc trò chuyện Scout Performance\.$/u,
-    en: (count) => `JobShare WS sent ${count} candidate profile(s) in the Scout Performance chat.`,
-    ja: (count) => `JobShare WSがScout Performanceチャットで候補者プロフィール${count}件を送信しました。`,
+    en: (count) => `JobShare WS sent ${count} candidate profile(s) in the Omakase Scout chat.`,
+    ja: (count) => `JobShare WSがおまかせスカウトチャットで候補者プロフィール${count}件を送信しました。`,
   },
   {
     regex: /^(.+) gửi tin nhắn trong cuộc trò chuyện Scout Performance\.$/u,
-    en: (name) => `${name} sent a message in the Scout Performance chat.`,
-    ja: (name) => `${name}がScout Performanceチャットでメッセージを送信しました。`,
+    en: (name) => `${name} sent a message in the Omakase Scout chat.`,
+    ja: (name) => `${name}がおまかせスカウトチャットでメッセージを送信しました。`,
   },
   {
     regex: /^JobShare WS đã từ chối yêu cầu Scout Performance\.$/u,
-    en: () => 'JobShare WS rejected the Scout Performance request.',
-    ja: () => 'JobShare WSがScout Performanceの依頼を却下しました。',
+    en: () => 'JobShare WS rejected the Omakase Scout request.',
+    ja: () => 'JobShare WSがおまかせスカウトの依頼を却下しました。',
   },
   {
     regex: /^JobShare WS đã từ chối yêu cầu đăng job lên Sàn CTV\.$/u,

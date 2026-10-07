@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 const PAGE_VISUAL_SELECTORS = [
   '.front-page-visual',
+  '.jsb-v2 .hero',
   '.l-article-mv-plus-lower',
   '.page-price-visual',
   '.page-proposal-visual',
@@ -16,12 +17,27 @@ export function getPageVisualElement() {
   return document.querySelector(PAGE_VISUAL_SELECTORS)
 }
 
+export function getLandingScrollTop() {
+  const root = document.getElementById('root')
+  return Math.max(
+    window.scrollY || 0,
+    document.documentElement?.scrollTop || 0,
+    document.body?.scrollTop || 0,
+    root?.scrollTop || 0,
+  )
+}
+
+function getScrollEventTargets() {
+  const root = document.getElementById('root')
+  return [window, document, document.documentElement, document.body, root].filter(Boolean)
+}
+
 export function isPastPageVisual() {
   const visual = getPageVisualElement()
   const headerMain = document.querySelector('.header-main')
 
   if (!visual) {
-    return (document.scrollingElement?.scrollTop ?? 0) + (document.body?.scrollTop ?? 0) + window.scrollY > 80
+    return getLandingScrollTop() > 80
   }
 
   const headerHeight = headerMain?.offsetHeight ?? 70
@@ -55,13 +71,18 @@ export function useHeaderPastVisual(pathname) {
 
     update()
     const timeoutId = window.setTimeout(update, 200)
-    // capture: trang này cuộn trong <body> (overflow: auto), sự kiện scroll của phần tử không nổi lên window nếu không bắt ở capture
-    window.addEventListener('scroll', onScroll, { passive: true, capture: true })
+    const scrollOpts = { passive: true, capture: true }
+    // #root có overflow-y:auto (index.css <1500px) — scroll không lên window
+    getScrollEventTargets().forEach((target) => {
+      target.addEventListener('scroll', onScroll, scrollOpts)
+    })
     window.addEventListener('resize', onScroll)
 
     return () => {
       window.clearTimeout(timeoutId)
-      window.removeEventListener('scroll', onScroll, { capture: true })
+      getScrollEventTargets().forEach((target) => {
+        target.removeEventListener('scroll', onScroll, scrollOpts)
+      })
       window.removeEventListener('resize', onScroll)
       if (frameId) window.cancelAnimationFrame(frameId)
       document.querySelector('.header')?.classList.remove('header--past-visual')

@@ -7,26 +7,33 @@ $(function () {
 	var $gnav = $(".js-gnav"),
 		$gnavContainer = $(".js-gnav-container");
 
+	function landingScrollTop() {
+		var root = document.getElementById("root");
+		return Math.max(
+			$(window).scrollTop() || 0,
+			document.documentElement.scrollTop || 0,
+			document.body.scrollTop || 0,
+			root ? root.scrollTop || 0 : 0
+		);
+	}
+
 	function isPastPageVisual() {
 		var visual = document.querySelector(
-			".front-page-visual, .l-article-mv-plus-lower, .page-price-visual, .page-proposal-visual, .page-news-visual, .page-document-visual, .page-results-visual, .page-manga-visual, .l-article-mv"
+			".front-page-visual, .jsb-v2 .hero, .l-article-mv-plus-lower, .page-price-visual, .page-proposal-visual, .page-news-visual, .page-document-visual, .page-results-visual, .page-manga-visual, .l-article-mv"
 		);
 		var headerMain = document.querySelector(".header-main");
 
 		if (!visual) {
-			return $(window).scrollTop() > 80;
+			return landingScrollTop() > 80;
 		}
 
 		var headerHeight = headerMain ? headerMain.offsetHeight : 70;
 		var headerTop = headerMain
 			? headerMain.getBoundingClientRect().top
 			: 0;
-		var visualBottom = visual.offsetTop + visual.offsetHeight;
+		var visualBottom = visual.getBoundingClientRect().bottom;
 
-		return (
-			$(window).scrollTop() + headerTop + headerHeight >=
-			visualBottom - 8
-		);
+		return headerTop + headerHeight >= visualBottom - 8;
 	}
 
 	function updateHeaderScrollState() {
@@ -50,7 +57,16 @@ $(function () {
 		}
 	}
 
-	$(window).on("load scroll resize", updateHeaderScrollState);
+	var scrollTargets = [window, document, document.documentElement, document.body];
+	var rootEl = document.getElementById("root");
+	if (rootEl) scrollTargets.push(rootEl);
+	$(window).on("load resize", updateHeaderScrollState);
+	scrollTargets.forEach(function (target) {
+		target.addEventListener("scroll", updateHeaderScrollState, {
+			passive: true,
+			capture: true,
+		});
+	});
 	updateHeaderScrollState();
 
 	$(".js-hamburger-menu").on(clickEventType, function () {

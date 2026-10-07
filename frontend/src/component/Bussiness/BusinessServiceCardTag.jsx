@@ -12,7 +12,7 @@ export const BUSINESS_SERVICE_TAGS = [
     id: 'managed-scout',
     frameColor: '#E879A8',
     labelJa: 'おまかせスカウト',
-    labelEn: 'Managed Scout',
+    labelEn: 'Omakase Scout',
     labelVi: 'Scout Ủy Thác',
   },
   {

@@ -16334,6 +16334,48 @@ a.c-badge.-red:hover {
   box-shadow: 0 10px 10px 0 rgba(0, 0, 0, 0.08);
 }
 
+.business-landing-page .header--past-visual .header-main__contents,
+.business-landing-page .header-main__contents--past-visual {
+  width: 100%;
+  max-width: none;
+  border-radius: 0;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+  border-bottom: 2px solid #0576b6 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Sau hero: header dính sát top viewport (không còn lơ ở top: 55px) */
+.business-landing-page .header--past-visual .header-main,
+.business-landing-page .header-main.header-main--at-top {
+  top: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  transition: top 0.22s ease, padding 0.22s ease;
+}
+
+.business-landing-page .header-main.header-main--at-top .header-main__wrapper {
+  width: 100%;
+  max-width: none;
+  padding-left: clamp(16px, 2.5vw, 40px);
+  padding-right: clamp(16px, 2.5vw, 40px);
+  box-sizing: border-box;
+}
+
+@media (max-width: 1023px) {
+  .business-landing-page .header--past-visual .header-main,
+  .business-landing-page .header-main.header-main--at-top {
+    top: 0 !important;
+    padding: 0 !important;
+  }
+
+  .business-landing-page .header-main.header-main--at-top .header-main__wrapper {
+    padding-left: clamp(12px, 3.2vw, 20px);
+    padding-right: clamp(12px, 3.2vw, 20px);
+  }
+}
+
 /* Khi đã cuộn qua hero, ẩn thanh phụ (SĐT + VI/EN/JA): chữ trắng/xanh của nó chồng lên nội dung nền trắng và không đọc được. */
 @media (min-width: 1024px) {
   .header--past-visual .header-sub {
@@ -16796,8 +16838,10 @@ a.c-badge.-red:hover {
    Business landing home — mobile responsive
    ============================================================ */
 body.business-landing-page #root {
-  height: auto;
-  min-height: 100%;
+  height: auto !important;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: visible !important;
 }
 
 body.business-landing-page {

@@ -5,19 +5,15 @@ import apiService from '../../services/api';
 import { scanLandingPagePublishReadiness } from '../../utils/landingPagePublishReadiness';
 import LandingPagePublishWarningModal from '../../component/BusinessBranding/LandingPagePublishWarningModal';
 import { useLanguage } from '../../context/LanguageContext';
-import { getBrandingCopy } from '../../i18n/businessAppI18n';
+import { getBrandingCopy, getLandingPageBuilderCopy, getLandingPageStatusMeta } from '../../i18n/businessAppI18n';
+import BusinessAppLanguageSwitcher from '../../component/Layout/BusinessAppLanguageSwitcher';
+import { LandingPageEditorUiProvider } from '../../context/LandingPageEditorUiContext';
 
-const STATUS_COLORS = {
-  0: { label: 'Nháp', color: '#64748b', bg: '#f1f5f9' },
-  1: { label: 'Đang hoạt động', color: '#10b981', bg: '#d1fae5' },
-  2: { label: 'Tạm dừng', color: '#f59e0b', bg: '#fef3c7' },
-  3: { label: 'Đã đóng', color: '#dc2626', bg: '#fee2e2' },
-};
-
-function BusinessLandingPageEditor() {
+function BusinessLandingPageEditorPage() {
   const { pageId } = useParams();
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const lpCopy = useMemo(() => getLandingPageBuilderCopy(language), [language]);
   const publishReadinessCopy = useMemo(() => getBrandingCopy(language).publishReadiness, [language]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -124,13 +120,13 @@ function BusinessLandingPageEditor() {
       });
       if (res?.success) {
         setPage(res.data.landingPage);
-        alert('Đã lưu');
+        alert(lpCopy.saved);
       } else {
-        alert(res?.message || 'Lưu thất bại');
+        alert(res?.message || lpCopy.saveFailed);
       }
     } catch (e) {
       console.error(e);
-      alert('Lưu thất bại');
+      alert(lpCopy.saveFailed);
     } finally {
       setSaving(false);
     }
@@ -144,13 +140,13 @@ function BusinessLandingPageEditor() {
       if (res?.success) {
         setPage(res.data.landingPage);
         setPublishWarningOpen(false);
-        alert('Đã phát hành! Sao chép link public để chạy quảng cáo.');
+        alert(lpCopy.published);
       } else {
-        alert(res?.message || 'Publish thất bại');
+        alert(res?.message || lpCopy.publishFailed);
       }
     } catch (e) {
       console.error(e);
-      alert('Publish thất bại');
+      alert(lpCopy.publishFailed);
     } finally {
       setPublishing(false);
     }
@@ -161,7 +157,7 @@ function BusinessLandingPageEditor() {
       setPublishWarningOpen(true);
       return;
     }
-    if (!window.confirm('Phát hành landing page? Link public sẽ có thể truy cập và dùng cho quảng cáo.')) return;
+    if (!window.confirm(lpCopy.publishConfirm)) return;
     runPublish();
   };
 
@@ -169,7 +165,7 @@ function BusinessLandingPageEditor() {
     return (
       <div className="flex items-center justify-center py-20 text-slate-500 gap-2">
         <Loader2 className="w-5 h-5 animate-spin" />
-        Đang tải...
+        {lpCopy.loading}
       </div>
     );
   }
@@ -177,13 +173,13 @@ function BusinessLandingPageEditor() {
   if (!page) {
     return (
       <div className="p-6 text-center text-slate-500">
-        Không tìm thấy landing page.
-        <Link to="/business/saiyo" className="block mt-2 text-blue-600 text-sm">Quay lại Saiyo</Link>
+        {lpCopy.notFound}
+        <Link to="/business/saiyo" className="block mt-2 text-blue-600 text-sm">{lpCopy.backSaiyo}</Link>
       </div>
     );
   }
 
-  const st = STATUS_COLORS[page.status] || STATUS_COLORS[0];
+  const st = getLandingPageStatusMeta(page.status, language);
   const publicUrl = `${window.location.origin}${page.publicPath || `/lp/${page.slug}`}`;
 
   return (
@@ -192,7 +188,8 @@ function BusinessLandingPageEditor() {
         <Link to="/business/saiyo" className="text-slate-500 hover:text-slate-700">
           <ArrowLeft className="w-4 h-4" />
         </Link>
-        <h1 className="text-lg font-bold text-slate-800 flex-1">Chỉnh sửa landing page</h1>
+        <h1 className="text-lg font-bold text-slate-800 flex-1">{lpCopy.editorTitle}</h1>
+        <BusinessAppLanguageSwitcher dense showLabel label={lpCopy.uiLanguageLabel} />
         <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ color: st.color, background: st.bg }}>
           {st.label}
         </span>
@@ -207,10 +204,10 @@ function BusinessLandingPageEditor() {
               onClick={() => navigator.clipboard.writeText(publicUrl)}
               className="text-xs px-2 py-1 bg-white border rounded"
             >
-              Copy link
+              {lpCopy.copyLink}
             </button>
             <a href={page.publicPath} target="_blank" rel="noreferrer" className="text-xs px-2 py-1 bg-white border rounded flex items-center gap-1">
-              <ExternalLink className="w-3 h-3" /> Xem
+              <ExternalLink className="w-3 h-3" /> {lpCopy.view}
             </a>
           </div>
         </div>
@@ -218,7 +215,7 @@ function BusinessLandingPageEditor() {
 
       <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 space-y-4">
         <div>
-          <label className="text-xs font-semibold text-slate-600">Tên landing page</label>
+          <label className="text-xs font-semibold text-slate-600">{lpCopy.pageTitleField}</label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -227,7 +224,7 @@ function BusinessLandingPageEditor() {
         </div>
 
         <div>
-          <label className="text-xs font-semibold text-slate-600">Tiêu đề hero</label>
+          <label className="text-xs font-semibold text-slate-600">{lpCopy.heroHeadline}</label>
           <input
             value={content?.hero?.headline || ''}
             onChange={(e) => updateHero('headline', e.target.value)}
@@ -235,7 +232,7 @@ function BusinessLandingPageEditor() {
           />
         </div>
         <div>
-          <label className="text-xs font-semibold text-slate-600">Mô tả hero</label>
+          <label className="text-xs font-semibold text-slate-600">{lpCopy.heroSubheadline}</label>
           <textarea
             rows={2}
             value={content?.hero?.subheadline || ''}
@@ -258,17 +255,17 @@ function BusinessLandingPageEditor() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 space-y-3">
-        <h2 className="text-sm font-bold text-slate-800">SEO (quảng cáo / Google / Facebook)</h2>
+        <h2 className="text-sm font-bold text-slate-800">{lpCopy.seoBlock}</h2>
         <div>
-          <label className="text-xs font-semibold text-slate-600">Meta title</label>
+          <label className="text-xs font-semibold text-slate-600">{lpCopy.metaTitle}</label>
           <input value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-slate-600">Meta description</label>
+          <label className="text-xs font-semibold text-slate-600">{lpCopy.metaDescription}</label>
           <textarea rows={2} value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-slate-600">Meta keywords</label>
+          <label className="text-xs font-semibold text-slate-600">{lpCopy.metaKeywords}</label>
           <input value={metaKeywords} onChange={(e) => setMetaKeywords(e.target.value)} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" />
         </div>
       </div>
@@ -287,7 +284,7 @@ function BusinessLandingPageEditor() {
           className="flex items-center gap-1 px-4 py-2 rounded-lg border text-sm font-semibold disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
-          {saving ? 'Đang lưu...' : 'Lưu nháp'}
+          {saving ? lpCopy.savingDraft : lpCopy.saveDraft}
         </button>
         <button
           type="button"
@@ -296,7 +293,7 @@ function BusinessLandingPageEditor() {
           className="flex items-center gap-1 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-50"
         >
           <Send className="w-4 h-4" />
-          {publishing ? 'Đang publish...' : 'Publish'}
+          {publishing ? lpCopy.publishingPage : lpCopy.publishPage}
         </button>
       </div>
 
@@ -313,4 +310,10 @@ function BusinessLandingPageEditor() {
   );
 }
 
-export default BusinessLandingPageEditor;
+export default function BusinessLandingPageEditor() {
+  return (
+    <LandingPageEditorUiProvider>
+      <BusinessLandingPageEditorPage />
+    </LandingPageEditorUiProvider>
+  );
+}

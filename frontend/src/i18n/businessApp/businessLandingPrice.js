@@ -99,7 +99,7 @@ const copy = {
   en: {
     metaTitle: 'Services & pricing | JobShare Business',
     metaDescription:
-      'JobShare Business services overview: free registration, Scout Credit, Managed Scout, Collaborator Marketplace and employer branding. Compare fee models and use the cost simulator.',
+      'JobShare Business services overview: free registration, Direct Scout, Omakase Scout, Collaborator Marketplace and employer branding. Compare fee models and use the cost simulator.',
     kicker: 'JOBSHARE BUSINESS / SERVICES & PRICING',
     heroTitle: 'Services & pricing',
     heroEm: 'Pick the right way to hire — pay at the right time.',
@@ -111,7 +111,7 @@ const copy = {
     photoCap: 'Workstation supports you from service selection through successful hire.',
     freeTitle: 'Start for free',
     freeBody:
-      'Register your company, create jobs and use core platform features at no cost. Add Scout Credit, Managed Scout or the marketplace when you need to scale.',
+      'Register your company, create jobs and use core platform features at no cost. Add Direct Scout, Omakase Scout or the marketplace when you need to scale.',
     freeCtaRegister: 'Register free',
     freeCtaContact: 'Talk to us',
     servicesKicker: 'FOUR WAYS TO HIRE',
@@ -126,7 +126,7 @@ const copy = {
     compareHeadFor: 'Best when',
     simulatorKicker: 'FEE SIMULATOR',
     simulatorTitle: 'Quick cost estimate',
-    simulatorLead: 'Enter budget and expected salary to compare Scout Credit, Managed Scout and the Collaborator Marketplace.',
+    simulatorLead: 'Enter budget and expected salary to compare Direct Scout, Omakase Scout and the Collaborator Marketplace.',
     faqKicker: 'Q & A',
     faqTitle: 'FAQ',
     ctaTitle: 'Not sure which service fits?',
@@ -137,15 +137,15 @@ const copy = {
     faq: [
       {
         q: 'Is there a fee to get started?',
-        a: 'Company registration, job creation and core platform features are free. Fees apply when you use Scout Credit, Managed Scout, the marketplace or employer branding services.',
+        a: 'Company registration, job creation and core platform features are free. Fees apply when you use Direct Scout, Omakase Scout, the marketplace or employer branding services.',
       },
       {
         q: 'Can I use multiple services for one role?',
         a: 'Yes. For example, direct scout plus marketplace posting; candidates and stages are managed in one pipeline.',
       },
       {
-        q: 'How is Scout Credit different from Managed Scout?',
-        a: 'Scout Credit: you search and unlock profiles, prepaid per unlock. Managed Scout: Workstation sources and screens for you; success-based fee.',
+        q: 'How is Direct Scout different from Omakase Scout?',
+        a: 'Direct Scout: you search and unlock profiles, prepaid per unlock. Omakase Scout: Workstation sources and screens for you; success-based fee.',
       },
       {
         q: 'How does the Collaborator Marketplace charge?',
@@ -159,7 +159,7 @@ const copy = {
     pricingRows: [
       {
         id: 'direct-scout',
-        service: 'Direct Scout (Scout Credit)',
+        service: 'Direct Scout',
         model: 'Prepaid per profile unlock (credits)',
         when: 'When unlocking a candidate profile',
         for: 'Teams that actively source and contact candidates',
@@ -167,7 +167,7 @@ const copy = {
       },
       {
         id: 'managed-scout',
-        service: 'Managed Scout',
+        service: 'Omakase Scout',
         model: 'Roughly 15–25% of annual income per successful hire',
         when: 'On successful hire',
         for: 'Busy teams needing WS sourcing and screening',
@@ -194,7 +194,7 @@ const copy = {
   ja: {
     metaTitle: 'サービス・料金 | JobShare Business',
     metaDescription:
-      'JobShare Businessのサービス概要。無料登録、Scout Credit、委託スカウト、採用パートナーマーケット、採用ブランディング。料金モデルの比較と概算シミュレーター。',
+      'JobShare Businessのサービス概要。無料登録、ダイレクトスカウト、おまかせスカウト、採用パートナーマーケット、採用ブランディング。料金モデルの比較と概算シミュレーター。',
     kicker: 'JOBSHARE BUSINESS / SERVICES & PRICING',
     heroTitle: 'サービス・料金',
     heroEm: '採用方法を選び、適切なタイミングでお支払い。',
@@ -206,7 +206,7 @@ const copy = {
     photoCap: 'サービス選択から採用成功までWorkstationが伴走します。',
     freeTitle: '無料ではじめる',
     freeBody:
-      '企業登録、求人作成、基本機能は無料です。Scout Credit・委託スカウト・マーケットの活用は必要に応じて追加できます。',
+      '企業登録、求人作成、基本機能は無料です。ダイレクトスカウト・おまかせスカウト・マーケットの活用は必要に応じて追加できます。',
     freeCtaRegister: '無料で登録',
     freeCtaContact: '相談する',
     servicesKicker: 'FOUR WAYS TO HIRE',
@@ -221,7 +221,7 @@ const copy = {
     compareHeadFor: '向いているケース',
     simulatorKicker: 'FEE SIMULATOR',
     simulatorTitle: '概算費用シミュレーター',
-    simulatorLead: '予算と想定年収を入力し、Scout Credit・委託スカウト・マーケットを比較できます。',
+    simulatorLead: '予算と想定年収を入力し、ダイレクトスカウト・おまかせスカウト・マーケットを比較できます。',
     faqKicker: 'Q & A',
     faqTitle: 'よくある質問',
     ctaTitle: 'どのサービスが最適か迷っていますか？',
@@ -232,15 +232,15 @@ const copy = {
     faq: [
       {
         q: '利用開始に費用はかかりますか？',
-        a: '企業登録・求人作成などの基本機能は無料です。Scout Credit、委託スカウト、マーケット、採用ブランディング利用時に料金が発生します。',
+        a: '企業登録・求人作成などの基本機能は無料です。ダイレクトスカウト、おまかせスカウト、マーケット、採用ブランディング利用時に料金が発生します。',
       },
       {
         q: '1つのポジションで複数サービスを使えますか？',
         a: 'はい。例えばダイレクトスカウトとマーケットを併用し、候補者と選考を一つのフローで管理できます。',
       },
       {
-        q: 'Scout Creditと委託スカウトの違いは？',
-        a: 'Scout Creditは自社で候補者を検索し、プロフィール開封ごとにクレジットを消費します。委託スカウトはWorkstationが探索・接触・選考支援を行い、採用成功時に成果報酬型の料金が発生します。',
+        q: 'ダイレクトスカウトとおまかせスカウトの違いは？',
+        a: 'ダイレクトスカウトは自社で候補者を検索し、プロフィール開封ごとにクレジットを消費します。おまかせスカウトはWorkstationが探索・接触・選考支援を行い、採用成功時に成果報酬型の料金が発生します。',
       },
       {
         q: '採用パートナーマーケットの料金は？',
@@ -254,7 +254,7 @@ const copy = {
     pricingRows: [
       {
         id: 'direct-scout',
-        service: 'ダイレクトスカウト（Scout Credit）',
+        service: 'ダイレクトスカウト',
         model: 'プロフィール開封ごとのクレジット（前払い）',
         when: '候補者プロフィールを開封した時',
         for: '自社で能動的に候補者を探す企業',
@@ -262,7 +262,7 @@ const copy = {
       },
       {
         id: 'managed-scout',
-        service: '委託スカウト',
+        service: 'おまかせスカウト',
         model: '採用成功時 年収のおおよそ15〜25%',
         when: '採用成功時',
         for: '探索・接触のリソースが限られる企業',

@@ -1,7 +1,10 @@
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { getEffectiveSection } from '../../utils/htmlTemplateOverrides';
+import { applySectionOverridePatch } from '../../utils/landingPageContentLocale';
+import { getEditorContentLocale } from '../../utils/landingPageEditorContentLocale';
 import { isStoredMediaKey, normalizePostImageUrl } from '../../services/api';
+import { useLandingPageEditorUi } from '../../context/LandingPageEditorUiContext';
 
 function Field({ label, children, hint }) {
   return (
@@ -18,13 +21,12 @@ function inputCls(extra = '') {
 }
 
 function setOverride(section, onChange, patch) {
-  onChange({
-    ...section,
-    overrides: { ...(section.overrides || {}), ...patch },
-  });
+  const contentLocale = getEditorContentLocale();
+  onChange(applySectionOverridePatch(section, patch, contentLocale));
 }
 
 function ImageField({ label, value, onChange, hint, templateFolder }) {
+  const pe = useLandingPageEditorUi().propsEditor;
   const previewSrc = (() => {
     if (!value) return '';
     if (value.startsWith('http://') || value.startsWith('https://')) return value;
@@ -36,7 +38,7 @@ function ImageField({ label, value, onChange, hint, templateFolder }) {
     return value;
   })();
   return (
-    <Field label={label} hint={hint || 'URL đầy đủ hoặc đường dẫn trong template, vd: images/photo.jpg'}>
+    <Field label={label} hint={hint || pe.imageUrlHint}>
       <input value={value || ''} onChange={(e) => onChange(e.target.value)} className={inputCls()} placeholder="images/example.jpg" />
       {previewSrc && (
         <img src={previewSrc} alt="" className="mt-1 max-h-16 rounded border object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
@@ -46,28 +48,31 @@ function ImageField({ label, value, onChange, hint, templateFolder }) {
 }
 
 function HeadingEditor({ heading, onChange }) {
+  const pe = useLandingPageEditorUi().propsEditor;
   const h = heading || {};
   return (
     <>
-      <Field label="Tiêu đề chính">
+      <Field label={pe.mainTitle}>
         <input value={h.main || ''} onChange={(e) => onChange({ ...h, main: e.target.value })} className={inputCls()} />
       </Field>
-      <Field label="Phụ đề (EN)">
+      <Field label={pe.subTitleEn}>
         <input value={h.sub || ''} onChange={(e) => onChange({ ...h, sub: e.target.value })} className={inputCls()} />
       </Field>
     </>
   );
 }
 
-function ItemsEditor({ items, onChange, fields = ['title', 'body'], templateFolder, addLabel = 'Thêm mục' }) {
+function ItemsEditor({ items, onChange, fields = ['title', 'body'], templateFolder, addLabel }) {
+  const pe = useLandingPageEditorUi().propsEditor;
+  const addLabelResolved = addLabel || pe.addItem;
   const list = (items || []).map((item) => (item && typeof item === 'object' ? item : {}));
   const updateList = (next) => onChange(next.map((item) => (item && typeof item === 'object' ? item : {})));
   const removeAt = (index) => {
     if (list.length <= 1) {
-      window.alert('Cần giữ ít nhất 1 mục.');
+      window.alert(pe.keepOneItem);
       return;
     }
-    if (!window.confirm('Xóa mục này?')) return;
+    if (!window.confirm(pe.deleteItem)) return;
     updateList(list.filter((_, i) => i !== index));
   };
   const addItem = () => {
@@ -88,7 +93,7 @@ function ItemsEditor({ items, onChange, fields = ['title', 'body'], templateFold
           </div>
           {fields.includes('image') && (
             <ImageField
-              label="Ảnh"
+              label={pe.image}
               value={item.image || item.imageUrl || ''}
               templateFolder={templateFolder}
               onChange={(v) => {
@@ -99,7 +104,7 @@ function ItemsEditor({ items, onChange, fields = ['title', 'body'], templateFold
             />
           )}
           {fields.includes('icon') && (
-            <Field label="Icon class (FontAwesome)">
+            <Field label={pe.iconClass}>
               <input
                 value={item.icon || ''}
                 onChange={(e) => {
@@ -113,7 +118,7 @@ function ItemsEditor({ items, onChange, fields = ['title', 'body'], templateFold
             </Field>
           )}
           {fields.includes('title') && (
-            <Field label="Tiêu đề">
+            <Field label={pe.title}>
               <input
                 value={item.title || ''}
                 onChange={(e) => {
@@ -126,7 +131,7 @@ function ItemsEditor({ items, onChange, fields = ['title', 'body'], templateFold
             </Field>
           )}
           {fields.includes('subtitle') && (
-            <Field label="Phụ đề">
+            <Field label={pe.subtitle}>
               <input
                 value={item.subtitle || ''}
                 onChange={(e) => {
@@ -139,7 +144,7 @@ function ItemsEditor({ items, onChange, fields = ['title', 'body'], templateFold
             </Field>
           )}
           {fields.includes('body') && (
-            <Field label="Nội dung">
+            <Field label={pe.body}>
               <textarea
                 rows={2}
                 value={item.body || ''}
@@ -153,7 +158,7 @@ function ItemsEditor({ items, onChange, fields = ['title', 'body'], templateFold
             </Field>
           )}
           {fields.includes('linkText') && (
-            <Field label="Nút / Link">
+            <Field label={pe.buttonLink}>
               <input
                 value={item.linkText || ''}
                 onChange={(e) => {
@@ -166,7 +171,7 @@ function ItemsEditor({ items, onChange, fields = ['title', 'body'], templateFold
             </Field>
           )}
           {fields.includes('href') && (
-            <Field label="URL đích" hint="#anchor, contact.html hoặc https://...">
+            <Field label={pe.targetUrl} hint={pe.targetUrlHint}>
               <input
                 value={item.href || ''}
                 onChange={(e) => {
@@ -180,7 +185,7 @@ function ItemsEditor({ items, onChange, fields = ['title', 'body'], templateFold
             </Field>
           )}
           {fields.includes('name') && (
-            <Field label="Tên / chữ ký">
+            <Field label={pe.nameSignature}>
               <input
                 value={item.name || ''}
                 onChange={(e) => {
@@ -193,7 +198,7 @@ function ItemsEditor({ items, onChange, fields = ['title', 'body'], templateFold
             </Field>
           )}
           {fields.includes('question') && (
-            <Field label="Câu hỏi">
+            <Field label={pe.question}>
               <input
                 value={item.question || ''}
                 onChange={(e) => {
@@ -206,7 +211,7 @@ function ItemsEditor({ items, onChange, fields = ['title', 'body'], templateFold
             </Field>
           )}
           {fields.includes('answer') && (
-            <Field label="Trả lời">
+            <Field label={pe.answer}>
               <textarea
                 rows={2}
                 value={item.answer || ''}
@@ -220,7 +225,7 @@ function ItemsEditor({ items, onChange, fields = ['title', 'body'], templateFold
             </Field>
           )}
           {fields.includes('date') && (
-            <Field label="Ngày">
+            <Field label={pe.date}>
               <input
                 value={item.date || ''}
                 onChange={(e) => {
@@ -233,7 +238,7 @@ function ItemsEditor({ items, onChange, fields = ['title', 'body'], templateFold
             </Field>
           )}
           {fields.includes('tag') && (
-            <Field label="Nhãn">
+            <Field label={pe.label}>
               <input
                 value={item.tag || ''}
                 onChange={(e) => {
@@ -248,24 +253,25 @@ function ItemsEditor({ items, onChange, fields = ['title', 'body'], templateFold
         </div>
       ))}
       <button type="button" onClick={addItem} className="flex items-center gap-1 text-[10px] text-blue-600 font-semibold">
-        <Plus className="w-3 h-3" /> {addLabel}
+        <Plus className="w-3 h-3" /> {addLabelResolved}
       </button>
     </div>
   );
 }
 
 export default function HtmlSectionPropsEditor({ section, onChange, templateFolder }) {
-  const effective = getEffectiveSection(section);
+  const pe = useLandingPageEditorUi().propsEditor;
+  const effective = getEffectiveSection(section, getEditorContentLocale());
   const overrides = section.overrides || {};
 
   if (section.type === 'hero_slideshow') {
     const slides = effective.slides || [];
     const removeSlide = (index) => {
       if (slides.length <= 1) {
-        window.alert('Cần giữ ít nhất 1 slide.');
+        window.alert(pe.keepOneSlide);
         return;
       }
-      if (!window.confirm('Xóa slide này?')) return;
+      if (!window.confirm(pe.deleteSlide)) return;
       setOverride(section, onChange, { slides: slides.filter((_, i) => i !== index) });
     };
     return (
@@ -278,7 +284,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
                 <Trash2 className="w-3 h-3" />
               </button>
             </div>
-            <Field label="Tiêu đề">
+            <Field label={pe.title}>
               <input
                 value={slide.headline || ''}
                 onChange={(e) => {
@@ -289,7 +295,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
                 className={inputCls()}
               />
             </Field>
-            <Field label="Mô tả">
+            <Field label={pe.description}>
               <textarea
                 rows={2}
                 value={slide.body || ''}
@@ -301,7 +307,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
                 className={inputCls()}
               />
             </Field>
-            <Field label="Nút CTA">
+            <Field label={pe.ctaButton}>
               <input
                 value={slide.ctaText || ''}
                 onChange={(e) => {
@@ -313,7 +319,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
               />
             </Field>
             <ImageField
-              label="Ảnh nền slide"
+              label={pe.slideBg}
               value={slide.image || slide.imageUrl || ''}
               templateFolder={templateFolder}
               onChange={(v) => {
@@ -321,7 +327,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
                 next[i] = { ...next[i], image: v };
                 setOverride(section, onChange, { slides: next });
               }}
-              hint={templateFolder ? `Đường dẫn trong /template/${templateFolder}/` : undefined}
+              hint={pe.templatePathHint(templateFolder) || undefined}
             />
           </div>
         ))}
@@ -330,7 +336,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
           onClick={() => setOverride(section, onChange, { slides: [...slides, { headline: '', body: '', ctaText: '', image: '' }] })}
           className="flex items-center gap-1 text-[10px] text-blue-600 font-semibold"
         >
-          <Plus className="w-3 h-3" /> Thêm slide
+          <Plus className="w-3 h-3" /> {pe.addSlide}
         </button>
       </div>
     );
@@ -343,46 +349,46 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
     const isBiz65 = section.type === 'hero_biz65';
     return (
       <div className="space-y-2 p-2 border rounded-lg bg-slate-50">
-        <Field label="Tiêu đề">
+        <Field label={pe.title}>
           <textarea rows={2} value={slide.headline || ''} onChange={(e) => setSlide({ headline: e.target.value })} className={inputCls()} />
         </Field>
         {!isBiz65 && (
-          <Field label="Phụ đề">
+          <Field label={pe.subtitle}>
             <input value={slide.subheadline || slide.subtitle || ''} onChange={(e) => setSlide({ subheadline: e.target.value })} className={inputCls()} />
           </Field>
         )}
-        <Field label="Nội dung">
+        <Field label={pe.body}>
           <textarea rows={2} value={slide.body || ''} onChange={(e) => setSlide({ body: e.target.value })} className={inputCls()} />
         </Field>
-        <Field label="Nút chính">
+        <Field label={pe.primaryButton}>
           <input value={slide.ctaPrimary || ''} onChange={(e) => setSlide({ ctaPrimary: e.target.value })} className={inputCls()} />
         </Field>
-        <Field label="Nút phụ">
+        <Field label={pe.secondaryButton}>
           <input value={slide.ctaSecondary || ''} onChange={(e) => setSlide({ ctaSecondary: e.target.value })} className={inputCls()} />
         </Field>
-        <Field label="URL nút chính" hint="contact.html hoặc #anchor">
+        <Field label={pe.primaryUrl} hint={pe.primaryUrlHint}>
           <input value={slide.ctaPrimaryHref || ''} onChange={(e) => setSlide({ ctaPrimaryHref: e.target.value })} className={inputCls()} placeholder="contact.html" />
         </Field>
-        <Field label="URL nút phụ">
+        <Field label={pe.secondaryUrl}>
           <input value={slide.ctaSecondaryHref || ''} onChange={(e) => setSlide({ ctaSecondaryHref: e.target.value })} className={inputCls()} placeholder="#" />
         </Field>
         {!isBiz65 && (
           <>
-            <Field label="Icon nút chính (FontAwesome)">
+            <Field label={pe.primaryIcon}>
               <input value={slide.ctaPrimaryIcon || 'fa-regular fa-envelope'} onChange={(e) => setSlide({ ctaPrimaryIcon: e.target.value })} className={inputCls()} />
             </Field>
-            <Field label="Icon nút phụ (FontAwesome)">
+            <Field label={pe.secondaryIcon}>
               <input value={slide.ctaSecondaryIcon || 'fa-regular fa-file-lines'} onChange={(e) => setSlide({ ctaSecondaryIcon: e.target.value })} className={inputCls()} />
             </Field>
-            <ImageField label="Ảnh hero" value={slide.image || slide.imageUrl || ''} templateFolder={templateFolder} onChange={(v) => setSlide({ image: v })} />
-            <ImageField label="Ảnh mobile" value={slide.imageMobile || ''} templateFolder={templateFolder} onChange={(v) => setSlide({ imageMobile: v })} />
+            <ImageField label={pe.heroImage} value={slide.image || slide.imageUrl || ''} templateFolder={templateFolder} onChange={(v) => setSlide({ image: v })} />
+            <ImageField label={pe.mobileImage} value={slide.imageMobile || ''} templateFolder={templateFolder} onChange={(v) => setSlide({ imageMobile: v })} />
           </>
         )}
         {isBiz65 && slides.map((s, i) => (
           <div key={i} className="p-2 border rounded bg-white">
-            <div className="text-[10px] font-bold text-slate-500 mb-1">Slide ảnh {i + 1}</div>
+            <div className="text-[10px] font-bold text-slate-500 mb-1">{pe.slideImageN(i + 1)}</div>
             <ImageField
-              label="Ảnh desktop"
+              label={pe.desktopImage}
               value={s.image || s.imageUrl || ''}
               templateFolder={templateFolder}
               onChange={(v) => {
@@ -392,7 +398,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
               }}
             />
             <ImageField
-              label="Ảnh mobile"
+              label={pe.mobileImage}
               value={s.imageMobile || ''}
               templateFolder={templateFolder}
               onChange={(v) => {
@@ -410,14 +416,14 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
   if (section.type === 'announcement_bar') {
     return (
       <>
-        <Field label="Tiêu đề">
+        <Field label={pe.title}>
           <input
             value={overrides.heading ?? section.heading ?? ''}
             onChange={(e) => setOverride(section, onChange, { heading: e.target.value })}
             className={inputCls()}
           />
         </Field>
-        <Field label="Nội dung thông báo">
+        <Field label={pe.announceContent}>
           <textarea
             rows={2}
             value={effective.body || ''}
@@ -456,10 +462,10 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
           heading={effective.heading}
           onChange={(h) => setOverride(section, onChange, { heading: h })}
         />
-        <Field label="Nội dung">
+        <Field label={pe.body}>
           <textarea rows={4} value={effective.body || ''} onChange={(e) => setOverride(section, onChange, { body: e.target.value })} className={inputCls()} />
         </Field>
-        <ImageField label="Ảnh" value={overrides.image || section.image || ''} templateFolder={templateFolder} onChange={(v) => setOverride(section, onChange, { image: v })} />
+        <ImageField label={pe.image} value={overrides.image || section.image || ''} templateFolder={templateFolder} onChange={(v) => setOverride(section, onChange, { image: v })} />
       </>
     );
   }
@@ -483,10 +489,10 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
     const steps = effective.steps || [];
     const removeStep = (index) => {
       if (steps.length <= 1) {
-        window.alert('Cần giữ ít nhất 1 bước.');
+        window.alert(pe.keepOneStep);
         return;
       }
-      if (!window.confirm('Xóa bước này?')) return;
+      if (!window.confirm(pe.deleteStep)) return;
       setOverride(section, onChange, { steps: steps.filter((_, i) => i !== index) });
     };
     return (
@@ -496,13 +502,13 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
           {steps.map((step, i) => (
             <div key={i} className="p-2 border rounded-lg bg-slate-50">
               <div className="flex items-center justify-between mb-1">
-                <div className="text-[10px] font-bold text-slate-500">Bước {i + 1}</div>
-                <button type="button" onClick={() => removeStep(i)} className="p-0.5 text-red-400 hover:text-red-600" title="Xóa bước">
+                <div className="text-[10px] font-bold text-slate-500">{pe.stepN(i + 1)}</div>
+                <button type="button" onClick={() => removeStep(i)} className="p-0.5 text-red-400 hover:text-red-600" title={pe.deleteStepTitle}>
                   <Trash2 className="w-3 h-3" />
                 </button>
               </div>
               {isFlow && (
-                <Field label="Step label">
+                <Field label={pe.stepLabel}>
                   <input
                     value={step.step || ''}
                     onChange={(e) => {
@@ -514,7 +520,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
                   />
                 </Field>
               )}
-              <Field label="Tiêu đề">
+              <Field label={pe.title}>
                 <input
                   value={step.title || ''}
                   onChange={(e) => {
@@ -525,7 +531,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
                   className={inputCls()}
                 />
               </Field>
-              <Field label="Phụ đề">
+              <Field label={pe.subtitle}>
                 <input
                   value={step.subtitle || ''}
                   onChange={(e) => {
@@ -536,7 +542,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
                   className={inputCls()}
                 />
               </Field>
-              <Field label="Nội dung">
+              <Field label={pe.body}>
                 <textarea
                   rows={2}
                   value={step.body || ''}
@@ -549,7 +555,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
                 />
               </Field>
               {!isFlow && (
-                <Field label="Icon class">
+                <Field label={pe.iconClass}>
                   <input
                     value={step.icon || ''}
                     onChange={(e) => {
@@ -568,7 +574,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
             onClick={() => setOverride(section, onChange, { steps: [...steps, { title: '', body: '', icon: 'fas fa-star' }] })}
             className="flex items-center gap-1 text-[10px] text-blue-600 font-semibold"
           >
-            <Plus className="w-3 h-3" /> Thêm bước
+            <Plus className="w-3 h-3" /> {pe.addStep}
           </button>
         </div>
       </>
@@ -598,14 +604,14 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
           templateFolder={templateFolder}
           onChange={(items) => setOverride(section, onChange, { items })}
         />
-        <Field label="Nút xem thêm">
+        <Field label={pe.readMore}>
           <input
             value={effective.moreLink?.text || ''}
             onChange={(e) => setOverride(section, onChange, { moreLink: { ...(effective.moreLink || {}), text: e.target.value } })}
             className={inputCls()}
           />
         </Field>
-        <Field label="URL xem thêm">
+        <Field label={pe.readMoreUrl}>
           <input
             value={effective.moreLink?.href || '#'}
             onChange={(e) => setOverride(section, onChange, { moreLink: { ...(effective.moreLink || {}), href: e.target.value } })}
@@ -625,7 +631,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
         {(section.type === 'cta_banner' || effective.heading?.main || effective.body) && (
           <>
             <HeadingEditor heading={effective.heading} onChange={(h) => setOverride(section, onChange, { heading: h })} />
-            <Field label="Nội dung">
+            <Field label={pe.body}>
               <textarea rows={2} value={effective.body || ''} onChange={(e) => setOverride(section, onChange, { body: e.target.value })} className={inputCls()} />
             </Field>
           </>
@@ -633,7 +639,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
         <div className="space-y-2">
           {buttons.map((btn, i) => (
             <div key={i} className="p-2 border rounded-lg">
-              <Field label={`Nút ${i + 1}`}>
+              <Field label={pe.buttonN(i + 1)}>
                 <input
                   value={btn.text || ''}
                   onChange={(e) => {
@@ -644,7 +650,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
                   className={inputCls()}
                 />
               </Field>
-              <Field label={`URL nút ${i + 1}`} hint="#anchor, contact.html, https://...">
+              <Field label={pe.buttonUrlN(i + 1)} hint={pe.buttonUrlHint}>
                 <input
                   value={btn.href || ''}
                   onChange={(e) => {
@@ -658,7 +664,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
               </Field>
               {section.type === 'dual_cta' && (
                 <>
-                  <Field label="Phụ đề (JP)">
+                  <Field label={pe.subTitleJp}>
                     <input
                       value={btn.subText || ''}
                       onChange={(e) => {
@@ -669,7 +675,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
                       className={inputCls()}
                     />
                   </Field>
-                  <Field label="Tiêu đề (EN)">
+                  <Field label={pe.titleEn}>
                     <input
                       value={btn.mainText || ''}
                       onChange={(e) => {
@@ -692,7 +698,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
   if (section.type === 'news_list') {
     return (
       <>
-        <Field label="Tiêu đề section">
+        <Field label={pe.sectionTitle}>
           <input
             value={overrides.heading ?? section.heading ?? ''}
             onChange={(e) => setOverride(section, onChange, { heading: e.target.value })}
@@ -711,13 +717,13 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
   if (['footer_access', 'access_map'].includes(section.type)) {
     return (
       <>
-        <Field label="Địa chỉ">
+        <Field label={pe.address}>
           <textarea rows={2} value={effective.address || ''} onChange={(e) => setOverride(section, onChange, { address: e.target.value })} className={inputCls()} />
         </Field>
-        <Field label="Điện thoại">
+        <Field label={pe.phone}>
           <input value={effective.phone || ''} onChange={(e) => setOverride(section, onChange, { phone: e.target.value })} className={inputCls()} />
         </Field>
-        <Field label="Giờ làm việc">
+        <Field label={pe.hours}>
           <input value={effective.hours || ''} onChange={(e) => setOverride(section, onChange, { hours: e.target.value })} className={inputCls()} />
         </Field>
       </>
@@ -733,13 +739,13 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
         <p className="text-[10px] font-bold text-slate-500 mb-1">Gói / cột</p>
         {plans.map((plan, i) => (
           <div key={i} className="p-2 border rounded-lg bg-slate-50 mb-2">
-            <Field label={`Tên gói ${i + 1}`}>
+            <Field label={pe.planNameN(i + 1)}>
               <input value={plan.name || ''} onChange={(e) => {
                 const next = [...plans]; next[i] = { ...next[i], name: e.target.value };
                 setOverride(section, onChange, { plans: next });
               }} className={inputCls()} />
             </Field>
-            <Field label="Giá">
+            <Field label={pe.price}>
               <input value={plan.price || ''} onChange={(e) => {
                 const next = [...plans]; next[i] = { ...next[i], price: e.target.value };
                 setOverride(section, onChange, { plans: next });
@@ -756,7 +762,7 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
         <ItemsEditor
           items={rows.map((r) => ({ title: r.label, body: (r.values || []).join(' | ') }))}
           fields={['title', 'body']}
-          addLabel="Thêm hàng"
+          addLabel={pe.addRow}
           onChange={(edited) => {
             const nextRows = edited.map((row) => ({
               label: row.title || '',
@@ -774,13 +780,13 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
     return (
       <>
         <HeadingEditor heading={effective.heading} onChange={(h) => setOverride(section, onChange, { heading: h })} />
-        <Field label="Caption bảng">
+        <Field label={pe.tableCaption}>
           <input value={effective.caption || ''} onChange={(e) => setOverride(section, onChange, { caption: e.target.value })} className={inputCls()} />
         </Field>
         <ItemsEditor
           items={rows.map((r) => ({ title: r.label, body: r.value }))}
           fields={['title', 'body']}
-          addLabel="Thêm dòng"
+          addLabel={pe.addLine}
           onChange={(edited) => {
             setOverride(section, onChange, {
               rows: edited.map((r) => ({ label: r.title || '', value: r.body || '' })),
@@ -801,14 +807,14 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
           templateFolder={templateFolder}
           onChange={(items) => setOverride(section, onChange, { items })}
         />
-        <Field label="Nút xem thêm">
+        <Field label={pe.readMore}>
           <input
             value={effective.moreLink?.text || ''}
             onChange={(e) => setOverride(section, onChange, { moreLink: { ...(effective.moreLink || {}), text: e.target.value } })}
             className={inputCls()}
           />
         </Field>
-        <Field label="URL xem thêm">
+        <Field label={pe.readMoreUrl}>
           <input
             value={effective.moreLink?.href || '#'}
             onChange={(e) => setOverride(section, onChange, { moreLink: { ...(effective.moreLink || {}), href: e.target.value } })}
@@ -824,13 +830,13 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
     const setSlide = (patch) => setOverride(section, onChange, { slide: { ...slide, ...patch } });
     return (
       <div className="space-y-2 p-2 border rounded-lg bg-slate-50">
-        <Field label="Tiêu đề chính (JP)">
+        <Field label={pe.mainTitleJp}>
           <textarea rows={2} value={slide.headline || ''} onChange={(e) => setSlide({ headline: e.target.value })} className={inputCls()} />
         </Field>
-        <Field label="Tiêu đề phụ (EN)">
+        <Field label={pe.subTitleEnSection}>
           <textarea rows={2} value={slide.subheadline || ''} onChange={(e) => setSlide({ subheadline: e.target.value })} className={inputCls()} />
         </Field>
-        <Field label="Mô tả ngắn">
+        <Field label={pe.shortDesc}>
           <input value={slide.body || ''} onChange={(e) => setSlide({ body: e.target.value })} className={inputCls()} />
         </Field>
       </div>
@@ -840,10 +846,10 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
   if (section.type === 'recruit_news') {
     return (
       <>
-        <Field label="Nhãn">
+        <Field label={pe.label}>
           <input value={effective.heading?.main || ''} onChange={(e) => setOverride(section, onChange, { heading: { ...effective.heading, main: e.target.value } })} className={inputCls()} />
         </Field>
-        <Field label="Nội dung">
+        <Field label={pe.body}>
           <textarea rows={2} value={effective.body || ''} onChange={(e) => setOverride(section, onChange, { body: e.target.value })} className={inputCls()} />
         </Field>
       </>
@@ -853,14 +859,14 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
   if (section.type === 'recruit_page') {
     return (
       <>
-        <Field label="Nhãn section (EN)">
+        <Field label={pe.sectionLabelEn}>
           <input value={effective.sectionLabel || ''} onChange={(e) => setOverride(section, onChange, { sectionLabel: e.target.value })} className={inputCls()} />
         </Field>
         <HeadingEditor heading={effective.heading} onChange={(h) => setOverride(section, onChange, { heading: h })} />
-        <Field label="Tiêu đề copy">
+        <Field label={pe.copyTitle}>
           <textarea rows={2} value={effective.copyHeadline || ''} onChange={(e) => setOverride(section, onChange, { copyHeadline: e.target.value })} className={inputCls()} />
         </Field>
-        <Field label="Nội dung copy">
+        <Field label={pe.copyBody}>
           <textarea rows={4} value={effective.copyBody || ''} onChange={(e) => setOverride(section, onChange, { copyBody: e.target.value })} className={inputCls()} />
         </Field>
       </>
@@ -910,28 +916,28 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
     const buttons = effective.buttons || [];
     return (
       <>
-        <Field label="Tiêu đề ENTRY">
+        <Field label={pe.entryTitle}>
           <input value={effective.entryTitle || ''} onChange={(e) => setOverride(section, onChange, { entryTitle: e.target.value })} className={inputCls()} />
         </Field>
         <HeadingEditor heading={effective.heading} onChange={(h) => setOverride(section, onChange, { heading: h })} />
-        <Field label="Mô tả">
+        <Field label={pe.description}>
           <textarea rows={3} value={effective.body || ''} onChange={(e) => setOverride(section, onChange, { body: e.target.value })} className={inputCls()} />
         </Field>
         {buttons.map((btn, i) => (
           <div key={i} className="p-2 border rounded-lg mb-2">
-            <Field label={`Kênh ${i + 1}`}>
+            <Field label={pe.channelN(i + 1)}>
               <input value={btn.label || ''} onChange={(e) => {
                 const next = [...buttons]; next[i] = { ...next[i], label: e.target.value };
                 setOverride(section, onChange, { buttons: next });
               }} className={inputCls()} />
             </Field>
-            <Field label="Mô tả">
+            <Field label={pe.description}>
               <input value={btn.description || ''} onChange={(e) => {
                 const next = [...buttons]; next[i] = { ...next[i], description: e.target.value };
                 setOverride(section, onChange, { buttons: next });
               }} className={inputCls()} />
             </Field>
-            <Field label="URL">
+            <Field label={pe.url}>
               <input value={btn.href || ''} onChange={(e) => {
                 const next = [...buttons]; next[i] = { ...next[i], href: e.target.value };
                 setOverride(section, onChange, { buttons: next });
@@ -939,10 +945,10 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
             </Field>
           </div>
         ))}
-        <Field label="Email HTML">
+        <Field label={pe.emailHtml}>
           <input value={effective.email || ''} onChange={(e) => setOverride(section, onChange, { email: e.target.value })} className={inputCls()} />
         </Field>
-        <Field label="Phone HTML">
+        <Field label={pe.phoneHtml}>
           <input value={effective.phone || ''} onChange={(e) => setOverride(section, onChange, { phone: e.target.value })} className={inputCls()} />
         </Field>
       </>
@@ -950,12 +956,12 @@ export default function HtmlSectionPropsEditor({ section, onChange, templateFold
   }
 
   if (section.decorative) {
-    return <p className="text-[10px] text-slate-400">Section trang trí — không cần chỉnh nội dung.</p>;
+    return <p className="text-[10px] text-slate-400">{pe.decorativeSection}</p>;
   }
 
   return (
     <p className="text-[10px] text-slate-400">
-      Loại section <strong>{section.type}</strong> chưa có form chỉnh sửa chi tiết.
+      {pe.unknownSectionForm(section.type)}
       {section.selector ? ` (${section.selector})` : ''}
     </p>
   );

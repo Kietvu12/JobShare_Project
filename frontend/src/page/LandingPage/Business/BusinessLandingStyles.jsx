@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import './businessLandingScrollFix.css';
 
 const STYLES = [
   'https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,700;0,800&display=swap',

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import BusinessSidebar from './BusinessSidebar';
 import BusinessHeader from './BusinessHeader';
@@ -11,6 +11,7 @@ const BusinessLayoutWrapper = () => {
   const location = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const viewportLocked = isBusinessViewportLockedPage(location.pathname);
+  const mainScrollRef = useRef(null);
 
   useEffect(() => {
     setMobileNavOpen(false);
@@ -39,14 +40,21 @@ const BusinessLayoutWrapper = () => {
       />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <BusinessHeader
-          businessUser={businessUser}
-          mobileNavOpen={mobileNavOpen}
-          onMenuToggle={() => setMobileNavOpen((open) => !open)}
-        />
+        <main
+          ref={mainScrollRef}
+          className={`business-app-main-scroll flex min-h-0 flex-1 flex-col ${
+            viewportLocked ? 'overflow-hidden' : 'overflow-y-auto overscroll-contain'
+          }`}
+          style={{ scrollPaddingTop: 'var(--business-header-height, 3rem)' }}
+        >
+          <BusinessHeader
+            businessUser={businessUser}
+            mobileNavOpen={mobileNavOpen}
+            onMenuToggle={() => setMobileNavOpen((open) => !open)}
+            scrollContainerRef={mainScrollRef}
+          />
 
-        <main className={`flex-1 min-h-0 ${viewportLocked ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-          <div className="h-full min-h-0">
+          <div className={`business-page-outlet min-h-0 flex-1 ${viewportLocked ? 'overflow-hidden' : ''}`}>
             <Outlet />
           </div>
         </main>

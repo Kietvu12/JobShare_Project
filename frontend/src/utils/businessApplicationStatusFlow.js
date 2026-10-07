@@ -190,9 +190,9 @@ const COPY = {
     groups: {
       ctv: 'Collaborator Marketplace',
       scout_credit: 'Direct Scout',
-      scout_performance: 'Managed Scout',
-      scout_performance_ws: 'Managed Scout – Handled by WS',
-      scout_performance_business: 'Managed Scout',
+      scout_performance: 'Omakase Scout',
+      scout_performance_ws: 'Omakase Scout – Handled by WS',
+      scout_performance_business: 'Omakase Scout',
     },
     actions: {
       candidateAgreed: 'Candidate agreed & replied → Reviewing profile',
@@ -243,9 +243,9 @@ const COPY = {
     groups: {
       ctv: '採用パートナーマーケット',
       scout_credit: 'ダイレクトスカウト',
-      scout_performance: '委託スカウト',
-      scout_performance_ws: '委託スカウト－WS対応',
-      scout_performance_business: '委託スカウト',
+      scout_performance: 'おまかせスカウト',
+      scout_performance_ws: 'おまかせスカウト－WS対応',
+      scout_performance_business: 'おまかせスカウト',
     },
     actions: {
       candidateAgreed: '候補者が同意・返信 → 書類選考中',

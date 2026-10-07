@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { ImagePlus, Loader2, Upload } from 'lucide-react';
 import { normalizePostImageUrl } from '../../services/api';
 import { clearWjsMediaDragPayload, setWjsMediaDragPayload } from '../../utils/wjsMediaDragStore';
+import { useLandingPageEditorUi } from '../../context/LandingPageEditorUiContext';
 
 const MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 
@@ -10,13 +11,14 @@ export default function MediaLibraryPanel({
   onUpload,
   uploading = false,
 }) {
+  const ml = useLandingPageEditorUi().mediaLibrary;
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
 
   const handleFiles = async (files) => {
     const list = [...files].filter((f) => MIME_TYPES.includes(f.type));
     if (!list.length) {
-      window.alert('Chỉ hỗ trợ ảnh JPG, PNG, GIF, WEBP.');
+      window.alert(ml.mimeAlert);
       return;
     }
     for (const file of list) {
@@ -40,7 +42,7 @@ export default function MediaLibraryPanel({
   return (
     <div className="border-t border-slate-200 pt-3 mt-3">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-bold text-slate-500 uppercase">Thư viện media</span>
+        <span className="text-[10px] font-bold text-slate-500 uppercase">{ml.heading}</span>
         <button
           type="button"
           disabled={uploading}
@@ -48,7 +50,7 @@ export default function MediaLibraryPanel({
           className="flex items-center gap-1 text-[10px] text-blue-600 font-semibold disabled:opacity-50"
         >
           {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-          Tải lên
+          {ml.upload}
         </button>
       </div>
 
@@ -78,15 +80,15 @@ export default function MediaLibraryPanel({
         }`}
       >
         <ImagePlus className="w-5 h-5 mx-auto text-slate-400 mb-1" />
-        <p className="text-[10px] text-slate-500">Kéo thả ảnh vào đây hoặc click để tải lên</p>
+        <p className="text-[10px] text-slate-500">{ml.dropHint}</p>
       </div>
 
       <p className="text-[9px] text-slate-400 mb-2 leading-relaxed">
-        Kéo ảnh từ thư viện thả vào vùng ảnh trên preview để thay thế.
+        {ml.dragToPreview}
       </p>
 
       {assets.length === 0 ? (
-        <p className="text-[10px] text-slate-400 text-center py-2">Chưa có ảnh nào</p>
+        <p className="text-[10px] text-slate-400 text-center py-2">{ml.empty}</p>
       ) : (
         <div className="grid grid-cols-3 gap-1.5 max-h-40 overflow-y-auto">
           {assets.map((asset) => {
@@ -97,8 +99,8 @@ export default function MediaLibraryPanel({
                 draggable
                 onDragStart={(e) => onDragStartMedia(e, asset)}
                 onDragEnd={onDragEndMedia}
-                className="relative aspect-square rounded border border-slate-200 overflow-hidden cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-blue-400 bg-slate-50"
-                title={asset.name || 'Kéo thả vào vùng ảnh'}
+                className="relative aspect-square rounded border border-slate-200 overflow-hidden cursor-grab active:cursor-grab hover:ring-2 hover:ring-blue-400 bg-slate-50"
+                title={asset.name || ml.dragTitle}
               >
                 <img src={preview} alt="" className="w-full h-full object-cover pointer-events-none" />
               </div>

@@ -2145,3 +2145,13 @@
     line-height:1.22 !important;
   }
 }
+
+/* Host React header (fixed ~55px + bar): chừa chỗ hero, tránh cắt chữ */
+.business-landing-page .jobshare-home-v2-root .jsb-v2 .hero-copy {
+  padding-top: clamp(128px, 10vw, 156px);
+}
+@media (max-width: 820px) {
+  .business-landing-page .jobshare-home-v2-root .jsb-v2 .hero-copy {
+    padding-top: clamp(108px, 24vw, 132px);
+  }
+}

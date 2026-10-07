@@ -140,7 +140,7 @@ export const applicationsI18n = {
       interviewPassScheduled: 'Đã đánh giá: Đạt — đã tạo lịch phỏng vấn.',
       profileAccess: {
         scoutCredit: 'Hồ sơ đầy đủ (Scout Trực Tiếp)',
-        scoutPerformance: 'Hồ sơ Scout Performance',
+        scoutPerformance: 'Hồ sơ Scout Ủy Thác',
         ctvMarketplace: 'Hồ sơ đầy đủ (tiến cử Sàn CTV)',
         ctvScoutLockedNote:
           'Doanh nghiệp xem được hồ sơ nhờ tiến cử Sàn CTV. Trên Scout vẫn hiển thị khóa cho đến khi mở bằng credit.',
@@ -149,7 +149,7 @@ export const applicationsI18n = {
   },
   en: {
     title: 'Candidate selection',
-    subtitle: 'Track candidates by JD from Scout Credit, Scout Performance, and Collaborator Marketplace — update the selection process',
+    subtitle: 'Track candidates by JD from Direct Scout, Omakase Scout, and Collaborator Marketplace — update the selection process',
     ctvPrefix: 'Collaborator',
     breadcrumb: {
       home: 'Home',
@@ -158,7 +158,7 @@ export const applicationsI18n = {
     tabs: {
       all: 'All',
       ws_ctv: 'Referrals (WS/Collaborator)',
-      scout_credit: 'Scout Credit',
+      scout_credit: 'Direct Scout',
       hired: 'Hired',
       rejected: 'Not a fit',
       other: 'Other',
@@ -189,8 +189,8 @@ export const applicationsI18n = {
       all: 'Source: All',
       ctv_marketplace: 'Collaborator Marketplace',
       ctv_nomination: 'Collaborator referral',
-      scout_performance: 'Scout Performance (delegated)',
-      scout_credit: 'Scout Credit',
+      scout_performance: 'Omakase Scout',
+      scout_credit: 'Direct Scout',
       landing: 'Branding LP',
       other: 'Other',
     },
@@ -238,7 +238,7 @@ export const applicationsI18n = {
       failReasonPlaceholder: 'Reason (optional)',
       cancel: 'Cancel',
       confirmFail: 'Confirm rejection',
-      wsTrackingOnly: 'Pre-nomination Scout Performance steps are handled by WS — view only for your company.',
+      wsTrackingOnly: 'Pre-nomination Omakase Scout steps are handled by WS — view only for your company.',
     },
     similarCandidates: {
       modalTitle: 'Ask WS to find similar candidates?',
@@ -285,8 +285,8 @@ export const applicationsI18n = {
       interviewUpdated: 'Interview schedule updated.',
       interviewPassScheduled: 'Profile passed — interview schedule created.',
       profileAccess: {
-        scoutCredit: 'Full profile (Scout Credit)',
-        scoutPerformance: 'Scout Performance profile',
+        scoutCredit: 'Full profile (Direct Scout)',
+        scoutPerformance: 'Omakase Scout profile',
         ctvMarketplace: 'Full profile (Collaborator Marketplace referral)',
         ctvScoutLockedNote:
           'You can view this profile via Collaborator Marketplace referral. On Scout it stays locked until unlocked with credits.',
@@ -295,7 +295,7 @@ export const applicationsI18n = {
   },
   ja: {
     title: '選考管理',
-    subtitle: 'Scout Credit・Scout委託・採用パートナーマーケット各ソースの候補者をJD別に追跡し、選考プロセスを更新',
+    subtitle: 'ダイレクトスカウト・おまかせスカウト・採用パートナーマーケット各ソースの候補者をJD別に追跡し、選考プロセスを更新',
     ctvPrefix: '採用パートナー',
     breadcrumb: {
       home: 'ホーム',
@@ -304,7 +304,7 @@ export const applicationsI18n = {
     tabs: {
       all: 'すべて',
       ws_ctv: '推薦（WS／採用パートナー）',
-      scout_credit: 'Scout Credit',
+      scout_credit: 'ダイレクトスカウト',
       hired: '採用済み',
       rejected: '不適合',
       other: 'その他',
@@ -335,8 +335,8 @@ export const applicationsI18n = {
       all: 'ソース: すべて',
       ctv_marketplace: '採用パートナーマーケット',
       ctv_nomination: 'パートナー推薦',
-      scout_performance: 'Scout委託',
-      scout_credit: 'Scout Credit',
+      scout_performance: 'おまかせスカウト',
+      scout_credit: 'ダイレクトスカウト',
       landing: 'Branding LP',
       other: 'その他',
     },
@@ -384,7 +384,7 @@ export const applicationsI18n = {
       failReasonPlaceholder: '理由（任意）',
       cancel: 'キャンセル',
       confirmFail: '不合格を確定',
-      wsTrackingOnly: 'Scout委託の推薦前ステータスはWSが処理します — 企業は閲覧のみです。',
+      wsTrackingOnly: 'おまかせスカウトの推薦前ステータスはWSが処理します — 企業は閲覧のみです。',
     },
     similarCandidates: {
       modalTitle: '類似候補者の紹介をWSに委託しますか？',
@@ -431,8 +431,8 @@ export const applicationsI18n = {
       interviewUpdated: '面接日程を更新しました。',
       interviewPassScheduled: 'プロフィール合格 — 面接日程を作成しました。',
       profileAccess: {
-        scoutCredit: 'フルプロフィール（Scout Credit）',
-        scoutPerformance: 'Scout委託プロフィール',
+        scoutCredit: 'フルプロフィール（ダイレクトスカウト）',
+        scoutPerformance: 'おまかせスカウトプロフィール',
         ctvMarketplace: 'フルプロフィール（採用パートナーマーケット推薦）',
         ctvScoutLockedNote:
           '採用パートナーマーケット推薦によりプロフィールを閲覧できます。Scout上はクレジットで開くまでロック表示のままです。',

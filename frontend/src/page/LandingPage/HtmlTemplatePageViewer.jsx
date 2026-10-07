@@ -6,6 +6,8 @@ import { wirePreviewNavigation } from '../../utils/htmlTemplatePreviewNav';
 import { wjsDebug } from '../../utils/wjsBuilderDebug';
 import { normalizePostImageUrl } from '../../services/api';
 import { clearWjsMediaDragPayload, readWjsMediaDropUrl } from '../../utils/wjsMediaDragStore';
+import { useLanguage } from '../../context/LanguageContext';
+import { getLandingPageBuilderCopy } from '../../i18n/businessAppI18n';
 
 /**
  * Hiển thị trang HTML gốc qua iframe.
@@ -31,10 +33,14 @@ export default function HtmlTemplatePageViewer({
   autoHeight = false,
   previewMode = false,
   documentMeta = null,
+  contentLocale = 'vi',
   onNavigatePage = null,
   onScrollToSection = null,
   onScrollToSectionComplete = null,
 }) {
+  const { language } = useLanguage();
+  const viewerCopy = useMemo(() => getLandingPageBuilderCopy(language), [language]);
+
   const iframeRef = useRef(null);
   const cleanupRef = useRef(null);
   const navCleanupRef = useRef(null);
@@ -55,8 +61,10 @@ export default function HtmlTemplatePageViewer({
 
   const sectionsRef = useRef(sections);
   const globalsRef = useRef(globals);
+  const contentLocaleRef = useRef(contentLocale);
   sectionsRef.current = sections;
   globalsRef.current = globals;
+  contentLocaleRef.current = contentLocale;
 
   const documentMetaRef = useRef(documentMeta);
   documentMetaRef.current = documentMeta;
@@ -94,6 +102,7 @@ export default function HtmlTemplatePageViewer({
           documentMeta: documentMetaRef.current,
           builderPreview: false,
           previewMode,
+          contentLocale: contentLocaleRef.current,
         });
         resizeIframe();
       } catch {
@@ -359,6 +368,7 @@ export default function HtmlTemplatePageViewer({
         documentMeta: documentMetaRef.current,
         builderPreview: editable,
         previewMode,
+        contentLocale: contentLocaleRef.current,
       });
       if (editable) {
         scheduleBind();
@@ -454,7 +464,7 @@ export default function HtmlTemplatePageViewer({
     wjsDebug('viewer', 'reinject globals change');
     fullInject();
     resizeIframe();
-  }, [syncKey, globals, fullInject, resizeIframe]);
+  }, [syncKey, globals, sections, contentLocale, fullInject, resizeIframe]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -576,7 +586,7 @@ export default function HtmlTemplatePageViewer({
   if (!registry || !src) {
     return (
       <div className={`flex items-center justify-center bg-slate-100 text-slate-500 text-sm ${className}`}>
-        Không tìm thấy trang template
+        {viewerCopy.templateNotFound}
       </div>
     );
   }
@@ -600,8 +610,8 @@ export default function HtmlTemplatePageViewer({
     >
       {editable && (
         <div className="px-3 py-1.5 bg-blue-600 text-white text-[10px] flex items-center gap-2">
-          <span className="font-semibold">Chế độ sửa trực tiếp</span>
-          <span className="opacity-80">— Kéo ảnh từ thư viện thả vào vùng ảnh · Click ảnh đổi URL</span>
+          <span className="font-semibold">{viewerCopy.viewerEditMode}</span>
+          <span className="opacity-80">{viewerCopy.previewHint}</span>
         </div>
       )}
       <iframe
@@ -627,13 +637,13 @@ export default function HtmlTemplatePageViewer({
           }}
           onMouseDown={(e) => e.preventDefault()}
         >
-          <span className="text-[10px] text-slate-500 whitespace-nowrap">Màu chữ</span>
+          <span className="text-[10px] text-slate-500 whitespace-nowrap">{viewerCopy.textColor}</span>
           <input
             type="color"
             value={textToolbar.currentColor || '#000000'}
             onChange={(e) => applyTextColor(e.target.value)}
             className="w-8 h-8 rounded cursor-pointer border-0 p-0"
-            title="Đổi màu chữ"
+            title={viewerCopy.textColor}
           />
           <input
             type="text"
@@ -650,13 +660,13 @@ export default function HtmlTemplatePageViewer({
           style={{ top: imgEditor.top, left: Math.min(imgEditor.left, window.innerWidth - 300) }}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          <div className="text-[10px] font-bold text-slate-500 mb-2">Đổi ảnh</div>
+          <div className="text-[10px] font-bold text-slate-500 mb-2">{viewerCopy.changeImage}</div>
           <input
             autoFocus
             defaultValue={imgEditor.currentUrl || ''}
             id="wjs-img-url-input"
             className="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-xs mb-2"
-            placeholder="images/photo.jpg hoặc URL đầy đủ"
+            placeholder={viewerCopy.imageUrlPlaceholder}
             onKeyDown={(e) => {
               if (e.key === 'Enter') applyImageUrl(e.target.value);
               if (e.key === 'Escape') closeImgEditor();
@@ -671,10 +681,10 @@ export default function HtmlTemplatePageViewer({
                 applyImageUrl(input?.value || '');
               }}
             >
-              Áp dụng
+              {viewerCopy.imageApply}
             </button>
             <label className="text-xs py-1.5 px-3 border rounded-lg text-slate-600 cursor-pointer hover:bg-slate-50">
-              Tải lên
+              {viewerCopy.imageUpload}
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/gif,image/webp"
@@ -699,14 +709,14 @@ export default function HtmlTemplatePageViewer({
               className="text-xs py-1.5 px-3 border border-red-200 text-red-600 rounded-lg hover:bg-red-50"
               onClick={clearImage}
             >
-              Xóa ảnh
+              {viewerCopy.imageRemove}
             </button>
             <button
               type="button"
               className="text-xs py-1.5 px-3 border rounded-lg text-slate-600"
               onClick={closeImgEditor}
             >
-              Hủy
+              {viewerCopy.imageCancel}
             </button>
           </div>
         </div>

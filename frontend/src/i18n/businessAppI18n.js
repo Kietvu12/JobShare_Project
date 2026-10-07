@@ -81,4 +81,5 @@ export {
   getMarketplaceListingHeaderBadge,
   getMarketplaceListingReferralFeeLabel,
   getCandidateSharingJobDetailLabels,
+  getLandingPageBuilderCopy,
 } from './businessApp/index.js';

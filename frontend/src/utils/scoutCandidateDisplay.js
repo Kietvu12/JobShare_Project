@@ -208,7 +208,7 @@ export const SCOUT_PIPELINE_LABELS = {
 
 export const SCOUT_UNLOCK_SOURCE_LABELS = {
   scout_credit: { label: 'Scout Trực Tiếp', color: '#3b82f6' },
-  scout_performance: { label: 'Scout Performance', color: '#f59e0b' },
+  scout_performance: { label: 'Scout Ủy Thác', color: '#f59e0b' },
 };
 
 export const SCOUT_PERFORMANCE_REQUEST_STATUS_META = {

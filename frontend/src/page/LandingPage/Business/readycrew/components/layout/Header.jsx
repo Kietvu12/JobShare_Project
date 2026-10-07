@@ -64,9 +64,11 @@ export default function Header() {
         </div>
       </div>
 
-      <div className="header-main js-gnav js-hamburger-menu__wrapper">
+      <div
+        className={`header-main js-gnav js-hamburger-menu__wrapper${pastVisual ? ' header-main--at-top header-main--max-width js-gnav-active' : ''}`}
+      >
         <div
-          className={`header-main__contents js-gnav-container js-hamburger-menu__container${pastVisual ? ' header-main__contents--past-visual' : ''}`}
+          className={`header-main__contents js-gnav-container js-hamburger-menu__container${pastVisual ? ' header-main__contents--past-visual header-main__contents--max-width js-gnav-max-width' : ''}`}
         >
           <div className="header-main__wrapper">
             <div className="header-main__site-name">

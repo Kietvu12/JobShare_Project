@@ -57,7 +57,7 @@ const scoutCardsEn = [
   },
   {
     num: '02',
-    title: 'Managed Scout',
+    title: 'Omakase Scout',
     subtitle: 'WS handles search & outreach',
     variant: 'neutral',
     mode: 'performance',
@@ -93,7 +93,7 @@ const scoutCardsJa = [
   },
   {
     num: '02',
-    title: '委託スカウト',
+    title: 'おまかせスカウト',
     subtitle: 'WSが探索・接触を代行',
     variant: 'neutral',
     mode: 'performance',

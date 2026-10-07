@@ -68,7 +68,7 @@ const I18N = {
     jobManagement: 'Job Management',
     candidateManagement: 'Candidate profiles',
     candidateScoutCredit: 'Direct Scout',
-    candidateScoutPerformance: 'Managed Scout',
+    candidateScoutPerformance: 'Omakase Scout',
     applications: 'Candidate selection',
     landingPageManagement: 'Landing page management',
     services: 'Services',

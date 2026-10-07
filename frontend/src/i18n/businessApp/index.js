@@ -254,3 +254,4 @@ export * from './businessInsights.js';
 export * from './scoutWorkspace.js';
 export * from './candidates.js';
 export * from './candidateSharing.js';
+export * from './landingPageBuilder.js';

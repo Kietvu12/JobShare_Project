@@ -480,6 +480,12 @@ button:focus-visible {
     overflow-x: hidden;
     overflow-y: auto;
   }
+  /* Business landing: cuộn document, không cuộn trong #root (header fixed + past-visual) */
+  body.business-landing-page #root {
+    height: auto !important;
+    min-height: 100vh;
+    overflow-y: visible !important;
+  }
 }
 
 /* Panel chỉnh CV – một tờ A4 (không vạch cắt; đồng bộ khổ với preview HTML)
