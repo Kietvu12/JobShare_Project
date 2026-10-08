@@ -1,0 +1,12 @@
+html.jobshare-template-login-root,
+html.jobshare-template-login-root body {
+  height: auto;
+  min-height: 100%;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+html.jobshare-template-login-root #root {
+  min-height: 0;
+  height: auto;
+}

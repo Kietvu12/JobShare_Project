@@ -1,0 +1,110 @@
+{
+  "vi": {
+    "skip": "Đến nội dung chính",
+    "top": "Về đầu trang",
+    "heroAlt": "Minh họa hồ sơ kỹ sư, AI và nền tảng tuyển dụng JobShare",
+    "aiAlt": "Minh họa AI chuẩn hóa hồ sơ tiếng Nhật",
+    "platformAlt": "Minh họa mạng lưới doanh nghiệp và ứng viên trên JobShare",
+    "finalAlt": "Đội ngũ tư vấn hỗ trợ ứng viên",
+    "navHome": "Trang chủ",
+    "navJobs": "Danh sách việc làm",
+    "navAbout": "Về chúng tôi",
+    "navPartners": "Đối tác",
+    "navFaq": "Hỏi và đáp",
+    "navBlog": "Blog",
+    "login": "Đăng nhập",
+    "register": "Đăng ký",
+    "footerTitle": "Đăng ký ngay để trở thành cộng tác viên của JobShare và khám phá nhiều cơ hội việc làm tại Nhật Bản. Hoàn toàn miễn phí!",
+    "footerPersonaCtv": "CTV",
+    "footerPersonaDescription": "(cộng tác viên)",
+    "footerRights": "Đã đăng ký bản quyền.",
+    "openMenu": "Mở menu",
+    "closeMenu": "Đóng menu",
+    "roles": [
+      "Cộng tác viên",
+      "Ứng viên",
+      "Doanh nghiệp"
+    ],
+    "roleSub": [
+      "Giới thiệu ứng viên & nhận hoa hồng",
+      "Tìm việc tại Nhật Bản",
+      "Đăng tuyển & tìm ứng viên"
+    ],
+    "roleIntro": "Chào mừng bạn đến với Workstation JobShare, bạn muốn tham gia với tư cách nào?",
+    "starting": "Khởi điểm",
+    "maximum": "Tối đa",
+    "chatError": "Không thể kết nối. Vui lòng thử lại hoặc liên hệ qua hotline bên dưới."
+  },
+  "en": {
+    "skip": "Skip to main content",
+    "top": "Back to top",
+    "heroAlt": "Illustration of an engineering profile, AI and the JobShare recruitment platform",
+    "aiAlt": "AI optimization of a Japanese candidate profile",
+    "platformAlt": "JobShare employer and candidate network illustration",
+    "finalAlt": "Advisors supporting a candidate",
+    "navHome": "Home",
+    "navJobs": "Job Listings",
+    "navAbout": "About Us",
+    "navPartners": "Partners",
+    "navFaq": "Q&A",
+    "navBlog": "Blog",
+    "login": "Log in",
+    "register": "Sign up",
+    "footerTitle": "Sign up now to become a JobShare collaborator and discover many job opportunities in Japan. It is completely free!",
+    "footerPersonaCtv": "CTV",
+    "footerPersonaDescription": "(collaborator)",
+    "footerRights": "All rights reserved.",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "roles": [
+      "Collaborator",
+      "Candidate",
+      "Company"
+    ],
+    "roleSub": [
+      "Refer candidates and earn commission",
+      "Find jobs in Japan",
+      "Post jobs and find candidates"
+    ],
+    "roleIntro": "Welcome to Workstation JobShare, how would you like to join?",
+    "starting": "Starting rate",
+    "maximum": "Maximum",
+    "chatError": "Unable to connect. Please try again or use the support phone numbers below."
+  },
+  "ja": {
+    "skip": "本文へスキップ",
+    "top": "ページの先頭へ",
+    "heroAlt": "エンジニアの応募書類、AI、JobShare採用プラットフォームのイメージ",
+    "aiAlt": "AIによる日本式応募書類の最適化イメージ",
+    "platformAlt": "企業と候補者をつなぐJobShareネットワークのイメージ",
+    "finalAlt": "候補者をサポートするアドバイザー",
+    "navHome": "ホーム",
+    "navJobs": "求人一覧",
+    "navAbout": "私たちについて",
+    "navPartners": "パートナー",
+    "navFaq": "Q&A",
+    "navBlog": "ブログ",
+    "login": "ログイン",
+    "register": "登録",
+    "footerTitle": "今すぐ登録して、JobShareの協力パートナーになり、日本の数百件に及ぶ求人情報をチェックしましょう。完全無料です！",
+    "footerPersonaCtv": "CTV",
+    "footerPersonaDescription": "(コラボレーター)",
+    "footerRights": "All rights reserved.",
+    "openMenu": "メニューを開く",
+    "closeMenu": "メニューを閉じる",
+    "roles": [
+      "コラボレーター",
+      "応募者",
+      "企業"
+    ],
+    "roleSub": [
+      "候補者を紹介して報酬を獲得",
+      "日本で仕事を探す",
+      "求人掲載と候補者探し"
+    ],
+    "roleIntro": "JobShareワークステーションへようこそ。どの立場で参加しますか？",
+    "starting": "開始時",
+    "maximum": "最大",
+    "chatError": "接続できません。再試行するか、下記のサポート電話番号へお問い合わせください。"
+  }
+}

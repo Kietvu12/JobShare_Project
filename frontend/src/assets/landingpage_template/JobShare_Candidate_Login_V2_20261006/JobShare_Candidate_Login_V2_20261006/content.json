@@ -1,0 +1,39 @@
+{
+  "base": "JobShare_Login_V1_20261006 (CTV) — exact visual fork",
+  "visual": "login-candidate.webp",
+  "auth": {
+    "login": "/applicant/auth/login",
+    "forgotPassword": "/applicant/auth/forgot-password",
+    "storageKey": "ungvienjs_auth"
+  },
+  "vi": {
+    "back": "Quay lại trang chủ",
+    "title": "Đăng nhập ứng viên",
+    "password": "Mật khẩu",
+    "login": "Đăng nhập",
+    "forgot": "Quên mật khẩu? Nhấn vào đây",
+    "register": "Đăng ký mới? Nhấn vào đây",
+    "home": "/vi/candidate",
+    "registerHref": "/vi/candidate/register"
+  },
+  "en": {
+    "back": "Back to home",
+    "title": "Candidate Sign In",
+    "password": "Password",
+    "login": "Login",
+    "forgot": "Forgot password? Click here",
+    "register": "New registration? Click here",
+    "home": "/en/candidate",
+    "registerHref": "/en/candidate/register"
+  },
+  "ja": {
+    "back": "ホームに戻る",
+    "title": "応募者ログイン",
+    "password": "パスワード",
+    "login": "ログイン",
+    "forgot": "パスワードをお忘れですか？ここをクリック",
+    "register": "新規登録？ここをクリック",
+    "home": "/ja/candidate",
+    "registerHref": "/ja/candidate/register"
+  }
+}

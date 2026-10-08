@@ -1,0 +1,452 @@
+{
+  "vi": {
+    "heroBadge": "Cộng tác viên JobShare",
+    "heroTitleRed1": "KẾT NỐI",
+    "heroTitleWhite1": "CƠ HỘI",
+    "heroTitleWhite2": "NHÂN ĐÔI",
+    "heroTitleRed2": "THÀNH CÔNG",
+    "heroDesc": "Đồng hành cùng doanh nghiệp trong hành trình tìm kiếm ứng viên nước ngoài phù hợp. Bạn giới thiệu ứng viên phù hợp, JobShare hỗ trợ hệ thống theo dõi minh bạch và chi trả hoa hồng rõ ràng.",
+    "heroBtnPrimary": "Trở thành cộng tác viên",
+    "heroBtnSecondary": "Tìm hiểu thêm",
+    "aboutTitleLine1": "Cộng đồng cộng tác viên",
+    "aboutTitleLine2": "Tuyển dụng kỹ sư Nhật Bản lớn nhất",
+    "aboutCard1Title": "NẮM BẮT CƠ HỘI TUYỂN DỤNG",
+    "aboutCard1Desc": "Tiếp cận hệ thống job kỹ sư tại Nhật Bản được cập nhật liên tục, phù hợp với nhiều cấp độ và chuyên môn khác nhau, giúp bạn dễ dàng lựa chọn vị trí để giới thiệu ứng viên.",
+    "aboutCard2Title": "QUẢN LÝ TIẾN ĐỘ HIỆU QUẢ",
+    "aboutCard2Desc": "Theo dõi toàn bộ quá trình giới thiệu ứng viên từ lúc apply đến khi trúng tuyển. Mọi trạng thái đều được cập nhật minh bạch, giúp bạn chủ động tối ưu hiệu suất làm việc.",
+    "aboutCard3Title": "PHỐI HỢP & HỖ TRỢ BẰNG AI",
+    "aboutCard3Desc": "Làm việc trực tiếp cùng đội ngũ Workstation trong suốt quy trình tuyển dụng, đồng thời tận dụng các công cụ AI như gợi ý việc làm và tạo hồ sơ ứng viên theo chuẩn, giúp tăng tỷ lệ thành công.",
+    "whyTitle": "Tại sao nên chọn JobShare?",
+    "whyDesc": "Lợi thế khi tham gia hệ sinh thái cộng tác viên JobShare: chính sách minh bạch, quy trình đơn giản, và đội ngũ chuyên viên đồng hành xuyên suốt.",
+    "whyCard1Title": "Chính sách hoa hồng rõ ràng, khởi điểm từ 25% lên đến 50%",
+    "whyCard1Desc": "Cộng tác viên được chia sẻ phần trăm phí giới thiệu theo cơ chế minh bạch. Thành tích tốt sẽ giúp bạn thăng hạng và tăng tỷ lệ hoa hồng lên đến 50%.",
+    "whyCard2Title": "Không cần kinh nghiệm - có hướng dẫn chi tiết",
+    "whyCard2Desc": "Bạn chỉ cần biết ai đang tìm việc, mọi quy trình còn lại như tư vấn, sửa CV, phỏng vấn... sẽ được đội ngũ JobShare hỗ trợ.",
+    "whyCard3Title": "Cơ hội đồng hành cùng đội ngũ tuyển dụng hơn 10 năm kinh nghiệm",
+    "whyCard3Desc": "Đội ngũ chuyên nghiệp sẽ hỗ trợ bạn xử lý yêu cầu tuyển dụng kỹ sư Nhật, đảm bảo thông tin minh bạch và hiệu quả tuyển dụng cao.",
+    "whyCard4Title": "Kho job đa dạng, cập nhật liên tục từ doanh nghiệp Nhật",
+    "whyCard4Desc": "JobShare cung cấp nguồn job tuyển dụng kỹ sư từ các doanh nghiệp Nhật đã được xử lý và chuẩn hóa. Bạn có thể chọn job phù hợp và bắt đầu tiến cử ứng viên ngay mà không cần tự tìm kiếm khách hàng.",
+    "aiCvPromoTitle": "Chỉ mất 3 phút để có CV chuẩn Nhật với công nghệ AI của Workstation JobShare.",
+    "aiCvPromoCta": "Thử ngay - Miễn phí",
+    "guideTitleLine1": "3 bước đơn giản",
+    "guideTitleLine2": "để trở thành 1 Cộng tác viên của JobShare",
+    "guideStep1Title": "Đăng ký trở thành cộng tác viên",
+    "guideStep1Desc": "Đọc kỹ Quy định & Chính sách sử dụng nền tảng JobShare dành cho cộng tác viên, sau đó điền form đăng ký. Hệ thống sẽ ghi nhận và liên lạc qua mail đã đăng ký.",
+    "guideStep2Title": "Tìm ứng viên & tiến cử",
+    "guideStep2Desc": "Cộng tác viên tìm ứng viên phù hợp với điều kiện ứng tuyển của mỗi việc làm đang tuyển, sau đó điền thông tin ứng tuyển và form tiến cử. cộng tác viên cần đảm bảo rằng thông tin ứng viên tiến cử là chính xác và đã được sự đồng thuận rõ ràng từ chính ứng viên trước khi gửi cho JobShare.",
+    "guideStep3Title": "Follow quá trình tiến cử và nhận hoa hồng xứng đáng",
+    "guideStep3Desc": "Sau khi tiến cử ứng viên, cộng tác viên sẽ theo dõi quá trình tiến cử qua hệ thống JobShare, hỗ trợ ứng viên trong quá trình phỏng vấn và bổ sung thông tin khi cần thiết. Khi ứng viên được tuyển dụng thành công, cộng tác viên sẽ nhận được khoản hoa hồng tương ứng theo cơ chế minh bạch và rõ ràng.",
+    "partnerTitleLine1": "Hơn 200 đối tác doanh nghiệp Nhật",
+    "partnerTitleLine2": "đang tìm kiếm nhân sự nước ngoài",
+    "featureTitle": "4 tính năng miễn phí dành cho bạn",
+    "feature1Title": "Truy cập kho dữ liệu việc làm",
+    "feature1Desc": "Truy cập hàng nghìn cơ hội việc làm kỹ sư tại Nhật Bản và dễ dàng tìm kiếm vị trí phù hợp để giới thiệu ứng viên.",
+    "feature1Points": [
+      "Xem và tìm kiếm các vị trí kỹ sư tại Nhật Bản theo ngành nghề, khu vực và yêu cầu",
+      "Gợi ý việc làm phù hợp nhờ hệ thống AI matching",
+      "Thông tin tuyển dụng chi tiết giúp tăng tỷ lệ tiến cử thành công"
+    ],
+    "feature2Title": "Quản lý hồ sơ ứng viên",
+    "feature2Desc": "Quản lý thông tin ứng viên thông minh, giúp tiết kiệm thời gian và tăng hiệu quả tuyển dụng.",
+    "feature2Points": [
+      "Tự động tạo hồ sơ ứng viên theo chuẩn format CV Nhật Bản bằng AI",
+      "Lưu trữ và quản lý dữ liệu ứng viên không giới hạn",
+      "Hệ thống gợi ý các vị trí phù hợp để tăng khả năng trúng tuyển"
+    ],
+    "feature3Title": "Quản lý tiến trình tuyển dụng",
+    "feature3Desc": "Theo dõi toàn bộ quá trình tuyển dụng của ứng viên một cách tập trung và minh bạch.",
+    "feature3Points": [
+      "Quản lý tiến độ tuyển dụng của từng ứng viên theo từng vòng phỏng vấn",
+      "Dễ dàng trao đổi và phối hợp với đội ngũ Workstation trong quá trình tuyển dụng",
+      "Tìm kiếm và lọc ứng viên theo trạng thái tuyển dụng"
+    ],
+    "feature4Title": "Cập nhật sự kiện tuyển dụng và đăng ký tham gia trực tiếp",
+    "feature4Desc": "Cập nhật các sự kiện giới thiệu việc làm và chương trình đào tạo mới nhất dành riêng cho cộng tác viên JobShare.",
+    "feature4Points": [
+      "Theo dõi các sự kiện giới thiệu việc làm tại Nhật Bản",
+      "Tham gia các chương trình đào tạo và chia sẻ kinh nghiệm tuyển dụng",
+      "Đăng ký tham gia sự kiện trực tiếp trên hệ thống"
+    ],
+    "featureCta": "Khám phá ngay",
+    "hotNewsTitle": "Tin tức cập nhật",
+    "hotNewsDesc": "Cập nhật nhanh thông tin, mẹo làm cộng tác viên và xu hướng việc làm Nhật Bản.",
+    "hotNewsViewAll": "Xem tất cả tin tức",
+    "hotNewsTagFallback": "Tin tức",
+    "faqTitle": "Câu hỏi thường gặp",
+    "faqItems": [
+      {
+        "q": "Làm thế nào để trở thành cộng tác viên?",
+        "paragraphs": [
+          "Để trở thành cộng tác viên, bạn cần đăng ký tài khoản và hoàn thiện thông tin cá nhân. Sau đó, bạn có thể nộp đơn ứng tuyển vào các vị trí cộng tác viên đang được đăng tuyển."
+        ]
+      },
+      {
+        "q": "Thế nào được coi là một hồ sơ tiến cử hợp lệ?",
+        "paragraphs": [
+          "CV tiến cử hợp lệ là hồ sơ ứng viên không trùng với bất kỳ hồ sơ nào đã có trong hệ thống JobShare trong vòng 6 tháng gần nhất.",
+          "Nếu ứng viên chưa từng có trong hệ thống hoặc đã được tiến cử từ trước đó hơn 6 tháng → CV được ghi nhận là hợp lệ và quyền lợi thuộc về cộng tác viên tiến cử hiện tại.",
+          "Nếu ứng viên đã từng được một cộng tác viên khác tiến cử trong vòng 6 tháng → quyền lợi vẫn thuộc về cộng tác viên ban đầu, hồ sơ mới không được ghi nhận.",
+          "Trường hợp đặc biệt: Nếu ứng viên từng từ chối apply khi được cộng tác viên ban đầu tiến cử, nhưng sau đó được cộng tác viên khác tiến cử lại trong vòng 6 tháng → JobShare sẽ tiến hành xác minh theo quy trình riêng."
+        ]
+      },
+      {
+        "q": "Làm sao để nâng cao hiệu suất công việc?",
+        "paragraphs": [
+          "Để nâng cao hiệu suất, bạn nên:",
+          "1) Cập nhật thường xuyên kỹ năng và kiến thức tại các lớp đào tạo chuyên biệt của Workstation",
+          "2) Kiên trì và có lịch hàng ngày cho việc đăng tin tuyển dụng, tìm kiếm ứng viên",
+          "3) Luôn luôn đặt mình vào vị trí của ứng viên, hỏi thăm và hiểu câu chuyện tìm việc của họ",
+          "4) Tận dụng các công cụ hỗ trợ để nâng cao sáng tạo trong content tuyển dụng, công cụ quản lý danh sách ứng viên của riêng mình"
+        ]
+      },
+      {
+        "q": "Có thể làm việc từ xa không?",
+        "paragraphs": [
+          "Có, chúng tôi hỗ trợ làm việc từ xa. Bạn chỉ cần đảm bảo có kết nối internet ổn định và tuân thủ các quy định về bảo mật thông tin."
+        ]
+      },
+      {
+        "q": "Làm thế nào để báo cáo vấn đề kỹ thuật?",
+        "paragraphs": [
+          "Bạn có thể báo cáo vấn đề kỹ thuật thông qua:",
+          "1) Email hỗ trợ",
+          "2) Form liên hệ trên website",
+          "3) Hotline Zalo hỗ trợ. Chúng tôi sẽ phản hồi trong vòng 24 giờ làm việc."
+        ]
+      },
+      {
+        "q": "Có chính sách đào tạo không?",
+        "paragraphs": [
+          "Có, chúng tôi cung cấp các khóa đào tạo định kỳ và tài liệu hướng dẫn chi tiết. Sau tháng đầu tiên tham gia nền tảng, bạn sẽ được tham gia vào khóa đào tạo cơ bản gồm 3 buổi, dành riêng cho cộng tác viên của JobShare, được đào tạo bởi chuyên viên tư vấn tuyển dụng có hơn 10 năm kinh nghiệm của chúng tôi."
+        ]
+      }
+    ],
+    "footerCtaTitleWhite": "Sẵn sàng",
+    "footerCtaTitleRed": "bắt đầu",
+    "footerCtaTitleWhiteEnd": "chưa?",
+    "footerCtaDesc": "Đăng ký ngay hôm nay để trở thành cộng tác viên của JobShare và khám phá hàng trăm cơ hội việc làm Nhật Bản. Hoàn toàn miễn phí!",
+    "footerBtnPrimary": "Đăng ký ngay",
+    "footerBtnSecondary": "Liên hệ tư vấn",
+    "footerExploreTitle": "Khám phá",
+    "footerExploreLinks": [
+      "Danh sách việc làm",
+      "Giới thiệu",
+      "Partner",
+      "Blog"
+    ],
+    "footerSupportTitle": "Hỗ trợ",
+    "footerSupportLinks": [
+      "Hướng dẫn sử dụng",
+      "FAQ",
+      "Tài liệu về chúng tôi",
+      "Liên hệ"
+    ],
+    "footerContactTitle": "Liên hệ",
+    "footerContactLocation": "3F, 82 Tuệ Tĩnh, Hai Bà Trưng, Hanoi, Vietnam, 10000",
+    "footerLinkTitle": "Liên kết",
+    "footerLinkUrl": "ws-jobshare.com",
+    "footerContactInfoTitle": "Thông tin liên hệ",
+    "footerContactPhone": "097 289 97 28",
+    "footerDesc": "Nền tảng kết nối việc làm Nhật Bản thông qua cộng đồng giới thiệu nhân sự."
+  },
+  "en": {
+    "heroBadge": "JobShare Collaborator",
+    "heroTitleRed1": "CONNECT",
+    "heroTitleWhite1": "OPPORTUNITIES",
+    "heroTitleWhite2": "DOUBLE",
+    "heroTitleRed2": "SUCCESS",
+    "heroDesc": "Partner with companies on their journey to find the right international candidates. You refer suitable talent, and JobShare provides transparent tracking and clear commission payouts.",
+    "heroBtnPrimary": "Become a Collaborator",
+    "heroBtnSecondary": "Learn More",
+    "aboutTitleLine1": "Japan's largest community of collaborators",
+    "aboutTitleLine2": "Recruiting engineers for Japan",
+    "aboutCard1Title": "SEIZE RECRUITMENT OPPORTUNITIES",
+    "aboutCard1Desc": "Access a constantly updated catalog of engineer jobs in Japan across many levels and specialties, so you can easily choose roles to introduce candidates.",
+    "aboutCard2Title": "MANAGE PROGRESS EFFECTIVELY",
+    "aboutCard2Desc": "Track every step of your referrals from application to hire. Statuses stay transparently updated so you can optimize how you work.",
+    "aboutCard3Title": "COORDINATION & AI SUPPORT",
+    "aboutCard3Desc": "Work directly with the Workstation team throughout hiring while using AI tools such as job suggestions and standard candidate profiles to improve success rates.",
+    "whyTitle": "Why choose JobShare?",
+    "whyDesc": "Key benefits of joining the JobShare collaborator ecosystem: transparent policies, a simple process, and dedicated experts supporting you throughout.",
+    "whyCard1Title": "Clear commission policy, starting from 25% up to 50%",
+    "whyCard1Desc": "Collaborators share referral fees with a transparent mechanism. Strong performance helps you level up and increase your commission rate to 50%.",
+    "whyCard2Title": "No experience required - detailed guidance included",
+    "whyCard2Desc": "You only need to know who is looking for a job. The remaining steps such as consulting, CV review, and interviews are supported by JobShare.",
+    "whyCard3Title": "Work with a recruitment team with 10+ years of experience",
+    "whyCard3Desc": "Our professional team helps you handle Japanese engineer hiring requests with transparent information and strong recruitment efficiency.",
+    "whyCard4Title": "Diverse job pool, continuously updated from Japanese companies",
+    "whyCard4Desc": "JobShare provides standardized engineering job opportunities from Japanese companies. You can choose suitable jobs and start referring candidates right away without having to find clients yourself.",
+    "aiCvPromoTitle": "Get a Japan-standard CV in just 3 minutes with JobShare AI technology.",
+    "aiCvPromoCta": "Try now — Free",
+    "guideTitleLine1": "3 simple steps",
+    "guideTitleLine2": "to become a JobShare collaborator",
+    "guideStep1Title": "Register to become a collaborator",
+    "guideStep1Desc": "Read the JobShare collaborator policy carefully, then submit the registration form. The system records your request and contacts you via your registered email.",
+    "guideStep2Title": "Find candidates & submit referrals",
+    "guideStep2Desc": "Collaborators find candidates who match each open role, then submit the application details and referral form. Please ensure candidate information is accurate and clearly consented before sending to JobShare.",
+    "guideStep3Title": "Follow referral progress and earn proper commissions",
+    "guideStep3Desc": "After referral, collaborators track progress through the 3-party support group (collaborator - candidate - JobShare) to support interviews and additional requirements. When candidates are hired successfully, commissions are paid transparently based on policy.",
+    "partnerTitleLine1": "Over 200 Japanese corporate partners",
+    "partnerTitleLine2": "seeking international talent",
+    "featureTitle": "4 free features for you",
+    "feature1Title": "Access the job database",
+    "feature1Desc": "Access thousands of engineer job opportunities in Japan and easily find suitable roles to refer candidates.",
+    "feature1Points": [
+      "Search engineering positions in Japan by industry, region, and requirements",
+      "Get suitable job recommendations with the AI matching system",
+      "Detailed hiring information helps increase successful referral rates"
+    ],
+    "feature2Title": "Manage candidate profiles",
+    "feature2Desc": "Manage candidate information smartly to save time and improve recruitment efficiency.",
+    "feature2Points": [
+      "Automatically generate candidate profiles in Japanese-standard CV format using AI",
+      "Store and manage unlimited candidate data",
+      "The system recommends suitable positions to improve hiring success"
+    ],
+    "feature3Title": "Manage the recruitment process",
+    "feature3Desc": "Track each candidate's recruitment journey in one focused, transparent place.",
+    "feature3Points": [
+      "Track each candidate recruitment progress by interview stage",
+      "Easily communicate and collaborate with the Workstation team during recruitment",
+      "Search and filter candidates by recruitment status"
+    ],
+    "feature4Title": "Recruitment events and direct registration",
+    "feature4Desc": "Stay updated on job events and the latest training programs for JobShare collaborators.",
+    "feature4Points": [
+      "Follow job introduction events in Japan",
+      "Join training programs and recruitment experience-sharing sessions",
+      "Register for events directly on the platform"
+    ],
+    "featureCta": "Explore now",
+    "hotNewsTitle": "Latest News",
+    "hotNewsDesc": "Quick updates, collaborator tips, and job market trends in Japan.",
+    "hotNewsViewAll": "View all news",
+    "hotNewsTagFallback": "News",
+    "faqTitle": "Frequently asked questions",
+    "faqItems": [
+      {
+        "q": "How do I become a collaborator?",
+        "paragraphs": [
+          "Register an account and complete your profile. You can then apply for open collaborator positions."
+        ]
+      },
+      {
+        "q": "What counts as a valid referral profile?",
+        "paragraphs": [
+          "A valid referral means the candidate profile does not duplicate any profile already in JobShare within the last 6 months.",
+          "If the candidate has never been in the system, or was referred more than 6 months ago → the CV is accepted as valid and the benefit belongs to the current referring collaborator.",
+          "If another collaborator referred the same candidate within 6 months → the benefit stays with the first collaborator; the new profile is not accepted.",
+          "Special case: If the candidate previously declined to apply when referred by the first collaborator, but is referred again by someone else within 6 months → JobShare will verify according to our internal process."
+        ]
+      },
+      {
+        "q": "How can I improve my performance?",
+        "paragraphs": [
+          "To perform better, you should:",
+          "1) Keep updating skills and knowledge through Workstation specialist training",
+          "2) Stay consistent with a daily routine for outreach and candidate sourcing",
+          "3) Put yourself in the candidate’s shoes—ask questions and understand their job search story",
+          "4) Use support tools to boost creative recruiting content and manage your own candidate lists"
+        ]
+      },
+      {
+        "q": "Can I work remotely?",
+        "paragraphs": [
+          "Yes. We support remote work. You need a stable internet connection and must follow our information security rules."
+        ]
+      },
+      {
+        "q": "How do I report a technical issue?",
+        "paragraphs": [
+          "You can report technical issues via:",
+          "1) Support email",
+          "2) Contact form on the website",
+          "3) Zalo support hotline. We respond within 24 business hours."
+        ]
+      },
+      {
+        "q": "Is there a training policy?",
+        "paragraphs": [
+          "Yes. We offer regular training and detailed guides. After your first month on the platform, you can join a 3-session basic training program for JobShare collaborators, delivered by our recruitment consultants with over 10 years of experience."
+        ]
+      }
+    ],
+    "footerCtaTitleWhite": "Ready to",
+    "footerCtaTitleRed": "get started",
+    "footerCtaTitleWhiteEnd": "?",
+    "footerCtaDesc": "Register today to become a JobShare collaborator and explore hundreds of job opportunities in Japan. Completely free!",
+    "footerBtnPrimary": "Register now",
+    "footerBtnSecondary": "Contact advisor",
+    "footerExploreTitle": "Explore",
+    "footerExploreLinks": [
+      "Job listings",
+      "About",
+      "Partners",
+      "Blog"
+    ],
+    "footerSupportTitle": "Support",
+    "footerSupportLinks": [
+      "User guide",
+      "FAQ",
+      "Our documents",
+      "Contact"
+    ],
+    "footerContactTitle": "Contact",
+    "footerContactLocation": "3F, 82 Tue Tinh, Hai Ba Trung, Hanoi, Vietnam, 10000",
+    "footerLinkTitle": "Links",
+    "footerLinkUrl": "ws-jobshare.com",
+    "footerContactInfoTitle": "Contact Info",
+    "footerContactPhone": "097 289 97 28",
+    "footerDesc": "A Japan job connection platform powered by a talent referral community."
+  },
+  "ja": {
+    "heroBadge": "JobShare コラボレーター",
+    "heroTitleRed1": "つなぐ",
+    "heroTitleWhite1": "チャンス",
+    "heroTitleWhite2": "成功を",
+    "heroTitleRed2": "倍増",
+    "heroDesc": "企業の外国人材採用に向けた取り組みに伴走します。適切な候補者をご紹介いただき、JobShareが透明性のある進捗管理と明確なコミッション支払いをサポートします。",
+    "heroBtnPrimary": "コラボレーターになる",
+    "heroBtnSecondary": "詳しく見る",
+    "aboutTitleLine1": "日系エンジニア採用コラボレーター",
+    "aboutTitleLine2": "コミュニティ日本最大級",
+    "aboutCard1Title": "採用のチャンスをつかむ",
+    "aboutCard1Desc": "日本のエンジニア求人を継続的に更新し、さまざまなレベル・専門領域に対応。候補者を紹介しやすいポジションを選びやすくします。",
+    "aboutCard2Title": "進捗を効率的に管理",
+    "aboutCard2Desc": "応募から内定まで、紹介プロセス全体を追跡。すべてのステータスを透明に更新し、業務効率の最適化を支援します。",
+    "aboutCard3Title": "連携とAIサポート",
+    "aboutCard3Desc": "採用プロセスを通じてWorkstationチームと直接連携し、求人の提案や標準フォーマットの候補者プロフィール作成などAIツールで成功率向上を支援します。",
+    "whyTitle": "JobShareが選ばれる理由",
+    "whyDesc": "JobShareのコラボレーター制度に参加するメリット：透明な報酬制度、シンプルな運用、そして専任チームによる継続サポート。",
+    "whyCard1Title": "明確な報酬制度：25%から最大50%まで",
+    "whyCard1Desc": "紹介手数料の分配は透明なルールで運用。成果に応じてランクアップし、報酬率を最大50%まで高められます。",
+    "whyCard2Title": "経験不要 - 詳細なサポートあり",
+    "whyCard2Desc": "仕事を探している人を知っていればOK。相談、履歴書添削、面接対応などはJobShareチームが支援します。",
+    "whyCard3Title": "10年以上の採用経験を持つチームと連携",
+    "whyCard3Desc": "日本人エンジニア採用ニーズへの対応をプロチームが支援。情報の透明性と採用効率の向上を実現します。",
+    "whyCard4Title": "日本企業からの多様な求人を継続的に更新",
+    "whyCard4Desc": "JobShareは、日本企業のエンジニア求人を整理・標準化して提供します。自分で企業を探す必要なく、適した求人を選んですぐに候補者を推薦できます。",
+    "aiCvPromoTitle": "JobShareのAI技術で、日本基準の履歴書をわずか3分で。プロ品質の職務経歴書を。",
+    "aiCvPromoCta": "今すぐ試す（無料）",
+    "guideTitleLine1": "3つの簡単なステップ",
+    "guideTitleLine2": "JobShareコラボレーターになる",
+    "guideStep1Title": "コラボレーター登録",
+    "guideStep1Desc": "JobShareのコラボレーター向け規約とポリシーを確認し、登録フォームを提出します。登録メール宛にシステムから連絡が届きます。",
+    "guideStep2Title": "候補者の発掘と推薦",
+    "guideStep2Desc": "募集条件に合う候補者を探し、応募情報と推薦フォームを提出します。推薦前に候補者情報の正確性と同意取得を必ず確認してください。",
+    "guideStep3Title": "推薦プロセスの伴走と報酬受取",
+    "guideStep3Desc": "推薦後は、コラボレーター・候補者・JobShareの3者で進捗を確認し、面接や追加情報対応を支援します。採用成立時は、明確なルールに基づき報酬が支払われます。",
+    "partnerTitleLine1": "200社超の日本企業パートナー",
+    "partnerTitleLine2": "外国人人材を募集",
+    "featureTitle": "無料で使える4つの機能",
+    "feature1Title": "求人データベースへアクセス",
+    "feature1Desc": "日本のエンジニア求人に数千件からアクセスし、候補者紹介に適したポジションを見つけやすくします。",
+    "feature1Points": [
+      "業種・地域・要件から日本のエンジニア求人を閲覧・検索できます",
+      "AIマッチングで最適な求人を提案します",
+      "詳細な求人情報で推薦成功率を高めます"
+    ],
+    "feature2Title": "候補者プロフィールの管理",
+    "feature2Desc": "候補者情報をスマートに管理し、時間を節約して採用効率を高めます。",
+    "feature2Points": [
+      "AIで日本式フォーマットの候補者CVを自動作成します",
+      "候補者データを無制限に保存・管理できます",
+      "採用成功しやすい最適なポジションをシステムが提案します"
+    ],
+    "feature3Title": "採用プロセスの管理",
+    "feature3Desc": "候補者ごとの採用プロセスを一箇所で集中・透明に追跡できます。",
+    "feature3Points": [
+      "各候補者の採用進捗を面接フェーズごとに管理できます",
+      "採用プロセス中にWorkstationチームと円滑に連携できます",
+      "採用ステータスで候補者を検索・絞り込みできます"
+    ],
+    "feature4Title": "採用イベントの更新と直接申込み",
+    "feature4Desc": "JobShareコラボレーター向けの就職イベントや研修の最新情報をお届けします。",
+    "feature4Points": [
+      "日本での就職紹介イベントをフォローできます",
+      "採用ノウハウ共有や研修プログラムに参加できます",
+      "システム上でイベントに直接申し込みできます"
+    ],
+    "featureCta": "今すぐ見る",
+    "hotNewsTitle": "最新ニュース",
+    "hotNewsDesc": "コラボレーター向けの実践情報、就職トレンド、最新ニュースを素早くお届けします。",
+    "hotNewsViewAll": "ニュース一覧を見る",
+    "hotNewsTagFallback": "ニュース",
+    "faqTitle": "よくある質問",
+    "faqItems": [
+      {
+        "q": "コラボレーターになるには？",
+        "paragraphs": [
+          "アカウント登録とプロフィール入力を完了してください。その後、募集中のコラボレーターポジションに応募できます。"
+        ]
+      },
+      {
+        "q": "有効な推薦プロフィールとは？",
+        "paragraphs": [
+          "有効な推薦とは、過去6か月以内にJobShare上で重複しない候補者プロフィールであることです。",
+          "システムに未登録、または6か月より前に推薦された候補者 → 有効とみなされ、権利は現在の推薦コラボレーターに帰属します。",
+          "6か月以内に別のコラボレーターが推薦済みの候補者 → 権利は最初のコラボレーターに残り、新しいプロフィールは認められません。",
+          "特例：最初の推薦で応募を辞退した候補者が、6か月以内に別のコラボレーターから再推薦された場合 → JobShareが独自フローで確認します。"
+        ]
+      },
+      {
+        "q": "業務効率を上げるには？",
+        "paragraphs": [
+          "次を意識してください。",
+          "1) Workstationの専門研修でスキル・知識を継続的にアップデートする",
+          "2) 日々の発信・候補者探索を習慣化する",
+          "3) 候補者の立場になり、転職の背景を丁寧にヒアリングする",
+          "4) 採用コンテンツの創作や候補者リスト管理など、支援ツールを活用する"
+        ]
+      },
+      {
+        "q": "リモートで働けますか？",
+        "paragraphs": [
+          "はい。リモート勤務を支援しています。安定したインターネット環境と、情報セキュリティ規定の遵守が必要です。"
+        ]
+      },
+      {
+        "q": "技術的な問題を報告するには？",
+        "paragraphs": [
+          "次の方法でご連絡ください。",
+          "1) サポートメール",
+          "2) サイト上のお問い合わせフォーム",
+          "3) Zaloサポートホットライン。営業日24時間以内に返信します。"
+        ]
+      },
+      {
+        "q": "研修制度はありますか？",
+        "paragraphs": [
+          "はい。定期的な研修と詳細ガイドを提供しています。登録初月後、JobShareコラボレーター向け基礎研修（全3回）にご参加いただけます。採用コンサルタント歴10年以上の担当者が講師です。"
+        ]
+      }
+    ],
+    "footerCtaTitleWhite": "始める準備は",
+    "footerCtaTitleRed": "できていますか",
+    "footerCtaTitleWhiteEnd": "？",
+    "footerCtaDesc": "今すぐ登録して、JobShareの協力パートナーになり、日本の数百件に及ぶ求人情報をチェックしましょう。完全無料です！",
+    "footerBtnPrimary": "今すぐ登録",
+    "footerBtnSecondary": "相談する",
+    "footerExploreTitle": "探索",
+    "footerExploreLinks": [
+      "求人一覧",
+      "紹介",
+      "パートナー",
+      "ブログ"
+    ],
+    "footerSupportTitle": "サポート",
+    "footerSupportLinks": [
+      "利用ガイド",
+      "FAQ",
+      "資料",
+      "お問い合わせ"
+    ],
+    "footerContactTitle": "連絡先",
+    "footerContactLocation": "3F, 82 Tue Tinh, Hai Ba Trung, Hanoi, Vietnam, 10000",
+    "footerLinkTitle": "リンク",
+    "footerLinkUrl": "ws-jobshare.com",
+    "footerContactInfoTitle": "お問い合わせ情報",
+    "footerContactPhone": "097 289 97 28",
+    "footerDesc": "人材紹介コミュニティを通じて日本の仕事をつなぐプラットフォームです。"
+  }
+}

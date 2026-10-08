@@ -4,6 +4,7 @@ import { Building2, ChevronDown, Menu, User, X } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import CollaboratorLandingChatbot from '../LandingPage/CollaboratorLandingChatbot';
 import {
+  isCollaboratorMarketingHome,
   localizedPersonaHref,
   resolveCollaboratorPrefix,
   switchLocaleInPathname,
@@ -178,6 +179,10 @@ const CollaboratorLayout = () => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, [mobileMenuOpen]);
+
+  if (isCollaboratorMarketingHome(pathname)) {
+    return <Outlet />;
+  }
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#FFFAFA] text-[#1a1a1a]">

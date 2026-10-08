@@ -1,0 +1,22 @@
+html.jobshare-template-landing-root,
+html.jobshare-template-landing-root body {
+  height: auto;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+html.jobshare-template-landing-root #root {
+  min-height: 0;
+  height: auto;
+}
+
+.jobshare-template-landing-root {
+  min-height: 100vh;
+}
+
+.jobshare-template-landing-fallback {
+  padding: 48px 24px;
+  text-align: center;
+  color: #112f3d;
+}

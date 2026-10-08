@@ -1,0 +1,42 @@
+[
+  {
+    "id": 22,
+    "date": "2026-05-13",
+    "image": "assets/news-1.jpg",
+    "title": {
+      "vi": "Chân dung ứng viên kỹ sư dễ được doanh nghiệp Nhật chú ý",
+      "en": "What Makes an Engineering Candidate Stand Out to Japanese Employers",
+      "ja": "日本企業が「会ってみたい」と感じるエンジニア候補者の特徴"
+    },
+    "category": {
+      "vi": "Tin tức",
+      "en": "News",
+      "ja": "ニュース"
+    },
+    "urls": {
+      "vi": "https://ws-jobshare.com/vi/candidate/blog/chan-dung-ung-vien-ky-su-de-uoc-doanh-nghiep-nhat-chu-y",
+      "en": "https://ws-jobshare.com/en/candidate/blog/chan-dung-ung-vien-ky-su-de-uoc-doanh-nghiep-nhat-chu-y",
+      "ja": "https://ws-jobshare.com/ja/candidate/blog/chan-dung-ung-vien-ky-su-de-uoc-doanh-nghiep-nhat-chu-y"
+    }
+  },
+  {
+    "id": 20,
+    "date": "2026-04-24",
+    "image": "assets/news-3.jpg",
+    "title": {
+      "vi": "THÔNG BÁO LỊCH NGHỈ LỄ GIỖ TỔ HÙNG VƯƠNG, NGÀY 30/4 VÀ 1/5",
+      "en": "HOLIDAY NOTICE FOR HUNG KINGS COMMEMORATION DAY, APRIL 30, AND MAY 1",
+      "ja": "フン王の命日、4月30日および5月1日の休業のお知らせ"
+    },
+    "category": {
+      "vi": "Thông báo",
+      "en": "Announcement",
+      "ja": "お知らせ"
+    },
+    "urls": {
+      "vi": "https://ws-jobshare.com/vi/candidate/blog/thong-bao-lich-nghi-le-gio-to-hung-vuong-ngay-30-4-va-1-5",
+      "en": "https://ws-jobshare.com/en/candidate/blog/thong-bao-lich-nghi-le-gio-to-hung-vuong-ngay-30-4-va-1-5",
+      "ja": "https://ws-jobshare.com/ja/candidate/blog/thong-bao-lich-nghi-le-gio-to-hung-vuong-ngay-30-4-va-1-5"
+    }
+  }
+]

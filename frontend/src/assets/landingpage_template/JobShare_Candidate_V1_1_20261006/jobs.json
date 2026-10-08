@@ -1,0 +1,117 @@
+[
+  {
+    "id": 708,
+    "company": {
+      "vi": "Công ty Cổ phần Coretech",
+      "en": "Coretech Co., Ltd.",
+      "ja": "株式会社コアテック"
+    },
+    "title": {
+      "vi": "Coretech / IT Communicator – Sử dụng tiếng Việt, phối hợp QA Việt Nam / Meguro, Tokyo",
+      "en": "Coretech / IT Communicator – Vietnamese Language, Coordination with Vietnamese QA Team / Meguro, Tokyo",
+      "ja": "Coretech／ITコミュニケーター－ベトナム語を使用し、ベトナムQAチームと連携／東京都目黒区"
+    },
+    "salary": {
+      "vi": "24,56〜35,08 vạn Yên/tháng",
+      "en": "JPY 245,600–350,800/month",
+      "ja": "月給245,600円〜350,800円"
+    },
+    "type": {
+      "vi": "Toàn thời gian",
+      "en": "Full-time",
+      "ja": "正社員"
+    }
+  },
+  {
+    "id": 707,
+    "company": {
+      "vi": "Công ty Cổ phần Coretech",
+      "en": "Coretech Co., Ltd.",
+      "ja": "株式会社Coretech"
+    },
+    "title": {
+      "vi": "Coretech / Frontend Engineer – HTML Coder / Meguro, Tokyo",
+      "en": "Coretech / Frontend Engineer – HTML Coder / Meguro, Tokyo",
+      "ja": "Coretech／フロントエンドエンジニア・HTMLコーダー／東京都青葉台"
+    },
+    "salary": {
+      "vi": "30〜45 vạn Yên/tháng",
+      "en": "JPY 300,000–450,000/month",
+      "ja": "月給30万円〜45万円"
+    },
+    "type": {
+      "vi": "Toàn thời gian",
+      "en": "Full-time",
+      "ja": "正社員"
+    }
+  },
+  {
+    "id": 706,
+    "company": {
+      "vi": "Công ty Cổ phần Coretech",
+      "en": "Coretech Co., Ltd.",
+      "ja": "株式会社コアテック"
+    },
+    "title": {
+      "vi": "Coretech / Backend Engineer – Phát triển 100% nội bộ / Meguro, Tokyo",
+      "en": "Coretech / Backend Engineer – 100% In-house Development / Meguro, Tokyo",
+      "ja": "Coretech／バックエンドエンジニア―100％自社開発／東京都目黒区"
+    },
+    "salary": {
+      "vi": "400〜550 vạn Yên/năm",
+      "en": "JPY 4.0–5.5 million/year",
+      "ja": "年収400万円〜550万円"
+    },
+    "type": {
+      "vi": "Toàn thời gian",
+      "en": "Full-time",
+      "ja": "正社員"
+    }
+  },
+  {
+    "id": 705,
+    "company": {
+      "vi": "Công ty Cổ phần CJV International",
+      "en": "CJV International Co., Ltd.",
+      "ja": "株式会社CJVインターナショナル"
+    },
+    "title": {
+      "vi": "CJV International / Kỹ sư gia công / Quản lý sản xuất / Nagoya, Aichi",
+      "en": "CJV International / Machining Engineer / Production Manager / Nagoya, Aichi",
+      "ja": "CJV International／加工技術者／生産管理／愛知県名古屋市"
+    },
+    "salary": {
+      "vi": "20〜33 vạn Yên/tháng",
+      "en": "JPY 200,000–330,000/month",
+      "ja": "月給20万円〜33万円"
+    },
+    "type": {
+      "vi": "Toàn thời gian",
+      "en": "Full-time",
+      "ja": "正社員"
+    }
+  },
+  {
+    "id": 704,
+    "company": {
+      "vi": "Công ty Cổ phần Nagashima Engineering",
+      "en": "Nagashima Engineering Co., Ltd.",
+      "ja": "株式会社ナガシマエンジニアリング"
+    },
+    "title": {
+      "vi": "Nagashima Engineering / Kỹ sư thiết kế CAD 2D・3D – Cơ khí & Thiết bị / Utsunomiya, Tochigi",
+      "en": "Nagashima Engineering / 2D・3D CAD Design Engineer – Mechanical Systems and Equipment / Utsunomiya, Tochigi",
+      "ja": "株式会社ナガシマエンジニアリング／2D・3D CAD設計エンジニア（機械・設備）／栃木県宇都宮市"
+    },
+    "salary": {
+      "vi": "264〜800 vạn Yên/năm",
+      "en": "JPY 26.4–80 million/year",
+      "ja": "年収264万円～800万円"
+    },
+    "type": {
+      "vi": "Toàn thời gian",
+      "en": "Full-time",
+      "ja": "正社員"
+    }
+  }
+]

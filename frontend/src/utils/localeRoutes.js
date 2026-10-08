@@ -83,6 +83,29 @@ export function resolveCandidatePrefix(pathname) {
   return withLocalePath(getPreferredLocale(), '/candidate');
 }
 
+/** Full-width V3/V1.1 marketing home (no legacy layout chrome). */
+export function isCollaboratorMarketingHome(pathname) {
+  const path = String(pathname || '');
+  const locale = getLocaleFromPathname(path);
+  if (locale) {
+    const rest = stripLocaleFromPathname(path);
+    return rest === '/' || rest === '';
+  }
+  return (
+    path === '/collaborator'
+    || path === '/collaborator/'
+    || path === '/landing/collaborator'
+    || path === '/landing/collaborator/'
+  );
+}
+
+export function isCandidateMarketingHome(pathname) {
+  const path = String(pathname || '');
+  const rest = stripLocaleFromPathname(path);
+  if (rest === '/candidate' || rest === '/candidate/') return true;
+  return path === '/candidate' || path === '/candidate/' || path === '/landing/candidate' || path === '/landing/candidate/';
+}
+
 export function isCandidatePublicPath(pathname) {
   const stripped = stripLocaleFromPathname(pathname);
   return (

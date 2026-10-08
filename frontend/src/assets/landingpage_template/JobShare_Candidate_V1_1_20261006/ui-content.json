@@ -1,0 +1,92 @@
+{
+  "vi": {
+    "skip": "Bỏ qua đến nội dung",
+    "top": "Lên đầu trang",
+    "heroAlt": "Ứng viên khám phá các cơ hội việc làm kỹ sư tại Nhật cùng JobShare",
+    "aiAlt": "AI phân tích CV và chuẩn hóa hồ sơ ứng viên",
+    "platformAlt": "Giao diện JobShare dành cho ứng viên: tìm việc, hồ sơ, tiến trình và hỗ trợ",
+    "finalAlt": "Ứng viên trao đổi định hướng nghề nghiệp cùng chuyên viên tuyển dụng",
+    "navHome": "Trang chủ",
+    "navJobs": "Danh sách việc làm",
+    "navProfile": "Hồ sơ của tôi",
+    "navAbout": "Về chúng tôi",
+    "navPartners": "Đối tác",
+    "navBlog": "Blog",
+    "login": "Đăng nhập",
+    "register": "Đăng ký",
+    "openMenu": "Mở menu",
+    "closeMenu": "Đóng menu",
+    "roles": [
+      "Cộng tác viên",
+      "Ứng viên",
+      "Doanh nghiệp"
+    ],
+    "roleSub": [
+      "Giới thiệu ứng viên & nhận hoa hồng",
+      "Tìm việc tại Nhật Bản",
+      "Đăng tuyển & tìm ứng viên"
+    ],
+    "roleIntro": "Chào mừng bạn đến với Workstation JobShare, bạn muốn tham gia với tư cách nào?",
+    "chatError": "Không thể kết nối hỗ trợ lúc này. Vui lòng thử lại."
+  },
+  "en": {
+    "skip": "Skip to content",
+    "top": "Back to top",
+    "heroAlt": "Candidate exploring engineering jobs in Japan with JobShare",
+    "aiAlt": "AI analysis and candidate CV optimization",
+    "platformAlt": "JobShare candidate platform for jobs, profile, application progress and support",
+    "finalAlt": "Candidate in a career consultation with a recruitment advisor",
+    "navHome": "Home",
+    "navJobs": "Job Listings",
+    "navProfile": "My Profile",
+    "navAbout": "About Us",
+    "navPartners": "Partners",
+    "navBlog": "Blog",
+    "login": "Log in",
+    "register": "Sign up",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "roles": [
+      "Collaborator",
+      "Candidate",
+      "Company"
+    ],
+    "roleSub": [
+      "Refer candidates and earn commission",
+      "Find jobs in Japan",
+      "Post jobs and find candidates"
+    ],
+    "roleIntro": "Welcome to Workstation JobShare, how would you like to join?",
+    "chatError": "Support is unavailable right now. Please try again."
+  },
+  "ja": {
+    "skip": "本文へ移動",
+    "top": "ページ上部へ",
+    "heroAlt": "JobShareで日本のエンジニア求人を探す求職者",
+    "aiAlt": "AIによる履歴書解析と応募書類の最適化",
+    "platformAlt": "求人検索・プロフィール・応募進捗・キャリア支援をまとめたJobShare求職者画面",
+    "finalAlt": "採用担当者とキャリア相談をする求職者",
+    "navHome": "ホーム",
+    "navJobs": "求人一覧",
+    "navProfile": "マイプロフィール",
+    "navAbout": "私たちについて",
+    "navPartners": "パートナー",
+    "navBlog": "ブログ",
+    "login": "ログイン",
+    "register": "登録",
+    "openMenu": "メニューを開く",
+    "closeMenu": "メニューを閉じる",
+    "roles": [
+      "コラボレーター",
+      "応募者",
+      "企業"
+    ],
+    "roleSub": [
+      "候補者を紹介して報酬を獲得",
+      "日本で仕事を探す",
+      "求人掲載と候補者探し"
+    ],
+    "roleIntro": "JobShareワークステーションへようこそ。どの立場で参加しますか？",
+    "chatError": "現在サポートに接続できません。時間をおいて再度お試しください。"
+  }
+}

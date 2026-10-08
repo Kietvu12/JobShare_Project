@@ -1,0 +1,23 @@
+{
+  "brand": "JOBSHARE BUSINESS",
+  "theme": "business-blue",
+  "routes": {
+    "vi": {
+      "home": "/vi/business",
+      "register": "/vi/business/register"
+    },
+    "en": {
+      "home": "/en/business",
+      "register": "/en/business/register"
+    },
+    "ja": {
+      "home": "/ja/business",
+      "register": "/ja/business/register"
+    }
+  },
+  "auth": {
+    "login": "/business/auth/login",
+    "forgot": "/business/auth/forgot-password",
+    "storageKey": "businessjs_auth"
+  }
+}

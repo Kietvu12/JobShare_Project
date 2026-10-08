@@ -1,0 +1,184 @@
+{
+  "version": "V1.1",
+  "locales": {
+    "vi": {
+      "canonical": "https://ws-jobshare.com/vi/candidate",
+      "hreflang": {
+        "vi": "https://ws-jobshare.com/vi/candidate",
+        "en": "https://ws-jobshare.com/en/candidate",
+        "ja": "https://ws-jobshare.com/ja/candidate",
+        "x-default": "https://ws-jobshare.com/vi/candidate"
+      },
+      "production_language_links": [
+        "https://ws-jobshare.com/vi/candidate",
+        "https://ws-jobshare.com/en/candidate",
+        "https://ws-jobshare.com/ja/candidate"
+      ],
+      "candidate_active_role": "https://ws-jobshare.com/vi/candidate",
+      "hero_src": "assets/candidate-hero-2.webp",
+      "why_cards": 4,
+      "application_steps": 3,
+      "features": 4,
+      "partners": 18,
+      "job_cards": 5,
+      "more_jobs_cards": 1,
+      "news_cards": 2,
+      "faq_sections": 0,
+      "hero_new": true,
+      "no_static_filenames_in_prod_nav": true,
+      "seo_meta_counts": {
+        "og:title": 1,
+        "og:description": 1,
+        "og:image": 1,
+        "og:url": 1,
+        "twitter:card": 1,
+        "twitter:title": 1,
+        "twitter:description": 1,
+        "twitter:image": 1
+      },
+      "jsonld_script_count": 1,
+      "jsonld_types": [
+        "WebSite",
+        "Organization",
+        "WebPage"
+      ],
+      "search_action_present": false,
+      "br_count": 0,
+      "developer_note_present": false,
+      "missing_local_assets": []
+    },
+    "en": {
+      "canonical": "https://ws-jobshare.com/en/candidate",
+      "hreflang": {
+        "vi": "https://ws-jobshare.com/vi/candidate",
+        "en": "https://ws-jobshare.com/en/candidate",
+        "ja": "https://ws-jobshare.com/ja/candidate",
+        "x-default": "https://ws-jobshare.com/vi/candidate"
+      },
+      "production_language_links": [
+        "https://ws-jobshare.com/vi/candidate",
+        "https://ws-jobshare.com/en/candidate",
+        "https://ws-jobshare.com/ja/candidate"
+      ],
+      "candidate_active_role": "https://ws-jobshare.com/en/candidate",
+      "hero_src": "assets/candidate-hero-2.webp",
+      "why_cards": 4,
+      "application_steps": 3,
+      "features": 4,
+      "partners": 18,
+      "job_cards": 5,
+      "more_jobs_cards": 1,
+      "news_cards": 2,
+      "faq_sections": 0,
+      "hero_new": true,
+      "no_static_filenames_in_prod_nav": true,
+      "seo_meta_counts": {
+        "og:title": 1,
+        "og:description": 1,
+        "og:image": 1,
+        "og:url": 1,
+        "twitter:card": 1,
+        "twitter:title": 1,
+        "twitter:description": 1,
+        "twitter:image": 1
+      },
+      "jsonld_script_count": 1,
+      "jsonld_types": [
+        "WebSite",
+        "Organization",
+        "WebPage"
+      ],
+      "search_action_present": false,
+      "br_count": 0,
+      "developer_note_present": false,
+      "missing_local_assets": [],
+      "news_dates": [
+        "May 13, 2026",
+        "Apr 24, 2026"
+      ],
+      "job704_salary": "JPY 26.4–80 million/year"
+    },
+    "ja": {
+      "canonical": "https://ws-jobshare.com/ja/candidate",
+      "hreflang": {
+        "vi": "https://ws-jobshare.com/vi/candidate",
+        "en": "https://ws-jobshare.com/en/candidate",
+        "ja": "https://ws-jobshare.com/ja/candidate",
+        "x-default": "https://ws-jobshare.com/vi/candidate"
+      },
+      "production_language_links": [
+        "https://ws-jobshare.com/vi/candidate",
+        "https://ws-jobshare.com/en/candidate",
+        "https://ws-jobshare.com/ja/candidate"
+      ],
+      "candidate_active_role": "https://ws-jobshare.com/ja/candidate",
+      "hero_src": "assets/candidate-hero-2.webp",
+      "why_cards": 4,
+      "application_steps": 3,
+      "features": 4,
+      "partners": 18,
+      "job_cards": 5,
+      "more_jobs_cards": 1,
+      "news_cards": 2,
+      "faq_sections": 0,
+      "hero_new": true,
+      "no_static_filenames_in_prod_nav": true,
+      "seo_meta_counts": {
+        "og:title": 1,
+        "og:description": 1,
+        "og:image": 1,
+        "og:url": 1,
+        "twitter:card": 1,
+        "twitter:title": 1,
+        "twitter:description": 1,
+        "twitter:image": 1
+      },
+      "jsonld_script_count": 1,
+      "jsonld_types": [
+        "WebSite",
+        "Organization",
+        "WebPage"
+      ],
+      "search_action_present": false,
+      "br_count": 0,
+      "developer_note_present": false,
+      "missing_local_assets": [],
+      "protected_samples": {
+        "aboutCard3Desc": "プロフィールを自動分析し、あなたのスキルと最も<span class=\"no-split\">「マッチング」度</span>の<span class=\"no-split\">高い求人</span>を<span class=\"no-split\">提案します</span>。",
+        "guideStep1Desc": "トップページから、<span class=\"no-split\">募集中の求人</span>を<span class=\"no-split\">すばやく確認</span>し、<span class=\"no-split\">希望条件</span>で絞り込んで<span class=\"no-split\">応募を始められます</span>。",
+        "guideStep3Desc": "プロフィール送信後、内容を確認して<span class=\"no-split\">ステータス</span>を更新し、<span class=\"no-split\">JobShareの</span>担当者が次の対応を<span class=\"no-split\">ご案内します</span>。",
+        "footerCtaDesc": "今すぐ登録して<span class=\"no-split\">JobShareの</span><span class=\"no-split\">求職者プロフィール</span>を作成し、<span class=\"no-split\">日本での多くの</span><span class=\"no-split\">求人機会</span>を<span class=\"no-split\">見つけましょう</span>。<span class=\"no-split\">利用は完全無料です</span>！"
+      }
+    }
+  },
+  "notes": [],
+  "standalone": {
+    "vi": {
+      "language_links": [
+        "JobShare_Candidate_VI_V1_1.html",
+        "JobShare_Candidate_EN_V1_1.html",
+        "JobShare_Candidate_JA_V1_1.html"
+      ],
+      "candidate_active_role": "JobShare_Candidate_VI_V1_1.html",
+      "canonical": "https://ws-jobshare.com/vi/candidate"
+    },
+    "en": {
+      "language_links": [
+        "JobShare_Candidate_VI_V1_1.html",
+        "JobShare_Candidate_EN_V1_1.html",
+        "JobShare_Candidate_JA_V1_1.html"
+      ],
+      "candidate_active_role": "JobShare_Candidate_EN_V1_1.html",
+      "canonical": "https://ws-jobshare.com/en/candidate"
+    },
+    "ja": {
+      "language_links": [
+        "JobShare_Candidate_VI_V1_1.html",
+        "JobShare_Candidate_EN_V1_1.html",
+        "JobShare_Candidate_JA_V1_1.html"
+      ],
+      "candidate_active_role": "JobShare_Candidate_JA_V1_1.html",
+      "canonical": "https://ws-jobshare.com/ja/candidate"
+    }
+  }
+}

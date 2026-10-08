@@ -1,0 +1,131 @@
+{
+  "result": [
+    {
+      "locale": "vi",
+      "mismatches": [],
+      "sectionOrder": true,
+      "counts": {
+        "community": 3,
+        "why": 4,
+        "steps": 3,
+        "features": 4,
+        "bullets": 12,
+        "partners": 18,
+        "faq": 6
+      },
+      "periods": [],
+      "newsOK": true,
+      "hardBreaks": 0,
+      "commissionLabels": [
+        "Khởi điểm",
+        "Tối đa"
+      ]
+    },
+    {
+      "locale": "en",
+      "mismatches": [],
+      "sectionOrder": true,
+      "counts": {
+        "community": 3,
+        "why": 4,
+        "steps": 3,
+        "features": 4,
+        "bullets": 12,
+        "partners": 18,
+        "faq": 6
+      },
+      "periods": [],
+      "newsOK": true,
+      "hardBreaks": 0,
+      "commissionLabels": [
+        "Starting rate",
+        "Maximum"
+      ]
+    },
+    {
+      "locale": "ja",
+      "mismatches": [],
+      "sectionOrder": true,
+      "counts": {
+        "community": 3,
+        "why": 4,
+        "steps": 3,
+        "features": 4,
+        "bullets": 12,
+        "partners": 18,
+        "faq": 6
+      },
+      "periods": [],
+      "newsOK": true,
+      "hardBreaks": 0,
+      "commissionLabels": [
+        "開始時",
+        "最大"
+      ]
+    },
+    {
+      "menuOpens": true
+    },
+    {
+      "menuCloses": true
+    },
+    {
+      "faqOpen": true
+    },
+    {
+      "supportOpens": true
+    },
+    {
+      "policyDialog": true
+    },
+    {
+      "chatTab": true
+    },
+    {
+      "mockedChatSessionAndSend": true,
+      "intercepted": [
+        {
+          "method": "POST",
+          "path": "/api_jobshare/api/public/ctv-chat/sessions"
+        },
+        {
+          "method": "POST",
+          "path": "/api_jobshare/api/public/ctv-chat/messages"
+        },
+        {
+          "method": "GET",
+          "path": "/api_jobshare/api/public/ctv-chat/messages"
+        },
+        {
+          "method": "GET",
+          "path": "/api_jobshare/api/public/ctv-chat/stream"
+        }
+      ]
+    },
+    {
+      "contactDialog": true
+    },
+    {
+      "standalone": "vi",
+      "brokenImages": 0,
+      "fontReady": "loaded"
+    },
+    {
+      "standalone": "en",
+      "brokenImages": 0,
+      "fontReady": "loaded"
+    },
+    {
+      "standalone": "ja",
+      "brokenImages": 0,
+      "fontReady": "loaded"
+    },
+    {
+      "standaloneLanguageSwitch": true
+    },
+    {
+      "reducedMotion": true
+    }
+  ],
+  "errors": []
+}

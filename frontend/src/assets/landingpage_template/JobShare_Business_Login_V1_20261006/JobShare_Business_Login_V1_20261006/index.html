@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="vi" data-initial-lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,follow">
+  <title>Đăng nhập doanh nghiệp | JobShare Business</title>
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="login-page">
+  <div class="login-utility">
+    <a class="back-link" id="back-link" href="/vi/business" aria-label="Quay lại Business Home">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+      <span id="back-label">Quay lại Business Home</span>
+    </a>
+    <nav class="languages" aria-label="Language">
+      <button type="button" data-lang="vi" aria-current="true">VI</button>
+      <button type="button" data-lang="en" aria-current="false">EN</button>
+      <button type="button" data-lang="ja" aria-current="false">JA</button>
+    </nav>
+  </div>
+
+  <div class="login-stage">
+    <section class="login-shell" aria-label="JobShare Business login">
+      <aside class="login-brand" aria-label="JobShare Business">
+        <div class="brand-lockup"><div class="business-brand" aria-label="JobShare Business">JOBSHARE BUSINESS</div></div>
+        <div class="brand-visual" aria-hidden="true">
+          <img src="assets/login-business.webp" alt="" width="1122" height="1402" decoding="async">
+        </div>
+      </aside>
+
+      <div class="login-panel">
+        <div class="login-panel-inner">
+          <div id="login-view">
+            <header class="login-heading">
+              <div class="kicker" id="login-kicker">JOBSHARE BUSINESS</div>
+              <h1 id="login-title">Đăng nhập doanh nghiệp</h1>
+            </header>
+
+            <form class="login-form" id="login-form">
+              <div class="field">
+                <label for="email" id="email-label">Email</label>
+                <div class="input-wrap">
+                  <span class="input-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="m4 7 8 6 8-6"/></svg></span>
+                  <input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="Email" required>
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="password" id="password-label">Mật khẩu</label>
+                <div class="input-wrap">
+                  <span class="input-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
+                  <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Mật khẩu" required>
+                  <button class="password-toggle" id="password-toggle" type="button" aria-label="Hiển thị mật khẩu" aria-pressed="false">
+                    <svg class="eye-open" aria-hidden="true" viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.6"/></svg>
+                    <svg class="eye-off" aria-hidden="true" viewBox="0 0 24 24" hidden><path d="m3 3 18 18"/><path d="M10.6 6.2A11 11 0 0 1 12 6c6.5 0 10 6 10 6a16 16 0 0 1-3.1 3.8M6.6 6.6C3.6 8.3 2 12 2 12s3.5 6 10 6c1.6 0 3-.4 4.2-1"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-links"><button class="text-link" id="forgot-link" type="button">Quên mật khẩu? Nhấn vào đây</button></div>
+              <div class="form-alert" id="login-alert" role="alert" aria-live="polite" hidden><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></svg><span></span></div>
+              <button class="btn btn-primary" id="login-submit" type="submit"><span class="btn-spinner" hidden></span><span class="btn-label">Đăng nhập</span></button>
+            </form>
+
+            <p class="register-row"><a id="register-link" href="/vi/business/register">Đăng ký doanh nghiệp mới? Nhấn vào đây</a></p>
+          </div>
+
+          <div id="forgot-view" hidden>
+            <header class="login-heading">
+              <div class="kicker">JOBSHARE BUSINESS</div>
+              <h1 id="forgot-title">Quên mật khẩu</h1>
+              <p class="forgot-description" id="forgot-description">Nhập email đã đăng ký để nhận liên kết đặt lại mật khẩu.</p>
+            </header>
+
+            <form class="login-form" id="forgot-form">
+              <div class="field">
+                <label for="forgot-email" id="forgot-email-label">Email</label>
+                <div class="input-wrap">
+                  <span class="input-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="m4 7 8 6 8-6"/></svg></span>
+                  <input id="forgot-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="Email" required>
+                </div>
+              </div>
+              <div class="form-alert" id="forgot-alert" role="alert" aria-live="polite" hidden><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></svg><span></span></div>
+              <button class="btn btn-primary" id="forgot-submit" type="submit"><span class="btn-spinner" hidden></span><span class="btn-label">Gửi liên kết đặt lại</span></button>
+              <button class="text-link back-login" id="back-login" type="button">Quay lại đăng nhập</button>
+            </form>
+
+            <div id="forgot-success" hidden>
+              <div class="form-alert success" role="status" aria-live="polite"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg><span id="forgot-success-copy">Nhập email đã đăng ký để nhận liên kết đặt lại mật khẩu.</span></div>
+              <div class="forgot-actions"><button class="btn btn-primary" id="success-back-login" type="button"><span class="btn-label">Quay lại đăng nhập</span></button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

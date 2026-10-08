@@ -1,0 +1,30 @@
+{
+  "source": "JobShare_Login live/saved bundle",
+  "vi": {
+    "back": "Quay lại trang chủ",
+    "title": "Đăng nhập CTV",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "login": "Đăng nhập",
+    "forgot": "Quên mật khẩu? Nhấn vào đây",
+    "register": "Đăng ký mới? Nhấn vào đây"
+  },
+  "en": {
+    "back": "Back to home",
+    "title": "Agent Login",
+    "email": "Email",
+    "password": "Password",
+    "login": "Login",
+    "forgot": "Forgot password? Click here",
+    "register": "New registration? Click here"
+  },
+  "ja": {
+    "back": "ホームに戻る",
+    "title": "エージェントログイン",
+    "email": "Email",
+    "password": "パスワード",
+    "login": "ログイン",
+    "forgot": "パスワードをお忘れですか？ここをクリック",
+    "register": "新規登録？ここをクリック"
+  }
+}

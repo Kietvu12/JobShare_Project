@@ -5,6 +5,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useCandidateAuth } from '../../context/CandidateAuthContext';
 import CandidateLandingChatbot from '../LandingPage/CandidateLandingChatbot';
 import {
+  isCandidateMarketingHome,
   localizedPersonaHref,
   resolveCandidatePrefix,
   switchLocaleInPathname,
@@ -207,6 +208,10 @@ const CandidateLayout = () => {
   }, [mobileMenuOpen]);
 
   if (isAuthScreen) {
+    return <Outlet />;
+  }
+
+  if (isCandidateMarketingHome(pathname)) {
     return <Outlet />;
   }
 

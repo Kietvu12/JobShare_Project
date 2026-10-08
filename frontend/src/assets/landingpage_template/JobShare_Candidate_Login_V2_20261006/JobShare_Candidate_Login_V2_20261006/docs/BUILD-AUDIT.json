@@ -1,0 +1,17 @@
+{
+  "styles.css_identical": true,
+  "fonts.css_identical": true,
+  "font_files_identical": true,
+  "candidate_visual_size": [
+    1122,
+    1402
+  ],
+  "forbidden_strings": {
+    "/ctv/auth": [],
+    "userType": [],
+    "/agent": [],
+    "commission": [],
+    "referral": [],
+    "login-collaborator": []
+  }
+}

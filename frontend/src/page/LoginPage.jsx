@@ -5,6 +5,9 @@ import { useLanguage } from '../context/LanguageContext';
 import { translations } from '../translations/translations';
 import logoImage from '../assets/Login_files/logo-removebg-preview-C0FMBBYQ.png';
 import apiService from '../services/api';
+import JobShareTemplateLoginLayout from './LandingPage/JobShareTemplateLoginLayout';
+import { COLLABORATOR_LOGIN_COPY } from '../utils/jobShareTemplateLoginCopy';
+import { localizedPersonaHref } from '../utils/localeRoutes';
 
 const LoginPage = ({ defaultUserType = 'ctv' }) => {
   const navigate = useNavigate();
@@ -171,6 +174,112 @@ const LoginPage = ({ defaultUserType = 'ctv' }) => {
       setLoading(false);
     }
   };
+
+  const isAdminLogin = location.pathname === '/admin/login';
+
+  if (!isAdminLogin) {
+    const copy = COLLABORATOR_LOGIN_COPY[language] || COLLABORATOR_LOGIN_COPY.vi;
+    const ctvView = view === 'forgotPassword' ? 'forgot' : 'login';
+
+    const handleCtvLogin = async (e) => {
+      e.preventDefault();
+      setError('');
+      setLoading(true);
+      try {
+        if (!formData.email || !formData.password) {
+          setError(copy.required);
+          setLoading(false);
+          return;
+        }
+        const response = await apiService.loginCTV({
+          email: formData.email,
+          password: formData.password,
+        });
+        if (response.success && response.data?.token) {
+          localStorage.setItem('token', response.data.token);
+          localStorage.setItem('userType', 'ctv');
+          if (response.data.collaborator) {
+            localStorage.setItem('user', JSON.stringify(response.data.collaborator));
+          }
+          navigate('/agent');
+        } else {
+          setError(response.message || copy.failed);
+        }
+      } catch (err) {
+        setError(err.message || copy.failedCheck);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const handleCtvForgot = async (e) => {
+      e.preventDefault();
+      setError('');
+      if (!forgotEmail.trim()) {
+        setError(copy.required);
+        return;
+      }
+      setLoading(true);
+      try {
+        const response = await apiService.forgotPasswordCTV(forgotEmail.trim());
+        if (response.success) {
+          setForgotSuccess(true);
+        } else {
+          setError(response.message || copy.failed);
+        }
+      } catch (err) {
+        setError(err.message || copy.failedCheck);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <JobShareTemplateLoginLayout
+        variant="collaborator"
+        copy={copy}
+        language={language}
+        onLanguageChange={changeLanguage}
+        backHref={localizedPersonaHref(language, 'collaborator')}
+        registerHref="/register"
+        pageTitle={`${copy.title} | Workstation JobShare`}
+        view={ctvView}
+        onShowForgot={() => {
+          setView('forgotPassword');
+          setError('');
+          setForgotSuccess(false);
+          setForgotEmail('');
+        }}
+        onShowLogin={() => {
+          setView('login');
+          setError('');
+          setForgotSuccess(false);
+        }}
+        error={error}
+        loading={loading}
+        email={formData.email}
+        onEmailChange={(v) => {
+          setFormData((prev) => ({ ...prev, email: v }));
+          if (error) setError('');
+        }}
+        password={formData.password}
+        onPasswordChange={(v) => {
+          setFormData((prev) => ({ ...prev, password: v }));
+          if (error) setError('');
+        }}
+        showPassword={showPassword}
+        onTogglePassword={() => setShowPassword((v) => !v)}
+        onLoginSubmit={handleCtvLogin}
+        forgotEmail={forgotEmail}
+        onForgotEmailChange={(v) => {
+          setForgotEmail(v);
+          if (error) setError('');
+        }}
+        onForgotSubmit={handleCtvForgot}
+        forgotSuccess={forgotSuccess}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center relative py-8" style={{ fontFamily: '"Myriad Pro", sans-serif' }}>
