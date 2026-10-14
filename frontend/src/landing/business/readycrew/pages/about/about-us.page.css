@@ -1,0 +1,319 @@
+/* About Us extension. business-v6.7.css is the unchanged supplied V6.7 base. */
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;800;900&display=swap');
+.jsb-about{padding-bottom:0}.jsb-about[lang=vi]{font-family:"Segoe UI",Arial,"Helvetica Neue",sans-serif}.jsb-about[lang=ja]{font-family:"Noto Sans JP","Yu Gothic","Hiragino Kaku Gothic ProN",Meiryo,Arial,sans-serif}.jsb-about h1,.jsb-about h2,.jsb-about h3{font-weight:850}.jsb-about[lang=ja] h1,.jsb-about[lang=ja] h2,.jsb-about[lang=ja] h3,.jsb-about[lang=ja] p{line-break:strict;word-break:normal;overflow-wrap:break-word}.jsb-about a:focus-visible,.jsb-about button:focus-visible{outline:3px solid var(--blue);outline-offset:5px}.jsb-about figure{margin:0}.jsb-about .skip-link{position:absolute;top:-80px;z-index:200;background:white;padding:12px}.jsb-about .skip-link:focus{top:0}.jsb-about .business-header{background:white;position:relative;z-index:30}.jsb-about .header-top{display:flex;justify-content:flex-end;gap:28px;align-items:center;height:36px;border-bottom:1px solid var(--line);font-size:12px;font-weight:700;color:var(--blue)}.jsb-about .header-top a{text-decoration:none}.jsb-about .languages{display:flex;gap:0;align-items:center}.jsb-about .languages a{padding:2px 10px;text-decoration:none;border-right:1px solid var(--line);font-size:12px;font-weight:700}.jsb-about .languages a:last-child{border:0}.jsb-about .languages span{padding:2px 10px;border-right:1px solid var(--line);font-size:12px;font-weight:700;opacity:.4;cursor:not-allowed}.jsb-about .languages a[aria-current]{color:var(--blue);font-weight:900;text-decoration:underline;text-underline-offset:5px}.jsb-about .header-main{display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:82px}.jsb-about .business-brand{font-family:Barlow,Arial,sans-serif;font-size:26px;font-weight:800;white-space:nowrap;color:var(--blue);text-decoration:none;letter-spacing:-.8px;line-height:1.1}.jsb-about .business-brand span{display:inline}.jsb-about #business-nav{display:flex;align-items:center;gap:20px;font-size:12px;font-weight:700}.jsb-about #business-nav a{text-decoration:none}.jsb-about #business-nav a[aria-current]{color:var(--blue);border-bottom:2px solid var(--blue);padding-block:10px}.jsb-about #business-nav .nav-register{background:var(--blue);color:#fff;padding:13px 15px}.jsb-about .menu-toggle{display:none}.jsb-about .about-hero{min-height:555px;background:var(--blue-deep)}.jsb-about .about-hero .hero-inner{min-height:555px;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);gap:36px;align-items:center;position:relative;z-index:2}.jsb-about .about-hero .hero-copy{padding:68px 0;order:0;max-width:none}.jsb-about .about-hero h1{font-size:clamp(34px,3.7vw,52px);line-height:1.3;letter-spacing:-.04em;max-width:none;margin:0 0 24px;font-weight:900}.jsb-about .about-hero .heading-line{display:block;white-space:nowrap}.jsb-about .about-hero .hero-lead{font-size:17px;line-height:1.8;margin-bottom:28px;max-width:520px}.jsb-about .about-hero-media{position:relative;box-shadow:0 28px 65px rgba(0,35,54,.25);border:1px solid rgba(255,255,255,.35);z-index:1}.jsb-about .about-hero-media:before{content:"";position:absolute;inset:-13px -13px 13px 13px;border:1px solid rgba(255,255,255,.3);z-index:-1}.jsb-about .about-hero-media img{width:100%;aspect-ratio:16/9;object-fit:cover;object-position:50% 50%}.jsb-about .about-hero-media figcaption{position:absolute;left:-18px;bottom:24px;background:var(--yellow);color:var(--ink);padding:12px 18px;font-size:12px;font-weight:800;letter-spacing:.13em}.jsb-about .about-hero-actions{display:flex;flex-wrap:wrap;gap:12px}.jsb-about .about-hero-actions .btn{min-height:54px;font-size:14px;padding:0 20px}.jsb-about .about-index{background:var(--sky2);border-bottom:1px solid var(--line)}.jsb-about .about-index .wrap{display:grid;grid-template-columns:repeat(4,1fr)}.jsb-about .about-index a{display:flex;gap:14px;align-items:center;padding:19px 16px;text-decoration:none;font-size:12px;color:var(--blue);border-right:1px solid var(--line);font-weight:800}.jsb-about .about-index a:first-child{border-left:1px solid var(--line)}.jsb-about .about-index a span{color:var(--ink)}.jsb-about .about-index a:hover{background:var(--sky)}.jsb-about .about-grid{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:58px}.jsb-about .about-copy h2{font-size:clamp(32px,3.4vw,46px)}.jsb-about .about-copy>p{font-size:15px;line-height:2}.jsb-about .about-media img{aspect-ratio:16/9;object-fit:cover}.jsb-about .section-head h2{font-size:clamp(30px,3.7vw,48px)}.jsb-about .section-head{grid-template-columns:1fr}.jsb-about .purpose{background:var(--sky2)}.jsb-about .purpose-grid{display:grid;grid-template-columns:1fr 1fr;gap:44px}.jsb-about .purpose-card{border-top:2px solid var(--blue);padding-top:26px}.jsb-about .purpose-top{display:flex;align-items:center;justify-content:space-between}.jsb-about .purpose-top>span{font:500 52px Barlow,Arial,sans-serif;color:var(--line);line-height:1}.jsb-about .purpose-card h2{font-size:30px;margin:20px 0}.jsb-about .purpose-card>p{line-height:2;margin:0;font-size:17px;color:var(--text);max-width:520px}.jsb-about .strength-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.jsb-about .strength-grid .field-card{grid-column:auto;padding:30px 25px}.jsb-about .strength-grid .field-card h3{font-size:21px;line-height:1.55;min-height:3.1em}.jsb-about .strength-grid .field-card p{font-size:14px;line-height:1.95}.jsb-about .field-en{font-size:10px}.jsb-about .model{background:var(--sky2)}.jsb-about .model .section-head{margin-bottom:24px}.jsb-about .model-intro{max-width:950px;color:var(--text);line-height:2;margin-bottom:36px}.jsb-about .model-photo{border:1px solid var(--line);box-shadow:0 20px 44px rgba(11,57,84,.10)}.jsb-about .model-photo img{width:100%;aspect-ratio:16/9;object-fit:cover;object-position:center}.jsb-about .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}.jsb-about .role-card{position:relative;border:1px solid var(--line);border-top:4px solid var(--blue);background:white;padding:34px;display:flex;flex-direction:column}.jsb-about .role-location{color:var(--blue);font-size:12px;font-weight:800;letter-spacing:.16em;margin-bottom:9px}.jsb-about .role-eyebrow{font-size:10px;font-weight:800;letter-spacing:.09em;color:var(--muted);margin-bottom:16px}.jsb-about .role-card h3{font-size:27px;margin:0 0 5px;letter-spacing:-.03em}.jsb-about .legal-name{font-size:12px;color:var(--muted);margin-bottom:0}.jsb-about .role-card>p:last-of-type{line-height:1.95;color:var(--text);margin-top:20px;font-size:14px}.jsb-about .role-card .text-link{margin-top:auto;align-self:flex-start}.jsb-about .connection-note{display:flex;align-items:center;gap:24px;margin:28px 0;padding:24px 30px;background:var(--sky);border-left:4px solid var(--blue)}.jsb-about .connection-note>span{font-size:40px;color:var(--blue)}.jsb-about .connection-note p{margin:0;line-height:1.9;font-size:14px}.jsb-about .company-grid{display:grid;grid-template-columns:1fr 1fr;gap:54px}.jsb-about .company-tag{font-size:12px;font-weight:800;color:var(--blue);letter-spacing:.14em}.jsb-about .company-grid h3{font-size:26px;margin-bottom:25px}.jsb-about dl{margin:0}.jsb-about .detail-row{display:grid;grid-template-columns:130px minmax(0,1fr);gap:20px;padding:21px 0;border-top:1px solid var(--line);font-size:14px}.jsb-about dt{font-weight:700;color:var(--muted)}.jsb-about dd{margin:0;overflow-wrap:break-word;line-height:1.9}.jsb-about dd a{color:var(--blue)}.jsb-about .contact-strip{border-top:1px solid var(--line);margin-top:32px;padding-top:26px;display:flex;flex-wrap:wrap;gap:20px 40px;font-size:14px}.jsb-about .contact-strip>span{font-weight:700;color:var(--muted)}.jsb-about .contact-strip a{text-decoration:none}.jsb-about .scope{background:var(--soft)}.jsb-about .scope-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--blue)}.jsb-about .scope-grid article{display:flex;gap:24px;align-items:flex-start;border-bottom:1px solid var(--line);padding:28px 26px 28px 0}.jsb-about .scope-grid article:nth-child(even){border-left:1px solid var(--line);padding-left:30px}.jsb-about .scope-grid span{color:var(--blue);font-size:24px;font-weight:800}.jsb-about .scope-grid h3{font-size:18px;line-height:1.65;margin:0}.jsb-about .about-final{padding:88px 0;background:var(--blue-deep);position:relative}.jsb-about .about-final:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,rgba(0,91,141,.94),rgba(0,119,182,.5)),url('/landing/business/templates/shared/city-photo-bg.png') center/cover;opacity:.5}.jsb-about .about-final .wrap{position:relative;z-index:1}.jsb-about .about-final .kicker{color:var(--yellow)}.jsb-about .about-final h2{font-size:clamp(34px,4vw,52px);font-weight:900;line-height:1.45}.jsb-about .about-final> .wrap>p:not(.kicker){max-width:840px;color:#fff;opacity:.9;margin-bottom:28px}.jsb-about .closing-actions{display:flex;gap:14px;flex-wrap:wrap}.jsb-about .closing-actions .btn{min-width:240px}.jsb-about .business-footer{background:#fff;padding:48px 0 20px}.jsb-about .footer-top{display:flex;gap:40px;align-items:center;justify-content:space-between;padding-bottom:34px}.jsb-about .footer-top nav{display:flex;gap:22px;flex-wrap:wrap;font-size:12px;font-weight:700}.jsb-about .footer-top nav a{text-decoration:none}.jsb-about .footer-bottom{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:20px;font-size:11px;color:var(--muted)}.jsb-about .back-top{position:fixed;right:20px;bottom:20px;z-index:50;display:grid;place-items:center;background:var(--blue);color:white;width:42px;height:42px;text-decoration:none;box-shadow:0 4px 20px #0b395422}.jsb-about [id]{scroll-margin-top:24px}
+@media(max-width:1150px){.jsb-about #business-nav{gap:12px;font-size:11px}.jsb-about .header-main{gap:16px}.jsb-about .business-brand{font-size:23px}.jsb-about .about-hero h1{font-size:39px}.jsb-about .about-hero .hero-inner{gap:30px}.jsb-about .about-grid{gap:38px}.jsb-about .detail-row{grid-template-columns:110px minmax(0,1fr);gap:15px}}
+@media(max-width:1000px){.jsb-about .menu-toggle{display:flex;gap:12px;align-items:center;border:1px solid var(--line);background:white;padding:10px 14px;color:var(--blue);font-size:13px;font-weight:700}.jsb-about #business-nav{display:none;position:absolute;left:0;right:0;top:100%;padding:24px;background:#fff;box-shadow:0 15px 25px #0b395422;font-size:14px;align-items:stretch}.jsb-about #business-nav.open{display:flex;flex-direction:column;gap:12px}.jsb-about #business-nav a{padding:7px 12px}.jsb-about .strength-grid{gap:14px}.jsb-about .strength-grid .field-card{padding:25px 18px}.jsb-about .strength-grid .field-card h3{font-size:18px}.jsb-about .company-grid{gap:30px}.jsb-about .footer-top{align-items:flex-start}.jsb-about .footer-top nav{max-width:65%}}
+@media(max-width:820px){.jsb-about .about-hero,.jsb-about .about-hero .hero-inner{min-height:0}.jsb-about .about-hero .hero-inner{display:grid;grid-template-columns:1fr;gap:18px;padding-bottom:38px}.jsb-about .about-hero .hero-copy{padding:45px 0 10px}.jsb-about .about-hero h1{font-size:clamp(29px,5.8vw,42px);line-height:1.4;max-width:670px;margin-bottom:18px}.jsb-about .about-hero .hero-lead{font-size:16px;line-height:1.8;max-width:none;margin-bottom:22px}.jsb-about .about-hero-media img{aspect-ratio:16/9;object-position:center 42%}.jsb-about .about-hero-media:before{inset:-10px -8px 10px 8px}.jsb-about .about-hero-media figcaption{left:0;bottom:16px;padding:8px 14px;font-size:10px}.jsb-about .about-index .wrap{grid-template-columns:1fr 1fr}.jsb-about .about-index a{padding:16px 12px;border-bottom:1px solid var(--line);font-size:11px}.jsb-about .about-index a:nth-child(3){border-left:1px solid var(--line)}.jsb-about .about-grid{grid-template-columns:1fr;gap:28px}.jsb-about .about-media img{aspect-ratio:16/9}.jsb-about .purpose-grid,.jsb-about .company-grid{grid-template-columns:1fr;gap:40px}.jsb-about .strength-grid{grid-template-columns:1fr}.jsb-about .strength-grid .field-card{padding:28px}.jsb-about .strength-grid .field-card h3{min-height:0;font-size:22px}.jsb-about .strength-grid .field-card p{font-size:15px}.jsb-about .field-icon{margin-block:18px}.jsb-about .role-grid{grid-template-columns:1fr}.jsb-about .model-photo img{aspect-ratio:16/9}.jsb-about .role-card{padding:28px}.jsb-about .section-head{margin-bottom:30px}.jsb-about .purpose-card>p{max-width:none;font-size:16px}.jsb-about .scope-grid{grid-template-columns:1fr}.jsb-about .scope-grid article:nth-child(even){border-left:0;padding-left:0}.jsb-about .scope-grid h3{font-size:18px}.jsb-about .footer-top{flex-direction:column}.jsb-about .footer-top nav{max-width:none}.jsb-about .about-final h2 .heading-line{white-space:normal}.jsb-about .about-final{padding:64px 0}.jsb-about .closing-actions .btn{flex:1;min-width:210px}}
+@media(max-width:480px){.jsb-about .wrap{width:calc(100% - 36px)}.jsb-about .header-top{font-size:10px;gap:10px;justify-content:space-between}.jsb-about .languages a{font-size:11px;padding-inline:8px}.jsb-about .header-main{min-height:69px}.jsb-about .business-brand{font-size:23px}.jsb-about .about-hero h1{font-size:29px;letter-spacing:-.035em}.jsb-about[lang=vi] .about-hero h1{font-size:33px}.jsb-about .about-hero .hero-lead{font-size:14px}.jsb-about .about-hero-actions{gap:8px;display:grid;grid-template-columns:1fr 1fr}.jsb-about .about-hero-actions .btn{min-height:49px;font-size:11px;gap:8px;padding:8px 10px}.jsb-about .about-copy h2,.jsb-about .section-head h2{font-size:30px}.jsb-about .about-copy>p{font-size:14px}.jsb-about .model .heading-line{white-space:normal}.jsb-about .role-card h3{font-size:23px}.jsb-about .connection-note{padding:20px;gap:16px}.jsb-about .connection-note>span{font-size:28px}.jsb-about .detail-row{grid-template-columns:1fr;gap:8px;padding:18px 0}.jsb-about .detail-row dt{font-size:12px}.jsb-about .company-grid h3{font-size:24px}.jsb-about .contact-strip{gap:15px;flex-direction:column}.jsb-about .about-final h2{font-size:30px}.jsb-about .about-final p{font-size:14px}.jsb-about .closing-actions{flex-direction:column}.jsb-about .closing-actions .btn{min-height:54px;min-width:0}.jsb-about .footer-bottom{align-items:center;gap:10px;font-size:10px}.jsb-about .back-top{right:12px;bottom:12px;width:36px;height:36px}}
+@media(prefers-reduced-motion:reduce){.jsb-about *{animation:none!important;transition:none!important}.jsb-about [data-reveal]{opacity:1!important;transform:none!important}}
+
+/* V2 / JA editorial: patch V1 without redesigning the V6.7-derived composition. */
+.jsb-v2.jsb-about{overflow-x:clip}
+.jsb-v2.jsb-about .business-brand{font-family:Barlow,Arial,sans-serif;font-size:22px;font-weight:800;letter-spacing:.015em;line-height:1.1;white-space:nowrap;color:var(--blue);text-transform:uppercase;display:inline-flex;align-items:center;text-decoration:none;flex-shrink:0}
+.jsb-v2.jsb-about .business-header .header-main{min-width:0}
+.jsb-v2.jsb-about .about-hero{min-height:555px!important}
+.jsb-v2.jsb-about .about-hero .hero-inner{min-height:555px!important;display:grid!important;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr)!important;gap:38px!important;align-items:center!important;width:min(calc(100% - 64px),1200px)!important}
+.jsb-v2.jsb-about .about-hero .hero-copy{order:0!important;padding:52px 0!important;min-width:0;max-width:none!important}
+.jsb-v2.jsb-about .about-hero-media{order:1!important;width:100%;max-width:600px;justify-self:center;align-self:center;min-width:0}
+.jsb-v2.jsb-about .about-hero-media img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;object-position:center}
+.jsb-v2.jsb-about .about-hero-media:before{inset:-13px -13px 13px 13px}
+.jsb-v2.jsb-about .about-hero-media figcaption{left:12px;bottom:12px;padding:7px 10px;font-size:10px;letter-spacing:.11em;box-shadow:0 3px 12px #00314c21}
+.jsb-v2.jsb-about[lang=ja] .about-hero h1{font-size:clamp(32px,3.2vw,44px)!important;line-height:1.3!important;max-width:none!important;letter-spacing:-.045em!important;overflow-wrap:normal!important}
+.jsb-v2.jsb-about .about-hero .hero-lead{font-size:17px!important;font-weight:500!important;line-height:1.78!important;margin-bottom:26px!important;max-width:570px}
+.jsb-v2.jsb-about .heading-line{display:block;white-space:nowrap;text-wrap:nowrap}
+.jsb-v2.jsb-about .about-index a{padding-block:19px}
+.jsb-v2.jsb-about .about-grid{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:58px;align-items:center}
+.jsb-v2.jsb-about .about-media{width:100%;max-width:560px;justify-self:center;align-self:center}
+.jsb-v2.jsb-about .about-media img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;object-position:center}
+.jsb-v2.jsb-about .model-photo{width:min(100%,900px);max-width:900px;margin:0 auto}
+.jsb-v2.jsb-about .model-photo img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;object-position:center}
+.jsb-v2.jsb-about .model-intro{max-width:960px}
+.jsb-v2.jsb-about .role-card h3,.jsb-v2.jsb-about .company-grid h3,.jsb-v2.jsb-about .business-brand{word-break:keep-all;overflow-wrap:normal}
+.jsb-v2.jsb-about .role-card>p:last-of-type{line-height:1.85}
+.jsb-v2.jsb-about .strength-grid .field-card{min-width:0;height:100%}
+.jsb-v2.jsb-about .strength-grid .field-card h3{min-height:0;font-size:19px;line-height:1.55}
+.jsb-v2.jsb-about .strength-grid .field-card p{line-height:1.82}
+.jsb-v2.jsb-about .detail-row{grid-template-columns:142px minmax(0,1fr);gap:18px}
+.jsb-v2.jsb-about .detail-row dd{overflow-wrap:break-word;word-break:normal;line-break:strict}
+.jsb-v2.jsb-about .detail-row dd a{overflow-wrap:anywhere}
+.jsb-v2.jsb-about .scope-grid article{min-width:0;gap:18px;padding-right:20px}
+.jsb-v2.jsb-about .scope-grid h3{font-size:18px;line-height:1.65;overflow-wrap:break-word;word-break:normal;line-break:strict}
+.jsb-v2.jsb-about .about-final h2{max-width:none!important;line-height:1.28!important}
+.jsb-v2.jsb-about .about-final:after{display:none!important}
+.jsb-v2.jsb-about .about-final .kicker{color:var(--yellow)!important}
+.jsb-v2.jsb-about[lang=ja] h1,.jsb-v2.jsb-about[lang=ja] h2,.jsb-v2.jsb-about[lang=ja] h3,.jsb-v2.jsb-about[lang=ja] p,.jsb-v2.jsb-about[lang=ja] dd{line-break:strict;word-break:normal}
+@media(max-width:1150px){
+ .jsb-v2.jsb-about .about-hero .hero-inner{gap:28px!important}
+ .jsb-v2.jsb-about[lang=ja] .about-hero h1{font-size:clamp(30px,3.05vw,38px)!important}
+ .jsb-v2.jsb-about .about-grid{gap:36px}
+ .jsb-v2.jsb-about .detail-row{grid-template-columns:118px minmax(0,1fr);gap:12px}
+}
+@media(max-width:820px){
+ .jsb-v2.jsb-about .about-hero,.jsb-v2.jsb-about .about-hero .hero-inner{min-height:0!important}
+ .jsb-v2.jsb-about .about-hero .hero-inner{grid-template-columns:minmax(0,1fr)!important;gap:20px!important;width:calc(100% - 42px)!important;padding-bottom:36px!important}
+ .jsb-v2.jsb-about .about-hero .hero-copy{padding:44px 0 6px!important}
+ .jsb-v2.jsb-about[lang=ja] .about-hero h1{font-size:clamp(29px,5vw,40px)!important;line-height:1.31!important}
+ .jsb-v2.jsb-about .about-hero .hero-lead{font-size:15px!important;line-height:1.75!important;margin-bottom:20px!important}
+ .jsb-v2.jsb-about .about-hero-media{max-width:620px;width:100%}
+ .jsb-v2.jsb-about .about-hero-media img{aspect-ratio:16/9!important;height:auto;object-position:center}
+ .jsb-v2.jsb-about .about-grid{grid-template-columns:minmax(0,1fr);gap:28px}
+ .jsb-v2.jsb-about .about-media{max-width:600px}
+ .jsb-v2.jsb-about .about-media img{aspect-ratio:16/9!important;height:auto}
+ .jsb-v2.jsb-about .model-photo img{aspect-ratio:16/9!important;height:auto}
+ .jsb-v2.jsb-about .purpose-grid,.jsb-v2.jsb-about .company-grid{grid-template-columns:minmax(0,1fr)}
+ .jsb-v2.jsb-about .model-photo{max-width:680px}
+ .jsb-v2.jsb-about .role-grid{grid-template-columns:minmax(0,1fr)}
+ .jsb-v2.jsb-about .heading-line{white-space:normal;text-wrap:wrap}
+ .jsb-v2.jsb-about .about-final h2 .heading-line{white-space:normal}
+ .jsb-v2.jsb-about .detail-row{grid-template-columns:142px minmax(0,1fr)}
+}
+@media(max-width:480px){
+ .jsb-v2.jsb-about .about-hero .hero-inner{width:calc(100% - 36px)!important;gap:18px!important}
+ .jsb-v2.jsb-about .about-hero .hero-copy{padding:38px 0 2px!important}
+ .jsb-v2.jsb-about[lang=ja] .about-hero h1{font-size:clamp(26px,7vw,29px)!important;line-height:1.35!important}
+ .jsb-v2.jsb-about .about-hero .hero-lead{font-size:14px!important}
+ .jsb-v2.jsb-about .business-brand{font-size:18px;letter-spacing:0}
+ .jsb-v2.jsb-about .header-main{gap:8px}
+ .jsb-v2.jsb-about .header-top>a{display:none}
+ .jsb-v2.jsb-about .header-top{justify-content:flex-end}
+ .jsb-v2.jsb-about .about-hero-media:before{inset:-7px -7px 7px 7px}
+ .jsb-v2.jsb-about .about-hero-media figcaption{font-size:9px;padding:6px 8px}
+ .jsb-v2.jsb-about .about-index a{padding:14px 10px}
+ .jsb-v2.jsb-about .detail-row{grid-template-columns:minmax(0,1fr);gap:6px}
+ .jsb-v2.jsb-about .strength-grid .field-card h3{font-size:20px}
+ .jsb-v2.jsb-about .role-card h3{font-size:23px}
+ .jsb-v2.jsb-about .scope-grid h3{font-size:17px}
+ .jsb-v2.jsb-about .about-final h2{font-size:clamp(27px,8vw,34px)}
+}
+
+/* Final small-screen control for V6.7 full-bleed About defaults. */
+@media(min-width:821px){.jsb-v2.jsb-about[lang=ja] .heading-line{white-space:nowrap!important}}
+@media(max-width:820px){
+ .jsb-v2.jsb-about .about-grid.wrap{width:calc(100% - 42px)!important;margin-left:auto!important;margin-right:auto!important}
+ .jsb-v2.jsb-about .about-media{width:100%!important;max-width:600px!important;margin-inline:auto!important}
+ .jsb-v2.jsb-about .about-media img{transform:none!important}
+ .jsb-v2.jsb-about[lang=ja] .heading-line{white-space:normal!important}
+}
+@media(max-width:480px){.jsb-v2.jsb-about .about-grid.wrap{width:calc(100% - 36px)!important}}
+
+/* Visual QA finishing: give the supporting model photo separation after role cards. */
+.jsb-v2.jsb-about .model-photo{margin:36px auto 0}
+.jsb-v2.jsb-about .collaboration-link .jp-nowrap{white-space:nowrap}
+@media(max-width:480px){
+ .jsb-v2.jsb-about .model-photo{margin-top:26px}
+ .jsb-v2.jsb-about .collaboration-link{display:inline-block;line-height:1.75;overflow-wrap:break-word;max-width:100%}
+}
+
+
+/* About Us V3 — Japanese typography and alignment only. Keep all V2 composition/media rules. */
+.jsb-v3.jsb-about[lang="ja"] p,
+.jsb-v3.jsb-about[lang="ja"] dd,
+.jsb-v3.jsb-about[lang="ja"] li {
+  word-break: normal;
+  word-break: auto-phrase;
+  overflow-wrap: normal;
+  line-break: strict;
+  text-wrap: pretty;
+}
+.jsb-v3.jsb-about[lang="ja"] .jp-nowrap-token,
+.jsb-v3.jsb-about[lang="ja"] .jp-nowrap{white-space:nowrap;word-break:keep-all;overflow-wrap:normal}
+.jsb-v3.jsb-about[lang="ja"] .jp-phrase{white-space:nowrap;word-break:keep-all;overflow-wrap:normal}
+.jsb-v3.jsb-about[lang="ja"] .detail-row dd a{overflow-wrap:anywhere;word-break:break-word}
+/* Page-level reading hierarchy — 16px narrative, 17px statements, 15–16px cards. */
+.jsb-v3.jsb-about .about-copy>p:not(.kicker){font-size:16px;line-height:1.95}
+.jsb-v3.jsb-about .purpose-card>p{font-size:17px;line-height:1.96}
+.jsb-v3.jsb-about .strength-grid .field-card p{font-size:15px;line-height:1.85}
+.jsb-v3.jsb-about .role-card>p:last-of-type{font-size:15.5px;line-height:1.88}
+.jsb-v3.jsb-about .model-intro{font-size:16px;line-height:1.95}
+.jsb-v3.jsb-about .connection-note p{font-size:15.5px;line-height:1.85}
+.jsb-v3.jsb-about .detail-row{grid-template-columns:165px minmax(0,1fr);gap:18px;font-size:15px}
+.jsb-v3.jsb-about .detail-row dt{font-size:14px;font-weight:700;line-height:1.75}
+.jsb-v3.jsb-about .detail-row dd{font-size:15px;line-height:1.8;min-width:0;overflow-wrap:normal}
+.jsb-v3.jsb-about .role-eyebrow,.jsb-v3.jsb-about .field-en{font-size:12px;line-height:1.6}
+.jsb-v3.jsb-about .about-index a{font-size:13px}
+.jsb-v3.jsb-about .about-hero-media figcaption{font-size:11px}
+/* Scope numeric marker and title are a true two-column grid, not a hand-tuned flex baseline. */
+.jsb-v3.jsb-about .scope-grid article,
+.jsb-v3.jsb-about .scope-grid article:nth-child(even){display:grid;grid-template-columns:54px minmax(0,1fr);align-items:start;gap:20px;padding:30px 28px}
+.jsb-v3.jsb-about .scope-grid article:nth-child(even){border-left:1px solid var(--line)}
+.jsb-v3.jsb-about .scope-grid article>span{display:block;font-size:24px;line-height:1.25;padding-top:1px}
+.jsb-v3.jsb-about .scope-grid h3{font-size:18px;line-height:1.55;margin:0;overflow-wrap:normal}
+.jsb-v3.jsb-about .scope-title-line{display:block;white-space:nowrap}
+/* Let’s Connect: more separation and body large enough to read. */
+.jsb-v3.jsb-about .about-final{padding:110px 0 96px}
+.jsb-v3.jsb-about .about-final .kicker{margin-bottom:26px}
+.jsb-v3.jsb-about .about-final>.wrap>p:not(.kicker){font-size:16px;line-height:1.88;max-width:900px}
+@media(max-width:1150px) and (min-width:821px){
+  .jsb-v3.jsb-about .detail-row{grid-template-columns:145px minmax(0,1fr);gap:12px}
+}
+@media(max-width:820px){
+  .jsb-v3.jsb-about .detail-row{grid-template-columns:145px minmax(0,1fr)}
+  .jsb-v3.jsb-about .scope-grid article,.jsb-v3.jsb-about .scope-grid article:nth-child(even){padding:25px 24px;gap:16px;border-left:0}
+  .jsb-v3.jsb-about .scope-title-line{white-space:normal}
+  .jsb-v3.jsb-about .about-final{padding:78px 0 76px}
+  .jsb-v3.jsb-about[lang="ja"] .jp-phrase{white-space:normal;word-break:auto-phrase}
+  .jsb-v3.jsb-about .purpose-card>p{font-size:16px;line-height:1.94}
+}
+@media(max-width:480px){
+  .jsb-v3.jsb-about .about-copy>p:not(.kicker){font-size:15px;line-height:1.92}
+  .jsb-v3.jsb-about .strength-grid .field-card p{font-size:15px}
+  .jsb-v3.jsb-about .role-card>p:last-of-type{font-size:15px;line-height:1.86}
+  .jsb-v3.jsb-about .model-intro{font-size:15px}
+  .jsb-v3.jsb-about .connection-note p{font-size:15px}
+  .jsb-v3.jsb-about .detail-row{grid-template-columns:minmax(0,1fr);gap:6px}
+  .jsb-v3.jsb-about .detail-row dt{font-size:14px}
+  .jsb-v3.jsb-about .detail-row dd{font-size:15px}
+  .jsb-v3.jsb-about .scope-grid article,.jsb-v3.jsb-about .scope-grid article:nth-child(even){grid-template-columns:39px minmax(0,1fr);gap:14px;padding:22px 12px}
+  .jsb-v3.jsb-about .scope-grid article>span{font-size:23px}
+  .jsb-v3.jsb-about .scope-grid h3{font-size:17px;line-height:1.62}
+  .jsb-v3.jsb-about .about-final{padding:76px 0 72px}
+  .jsb-v3.jsb-about .about-final .kicker{margin-bottom:24px}
+  .jsb-v3.jsb-about .about-final>.wrap>p:not(.kicker){font-size:15px;line-height:1.86}
+}
+
+/* V3 mobile QA corrections against base Business Home high-specificity type rules. */
+@media(max-width:480px){
+ .jsb-v3.jsb-about .about-copy>p:not(.kicker){font-size:15px!important;line-height:1.92!important}
+ .jsb-v3.jsb-about .about-final .kicker{font-size:13px!important}
+ .jsb-v3.jsb-about .about-index a{font-size:12px}
+}
+@media(max-width:375px){
+ .jsb-v3.jsb-about[lang=ja] .about-final h2{font-size:24px!important;letter-spacing:-.035em!important}
+ .jsb-v3.jsb-about[lang=ja] .about-final h2 .heading-line{white-space:nowrap!important}
+}
+
+/* Final visual QA: Home base targets all scope descendant spans and zeroes mobile final padding. */
+.jsb-v3.jsb-about .scope-grid h3 span{
+  font-size:inherit!important;font-weight:inherit!important;line-height:inherit!important;
+  color:inherit!important;letter-spacing:inherit;
+}
+.jsb-v3.jsb-about .about-final{padding:110px 0 96px!important}
+.jsb-v3.jsb-about .about-final .kicker{margin-bottom:26px!important}
+@media(max-width:820px){
+ .jsb-v3.jsb-about .about-final{padding:78px 0 76px!important}
+}
+@media(max-width:480px){
+ .jsb-v3.jsb-about .about-final{padding:76px 0 72px!important}
+ .jsb-v3.jsb-about .about-final .kicker{margin-bottom:24px!important}
+}
+
+/* =========================================================
+   About Us V4 — approved JA composition + EN/VI rollout
+   - Hero title scale aligned to final CTA
+   - full, continuous city-photo background (no bottom band)
+   - preserve Business V6.7 locale typography
+   ========================================================= */
+.jsb-v4.jsb-about .about-hero{
+  position:relative;
+  isolation:isolate;
+  min-height:570px;
+  background:var(--blue-deep);
+}
+.jsb-v4.jsb-about .about-hero .hero-bg-photo{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:none!important;
+  object-fit:cover!important;
+  object-position:center 56%!important;
+  opacity:1!important;
+  filter:none!important;
+  transform:none!important;
+  z-index:0!important;
+}
+.jsb-v4.jsb-about .about-hero::before{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  z-index:1!important;
+  pointer-events:none!important;
+  opacity:1!important;
+  mask-image:none!important;
+  background:
+    linear-gradient(90deg,rgba(0,91,141,.96) 0%,rgba(0,111,169,.91) 44%,rgba(0,119,182,.70) 72%,rgba(0,119,182,.46) 100%),
+    linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px),
+    linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px)!important;
+  background-size:auto,64px 64px,64px 64px!important;
+}
+.jsb-v4.jsb-about .about-hero::after{display:none!important}
+.jsb-v4.jsb-about .about-hero .hero-inner{min-height:570px;z-index:2}
+.jsb-v4.jsb-about .about-hero h1{
+  font-size:clamp(42px,4.15vw,58px)!important;
+  line-height:1.24!important;
+  letter-spacing:-.045em!important;
+}
+/* Keep the final CTA and hero at the same visual title class. */
+.jsb-v4.jsb-about .about-final h2{
+  font-size:clamp(42px,4.15vw,58px)!important;
+  line-height:1.28!important;
+}
+/* EN follows the exact Business V6.7 Barlow-first stack. VI uses the approved safe system sans stack. */
+.jsb-v4.jsb-about[lang="en"]{font-family:Barlow,"Noto Sans JP","Yu Gothic","Hiragino Kaku Gothic ProN",Meiryo,Arial,sans-serif}
+.jsb-v4.jsb-about[lang="vi"]{font-family:"Segoe UI",Arial,"Helvetica Neue",sans-serif!important}
+.jsb-v4.jsb-about[lang="vi"] h1,
+.jsb-v4.jsb-about[lang="vi"] h2,
+.jsb-v4.jsb-about[lang="vi"] h3,
+.jsb-v4.jsb-about[lang="vi"] p,
+.jsb-v4.jsb-about[lang="vi"] a,
+.jsb-v4.jsb-about[lang="vi"] span,
+.jsb-v4.jsb-about[lang="vi"] strong,
+.jsb-v4.jsb-about[lang="vi"] b,
+.jsb-v4.jsb-about[lang="vi"] button,
+.jsb-v4.jsb-about[lang="vi"] dt,
+.jsb-v4.jsb-about[lang="vi"] dd{font-family:inherit}
+.jsb-v4.jsb-about[lang="en"] .about-hero h1 .heading-line,
+.jsb-v4.jsb-about[lang="vi"] .about-hero h1 .heading-line,
+.jsb-v4.jsb-about[lang="en"] .about-final h2 .heading-line,
+.jsb-v4.jsb-about[lang="vi"] .about-final h2 .heading-line{white-space:nowrap}
+.jsb-v4.jsb-about[lang="en"] .about-hero h1{font-size:clamp(40px,3.8vw,54px)!important;letter-spacing:-.04em!important}
+.jsb-v4.jsb-about[lang="vi"] .about-hero h1{font-size:clamp(40px,3.7vw,54px)!important;letter-spacing:-.035em!important}
+.jsb-v4.jsb-about[lang="en"] .about-final h2{font-size:clamp(40px,3.7vw,54px)!important;letter-spacing:-.035em!important}
+.jsb-v4.jsb-about[lang="vi"] .about-final h2{font-size:clamp(38px,3.5vw,52px)!important;letter-spacing:-.035em!important}
+@media(max-width:1150px) and (min-width:821px){
+  .jsb-v4.jsb-about .about-hero h1{font-size:clamp(38px,4vw,48px)!important}
+  .jsb-v4.jsb-about .about-final h2{font-size:clamp(38px,4vw,48px)!important}
+}
+@media(max-width:820px){
+  .jsb-v4.jsb-about .about-hero,.jsb-v4.jsb-about .about-hero .hero-inner{min-height:0!important}
+  .jsb-v4.jsb-about .about-hero .hero-bg-photo{object-position:62% 55%!important}
+  .jsb-v4.jsb-about .about-hero h1{font-size:clamp(30px,7vw,42px)!important}
+  .jsb-v4.jsb-about .about-final h2{font-size:clamp(30px,7vw,42px)!important}
+  .jsb-v4.jsb-about[lang="en"] .heading-line,
+  .jsb-v4.jsb-about[lang="vi"] .heading-line{white-space:normal!important}
+}
+@media(max-width:480px){
+  .jsb-v4.jsb-about .about-hero h1{font-size:clamp(28px,8vw,34px)!important}
+  .jsb-v4.jsb-about .about-final h2{font-size:clamp(28px,8vw,34px)!important}
+}
+
+
+/* =========================================================
+   About Us V5 — VI hero fit + remove hero image label
+   ========================================================= */
+.jsb-v5.jsb-about .about-hero-media figcaption{display:none!important}
+
+/* Vietnamese headline keeps the approved two-line copy but gets
+   a little more copy width and a language-specific type scale so
+   it never collides with the media panel. */
+@media(min-width:1151px){
+  .jsb-v5.jsb-about[lang="vi"] .about-hero .hero-inner{
+    grid-template-columns:minmax(0,1.22fr) minmax(0,.78fr);
+    gap:30px;
+  }
+  .jsb-v5.jsb-about[lang="vi"] .about-hero h1{
+    font-size:clamp(40px,3.2vw,46px)!important;
+    line-height:1.24!important;
+    letter-spacing:-.04em!important;
+  }
+}
+@media(max-width:1150px) and (min-width:821px){
+  .jsb-v5.jsb-about[lang="vi"] .about-hero .hero-inner{
+    grid-template-columns:minmax(0,1.18fr) minmax(340px,.82fr);
+    gap:24px;
+  }
+  .jsb-v5.jsb-about[lang="vi"] .about-hero h1{
+    font-size:clamp(33px,3.6vw,40px)!important;
+    line-height:1.25!important;
+  }
+}

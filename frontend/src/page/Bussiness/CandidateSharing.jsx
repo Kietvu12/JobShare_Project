@@ -11,6 +11,7 @@ import nothingIllustration from '../../assets/Nothing.png'
 import apiService from '../../services/api'
 import NominationChat from '../../component/Chat/NominationChat'
 import BusinessQuickActionsPageLayout from '../../component/Bussiness/BusinessQuickActionsPageLayout.jsx'
+import BusinessMobileFilterToggle from '../../component/Bussiness/BusinessMobileFilterToggle.jsx'
 import JobCommissionEditor, { validateCommissionForMarketplace } from '../../component/Bussiness/JobCommissionEditor'
 import {
   createAndSubmitMarketplaceListing,
@@ -45,6 +46,7 @@ import {
 } from '../../i18n/businessAppI18n'
 import { getLocalizedJobTitle } from '../../i18n/businessApp/jdBuilder'
 import {
+  BUSINESS_EMPTY_ILLUSTRATION_IMG_CLASS,
   BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
   BUSINESS_HP_TEXT,
   BUSINESS_UI_FONT,
@@ -61,7 +63,6 @@ const CTV_STACK_GAP = 'gap-3 sm:gap-4'
 const CTV_PANEL_HEAD = 'px-4 py-3 sm:px-5 sm:py-3.5'
 const CTV_JOBS_TOOLBAR =
   'flex shrink-0 flex-wrap items-end gap-x-3 gap-y-2 border-b border-slate-100 bg-white sm:gap-x-4'
-const CTV_JOBS_FILTERS = 'flex min-w-0 flex-1 flex-wrap items-end justify-end gap-2 sm:gap-3'
 const CTV_TH = 'px-3 py-2.5 font-semibold sm:px-4 sm:py-3'
 const CTV_TD = 'px-3 py-2.5 sm:px-4 sm:py-3'
 const CTV_COUNT_BADGE = `rounded-full bg-[#e8f4fa] px-1.5 py-0.5 font-bold text-[#0077B6] ${BUSINESS_HP_TEXT.micro}`
@@ -716,7 +717,7 @@ function CreateListingModal({ open, onClose, onCreated, initialJobId = '' }) {
               <img
                 src={nothingIllustration}
                 alt=""
-                className="mb-4 w-full max-w-[220px] object-contain"
+                className={`mb-4 ${BUSINESS_EMPTY_ILLUSTRATION_IMG_CLASS}`}
                 draggable={false}
               />
               <p className={`font-semibold text-slate-800 ${BUSINESS_HP_TEXT.bodyLg}`}>{cm.noJobsTitle}</p>
@@ -1055,6 +1056,7 @@ const CandidateSharing = () => {
   const [jobFilterDeadline, setJobFilterDeadline] = useState('')
   const [jobFilterHasNomination, setJobFilterHasNomination] = useState('')
   const [jobFilterHasInterest, setJobFilterHasInterest] = useState('')
+  const [mobileJobFiltersOpen, setMobileJobFiltersOpen] = useState(false)
   const [openListingMenuId, setOpenListingMenuId] = useState(null)
   const [listingActionBusyId, setListingActionBusyId] = useState(null)
   const [listings, setListings] = useState([])
@@ -1577,7 +1579,17 @@ const CandidateSharing = () => {
                       {filteredJobsData.length}/{jobsData.length}
                     </span>
                   </div>
-                  <div className={CTV_JOBS_FILTERS}>
+                  <BusinessMobileFilterToggle
+                    className="ml-auto"
+                    open={mobileJobFiltersOpen}
+                    onToggle={() => setMobileJobFiltersOpen((v) => !v)}
+                    activeCount={[jobFilterStatus, jobFilterDeadline, jobFilterHasNomination, jobFilterHasInterest].filter(Boolean).length}
+                  />
+                  <div
+                    className={`business-mobile-filters ${
+                      mobileJobFiltersOpen ? 'grid' : 'hidden'
+                    } w-full grid-cols-2 gap-2 lg:flex lg:w-auto lg:min-w-0 lg:flex-1 lg:flex-wrap lg:items-end lg:justify-end lg:gap-3 [&_select]:w-full lg:[&_select]:w-auto`}
+                  >
                     <label className={CTV_FILTER_LABEL}>
                       {db.filters.status}
                       <select
@@ -1632,13 +1644,13 @@ const CandidateSharing = () => {
                   </div>
                 </div>
                 <div className={tableBodyScrollClass}>
-                  <table className={`w-full min-w-[800px] border-collapse ctv-marketplace-table-ui ${BUSINESS_HP_TEXT.body}`}>
+                  <table className={`w-full min-w-0 border-collapse ctv-marketplace-table-ui lg:min-w-[800px] ${BUSINESS_HP_TEXT.body}`}>
                     <thead>
                       <tr className={CTV_TABLE_HEAD_ROW}>
-                        {[tbl.job, tbl.referralFee, tbl.status, tbl.ctv, tbl.nominations, tbl.deadline, ''].map((h) => (
+                        {[tbl.job, tbl.referralFee, tbl.status, tbl.ctv, tbl.nominations, tbl.deadline, ''].map((h, index) => (
                           <th
                             key={h || 'actions'}
-                            className={`${CTV_TH} ${h === tbl.job || h === tbl.referralFee ? 'text-left' : 'text-center'}`}
+                            className={`${CTV_TH} ${[3, 4, 5].includes(index) ? 'max-lg:hidden' : ''} ${h === tbl.job || h === tbl.referralFee ? 'text-left' : 'text-center'}`}
                           >
                             {h === '' ? cs.common.actions : h}
                           </th>
@@ -1686,9 +1698,9 @@ const CandidateSharing = () => {
                                 {job.status}
                               </span>
                             </td>
-                            <td className={`${CTV_TD} text-center font-medium tabular-nums text-slate-700`}>{job.ctvCount ?? '—'}</td>
-                            <td className={`${CTV_TD} text-center font-medium tabular-nums text-slate-700`}>{job.nominationCount ?? '—'}</td>
-                            <td className={`${CTV_TD} text-center`}>
+                            <td className={`${CTV_TD} text-center font-medium tabular-nums text-slate-700 max-lg:hidden`}>{job.ctvCount ?? '—'}</td>
+                            <td className={`${CTV_TD} text-center font-medium tabular-nums text-slate-700 max-lg:hidden`}>{job.nominationCount ?? '—'}</td>
+                            <td className={`${CTV_TD} text-center max-lg:hidden`}>
                               <div className="text-slate-600">{job.deadline}</div>
                               {job.expiringSoon ? (
                                 <div className={`mt-0.5 inline-flex items-center gap-0.5 font-semibold text-amber-700 ${BUSINESS_HP_TEXT.micro}`}>

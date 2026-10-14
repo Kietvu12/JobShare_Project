@@ -58,6 +58,15 @@ const builderPageStyles = `
     font-size: var(--biz-hp-jd-title);
     line-height: 1.45;
   }
+  .business-jobs-ui .jd-builder-composer textarea:focus,
+  .business-jobs-ui .jd-builder-composer textarea:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  .business-jobs-ui .jd-builder-composer:focus-within {
+    outline: none !important;
+    box-shadow: 0 1px 3px 0 rgb(15 23 42 / 0.08);
+  }
 `
 
 const JobAiBuilderPage = ({ mode = 'create' }) => {

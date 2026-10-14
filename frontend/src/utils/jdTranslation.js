@@ -1,12 +1,26 @@
 import { jobSalaryCurrencyToJdCode } from './jobSalaryCurrency.js';
 
-export const JD_TRANSLATE_API_URL = 'https://test.ws-jobshare.com/api_ai/v2/parser/jd/translate';
+export const JD_TRANSLATE_API_URL = 'https://ws-jobshare.com/api_ai/v2/parser/jd/translate';
 
 export const JD_LANGUAGE_TABS = [
   { id: 'vi', label: 'Tiếng Việt' },
   { id: 'en', label: 'English' },
   { id: 'jp', label: '日本語' },
 ];
+
+/** Tab JD preview (vi | en | jp) theo locale UI (vi | en | ja). */
+export function jdLanguageTabFromUiLocale(locale) {
+  if (locale === 'ja') return 'jp';
+  if (locale === 'en') return 'en';
+  return 'vi';
+}
+
+/** Locale gửi JD Builder API (`vi` | `en` | `jp`) — UI dùng `ja`, API dùng `jp`. */
+export function jdBuilderChatLocaleFromUiLocale(locale) {
+  if (locale === 'jp' || locale === 'ja') return 'jp';
+  if (locale === 'en') return 'en';
+  return 'vi';
+}
 
 /** `location` có thể là string hoặc object đa ngôn ngữ từ parse/API — chuẩn hóa trước khi .trim / gửi lưu. */
 function normalizeWorkingLocationField(loc) {

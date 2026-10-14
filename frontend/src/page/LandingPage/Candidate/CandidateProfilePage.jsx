@@ -6,10 +6,10 @@ import { useLanguage } from '../../../context/LanguageContext';
 import { useCandidateAuth } from '../../../context/CandidateAuthContext';
 import { useNotification } from '../../../context/NotificationContext';
 import AddCandidateForm from '../../../component/Shared/AddCandidateForm';
-import CandidateDetailPage from '../../../component/Shared/CandidateDetailPage';
-import NominationsPageContent from '../../../component/Shared/NominationsPageContent';
 import CandidateProfileGuestWizard from './CandidateProfileGuestWizard';
+import CandidateProfileDashboard from './CandidateProfileDashboard';
 import apiService from '../../../services/api';
+import { resolveCandidatePrefix } from '../../../utils/localeRoutes';
 
 const seoMeta = {
   vi: { title: 'Hồ sơ ứng viên | Tạo CV bằng AI | Workstation JobShare', description: 'Quản lý hồ sơ ứng viên, tạo CV chuẩn Nhật bằng AI. Chỉ mất 3 phút với Workstation JobShare.' },
@@ -236,7 +236,7 @@ export default function CandidateProfilePage() {
   const [hasApplicantCv, setHasApplicantCv] = useState(false);
   /** CV id mới nhất (ứng viên thường chỉ một) — dùng cho tab hồ sơ */
   const [myCvId, setMyCvId] = useState(null);
-  const [profileTab, setProfileTab] = useState('profile');
+  const [profileSection, setProfileSection] = useState('profile');
   const [editProfile, setEditProfile] = useState(false);
   /** Khi sửa hồ sơ: chọn mẫu trước rồi mới mở form (giống tạo mới) — null khi không vào flow sửa */
   const [applicantEditStep, setApplicantEditStep] = useState(null);
@@ -384,7 +384,7 @@ export default function CandidateProfilePage() {
     }
   }, []);
 
-  const prefix = pathname.startsWith('/landing/candidate') ? '/landing/candidate' : '/candidate';
+  const prefix = resolveCandidatePrefix(pathname).replace(/\/+$/, '');
   const profilePath = `${prefix}/profile`;
   const loginPath = `${prefix}/login`;
 
@@ -392,9 +392,15 @@ export default function CandidateProfilePage() {
     'mx-auto w-full max-w-[1400px] px-4 sm:px-6';
 
   const seo = seoMeta[language] || seoMeta.vi;
+  const showProfileDashboard =
+    isAuthenticated && applicant && hasApplicantCv && !editProfile && !cvCheckLoading;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-white text-[#1a1a1a]">
+    <div
+      className={`flex min-h-0 flex-1 flex-col text-[#1a1a1a] md:min-h-[calc(100vh-var(--jobshare-role-bar-height,0px)-200px)] ${
+        showProfileDashboard ? 'bg-[#f4f5f7]' : 'bg-white'
+      }`}
+    >
       <Helmet>
         <title>{seo.title}</title>
         <meta name="description" content={seo.description} />
@@ -421,7 +427,7 @@ export default function CandidateProfilePage() {
               {t.pageTitle}
             </li>
           </ol>
-          {isAuthenticated && applicant ? (
+          {isAuthenticated && applicant && (!hasApplicantCv || editProfile || cvCheckLoading) ? (
             <button
               type="button"
               onClick={() => setUsageGuideOpen(true)}
@@ -435,10 +441,12 @@ export default function CandidateProfilePage() {
         </div>
       </nav>
 
-      <div className="flex-1 py-4 md:py-6">
-        <div className={shellClass}>
+      <div
+        className={`flex flex-1 flex-col ${showProfileDashboard ? 'pb-6 pt-2 md:pb-8 md:pt-3' : 'py-6 md:py-10'}`}
+      >
+        <div className={`${shellClass} flex flex-1 flex-col`}>
           {!isAuthenticated || !applicant ? (
-            <div className="mx-auto flex max-w-lg flex-col items-center text-center">
+            <div className="mx-auto flex min-h-[min(520px,calc(100vh-320px))] w-full max-w-lg flex-1 flex-col items-center justify-center py-12 text-center sm:min-h-[min(560px,calc(100vh-280px))] sm:py-16">
               <img
                 src="/assets/freepik__talk__11437-Picsart-BackgroundRemover.png"
                 alt=""
@@ -453,7 +461,7 @@ export default function CandidateProfilePage() {
               <Link
                 to={loginPath}
                 state={{ from: profilePath }}
-                className="mt-8 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#ED212F] px-8 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#c91828] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ED212F] focus-visible:ring-offset-2"
+                className="candidate-solid-cta mt-8 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#ED212F] px-8 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#c91828] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ED212F] focus-visible:ring-offset-2"
               >
                 {t.guestLoginNowCta}
               </Link>
@@ -505,7 +513,7 @@ export default function CandidateProfilePage() {
                               setSelectedApplicantTemplate(item.id);
                               setApplicantEditStep('form');
                             }}
-                            className="mt-2 inline-flex w-full max-w-[200px] items-center justify-center rounded-lg bg-[#ED212F] px-3 py-2.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#c91828] sm:text-sm"
+                            className="candidate-solid-cta mt-2 inline-flex w-full max-w-[200px] items-center justify-center rounded-lg bg-[#ED212F] px-3 py-2.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#c91828] sm:text-sm"
                           >
                             {t.pickTemplateSelect}
                           </button>
@@ -543,62 +551,27 @@ export default function CandidateProfilePage() {
                   }}
                 />
               )
+            ) : myCvId ? (
+              <CandidateProfileDashboard
+                applicant={applicant}
+                myCvId={myCvId}
+                prefix={prefix}
+                activeSection={profileSection}
+                onSectionChange={setProfileSection}
+                onOpenGuide={() => setUsageGuideOpen(true)}
+                onEditProfile={() => {
+                  setEditProfile(true);
+                  setApplicantEditStep('pickTemplate');
+                  setSelectedApplicantTemplate(null);
+                }}
+              />
             ) : (
-              <div className="flex min-h-0 flex-1 flex-col gap-4">
-                <div className="flex gap-1 border-b border-neutral-200" role="tablist" aria-label={t.pageTitle}>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={profileTab === 'profile'}
-                    onClick={() => setProfileTab('profile')}
-                    className={`relative px-4 py-2.5 text-sm font-semibold transition-colors ${
-                      profileTab === 'profile'
-                        ? 'text-[#ED212F] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-[#ED212F]'
-                        : 'text-neutral-600 hover:text-neutral-900'
-                    }`}
-                  >
-                    {t.tabProfile}
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={profileTab === 'nominations'}
-                    onClick={() => setProfileTab('nominations')}
-                    className={`relative px-4 py-2.5 text-sm font-semibold transition-colors ${
-                      profileTab === 'nominations'
-                        ? 'text-[#ED212F] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-[#ED212F]'
-                        : 'text-neutral-600 hover:text-neutral-900'
-                    }`}
-                  >
-                    {t.tabNominations}
-                  </button>
-                </div>
-                {profileTab === 'profile' &&
-                  (myCvId ? (
-                    <CandidateDetailPage
-                      variant="applicant"
-                      embeddedCandidateId={String(myCvId)}
-                      embeddedPrefix={prefix}
-                      onEditProfile={() => {
-                        setEditProfile(true);
-                        setApplicantEditStep('pickTemplate');
-                        setSelectedApplicantTemplate(null);
-                      }}
-                    />
-                  ) : (
-                    <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-sm text-neutral-600">
-                      <div
-                        className="h-9 w-9 animate-spin rounded-full border-2 border-neutral-200 border-t-[#ED212F]"
-                        aria-hidden
-                      />
-                      <p>{t.profileLoading}</p>
-                    </div>
-                  ))}
-                {profileTab === 'nominations' && (
-                  <div className="min-h-[min(70vh,720px)] rounded-xl border border-neutral-200 bg-white p-3 shadow-sm sm:p-4">
-                    <NominationsPageContent variant="applicant" embeddedPrefix={prefix} />
-                  </div>
-                )}
+              <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-sm text-neutral-600">
+                <div
+                  className="h-9 w-9 animate-spin rounded-full border-2 border-neutral-200 border-t-[#ED212F]"
+                  aria-hidden
+                />
+                <p>{t.profileLoading}</p>
               </div>
             )
           ) : creationStep === 'idle' ? (
@@ -617,7 +590,7 @@ export default function CandidateProfilePage() {
               <button
                 type="button"
                 onClick={() => setCreationStep('pickTemplate')}
-                className="mt-8 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#ED212F] px-8 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#c91828] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ED212F] focus-visible:ring-offset-2"
+                className="candidate-solid-cta mt-8 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#ED212F] px-8 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#c91828] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ED212F] focus-visible:ring-offset-2"
               >
                 {t.emptyProfileCta}
               </button>
@@ -659,7 +632,7 @@ export default function CandidateProfilePage() {
                           setSelectedApplicantTemplate(item.id);
                           setCreationStep('form');
                         }}
-                        className="mt-2 inline-flex w-full max-w-[200px] items-center justify-center rounded-lg bg-[#ED212F] px-3 py-2.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#c91828] sm:text-sm"
+                        className="candidate-solid-cta mt-2 inline-flex w-full max-w-[200px] items-center justify-center rounded-lg bg-[#ED212F] px-3 py-2.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#c91828] sm:text-sm"
                       >
                         {t.pickTemplateSelect}
                       </button>

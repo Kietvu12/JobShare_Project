@@ -1,0 +1,297 @@
+{
+  "vi": {
+    "title": "Coretech / IT Communicator – Sử dụng tiếng Việt, phối hợp QA Việt Nam / Meguro, Tokyo",
+    "sections": {
+      "overview": {
+        "label": "Nội dung công việc:",
+        "text": "・Làm IT Communicator, đóng vai trò kết nối và phối hợp giữa phía Nhật Bản với đội QA tại Việt Nam.\n・Giao tiếp với đội QA Việt Nam, quản lý tiến độ công việc.\n・Review kết quả công việc và điều phối việc chia sẻ specification.\n・Review tài liệu specification.\n・Lập kế hoạch kiểm thử.\n・Thiết kế test case và thực hiện exploratory testing.\n・Ứng viên có kiến thức QA có thể tham gia sâu hơn vào các hoạt động cải thiện chất lượng Web service như thiết kế, thực hiện, phân tích và tự động hóa kiểm thử.\n・Tham gia cải tiến quy trình và phân tích lỗi nhằm nâng cao chất lượng sản phẩm.\n・Có cơ hội phát triển kỹ năng phân tích, quản lý và các kỹ năng thuộc công đoạn upstream.\n\nĐặc điểm vị trí:\n・Là cầu nối quan trọng giữa đội QA Nhật Bản và Việt Nam trong môi trường phát triển quốc tế.\n・Có cơ hội nâng cao kỹ năng giao tiếp thực tế và khả năng xử lý linh hoạt khi làm việc với đội Việt Nam.\n・Công ty có tổ chức các buổi học nội bộ.\n・Có thể tham gia seminar bên ngoài bằng chi phí của công ty nếu có nhu cầu."
+      },
+      "requirements": [
+        {
+          "label": "Điều kiện bắt buộc",
+          "items": [
+            "■ Có khả năng giao tiếp bằng tiếng Việt ở trình độ Native hoặc Business level, bao gồm đọc và viết",
+            "■ Có khả năng giao tiếp bằng tiếng Nhật từ trình độ N2 trở lên",
+            "■ Có từ 1 năm kinh nghiệm thực tế trong ngành IT, thuộc một trong hai mảng Development hoặc QA",
+            "■ Có kinh nghiệm phiên dịch hoặc biên dịch tiếng Nhật"
+          ]
+        },
+        {
+          "label": "Điều kiện ưu tiên",
+          "items": [
+            "• Có chứng chỉ QA/IT như JSTQB, IT Passport hoặc tương đương",
+            "• Có kiến thức cơ bản về kiểm thử phần mềm (thiết kế kiểm thử, báo cáo lỗi, v.v.)",
+            "• Có kinh nghiệm trong các dự án tự động hóa kiểm thử hoặc cải tiến chất lượng",
+            "• Có kinh nghiệm quản lý offshore hoặc BSE/Bridge SE"
+          ]
+        }
+      ],
+      "benefits": [
+        {
+          "label": "Bảo hiểm xã hội:",
+          "text": "Bảo hiểm y tế: Có (Hiệp hội Bảo hiểm Y tế Phần mềm CNTT Kanto). Lương hưu phúc lợi: Có. Bảo hiểm việc làm: Có. Bảo hiểm tai nạn lao động: Có."
+        },
+        {
+          "label": "Phụ cấp đi lại:",
+          "text": "Tối đa 30.000 yên/tháng"
+        },
+        {
+          "label": "Thưởng:",
+          "text": "Thưởng theo kết quả kinh doanh: 2 lần/năm (tháng 6 và tháng 12). Đã có thành tích chi trả trong 10 năm gần đây."
+        },
+        {
+          "label": "Đánh giá lương:",
+          "text": "Tăng lương: 2 lần/năm (tháng 6 và tháng 12)."
+        },
+        {
+          "label": "Phúc lợi:",
+          "items": [
+            "Trợ cấp gia đình: Có; 5.000 yên/tháng cho mỗi con được phụ thuộc đến 18 tuổi",
+            "Chế độ trợ cấp thôi việc: Có",
+            "Tuổi nghỉ hưu: 60 tuổi; chế độ tái tuyển dụng đến 70 tuổi",
+            "Chế độ đào tạo/hỗ trợ chứng chỉ: chi phí tham gia hội thảo",
+            "Chế độ đào tạo/hỗ trợ chứng chỉ: chi phí mua sách",
+            "Chế độ đào tạo/hỗ trợ chứng chỉ: chế độ hỗ trợ chứng chỉ (áp dụng cả với người đã nhận được đề nghị tuyển dụng)",
+            "Biện pháp phòng chống hút thuốc thụ động: cấm hút thuốc hoàn toàn trong nhà"
+          ]
+        },
+        {
+          "label": "Thời gian làm việc:",
+          "items": [
+            "・Tối đa 1 lần/tuần có thể đi làm lệch giờ, lựa chọn giờ bắt đầu từ 07:00–12:00.\n・Không có chế độ làm việc rút ngắn thời gian."
+          ]
+        },
+        {
+          "label": "Thời gian nghỉ:",
+          "text": "Nghỉ giải lao 60 phút (14:00–15:00)"
+        },
+        {
+          "label": "Làm thêm giờ:",
+          "text": "Có làm thêm giờ. Thời gian làm thêm trung bình khoảng 9 giờ. Làm thêm không quá 20 giờ."
+        },
+        {
+          "label": "Ngày nghỉ:",
+          "text": "Tuần nghỉ 2 ngày hoàn toàn (thứ Bảy, Chủ nhật và ngày lễ), 126 ngày nghỉ hằng năm"
+        },
+        {
+          "label": "Chi tiết ngày nghỉ:",
+          "text": "Nghỉ phép có lương hằng năm: 10–40 ngày (số ngày tối thiểu được áp dụng sau 6 tháng kể từ khi gia nhập công ty)\nCó thành tích sử dụng nghỉ chăm sóc con\nNghỉ hè\nNghỉ cuối năm và đầu năm\nNghỉ ngày gia nhập công ty\nNghỉ phục hồi sức khỏe (9 ngày nghỉ liên tiếp sau 5 năm làm việc)\nNghỉ hỗ trợ chào mừng (được cấp khi gia nhập công ty)\nNghỉ hiếu hỉ\nNghỉ trước và sau sinh\nNghỉ làm thành viên hội đồng xét xử\nNghỉ chăm sóc con\nNghỉ chăm sóc con bị ốm\nNghỉ chăm sóc người thân\nNghỉ kinh nguyệt"
+        },
+        {
+          "label": "Phụ cấp làm thêm:",
+          "items": [
+            "Có làm thêm giờ. Thời gian làm thêm trung bình khoảng 9 giờ. Làm thêm không quá 20 giờ."
+          ]
+        }
+      ],
+      "process": {
+        "text": "Quy trình tuyển dụng\n1. Sàng lọc hồ sơ\n2. Phỏng vấn vòng một (phỏng vấn trực tuyến); có thể được yêu cầu thực hiện bài kiểm tra năng lực trực tuyến\n3. Phỏng vấn vòng hai (phỏng vấn trực tiếp)\n4. Thông báo trúng tuyển\nCó thể trao đổi về ngày phỏng vấn và ngày gia nhập công ty. Dự kiến từ khi ứng tuyển đến khi nhận thông báo trúng tuyển là 2–3 tuần. Không có bài thi viết."
+      },
+      "company": {
+        "text": "Công ty tập trung vào việc phát triển các trang web có khả năng sinh lời cao, trong đó có một trong những cổng thông tin chuyên ngành và trang tuyển dụng lớn nhất Nhật Bản, cùng các hoạt động tiếp thị như tối ưu hóa công cụ tìm kiếm; doanh thu tiếp tục tăng trưởng ổn định.\nTrong môi trường đã xây dựng được nền tảng ổn định, công ty không chỉ mở rộng hoạt động kinh doanh hiện tại mà còn đang thử sức với các lĩnh vực kinh doanh mới dựa trên nguồn doanh thu đó.\nCông ty hoạt động hằng ngày nhằm tiếp tục nâng cao năng lực tổ chức.\n\nVới 126 ngày nghỉ hằng năm và thời gian làm thêm trung bình khoảng 9 giờ mỗi tháng, công ty cũng chú trọng xây dựng môi trường làm việc dễ chịu. Công ty coi trọng việc đạt hiệu suất cao trong 8 giờ làm việc mỗi ngày, giúp nhân viên vừa trân trọng thời gian riêng tư vừa làm việc cân bằng và hiệu quả.\n\nCông ty có nhiều chuyên gia về kỹ thuật, tiếp thị web, chỉ đạo dự án và sáng tạo nội dung. Mỗi người đều phát huy lĩnh vực sở trường của mình. Đây cũng là môi trường cởi mở, dễ trao đổi ý kiến, khuyến khích nhân viên phát biểu và thử sức với những điều mới bất kể tuổi tác hay thâm niên.\n\nCông ty có môi trường hỗ trợ phù hợp với lĩnh vực sở trường và kỹ năng của từng người, giúp họ phát triển kỹ năng và kiến thức. Để nâng cao động lực học tập cá nhân và tiếp thu kiến thức chuyên môn, công ty cũng chuẩn bị các chế độ hỗ trợ đào tạo bên ngoài, mua sách và取得 chứng chỉ.",
+        "info": "Công ty Cổ phần Coretech\nSố nhân viên:\n325\nTrụ sở:\nTầng 14, Tòa tháp Sumitomo Fudosan Aobadai, 3-6-28 Aobadai, quận Meguro, Tokyo",
+        "sectors": [
+          "Quảng cáo – Truyền thông – Phát thanh truyền hình"
+        ]
+      }
+    },
+    "metadata": {
+      "recruitment": "Nhân viên chính thức",
+      "loc": "Aobadai, Quận Meguro, Tokyo",
+      "region": "Tại Nhật Bản",
+      "category": "IT Comtor / BrSE",
+      "visa": "Visa kỹ sư / tri thức nhân văn / nghiệp vụ quốc tế",
+      "created": "02/10/2026",
+      "updated": "08/10/2026"
+    },
+    "source": "saved production HTML /jobs/708"
+  },
+  "ja": {
+    "title": "Coretech／ITコミュニケーター－ベトナム語を使用し、ベトナムQAチームと連携／東京都目黒区",
+    "sections": {
+      "overview": {
+        "label": "仕事内容:",
+        "text": "・ITコミュニケーターとして、日本側とベトナムのQAチームの橋渡しおよび調整を担当します。\n・ベトナムのQAチームとコミュニケーションを取り、業務の進捗を管理します。\n・業務結果をレビューし、仕様の共有を調整します。\n・仕様書をレビューします。\n・テスト計画を立案します。\n・テストケースを設計し、探索的テストを実施します。\n・QAの知識をお持ちの方は、テストの設計・実施・分析・自動化など、ウェブサービスの品質改善活動により深く携わることができます。\n・製品品質の向上に向け、プロセス改善や不具合分析にも参加します。\n・分析力、管理力、上流工程に関するスキルを伸ばす機会があります。\n\nポジションの特徴：\n・国際的な開発環境において、日本とベトナムのQAチームをつなぐ重要な役割です。\n・ベトナムチームとの業務を通じて、実践的なコミュニケーション力と柔軟な対応力を高められます。\n・社内勉強会が開催されています。\n・希望に応じて、会社負担で外部セミナーに参加できます。"
+      },
+      "requirements": [
+        {
+          "label": "必須条件",
+          "items": [
+            "■ ベトナム語を母語またはビジネスレベルで使用できる方（読み書きを含む）",
+            "■ 日本語でJLPT N2以上のコミュニケーションができる方",
+            "■ IT業界での実務経験が1年以上ある方（開発またはQAのいずれか）",
+            "■ 日本語の通訳または翻訳の経験がある方"
+          ]
+        },
+        {
+          "label": "優先条件",
+          "items": [
+            "• JSTQB、ITパスポートなどのQA・IT関連資格、または同等の資格をお持ちの方",
+            "• テスト設計や不具合報告など、ソフトウェアテストの基礎知識がある方",
+            "• テスト自動化プロジェクトまたは品質改善の経験がある方",
+            "• オフショア管理またはBSE・ブリッジSEの経験がある方"
+          ]
+        }
+      ],
+      "benefits": [
+        {
+          "label": "社会保険:",
+          "text": "関東ITソフトウェア健康保険組合の健康保険、厚生年金保険、雇用保険、労災保険を完備しています。"
+        },
+        {
+          "label": "通勤手当:",
+          "text": "月額30,000円まで"
+        },
+        {
+          "label": "賞与:",
+          "text": "業績賞与：年2回（6月・12月）。直近10年間の支給実績があります。"
+        },
+        {
+          "label": "昇給・査定:",
+          "text": "昇給：年2回（6月・12月）。"
+        },
+        {
+          "label": "福利厚生:",
+          "items": [
+            "家族手当：18歳までの扶養対象の子ども1人につき月5,000円",
+            "退職金制度あり",
+            "定年60歳、70歳までの再雇用制度あり",
+            "研修・資格取得支援：セミナー参加費を補助",
+            "研修・資格取得支援：書籍購入費を補助",
+            "研修・資格取得支援：資格取得支援制度あり（内定者も対象）",
+            "受動喫煙防止措置：屋内全面禁煙"
+          ]
+        },
+        {
+          "label": "休憩時間:",
+          "text": "休憩60分（14:00〜15:00）"
+        },
+        {
+          "label": "残業:",
+          "text": "残業があります。平均残業時間は月約9時間、月20時間以内です。"
+        },
+        {
+          "label": "休日:",
+          "text": "完全週休2日制（土日・祝日）、年間休日126日"
+        },
+        {
+          "label": "休日の詳細:",
+          "text": "年次有給休暇：10〜40日（入社6か月後から最低付与日数を適用）\n育児休暇の取得実績あり\n夏季休暇\n年末年始休暇\n入社日休暇\nリフレッシュ休暇（勤続5年後に9日間の連続休暇）\nウェルカム休暇（入社時に付与）\n慶弔休暇\n産前産後休暇\n裁判員休暇\n育児休暇\n子どもの看護休暇\n介護休暇\n生理休暇"
+        }
+      ],
+      "process": {
+        "text": "選考フロー\n1. 書類選考\n2. 一次面接（オンライン面接）；オンライン適性検査を実施する場合があります\n3. 二次面接（対面面接）\n4. 内定通知\n面接日および入社日は相談可能です。応募から内定通知までは2〜3週間を予定しています。筆記試験はありません。"
+      },
+      "company": {
+        "text": "高収益なウェブサイトの開発を中心に、日本最大級の専門情報ポータルサイトや求人サイトの運営、検索エンジン最適化などのマーケティング活動を行っており、売上は安定して伸び続けています。\n安定した事業基盤を築いた環境の中で、現在の事業を拡大するだけでなく、その収益基盤をもとに新たな事業分野にも挑戦しています。\n組織力をさらに高めるため、日々取り組んでいます。\n\n年間休日126日、月平均残業時間約9時間という環境で、働きやすい職場づくりにも力を入れています。1日8時間の勤務時間で高い成果を上げることを重視し、社員が自分の時間を大切にしながら、バランスよく効率的に働ける環境を整えています。\n\n技術、ウェブマーケティング、プロジェクトディレクション、コンテンツ制作など、それぞれの分野の専門家が多く在籍しています。社員一人ひとりが得意分野を生かして働いています。年齢や社歴に関係なく意見を発信し、新しいことに挑戦しやすい、オープンで相談しやすい環境です。\n\n一人ひとりの得意分野やスキルに適した支援環境を整え、能力と知識の向上をサポートしています。個人の学習意欲を高め、専門知識を身につけられるよう、外部研修、書籍購入、資格取得への支援制度も用意しています。",
+        "info": "株式会社コアテック\n従業員数:\n325\n本社:\n東京都目黒区青葉台3-6-28 住友不動産青葉台タワー14階",
+        "sectors": [
+          "広告・メディア・放送"
+        ]
+      }
+    },
+    "metadata": {
+      "recruitment": "正社員",
+      "loc": "東京都目黒区青葉台",
+      "region": "日本から",
+      "category": "ITコムター / BrSE",
+      "created": "2026年10月2日",
+      "updated": "2026年10月8日"
+    },
+    "source": "saved production HTML /jobs/708"
+  },
+  "en": {
+    "title": "Coretech / IT Communicator – Vietnamese Language, Coordination with Vietnamese QA Team / Meguro, Tokyo",
+    "sections": {
+      "overview": {
+        "label": "Job content:",
+        "text": "・Work as an IT communicator, serving as a liaison and coordinator between the Japanese side and the QA team in Vietnam.\n・Communicate with the Vietnamese QA team and manage work progress.\n・Review work results and coordinate the sharing of specifications.\n・Review specification documents.\n・Plan testing activities.\n・Design test cases and conduct exploratory testing.\n・Applicants with QA knowledge may become more deeply involved in web service quality improvement activities, including test design, execution, analysis, and automation.\n・Participate in process improvement and defect analysis to enhance product quality.\n・Have opportunities to develop analytical, management, and upstream-process skills.\n\nPosition highlights:\n・Serve as an important bridge between the Japanese and Vietnamese QA teams in an international development environment.\n・Have opportunities to improve practical communication skills and flexible problem-solving abilities when working with the Vietnamese team.\n・The company provides internal learning sessions.\n・External seminars may be attended at the company’s expense when needed."
+      },
+      "requirements": [
+        {
+          "label": "Required conditions",
+          "items": [
+            "■ Native or business-level Vietnamese communication skills, including reading and writing",
+            "■ Japanese communication skills at JLPT N2 level or above",
+            "■ At least one year of practical experience in IT, in either development or QA",
+            "■ Experience interpreting or translating Japanese"
+          ]
+        },
+        {
+          "label": "Preferred conditions",
+          "items": [
+            "• QA or IT certifications such as JSTQB, IT Passport, or equivalent",
+            "• Basic knowledge of software testing, including test design and defect reporting",
+            "• Experience with test automation projects or quality improvement",
+            "• Experience managing offshore operations or working as a BSE/bridge engineer"
+          ]
+        }
+      ],
+      "benefits": [
+        {
+          "label": "Social insurance:",
+          "text": "Health insurance through the Kanto IT Software Health Insurance Association, employees’ pension insurance, employment insurance, and workers’ compensation insurance are provided."
+        },
+        {
+          "label": "Commuting allowance:",
+          "text": "Up to JPY 30,000 per month"
+        },
+        {
+          "label": "Bonus:",
+          "text": "Performance-based bonus: twice a year, in June and December. The company has paid bonuses consistently during the past 10 years."
+        },
+        {
+          "label": "Salary review:",
+          "text": "Salary increases: twice a year, in June and December."
+        },
+        {
+          "label": "Benefits:",
+          "items": [
+            "Family allowance: JPY 5,000 per month for each dependent child up to age 18",
+            "Retirement allowance system available",
+            "Retirement age: 60; reemployment available until age 70",
+            "Training and certification support: seminar participation costs covered",
+            "Training and certification support: book purchase costs covered",
+            "Training and certification support: certification assistance, also available to candidates who have received a job offer",
+            "Passive-smoking prevention: smoking is completely prohibited indoors"
+          ]
+        },
+        {
+          "label": "Break time:",
+          "text": "60-minute break, from 14:00 to 15:00"
+        },
+        {
+          "label": "Overtime:",
+          "text": "Overtime is required. Average overtime is approximately 9 hours per month, with a maximum of 20 hours per month."
+        },
+        {
+          "label": "Days off:",
+          "text": "Two full days off per week, including Saturdays, Sundays, and public holidays; 126 annual holidays"
+        },
+        {
+          "label": "Holiday details:",
+          "text": "Annual paid leave: 10–40 days; the minimum number of days applies after six months of employment\nRecord of employees taking childcare leave\nSummer vacation\nYear-end and New Year holidays\nCompany-entry-day leave\nHealth recovery leave: 9 consecutive days after 5 years of service\nWelcome leave granted upon joining the company\nBereavement and ceremonial leave\nPre- and postnatal leave\nJury duty leave\nChildcare leave\nLeave to care for a sick child\nFamily-care leave\nMenstrual leave"
+        }
+      ],
+      "process": {
+        "text": "Recruitment process\n1. Application screening\n2. First interview, conducted online; an online aptitude test may be required\n3. Second interview, conducted in person\n4. Job-offer notification\nThe interview date and joining date are negotiable. The expected period from application to offer notification is 2–3 weeks. There is no written examination."
+      },
+      "company": {
+        "text": "The company focuses on developing highly profitable websites, including one of Japan’s largest specialized information portals and recruitment websites, as well as marketing activities such as search engine optimization. Revenue continues to grow steadily.\nHaving established a stable business foundation, the company is not only expanding its current operations but also taking on new business areas based on that revenue base.\nThe company works every day to continue strengthening its organizational capabilities.\n\nWith 126 annual holidays and average overtime of approximately 9 hours per month, the company also focuses on creating a comfortable working environment. It values achieving high productivity during the 8-hour workday, enabling employees to value their personal time while working in a balanced and effective manner.\n\nThe company has many specialists in engineering, web marketing, project direction, and content creation. Each person makes use of their own area of expertise. It is also an open environment where opinions can be easily exchanged and employees are encouraged to speak up and take on new challenges regardless of age or seniority.\n\nThe company provides an environment suited to each person’s areas of expertise and skills, helping employees develop their abilities and knowledge. To encourage individual learning and the acquisition of specialized knowledge, it also offers support for external training, book purchases, and certification.",
+        "info": "Coretech Co., Ltd.\nEmployees:\n325\nHeadquarters:\n14th Floor, Sumitomo Fudosan Aobadai Tower, 3-6-28 Aobadai, Meguro Ward, Tokyo",
+        "sectors": [
+          "Advertising, Media & Broadcasting"
+        ]
+      }
+    },
+    "metadata": {
+      "recruitment": "Permanent employee",
+      "region": "From Japan",
+      "category": "IT Comtor / BrSE",
+      "visa": "Engineer/Specialist in Humanities/International Services",
+      "created": "02/10/2026",
+      "updated": "08/10/2026"
+    },
+    "source": "saved production HTML /jobs/708"
+  }
+}

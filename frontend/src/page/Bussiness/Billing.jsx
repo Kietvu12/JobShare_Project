@@ -477,11 +477,11 @@ export default function Billing() {
                 ) : null}
 
                 {viewMode === 'payments' ? (
-                  <table className={`${BILL_TABLE} min-w-[760px]`}>
+                  <table className={`${BILL_TABLE} min-w-0 lg:min-w-[760px]`}>
                     <thead className="sticky top-0 z-[1] bg-white">
                       <tr className="border-b border-slate-200 text-left">
-                        {billingCopy.paymentTableHeaders.map((h) => (
-                          <th key={h || 'action'} className={BILL_TH}>{h}</th>
+                        {billingCopy.paymentTableHeaders.map((h, index) => (
+                          <th key={h || 'action'} className={`${BILL_TH} ${[2, 4].includes(index) ? 'max-lg:hidden' : ''}`}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -511,11 +511,11 @@ export default function Billing() {
                                 <span className="font-medium text-slate-800">{row.feeType || row.type}</span>
                               </div>
                             </td>
-                            <td className={`max-w-[200px] ${BILL_TD} text-slate-600`}>
+                            <td className={`max-w-[200px] max-lg:hidden ${BILL_TD} text-slate-600`}>
                               <span className="line-clamp-2">{row.content || row.related}</span>
                             </td>
                             <td className={`whitespace-nowrap ${BILL_TD} font-semibold text-slate-900`}>{row.amount}</td>
-                            <td className={`whitespace-nowrap ${BILL_TD} text-slate-600`}>{row.deadline}</td>
+                            <td className={`whitespace-nowrap max-lg:hidden ${BILL_TD} text-slate-600`}>{row.deadline}</td>
                             <td className={BILL_TD}>
                               <span
                                 className={BILL_BADGE}
@@ -533,11 +533,11 @@ export default function Billing() {
                     </tbody>
                   </table>
                 ) : (
-                  <table className={`${BILL_TABLE} min-w-[720px]`}>
+                  <table className={`${BILL_TABLE} min-w-0 lg:min-w-[720px]`}>
                     <thead className="sticky top-0 z-[1] bg-white">
                       <tr className="border-b border-slate-200 text-left">
-                        {billingCopy.invoiceTableHeaders.map((h) => (
-                          <th key={h || 'action'} className={BILL_TH}>{h}</th>
+                        {billingCopy.invoiceTableHeaders.map((h, index) => (
+                          <th key={h || 'action'} className={`${BILL_TH} ${[1, 3, 4].includes(index) ? 'max-lg:hidden' : ''}`}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -559,12 +559,12 @@ export default function Billing() {
                             }`}
                           >
                             <td className={`${BILL_TD} ${BILL_CODE}`}>{row.invoiceCode}</td>
-                            <td className={`max-w-[200px] ${BILL_TD} text-slate-600`}>
+                            <td className={`max-w-[200px] max-lg:hidden ${BILL_TD} text-slate-600`}>
                               <span className="line-clamp-2">{row.content || row.related}</span>
                             </td>
                             <td className={`whitespace-nowrap ${BILL_TD} font-semibold`}>{row.amount}</td>
-                            <td className={`whitespace-nowrap ${BILL_TD} text-slate-600`}>{row.issuedAt}</td>
-                            <td className={`whitespace-nowrap ${BILL_TD} text-slate-600`}>{row.paidAt}</td>
+                            <td className={`whitespace-nowrap max-lg:hidden ${BILL_TD} text-slate-600`}>{row.issuedAt}</td>
+                            <td className={`whitespace-nowrap max-lg:hidden ${BILL_TD} text-slate-600`}>{row.paidAt}</td>
                             <td className={BILL_TD}>
                               <span
                                 className={BILL_BADGE}

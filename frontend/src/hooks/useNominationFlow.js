@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { resolveCandidatePrefix } from '../utils/localeRoutes';
 import apiService from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 import { translations } from '../translations/translations';
@@ -31,7 +32,12 @@ export const useNominationFlow = ({ variant }) => {
   const location = useLocation();
   const { language } = useLanguage();
   const t = translations[language] || translations.vi;
-  const applicantPrefix = location.pathname.startsWith('/landing/candidate') ? '/landing/candidate' : '/candidate';
+  const applicantPrefix = useMemo(() => {
+    if (location.pathname.startsWith('/landing/candidate')) return '/landing/candidate';
+    const localized = resolveCandidatePrefix(location.pathname);
+    if (localized) return localized;
+    return '/candidate';
+  }, [location.pathname]);
   const backUrl = isAdmin
     ? `/admin/jobs/${jobId}`
     : isApplicantCandidate
@@ -467,6 +473,7 @@ export const useNominationFlow = ({ variant }) => {
     language,
     t,
     backUrl,
+    applicantPrefix,
     job,
     loadingJob,
     cvStorages,

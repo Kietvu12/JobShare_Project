@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import RouterNavigationTracker from './component/RouterNavigationTracker';
 import { HelmetProvider } from 'react-helmet-async';
 import './App.css';
-import { LanguageProvider } from './context/LanguageContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import { withLocalePath } from './utils/localeRoutes';
 import { NotificationProvider } from './context/NotificationContext';
 import { CandidateAuthProvider } from './context/CandidateAuthContext';
 import ProtectedRoute from './component/ProtectedRoute';
 import AuthSessionListener from './component/AuthSessionListener';
 import AgentLayout from './component/Layout/AgentLayout';
 import AdminLayout from './component/Layout/AdminLayout';
-import CollaboratorLayout from './component/Layout/CollaboratorLayout';
-import CandidateLayout from './component/Layout/CandidateLayout';
 import JobsListPage from './component/Shared/JobsListPage';
 import JobDetailPage from './component/Shared/JobDetailPage';
 import apiService from './services/api';
@@ -29,7 +28,6 @@ import NotificationsPage from './page/Agent/NotificationsPage';
 import AddCandidateForm from './component/Shared/AddCandidateForm';
 import NominationSelectPage from './page/Shared/NominationSelectPage';
 import NominationConfirmPage from './page/Shared/NominationConfirmPage';
-import AboutUsPage from './page/Shared/AboutUsPage';
 import CandidateDetail from './page/Agent/CandidateDetail';
 import CandidateApplicationsPage from './page/Agent/CandidateApplicationsPage';
 import NominationDetail from './page/Agent/NominationDetail';
@@ -81,21 +79,8 @@ import LoginPage from './page/LoginPage';
 import RegisterPage from './page/RegisterPage';
 import VerifyEmailPage from './page/VerifyEmailPage';
 import ResetPasswordPage from './page/ResetPasswordPage';
-import BlogDetailPage from './page/BlogDetailPage';
-import PublicBlogListPage from './page/LandingPage/PublicBlogListPage';
 import AgentEventDetailPage from './page/Agent/EventDetailPage';
 import AgentEventsPage from './page/Agent/AgentEventsPage';
-import CollaboratorLandingHome from './page/LandingPage/Collaborator/Home';
-import CandidateLandingHome from './page/LandingPage/Candidate/Home';
-import BusinessLandingHome from './page/LandingPage/Business/Home';
-import CandidateLoginPage from './page/LandingPage/Candidate/CandidateLoginPage';
-import CandidateRegisterPage from './page/LandingPage/Candidate/CandidateRegisterPage';
-import CandidateResetPasswordPage from './page/LandingPage/Candidate/CandidateResetPasswordPage';
-import CandidateProfilePage from './page/LandingPage/Candidate/CandidateProfilePage';
-import CandidateNominationDetailPage from './page/LandingPage/Candidate/CandidateNominationDetailPage';
-import JobList from './page/LandingPage/JobList';
-import LandingJobDetailPage from './page/LandingPage/LandingJobDetailPage';
-import LandingJobShareViewPage from './page/LandingPage/LandingJobShareViewPage';
 import BusinessHomepage from './page/Bussiness/Homepage';
 import BusinessLayoutWrapper from './component/Layout/BusinessLayoutWrapper';
 import JobManagement from './page/Bussiness/JobManagement';
@@ -118,7 +103,6 @@ import Branding from './page/Bussiness/Branding';
 import BrandingLandingPages from './page/Bussiness/BrandingLandingPages';
 import BusinessLandingPageEditor from './page/Bussiness/BusinessLandingPageEditor';
 import BusinessLandingPageBuilder from './page/Bussiness/BusinessLandingPageBuilder';
-import PublicLandingPage from './page/LandingPage/PublicLandingPage';
 import CandidateSharing from './page/Bussiness/CandidateSharing';
 import CandidateSharingListingDetail, {
   CandidateSharingListingLegacyRedirect,
@@ -138,11 +122,91 @@ import SeminarCampaignRequest from './page/Bussiness/SeminarCampaignRequest';
 import CompanyProfileRequest from './page/Bussiness/CompanyProfileRequest';
 import BusinessProfilePage from './page/Bussiness/BusinessProfilePage';
 import BusinessRegister from './page/Bussiness/Register';
-import BusinessMarketingLayout from './page/LandingPage/Business/BusinessMarketingLayout';
 import BusinessLogin from './page/Bussiness/Login';
 import BusinessVerifyEmail from './page/Bussiness/VerifyEmail';
 import BusinessResetPassword from './page/Bussiness/ResetPassword';
-import { LocaleGuard, LegacyPublicRedirect, PublicRootRedirect, LegacyLocaleCollaboratorJobRedirect } from './component/LocaleRoute';
+import {
+  LocaleGuard,
+  LegacyPublicRedirect,
+  PublicRootRedirect,
+  LegacyLocalePublicJobsRedirect,
+} from './component/LocaleRoute';
+import { purgeLandingPersonaStyles } from './landing/shared/landingPersonaStyles';
+
+/** Landing CTV/UV + template styles.css — lazy để không inject CSS global vào bundle Admin/Agent. */
+const CollaboratorPublicLayout = lazy(() => import('./landing/collaborators/layout/CollaboratorPublicLayout'));
+const CollaboratorHomePage = lazy(() => import('./landing/collaborators/pages/CollaboratorHomePage'));
+const CollaboratorAboutPage = lazy(() => import('./landing/collaborators/pages/CollaboratorAboutPage'));
+const CollaboratorJobsPage = lazy(() => import('./landing/collaborators/pages/CollaboratorJobsPage'));
+const CollaboratorsNewsPage = lazy(() => import('./landing/collaborators/pages/CollaboratorsNewsPage'));
+const CollaboratorBlogLegacyRedirect = lazy(
+  () => import('./landing/collaborators/pages/CollaboratorBlogLegacyRedirect'),
+);
+const CollaboratorRegisterPage = lazy(() => import('./landing/collaborators/pages/CollaboratorRegisterPage'));
+const CollaboratorLoginPage = lazy(() => import('./landing/collaborators/pages/CollaboratorLoginPage'));
+const CandidatePublicLayout = lazy(() => import('./landing/candidates/layout/CandidatePublicLayout'));
+const CandidateHomePage = lazy(() => import('./landing/candidates/pages/CandidateHomePage'));
+const CandidateJobsPage = lazy(() => import('./landing/candidates/pages/CandidateJobsPage'));
+const CandidateAboutPage = lazy(() => import('./landing/candidates/pages/CandidateAboutPage'));
+const CandidateNewsPage = lazy(() => import('./landing/candidates/pages/CandidateNewsPage'));
+const CandidateLoginPage = lazy(() => import('./landing/candidates/pages/CandidateLoginPage'));
+const CandidateRegisterPage = lazy(() => import('./landing/candidates/pages/CandidateRegisterPage'));
+const CandidateResetPasswordPage = lazy(() => import('./landing/candidates/pages/CandidateResetPasswordPage'));
+const CandidateProfilePage = lazy(() => import('./page/LandingPage/Candidate/CandidateProfilePage'));
+const BusinessLandingHome = lazy(() => import('./landing/business/Home'));
+const BusinessMarketingLayout = lazy(() => import('./landing/business/BusinessMarketingLayout'));
+
+function LandingRouteFallback() {
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center px-4 py-16 text-sm text-neutral-500">
+      Loading…
+    </div>
+  );
+}
+
+function CollaboratorLoginRedirect() {
+  const { language } = useLanguage();
+  return <Navigate to={withLocalePath(language, '/collaborator/login')} replace />;
+}
+
+function withLandingSuspense(Component) {
+  return (
+    <Suspense fallback={<LandingRouteFallback />}>
+      <Component />
+    </Suspense>
+  );
+}
+
+function BusinessRegisterRoute() {
+  return (
+    <Suspense fallback={<LandingRouteFallback />}>
+      <BusinessMarketingLayout>
+        <BusinessRegister />
+      </BusinessMarketingLayout>
+    </Suspense>
+  );
+}
+
+const INTERNAL_APP_PREFIXES = ['/agent', '/admin', '/business', '/login', '/register'];
+
+/** Gỡ CSS landing khi vào app nội bộ — không đổi markup Agent/Admin. */
+function InternalAppCssFence() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const internal = INTERNAL_APP_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    );
+    if (!internal) return undefined;
+    document.body.classList.remove(
+      'jobshare-candidate-v1',
+      'jobshare-collaborator-v3',
+      'jobshare-template-login',
+    );
+    purgeLandingPersonaStyles('legacyGlobal');
+    return undefined;
+  }, [pathname]);
+  return null;
+}
 
 // Admin Job Detail: phân quyền Chỉnh sửa (chỉ SuperAdmin role=1, AdminBackOffice role=2)
 const AdminJobDetailWrapper = () => {
@@ -209,9 +273,10 @@ function App() {
       <BrowserRouter basename="/">
         <RouterNavigationTracker />
         <AuthSessionListener />
+        <InternalAppCssFence />
         <Routes>
           {/* Login Routes */}
-          <Route path="/login" element={<LoginPage defaultUserType="ctv" />} />
+          <Route path="/login" element={<CollaboratorLoginRedirect />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/register/verify-email" element={<VerifyEmailPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -337,67 +402,48 @@ function App() {
             <Route path="settings" element={<SettingsPage />} />
           </Route>
 
-          {/* Business marketing landing (ReadyCrew template) */}
-          <Route path="/template/jobshare_business_landing/*" element={<Navigate to="/landing/business" replace />} />
-          <Route path="/landing/business/*" element={<BusinessLandingHome />} />
-
           {/* Legacy public URLs → /{lang}/... */}
           <Route path="/landing/collaborator/*" element={<LegacyPublicRedirect persona="collaborator" />} />
           <Route path="/collaborator/*" element={<LegacyPublicRedirect persona="collaborator" />} />
           <Route path="/landing/candidate/*" element={<LegacyPublicRedirect persona="candidate" />} />
           <Route path="/candidate/*" element={<LegacyPublicRedirect persona="candidate" />} />
+          <Route path="/template/jobshare_business_landing/*" element={<Navigate to="/landing/business" replace />} />
+          <Route path="/landing/business/*" element={withLandingSuspense(BusinessLandingHome)} />
 
-          {/* Localized candidate landing: /{lang}/candidate/... */}
-          <Route path="/:lang/candidate" element={<LocaleGuard />}>
-            <Route path="jobs/:jobId/view" element={<LandingJobShareViewPage />} />
-            <Route element={<CandidateLayout />}>
-              <Route index element={<CandidateLandingHome />} />
-              <Route path="login" element={<CandidateLoginPage />} />
-              <Route path="register" element={<CandidateRegisterPage />} />
-              <Route path="reset-password" element={<CandidateResetPasswordPage />} />
-              <Route path="profile" element={<CandidateProfilePage />} />
-              <Route path="about-us" element={<AboutUsPage />} />
-              <Route path="nominations/:nominationId" element={<CandidateNominationDetailPage />} />
-              <Route path="jobs" element={<JobList />} />
-              <Route path="jobs/:jobId" element={<LandingJobDetailPage />} />
-              <Route path="jobs/:jobId/apply" element={<NominationSelectPage variant="applicant" />} />
-              <Route path="jobs/:jobId/confirm" element={<NominationConfirmPage variant="applicant" />} />
-              <Route path="jobs/:jobId/apply/confirm" element={<NominationConfirmPage variant="applicant" />} />
-              <Route path="blog" element={<PublicBlogListPage />} />
-              <Route path="blog/:postSlug" element={<BlogDetailPage />} />
-            </Route>
-          </Route>
-
-          {/* Localized collaborator landing: /{lang}/... */}
+          {/* Localized public — CTV (Collaborator V3, Tailwind + React) */}
           <Route path="/:lang" element={<LocaleGuard />}>
-            <Route path="business/*" element={<BusinessLandingHome />} />
-            <Route path="collaborator/jobs/:jobId" element={<LegacyLocaleCollaboratorJobRedirect />} />
-            <Route element={<CollaboratorLayout />}>
-              <Route index element={<CollaboratorLandingHome />} />
-              <Route path="jobs" element={<JobList />} />
-              <Route path="jobs/:jobId" element={<LandingJobDetailPage />} />
-              <Route path="about-us" element={<AboutUsPage />} />
-              <Route path="blog" element={<PublicBlogListPage />} />
-              <Route path="blog/:postSlug" element={<BlogDetailPage />} />
+            <Route element={withLandingSuspense(CollaboratorPublicLayout)}>
+              <Route index element={withLandingSuspense(CollaboratorHomePage)} />
+              <Route path="collaborator/about-us" element={withLandingSuspense(CollaboratorAboutPage)} />
+              <Route path="collaborator/jobs/*" element={withLandingSuspense(CollaboratorJobsPage)} />
+              <Route path="collaborator/blog/*" element={withLandingSuspense(CollaboratorsNewsPage)} />
+              <Route path="collaborator/register" element={withLandingSuspense(CollaboratorRegisterPage)} />
+              <Route path="register" element={withLandingSuspense(CollaboratorRegisterPage)} />
+              <Route path="blog/:postSlug" element={withLandingSuspense(CollaboratorBlogLegacyRedirect)} />
+              <Route path="about-us" element={withLandingSuspense(CollaboratorAboutPage)} />
             </Route>
+            <Route element={withLandingSuspense(CandidatePublicLayout)}>
+              <Route path="candidate">
+                <Route index element={withLandingSuspense(CandidateHomePage)} />
+                <Route path="about-us" element={withLandingSuspense(CandidateAboutPage)} />
+                <Route path="jobs/*" element={withLandingSuspense(CandidateJobsPage)} />
+                <Route path="blog/*" element={withLandingSuspense(CandidateNewsPage)} />
+                <Route path="profile" element={withLandingSuspense(CandidateProfilePage)} />
+              </Route>
+            </Route>
+            <Route path="collaborator/login" element={withLandingSuspense(CollaboratorLoginPage)} />
+            <Route path="candidate/login" element={withLandingSuspense(CandidateLoginPage)} />
+            <Route path="candidate/register" element={withLandingSuspense(CandidateRegisterPage)} />
+            <Route path="candidate/reset-password" element={withLandingSuspense(CandidateResetPasswordPage)} />
+            <Route path="business/*" element={withLandingSuspense(BusinessLandingHome)} />
+            <Route path="jobs/*" element={<LegacyLocalePublicJobsRedirect />} />
           </Route>
 
           {/* Root → /{lang}/ or agent/admin when logged in */}
           <Route path="/" element={<PublicRootRedirect />} />
 
-          {/* Public landing pages — SEO / quảng cáo (không locale prefix) */}
-          <Route path="/lp/:slug" element={<PublicLandingPage />} />
-          <Route path="/lp/:slug/:pageSlug" element={<PublicLandingPage />} />
-
           {/* Business auth - không dùng sidebar */}
-          <Route
-            path="/business/register"
-            element={(
-              <BusinessMarketingLayout>
-                <BusinessRegister />
-              </BusinessMarketingLayout>
-            )}
-          />
+          <Route path="/business/register" element={<BusinessRegisterRoute />} />
           <Route path="/business/login" element={<BusinessLogin />} />
           <Route path="/business/verify-email" element={<BusinessVerifyEmail />} />
           <Route path="/business/reset-password" element={<BusinessResetPassword />} />

@@ -1,0 +1,236 @@
+[
+  {
+    "query": {
+      "jobCategoryIds": "146,284"
+    },
+    "success": true,
+    "jobs": [
+      {
+        "id": 703,
+        "category": 146,
+        "locations": [
+          "Hachioujishi",
+          "東京都八王子市"
+        ]
+      },
+      {
+        "id": 699,
+        "category": 146,
+        "locations": [
+          "Itamishi"
+        ]
+      },
+      {
+        "id": 653,
+        "category": 146,
+        "locations": [
+          "Toyokawashi",
+          "Aichi",
+          "Chubu",
+          "愛知県"
+        ]
+      },
+      {
+        "id": 625,
+        "category": 146,
+        "locations": []
+      },
+      {
+        "id": 541,
+        "category": 146,
+        "locations": [
+          "Inazawa",
+          "Niwa",
+          "Tsushima"
+        ]
+      },
+      {
+        "id": 538,
+        "category": 146,
+        "locations": [
+          "Kiyosu"
+        ]
+      },
+      {
+        "id": 521,
+        "category": 146,
+        "locations": [
+          "Nagoya"
+        ]
+      },
+      {
+        "id": 508,
+        "category": 146,
+        "locations": [
+          "Yokohama"
+        ]
+      },
+      {
+        "id": 328,
+        "category": 146,
+        "locations": [
+          "Himeji"
+        ]
+      },
+      {
+        "id": 327,
+        "category": 146,
+        "locations": [
+          "Itami"
+        ]
+      },
+      {
+        "id": 209,
+        "category": 146,
+        "locations": [
+          "Saitama",
+          "Fukushima"
+        ]
+      },
+      {
+        "id": 16,
+        "category": 146,
+        "locations": [
+          "Isahaya"
+        ]
+      },
+      {
+        "id": 13,
+        "category": 146,
+        "locations": [
+          "Ōbu"
+        ]
+      }
+    ]
+  },
+  {
+    "query": {
+      "locations": "Meguroku|||Hachioujishi"
+    },
+    "success": true,
+    "jobs": [
+      {
+        "id": 708,
+        "category": 94,
+        "locations": [
+          "Meguroku"
+        ]
+      },
+      {
+        "id": 707,
+        "category": 104,
+        "locations": [
+          "Meguroku"
+        ]
+      },
+      {
+        "id": 706,
+        "category": 104,
+        "locations": [
+          "Meguroku"
+        ]
+      },
+      {
+        "id": 703,
+        "category": 146,
+        "locations": [
+          "Hachioujishi",
+          "東京都八王子市"
+        ]
+      },
+      {
+        "id": 652,
+        "category": 180,
+        "locations": [
+          "東京都・愛知県",
+          "Hachioujishi",
+          "Tokyo",
+          "Kanto",
+          "Toyokawashi",
+          "Aichi",
+          "Chubu"
+        ]
+      }
+    ]
+  },
+  {
+    "query": {
+      "jobCategoryIds": "94,104"
+    },
+    "success": true,
+    "jobs": [
+      {
+        "id": 708,
+        "category": 94
+      },
+      {
+        "id": 707,
+        "category": 104
+      },
+      {
+        "id": 706,
+        "category": 104
+      },
+      {
+        "id": 658,
+        "category": 94
+      },
+      {
+        "id": 656,
+        "category": 104
+      },
+      {
+        "id": 619,
+        "category": 104
+      },
+      {
+        "id": 618,
+        "category": 104
+      },
+      {
+        "id": 155,
+        "category": 104
+      },
+      {
+        "id": 531,
+        "category": 94
+      },
+      {
+        "id": 529,
+        "category": 94
+      },
+      {
+        "id": 489,
+        "category": 104
+      },
+      {
+        "id": 432,
+        "category": 104
+      },
+      {
+        "id": 399,
+        "category": 104
+      },
+      {
+        "id": 396,
+        "category": 94
+      },
+      {
+        "id": 381,
+        "category": 94
+      },
+      {
+        "id": 235,
+        "category": 94
+      },
+      {
+        "id": 154,
+        "category": 104
+      },
+      {
+        "id": 137,
+        "category": 94
+      }
+    ]
+  }
+]

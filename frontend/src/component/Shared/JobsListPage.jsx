@@ -184,7 +184,7 @@ const JobsListPage = ({
           embedded
             ? 'flex w-full flex-shrink-0 flex-col gap-2 lg:w-1/4 lg:max-h-[min(75vh,720px)] lg:overflow-y-auto'
             : /* Mobile: không dùng h-full — tránh ô filter chiếm trọn chiều cao, đẩy danh sách job về 0 */
-              'flex w-full flex-shrink-0 flex-col gap-2 overflow-hidden lg:h-full lg:w-1/4 xl:w-[280px]'
+              'flex w-full min-w-0 flex-shrink-0 flex-col gap-2 overflow-hidden lg:h-full lg:w-[280px] lg:min-w-[280px] lg:max-w-[280px]'
         }
       >
         {showAdminToolbar && (

@@ -1188,7 +1188,7 @@ function ScoutCandidateListItem({
             pendingLabel={matchPendingLabel}
           />
           {!candidate.isUnlocked ? (
-            <span className="scout-unlock-cta scout-cand-caption hidden max-w-full truncate rounded-md bg-[#0077B6] px-2 py-0.5 font-bold text-white shadow-sm group-hover:inline-flex sm:inline-flex sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+            <span className="scout-unlock-cta scout-cand-caption inline-flex max-w-full truncate rounded-md bg-[#0077B6] px-2 py-0.5 font-bold text-white shadow-sm sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
               {listActionLabel || ws.workspace.unlockCta(scoutCreditCost)}
             </span>
           ) : null}

@@ -1,0 +1,158 @@
+{
+  "source": "https://ws-engineering.com/about-us/",
+  "retrieved": "2026-10-08",
+  "companies": {
+    "workstation": {
+      "name": "Work Station",
+      "legal": "WORK STATION.,JSC",
+      "display": "Work Station （WORK STATION.,JSC）",
+      "established": "2015年4月",
+      "address": "3F, 82 Tue Tinh, Hanoi, Vietnam",
+      "roleLabel": "TALENT & DELIVERY BASE / VIETNAM"
+    },
+    "seta": {
+      "name": "株式会社Seta Engineering",
+      "established": "2026年2月",
+      "representative": "池松 邦彦",
+      "license": "13-ユ-319500",
+      "address": "東京都世田谷区北沢3丁目2番11号 レガーロ東北沢BIZcircle下北沢4F-07",
+      "website": "https://www.seta-eng.co.jp/",
+      "collaborationUrl": "https://www.seta-eng.co.jp/setax-ws",
+      "roleLabel": "CLIENT INTERFACE & PROJECT MANAGEMENT / JAPAN",
+      "partnerDetail": [
+        "2026年2月設立｜日本国内の顧客窓口・プロジェクトマネジメント",
+        "代表取締役：池松 邦彦｜有料職業紹介事業許可：13-ユ-319500"
+      ]
+    }
+  },
+  "contacts": [
+    {
+      "display": "(+81) 80 9441 1975（日本）",
+      "href": "tel:+818094411975"
+    },
+    {
+      "display": "(+84) 904 605 939（ベトナム）",
+      "href": "tel:+84904605939"
+    }
+  ],
+  "ja": {
+    "hero": [
+      "「日本品質」をベトナムの",
+      "「人財力」で最大化する"
+    ],
+    "heroLead": "貴社の成長を加速させる、真のエンジニアリングパートナーへ。",
+    "intro": [
+      "Work Stationは、2015年4月に設立された、ベトナム・ハノイを拠点とする企業です。技術人材の発掘・育成、日本語・ビジネスマナー教育、設計・開発などの実務支援を通じて、日本企業の人材採用と技術業務を支援しています。",
+      "日本法人の株式会社Seta Engineeringと連携し、日本側の顧客対応・提案・契約・プロジェクトマネジメントと、ベトナム側の人材・教育・技術実務基盤をつないでいます。採用要件の整理から人材の発掘・推薦、入社前教育、入社後のフォローまで、両社の役割を組み合わせて支援します。"
+    ],
+    "mission": "私たちは、最新テクノロジーの「最適化」「新開発」「実行」を担う包括的な技術パートナーシップを通じて、お客様と共にプロジェクトの価値を最大化し、豊かで持続可能な社会基盤の構築に貢献します。",
+    "vision": "建設・土木・IT分野におけるデジタルソリューションを牽引し、圧倒的な技術力と信頼で日本とベトナムを繋ぐNO.1リーディングカンパニーを目指します。",
+    "strengths": [
+      [
+        "日本企業向けの品質・コミュニケーション体制",
+        "技術品質だけでなく、進捗共有や報告・連絡・相談を含む日本企業とのコミュニケーションを重視。日本語対応を含む連携体制を整え、仕様や要件の認識齟齬を抑えます。"
+      ],
+      [
+        "人材育成と技術実務をつなぐ支援",
+        "日本語・ビジネスマナー教育や企業の要件に応じた研修に加え、ラボ型開発、BIM・建設DXなどの技術アウトソーシングに対応します。人材の育成と実務支援を組み合わせ、日本企業に必要な体制づくりを支えます。"
+      ],
+      [
+        "日本法人Seta Engineeringとの連携",
+        "2026年2月設立の株式会社Seta Engineeringが、日本国内の顧客窓口として、提案・契約・要件整理・プロジェクトマネジメント・運用支援を担当します。Work Stationの人材・教育・技術基盤と連携し、採用から入社後の定着支援までをつなぎます。"
+      ]
+    ],
+    "structure": "Work Stationがベトナムで人材の発掘・推薦、教育、日本語研修、設計・開発の実務支援を担い、Seta Engineeringが日本国内の顧客対応・提案・契約・プロジェクトマネジメントを担います。両社で企業の採用要件や業務課題を共有し、人材紹介・育成と技術アウトソーシングの両面から支援します。",
+    "roles": {
+      "workstation": "ハノイを拠点に、人材の発掘・推薦、日本語・ビジネスマナー教育、企業の要件に応じた研修を行います。ラボ型開発やBIM・建設DXなどの実務支援に加え、ベトナム帰国後も日本向けの業務に携われるキャリアの継続を支えます。",
+      "seta": "日本国内の窓口として、顧客対応・提案・契約・要件整理・プロジェクトマネジメント・運用支援を担当します。企業へのヒアリングや入社後のフォローを通じて、Work Stationとともに人材の定着と継続的な活躍を支援します。"
+    },
+    "connection": "日本企業、Seta Engineering、Work Station、候補者をつなぎ、採用前の準備から入社後のフォロー、技術業務の実行まで、課題に応じた支援を提供します。",
+    "scope": [
+      "プロジェクト型アウトソーシング（建築設計・BIM・技術業務支援）",
+      "日本向けラボ型開発・専属チーム構築",
+      "外国人エンジニア・高度人材の紹介支援",
+      "技術者育成・日本語・ビジネスマナー教育"
+    ],
+    "cta": "技術人材の確保や設計・開発アウトソーシング、BIM・DX、専属開発チームなど、お気軽にお問い合わせください。"
+  },
+  "en": {
+    "hero": [
+      "Maximizing Japanese quality",
+      "through Vietnamese talent"
+    ],
+    "heroLead": "Your true engineering partner, accelerating the growth of your business.",
+    "intro": [
+      "Established in April 2015, Work Station is based in Hanoi, Vietnam. Through discovering and developing technical talent, Japanese-language and business etiquette education, and practical design and development support, we help Japanese companies with recruitment and technical operations.",
+      "Working with the Japanese company 株式会社Seta Engineering, we connect client communication, proposals, contracts and project management in Japan with our talent, education and technical delivery base in Vietnam. By combining the roles of both companies, we support the entire process from defining hiring requirements and finding and recommending talent to pre-employment education and follow-up after joining."
+    ],
+    "mission": "Through comprehensive technical partnerships encompassing the optimization, new development and implementation of the latest technologies, we maximize project value together with our clients and contribute to building prosperous, sustainable social infrastructure.",
+    "vision": "We aim to lead digital solutions in construction, civil engineering and IT, becoming the No. 1 leading company connecting Japan and Vietnam through outstanding technical capability and trust.",
+    "strengths": [
+      [
+        "Quality and communication for Japanese companies",
+        "We emphasize not only technical quality but also communication with Japanese companies, including progress updates, reporting, information sharing and consultation. Our coordination framework, including Japanese-language support, reduces misunderstandings about specifications and requirements."
+      ],
+      [
+        "Connecting talent development with technical delivery",
+        "Alongside Japanese-language and business etiquette education and training tailored to company requirements, we provide technical outsourcing such as lab-based development, BIM and construction DX. Combining talent development and practical support, we help build the capabilities Japanese companies need."
+      ],
+      [
+        "Collaboration with Seta Engineering in Japan",
+        "Established in February 2026, 株式会社Seta Engineering acts as the client contact in Japan, handling proposals, contracts, requirement definition, project management and operational support. Working with Work Station’s talent, education and technical base, it connects recruitment with post-employment retention support."
+      ]
+    ],
+    "structure": "Work Station handles talent discovery and recommendation, education, Japanese-language training, and practical design and development support in Vietnam. Seta Engineering handles client communication, proposals, contracts and project management in Japan. Both companies share hiring requirements and operational challenges, supporting clients through talent placement and development as well as technical outsourcing.",
+    "roles": {
+      "workstation": "Based in Hanoi, we discover and recommend talent, provide Japanese-language and business etiquette education, and deliver training tailored to company requirements. In addition to practical support such as lab-based development, BIM and construction DX, we support career continuity so that professionals can keep working on Japan-facing projects after returning to Vietnam.",
+      "seta": "As the contact point in Japan, it handles client communication, proposals, contracts, requirement definition, project management and operational support. Through client consultations and post-employment follow-up, it works with Work Station to support talent retention and sustained contribution."
+    },
+    "connection": "Connecting Japanese companies, Seta Engineering, Work Station and candidates, we provide support tailored to each challenge, from preparation before hiring to follow-up after joining and the execution of technical work.",
+    "scope": [
+      "Project-based outsourcing (architectural design, BIM and technical operations support)",
+      "Japan-facing lab-based development and dedicated team building",
+      "Placement support for international engineers and highly skilled professionals",
+      "Engineer development, Japanese-language and business etiquette education"
+    ],
+    "cta": "Contact us about securing technical talent, outsourcing design and development, BIM and DX, or dedicated development teams."
+  },
+  "vi": {
+    "hero": [
+      "Phát huy chất lượng Nhật Bản",
+      "bằng nguồn nhân lực Việt Nam"
+    ],
+    "heroLead": "Đối tác kỹ thuật thực sự, đồng hành thúc đẩy sự phát triển của doanh nghiệp.",
+    "intro": [
+      "Work Station được thành lập vào tháng 4/2015, có trụ sở tại Hà Nội, Việt Nam. Thông qua tìm kiếm và phát triển nhân lực kỹ thuật, đào tạo tiếng Nhật và tác phong làm việc, cùng hỗ trợ thực hiện nghiệp vụ thiết kế, phát triển, chúng tôi hỗ trợ doanh nghiệp Nhật Bản trong tuyển dụng và công việc kỹ thuật.",
+      "Phối hợp với pháp nhân tại Nhật Bản 株式会社Seta Engineering, chúng tôi kết nối hoạt động làm việc với khách hàng, đề xuất, hợp đồng và quản lý dự án tại Nhật với nền tảng nhân lực, đào tạo và thực hiện công việc kỹ thuật tại Việt Nam. Hai công ty kết hợp vai trò để hỗ trợ từ làm rõ yêu cầu tuyển dụng, tìm kiếm và giới thiệu nhân sự, đào tạo trước khi vào làm đến theo sát sau khi nhận việc."
+    ],
+    "mission": "Thông qua quan hệ hợp tác kỹ thuật toàn diện, đảm nhiệm tối ưu hóa, phát triển mới và triển khai các công nghệ tiên tiến, chúng tôi cùng khách hàng tối đa hóa giá trị dự án, góp phần xây dựng hạ tầng xã hội thịnh vượng và bền vững.",
+    "vision": "Dẫn dắt các giải pháp số trong lĩnh vực xây dựng, công trình hạ tầng và CNTT; hướng tới trở thành doanh nghiệp dẫn đầu số 1 kết nối Nhật Bản và Việt Nam bằng năng lực kỹ thuật vượt trội và sự tin cậy.",
+    "strengths": [
+      [
+        "Chất lượng và phối hợp dành cho doanh nghiệp Nhật",
+        "Không chỉ chú trọng chất lượng kỹ thuật, chúng tôi còn coi trọng việc trao đổi với doanh nghiệp Nhật, bao gồm chia sẻ tiến độ, báo cáo, liên lạc và trao đổi ý kiến. Cơ chế phối hợp có hỗ trợ tiếng Nhật giúp hạn chế sai lệch trong cách hiểu thông số và yêu cầu."
+      ],
+      [
+        "Kết nối đào tạo nhân lực với thực tiễn kỹ thuật",
+        "Bên cạnh đào tạo tiếng Nhật, tác phong làm việc và đào tạo theo yêu cầu doanh nghiệp, chúng tôi đáp ứng nhu cầu thuê ngoài kỹ thuật như phát triển theo mô hình lab, BIM và DX xây dựng. Kết hợp phát triển nhân lực với hỗ trợ thực hiện nghiệp vụ, chúng tôi giúp xây dựng đội ngũ cần thiết cho doanh nghiệp Nhật."
+      ],
+      [
+        "Phối hợp với Seta Engineering tại Nhật Bản",
+        "Được thành lập vào tháng 2/2026, 株式会社Seta Engineering là đầu mối khách hàng tại Nhật, phụ trách đề xuất, hợp đồng, làm rõ yêu cầu, quản lý dự án và hỗ trợ vận hành. Kết nối với nền tảng nhân lực, đào tạo và kỹ thuật của Work Station, công ty hỗ trợ xuyên suốt từ tuyển dụng đến gắn bó sau khi nhận việc."
+      ]
+    ],
+    "structure": "Work Station phụ trách tìm kiếm, giới thiệu nhân lực, đào tạo, huấn luyện tiếng Nhật và hỗ trợ thực hiện thiết kế, phát triển tại Việt Nam. Seta Engineering phụ trách làm việc với khách hàng, đề xuất, hợp đồng và quản lý dự án tại Nhật Bản. Hai công ty cùng chia sẻ yêu cầu tuyển dụng và vấn đề nghiệp vụ của doanh nghiệp để hỗ trợ cả giới thiệu, phát triển nhân lực lẫn thuê ngoài kỹ thuật.",
+    "roles": {
+      "workstation": "Từ Hà Nội, chúng tôi tìm kiếm, giới thiệu nhân lực, đào tạo tiếng Nhật, tác phong làm việc và tổ chức đào tạo theo yêu cầu doanh nghiệp. Ngoài hỗ trợ thực hiện nghiệp vụ như phát triển theo mô hình lab, BIM và DX xây dựng, chúng tôi hỗ trợ duy trì sự nghiệp để nhân sự có thể tiếp tục tham gia công việc cho thị trường Nhật sau khi trở về Việt Nam.",
+      "seta": "Là đầu mối tại Nhật Bản, công ty phụ trách làm việc với khách hàng, đề xuất, hợp đồng, làm rõ yêu cầu, quản lý dự án và hỗ trợ vận hành. Thông qua trao đổi với doanh nghiệp và theo sát sau khi nhân sự nhận việc, công ty cùng Work Station hỗ trợ nhân sự gắn bó và tiếp tục phát huy năng lực."
+    },
+    "connection": "Kết nối doanh nghiệp Nhật Bản, Seta Engineering, Work Station và ứng viên, chúng tôi cung cấp hỗ trợ theo từng vấn đề, từ chuẩn bị trước tuyển dụng đến theo sát sau khi nhận việc và thực hiện công việc kỹ thuật.",
+    "scope": [
+      "Thuê ngoài theo dự án (thiết kế kiến trúc, BIM, hỗ trợ nghiệp vụ kỹ thuật)",
+      "Phát triển theo mô hình lab và xây dựng đội ngũ chuyên trách cho thị trường Nhật",
+      "Hỗ trợ giới thiệu kỹ sư nước ngoài và nhân lực trình độ cao",
+      "Đào tạo kỹ sư, tiếng Nhật và tác phong làm việc"
+    ],
+    "cta": "Hãy trao đổi với chúng tôi về nhu cầu nhân lực kỹ thuật, thuê ngoài thiết kế và phát triển, BIM, DX hoặc đội ngũ phát triển chuyên trách."
+  }
+}

@@ -30,7 +30,7 @@ import {
   generateCvShokumuPdfBuffer
 } from './cvPdfService.js';
 
-const AI_PARSE_URL = 'https://test.ws-jobshare.com/api_ai/v2/parser/cv';
+const AI_PARSE_URL = 'https://ws-jobshare.com/api_ai/v2/parser/cv';
 const AUTO_PARSE_TIMEOUT_MS = parseInt(process.env.AUTO_PARSE_CV_TIMEOUT_MS || '1200000', 10); // default 20 minutes
 const MAX_FILES_PER_CV = parseInt(process.env.AUTO_PARSE_CV_MAX_FILES_PER_CV || '25', 10);
 

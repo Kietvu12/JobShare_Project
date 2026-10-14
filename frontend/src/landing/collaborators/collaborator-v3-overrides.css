@@ -1,0 +1,131 @@
+/**
+ * Bổ sung nhỏ cho shell React — phần lớn giao diện lấy từ template styles.css.
+ */
+body.jobshare-collaborator-v3 #root {
+  height: auto;
+  min-height: 100%;
+}
+
+/* Role switch bar (JobShareRoleSwitchBar) — sticky + offset header khi cuộn */
+#collaborator-site-root .jobshare-role-switch-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #f4f7f9;
+}
+
+body.jobshare-collaborator-v3 {
+  scroll-padding-top: calc(var(--jobshare-role-bar-height, 0px) + 88px);
+}
+
+@media (max-width: 720px) {
+  body.jobshare-collaborator-v3 {
+    scroll-padding-top: calc(var(--jobshare-role-bar-height, 0px) + 76px);
+  }
+
+  #collaborator-site-root .jobshare-role-switch-bar .role-intro {
+    padding: 8px 0;
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  #collaborator-site-root .jobshare-role-switch-bar .roles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  #collaborator-site-root .jobshare-role-switch-bar .role {
+    min-width: 0;
+    padding: 10px 6px;
+    gap: 5px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    text-align: left;
+  }
+
+  #collaborator-site-root .jobshare-role-switch-bar .role > span {
+    min-width: 0;
+    flex: 1 1 auto;
+    width: auto;
+  }
+
+  #collaborator-site-root .jobshare-role-switch-bar .role strong {
+    display: block;
+    font-size: 13px;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  /* Mobile: chỉ tiêu đề + icon cùng hàng, ẩn dòng mô tả */
+  #collaborator-site-root .jobshare-role-switch-bar .role small {
+    display: none;
+  }
+
+  #collaborator-site-root .jobshare-role-switch-bar .role svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 400px) {
+  #collaborator-site-root .jobshare-role-switch-bar .wrap {
+    width: calc(100% - 28px);
+  }
+
+  #collaborator-site-root .jobshare-role-switch-bar .role {
+    padding: 8px 4px;
+  }
+
+  #collaborator-site-root .jobshare-role-switch-bar .role strong {
+    font-size: 12px;
+  }
+}
+
+#collaborator-site-root a.btn {
+  text-decoration: none;
+}
+
+#collaborator-site-root .news-card {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Header sticky — nằm dưới role bar (chiều cao đo bằng useRoleBarHeight). */
+body.jobshare-collaborator-v3 #collaborator-site-root .site-header {
+  position: sticky;
+  top: var(--jobshare-role-bar-height, 0px);
+  z-index: 20;
+}
+
+/* Toàn bộ nút / control dạng nút trên landing CTV — góc vuông */
+#collaborator-site-root :is(
+    .btn,
+    .header-register,
+    .menu-btn,
+    .languages a,
+    .back-top,
+    .support-launcher,
+    .contact-dialog,
+    .footer-contact
+  ) {
+  border-radius: 0;
+}
+
+/* Cặp CTA hero + final: cùng chiều rộng */
+#collaborator-site-root :is(.hero, .final-copy) .actions {
+  align-items: stretch;
+  width: 100%;
+  max-width: 520px;
+}
+
+#collaborator-site-root :is(.hero, .final-copy) .actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 54px;
+  padding-inline: 16px;
+}

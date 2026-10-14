@@ -113,11 +113,13 @@ export function getPostBlogSlug(post) {
   return '';
 }
 
-export function getPostDetailHref(post, blogBase = '') {
+/** @param {string} [detailListPath] e.g. `blog` or `collaborator/blog` */
+export function getPostDetailHref(post, blogBase = '', detailListPath = 'blog') {
   const slug = getPostBlogSlug(post);
-  if (!slug) return `${blogBase}/blog`;
   const base = String(blogBase || '').replace(/\/$/, '');
-  return `${base}/blog/${encodeURIComponent(slug)}`;
+  const segment = String(detailListPath || 'blog').replace(/^\/+|\/+$/g, '');
+  if (!slug) return `${base}/${segment}`.replace(/\/+/g, '/');
+  return `${base}/${segment}/${encodeURIComponent(slug)}`.replace(/\/+/g, '/');
 }
 
 export function pickPublicPostMetaTitle(post, lang) {
@@ -139,6 +141,22 @@ function toAbsoluteShareUrl(url) {
     return url.startsWith('/') ? `${origin}${url}` : `${origin}/${url}`;
   }
   return url;
+}
+
+/** URL thumbnail hiển thị trên card/list (blog, landing template). */
+export function getPublicPostThumbnailUrl(post, fallback = '') {
+  if (!post) return fallback;
+  const raw =
+    post.coverImageUrl
+    || post.thumbnailUrl
+    || post.thumbnail
+    || post.metaImage
+    || post.image
+    || '';
+  if (!raw) return fallback;
+  const normalized = normalizePostImageUrl(String(raw));
+  if (!normalized) return fallback;
+  return toAbsoluteShareUrl(normalized) || fallback;
 }
 
 /** URL ảnh chia sẻ — ưu tiên thumbnail (ảnh đại diện), dùng URL ổn định từ API. */

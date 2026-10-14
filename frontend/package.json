@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "node scripts/copy-pdf-worker.mjs && vite build",
+    "scope:landing-css": "node scripts/scope-css-selectors.mjs && node scripts/validate-scoped-css.mjs",
+    "validate:landing-css": "node scripts/validate-scoped-css.mjs",
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "lint": "eslint .",
     "preview": "vite preview"

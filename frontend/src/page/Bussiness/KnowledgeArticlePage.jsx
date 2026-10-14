@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Calendar, Clock, Eye, Loader2, User } from 'lucide-react';
-import apiService, { normalizePostImageUrl } from '../../services/api';
+import apiService, { normalizePostImageUrl, rewritePostContentMediaUrls } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import {
   pickPublicPostExcerpt,
@@ -71,9 +71,9 @@ function formatDate(iso, lang) {
 
 function pickPostContentHtml(post, lang) {
   if (!post) return '';
-  if (lang === 'en') return post.contentEn || post.content || '';
-  if (lang === 'ja') return post.contentJp || post.contentEn || post.content || '';
-  return post.content || post.contentEn || post.contentJp || '';
+  if (lang === 'en') return rewritePostContentMediaUrls(post.contentEn || post.content || '');
+  if (lang === 'ja') return rewritePostContentMediaUrls(post.contentJp || post.contentEn || post.content || '');
+  return rewritePostContentMediaUrls(post.content || post.contentEn || post.contentJp || '');
 }
 
 function estimateReadMinutes(post, lang) {

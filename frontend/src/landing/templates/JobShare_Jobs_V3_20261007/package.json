@@ -1,0 +1,9 @@
+{
+  "name": "jobshare-job-listings-v3",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node tests-v3.mjs"
+  }
+}

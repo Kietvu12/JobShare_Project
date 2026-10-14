@@ -357,7 +357,7 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false, scr
         <button
           type="button"
           onClick={() => { setUserMenuOpen(false); navigate('/business/billing'); }}
-          className="w-full text-left px-2 py-1.5 rounded-md hover:bg-amber-50 text-[11px] lg:text-[10px] text-amber-700 flex items-center gap-2 lg:hidden"
+          className="w-full text-left px-2 py-2.5 rounded-md hover:bg-amber-50 text-[11px] lg:py-1.5 lg:text-[10px] text-amber-700 flex items-center gap-2 lg:hidden"
         >
           <Coins className="h-3.5 w-3.5 flex-shrink-0" />
           <span className="truncate">{t.credit}: {Number(credit || 0).toLocaleString()}</span>
@@ -366,7 +366,7 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false, scr
         <button
           type="button"
           onClick={() => { setUserMenuOpen(false); setNotifOpen(true); }}
-          className="w-full text-left px-2 py-1.5 rounded-md hover:bg-gray-50 text-[11px] lg:text-[10px] text-gray-700 flex items-center gap-2 lg:hidden"
+          className="w-full text-left px-2 py-2.5 rounded-md hover:bg-gray-50 text-[11px] lg:py-1.5 lg:text-[10px] text-gray-700 flex items-center gap-2 lg:hidden"
         >
           <Bell className="h-3.5 w-3.5 flex-shrink-0" />
           <span className="truncate">{t.notifications}{notifUnread > 0 ? ` (${notifUnread})` : ''}</span>
@@ -375,7 +375,7 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false, scr
         <button
           type="button"
           onClick={() => { setUserMenuOpen(false); navigate('/business/messages'); }}
-          className="w-full text-left px-2 py-1.5 rounded-md hover:bg-gray-50 text-[11px] lg:text-[10px] text-gray-700 flex items-center gap-2 lg:hidden"
+          className="w-full text-left px-2 py-2.5 rounded-md hover:bg-gray-50 text-[11px] lg:py-1.5 lg:text-[10px] text-gray-700 flex items-center gap-2 lg:hidden"
         >
           <Mail className="h-3.5 w-3.5 flex-shrink-0" />
           <span className="truncate">{t.messages}</span>
@@ -394,7 +394,7 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false, scr
         <button
           type="button"
           onClick={goToAccountProfile}
-          className="w-full text-left px-2 py-1.5 rounded-md hover:bg-gray-50 text-[11px] lg:text-[10px] text-gray-700 flex items-center gap-2"
+          className="w-full text-left px-2 py-2.5 rounded-md hover:bg-gray-50 text-[11px] lg:py-1.5 lg:text-[10px] text-gray-700 flex items-center gap-2"
         >
           <User className="h-3.5 w-3.5 flex-shrink-0" />
           <span className="truncate">{t.accountProfile}</span>
@@ -402,7 +402,7 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false, scr
         <button
           type="button"
           onClick={handleLogout}
-          className="w-full text-left px-2 py-1.5 rounded-md hover:bg-gray-50 text-[11px] lg:text-[10px] text-red-600 flex items-center gap-2"
+          className="w-full text-left px-2 py-2.5 rounded-md hover:bg-gray-50 text-[11px] lg:py-1.5 lg:text-[10px] text-red-600 flex items-center gap-2"
         >
           <LogOut className="h-3.5 w-3.5 flex-shrink-0" />
           <span className="truncate">{t.logout}</span>
@@ -437,6 +437,24 @@ const BusinessHeader = ({ businessUser, onMenuToggle, mobileNavOpen = false, scr
           <PageIcon className="h-4 w-4 shrink-0 text-[#0077B6]" strokeWidth={2.25} />
           <span className="truncate text-sm font-semibold text-[#0077B6]">{pageMeta.title}</span>
         </div>
+
+        <button
+          type="button"
+          className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-600 hover:bg-gray-100"
+          aria-label={t.notifications}
+          aria-expanded={notifOpen}
+          onClick={() => {
+            setUserMenuOpen(false);
+            setNotifOpen((open) => !open);
+          }}
+        >
+          <Bell className="h-4 w-4" />
+          {notifUnread > 0 && (
+            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+              {notifUnread > 9 ? '9+' : notifUnread}
+            </span>
+          )}
+        </button>
 
         <div className="relative shrink-0" ref={mobileUserMenuRef}>
           <button

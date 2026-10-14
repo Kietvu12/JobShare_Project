@@ -1,15 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import apiService, { normalizePostImageUrl } from '../services/api';
+import apiService, { normalizePostImageUrl, rewritePostContentMediaUrls } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 import { useCandidateAuth } from '../context/CandidateAuthContext';
 import { translations } from '../translations/translations';
 import BlogEventRegistrationSidebar from '../component/Shared/BlogEventRegistrationSidebar';
 import {
+  getLocaleFromPathname,
   isBusinessPublicPath,
   isCandidatePublicPath,
   resolvePublicBlogPrefix,
+  withLocalePath,
 } from '../utils/localeRoutes';
 import {
   pickPublicPostMetaTitle,
@@ -53,9 +55,9 @@ function pickPostTitle(post, lang) {
 
 function pickPostContentHtml(post, lang) {
   if (!post) return '';
-  if (lang === 'en') return post.contentEn || post.content || '';
-  if (lang === 'ja') return post.contentJp || post.contentEn || post.content || '';
-  return post.content || post.contentEn || post.contentJp || '';
+  if (lang === 'en') return rewritePostContentMediaUrls(post.contentEn || post.content || '');
+  if (lang === 'ja') return rewritePostContentMediaUrls(post.contentJp || post.contentEn || post.content || '');
+  return rewritePostContentMediaUrls(post.content || post.contentEn || post.contentJp || '');
 }
 
 export default function BlogDetailPage() {
@@ -77,9 +79,13 @@ export default function BlogDetailPage() {
       const p = resolvePublicBlogPrefix(pathname);
       return { to: `${p}/blog`, label: listLabel };
     }
-    if (pathname.includes('/blog')) {
+    if (isBusinessPublicPath(pathname)) {
       const p = resolvePublicBlogPrefix(pathname);
       return { to: `${p}/blog`, label: listLabel };
+    }
+    if (pathname.includes('/blog')) {
+      const locale = getLocaleFromPathname(pathname) || language;
+      return { to: withLocalePath(locale, '/collaborator/blog'), label: listLabel };
     }
     return { to: '/login', label: tr.publicBlogBackToLogin };
   }, [pathname, language]);

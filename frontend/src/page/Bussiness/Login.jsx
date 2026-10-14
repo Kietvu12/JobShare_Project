@@ -142,13 +142,13 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center relative py-8" style={{ fontFamily: '"Myriad Pro", sans-serif' }}>
+    <div className="min-h-dvh bg-white flex flex-col items-center justify-center relative px-3 py-4 sm:py-8" style={{ fontFamily: '"Myriad Pro", sans-serif' }}>
       <Helmet>
         <title>Đăng nhập doanh nghiệp | JobShare Business</title>
         <meta name="description" content="Đăng nhập JobShare Business để quản lý tuyển dụng, JD, ứng viên và dịch vụ tuyển dụng." />
       </Helmet>
 
-      <div className="fixed top-6 left-6 z-50">
+      <div className="z-50 mb-3 self-start sm:fixed sm:left-6 sm:top-6 sm:mb-0">
         <div className="relative" ref={languageMenuRef}>
           <button
             type="button"
@@ -198,9 +198,9 @@ const Login = () => {
         </div>
       </div>
 
-      <div className="w-full max-w-5xl mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden border-2 border-black">
+      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden border-2 border-black">
         <div className="flex flex-col lg:flex-row">
-          <div className="bg-white p-8 lg:p-12 flex flex-col justify-center items-center lg:items-start lg:w-2/5 relative" style={{ fontFamily: '"Myriad Pro", sans-serif' }}>
+          <div className="bg-white p-5 sm:p-8 lg:p-12 flex flex-col justify-center items-center lg:items-start lg:w-2/5 relative" style={{ fontFamily: '"Myriad Pro", sans-serif' }}>
             <Link
               to="/"
               className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-red-600 transition-colors mb-6 w-full justify-center lg:justify-start no-underline"
@@ -253,7 +253,7 @@ const Login = () => {
             </div>
           </div>
 
-          <div className="bg-white p-8 lg:p-12 flex-1 lg:w-3/5" style={{ fontFamily: '"Myriad Pro", sans-serif' }}>
+          <div className="bg-white p-5 sm:p-8 lg:p-12 flex-1 lg:w-3/5" style={{ fontFamily: '"Myriad Pro", sans-serif' }}>
             {view === 'login' ? (
               <form onSubmit={handleSubmit} className="max-w-md mx-auto lg:mx-0">
                 <div className="mb-8">

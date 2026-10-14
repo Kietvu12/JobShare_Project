@@ -1,0 +1,299 @@
+{
+  "ja": {
+    "kicker": "セミナー・イベント",
+    "title": "外国人材採用に役立つ実践セミナー",
+    "lead": "採用市場の動向から、募集・面接・受け入れまで。企業の採用活動に役立つテーマを分かりやすくご紹介します。",
+    "explore": "セミナーを見る",
+    "topics": "テーマ一覧を見る",
+    "hours": "10:00〜18:00（平日）",
+    "contact": "お問い合わせ",
+    "docs": "資料ダウンロード",
+    "register": "無料で登録する",
+    "consult": "採用相談",
+    "audience": "企業・採用ご担当者向け",
+    "format": "参加形式・会場は各詳細ページでご確認ください",
+    "featured": "注目のテーマ",
+    "ftitle": "外国人材採用の実務課題に向き合う",
+    "fbody": "採用戦略から面接・評価、受け入れ・定着まで。自社の課題に合うテーマを見つけ、次の採用活動に活かしませんか。",
+    "topichead": "課題からテーマを探す",
+    "topicintro": "気になるテーマを選ぶと、検討したいポイントを確認できます。開催予定についてはお問い合わせください。",
+    "topicnames": [
+      "採用戦略・市場動向",
+      "面接・評価",
+      "受け入れ・定着",
+      "技術人材の育成"
+    ],
+    "topicdesc": [
+      "市場の動向と採用要件を整理し、自社に合う採用方法を考える。",
+      "経験・技術力・コミュニケーションを確認する面接の視点を整理する。",
+      "入社前の準備から職場でのコミュニケーション、定着支援までを考える。",
+      "実務に必要な技術・日本語・ビジネススキルの育成を考える。"
+    ],
+    "topicdetail": [
+      [
+        "採用要件と求める人物像",
+        "候補者へのアプローチ方法",
+        "採用活動に必要なリソース"
+      ],
+      [
+        "面接で確認する経験とスキル",
+        "評価基準のすり合わせ",
+        "候補者との相互理解"
+      ],
+      [
+        "受け入れ前の準備",
+        "入社後のフォロー",
+        "チーム内のコミュニケーション"
+      ],
+      [
+        "技術課題と育成目標",
+        "日本語・業務コミュニケーション",
+        "実務につながる学習支援"
+      ]
+    ],
+    "viewtopic": "テーマを見る",
+    "schedule": "開催予定は現在調整中です",
+    "all": "すべて",
+    "upcoming": "開催予定",
+    "empty": "現在、公開中の開催予定はありません",
+    "emptybody": "次回の開催日程やご希望のテーマについて、お気軽にお問い合わせください。過去の掲載情報も以下からご覧いただけます。",
+    "archive": "セミナー・イベント一覧",
+    "archiveintro": "JobShare Businessのセミナー、共催セミナー、イベントを掲載しています。",
+    "groups": [
+      "セミナー",
+      "共催セミナー",
+      "イベント"
+    ],
+    "archivebadge": "過去の掲載情報",
+    "free": "無料公開中",
+    "datepassed": "掲載日程は終了しています",
+    "statusnote": "日程が過ぎた掲載情報です。公開状況・詳細はリンク先でご確認ください。",
+    "detail": "詳細を見る",
+    "listall": "一覧を見る",
+    "search": "キーワードで検索",
+    "searchhint": "タイトルで検索",
+    "searchbtn": "検索",
+    "noresult": "該当する情報がありません。条件を変更してください。",
+    "count": "件",
+    "support": "ご参加・お問い合わせ",
+    "supportbody": "日程や参加方法、ご希望のテーマについてご相談ください。",
+    "faq": [
+      [
+        "誰を対象としたセミナーですか？",
+        "外国人高度人材の採用を検討する企業や、採用・人事ご担当者に向けた内容です。"
+      ],
+      [
+        "参加方法・申し込み方法は？",
+        "各セミナーの詳細ページで開催日時、会場・オンライン形式、申し込み方法をご確認ください。掲載情報の日程が終了している場合は、次回開催についてお問い合わせください。"
+      ],
+      [
+        "次回の日程が決まっていない場合は？",
+        "お問い合わせ窓口またはお電話で、ご希望のテーマや日程についてご相談いただけます。"
+      ]
+    ],
+    "final": "優秀な人材と出会い、採用をもっとスマートに",
+    "finalbody": "JobShare Businessは、外国人高度人材の採用を支援する企業向けプラットフォームです。",
+    "address": "3F, 82 Tue Tinh, Hanoi, Vietnam",
+    "close": "閉じる",
+    "skip": "本文へ",
+    "top": "ページ上部へ"
+  },
+  "en": {
+    "kicker": "SEMINARS & EVENTS",
+    "title": "Practical seminars for international hiring in Japan",
+    "lead": "Explore useful topics for employers, from hiring strategy and candidate interviews to onboarding and workforce support.",
+    "explore": "Explore seminars",
+    "topics": "View topics",
+    "hours": "10:00–18:00 (weekdays)",
+    "contact": "Contact us",
+    "docs": "Download materials",
+    "register": "Register for free",
+    "consult": "Recruitment consultation",
+    "audience": "For employers & hiring teams",
+    "format": "See each detail page for the format and venue",
+    "featured": "Featured theme",
+    "ftitle": "Practical themes for international hiring",
+    "fbody": "From hiring strategy and candidate assessment to onboarding and retention. Find the topics that address your recruitment challenges and help you plan your next steps.",
+    "topichead": "Explore topics by hiring challenge",
+    "topicintro": "Choose a topic to see the key points to consider. Contact us for information about upcoming sessions.",
+    "topicnames": [
+      "Strategy & market trends",
+      "Interviews & assessment",
+      "Onboarding & retention",
+      "Technical talent development"
+    ],
+    "topicdesc": [
+      "Understand market trends, define requirements and consider the right recruitment approach.",
+      "Explore how to assess experience, technical skills and communication during interviews.",
+      "Consider preparation, workplace communication and support after employees join.",
+      "Explore technical, Japanese-language and business skills needed in the workplace."
+    ],
+    "topicdetail": [
+      [
+        "Hiring requirements and candidate profiles",
+        "Approaches to candidate outreach",
+        "Resources for recruitment"
+      ],
+      [
+        "Experience and skills to explore in interviews",
+        "Aligning assessment criteria",
+        "Building mutual understanding"
+      ],
+      [
+        "Preparation before employees join",
+        "Support after onboarding",
+        "Communication within the team"
+      ],
+      [
+        "Technical needs and learning goals",
+        "Japanese and workplace communication",
+        "Learning linked to practical work"
+      ]
+    ],
+    "viewtopic": "View topic",
+    "schedule": "Schedule to be announced",
+    "all": "All",
+    "upcoming": "Upcoming seminars",
+    "empty": "There are no published upcoming dates at the moment",
+    "emptybody": "Contact us about the next schedule or a topic of interest. You can also explore previously listed seminars and events below.",
+    "archive": "Seminars & events",
+    "archiveintro": "Browse JobShare Business seminars, co-hosted seminars and events.",
+    "groups": [
+      "Seminars",
+      "Co-hosted seminars",
+      "Events"
+    ],
+    "archivebadge": "Past listing",
+    "free": "Free access",
+    "datepassed": "The listed date has passed",
+    "statusnote": "These are past listings. Follow the original links for details and current availability.",
+    "detail": "View details",
+    "listall": "View all",
+    "search": "Search by keyword",
+    "searchhint": "Search titles",
+    "searchbtn": "Search",
+    "noresult": "No results found. Try another search or category.",
+    "count": "results",
+    "support": "Participation & inquiries",
+    "supportbody": "Ask about schedules, participation or a topic of interest.",
+    "faq": [
+      [
+        "Who are these seminars for?",
+        "The content is aimed at companies considering skilled international talent, as well as recruitment and HR teams."
+      ],
+      [
+        "How do I join or register?",
+        "Check the individual seminar page for dates, venue or online format, and registration instructions. For past listings, contact us about future sessions."
+      ],
+      [
+        "What if the next date is not available?",
+        "Use the inquiry page or call us to discuss your preferred topic or schedule."
+      ]
+    ],
+    "final": "Meet great talent. Make hiring smarter.",
+    "finalbody": "JobShare Business supports companies recruiting skilled international professionals.",
+    "address": "3F, 82 Tue Tinh, Hanoi, Vietnam",
+    "close": "Close",
+    "skip": "Skip to content",
+    "top": "Back to top"
+  },
+  "vi": {
+    "kicker": "SEMINAR & SỰ KIỆN",
+    "title": "Seminar thực tiễn cho tuyển dụng nhân sự quốc tế",
+    "lead": "Từ xu hướng thị trường, xây dựng yêu cầu tuyển dụng đến phỏng vấn và tiếp nhận nhân sự, chúng tôi tổng hợp những chủ đề hữu ích cho doanh nghiệp.",
+    "explore": "Khám phá seminar",
+    "topics": "Xem các chủ đề",
+    "hours": "10:00–18:00 (ngày thường)",
+    "contact": "Liên hệ",
+    "docs": "Tải tài liệu",
+    "register": "Đăng ký miễn phí",
+    "consult": "Tư vấn tuyển dụng",
+    "audience": "Dành cho doanh nghiệp & nhân sự",
+    "format": "Xem hình thức và địa điểm tại từng trang chi tiết",
+    "featured": "Chủ đề nổi bật",
+    "ftitle": "Những chủ đề thiết thực cho tuyển dụng nhân sự quốc tế",
+    "fbody": "Từ chiến lược tuyển dụng, phỏng vấn và đánh giá đến tiếp nhận và gắn bó. Tìm chủ đề phù hợp với bài toán của doanh nghiệp để chuẩn bị cho bước tuyển dụng tiếp theo.",
+    "topichead": "Tìm chủ đề theo nhu cầu tuyển dụng",
+    "topicintro": "Chọn chủ đề để xem các nội dung cần quan tâm. Liên hệ với chúng tôi để hỏi về lịch tổ chức tiếp theo.",
+    "topicnames": [
+      "Chiến lược & thị trường",
+      "Phỏng vấn & đánh giá",
+      "Tiếp nhận & gắn bó",
+      "Đào tạo nhân lực kỹ thuật"
+    ],
+    "topicdesc": [
+      "Nắm xu hướng thị trường, xác định yêu cầu và lựa chọn phương thức tuyển dụng phù hợp.",
+      "Tìm hiểu cách đánh giá kinh nghiệm, kỹ năng chuyên môn và giao tiếp trong phỏng vấn.",
+      "Chuẩn bị tiếp nhận, giao tiếp tại nơi làm việc và hỗ trợ nhân sự sau khi gia nhập.",
+      "Tìm hiểu việc phát triển kỹ năng chuyên môn, tiếng Nhật và tác phong làm việc."
+    ],
+    "topicdetail": [
+      [
+        "Yêu cầu tuyển dụng và chân dung ứng viên",
+        "Phương thức tiếp cận ứng viên",
+        "Nguồn lực cho hoạt động tuyển dụng"
+      ],
+      [
+        "Kinh nghiệm và kỹ năng cần làm rõ",
+        "Thống nhất tiêu chí đánh giá",
+        "Tăng sự thấu hiểu giữa hai bên"
+      ],
+      [
+        "Chuẩn bị trước khi nhân sự gia nhập",
+        "Theo dõi và hỗ trợ sau tiếp nhận",
+        "Giao tiếp trong đội ngũ"
+      ],
+      [
+        "Nhu cầu kỹ thuật và mục tiêu đào tạo",
+        "Tiếng Nhật và giao tiếp công việc",
+        "Học tập gắn với thực hành"
+      ]
+    ],
+    "viewtopic": "Xem chủ đề",
+    "schedule": "Lịch tổ chức đang được cập nhật",
+    "all": "Tất cả",
+    "upcoming": "Seminar sắp tới",
+    "empty": "Hiện chưa có lịch seminar sắp tới được công bố",
+    "emptybody": "Liên hệ để hỏi về lịch tiếp theo hoặc chủ đề anh/chị quan tâm. Các seminar và sự kiện đã được đăng cũng được lưu ở bên dưới.",
+    "archive": "Seminar & sự kiện",
+    "archiveintro": "Khám phá seminar JobShare Business, seminar đồng tổ chức và các sự kiện.",
+    "groups": [
+      "Seminar",
+      "Seminar đồng tổ chức",
+      "Sự kiện"
+    ],
+    "archivebadge": "Thông tin đã đăng",
+    "free": "Đang mở miễn phí",
+    "datepassed": "Đã qua ngày tổ chức được công bố",
+    "statusnote": "Đây là các thông tin có lịch đã qua. Xem chi tiết và tình trạng hiện tại tại đường dẫn gốc.",
+    "detail": "Xem chi tiết",
+    "listall": "Xem tất cả",
+    "search": "Tìm theo từ khóa",
+    "searchhint": "Tìm theo tiêu đề",
+    "searchbtn": "Tìm kiếm",
+    "noresult": "Không tìm thấy kết quả. Hãy đổi từ khóa hoặc nhóm nội dung.",
+    "count": "kết quả",
+    "support": "Tham gia & liên hệ",
+    "supportbody": "Trao đổi về lịch tổ chức, cách tham gia hoặc chủ đề doanh nghiệp quan tâm.",
+    "faq": [
+      [
+        "Seminar dành cho ai?",
+        "Nội dung dành cho doanh nghiệp đang cân nhắc tuyển dụng nhân sự quốc tế trình độ cao và đội ngũ tuyển dụng, nhân sự."
+      ],
+      [
+        "Tham gia và đăng ký như thế nào?",
+        "Vui lòng xem ngày giờ, địa điểm hoặc hình thức online và hướng dẫn đăng ký trên từng trang chi tiết. Với lịch đã qua, hãy liên hệ để hỏi về các buổi tiếp theo."
+      ],
+      [
+        "Nếu chưa có lịch tiếp theo thì sao?",
+        "Anh/chị có thể gửi yêu cầu qua trang liên hệ hoặc gọi điện để trao đổi về chủ đề và lịch mong muốn."
+      ]
+    ],
+    "final": "Kết nối nhân tài, tuyển dụng thông minh hơn",
+    "finalbody": "JobShare Business là nền tảng hỗ trợ doanh nghiệp tuyển dụng nhân sự quốc tế trình độ cao.",
+    "address": "Tầng 3, 82 Tuệ Tĩnh, Hà Nội, Việt Nam",
+    "close": "Đóng",
+    "skip": "Đến nội dung",
+    "top": "Về đầu trang"
+  }
+}

@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import {
   DEFAULT_LOCALE,
+  PUBLIC_ENTRY_PATH,
   isSupportedLocale,
   legacyPublicRedirectPath,
   stripLocaleFromPathname,
@@ -48,7 +49,7 @@ export function PublicRootRedirect() {
   if (token && userType === 'ctv') return <Navigate to="/agent" replace />;
   if (token && userType === 'admin') return <Navigate to="/admin" replace />;
 
-  return <Navigate to={`/${DEFAULT_LOCALE}/`} replace />;
+  return <Navigate to={PUBLIC_ENTRY_PATH} replace />;
 }
 
 export function LegacyPublicRedirect({ persona = 'collaborator' }) {
@@ -57,14 +58,28 @@ export function LegacyPublicRedirect({ persona = 'collaborator' }) {
   return <Navigate to={target} replace />;
 }
 
-/** /{lang}/collaborator/jobs/:id → /{lang}/jobs/:id (link copy cũ / sai cấu trúc) */
-export function LegacyLocaleCollaboratorJobRedirect() {
-  const { lang, jobId } = useParams();
+/** /{lang}/jobs/... → /{lang}/collaborator/jobs/... (landing CTV cũ) */
+export function LegacyLocalePublicJobsRedirect() {
+  const { lang, '*': rest } = useParams();
+  const location = useLocation();
+  const safeLang = isSupportedLocale(lang) ? lang : DEFAULT_LOCALE;
+  const suffix = rest ? `/${rest}` : '';
+  return (
+    <Navigate
+      to={`/${safeLang}/collaborator/jobs${suffix}${location.search}${location.hash}`}
+      replace
+    />
+  );
+}
+
+/** /{lang}/blog/:slug → /{lang}/candidate/blog/:slug */
+export function LegacyLocalePublicBlogPostRedirect() {
+  const { lang, postSlug } = useParams();
   const location = useLocation();
   const safeLang = isSupportedLocale(lang) ? lang : DEFAULT_LOCALE;
   return (
     <Navigate
-      to={`/${safeLang}/jobs/${jobId}${location.search}${location.hash}`}
+      to={`/${safeLang}/candidate/blog/${postSlug}${location.search}${location.hash}`}
       replace
     />
   );

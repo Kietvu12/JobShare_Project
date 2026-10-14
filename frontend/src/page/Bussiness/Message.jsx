@@ -613,7 +613,7 @@ const Message = () => {
                 )
               ) : (
                 <>
-                  <div className={`${MSG_SUBTOOLBAR} flex-col items-stretch gap-2.5 !min-h-0 py-3`}>
+                  <div className={`${MSG_SUBTOOLBAR} business-mobile-filters flex-col items-stretch gap-2.5 !min-h-0 py-3`}>
                     <div className={searchWrapClass}>
                       <Search className="h-4 w-4 shrink-0 text-slate-400" />
                       <input

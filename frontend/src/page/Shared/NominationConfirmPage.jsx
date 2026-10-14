@@ -90,7 +90,7 @@ const NominationConfirmPage = ({ variant = 'agent' }) => {
   const nominatePath = flow.isAdmin
     ? `/admin/jobs/${flow.jobId}/nominate`
     : flow.isApplicantCandidate
-      ? `${location.pathname.startsWith('/landing/candidate') ? '/landing/candidate' : '/candidate'}/jobs/${flow.jobId}/apply`
+      ? `${flow.applicantPrefix}/jobs/${flow.jobId}/nominate`
       : `/agent/jobs/${flow.jobId}/nominate`;
 
   useEffect(() => {

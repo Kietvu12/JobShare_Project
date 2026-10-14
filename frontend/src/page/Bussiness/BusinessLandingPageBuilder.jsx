@@ -5,8 +5,7 @@ import {
   Loader2, Plus, Save, Send, Trash2,
 } from 'lucide-react';
 import apiService from '../../services/api';
-import CompanyLandingRenderer from '../LandingPage/CompanyLandingRenderer';
-import HtmlTemplatePageViewer from '../LandingPage/HtmlTemplatePageViewer';
+import CompanyLandingRenderer, { HtmlTemplatePageViewer } from '../../component/BusinessBranding/companyLandingStubs';
 import HtmlSectionPropsEditor from '../../component/BusinessBranding/HtmlSectionPropsEditor';
 import { wjsDebug } from '../../utils/wjsBuilderDebug';
 import MediaLibraryPanel from '../../component/BusinessBranding/MediaLibraryPanel';

@@ -3,6 +3,7 @@
  * Tránh 404 "Route not found" khi VITE_API_BASE_URL thiếu /api (vd: http://localhost:3000).
  */
 import { downloadAuthenticatedFileUrl } from '../utils/safeFileDownload.js';
+import { jdBuilderChatLocaleFromUiLocale } from '../utils/jdTranslation.js';
 
 function ensureApiSuffix(url) {
   if (!url || typeof url !== 'string') return url;
@@ -59,6 +60,22 @@ const API_BASE_URL = getApiBaseUrl();
 export function resolveApiBaseUrl() {
   if (typeof window !== 'undefined') return getApiBaseUrl();
   return API_BASE_URL;
+}
+
+/**
+ * API applicant jobs trên landing public (danh sách V3 + chi tiết).
+ * Dev: Vite proxy `/api_jobshare` → backend JobShare (cùng nguồn dữ liệu template).
+ * Production: cùng backend với app (`/api`).
+ */
+export function resolvePublicApplicantApiBase() {
+  const fromEnv = import.meta.env.VITE_PUBLIC_JOBS_API_BASE;
+  if (fromEnv && typeof fromEnv === 'string' && fromEnv.trim()) {
+    return ensureApiSuffix(fromEnv.trim().replace(/\/+$/, ''));
+  }
+  if (typeof window !== 'undefined' && import.meta.env.DEV) {
+    return `${window.location.origin}/api_jobshare/api`;
+  }
+  return resolveApiBaseUrl();
 }
 
 /** Origin backend (không có /api) — dùng cho Socket.IO, khớp với resolveApiBaseUrl(). */
@@ -157,7 +174,7 @@ const getCurrentUserType = () => {
 };
 
 /** Base URL for AI matching (vector compare / reranking). Mặc định gọi thẳng server AI, không qua localhost. */
-const AI_API_BASE_DEFAULT = 'https://test.ws-jobshare.com/api_ai';
+const AI_API_BASE_DEFAULT = 'https://ws-jobshare.com/api_ai';
 
 /** Số kết quả match tối đa (query `top_k`). */
 const DEFAULT_AI_MATCH_TOP_K = 20;
@@ -310,15 +327,106 @@ function looksLikeStoredS3Key(imagePath) {
   return isStoredMediaKey(imagePath);
 }
 
+/**
+ * Lấy S3 object key từ presigned URL hoặc chuỗi key (khớp backend postHtmlS3.js).
+ */
+export function extractS3KeyFromPostMediaUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+  const t = String(url).replace(/&amp;/g, '&').trim();
+  if (!t) return null;
+
+  if (!/^https?:\/\//i.test(t)) {
+    const nk = t.replace(/^\/+/, '');
+    if (nk.startsWith('jsshare/') && nk.includes('posts/')) return nk;
+    if (nk.startsWith('posts/')) return nk;
+    const ji = nk.indexOf('jsshare/');
+    if (ji >= 0 && nk.includes('posts/')) return nk.slice(ji);
+    const pi = nk.indexOf('posts/');
+    if (pi >= 0) return nk.slice(pi);
+    return null;
+  }
+
+  try {
+    const u = new URL(t);
+    let pathname = (u.pathname || '').replace(/^\/+/, '');
+    try {
+      pathname = decodeURIComponent(pathname);
+    } catch {
+      /* keep */
+    }
+    const host = (u.hostname || '').toLowerCase();
+    if ((host.startsWith('s3.') || host.startsWith('s3-')) && host.includes('amazonaws.com')) {
+      const segs = pathname.split('/').filter(Boolean);
+      if (segs.length >= 2) {
+        const withoutBucket = segs.slice(1).join('/');
+        if (withoutBucket.includes('posts/')) return withoutBucket;
+      }
+    }
+    if (pathname.includes('posts/')) {
+      const idx = pathname.indexOf('jsshare/');
+      if (idx >= 0) return pathname.slice(idx);
+      if (pathname.startsWith('posts/')) return pathname;
+      const p = pathname.indexOf('posts/');
+      if (p >= 0) return pathname.slice(p);
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+/**
+ * Ảnh bài viết (`posts/...`) trên bản build lấy qua backend production — staging dùng chung dữ liệu bài
+ * nhưng bucket staging không có file. Đặt VITE_POST_MEDIA_API_BASE=off để dùng backend hiện tại.
+ */
+function resolveSharedPostMediaApiBase() {
+  const raw = String(import.meta.env.VITE_POST_MEDIA_API_BASE ?? 'https://ws-jobshare.com/api_jobshare/api').trim();
+  if (!raw || raw === 'off') return '';
+  return ensureApiSuffix(raw.replace(/\/+$/, ''));
+}
+
+function buildS3ViewUrl(key) {
+  const base = resolveApiBaseUrl().replace(/\/+$/, '');
+  const query = `media/s3-view?key=${encodeURIComponent(key)}`;
+  if (!import.meta.env.DEV && key.startsWith('posts/')) {
+    const shared = resolveSharedPostMediaApiBase();
+    if (shared) return `${shared}/${query}`;
+  }
+  if (typeof window !== 'undefined' && import.meta.env.DEV) {
+    try {
+      const apiPath = new URL(base).pathname.replace(/\/+$/, '');
+      return `${window.location.origin}${apiPath}/${query}`;
+    } catch {
+      /* fall through */
+    }
+  }
+  return `${base}/${query}`;
+}
+
+/** Thay `src` ảnh S3 trong HTML nội dung bài bằng URL qua `/media/s3-view` (link ký sẵn sẽ hết hạn). */
+export function rewritePostContentMediaUrls(html) {
+  if (!html || typeof html !== 'string' || !html.includes('amazonaws.com')) return html || '';
+  return html.replace(/(<img\b[^>]*?\ssrc=)(["'])(https?:\/\/[^"']*amazonaws\.com[^"']*)\2/gi, (match, head, quote, url) => {
+    const next = normalizePostImageUrl(url.replace(/&amp;/g, '&'));
+    return next && next !== url ? `${head}${quote}${next}${quote}` : match;
+  });
+}
+
 /** Normalize post image path to full URL (S3 via /api/media/s3-view hoặc backend /uploads). */
 export function normalizePostImageUrl(imagePath) {
   if (!imagePath || typeof imagePath !== 'string') return '';
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) return imagePath;
-  const trimmed = imagePath.replace(/^\/+/, '');
-  if (looksLikeStoredS3Key(trimmed)) {
-    const base = API_BASE_URL.replace(/\/+$/, '');
-    return `${base}/media/s3-view?key=${encodeURIComponent(trimmed)}`;
+  const trimmed = imagePath.trim();
+  if (!trimmed) return '';
+
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    const key = extractS3KeyFromPostMediaUrl(trimmed);
+    if (key && isStoredMediaKey(key)) return buildS3ViewUrl(key);
+    return trimmed;
   }
+
+  const keyPath = trimmed.replace(/^\/+/, '');
+  if (looksLikeStoredS3Key(keyPath)) return buildS3ViewUrl(keyPath);
+
   const path = toUploadsPath(imagePath);
   const base = getAssetBaseUrl();
   const slashPath = path.startsWith('/') ? path : '/' + path;
@@ -412,11 +520,13 @@ async function fetchJobDetailByIdOrSlug(scopePath, jobIdOrSlug, fetchOptions = {
     throw error;
   }
 
-  const base = `${API_BASE_URL}/${scopePath}/jobs`;
+  const apiRoot = (fetchOptions.apiBase || API_BASE_URL).replace(/\/+$/, '');
+  const { apiBase: _apiBase, ...restFetch } = fetchOptions;
+  const base = `${apiRoot}/${scopePath}/jobs`;
   const fetchOne = async (lookupKey) => {
     const response = await fetch(`${base}/${encodeURIComponent(lookupKey)}`, {
       method: 'GET',
-      ...fetchOptions,
+      ...restFetch,
     });
     return handleResponse(response);
   };
@@ -431,7 +541,7 @@ async function fetchJobDetailByIdOrSlug(scopePath, jobIdOrSlug, fetchOptions = {
 
   const listResponse = await fetch(
     `${base}?search=${encodeURIComponent(key)}&limit=20&status=1`,
-    { method: 'GET', ...fetchOptions }
+    { method: 'GET', ...restFetch }
   );
   const listData = await handleResponse(listResponse);
   const matched = (listData?.data?.jobs || []).find(
@@ -2763,8 +2873,22 @@ const apiService = {
     return handleResponse(response);
   },
 
+  /** Landing public — cùng API base với JobShare Jobs V3 (dev: `/api_jobshare`). */
+  getPublicApplicantJobs: async (params = {}) => {
+    const queryString = buildQueryString(params);
+    const suffix = queryString ? `?${queryString}` : '';
+    const apiBase = resolvePublicApplicantApiBase();
+    const response = await fetch(`${apiBase}/applicant/jobs${suffix}`, {
+      method: 'GET',
+    });
+    return handleResponse(response);
+  },
+
   getApplicantJobById: async (jobId) =>
     fetchJobDetailByIdOrSlug('applicant', jobId),
+
+  getPublicApplicantJobById: async (jobId) =>
+    fetchJobDetailByIdOrSlug('applicant', jobId, { apiBase: resolvePublicApplicantApiBase() }),
 
   getApplicantJobFileUrl: async (jobId, fileType = 'jdFile', purpose = 'view') => {
     const response = await fetch(
@@ -5450,11 +5574,12 @@ const apiService = {
   /** POST /v2/jd-builder/start — tạo session mới */
   jdBuilderStart: async ({ company_name, locale = 'vi', initial_brief }, options = {}) => {
     const base = getAiApiBaseUrl();
+    const chatLocale = jdBuilderChatLocaleFromUiLocale(String(locale ?? 'vi').trim() || 'vi');
     return fetchAiJson(`${base}/v2/jd-builder/start`, {
       method: 'POST',
       body: {
         company_name: String(company_name ?? '').trim(),
-        locale: String(locale ?? 'vi').trim() || 'vi',
+        locale: chatLocale,
         initial_brief: String(initial_brief ?? '').trim(),
       },
       signal: options.signal,

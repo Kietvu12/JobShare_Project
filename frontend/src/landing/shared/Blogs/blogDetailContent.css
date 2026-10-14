@@ -1,0 +1,71 @@
+.blog-detail-content h1,
+.blog-detail-content h2,
+.blog-detail-content h3,
+.blog-detail-content h4 {
+  color: #112f3d;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 1.25em 0 0.5em;
+}
+
+.blog-detail-content h2 {
+  font-size: 1.375rem;
+}
+
+.blog-detail-content h3 {
+  font-size: 1.125rem;
+}
+
+.blog-detail-content p {
+  margin: 0 0 1.1em;
+  line-height: 1.75;
+  color: #2f4d5c;
+}
+
+.blog-detail-content ul,
+.blog-detail-content ol {
+  margin: 0 0 1.1em;
+  padding-left: 1.35em;
+}
+
+.blog-detail-content ul {
+  list-style: disc;
+}
+
+.blog-detail-content ol {
+  list-style: decimal;
+}
+
+.blog-detail-content li {
+  margin: 0.35em 0;
+  line-height: 1.7;
+  color: #2f4d5c;
+}
+
+.blog-detail-content a {
+  color: #be1824;
+  text-decoration: underline;
+}
+
+.blog-detail-content img,
+.blog-detail-content video {
+  display: block;
+  box-sizing: border-box;
+  max-width: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  margin: 1.25em auto;
+  padding: 0;
+  border: 0;
+  background: transparent !important;
+  object-fit: contain !important;
+  object-position: center;
+}
+
+.blog-detail-content blockquote {
+  margin: 1.25em 0;
+  padding: 0.75em 1em;
+  border-left: 3px solid #dae4e9;
+  color: #617782;
+}

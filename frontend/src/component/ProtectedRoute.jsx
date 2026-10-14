@@ -1,4 +1,6 @@
 import { Navigate } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
+import { withLocalePath } from '../utils/localeRoutes';
 
 /**
  * ProtectedRoute - Bảo vệ route yêu cầu đăng nhập
@@ -7,8 +9,10 @@ import { Navigate } from 'react-router-dom';
  * @param {string} props.requiredUserType - Loại user: 'ctv' | 'admin' | 'business'
  */
 const ProtectedRoute = ({ children, requiredUserType }) => {
+  const { language } = useLanguage();
   const token = localStorage.getItem('token');
   const userType = localStorage.getItem('userType');
+  const collaboratorLogin = withLocalePath(language, '/collaborator/login');
 
   if (!token || !userType) {
     if (requiredUserType === 'admin') {
@@ -17,7 +21,7 @@ const ProtectedRoute = ({ children, requiredUserType }) => {
     if (requiredUserType === 'business') {
       return <Navigate to="/business/login" replace />;
     }
-    return <Navigate to="/login" replace />;
+    return <Navigate to={collaboratorLogin} replace />;
   }
 
   if (requiredUserType && userType !== requiredUserType) {
@@ -36,7 +40,7 @@ const ProtectedRoute = ({ children, requiredUserType }) => {
     if (requiredUserType === 'admin') {
       return <Navigate to="/admin/login" replace />;
     }
-    return <Navigate to="/login" replace />;
+    return <Navigate to={collaboratorLogin} replace />;
   }
 
   return children;

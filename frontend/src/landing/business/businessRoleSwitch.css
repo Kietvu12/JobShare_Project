@@ -1,0 +1,200 @@
+/* Thanh chuyển vai trò — chỉ trong landing business, không đụng trang khác. */
+.business-role-switch {
+  --role-ink: #112f3d;
+  --role-text: #2f4d5c;
+  --role-muted: #617782;
+  --role-line: #dae4e9;
+  --role-red: #ed212f;
+  --role-red-deep: #be1824;
+}
+
+.business-role-switch .jobshare-role-switch-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: #f4f7f9;
+  border-bottom: 1px solid var(--role-line);
+  color: var(--role-text);
+  font-family: "Noto Sans JP", "Noto Sans", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.business-role-switch .wrap {
+  width: min(calc(100% - 64px), 1200px);
+  margin-inline: auto;
+}
+
+.business-role-switch .role-intro {
+  text-align: center;
+  padding: 10px 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--role-text);
+}
+
+.business-role-switch .roles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--role-line);
+}
+
+.business-role-switch .role {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 15px 24px;
+  border-inline-end: 1px solid var(--role-line);
+  position: relative;
+  color: var(--role-ink);
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.business-role-switch .role:first-child {
+  border-inline-start: 1px solid var(--role-line);
+}
+
+.business-role-switch .role svg {
+  width: 25px;
+  height: 25px;
+  flex-shrink: 0;
+  color: #70838d;
+  fill: none;
+  stroke: currentColor;
+}
+
+.business-role-switch .role strong {
+  font-size: 16px;
+  font-weight: 700;
+  display: block;
+  line-height: 1.4;
+  color: inherit;
+}
+
+.business-role-switch .role small {
+  font-size: 14px;
+  display: block;
+  color: var(--role-muted);
+  line-height: 1.5;
+}
+
+.business-role-switch .role[aria-current] {
+  background: #fff4f5;
+}
+
+.business-role-switch .role[aria-current]::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 24px;
+  right: 24px;
+  height: 3px;
+  background: var(--role-red);
+}
+
+.business-role-switch .role[aria-current] strong,
+.business-role-switch .role[aria-current] svg {
+  color: var(--role-red-deep);
+}
+
+.business-role-switch .role:hover {
+  background: #fff;
+}
+
+/* Header fixed của template nằm dưới thanh này. */
+body.business-landing-page .header-main {
+  top: calc(55px + var(--jobshare-role-bar-height, 0px)) !important;
+}
+
+body.business-landing-page .header-sub {
+  top: calc(15px + var(--jobshare-role-bar-height, 0px)) !important;
+}
+
+/* Đã cuộn qua hero: navbar dính sát mép trên. Thanh chuyển vai trò không còn chiếm chỗ. */
+body.business-landing-page .header-main.header-main--at-top,
+body.business-landing-page .header.header--past-visual .header-main {
+  top: 0 !important;
+}
+
+body.business-landing-page .header.header--past-visual .header-sub {
+  top: 15px !important;
+}
+
+@media (max-width: 1023px) {
+  body.business-landing-page .header-main {
+    top: calc(2.667vw + var(--jobshare-role-bar-height, 0px)) !important;
+  }
+
+  body.business-landing-page .header-main.header-main--max-width,
+  body.business-landing-page .header-main.header-main--at-top,
+  body.business-landing-page .header.header--past-visual .header-main {
+    top: 0 !important;
+  }
+
+  /* Hamburger nằm trong hàng flex của header-main, không còn fixed như template gốc. */
+  body.business-landing-page .header-main .js-hamburger-menu {
+    top: auto !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .business-role-switch .wrap {
+    width: calc(100% - 28px);
+  }
+
+  .business-role-switch .role-intro {
+    padding: 8px 0;
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  .business-role-switch .role {
+    min-width: 0;
+    padding: 10px 6px;
+    gap: 5px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    text-align: left;
+  }
+
+  .business-role-switch .role > span {
+    min-width: 0;
+    flex: 1 1 auto;
+    width: auto;
+  }
+
+  .business-role-switch .role strong {
+    font-size: 13px;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  .business-role-switch .role small {
+    display: none;
+  }
+
+  .business-role-switch .role svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .business-role-switch .role[aria-current]::after {
+    left: 8px;
+    right: 8px;
+  }
+}
+
+@media (max-width: 400px) {
+  .business-role-switch .role {
+    padding: 8px 4px;
+  }
+
+  .business-role-switch .role strong {
+    font-size: 12px;
+  }
+}

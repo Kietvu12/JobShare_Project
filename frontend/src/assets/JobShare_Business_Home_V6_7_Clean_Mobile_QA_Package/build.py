@@ -19,10 +19,10 @@ def lines(s): return ''.join('<span class="heading-line">'+esc(x)+'</span>' for 
 
 def routes(lang):
     return {
-      'register':f'https://test.ws-jobshare.com/business/register?lang={lang}',
-      'contact':f'https://test.ws-jobshare.com/{lang}/business/contact_rc',
-      'documents':f'https://test.ws-jobshare.com/{lang}/business/inquiry_docs_rc',
-      'services':f'https://test.ws-jobshare.com/{lang}/business/price'
+      'register':f'https://ws-jobshare.com/business/register?lang={lang}',
+      'contact':f'https://ws-jobshare.com/{lang}/business/contact_rc',
+      'documents':f'https://ws-jobshare.com/{lang}/business/inquiry_docs_rc',
+      'services':f'https://ws-jobshare.com/{lang}/business/price'
     }
 
 def platform_text(lang):

@@ -8,6 +8,7 @@ import BusinessQuickActionsPageLayout from '../../component/Bussiness/BusinessQu
 import apiService from '../../services/api'
 import BusinessApplicationDetailDrawer from '../../component/Bussiness/BusinessApplicationDetailDrawer'
 import BusinessApplicationStatusSelect from '../../component/Bussiness/BusinessApplicationStatusSelect.jsx'
+import BusinessMobileFilterToggle from '../../component/Bussiness/BusinessMobileFilterToggle.jsx'
 import {
   buildApplicationStatusPatch,
   changeBusinessApplicationStatus,
@@ -156,11 +157,11 @@ function ApplicationsKanban({ applications, onOpen, onStatusChange, updatingId, 
   }
 
   return (
-    <div className="flex min-h-0 flex-1 gap-2 overflow-x-auto p-3 business-homepage-scroll">
+    <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-2 overflow-x-auto p-3 business-homepage-scroll">
       {kanbanColumns.map((col) => (
         <div
           key={col.id}
-          className="flex w-[168px] shrink-0 flex-col rounded-xl bg-slate-50/80 ring-1 ring-slate-100"
+          className="flex w-[min(78vw,240px)] shrink-0 snap-start flex-col rounded-xl bg-slate-50/80 ring-1 ring-slate-100"
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop(col)}
         >
@@ -432,6 +433,7 @@ const JobApplication = () => {
   const [statusFilter, setStatusFilter] = useState('')
   const [appliedFrom, setAppliedFrom] = useState('')
   const [appliedTo, setAppliedTo] = useState('')
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [viewMode, setViewMode] = useState('table')
   const [statusUpdatingId, setStatusUpdatingId] = useState(null)
@@ -696,8 +698,8 @@ const JobApplication = () => {
               </div>
 
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
-                <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2.5 sm:px-3.5">
-                  <div className="flex min-w-[140px] flex-1 items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-2 ring-1 ring-slate-100 sm:py-2">
+                <div className="business-mobile-filters flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2.5 sm:px-3.5">
+                  <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-2 ring-1 ring-slate-100 lg:min-w-[140px]">
                     <Search className="w-4 h-4 text-slate-400 shrink-0" />
                     <input
                       type="text"
@@ -707,10 +709,16 @@ const JobApplication = () => {
                       className={APP_FILTER_SEARCH_INPUT_CLASS}
                     />
                   </div>
+                  <BusinessMobileFilterToggle
+                    open={mobileFiltersOpen}
+                    onToggle={() => setMobileFiltersOpen((v) => !v)}
+                    activeCount={[jobFilter, sourceFilter, statusFilter, appliedFrom, appliedTo].filter(Boolean).length}
+                  />
+                  <div className={`${mobileFiltersOpen ? 'grid' : 'hidden'} order-last w-full grid-cols-2 gap-2 lg:contents`}>
                   <select
                     value={jobFilter}
                     onChange={(e) => setJobFilter(e.target.value)}
-                    className={`w-full sm:w-auto sm:max-w-[180px] ${APP_FILTER_CONTROL_CLASS}`}
+                    className={`col-span-2 w-full lg:w-auto lg:max-w-[180px] ${APP_FILTER_CONTROL_CLASS}`}
                   >
                     <option value="">{appCopy.filters.allJobs}</option>
                     {jobs.map((j) => (
@@ -723,7 +731,7 @@ const JobApplication = () => {
                       setSourceFilter(e.target.value)
                       setStatusFilter('')
                     }}
-                    className={`w-[calc(50%-4px)] sm:w-auto ${APP_FILTER_CONTROL_CLASS}`}
+                    className={`w-full min-w-0 lg:w-auto ${APP_FILTER_CONTROL_CLASS}`}
                   >
                     {sourceOptions.map((o) => (
                       <option key={o.value} value={o.value}>{o.label}</option>
@@ -732,7 +740,7 @@ const JobApplication = () => {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className={`w-[calc(50%-4px)] sm:w-auto ${APP_FILTER_CONTROL_CLASS}`}
+                    className={`w-full min-w-0 lg:w-auto ${APP_FILTER_CONTROL_CLASS}`}
                   >
                     <option value="">{appCopy.filters.allStatus}</option>
                     {statusFilterGroups.map((g) => (
@@ -747,7 +755,7 @@ const JobApplication = () => {
                     type="date"
                     value={appliedFrom}
                     onChange={(e) => setAppliedFrom(e.target.value)}
-                    className={APP_FILTER_CONTROL_CLASS}
+                    className={`w-full min-w-0 lg:w-auto ${APP_FILTER_CONTROL_CLASS}`}
                     title={appCopy.filters.appliedFrom}
                     aria-label={appCopy.filters.appliedFrom}
                   />
@@ -755,11 +763,12 @@ const JobApplication = () => {
                     type="date"
                     value={appliedTo}
                     onChange={(e) => setAppliedTo(e.target.value)}
-                    className={APP_FILTER_CONTROL_CLASS}
+                    className={`w-full min-w-0 lg:w-auto ${APP_FILTER_CONTROL_CLASS}`}
                     title={appCopy.filters.appliedTo}
                     aria-label={appCopy.filters.appliedTo}
                   />
-                  <div className="flex rounded-lg border border-slate-200 p-0.5">
+                  </div>
+                  <div className="flex shrink-0 rounded-lg border border-slate-200 p-0.5">
                     <button
                       type="button"
                       onClick={() => setViewMode('table')}

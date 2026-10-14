@@ -1,7 +1,10 @@
 /** Locale-prefixed public URLs: /vi/, /en/, /ja/ */
 
 export const SUPPORTED_LOCALES = ['vi', 'en', 'ja'];
-export const DEFAULT_LOCALE = 'vi';
+export const DEFAULT_LOCALE = 'ja';
+
+/** Trang public mặc định khi vào `/` (chưa đăng nhập). */
+export const PUBLIC_ENTRY_PATH = `/${DEFAULT_LOCALE}/`;
 
 export function isSupportedLocale(value) {
   return SUPPORTED_LOCALES.includes(value);
@@ -11,10 +14,25 @@ export function getPreferredLocale() {
   return DEFAULT_LOCALE;
 }
 
-/** Ngôn ngữ ưu tiên khi khởi tạo: URL trước, mặc định vi (không đọc localStorage). */
+function readStoredLanguagePreference() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = window.localStorage.getItem('language');
+    return isSupportedLocale(stored) ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Ngôn ngữ ưu tiên khi khởi tạo: URL trước; portal /business|/admin → localStorage hoặc vi; còn lại ja. */
 export function getInitialLocale(pathname = '') {
   const fromUrl = getLocaleFromPathname(pathname);
-  return fromUrl || DEFAULT_LOCALE;
+  if (fromUrl) return fromUrl;
+  const path = String(pathname || '');
+  if (path.startsWith('/business') || path.startsWith('/admin')) {
+    return readStoredLanguagePreference() || 'vi';
+  }
+  return DEFAULT_LOCALE;
 }
 
 export function getLocaleFromPathname(pathname) {
@@ -36,6 +54,23 @@ export function withLocalePath(locale, path = '/') {
   return `/${lang}${normalized}`;
 }
 
+function mapLegacyCollaboratorRest(lang, rest) {
+  const normalized = rest || '';
+  if (normalized === '' || normalized === '/') {
+    return withLocalePath(lang, '/');
+  }
+  if (normalized.startsWith('/jobs')) {
+    return withLocalePath(lang, `/collaborator${normalized}`);
+  }
+  if (normalized.startsWith('/about-us')) {
+    return withLocalePath(lang, `/collaborator${normalized}`);
+  }
+  if (normalized.startsWith('/blog')) {
+    return withLocalePath(lang, `/candidate${normalized}`);
+  }
+  return withLocalePath(lang, `/business${normalized}`);
+}
+
 export function switchLocaleInPathname(pathname, newLocale) {
   const lang = isSupportedLocale(newLocale) ? newLocale : DEFAULT_LOCALE;
   const current = getLocaleFromPathname(pathname);
@@ -53,11 +88,14 @@ export function switchLocaleInPathname(pathname, newLocale) {
   }
   if (pathname.startsWith('/landing/collaborator')) {
     const rest = pathname.slice('/landing/collaborator'.length) || '';
-    return withLocalePath(lang, rest || '/');
+    return mapLegacyCollaboratorRest(lang, rest);
   }
   if (pathname.startsWith('/collaborator')) {
     const rest = pathname.slice('/collaborator'.length) || '';
-    return withLocalePath(lang, rest || '/');
+    if (rest.startsWith('/jobs')) {
+      return `${withLocalePath(lang, `/collaborator${rest}`)}${search}${hash}`;
+    }
+    return mapLegacyCollaboratorRest(lang, rest);
   }
   if (pathname.startsWith('/landing/business')) {
     const rest = pathname.slice('/landing/business'.length) || '';
@@ -65,14 +103,6 @@ export function switchLocaleInPathname(pathname, newLocale) {
   }
   if (pathname === '/') return withLocalePath(lang, '/');
   return withLocalePath(lang, pathname);
-}
-
-export function resolveCollaboratorPrefix(pathname) {
-  const locale = getLocaleFromPathname(pathname);
-  if (locale) return `/${locale}`;
-  if (pathname.startsWith('/landing/collaborator')) return '/landing/collaborator';
-  if (pathname.startsWith('/collaborator')) return '/collaborator';
-  return withLocalePath(getPreferredLocale());
 }
 
 export function resolveCandidatePrefix(pathname) {
@@ -83,20 +113,22 @@ export function resolveCandidatePrefix(pathname) {
   return withLocalePath(getPreferredLocale(), '/candidate');
 }
 
-/** Full-width V3/V1.1 marketing home (no legacy layout chrome). */
-export function isCollaboratorMarketingHome(pathname) {
-  const path = String(pathname || '');
-  const locale = getLocaleFromPathname(path);
-  if (locale) {
-    const rest = stripLocaleFromPathname(path);
-    return rest === '/' || rest === '';
-  }
-  return (
-    path === '/collaborator'
-    || path === '/collaborator/'
-    || path === '/landing/collaborator'
-    || path === '/landing/collaborator/'
-  );
+export function resolveCollaboratorPrefix(pathname) {
+  const locale = getLocaleFromPathname(pathname);
+  if (locale) return `/${locale}/collaborator`;
+  if (pathname.startsWith('/landing/collaborator')) return '/landing/collaborator';
+  if (pathname.startsWith('/collaborator')) return '/collaborator';
+  return withLocalePath(getPreferredLocale(), '/collaborator');
+}
+
+export function isCollaboratorPublicPath(pathname) {
+  const stripped = stripLocaleFromPathname(pathname);
+  if (stripped.startsWith('/collaborator')) return true;
+  if (pathname.startsWith('/landing/collaborator')) return true;
+  const locale = getLocaleFromPathname(pathname);
+  if (!locale) return false;
+  const rest = stripped === '/' ? '' : stripped;
+  return rest === '/jobs' || rest.startsWith('/jobs/');
 }
 
 export function isCandidateMarketingHome(pathname) {
@@ -116,32 +148,51 @@ export function isCandidatePublicPath(pathname) {
 }
 
 export function resolvePublicJobsBasePath(pathname) {
-  if (isCandidatePublicPath(pathname)) {
-    return `${resolveCandidatePrefix(pathname)}/jobs`;
+  if (isCollaboratorPublicPath(pathname)) {
+    return `${resolveCollaboratorPrefix(pathname)}/jobs`;
   }
-  return `${resolveCollaboratorPrefix(pathname)}/jobs`;
+  return `${resolveCandidatePrefix(pathname)}/jobs`;
+}
+
+/** About Us theo persona (CTV vs ứng viên). */
+export function resolvePublicAboutPath(pathname) {
+  if (isCollaboratorPublicPath(pathname)) {
+    return `${resolveCollaboratorPrefix(pathname)}/about-us`;
+  }
+  return `${resolveCandidatePrefix(pathname)}/about-us`;
+}
+
+/** Danh sách + chi tiết job public (JobShare Jobs V3). */
+export function isPublicJobsV3StandaloneRoute(pathname) {
+  const pathNorm = String(pathname || '').replace(/\/+$/, '') || '/';
+  const jobsBase = resolvePublicJobsBasePath(pathname).replace(/\/+$/, '');
+  if (pathNorm === jobsBase) return true;
+
+  if (!pathNorm.startsWith(`${jobsBase}/`)) return false;
+
+  const tail = pathNorm.slice(jobsBase.length + 1);
+  const segments = tail.split('/').filter(Boolean);
+  if (segments.length !== 1) return false;
+
+  const reserved = new Set(['apply', 'confirm', 'nominate', 'view']);
+  return !reserved.has(segments[0].toLowerCase());
 }
 
 /**
  * URL public chia sẻ job cho ứng viên.
  * Mặc định: /{lang}/candidate/jobs/{slug|id}/view
- * Không dùng /collaborator/jobs/... (legacy, dễ thành /vi/collaborator/jobs/... — không có route).
  */
 export function buildPublicShareJobUrl({
   jobId,
   slug,
   locale,
-  persona = 'candidate',
   origin,
 } = {}) {
   const lang = isSupportedLocale(locale) ? locale : DEFAULT_LOCALE;
   const key = String(slug || '').trim() || String(jobId || '').trim();
   if (!key) return '';
   const encoded = encodeURIComponent(key);
-  const path =
-    persona === 'candidate'
-      ? withLocalePath(lang, `/candidate/jobs/${encoded}/view`)
-      : withLocalePath(lang, `/jobs/${encoded}`);
+  const path = withLocalePath(lang, `/candidate/jobs/${encoded}/view`);
   const base =
     origin ||
     (typeof window !== 'undefined' ? window.location.origin : 'https://ws-jobshare.com');
@@ -162,10 +213,7 @@ export function resolvePublicBlogPrefix(pathname) {
   if (isCandidatePublicPath(pathname)) {
     return resolveCandidatePrefix(pathname);
   }
-  if (isBusinessPublicPath(pathname)) {
-    return resolveBusinessLandingPrefix(pathname);
-  }
-  return resolveCollaboratorPrefix(pathname);
+  return resolveBusinessLandingPrefix(pathname);
 }
 
 export function localizedPersonaHref(locale, persona) {
@@ -185,23 +233,22 @@ export function resolveBusinessLandingPrefix(pathname) {
 
 export function legacyPublicRedirectPath(pathname, search = '', hash = '', persona = 'collaborator') {
   const lang = DEFAULT_LOCALE;
-  let rest = pathname;
 
   if (pathname.startsWith('/landing/candidate')) {
-    rest = pathname.slice('/landing/candidate'.length) || '';
+    const rest = pathname.slice('/landing/candidate'.length) || '';
     return `${withLocalePath(lang, `/candidate${rest}`)}${search}${hash}`;
   }
   if (pathname.startsWith('/candidate')) {
-    rest = pathname.slice('/candidate'.length) || '';
+    const rest = pathname.slice('/candidate'.length) || '';
     return `${withLocalePath(lang, `/candidate${rest}`)}${search}${hash}`;
   }
   if (pathname.startsWith('/landing/collaborator')) {
-    rest = pathname.slice('/landing/collaborator'.length) || '';
-    return `${withLocalePath(lang, rest || '/')}${search}${hash}`;
+    const rest = pathname.slice('/landing/collaborator'.length) || '';
+    return `${mapLegacyCollaboratorRest(lang, rest)}${search}${hash}`;
   }
   if (pathname.startsWith('/collaborator')) {
-    rest = pathname.slice('/collaborator'.length) || '';
-    return `${withLocalePath(lang, rest || '/')}${search}${hash}`;
+    const rest = pathname.slice('/collaborator'.length) || '';
+    return `${mapLegacyCollaboratorRest(lang, rest)}${search}${hash}`;
   }
   if (pathname.startsWith('/landing/business')) {
     const rest = pathname.slice('/landing/business'.length) || '';
@@ -222,6 +269,8 @@ export function publicCanonicalUrl(pathname) {
     const rest = stripped.slice('/candidate'.length) || '';
     return `https://ws-jobshare.com/${locale}/candidate${rest}`;
   }
-  if (stripped === '/') return `https://ws-jobshare.com/${locale}/`;
+  if (stripped === '/' || stripped === '') {
+    return `https://ws-jobshare.com/${locale}/`;
+  }
   return `https://ws-jobshare.com/${locale}${stripped}`;
 }

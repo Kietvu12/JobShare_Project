@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Bell, User, Globe, LogOut, BookOpen } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { withLocalePath } from '../../utils/localeRoutes';
 import { translations } from '../../translations/translations';
 import apiService from '../../services/api';
 import { localizeNotification } from '../../utils/notificationI18n';
@@ -217,13 +218,13 @@ const Header = () => {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('userType');
-      navigate('/login');
+      navigate(withLocalePath(language, '/collaborator/login'), { replace: true });
     } catch (error) {
       console.error('Logout error:', error);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('userType');
-      navigate('/login');
+      navigate(withLocalePath(language, '/collaborator/login'), { replace: true });
     }
   };
 

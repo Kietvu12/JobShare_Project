@@ -41,7 +41,7 @@ const I18N = {
     services: 'Dịch vụ',
     scout: 'Scout Trực Tiếp',
     saiyo: 'Thương hiệu Tuyển dụng',
-    partnerCTV: 'Sàn cộng tác viên tuyển dụng WS',
+    partnerCTV: 'Sàn cộng tác viên tuyển dụng',
     messages: 'Tin nhắn',
     requestBilling: 'Yêu cầu & Thanh toán',
     serviceRequests: 'Yêu cầu dịch vụ',
@@ -74,7 +74,7 @@ const I18N = {
     services: 'Services',
     scout: 'Direct Scout',
     saiyo: 'Employer Branding',
-    partnerCTV: 'WS Collaborator Marketplace',
+    partnerCTV: 'Collaborator Marketplace',
     messages: 'Messages',
     requestBilling: 'Requests & Billing',
     serviceRequests: 'Service requests',
@@ -107,7 +107,7 @@ const I18N = {
     services: 'サービス',
     scout: 'ダイレクトスカウト',
     saiyo: '採用ブランディング',
-    partnerCTV: 'WS採用パートナーマーケット',
+    partnerCTV: '採用パートナーマーケット',
     messages: 'メッセージ',
     requestBilling: 'リクエスト・請求',
     serviceRequests: 'サービス依頼',
@@ -331,6 +331,16 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
   const nestedDashClass = (active) =>
     `w-2.5 shrink-0 text-center biz-ui-micro ${active ? 'text-white/90' : 'text-slate-400'}`;
 
+  const renderNestedMarker = (active) => (
+    language === 'ja' ? (
+      <span className="flex w-2.5 shrink-0 justify-center" aria-hidden>
+        <span className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-white/90' : 'bg-slate-400'}`} />
+      </span>
+    ) : (
+      <span className={nestedDashClass(active)}>–</span>
+    )
+  );
+
   const nestedBulletClass = (active) =>
     `mt-[0.35rem] h-1.5 w-1.5 shrink-0 rounded-full ${
       active ? 'bg-white/95' : 'bg-slate-400'
@@ -339,10 +349,26 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
   const navLabelClass = (active) =>
     `min-w-0 flex-1 leading-snug [overflow-wrap:anywhere] ${active ? '!text-white' : ''}`;
 
+  /** Nhãn con tiếng Nhật: giữ một dòng, chữ (~1em/ký tự) tự thu nhỏ vừa bề rộng thay vì rớt 1 ký tự xuống dòng. */
+  const renderNestedLabel = (label, active) => {
+    if (language !== 'ja') return <span className={navLabelClass(active)}>{label}</span>;
+    const chars = Math.max(1, Array.from(String(label || '')).length);
+    return (
+      <span className={`${navLabelClass(active)} [container-type:inline-size]`}>
+        <span
+          className="block whitespace-nowrap"
+          style={{ fontSize: `min(1em, calc(100cqi / ${chars}))` }}
+        >
+          {label}
+        </span>
+      </span>
+    );
+  };
+
   const renderNestedNavLink = (key, to, labelKey, isLinkActive) => (
     <Link key={key} to={to} className={navLinkClass(isLinkActive, false, true)}>
-      <span className={nestedDashClass(isLinkActive)}>–</span>
-      <span className={navLabelClass(isLinkActive)}>{t[labelKey]}</span>
+      {renderNestedMarker(isLinkActive)}
+      {renderNestedLabel(t[labelKey], isLinkActive)}
     </Link>
   );
 
@@ -395,12 +421,14 @@ const BusinessSidebar = ({ businessUser, mobileOpen = false, onMobileClose }) =>
         {!nested && (
           <Icon className={iconClass(active)} strokeWidth={active ? 2.25 : 2} />
         )}
-        {nested && (
-          <span className={nestedDashClass(active)}>–</span>
+        {nested && renderNestedMarker(active)}
+        {nested ? (
+          renderNestedLabel(t[item.label], active)
+        ) : (
+          <span className={navLabelClass(active)}>
+            {t[item.label]}
+          </span>
         )}
-        <span className={navLabelClass(active)}>
-          {t[item.label]}
-        </span>
       </Link>
     );
   };

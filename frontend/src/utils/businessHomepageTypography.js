@@ -222,7 +222,21 @@ export const BUSINESS_HP_TYPOGRAPHY_VAR_STYLES = `
     width: var(--biz-hp-jd-icon);
     height: var(--biz-hp-jd-icon);
   }
+
+  /* Empty-state PNG (Nothing.png) — min-width:0 tránh flex item dùng intrinsic ~1286px */
+  .business-empty-illustration {
+    display: block;
+    width: auto;
+    max-width: min(200px, 100%);
+    height: auto;
+    min-width: 0;
+    flex-shrink: 0;
+    object-fit: contain;
+  }
 `;
+
+/** className cho ảnh empty state business (Nothing.png) */
+export const BUSINESS_EMPTY_ILLUSTRATION_IMG_CLASS = 'business-empty-illustration';
 
 /** Shell + zoom + scrollbar — dùng chung JobManagement, JobDetail, JD builder, … */
 export const BUSINESS_HOMEPAGE_SHELL_STYLES = `

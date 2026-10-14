@@ -1,20 +1,24 @@
 /**
- * Hỗ trợ chuyển giữa landing Cộng tác viên (/collaborator, /landing/collaborator)
- * và Ứng viên (/candidate, /landing/candidate) giữ nguyên "mode" landing hay không.
+ * Chuyển giữa landing Cộng tác viên (/{lang}/), ứng viên và doanh nghiệp.
  */
+
+import { getLocaleFromPathname, withLocalePath, DEFAULT_LOCALE } from './localeRoutes';
 
 /**
  * @param {string} pathname
- * @returns {{ base: string, role: 'collaborator'|'candidate', rest: string } | null}
+ * @returns {{ base: string, role: 'collaborator'|'candidate'|'business', rest: string } | null}
  */
 export function getLandingPersonaContext(pathname) {
   const raw = pathname || '/';
   const p = raw.replace(/\/+$/, '') || '/';
+  const locale = getLocaleFromPathname(p);
   const ordered = [
-    ['/landing/collaborator', 'collaborator'],
     ['/landing/candidate', 'candidate'],
-    ['/collaborator', 'collaborator'],
+    ['/landing/collaborator', 'collaborator'],
+    ['/landing/business', 'business'],
     ['/candidate', 'candidate'],
+    ['/collaborator', 'collaborator'],
+    ['/business', 'business'],
   ];
   for (const [base, role] of ordered) {
     if (p === base || p.startsWith(`${base}/`)) {
@@ -22,50 +26,97 @@ export function getLandingPersonaContext(pathname) {
       return { base, role, rest };
     }
   }
-  if (p === '/' || p.startsWith('/jobs') || p.startsWith('/blog')) {
-    const rest = p === '/' ? '' : p;
-    return { base: '', role: 'collaborator', rest };
+  if (locale) {
+    const rest = p.replace(new RegExp(`^/${locale}(?=/|$)`), '') || '';
+    if (rest === '' || rest === '/') return { base: `/${locale}`, role: 'collaborator', rest: '' };
+    if (rest.startsWith('/candidate')) {
+      return { base: `/${locale}/candidate`, role: 'candidate', rest: rest.slice('/candidate'.length) };
+    }
+    if (rest.startsWith('/business')) {
+      return { base: `/${locale}/business`, role: 'business', rest: rest.slice('/business'.length) };
+    }
+    if (rest.startsWith('/collaborator')) {
+      return {
+        base: `/${locale}/collaborator`,
+        role: 'collaborator',
+        rest: rest.slice('/collaborator'.length),
+      };
+    }
+    if (rest === '/jobs' || rest.startsWith('/jobs/')) {
+      return { base: `/${locale}/collaborator`, role: 'collaborator', rest };
+    }
   }
   return null;
 }
 
+function hrefForPublicJobsPersona(locale, targetRole, rest) {
+  if (!/^\/jobs(\/|$)/.test(rest)) return null;
+  if (targetRole === 'candidate') {
+    return `${withLocalePath(locale, '/candidate')}${rest}`;
+  }
+  if (targetRole === 'collaborator') {
+    return `${withLocalePath(locale, '/collaborator')}${rest}`;
+  }
+  return null;
+}
+
+function hrefForPublicAboutPersona(locale, targetRole, rest) {
+  if (rest !== '/about-us' && !rest.startsWith('/about-us/')) return null;
+  if (targetRole === 'candidate') {
+    return withLocalePath(locale, '/candidate/about-us');
+  }
+  if (targetRole === 'collaborator') {
+    return withLocalePath(locale, '/collaborator/about-us');
+  }
+  return withLocalePath(locale, '/business/about-us');
+}
+
+function personaBasePath(role, locale) {
+  const lang = locale || DEFAULT_LOCALE;
+  if (role === 'candidate') return withLocalePath(lang, '/candidate');
+  if (role === 'business') return withLocalePath(lang, '/business');
+  return withLocalePath(lang, '/');
+}
+
 /**
- * URL tương ứng khi chuyển sang vai CTV hoặc ứng viên (giữ jobs/blog/…; path chỉ UV → map hợp lý).
  * @param {string} pathname
- * @param {'collaborator'|'candidate'} targetRole
+ * @param {'collaborator'|'candidate'|'business'} targetRole
  */
 export function hrefForLandingPersona(pathname, targetRole) {
   const ctx = getLandingPersonaContext(pathname);
+  const locale = getLocaleFromPathname(pathname) || DEFAULT_LOCALE;
+
   if (!ctx) {
-    return targetRole === 'collaborator' ? '/collaborator' : '/candidate';
+    return personaBasePath(targetRole, locale);
   }
   if (ctx.role === targetRole) {
     return `${ctx.base}${ctx.rest || ''}` || ctx.base;
   }
-  const isLanding = ctx.base.startsWith('/landing/');
-  const isRoot = ctx.base === '';
-  const otherBase =
-    targetRole === 'collaborator'
-      ? isRoot
-        ? '/'
-        : isLanding
-          ? '/landing/collaborator'
-          : '/collaborator'
-      : isRoot
-        ? '/candidate'
-        : isLanding
-          ? '/landing/candidate'
-          : '/candidate';
 
   let rest = ctx.rest;
-
-  if (ctx.role === 'candidate' && targetRole === 'collaborator') {
+  if (ctx.role === 'candidate' && targetRole !== 'candidate') {
     if (/^\/(login|register)(\/|$)/.test(rest)) rest = '';
     else if (/^\/profile(\/|$)/.test(rest)) rest = '';
     else if (/^\/nominations\//.test(rest)) rest = '';
-    else if (/^\/jobs\/[^/]+\/apply\/?$/.test(rest)) rest = rest.replace(/\/apply\/?$/, '');
+    else if (/^\/jobs/.test(rest)) {
+      if (targetRole === 'collaborator') rest = '/jobs';
+      else rest = '';
+    }
+  }
+  if (ctx.role === 'collaborator' && targetRole !== 'collaborator') {
+    if (/^\/(login|register)(\/|$)/.test(rest)) rest = '';
+  }
+  if (ctx.role === 'business' && targetRole !== 'business') {
+    rest = '';
   }
 
+  const jobsHref = hrefForPublicJobsPersona(locale, targetRole, rest);
+  if (jobsHref) return jobsHref;
+
+  const aboutHref = hrefForPublicAboutPersona(locale, targetRole, rest);
+  if (aboutHref) return aboutHref;
+
+  const otherBase = personaBasePath(targetRole, locale);
   const path = `${otherBase}${rest || ''}`;
   return path || otherBase;
 }

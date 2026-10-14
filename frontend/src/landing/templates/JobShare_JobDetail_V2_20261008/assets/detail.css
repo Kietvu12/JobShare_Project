@@ -1,0 +1,182 @@
+/* Job Detail V1 · exact palette, family/spacing/header inherited from Jobs V3 / Collaborator V3 */
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;600;700;800;900&display=swap');
+:root{--red:#ed212f;--red-deep:#be1824;--ink:#112f3d;--text:#2f4d5c;--muted:#617782;--line:#dae4e9;--sky:#f2f8fc;--paper:#fff;--yellow:#ffde59}
+body{background:#fafcfd;font-size:16px;color:var(--ink)}body:lang(vi){font-family:'Segoe UI',Arial,'Helvetica Neue',sans-serif}body:lang(en){font-family:Barlow,Arial,sans-serif}body:lang(ja){font-family:'Noto Sans JP','Yu Gothic','Hiragino Kaku Gothic ProN',Meiryo,Arial,sans-serif;line-break:strict;word-break:normal;overflow-wrap:break-word}
+body:lang(ja) h1,body:lang(ja) h2,body:lang(ja) h3{line-break:strict;word-break:normal;overflow-wrap:break-word;letter-spacing:0;text-wrap:wrap}
+button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:3px solid #ed212f66;outline-offset:3px}svg{width:21px;height:21px;flex-shrink:0}section[id]{scroll-margin-top:112px}h1,h2,h3{font-weight:800}.skip:focus{top:10px}.wrap{width:min(calc(100% - 64px),1200px)}.no-split{white-space:nowrap}
+.header-inner{min-height:80px;gap:22px}.brand img{width:142px}.nav{gap:24px;font-size:15px}.nav a[aria-current]{color:var(--red-deep)}.header-tools{gap:16px}.header-register{font-size:14px;color:var(--red-deep);font-weight:700;border:1px solid #efc9ce;border-radius:6px;padding:8px 14px}.languages a{min-width:30px}.login{font-size:14px}.nav-login{display:none}
+.tone-it{--cat:#2f80ed;--cat-bg:#edf5ff}.tone-embedded{--cat:#6558d3;--cat-bg:#f1efff}.tone-mechanical{--cat:#ed212f;--cat-bg:#fff0f1}.tone-construction{--cat:#2d8c78;--cat-bg:#eaf8f4}.tone-chemical{--cat:#c68a20;--cat-bg:#fff6e5}.tone-sales{--cat:#d45d79;--cat-bg:#fff0f4}.tone-admin{--cat:#637789;--cat-bg:#f1f5f7}.tone-other{--cat:#687780;--cat-bg:#f2f5f6}
+.detail-band{background:linear-gradient(180deg,#f2f8fc 0%,#fafcfd 100%);border-bottom:1px solid #e3ebf0;padding:18px 0 19px}.breadcrumb{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:13px;color:#607580;line-height:1.6}.breadcrumb svg{width:15px;height:15px;color:#879aa5}.breadcrumb a:hover{color:var(--red-deep)}.breadcrumb strong{font-weight:600;color:var(--text);max-width:min(690px,78vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.detail-layout{display:grid;grid-template-columns:minmax(0,1fr) 316px;align-items:start;gap:30px;padding:27px 0 78px}.detail-main{min-width:0}.section-card,.overview-card,.action-card,.related-card{background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 5px 19px #112f3d04}.overview-card{position:relative;padding:31px 34px 27px;overflow:hidden}.overview-card:before{content:'';position:absolute;top:0;left:0;width:100%;height:4px;background:var(--cat,#687780)}.overview-top{display:flex;align-items:center;gap:12px;margin-bottom:17px}.cat-icon{display:grid;place-items:center;width:45px;height:45px;background:var(--cat-bg,#f2f5f6);border-radius:8px;color:var(--cat,#687780);flex-shrink:0}.cat-icon svg{width:24px;height:24px}.category-pill{background:var(--cat-bg,#f2f5f6);color:var(--cat,#687780);padding:7px 11px;border-radius:5px;display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:750;line-height:1.5}.overview-card h1{font-size:clamp(29px,2.7vw,36px);line-height:1.37;letter-spacing:-.021em;color:var(--ink);margin-bottom:12px;text-wrap:wrap;overflow-wrap:break-word}.company-line{display:flex;align-items:center;gap:9px;color:var(--text);font-size:14px;font-weight:600;margin-bottom:19px}.company-line svg{width:17px;height:17px;color:#6c8898}.overview-meta{display:flex;flex-wrap:wrap;gap:9px 18px;margin-bottom:22px}.overview-meta .meta{display:inline-flex;align-items:flex-start;gap:7px;min-width:0;color:var(--text);font-size:13px;line-height:1.6}.overview-meta svg{width:16px;height:16px;color:#7692a0;margin-top:2px}.overview-meta span{min-width:0}.salary-panel{border:1px solid #d9e8f0;border-radius:8px;background:#f4f9fc;padding:17px 19px;display:grid;grid-template-columns:1fr auto;gap:12px 20px;align-items:center}.salary-kicker{font-size:12px;color:#668493;font-weight:650;margin-bottom:5px;display:flex;gap:7px;align-items:center}.salary-kicker svg{width:16px;height:16px;color:var(--red)}.salary-value{font-size:clamp(25px,2.2vw,31px);line-height:1.32;font-weight:800;letter-spacing:-.02em;overflow-wrap:break-word}.monthly{border-left:1px solid #cfdee7;padding-left:22px;max-width:220px}.monthly strong{font-size:16px;line-height:1.6;font-weight:750;color:var(--ink)}.monthly .salary-kicker{margin-bottom:4px}.micro-row{display:flex;flex-wrap:wrap;gap:8px 17px;padding-top:19px;font-size:12px;color:var(--muted);line-height:1.5}.micro-row b{color:var(--text);font-weight:650}
+.mobile-actions{display:none}.section-links{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:white;border:1px solid var(--line);border-radius:8px;padding:9px;margin:16px 0 20px}.section-links a{font-size:12px;font-weight:700;line-height:1.5;padding:10px 12px;border-radius:5px;color:var(--text);transition:background .15s,color .15s;white-space:normal}.section-links a:hover,.section-links a[aria-current]{background:#fff0f1;color:var(--red-deep)}.section-card{padding:26px 30px;margin-bottom:18px}.section-title{display:flex;align-items:center;gap:12px;padding-bottom:16px;margin-bottom:20px;border-bottom:1px solid #e6eef2}.section-title svg{width:22px;height:22px;color:#66879c}.section-title h2{font-size:23px;line-height:1.42;color:var(--ink);letter-spacing:-.012em}.section-body{font-size:15.5px;line-height:1.85;color:#2f4d5c;overflow-wrap:break-word}.section-body p{margin:0}.jd-lines{display:grid;gap:9px;margin:0;padding:0;list-style:none}.jd-lines li{display:flex;align-items:flex-start;gap:11px}.jd-lines li:before{content:'';flex:none;width:6px;height:6px;margin-top:12px;border-radius:50%;background:#9bb1bd}.jd-lines.required li:before{background:var(--red)}.jd-lines li>span{min-width:0;white-space:pre-line}.subheading{color:var(--ink);font-size:15px;font-weight:800;line-height:1.65;margin:0 0 11px}.text-paragraphs p{margin-bottom:13px}.text-paragraphs p:last-child{margin-bottom:0}.content-intro{margin-bottom:14px}.req-group+.req-group{border-top:1px solid #e9eff3;padding-top:22px;margin-top:24px}.req-group .subheading{display:flex;gap:9px;align-items:center}.req-group .subheading svg{width:17px;height:17px;color:var(--red)}.req-group.preferred .subheading svg{color:#6d8998}
+.info-fields{display:grid;grid-template-columns:1fr 1fr;gap:0 24px}.info-row{padding:12px 0;border-bottom:1px solid #edf2f5}.info-row:nth-last-child(-n+2){border-bottom:0}.info-row dt{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:5px}.info-row dd{margin:0;font-size:15px;color:var(--ink);font-weight:650;line-height:1.65}.benefit-row{display:grid;grid-template-columns:190px minmax(0,1fr);gap:18px;padding:13px 0;border-bottom:1px solid #ecf1f4}.benefit-row:first-child{padding-top:0}.benefit-row:last-child{border-bottom:0;padding-bottom:0}.benefit-row h3{font-size:14px;line-height:1.6;font-weight:750;color:var(--ink)}.benefit-row .section-body{font-size:15px}.benefit-row .jd-lines{gap:7px}.process-text{white-space:pre-line}.company-info{padding:16px 18px;background:var(--sky);border-radius:7px;margin-bottom:18px;white-space:pre-line;font-size:14px;line-height:1.7;color:var(--text)}.company-info strong{color:var(--ink)}.industry-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}.industry-chips span{padding:6px 10px;border:1px solid var(--line);border-radius:5px;background:var(--sky);color:var(--text);font-size:12px}
+.detail-side{position:sticky;top:101px;align-self:start;min-width:0}.action-card{padding:23px 21px 20px}.side-kicker{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:6px}.side-salary{font-size:25px;font-weight:800;line-height:1.35;color:var(--ink);margin-bottom:3px;overflow-wrap:break-word}.side-month{font-size:12px;color:var(--text);margin-bottom:17px;line-height:1.55}.action-divider{height:1px;background:var(--line);margin:18px 0}.action-primary{width:100%;background:var(--red);border:1px solid var(--red);color:#fff;min-height:52px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:800;font-size:15px;transition:background .18s,box-shadow .18s,transform .18s}.action-primary:hover{background:var(--red-deep);border-color:var(--red-deep);box-shadow:0 8px 18px #ed212f26;transform:translateY(-1px)}.action-primary:active{transform:translateY(0)}.action-primary svg{width:18px;height:18px}.secondary-actions{display:grid;gap:9px}.action-secondary{width:100%;display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:46px;background:#fff;border:1px solid #cedbe2;border-radius:6px;color:var(--ink);font-size:13px;font-weight:750;line-height:1.5;padding:10px 13px}.action-secondary:hover{background:var(--sky);border-color:#a9c0cb}.action-secondary[aria-expanded=true]{background:var(--sky);border-color:#9aafb9}.action-secondary svg{width:17px;height:17px;color:var(--text)}.file-picker{position:relative}.download-menu{position:absolute;right:0;left:0;top:calc(100% + 5px);z-index:10;background:#fff;border:1px solid #c9d8df;box-shadow:0 16px 32px #112f3d1a;border-radius:7px;padding:6px;max-height:270px;overflow:auto}.download-menu button{width:100%;text-align:left;background:#fff;border:0;padding:11px 10px;border-radius:5px;font-size:13px;color:var(--ink)}.download-menu button:hover,.download-menu button:focus-visible{background:#f2f8fc}.action-feedback{min-height:18px;margin:10px 0 0;font-size:12px;color:#34715a;line-height:1.5}.action-feedback[data-error=true]{color:var(--red-deep)}.side-meta{margin:17px 0 0;font-size:12px;color:var(--muted);display:grid;gap:8px}.side-meta b{font-weight:700;color:var(--text)}
+.related-section{margin-top:31px}.related-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}.related-head h2{font-size:23px;line-height:1.45}.related-head a{font-size:13px;font-weight:750;color:var(--red-deep)}.related-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.related-card{display:flex;flex-direction:column;position:relative;overflow:hidden;padding:18px 17px;border-radius:8px;min-height:244px;transition:transform .18s,border-color .18s,box-shadow .18s}.related-card:before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;background:var(--cat,#687780)}.related-card:hover{transform:translateY(-2px);border-color:#b5c7d1;box-shadow:0 10px 25px #112f3d10}.rel-top{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:11px;font-weight:700;color:var(--cat,#687780)}.rel-icon{display:grid;place-items:center;background:var(--cat-bg,#f2f5f6);width:32px;height:32px;border-radius:6px}.rel-icon svg{width:18px;height:18px}.related-card h3{font-size:15px;line-height:1.48;letter-spacing:0;margin:0 0 12px;font-weight:800}.related-card h3 a:hover{color:var(--red-deep)}.rel-meta{font-size:12px;color:var(--text);display:flex;gap:6px;align-items:center;min-width:0;margin-bottom:10px}.rel-meta svg{width:15px;height:15px;color:#7594a2}.rel-salary{border-top:1px solid #e8eff2;padding-top:12px;margin-top:auto;font-size:15px;font-weight:800;line-height:1.4}.rel-detail{display:inline-flex;gap:6px;align-items:center;font-size:12px;color:var(--red-deep);font-weight:700;margin-top:10px}.rel-detail svg{width:15px;height:15px}
+.site-footer{padding-top:42px}.site-footer .footer-grid{grid-template-columns:1.5fr 1fr 1.2fr;gap:60px}.site-footer address{font-style:normal;font-size:14px;color:#bdd0da;line-height:1.8}.site-footer a:hover{color:#ffced1}
+.mobile-sticky{display:none}#toast{position:fixed;bottom:27px;left:50%;transform:translateX(-50%);z-index:90;pointer-events:none;max-width:min(520px,90vw);padding:11px 18px;background:var(--ink);color:#fff;border-radius:6px;font-size:13px;box-shadow:0 8px 25px #112f3d42}#toast[hidden]{display:none}.loading-state{padding:70px 25px;text-align:center;border:1px solid var(--line);background:white;border-radius:9px;color:var(--text)}.error-state{color:var(--red-deep)}
+@media(max-width:1170px){.nav{display:none;position:absolute;top:100%;left:0;right:0;background:#fff;margin:0;padding:18px 32px;border-bottom:1px solid var(--line);flex-direction:column;align-items:start;gap:16px}.nav.open{display:flex}.menu-btn{display:grid;place-items:center}.header-tools{margin-left:auto}.header-inner{min-height:74px}.detail-layout{grid-template-columns:minmax(0,1fr) 290px;gap:22px}.overview-card{padding:26px 27px}.section-card{padding:24px 25px}.related-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.related-card:last-child{display:none}.section-links a{padding:9px 10px}}
+@media(max-width:900px){.detail-layout{display:block;padding:22px 0 62px}.detail-side{display:none}.mobile-actions{display:block;margin-top:17px}.mobile-actions .secondary-actions{grid-template-columns:1fr 1fr}.overview-card{padding:25px}.section-card{padding:24px}.related-card:last-child{display:flex}.related-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.mobile-sticky{display:block;position:fixed;bottom:0;left:0;right:0;background:#fffe;border-top:1px solid #d9e4e9;padding:10px max(16px,env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom));z-index:48;backdrop-filter:blur(8px)}.mobile-sticky .action-primary{max-width:700px;margin:auto;display:flex}.site-footer{padding-bottom:115px}}
+@media(max-width:720px){.wrap{width:calc(100% - 32px)}.role-intro{padding:9px 0;font-size:12px}.role{padding:12px 7px;gap:7px}.role strong,body:lang(vi) .role strong{font-size:12px}.role small,body:lang(vi) .role small{font-size:10px;line-height:1.3}.role svg{width:17px;height:17px}.header-inner{min-height:67px;gap:9px}.brand img{width:118px}.header-tools{gap:7px}.header-register{display:none}.login{display:none}.languages a{min-width:27px;width:28px;height:31px;font-size:12px}.detail-band{padding:11px 0}.breadcrumb{font-size:12px}.breadcrumb strong{max-width:56vw}.detail-layout{padding-top:14px}.overview-card{padding:21px 18px 20px}.overview-card h1{font-size:clamp(26px,6.6vw,30px);line-height:1.43}.overview-top{margin-bottom:14px}.salary-panel{grid-template-columns:1fr;padding:15px 16px;gap:11px}.salary-value{font-size:26px}.monthly{padding:9px 0 0;border-left:0;border-top:1px solid #d4e2e9;max-width:none}.monthly strong{font-size:15px}.overview-meta{gap:8px 14px}.overview-meta .meta{font-size:12px}.section-links{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;overscroll-behavior-inline:contain}.section-links a{white-space:nowrap;flex:none}.section-card{padding:20px 18px;margin-bottom:13px}.section-title{margin-bottom:16px;padding-bottom:12px}.section-title h2{font-size:20px!important;line-height:1.5}.section-body{font-size:15px;line-height:1.83}.benefit-row{display:block;padding:13px 0}.benefit-row h3{margin-bottom:5px}.info-fields{grid-template-columns:1fr}.info-row:nth-last-child(-n+2){border-bottom:1px solid #edf2f5}.info-row:last-child{border-bottom:0}.related-grid{grid-template-columns:1fr}.related-card{min-height:0}.related-card:last-child{display:flex}.related-head h2{font-size:21px!important}.site-footer .footer-grid{grid-template-columns:1fr 1fr;gap:25px}.footer-brand{grid-column:1 / -1}.site-footer{padding-top:38px}}
+@media(max-width:390px){.role small{font-size:9px}.role{gap:5px}.role-intro{font-size:11px}.overview-card h1{font-size:25px}.company-line{font-size:13px}.mobile-actions .secondary-actions{grid-template-columns:1fr 1fr;gap:7px}.action-secondary{padding:8px 5px;font-size:12px}.detail-band .breadcrumb{gap:5px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+
+/* JA overrides on shared marketing type scales */
+body:lang(ja) .overview-card h1{font-size:clamp(28px,2.5vw,35px);line-height:1.5;font-weight:900}body:lang(ja) .section-title h2{font-size:22px;line-height:1.55;font-weight:800}body:lang(ja) .related-head h2{font-size:23px}body:lang(ja) .related-card h3{font-size:15px;line-height:1.7}body:lang(ja) .salary-value{font-size:29px;font-weight:900}body:lang(ja) .section-body{line-height:1.95}body:lang(ja) .section-links a{font-size:12px}@media(max-width:720px){body:lang(ja) .overview-card h1{font-size:26px;line-height:1.58}body:lang(ja) .section-title h2{font-size:20px!important}body:lang(ja) .salary-value{font-size:25px}body:lang(ja) .related-head h2{font-size:21px!important}}
+
+/* ================================================================
+   JOB DETAIL V2 — Oct 2026 refinements
+   Japanese executive-grade visual hierarchy; keeps all Jobs V3 tokens.
+   ================================================================ */
+
+/* Header: white label on the red registration CTA for ALL link states. */
+.site-header .header-tools a.header-register,
+.site-header .header-tools a.header-register:link,
+.site-header .header-tools a.header-register:visited {
+  color:#fff!important;
+  background:var(--red);
+  border:1px solid var(--red);
+  border-radius:7px;
+  font-weight:800;
+  text-decoration:none;
+  text-shadow:none;
+  box-shadow:0 2px 6px #b6182020;
+  transition:background-color .15s ease,border-color .15s ease,box-shadow .15s ease;
+}
+.site-header .header-tools a.header-register:hover,
+.site-header .header-tools a.header-register:focus-visible {
+  color:#fff!important;
+  background:var(--red-deep);
+  border-color:var(--red-deep);
+  box-shadow:0 5px 14px #b618202c;
+}
+
+/* Two distinct, clearly labelled geographical concepts. The work
+   location refers to the worksite; recruitment area is the candidate
+   source/target region and is NOT an additional workplace. */
+.location-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:1px 0 14px}
+.location-grid--single{grid-template-columns:minmax(0,1fr)}
+.location-tile{--loc-color:#357db4;--loc-bg:#f0f7fc;--loc-line:#d8e8f2;
+  display:flex;align-items:flex-start;gap:13px;min-width:0;min-height:94px;
+  padding:17px 15px;border-radius:10px;border:1px solid var(--loc-line);
+  background:linear-gradient(135deg,#fff 0%,var(--loc-bg) 100%)}
+.location-tile--work{--loc-color:#2874ab;--loc-bg:#edf6fd;--loc-line:#d6e8f3}
+.location-tile--recruit{--loc-color:#167f76;--loc-bg:#edf9f6;--loc-line:#d4ece5}
+.location-icon{width:45px;height:45px;flex:0 0 45px;display:grid;place-items:center;
+  border-radius:50%;color:var(--loc-color);border:1px solid #ffffffd9;
+  background:linear-gradient(145deg,#fff 0%,var(--loc-bg) 88%);
+  box-shadow:0 5px 12px #27485b19,inset 0 -2px 5px #264c6210,inset 0 2px 3px #fff}
+.location-icon svg{width:23px;height:23px;stroke-width:1.9}
+.location-copy{min-width:0;align-self:center}
+.location-label{font-size:12px;font-weight:800;line-height:1.5;color:var(--loc-color);margin:0 0 5px}
+.location-value{margin:0;font-size:15px;line-height:1.55;font-weight:750;color:var(--ink);overflow-wrap:break-word}
+.overview-meta{gap:8px 11px;margin-bottom:17px}
+.overview-meta .meta{display:inline-flex;align-items:center;gap:9px;min-width:0;padding:4px 11px 4px 5px;
+  border:1px solid #e6edf1;border-radius:7px;background:#fbfcfd;line-height:1.5}
+.overview-meta .meta-icon{width:30px;height:30px;display:grid;place-items:center;flex-shrink:0;
+  color:#698ba1;border-radius:50%;background:#eaf3f9}
+.overview-meta .meta-icon svg{width:16px;height:16px;margin:0;color:inherit;stroke-width:1.8}
+.overview-meta .meta-copy{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 7px;min-width:0}
+.overview-meta .meta-label{color:#617782;font-size:11px;font-weight:700}
+.overview-meta .meta-value{color:var(--ink);font-size:12.5px;font-weight:750;overflow-wrap:break-word}
+
+/* Deliberately restrained dimension: illustrated feel without shiny
+   3D emoji or large decorative product illustrations. */
+.salary-panel{grid-template-columns:minmax(0,1fr) minmax(0,195px);gap:14px;
+  background:linear-gradient(117deg,#fff7f7 0%,#f7fafd 74%);
+  border-color:#e9dfe5;padding:18px 19px}
+.salary-primary{display:flex;align-items:center;gap:15px;min-width:0}
+.salary-orb{width:52px;height:52px;flex:0 0 52px;display:grid;place-items:center;
+  border-radius:50%;color:#da2739;border:1px solid #fff;
+  background:linear-gradient(145deg,#fff 4%,#ffe4e9 78%);
+  box-shadow:0 5px 13px #982c401d,inset 0 -3px 6px #ce728019,inset 0 3px 3px #fff}
+.salary-orb svg{width:26px;height:26px;stroke-width:1.9}
+.salary-copy{min-width:0}
+.salary-panel .salary-kicker{font-size:12px;font-weight:750;color:#785f69;letter-spacing:.005em;margin-bottom:4px}
+.salary-panel .salary-value{font-size:clamp(23px,2vw,29px);line-height:1.4;letter-spacing:-.017em;color:var(--ink)}
+.salary-panel .monthly{border-color:#e5dadd;padding-left:15px;max-width:none}
+.salary-panel .monthly strong{font-size:15px;color:var(--ink)}
+
+/* Differentiated sections: nuanced editorial color rather than loud
+   full-width colored banners. Colors always identify section purpose. */
+.section-card{--section-color:#467a99;--section-bg:#f1f7fb;--section-edge:#e0edf3}
+.section-overview{--section-color:#2f80bd;--section-bg:#eef7fd;--section-edge:#dcecf6}
+.section-requirements{--section-color:#188677;--section-bg:#eff9f6;--section-edge:#d8ede7}
+.section-conditions{--section-color:#ce4352;--section-bg:#fff3f4;--section-edge:#f3dde0}
+.section-benefits{--section-color:#ae7c27;--section-bg:#fff9eb;--section-edge:#f2e7cb}
+.section-process{--section-color:#6761b5;--section-bg:#f5f3ff;--section-edge:#e7e3f7}
+.section-company{--section-color:#546c7d;--section-bg:#f2f6f8;--section-edge:#e0e9ed}
+.section-title{display:flex;align-items:center;gap:13px;
+  padding:12px 16px;margin:0 0 21px;border:1px solid var(--section-edge);
+  border-radius:9px;background:linear-gradient(90deg,var(--section-bg),#fff 96%);
+  box-shadow:inset 3px 0 var(--section-color)}
+.section-title .section-symbol{width:43px;height:43px;display:grid;place-items:center;flex:0 0 43px;
+  color:var(--section-color);background:#ffffffb8;
+  border:1px solid var(--section-edge);border-radius:50%;
+  box-shadow:0 3px 7px #112f3d0c,inset 0 -2px 3px #112f3d05}
+.section-title .section-symbol svg{width:22px;height:22px;color:inherit;stroke-width:1.8}
+.section-title h2{font-size:22px;line-height:1.5;font-weight:800;letter-spacing:-.011em;min-width:0}
+
+.related-head h2{display:inline-flex;align-items:center;gap:11px}
+.related-heading-icon{width:39px;height:39px;display:grid;place-items:center;border-radius:50%;
+  color:#bd3042;background:linear-gradient(145deg,#fff,#ffedf0);
+  border:1px solid #f5dce0;box-shadow:0 3px 10px #9e30400d}
+.related-heading-icon svg{width:20px;height:20px}
+
+/* Clear secondary actions without challenging the primary nomination CTA. */
+.action-card{border-color:#d7e3e9;box-shadow:0 8px 24px #112f3d0b}
+.action-secondary{min-height:48px;background:linear-gradient(#fff,#fafcfd);border-color:#b9cbd5;
+  box-shadow:0 1px 3px #112f3d08;font-size:13.5px;color:#214457;font-weight:800}
+.action-secondary svg{color:#377c9f;width:19px;height:19px;stroke-width:1.85}
+.action-secondary:hover,.action-secondary:focus-visible{background:#f0f7fb;border-color:#70a0b6;color:#17445c}
+.action-primary{box-shadow:0 3px 9px #ed212f15}
+
+/* Dynamic Japanese content is never clipped or broken mid-phrase. */
+body:lang(ja) .location-value{font-weight:700;line-height:1.65;font-size:14px}
+body:lang(ja) .location-label{font-size:12px}
+body:lang(ja) .section-title h2{font-size:22px;line-height:1.55}
+body:lang(ja) .salary-panel .salary-value{font-size:27px}
+body:lang(ja) .overview-meta .meta-value{font-size:12px}
+
+@media(max-width:1170px){
+  .location-grid{gap:9px}
+  .location-tile{padding:14px 12px;gap:10px}
+  .location-icon{width:41px;height:41px;flex-basis:41px}
+  .location-value{font-size:14px}
+  .salary-panel{grid-template-columns:minmax(0,1fr)}
+  .salary-panel .monthly{padding:10px 0 0;border-left:0;border-top:1px solid #e5dadd}
+}
+@media(max-width:900px){
+  .location-tile{min-height:85px}
+  .salary-panel{grid-template-columns:minmax(0,1fr) minmax(0,190px)}
+  .salary-panel .monthly{border-top:0;border-left:1px solid #e5dadd;padding:0 0 0 15px}
+}
+@media(max-width:720px){
+  .location-grid{grid-template-columns:1fr;gap:9px;margin-bottom:12px}
+  .location-tile{min-height:0;padding:12px 13px;gap:12px}
+  .location-icon{width:40px;height:40px;flex-basis:40px}
+  .location-icon svg{width:21px;height:21px}
+  .location-label{margin-bottom:2px;font-size:12px}
+  .location-value{font-size:14px;line-height:1.55}
+  .overview-meta{gap:8px;margin-bottom:14px}
+  .overview-meta .meta{max-width:100%}
+  .overview-meta .meta-value{font-size:12px}
+  .salary-panel{grid-template-columns:1fr;padding:14px 15px;gap:12px}
+  .salary-primary{gap:12px}
+  .salary-orb{width:43px;height:43px;flex-basis:43px}
+  .salary-orb svg{width:23px;height:23px}
+  .salary-panel .salary-value{font-size:25px}
+  .salary-panel .monthly{padding:9px 0 0;border-left:0;border-top:1px solid #e5dadd}
+  .section-title{padding:10px 12px;gap:11px;margin-bottom:16px}
+  .section-title .section-symbol{width:37px;height:37px;flex-basis:37px}
+  .section-title .section-symbol svg{width:19px;height:19px}
+  .section-title h2,body:lang(ja) .section-title h2{font-size:19px!important;line-height:1.5}
+  .related-heading-icon{width:35px;height:35px}
+  body:lang(ja) .salary-panel .salary-value{font-size:24px}
+}
+
+/* JA: keep the entire monthly range together at desktop widths. */
+@media(min-width:1171px){.salary-panel{grid-template-columns:minmax(0,1fr) minmax(0,220px)}}
+body:lang(ja) .salary-panel .monthly strong{font-size:14px;white-space:nowrap}
+@media(max-width:390px){body:lang(ja) .salary-panel .monthly strong{font-size:13.5px}}
+/* Shared V3 role descriptions: balance JA words on narrow screens, not lone glyphs. */
+@media(max-width:720px){body:lang(ja) .role small{text-wrap:balance}}

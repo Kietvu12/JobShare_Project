@@ -14,6 +14,7 @@ import {
   pickKnowledgePostCategoryLabel,
 } from '../../i18n/businessApp/knowledgeHub.js'
 import {
+  BUSINESS_EMPTY_ILLUSTRATION_IMG_CLASS,
   BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
   BUSINESS_HP_TEXT,
   BUSINESS_UI_FONT,
@@ -312,7 +313,7 @@ const KnowledgeHub = () => {
               <span className="font-medium text-slate-800">{copy.breadcrumb.current}</span>
             </nav>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 focus-within:border-[#0077B6]/35 focus-within:bg-white focus-within:ring-2 focus-within:ring-[#0077B6]/10">
+              <div className="business-mobile-filters flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 sm:py-2.5 focus-within:border-[#0077B6]/35 focus-within:bg-white focus-within:ring-2 focus-within:ring-[#0077B6]/10">
                 <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
                 <input
                   type="search"
@@ -371,7 +372,7 @@ const KnowledgeHub = () => {
                   <p className={`py-12 text-center text-red-600 ${BUSINESS_HP_TEXT.body}`}>{loadError}</p>
                 ) : posts.length === 0 ? (
                   <div className="flex flex-col items-center py-16 text-center">
-                    <img src={nothingIllustration} alt="" className="mb-4 max-w-[200px]" draggable={false} />
+                    <img src={nothingIllustration} alt="" className={`mb-4 ${BUSINESS_EMPTY_ILLUSTRATION_IMG_CLASS}`} draggable={false} />
                     <p className={BUSINESS_HP_TEXT.body}>{copy.noPosts}</p>
                   </div>
                 ) : null}

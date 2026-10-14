@@ -142,7 +142,7 @@ const NominationSelectPage = ({ variant = 'agent' }) => {
     const confirmPath = flow.isAdmin
       ? `/admin/jobs/${flow.jobId}/confirm`
       : flow.isApplicantCandidate
-        ? `/candidate/jobs/${flow.jobId}/confirm`
+        ? `${flow.applicantPrefix}/jobs/${flow.jobId}/confirm`
         : `/agent/jobs/${flow.jobId}/confirm`;
 
     navigate(confirmPath, { state: { selectedCvId: cvId, variant } });
@@ -242,7 +242,7 @@ const NominationSelectPage = ({ variant = 'agent' }) => {
       const confirmPath = flow.isAdmin
         ? `/admin/jobs/${flow.jobId}/confirm`
         : flow.isApplicantCandidate
-          ? `/candidate/jobs/${flow.jobId}/confirm`
+          ? `${flow.applicantPrefix}/jobs/${flow.jobId}/confirm`
           : `/agent/jobs/${flow.jobId}/confirm`;
 
       navigate(confirmPath, { state: { selectedCvId: cvId, variant, createdCv: cv, fromQuickCreate: true } });

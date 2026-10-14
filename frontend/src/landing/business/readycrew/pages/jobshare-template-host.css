@@ -1,0 +1,28 @@
+/* Keep template heroes clear of the fixed business header. */
+body.business-landing-page .jsb-v2.jsb-about.jobshare-template-page .about-hero .hero-copy {
+  padding-top: 104px !important;
+}
+
+body.business-landing-page .jsb-seminar.jobshare-template-page .seminar-hero,
+body.business-landing-page .jsb-news.jobshare-template-page .news-hero-inner {
+  padding-top: 156px;
+}
+
+@media (max-width: 1023px) {
+  body.business-landing-page .jsb-seminar.jobshare-template-page .seminar-hero,
+  body.business-landing-page .jsb-news.jobshare-template-page .news-hero-inner {
+    padding-top: 108px;
+  }
+}
+
+@media (max-width: 820px) {
+  body.business-landing-page .jsb-v2.jsb-about.jobshare-template-page .about-hero .hero-copy {
+    padding-top: 72px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  body.business-landing-page .jsb-v2.jsb-about.jobshare-template-page .about-hero .hero-copy {
+    padding-top: 64px !important;
+  }
+}

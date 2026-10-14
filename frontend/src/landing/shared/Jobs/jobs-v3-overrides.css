@@ -1,0 +1,47 @@
+/**
+ * Jobs V3 trong shell CTV / ứng viên — token từ persona styles.css;
+ * jobs.css + filters-v3.css từ template dist.
+ */
+:is(#collaborator-site-root, #candidate-site-root) .jobshare-jobs-v3 :is(
+    .btn,
+    .quick-chip,
+    .picker-trigger,
+    .pagination button,
+    .mobile-filter,
+    .active-chip,
+    .bookmark,
+    .search-form,
+    .search-field,
+    .job-card,
+    .filter-panel,
+    .field-group select,
+    .field-group input,
+    .jp-level span
+  ) {
+  border-radius: 0;
+}
+
+:is(#collaborator-site-root, #candidate-site-root) .jobshare-jobs-v3 .search-copy h1 .hero-line {
+  display: block;
+}
+
+:is(#collaborator-site-root, #candidate-site-root) .jobshare-jobs-v3 .search-copy h1 .hero-line:first-child {
+  color: var(--ink);
+}
+
+:is(#collaborator-site-root, #candidate-site-root) .jobshare-jobs-v3 .search-copy h1 .hero-line.hero-line-accent {
+  color: var(--red);
+}
+
+:is(#collaborator-site-root, #candidate-site-root) .jobshare-job-detail-aside {
+  position: sticky;
+  top: calc(var(--jobshare-role-bar-height, 0px) + 92px);
+  align-self: start;
+  z-index: 8;
+}
+
+@media (max-width: 720px) {
+  :is(#collaborator-site-root, #candidate-site-root) .jobshare-job-detail-aside {
+    top: calc(var(--jobshare-role-bar-height, 0px) + 80px);
+  }
+}

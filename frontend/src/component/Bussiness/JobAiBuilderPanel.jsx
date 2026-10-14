@@ -16,6 +16,7 @@ import {
   JD_LANGUAGE_TABS,
   applyTranslatedJd,
   buildJdTranslationPayload,
+  jdLanguageTabFromUiLocale,
   translateJdViaApi,
 } from '../../utils/jdTranslation';
 import {
@@ -118,7 +119,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
   const [jobBenefitRows, setJobBenefitRows] = useState(emptyState.jobBenefitRows);
   const [highlightKeys, setHighlightKeys] = useState(emptyState.highlightKeys);
   const [jobValues, setJobValues] = useState([]);
-  const [languageTab, setLanguageTab] = useState('vi');
+  const [languageTab, setLanguageTab] = useState(() => jdLanguageTabFromUiLocale(uiLanguage));
   const [categories, setCategories] = useState([]);
   const [jdTemplateSyncKey, setJdTemplateSyncKey] = useState(0);
 
@@ -162,6 +163,18 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
 
   useEffect(() => { if (activeThreadIdProp) setActiveThreadId(activeThreadIdProp); }, [activeThreadIdProp]);
   useEffect(() => { setSavedJobId(savedJobIdProp ?? null); }, [savedJobIdProp]);
+
+  /** JD preview tab theo locale UI cho tới khi có JD đã lưu hoặc nội dung tiêu đề nháp. */
+  useEffect(() => {
+    if (savedJobId) return;
+    const hasTitleDraft = Boolean(
+      formData.title?.trim()
+      || formData.titleEn?.trim()
+      || formData.titleJp?.trim(),
+    );
+    if (hasTitleDraft) return;
+    setLanguageTab(jdLanguageTabFromUiLocale(uiLanguage));
+  }, [uiLanguage, savedJobId, formData.title, formData.titleEn, formData.titleJp]);
 
   useEffect(() => {
     const sid = readStoredSessionId();
@@ -334,9 +347,19 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     if (snapshot.jobBenefitRows) setJobBenefitRows(snapshot.jobBenefitRows);
     if (snapshot.highlightKeys) setHighlightKeys(snapshot.highlightKeys);
     if (snapshot.jobValues) setJobValues(snapshot.jobValues);
-    if (snapshot.languageTab) setLanguageTab(snapshot.languageTab);
+    if (snapshot.languageTab) {
+      const fd = snapshot.formData || {};
+      const hasTitle = Boolean(
+        String(fd.title || '').trim()
+        || String(fd.titleEn || '').trim()
+        || String(fd.titleJp || '').trim(),
+      );
+      setLanguageTab(
+        hasTitle ? snapshot.languageTab : jdLanguageTabFromUiLocale(uiLanguage),
+      );
+    }
     setJdTemplateSyncKey((k) => k + 1);
-  }, []);
+  }, [uiLanguage]);
 
   const formSetters = {
     setLanguageTab,
@@ -356,7 +379,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     setJdTemplateSyncKey,
   };
 
-  const applyDraftToPreview = useCallback((draft) => {
+  const applyDraftToPreview = useCallback((draft, { syncLanguageTab = false } = {}) => {
     const j = normalizeJdDraft(draft);
     if (!j || !Object.keys(j).length) return;
     const patch = applyParsedJdToFormState(j, {
@@ -365,6 +388,9 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       prevWorkingLocations: workingLocationsRef.current,
       prevHighlightKeys: highlightKeysRef.current,
     });
+    if (!syncLanguageTab && patch.languageTab) {
+      delete patch.languageTab;
+    }
     applyJdFormStatePatch(formSetters, patch);
   }, []);
 
@@ -513,7 +539,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
       }
 
       if (embedded || skipAutoBoot) {
-        if (!cancelled && !skipAutoBoot) setBootLoading(false);
+        if (!cancelled) setBootLoading(false);
         return;
       }
 
@@ -562,7 +588,20 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
 
   const sendMessage = async (text) => {
     const message = String(text ?? '').trim();
-    if (!message || !sessionId || loading || parseLoading) return;
+    if (!message || loading || parseLoading) return;
+    let sid = sessionId || readStoredSessionId();
+    if (!sid) {
+      const started = await startSession();
+      sid = started?.sessionId || readStoredSessionId() || '';
+      if (started?.sessionId) {
+        setSessionId(started.sessionId);
+        storeSessionId(started.sessionId);
+      }
+    }
+    if (!sid) {
+      setError(jdCopyRef.current.errors.startChat);
+      return;
+    }
     setError('');
     setInput('');
     setMessages((prev) => [...prev, {
@@ -574,7 +613,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     }]);
     setLoading(true);
     try {
-      const data = await apiService.jdBuilderChat({ session_id: sessionId, message });
+      const data = await apiService.jdBuilderChat({ session_id: sid, message });
       applySessionResponse(data);
       // Lưu phiên sau mỗi tin nhắn
       persistThread().catch(() => {});
@@ -628,7 +667,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
 
     try {
       const parsed = await parseJdFile(file, ac.signal);
-      applyDraftToPreview(parsed);
+      applyDraftToPreview(parsed, { syncLanguageTab: true });
       setJdOriginalFile(file);
       const stored = await fileToStoredJd(file);
       setJdOriginalStored(stored);
@@ -850,6 +889,8 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     setJobBenefitRows(fresh.jobBenefitRows);
     setHighlightKeys(fresh.highlightKeys);
     setJobValues([]);
+    const defaultJdTab = jdLanguageTabFromUiLocale(uiLanguage);
+    setLanguageTab(defaultJdTab);
     setJdTemplateSyncKey((k) => k + 1);
 
     // Box mới = lưu DB ngay (trước cả AI)
@@ -876,7 +917,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
         jobBenefitRows: fresh.jobBenefitRows,
         highlightKeys: fresh.highlightKeys,
         jobValues: [],
-        languageTab: 'vi',
+        languageTab: defaultJdTab,
       },
     });
 
@@ -896,7 +937,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
     }
     inputRef.current?.focus();
     setBootLoading(false);
-  }, [businessUser, companyName, startSession, ensureThreadSaved]);
+  }, [businessUser, companyName, startSession, ensureThreadSaved, uiLanguage]);
 
   useImperativeHandle(ref, () => ({
     startNewSession: handleNewSession,
@@ -1219,7 +1260,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
             />
             <div className={`w-full min-w-0 ${embedded ? '' : 'max-w-2xl mx-auto'}`}>
               <div
-                className={`flex w-full items-center gap-1.5 border border-slate-200 bg-white shadow-sm transition-shadow focus-within:border-slate-300 focus-within:shadow-md ${
+                className={`jd-builder-composer flex w-full items-center gap-1.5 border border-slate-200 bg-white shadow-sm transition-shadow focus-within:border-slate-300 focus-within:shadow-md ${
                   compactUi ? 'rounded-2xl px-2.5 py-1.5' : 'rounded-2xl px-2.5 py-1.5 lg:gap-2 lg:rounded-3xl lg:px-3 lg:py-2'
                 }`}
               >
@@ -1238,8 +1279,8 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
                 onChange={(e) => setInput(e.target.value)}
                 rows={1}
                 placeholder={jdCopy.panel.inputPlaceholder}
-                disabled={parseLoading}
-                className={`${bodyCls} max-h-32 min-h-[2rem] flex-1 min-w-0 resize-none self-center overflow-y-auto bg-transparent py-1.5 leading-snug text-slate-800 outline-none placeholder:text-slate-400 disabled:opacity-50 lg:min-h-[2.25rem] lg:py-2`}
+                disabled={parseLoading || bootLoading}
+                className={`${bodyCls} max-h-32 min-h-[2rem] flex-1 min-w-0 resize-none self-center overflow-y-auto bg-transparent py-1.5 leading-snug text-slate-800 outline-none focus:outline-none focus-visible:outline-none focus:ring-0 placeholder:text-slate-400 disabled:opacity-50 lg:min-h-[2.25rem] lg:py-2`}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -1259,7 +1300,7 @@ const JobAiBuilderPanel = forwardRef(function JobAiBuilderPanel({
               </button>
               <button
                 type="button"
-                disabled={loading || parseLoading || !input.trim() || !sessionId}
+                disabled={loading || parseLoading || bootLoading || !input.trim()}
                 onClick={() => sendMessage(input)}
                 title={jdCopy.panel.sendTitle}
                 aria-label={jdCopy.panel.sendTitle}

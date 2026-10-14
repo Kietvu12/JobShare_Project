@@ -23,7 +23,7 @@ const { SCOUT_LISTING_STATUS } = await import('../src/constants/scoutCredit.js')
 const AI_API_BASE = (
   process.env.AI_API_BASE_URL
   || process.env.VITE_AI_API_BASE_URL
-  || 'https://test.ws-jobshare.com/api_ai'
+  || 'https://ws-jobshare.com/api_ai'
 ).replace(/\/+$/, '');
 
 function parseArgs(argv) {

@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { COLLABORATOR_LOGO } from '../landing/collaborators/lib/collaboratorAssets';
+import { buildCollaboratorNavLinks } from '../landing/collaborators/lib/collaboratorNav';
 import apiService from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
-import LandingPersonaSwitcher from '../component/Layout/LandingPersonaSwitcher';
+import { withLocalePath } from '../utils/localeRoutes';
 import LegalPoliciesSlidePanel from '../component/Shared/LegalPoliciesSlidePanel';
 import {
   REGISTRATION_SOURCE_OPTIONS,
@@ -16,7 +18,7 @@ const HEADER_I18N = {
   vi: {
     navHome: 'Trang chủ',
     navJobs: 'Danh sách việc làm',
-    navAbout: 'Về chúng tôi',
+    navAbout: 'Công ty',
     navPartners: 'Đối tác',
     navFaq: 'Hỏi và đáp',
     navBlog: 'Blog',
@@ -26,7 +28,7 @@ const HEADER_I18N = {
   en: {
     navHome: 'Home',
     navJobs: 'Job Listings',
-    navAbout: 'About Us',
+    navAbout: 'Company',
     navPartners: 'Partners',
     navFaq: 'Q&A',
     navBlog: 'Blog',
@@ -36,7 +38,7 @@ const HEADER_I18N = {
   ja: {
     navHome: 'ホーム',
     navJobs: '求人一覧',
-    navAbout: '私たちについて',
+    navAbout: '会社概要',
     navPartners: 'パートナー',
     navFaq: 'Q&A',
     navBlog: 'ブログ',
@@ -209,8 +211,8 @@ const PAGE_I18N = {
     acquisitionOtherPlaceholder: 'Tell us more...',
   },
   ja: {
-    heroTitle: 'CTV登録',
-    heroSub: '下記の情報を入力して、JobShareのCTVになりましょう。',
+    heroTitle: 'コラボレーター登録',
+    heroSub: '下記の情報を入力して、JobShareのコラボレーター（協力パートナー）として登録しましょう。',
     personalInfo: '1. 個人情報',
     orgType: '2. 組織形態',
     extraInfo: '3. 追加情報',
@@ -303,8 +305,8 @@ const QUOC_GIA_OPTIONS = ['Việt Nam', 'Nhật Bản', 'Khác'];
 
 // Màu & style (theo form mẫu)
 const C = {
-  red: '#c61414',
-  redLt: '#fdf2f2',
+  red: '#ed212f',
+  redLt: '#fff4f5',
   gray: '#4a4a4a',
   blue: '#1c8ae7',
   green: '#00bf63',
@@ -636,8 +638,11 @@ function SearchableMultiSelect({ options, value = [], onChange, placeholder = 'G
   );
 }
 
-const RegisterPage = () => {
+const RegisterPage = ({ shell: shellProp = 'standalone' }) => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const inCollaboratorShell =
+    shellProp === 'collaborator' || /\/collaborator\/register\/?$/.test(pathname);
   const [form, setForm] = useState({
     hoTen: '',
     ngaySinh: '',
@@ -850,120 +855,78 @@ const RegisterPage = () => {
   const { language, changeLanguage } = useLanguage();
   const ht = HEADER_I18N[language] || HEADER_I18N.vi;
   const pt = PAGE_I18N[language] || PAGE_I18N.vi;
-  const prefix = '/landing/collaborator';
+  const prefix = withLocalePath(language, '/');
+  const ctvLinks = buildCollaboratorNavLinks(pathname);
+  const loginPath = ctvLinks.login;
   const navLinks = [
-    { to: prefix, label: ht.navHome },
-    { to: `${prefix}/jobs`, label: ht.navJobs },
-    { href: '#', label: ht.navAbout },
-    { href: '#', label: ht.navPartners },
-    { href: '#', label: ht.navFaq },
-    { to: `${prefix}/blog`, label: ht.navBlog },
+    { to: ctvLinks.home, label: ht.navHome },
+    { to: ctvLinks.jobs, label: ht.navJobs },
+    { href: ctvLinks.partners, label: ht.navPartners },
+    { href: ctvLinks.faq, label: ht.navFaq },
+    { to: ctvLinks.blog, label: ht.navBlog },
+    { to: ctvLinks.about, label: ht.navAbout },
   ];
 
-  return (
-    <div style={css.root}>
-      <link
-        href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet"
-      />
+  const pageIntro = inCollaboratorShell ? (
+    <div className="collaborator-register-head">
+      <h1>{pt.heroTitle}</h1>
+      <p>{pt.heroSub}</p>
+    </div>
+  ) : (
+    <div style={css.hero}>
+      <h1 style={css.heroTitle}>{pt.heroTitle}</h1>
+      <p style={css.heroSub}>{pt.heroSub}</p>
+    </div>
+  );
 
-      <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white shadow-sm">
-        <div className="mx-auto w-full max-w-[1200px] px-4 py-3 md:px-6">
-          <div className="flex items-center justify-between gap-4">
-            <Link to={prefix} className="flex-shrink-0">
-              <img
-                src="/logo.png"
-                alt="Job Share"
-                className="h-6 w-auto md:h-7"
-              />
-            </Link>
-
-            <nav className="hidden items-center gap-6 lg:flex">
-              {navLinks.map((item) =>
-                item.to != null ? (
-                  <Link
-                    key={item.label}
-                    to={item.to}
-                    className="text-xs font-semibold text-neutral-900 transition-colors hover:text-neutral-600"
-                  >
-                    {item.label}
-                  </Link>
-                ) : (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    className="text-xs font-semibold text-neutral-900 transition-colors hover:text-neutral-600"
-                  >
-                    {item.label}
-                  </a>
-                ),
-              )}
-            </nav>
-
-            <div className="flex flex-wrap items-center justify-end gap-2 md:gap-3">
-              <div className="flex items-center overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
-                {LANGUAGE_OPTIONS.map((lang) => {
-                  const isActive = language === lang;
-                  return (
-                    <button
-                      key={lang}
-                      type="button"
-                      onClick={() => changeLanguage(lang)}
-                      className={`h-7 min-w-9 rounded-md px-2 text-[10px] font-bold uppercase transition-colors ${
-                        isActive
-                          ? 'bg-neutral-900 text-white'
-                          : 'text-neutral-700 hover:bg-neutral-200/80'
-                      }`}
-                      aria-label={`Chuyển sang ngôn ngữ ${lang}`}
-                    >
-                      {lang}
-                    </button>
-                  );
-                })}
-              </div>
-              <LandingPersonaSwitcher variant="candidate" />
-              <Link
-                to="/login"
-                className="inline-flex h-8 min-w-[96px] items-center justify-center rounded-lg border border-neutral-300 bg-white px-3 text-[11px] font-semibold text-neutral-900 transition-colors hover:bg-neutral-50"
-              >
-                {ht.login}
-              </Link>
-              <Link
-                to="/register"
-                className="inline-flex h-8 min-w-[96px] items-center justify-center rounded-lg bg-neutral-900 px-3 text-[11px] font-semibold !text-white transition-colors hover:bg-neutral-800"
-              >
-                {ht.register}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div style={css.hero}>
-        <h1 style={css.heroTitle}>{pt.heroTitle}</h1>
-        <p style={css.heroSub}>{pt.heroSub}</p>
-      </div>
-
-      <div style={css.wrapper}>
-        <div style={css.card}>
-          <form onSubmit={handleSubmit} noValidate>
+  const formCard = (
+    <div
+      className={inCollaboratorShell ? 'collaborator-register-card' : undefined}
+      style={inCollaboratorShell ? undefined : css.wrapper}
+    >
+      <div style={inCollaboratorShell ? { display: 'contents' } : css.card}>
+        <form onSubmit={handleSubmit} noValidate>
             {/* 1. Thông tin cá nhân */}
             <div style={css.sectionTitle}>{pt.personalInfo}</div>
 
             <div style={css.field}>
               <label style={css.label}>{pt.fullName} <span style={css.req}>*</span></label>
-              <FInput type="text" placeholder={pt.fullNamePlaceholder} value={form.hoTen} onChange={set('hoTen')} error={!!errors.hoTen} />
+              <FInput
+                type="text"
+                name="name"
+                autoComplete="name"
+                placeholder={pt.fullNamePlaceholder}
+                value={form.hoTen}
+                onChange={set('hoTen')}
+                error={!!errors.hoTen}
+              />
               {errors.hoTen && <p style={css.errText}>{errors.hoTen}</p>}
             </div>
 
             <div style={css.grid2}>
               <div style={css.field}>
                 <label style={css.label}>{pt.birthDate} <span style={css.req}>*</span></label>
-                <FInput type="date" value={form.ngaySinh} onChange={set('ngaySinh')} error={!!errors.ngaySinh} />
+                <FInput
+                  type="date"
+                  name="bday"
+                  autoComplete="bday"
+                  value={form.ngaySinh}
+                  onChange={set('ngaySinh')}
+                  error={!!errors.ngaySinh}
+                />
               </div>
               <div style={css.field}>
                 <label style={css.label}>{pt.email} <span style={css.req}>*</span></label>
-                <FInput type="email" placeholder={pt.emailPlaceholder} value={form.email} onChange={set('email')} error={!!errors.email} />
+                <FInput
+                  type="email"
+                  name="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  placeholder={pt.emailPlaceholder}
+                  value={form.email}
+                  onChange={set('email')}
+                  error={!!errors.email}
+                />
                 {errors.email && <p style={css.errText}>{errors.email}</p>}
               </div>
             </div>
@@ -980,6 +943,9 @@ const RegisterPage = () => {
                 </FSelect>
                 <FInput
                   type="tel"
+                  name="phone"
+                  autoComplete="tel"
+                  inputMode="tel"
                   placeholder={form.loaiSdt === 'Zalo' ? pt.phonePlaceholderZalo : pt.phonePlaceholderLine}
                   value={form.soDienThoai}
                   onChange={set('soDienThoai')}
@@ -1116,7 +1082,21 @@ const RegisterPage = () => {
                 <div style={css.grid2}>
                   <div style={css.field}>
                     <label style={css.label}>{pt.taxCode} <span style={css.req}>*</span></label>
-                    <FInput type="text" placeholder={language === 'en' ? 'Tax code' : language === 'ja' ? '法人番号' : '0123456789'} value={form.mst} onChange={set('mst')} error={!!errors.mst} />
+                    <FInput
+                      type="text"
+                      name="tax-id"
+                      autoComplete="off"
+                      placeholder={
+                        language === 'en'
+                          ? 'e.g. 0312345678'
+                          : language === 'ja'
+                            ? '例: 1234567890123'
+                            : 'VD: 0312345678'
+                      }
+                      value={form.mst}
+                      onChange={set('mst')}
+                      error={!!errors.mst}
+                    />
                     {errors.mst && <p style={css.errText}>{errors.mst}</p>}
                   </div>
                   <div style={css.field}>
@@ -1266,15 +1246,133 @@ const RegisterPage = () => {
                 {loading ? pt.submitting : pt.submit}
               </button>
             </div>
-          </form>
+        </form>
+      </div>
+    </div>
+  );
+
+  const loginFooter = (
+    <p
+      style={{
+        textAlign: 'center',
+        fontSize: 14,
+        color: C.gray,
+        marginTop: 24,
+        marginBottom: inCollaboratorShell ? 0 : 40,
+      }}
+    >
+      {pt.haveAccount}{' '}
+      <Link to={loginPath} style={css.agreeLink}>
+        {pt.login}
+      </Link>
+    </p>
+  );
+
+  const mainContent = inCollaboratorShell ? (
+    <section className="collaborator-register section">
+      <div className="wrap">
+        {pageIntro}
+        {formCard}
+        {loginFooter}
+      </div>
+    </section>
+  ) : (
+    <>
+      {pageIntro}
+      {formCard}
+      {loginFooter}
+    </>
+  );
+
+  const standaloneHeader = (
+    <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white shadow-sm">
+      <div className="mx-auto w-full max-w-[1200px] px-4 py-3 md:px-6">
+        <div className="flex items-center justify-between gap-4">
+          <Link to={prefix} className="flex-shrink-0">
+            <img
+              src={COLLABORATOR_LOGO}
+              alt="Job Share"
+              width={142}
+              height={46}
+              style={{ width: 142, height: 'auto', maxWidth: '100%' }}
+            />
+          </Link>
+
+          <nav className="hidden items-center gap-6 lg:flex">
+            {navLinks.map((item) =>
+              item.to != null ? (
+                <Link
+                  key={item.label}
+                  to={item.to}
+                  className="text-sm font-semibold text-neutral-900 transition-colors hover:text-neutral-600"
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  className="text-sm font-semibold text-neutral-900 transition-colors hover:text-neutral-600"
+                >
+                  {item.label}
+                </a>
+              ),
+            )}
+          </nav>
+
+          <div className="flex flex-wrap items-center justify-end gap-2 md:gap-3">
+            <div className="flex items-center overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
+              {LANGUAGE_OPTIONS.map((lang) => {
+                const isActive = language === lang;
+                return (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => changeLanguage(lang)}
+                    className={`h-7 min-w-9 rounded-md px-2 text-[10px] font-bold uppercase transition-colors ${
+                      isActive
+                        ? 'bg-neutral-900 text-white'
+                        : 'text-neutral-700 hover:bg-neutral-200/80'
+                    }`}
+                    aria-label={`Chuyển sang ngôn ngữ ${lang}`}
+                  >
+                    {lang}
+                  </button>
+                );
+              })}
+            </div>
+            <Link
+              to={loginPath}
+              className="inline-flex h-8 min-w-[96px] items-center justify-center rounded-lg border border-neutral-300 bg-white px-3 text-[11px] font-semibold text-neutral-900 transition-colors hover:bg-neutral-50"
+            >
+              {ht.login}
+            </Link>
+            <Link
+              to={ctvLinks.register}
+              className="inline-flex h-8 min-w-[96px] items-center justify-center rounded-lg bg-[#ed212f] px-3 text-[11px] font-semibold text-white transition-colors hover:bg-[#be1824]"
+            >
+              {ht.register}
+            </Link>
+          </div>
         </div>
       </div>
+    </header>
+  );
 
-      <p style={{ textAlign: 'center', fontSize: 14, color: C.gray, marginTop: 24, marginBottom: 40 }}>
-        {pt.haveAccount} <Link to="/login" style={css.agreeLink}>{pt.login}</Link>
-      </p>
+  return (
+    <>
+      {!inCollaboratorShell && (
+        <div style={css.root}>
+          <link
+            href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&display=swap"
+            rel="stylesheet"
+          />
+          {standaloneHeader}
+          {mainContent}
+        </div>
+      )}
+      {inCollaboratorShell && mainContent}
 
-      {/* Success overlay */}
       <LegalPoliciesSlidePanel
         open={legalPanelOpen}
         onClose={() => setLegalPanelOpen(false)}
@@ -1283,7 +1381,13 @@ const RegisterPage = () => {
       />
 
       {submitted && (
-        <div style={css.overlay} onClick={() => { setSubmitted(false); navigate('/login'); }}>
+        <div
+          style={css.overlay}
+          onClick={() => {
+            setSubmitted(false);
+            navigate(loginPath);
+          }}
+        >
           <div style={css.successBox} onClick={(e) => e.stopPropagation()}>
             <div style={css.checkCircle}>
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1296,7 +1400,7 @@ const RegisterPage = () => {
             </p>
             <button
               type="button"
-              onClick={() => navigate('/login')}
+              onClick={() => navigate(loginPath)}
               style={{ ...css.btnSubmit(false), marginTop: 20 }}
             >
               {pt.successLogin}
@@ -1304,7 +1408,7 @@ const RegisterPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

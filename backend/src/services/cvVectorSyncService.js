@@ -1,7 +1,7 @@
 import { CVStorage } from '../models/index.js';
 import { collaboratorNotificationService } from './collaboratorNotificationService.js';
 
-const CV_VECTOR_SYNC_URL = (cvId) => `https://test.ws-jobshare.com/api_ai/v2/vector/cv/${cvId}`;
+const CV_VECTOR_SYNC_URL = (cvId) => `https://ws-jobshare.com/api_ai/v2/vector/cv/${cvId}`;
 const RUNNER_INTERVAL_MS = 30000;
 const MAX_RETRY_COUNT = 1000;
 

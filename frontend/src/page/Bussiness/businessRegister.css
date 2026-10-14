@@ -1,6 +1,6 @@
 
 :root{--blue:#0077b6;--deep:#005b8d;--ink:#163746;--text:#304d5c;--mist:#e8f4fa;--line:#c7dce7;--yellow:#ffde59;--danger:#b42318;--ease:cubic-bezier(.22,1,.36,1)}
-*{box-sizing:border-box}
+.jr-register-page,.jr-register-page *{box-sizing:border-box}
 .jr-register-page{margin:0;background:#fff;color:var(--text);font:500 18px/1.75 Barlow,'Yu Gothic','Hiragino Kaku Gothic ProN',Meiryo,sans-serif;font-synthesis:none;min-height:100vh}
 .jr-register-page,.jr-register-page button,.jr-register-page input,.jr-register-page select,.jr-register-page textarea{font-family:Barlow,'Yu Gothic','Hiragino Kaku Gothic ProN',Meiryo,sans-serif}
 .jr-topbar{background:#fff;border-bottom:1px solid var(--line);padding:12px 0}
@@ -13,7 +13,7 @@
 .jr-consent .jr-error{display:none;margin-top:6px}
 .jr-consent.is-error .jr-error{display:block}
 .jr-form-error{margin:0 0 16px;padding:14px 16px;background:#fef3f2;border:1px solid #fecdca;color:var(--danger);font-size:14px;font-weight:700;line-height:1.5}
-button,input,select,textarea{font:inherit}button{cursor:pointer}:focus-visible{outline:3px solid #b08000;outline-offset:4px}
+.jr-register-page button,.jr-register-page input,.jr-register-page select,.jr-register-page textarea{font:inherit}.jr-register-page button{cursor:pointer}.jr-register-page :focus-visible{outline:3px solid #b08000;outline-offset:4px}
 .jr-page{overflow:hidden}.jr-wrap{width:min(1180px,calc(100% - 80px));margin-inline:auto}
 .jr-hero{background:var(--blue);color:#fff;border-bottom:8px solid var(--deep)}
 .jr-hero-inner{padding:56px 0 52px;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(360px,.92fr);gap:58px;align-items:center}

@@ -50,6 +50,7 @@ import {
   getLocalizedScoutUnlockSourceMeta,
 } from '../../i18n/businessAppI18n'
 import {
+  BUSINESS_EMPTY_ILLUSTRATION_IMG_CLASS,
   BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
   BUSINESS_HP_TEXT,
   BUSINESS_UI_FONT,
@@ -284,7 +285,7 @@ function CandidatesEmptyState({ copy }) {
   const navigate = useNavigate()
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-5 py-10 text-center">
-      <img src={nothingIllustration} alt="" className="mb-4 w-full max-w-[220px] object-contain" draggable={false} />
+      <img src={nothingIllustration} alt="" className={`mb-4 ${BUSINESS_EMPTY_ILLUSTRATION_IMG_CLASS}`} draggable={false} />
       <p className={`max-w-md font-medium leading-relaxed text-slate-700 ${BUSINESS_HP_TEXT.body}`}>
         {copy.candidates.list.emptyBody}
       </p>

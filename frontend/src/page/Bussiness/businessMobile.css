@@ -1,0 +1,60 @@
+/* Portal doanh nghiệp trên điện thoại. Không áp cho landing public. */
+@media (max-width: 1023px) {
+  .business-app-ui {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .business-app-ui .business-mobile-filters :is(select, input:not([type='checkbox']):not([type='radio'])) {
+    font-size: 13px;
+    line-height: 1.25rem;
+  }
+
+  .business-app-ui .business-mobile-filters input[type='date'] {
+    min-width: 0;
+  }
+
+  .business-app-ui .business-jobs-table {
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  .business-app-ui .business-jobs-col-salary,
+  .business-app-ui .business-jobs-col-location,
+  .business-app-ui .business-jobs-col-referrals,
+  .business-app-ui .business-jobs-col-updated {
+    display: none;
+  }
+
+  .business-app-ui .business-jobs-table .opacity-0 {
+    opacity: 1 !important;
+  }
+
+  .business-app-ui .business-jobs-table button {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+  }
+
+  .business-app-ui .billing-table-ui,
+  .business-app-ui .insights-compare-table,
+  .business-app-ui .insights-positions-table,
+  .business-app-ui .insights-jd-table,
+  .business-app-ui .ctv-marketplace-table-ui {
+    min-width: 0 !important;
+  }
+
+  .business-app-ui .insights-compare-table :is(th, td):nth-child(2),
+  .business-app-ui .insights-compare-table :is(th, td):nth-child(4),
+  .business-app-ui .insights-compare-table :is(th, td):nth-child(6),
+  .business-app-ui .insights-compare-table :is(th, td):nth-child(8),
+  .business-app-ui .insights-compare-table :is(th, td):nth-child(9),
+  .business-app-ui .insights-positions-table :is(th, td):nth-child(4),
+  .business-app-ui .insights-jd-table :is(th, td):nth-child(2),
+  .business-app-ui .insights-jd-table :is(th, td):nth-child(4),
+  .business-app-ui .insights-jd-table :is(th, td):nth-child(6) {
+    display: none;
+  }
+
+  .business-app-ui .business-messages-ui {
+    min-height: 0;
+  }
+}

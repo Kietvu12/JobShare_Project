@@ -1,0 +1,498 @@
+/**
+ * Bổ sung nhỏ cho shell React — phần lớn giao diện lấy từ template styles.css.
+ */
+body.jobshare-candidate-v1 #root {
+  height: auto;
+  min-height: 100%;
+}
+
+/* Main giãn giữa header và footer (profile, v.v.) */
+body.jobshare-candidate-v1 #candidate-site-root {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+body.jobshare-candidate-v1 #candidate-site-root #main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#candidate-site-root .jobshare-role-switch-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #f4f7f9;
+}
+
+body.jobshare-candidate-v1 {
+  scroll-padding-top: calc(var(--jobshare-role-bar-height, 0px) + 88px);
+}
+
+@media (max-width: 720px) {
+  body.jobshare-candidate-v1 {
+    scroll-padding-top: calc(var(--jobshare-role-bar-height, 0px) + 76px);
+  }
+
+  #candidate-site-root .jobshare-role-switch-bar .role-intro {
+    padding: 8px 0;
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  #candidate-site-root .jobshare-role-switch-bar .roles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  #candidate-site-root .jobshare-role-switch-bar .role {
+    min-width: 0;
+    padding: 10px 6px;
+    gap: 5px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    text-align: left;
+  }
+
+  #candidate-site-root .jobshare-role-switch-bar .role > span {
+    min-width: 0;
+    flex: 1 1 auto;
+    width: auto;
+  }
+
+  #candidate-site-root .jobshare-role-switch-bar .role strong {
+    display: block;
+    font-size: 13px;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  #candidate-site-root .jobshare-role-switch-bar .role small {
+    display: none;
+  }
+
+  #candidate-site-root .jobshare-role-switch-bar .role svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 400px) {
+  #candidate-site-root .jobshare-role-switch-bar .wrap {
+    width: calc(100% - 28px);
+  }
+
+  #candidate-site-root .jobshare-role-switch-bar .role {
+    padding: 8px 4px;
+  }
+
+  #candidate-site-root .jobshare-role-switch-bar .role strong {
+    font-size: 12px;
+  }
+}
+
+#candidate-site-root a.btn {
+  text-decoration: none;
+}
+
+#candidate-site-root .header-account-wrap {
+  position: relative;
+}
+
+#candidate-site-root .header-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: min(200px, 46vw);
+  padding: 4px 8px 4px 4px;
+  border: 1px solid var(--line, #dae4e9);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink, #112f3d);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#candidate-site-root .header-account-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  stroke: var(--muted, #617782);
+  transition: transform 0.2s;
+}
+
+#candidate-site-root .header-account-chevron[data-open='true'] {
+  transform: rotate(180deg);
+}
+
+#candidate-site-root .header-account-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 50;
+  min-width: 196px;
+  padding: 6px;
+  border: 1px solid var(--line, #dae4e9);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(17, 47, 61, 0.12);
+}
+
+#candidate-site-root .header-account-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink, #112f3d);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+#candidate-site-root .header-account-dropdown-item:hover,
+#candidate-site-root .header-account-dropdown-item:focus-visible {
+  background: #f2f8fc;
+  color: var(--red-deep, #be1824);
+  outline: none;
+}
+
+#candidate-site-root .header-account-dropdown-item.is-logout {
+  color: var(--red-deep, #be1824);
+}
+
+#candidate-site-root .header-account:hover {
+  border-color: var(--red, #ed212f);
+  box-shadow: 0 0 0 2px rgba(237, 33, 47, 0.12);
+}
+
+#candidate-site-root .header-account-avatar {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #f2f8fc;
+}
+
+#candidate-site-root .header-account-avatar.is-initials {
+  display: grid;
+  place-items: center;
+  background: #fff4f5;
+  color: var(--red-deep, #be1824);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+#candidate-site-root .header-account-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  #candidate-site-root .header-account-name {
+    display: none;
+  }
+}
+
+/* Template styles.css: unlayered `a { color: inherit }` beats Tailwind utilities */
+#candidate-site-root :is(a, button).candidate-solid-cta,
+#candidate-site-root :is(a, button).candidate-solid-cta:visited,
+#candidate-site-root :is(a, button).candidate-solid-cta:hover {
+  color: #fff;
+}
+
+#candidate-site-root .news-card {
+  text-decoration: none;
+  color: inherit;
+}
+
+body.jobshare-candidate-v1 #candidate-site-root .site-header {
+  position: sticky;
+  top: var(--jobshare-role-bar-height, 0px);
+  z-index: 20;
+}
+
+#candidate-site-root :is(
+    .btn,
+    .header-register,
+    .menu-btn,
+    .languages a,
+    .back-top,
+    .support-launcher,
+    .contact-dialog,
+    .footer-contact
+  ) {
+  border-radius: 0;
+}
+
+#candidate-site-root :is(.hero, .final-copy) .actions {
+  align-items: stretch;
+  width: 100%;
+  max-width: 520px;
+}
+
+#candidate-site-root :is(.hero, .final-copy) .actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 54px;
+  padding-inline: 16px;
+}
+
+/* Hồ sơ nhúng CandidateDetailPage / Nominations — tránh template global svg/a làm vỡ UI app */
+#candidate-site-root .wjs-app-surface svg {
+  width: auto;
+  height: auto;
+  max-width: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#candidate-site-root .wjs-app-surface a:not(.candidate-solid-cta):not([class*='bg-']) {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+#candidate-site-root .candidate-profile-dashboard .wjs-app-surface {
+  box-sizing: border-box;
+}
+
+/* Hồ sơ ứng viên: một cỡ chữ 14px, một cỡ icon 16px. Không kế thừa heading/svg của template. */
+#candidate-site-root .candidate-profile-dashboard {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #171717;
+}
+
+#candidate-site-root .candidate-profile-dashboard :is(p, span, a, button, li, label, h1, h2, h3, h4, strong, small) {
+  font-size: 14px;
+  line-height: 1.45;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+#candidate-site-root .candidate-profile-dashboard .profile-nav.is-active {
+  font-weight: 700;
+}
+
+#candidate-site-root .candidate-profile-dashboard svg {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  max-width: 16px;
+  flex-shrink: 0;
+  stroke-width: 1.75;
+}
+
+#candidate-site-root .candidate-profile-detail {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #171717;
+}
+
+#candidate-site-root .candidate-profile-detail .profile-banner {
+  position: relative;
+  height: 128px;
+  overflow: hidden;
+}
+
+#candidate-site-root .candidate-profile-detail .profile-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px 0;
+}
+
+#candidate-site-root .candidate-profile-detail .profile-avatar-slot {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 64px;
+  margin-top: 0;
+}
+
+#candidate-site-root .candidate-profile-detail .profile-identity-copy {
+  min-width: 0;
+  flex: 1;
+  padding-top: 0;
+}
+
+#candidate-site-root .candidate-profile-detail .profile-name,
+#candidate-site-root .candidate-profile-dashboard .profile-side-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #171717;
+}
+
+#candidate-site-root .candidate-profile-detail .profile-handle,
+#candidate-site-root .candidate-profile-detail .profile-meta,
+#candidate-site-root .candidate-profile-detail .profile-label,
+#candidate-site-root .candidate-profile-detail .profile-time,
+#candidate-site-root .candidate-profile-detail .profile-stat-label,
+#candidate-site-root .candidate-profile-dashboard .profile-side-handle,
+#candidate-site-root .candidate-profile-dashboard .profile-side-label {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #737373;
+}
+
+#candidate-site-root .candidate-profile-detail .profile-section-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #171717;
+}
+
+#candidate-site-root .candidate-profile-detail .profile-value,
+#candidate-site-root .candidate-profile-detail .profile-activity,
+#candidate-site-root .candidate-profile-detail .profile-stat-value {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #171717;
+}
+
+#candidate-site-root .candidate-profile-detail .profile-actions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+#candidate-site-root .candidate-profile-detail .profile-edit,
+#candidate-site-root .candidate-profile-detail .profile-edit span {
+  margin-top: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+#candidate-site-root .candidate-profile-detail .profile-edit:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+#candidate-site-root .candidate-profile-detail img.profile-avatar,
+#candidate-site-root .candidate-profile-detail .profile-avatar-fallback {
+  width: 64px;
+  height: 64px;
+  max-width: 64px;
+  border-radius: 9999px;
+  object-fit: cover;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+#candidate-site-root .candidate-profile-dashboard .profile-side-avatar,
+#candidate-site-root .candidate-profile-dashboard .profile-side-avatar-fallback {
+  width: 40px;
+  height: 40px;
+  max-width: 40px;
+  border-radius: 9999px;
+  object-fit: cover;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  #candidate-site-root .candidate-profile-dashboard .profile-side-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 8px 12px 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #candidate-site-root .candidate-profile-dashboard .profile-side-group,
+  #candidate-site-root .candidate-profile-dashboard .profile-side-links {
+    display: contents;
+  }
+
+  #candidate-site-root .candidate-profile-dashboard .profile-side-label {
+    display: none;
+  }
+
+  #candidate-site-root .candidate-profile-dashboard .profile-nav {
+    width: auto;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  #candidate-site-root .candidate-profile-detail .profile-banner {
+    height: 88px;
+  }
+
+  #candidate-site-root .candidate-profile-detail .profile-identity {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 12px 0;
+  }
+
+  #candidate-site-root .candidate-profile-detail .profile-identity-copy {
+    flex: 1 1 calc(100% - 74px);
+  }
+
+  #candidate-site-root .candidate-profile-detail .profile-actions {
+    flex: 1 1 100%;
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  #candidate-site-root .candidate-profile-detail .profile-edit {
+    flex: 1 1 0;
+    justify-content: center;
+    min-width: 0;
+    padding-inline: 8px;
+  }
+
+  #candidate-site-root .candidate-profile-detail .profile-meta,
+  #candidate-site-root .candidate-profile-detail .profile-columns {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  #candidate-site-root .candidate-profile-detail .profile-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  #candidate-site-root .candidate-profile-detail .profile-record-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  #candidate-site-root .candidate-profile-detail .profile-time {
+    white-space: normal;
+  }
+}

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import nothingIllustration from '../../assets/Nothing.png'
 import FilterSelectDropdown from '../../component/Shared/FilterSelectDropdown'
+import BusinessMobileFilterToggle from '../../component/Bussiness/BusinessMobileFilterToggle.jsx'
 import apiService from '../../services/api'
 import useBusinessUser from '../../hooks/useBusinessUser'
 import useBusinessAppCopy from '../../hooks/useBusinessAppCopy'
@@ -30,6 +31,7 @@ import {
   deleteJobBuilderThread,
 } from '../../utils/jobBuilderThreadStorage'
 import {
+  BUSINESS_EMPTY_ILLUSTRATION_IMG_CLASS,
   BUSINESS_HOMEPAGE_PAGE_BASE_STYLES,
   BUSINESS_HP_TEXT,
   BUSINESS_UI_FONT,
@@ -602,6 +604,7 @@ const JobManagement = () => {
   const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || '')
   const [locationFilter, setLocationFilter] = useState(searchParams.get('location') || '')
   const [dateFilter, setDateFilter] = useState(searchParams.get('date') || '')
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [jobStatsMap, setJobStatsMap] = useState({})
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -887,9 +890,9 @@ const JobManagement = () => {
             <span className="font-medium text-slate-700">{jobsCopy.breadcrumb.current}</span>
           </nav>
 
-          <div className="business-jobs-filter-panel rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-3.5">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="relative flex flex-1 items-center rounded-lg border border-slate-200 bg-white px-2.5 py-2">
+          <div className="business-jobs-filter-panel business-mobile-filters rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-3.5">
+            <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+              <div className="relative flex min-w-0 basis-full items-center rounded-lg border border-slate-200 bg-white px-2.5 py-2 sm:flex-1 sm:basis-auto">
                 <input
                   type="text"
                   value={searchInput}
@@ -902,7 +905,7 @@ const JobManagement = () => {
               <button
                 type="button"
                 onClick={() => navigate('/business/jobs/create')}
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] px-3 py-2 text-xs font-bold text-white shadow-md shadow-[#0077B6]/20 ring-1 ring-[#0077B6]/25 transition hover:bg-[#006399] sm:text-sm"
+                className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#0077B6] px-3 text-xs font-bold sm:h-auto sm:flex-none sm:shrink-0 sm:py-2 text-white shadow-md shadow-[#0077B6]/20 ring-1 ring-[#0077B6]/25 transition hover:bg-[#006399] sm:text-sm"
               >
                 <Plus className="h-4 w-4" />
                 {jobsCopy.createShort}
@@ -911,14 +914,19 @@ const JobManagement = () => {
                 type="button"
                 onClick={clearFilters}
                 disabled={!hasActiveFilters}
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35 sm:text-sm"
+                className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35 sm:h-auto sm:py-2 sm:text-sm"
               >
                 <RotateCcw className="h-3 w-3" />
                 {commonCopy.clearFilters}
               </button>
+              <BusinessMobileFilterToggle
+                open={mobileFiltersOpen}
+                onToggle={() => setMobileFiltersOpen((v) => !v)}
+                activeCount={[statusTab !== 'all', categoryFilter, locationFilter, dateFilter].filter(Boolean).length}
+              />
             </div>
 
-            <div className="mt-2 grid grid-cols-2 gap-2 xl:grid-cols-4">
+            <div className={`mt-2 ${mobileFiltersOpen ? 'grid' : 'hidden'} grid-cols-2 gap-2 lg:grid xl:grid-cols-4`}>
               <JobFilterField label={jobsCopy.filters.status}>
                 <FilterSelectDropdown
                   value={statusTab}
@@ -998,7 +1006,7 @@ const JobManagement = () => {
               <img
                 src={nothingIllustration}
                 alt=""
-                className="mb-3 w-full max-w-[200px] object-contain"
+                className={`mb-3 ${BUSINESS_EMPTY_ILLUSTRATION_IMG_CLASS}`}
                 draggable={false}
               />
               <p className="max-w-md text-sm font-medium leading-relaxed text-slate-700 sm:text-base">
@@ -1010,8 +1018,8 @@ const JobManagement = () => {
               <button
                 type="button"
                 onClick={() => navigate('/business/jobs/create')}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:opacity-95 sm:text-sm"
-                style={{ backgroundColor: JD_NAVY_MID }}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold shadow-sm transition hover:opacity-95 sm:text-sm"
+                style={{ backgroundColor: JD_NAVY_MID, color: '#ffffff' }}
               >
                 <Plus className="h-3.5 w-3.5" />
                 {jobsCopy.createJd}

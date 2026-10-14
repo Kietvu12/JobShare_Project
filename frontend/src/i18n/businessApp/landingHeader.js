@@ -1,4 +1,4 @@
-const NAV_PATHS = ['/price', '/proposal', '/seminar', '/news', '/about-us']
+const NAV_PATHS = ['/price', '/seminar', '/news', '/about-us']
 
 export const landingHeaderI18n = {
   vi: {
@@ -6,7 +6,6 @@ export const landingHeaderI18n = {
     registerLines: ['Đăng ký'],
     loginLines: ['Đăng nhập'],
     navLabels: [
-      'Về JobShare',
       'Dịch vụ',
       'Sự kiện',
       'Tin tức',
@@ -17,8 +16,8 @@ export const landingHeaderI18n = {
     addressLines: ['Tầng 3, số 82 phố Tuệ Tĩnh, quận Hai Bà Trưng, Hà Nội, Việt Nam'],
     downloadMaterials: 'Tải tài liệu',
     contact: 'Liên hệ',
-    corporateSite: 'Trang công ty',
-    recruitingSite: 'Trang tuyển dụng',
+    collaboratorSite: 'Trang cộng tác viên',
+    candidateSite: 'Trang ứng viên',
     businessHours: '10:00 – 18:00 (T2–T6)',
     copyright: '© Công ty Cổ phần Workstation. All Rights Reserved.',
   },
@@ -27,7 +26,6 @@ export const landingHeaderI18n = {
     registerLines: ['Register'],
     loginLines: ['Log in'],
     navLabels: [
-      'About JobShare Business',
       'Services',
       'Seminars & Events',
       'News',
@@ -38,8 +36,8 @@ export const landingHeaderI18n = {
     addressLines: ['3F, 82 Tue Tinh Street, Hai Ba Trung District, Hanoi, Vietnam'],
     downloadMaterials: 'Download brochure',
     contact: 'Contact us',
-    corporateSite: 'Corporate Site',
-    recruitingSite: 'Recruiting Site',
+    collaboratorSite: 'Collaborators Site',
+    candidateSite: 'Candidates Site',
     businessHours: '10:00 – 18:00 (Weekdays)',
     copyright: '© Workstation Joint Stock Company. All Rights Reserved.',
   },
@@ -48,7 +46,6 @@ export const landingHeaderI18n = {
     registerLines: ['無料で', '企業登録する'],
     loginLines: ['ログイン'],
     navLabels: [
-      'JobShare Businessとは',
       '各サービス',
       'セミナー・イベント',
       'ニュース',
@@ -59,8 +56,8 @@ export const landingHeaderI18n = {
     addressLines: ['ベトナム・ハノイ市ハイバーチュン区トゥエティン通り82番地 3階'],
     downloadMaterials: '資料ダウンロード',
     contact: 'お問い合わせ',
-    corporateSite: 'Corporate Site',
-    recruitingSite: 'Recruiting Site',
+    collaboratorSite: 'Collaborators Site',
+    candidateSite: 'Candidates Site',
     businessHours: '10:00 〜 18:00 (平日)',
     copyright: '© 株式会社ワークステーション. All Rights Reserved.',
   },

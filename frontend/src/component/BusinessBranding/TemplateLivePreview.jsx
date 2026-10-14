@@ -2,8 +2,7 @@ import React, { useMemo } from 'react';
 import { BUSINESS_HP_TEXT } from '../../utils/businessHomepageTypography.js';
 import { getTemplatePages, isHtmlTemplate } from '../../constants/templatePageRegistry';
 import { buildCompanyContentFromTemplate } from '../../utils/companyLandingPageSchema';
-import HtmlTemplatePageViewer from '../../page/LandingPage/HtmlTemplatePageViewer';
-import CompanyLandingRenderer from '../../page/LandingPage/CompanyLandingRenderer';
+import CompanyLandingRenderer, { HtmlTemplatePageViewer } from './companyLandingStubs';
 
 /**
  * Xem trước live toàn bộ trang chủ template (iframe HTML hoặc React renderer).

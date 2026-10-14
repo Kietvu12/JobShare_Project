@@ -1,0 +1,53 @@
+/*
+ * Template doanh nghiệp đặt html{font-size:62.5%}, nên utility Tailwind (rem) trong các trang React dùng chung
+ * (blog list/detail) bị thu nhỏ còn 62.5%. Đổi theme var sang px trong vùng bọc để giữ đúng kích thước gốc.
+ */
+body.business-landing-page .business-tw-px {
+  font-size: 16px;
+  --spacing: 4px;
+  --container-3xs: 256px;
+  --container-2xs: 288px;
+  --container-xs: 320px;
+  --container-sm: 384px;
+  --container-md: 448px;
+  --container-lg: 512px;
+  --container-xl: 576px;
+  --container-2xl: 672px;
+  --container-3xl: 768px;
+  --container-4xl: 896px;
+  --container-5xl: 1024px;
+  --container-6xl: 1152px;
+  --container-7xl: 1280px;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --text-4xl: 36px;
+  --text-5xl: 48px;
+  --text-6xl: 60px;
+  --text-7xl: 72px;
+  --text-8xl: 96px;
+  --text-9xl: 128px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
+  --radius-4xl: 32px;
+}
+
+/* Header-main fixed (kèm thanh vai trò) che phần đầu trang chi tiết bài. */
+body.business-landing-page .business-tw-px.business-blog-detail {
+  padding-top: 80px;
+}
+
+@media (min-width: 1024px) {
+  body.business-landing-page .business-tw-px.business-blog-detail {
+    padding-top: 110px;
+  }
+}

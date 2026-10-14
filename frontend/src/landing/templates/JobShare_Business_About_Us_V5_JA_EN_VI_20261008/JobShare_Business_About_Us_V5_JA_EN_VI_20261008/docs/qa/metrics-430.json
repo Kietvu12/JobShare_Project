@@ -1,0 +1,169 @@
+{
+  "vw": 430,
+  "documentWidth": 430,
+  "documentHeight": 8528,
+  "metrics": {
+    ".about-hero": {
+      "w": 430,
+      "h": 571.6,
+      "font": "16px",
+      "wrap": "normal",
+      "break": "normal",
+      "display": "block"
+    },
+    ".about-hero-media img": {
+      "w": 392,
+      "h": 220.5,
+      "font": "16px",
+      "wrap": "normal",
+      "break": "normal",
+      "display": "block"
+    },
+    ".about-media img": {
+      "w": 394,
+      "h": 221.6,
+      "font": "16px",
+      "wrap": "normal",
+      "break": "normal",
+      "display": "block"
+    },
+    ".model-photo img": {
+      "w": 392,
+      "h": 220.5,
+      "font": "16px",
+      "wrap": "normal",
+      "break": "normal",
+      "display": "block"
+    },
+    ".about-copy>p:not(.kicker)": {
+      "w": 394,
+      "h": 144,
+      "font": "15px",
+      "wrap": "normal",
+      "break": "auto-phrase",
+      "display": "block"
+    },
+    ".purpose-card>p": {
+      "w": 394,
+      "h": 155.2,
+      "font": "16px",
+      "wrap": "normal",
+      "break": "auto-phrase",
+      "display": "block"
+    },
+    ".field-card p": {
+      "w": 337,
+      "h": 111,
+      "font": "15px",
+      "wrap": "normal",
+      "break": "auto-phrase",
+      "display": "block"
+    },
+    ".role-card>p:last-of-type": {
+      "w": 336,
+      "h": 167.3,
+      "font": "15px",
+      "wrap": "normal",
+      "break": "auto-phrase",
+      "display": "block"
+    },
+    ".detail-row dd": {
+      "w": 394,
+      "h": 27,
+      "font": "15px",
+      "wrap": "normal",
+      "break": "auto-phrase",
+      "display": "block"
+    },
+    ".scope-grid article": {
+      "w": 394,
+      "h": 100.1,
+      "font": "16px",
+      "wrap": "normal",
+      "break": "normal",
+      "display": "grid"
+    },
+    ".scope-grid h3": {
+      "w": 317,
+      "h": 55.1,
+      "font": "17px",
+      "wrap": "anywhere",
+      "break": "normal",
+      "display": "block"
+    },
+    ".about-final": {
+      "w": 430,
+      "h": 522.5,
+      "font": "16px",
+      "wrap": "normal",
+      "break": "normal",
+      "display": "block"
+    },
+    ".about-final .kicker": {
+      "w": 394,
+      "h": 22.1,
+      "font": "13px",
+      "wrap": "normal",
+      "break": "auto-phrase",
+      "display": "flex"
+    },
+    ".about-final h2": {
+      "w": 394,
+      "h": 76.8,
+      "font": "30px",
+      "wrap": "anywhere",
+      "break": "normal",
+      "display": "block"
+    },
+    ".about-final>.wrap>p:not(.kicker)": {
+      "w": 394,
+      "h": 83.7,
+      "font": "15px",
+      "wrap": "normal",
+      "break": "auto-phrase",
+      "display": "block"
+    }
+  },
+  "mission": [
+    "私たちは、最新テクノロジーの「最適化」「新開発」",
+    "「実行」を担う包括的な技術パートナーシップを",
+    "通じて、お客様と共にプロジェクトの価値を",
+    "最大化し、豊かで持続可能な社会基盤の構築に",
+    "貢献します。"
+  ],
+  "vision": [
+    "建設・土木・IT分野における",
+    "デジタルソリューションを牽引し、圧倒的な技術力と",
+    "信頼で日本とベトナムを繋ぐ",
+    "NO.1リーディングカンパニーを目指します。"
+  ],
+  "workRole": [
+    "ハノイを拠点に、人材の発掘・推薦、",
+    "日本語・ビジネスマナー教育、",
+    "企業の要件に応じた研修を行います。",
+    "ラボ型開発やBIM・建設DXなどの実務支援に",
+    "加え、ベトナム帰国後も日本向けの業務に",
+    "携われるキャリアの継続を支えます。"
+  ],
+  "setaRole": [
+    "日本国内の窓口として、顧客対応・提案・契約・",
+    "要件整理・プロジェクトマネジメント・",
+    "運用支援を担当します。企業へのヒアリングや",
+    "入社後のフォローを通じて、",
+    "WorkStationとともに人材の定着と",
+    "継続的な活躍を支援します。"
+  ],
+  "companyLabel": [
+    "日本側連携企業・窓口"
+  ],
+  "scope1": [
+    "プロジェクト型アウトソーシング",
+    "（建築設計・BIM・技術業務支援）"
+  ],
+  "cta": [
+    "採用や技術業務について、",
+    "まずはご相談ください"
+  ],
+  "splits": [],
+  "errs": []
+}

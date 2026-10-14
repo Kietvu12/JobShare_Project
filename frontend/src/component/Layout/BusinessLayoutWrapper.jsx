@@ -5,6 +5,7 @@ import BusinessHeader from './BusinessHeader';
 import useBusinessUser from '../../hooks/useBusinessUser';
 import { isBusinessViewportLockedPage } from '../../utils/businessPageMeta';
 import { BUSINESS_UI_FONT, BUSINESS_UI_TYPOGRAPHY_STYLES } from '../../utils/businessUiFont';
+import '../../page/Bussiness/businessMobile.css';
 
 const BusinessLayoutWrapper = () => {
   const businessUser = useBusinessUser();
@@ -18,6 +19,19 @@ const BusinessLayoutWrapper = () => {
   }, [location.pathname]);
 
   useEffect(() => {
+    const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const meta = document.querySelector('meta[name="viewport"]');
+    if (!isIOS || !meta) return undefined;
+    const prev = meta.getAttribute('content');
+    // iOS zooms into inputs under 16px on focus; maximum-scale stops that while pinch zoom still works.
+    meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0');
+    return () => {
+      if (prev != null) meta.setAttribute('content', prev);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!mobileNavOpen) return undefined;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -28,7 +42,7 @@ const BusinessLayoutWrapper = () => {
 
   return (
     <div
-      className="business-app-ui flex h-screen overflow-hidden bg-gray-50"
+      className="business-app-ui flex h-dvh overflow-hidden bg-gray-50"
       style={{ fontFamily: BUSINESS_UI_FONT }}
     >
       <style>{BUSINESS_UI_TYPOGRAPHY_STYLES}</style>

@@ -43,3 +43,4 @@ uploads/
 .pm2/
 
 backend/migrations/*.sql
+backend/backup_database_prod.sql

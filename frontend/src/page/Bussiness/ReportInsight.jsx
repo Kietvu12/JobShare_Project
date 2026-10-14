@@ -138,7 +138,7 @@ function ServiceComparisonPanel({ breakdown, activeService, onSelect, ins, langu
         <p className={INSIGHTS_EMPTY}>{ins.compareEmpty}</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className={`${INSIGHTS_TABLE} min-w-[920px]`}>
+          <table className={`${INSIGHTS_TABLE} insights-compare-table min-w-0 lg:min-w-[920px]`}>
             <thead>
               <tr className={INSIGHTS_TABLE_HEAD}>
                 <th className="pb-2 pr-3 text-left font-semibold">{ins.compareColService}</th>
@@ -409,7 +409,7 @@ const ReportInsight = () => {
       case 'positions':
         return (
           <div className="overflow-x-auto">
-            <table className={`${INSIGHTS_TABLE} min-w-[480px]`}>
+            <table className={`${INSIGHTS_TABLE} insights-positions-table min-w-0 lg:min-w-[480px]`}>
               <thead>
                 <tr className={INSIGHTS_TABLE_HEAD}>
                   <th className="pb-2 text-left font-semibold">{ins.tablePosition}</th>
@@ -446,7 +446,7 @@ const ReportInsight = () => {
       default:
         return (
           <div className="overflow-x-auto">
-            <table className={`${INSIGHTS_TABLE} min-w-[720px]`}>
+            <table className={`${INSIGHTS_TABLE} insights-jd-table min-w-0 lg:min-w-[720px]`}>
               <thead>
                 <tr className={INSIGHTS_TABLE_HEAD}>
                   <th className="pb-2 pr-2 text-left font-semibold">{ins.tableJd}</th>
