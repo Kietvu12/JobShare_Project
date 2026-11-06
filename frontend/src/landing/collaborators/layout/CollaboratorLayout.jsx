@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import CollaboratorLandingChatbot from '../../../component/LandingPage/CollaboratorLandingChatbot';
 import { getLocaleFromPathname } from '../../../utils/localeRoutes';
 import { JobShareRoleSwitchBar } from '../../shared/switch-sites';
 import '../../templates/JobShare_Collaborator_V3/fonts.css';
@@ -31,22 +32,25 @@ function CollaboratorLayoutInner() {
   }, [pathname, lang]);
 
   return (
-    <div id="collaborator-site-root">
-      <span id="top" className="sr-only" aria-hidden="true" />
-      <a className="skip" href="#main">
-        {ui.skip}
-      </a>
-      <JobShareRoleSwitchBar activePersona="collaborator" />
-      <CollaboratorHeader />
-      <main id="main">
-        <Outlet />
-      </main>
-      <CollaboratorFooter />
-      <div className="floating-controls">
-        <CollaboratorBackToTop />
+    <>
+      <div id="collaborator-site-root">
+        <span id="top" className="sr-only" aria-hidden="true" />
+        <a className="skip" href="#main">
+          {ui.skip}
+        </a>
+        <JobShareRoleSwitchBar activePersona="collaborator" />
+        <CollaboratorHeader />
+        <main id="main">
+          <Outlet />
+        </main>
+        <CollaboratorFooter />
+        <div className="floating-controls">
+          <CollaboratorBackToTop />
+        </div>
+        <CollaboratorContactDialog />
       </div>
-      <CollaboratorContactDialog />
-    </div>
+      <CollaboratorLandingChatbot />
+    </>
   );
 }
 

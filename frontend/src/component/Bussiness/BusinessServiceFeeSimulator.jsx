@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Calculator, Coins, UserPlus, Users2 } from 'lucide-react';
+import { ArrowRight, Calculator, ChevronRight, RotateCcw } from 'lucide-react';
 import apiService from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { getServiceFeeSimulatorCopy } from '../../i18n/businessApp/serviceFeeSimulator.js';
@@ -8,22 +8,34 @@ import { formatYenAmount, formatCreditAmount } from '../../utils/businessCreditP
 import {
   getDefaultCreditsPerUnlock,
   simulateServiceFees,
+  SIMULATOR_MARKETPLACE_PLATFORM_FEE_PERCENT,
   SIMULATOR_SERVICE_PATHS,
 } from '../../utils/businessServiceFeeSimulator.js';
-import { CARD } from '../../utils/businessHomepageShell';
 import { BUSINESS_HP_TEXT } from '../../utils/businessHomepageTypography';
 
+/** Màu nhận diện từng dịch vụ (giống Fee Simulator của trang Dịch vụ & Chi phí). */
 const SERVICE_META = {
-  scout_credit: { icon: Coins, color: '#3b82f6', bg: '#eff6ff', upfront: true },
-  scout_performance: { icon: UserPlus, color: '#f59e0b', bg: '#fffbeb', upfront: false },
-  ctv_marketplace: { icon: Users2, color: '#8b5cf6', bg: '#f5f3ff', upfront: false },
+  scout_credit: { accent: '#006aab', tint: '#edf7fd', upfront: true },
+  scout_performance: { accent: '#06766b', tint: '#edf8f5', upfront: false },
+  ctv_marketplace: { accent: '#60529a', tint: '#f5f2fb', upfront: false },
 };
 
 const LEVELS = ['junior', 'mid', 'senior'];
-const LEVEL_SHORT = { junior: 'Junior', mid: 'Mid', senior: 'Senior' };
+const DEFAULTS = {
+  headcount: 1,
+  annualIncome: 5000000,
+  level: 'mid',
+  budget: 1000000,
+  ctvFeePerHire: 500000,
+  opensPerHire: 20,
+};
 
-const INPUT_CLASS = `w-full rounded-lg border border-slate-200 bg-white px-3 py-2 tabular-nums text-slate-900 outline-none transition focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/15 ${BUSINESS_HP_TEXT.body}`;
-const LABEL_CLASS = 'mb-1 block text-xs font-semibold text-slate-600 sm:text-sm';
+const FIELD_WRAP =
+  'flex items-center overflow-hidden rounded border border-[#b7cdd9] bg-white focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#0077B6]';
+const FIELD_INPUT =
+  'h-11 w-full min-w-0 border-0 bg-transparent px-3 text-[17px] font-semibold tabular-nums text-[#112f3d] outline-none';
+const LABEL = 'mb-1.5 block text-[13px] font-bold leading-snug text-[#112f3d]';
+const HINT = 'mt-1 text-[11px] leading-relaxed text-[#526b78]';
 
 function localeOf(language) {
   if (language === 'ja') return 'ja-JP';
@@ -31,163 +43,169 @@ function localeOf(language) {
   return 'vi-VN';
 }
 
-function YenInput({ id, value, onChange, language, suffix }) {
+function YenInput({ id, value, onChange, language, unit }) {
   return (
-    <div className="relative">
+    <div className={FIELD_WRAP}>
       <input
         id={id}
         type="text"
         inputMode="numeric"
-        value={value ? Number(value).toLocaleString(localeOf(language)) : ''}
+        value={value ? Number(value).toLocaleString(localeOf(language)) : value === 0 ? '0' : ''}
         onChange={(e) => {
           const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
           onChange(digits ? Number(digits) : 0);
         }}
-        className={`${INPUT_CLASS} pr-12`}
+        className={FIELD_INPUT}
       />
-      <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-slate-400">
-        {suffix}
-      </span>
+      <span className="whitespace-nowrap pr-3 text-xs text-[#526b78]">{unit}</span>
     </div>
   );
 }
 
-function IntInput({ id, value, onChange, min = 1, max = 999 }) {
+function IntInput({ id, value, onChange, unit, min = 1, max = 999 }) {
   return (
-    <input
-      id={id}
-      type="number"
-      min={min}
-      max={max}
-      value={value || ''}
-      onChange={(e) => {
-        const n = parseInt(e.target.value, 10);
-        onChange(Number.isFinite(n) ? Math.min(max, Math.max(0, n)) : 0);
-      }}
-      onBlur={() => { if (!value || value < min) onChange(min); }}
-      className={INPUT_CLASS}
-    />
+    <div className={FIELD_WRAP}>
+      <input
+        id={id}
+        type="number"
+        min={min}
+        max={max}
+        value={value || ''}
+        onChange={(e) => {
+          const n = parseInt(e.target.value, 10);
+          onChange(Number.isFinite(n) ? Math.min(max, Math.max(0, n)) : 0);
+        }}
+        onBlur={() => {
+          if (!value || value < min) onChange(min);
+        }}
+        className={FIELD_INPUT}
+      />
+      <span className="whitespace-nowrap pr-3 text-xs text-[#526b78]">{unit}</span>
+    </div>
   );
 }
 
-function BudgetChip({ status, t, yen }) {
+function BudgetStatus({ status, t, yen }) {
   if (!status || status.key === 'none') return null;
-  const styles = {
-    within: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-    partial: 'bg-amber-50 text-amber-700 ring-amber-200',
-    over: 'bg-rose-50 text-rose-700 ring-rose-200',
-  };
-  const label = status.key === 'within'
-    ? t.budgetWithin(yen(status.diff))
-    : status.key === 'partial'
-      ? t.budgetPartial(yen(status.diff))
-      : t.budgetOver(yen(status.diff));
-  return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${styles[status.key]}`}>
-      {label}
-    </span>
-  );
+  const tone = status.key === 'within' ? 'bg-[#eaf5ef] text-[#276148]' : 'bg-[#fff4df] text-[#805b1a]';
+  const label =
+    status.key === 'within'
+      ? t.budgetWithin(yen(status.diff))
+      : status.key === 'partial'
+        ? t.budgetPartial(yen(status.diff))
+        : t.budgetOver(yen(status.diff));
+  return <span className={`inline-block rounded px-2.5 py-1 text-[11px] font-bold leading-relaxed ${tone}`}>{label}</span>;
 }
 
-function ResultCard({ result, t, yen, language, isCheapest, onOpen }) {
+function ResultCard({ index, result, t, yen, language, isCheapest, onOpen }) {
   const meta = SERVICE_META[result.key];
-  const Icon = meta.icon;
   const hasValue = result.total > 0;
-
-  let totalLabel = hasValue ? yen(result.total) : '—';
-  let perHireLabel = hasValue ? t.perHire(yen(result.perHire)) : '';
-  const details = [];
-  let note = '';
+  const lines = [];
+  let amount = hasValue ? [yen(result.total)] : ['—'];
+  let perHire = hasValue ? t.perHire(yen(result.perHire)) : '';
 
   if (result.key === 'scout_credit') {
-    details.push(t.creditDetail(
-      result.totalOpens.toLocaleString(localeOf(language)),
-      formatCreditAmount(result.creditsNeeded, language),
-    ));
+    lines.push(
+      t.creditDetail(result.totalOpens.toLocaleString(localeOf(language)), formatCreditAmount(result.creditsNeeded, language)),
+    );
     if (result.packages.length) {
-      details.push(t.creditPackages(result.packages.map((p) => `${p.count}× ${p.name}`).join(' + ')));
+      lines.push(t.creditPackages(result.packages.map((p) => `${p.name} × ${p.count}`).join(' + ')));
     }
     if (result.affordableOpens != null) {
-      details.push(t.creditAffordable(result.affordableOpens.toLocaleString(localeOf(language))));
+      lines.push(t.creditAffordable(result.affordableOpens.toLocaleString(localeOf(language))));
     }
-    note = t.creditNote;
   } else if (result.key === 'scout_performance') {
     if (hasValue && result.min !== result.max) {
-      totalLabel = `${yen(result.min)} – ${yen(result.max)}`;
-      perHireLabel = t.perHireRange(yen(result.perHireMin), yen(result.perHireMax));
+      amount = [yen(result.min), yen(result.max)];
+      perHire = t.perHireRange(yen(result.perHireMin), yen(result.perHireMax));
     } else if (hasValue) {
-      perHireLabel = t.perHire(yen(result.perHireMin));
+      perHire = t.perHire(yen(result.perHireMin));
     }
-    details.push(t.managedDetail(result.feeMin, result.feeMax));
-    note = t.managedNote;
+    lines.push(t.managedDetail(result.feeMin, result.feeMax));
   } else {
-    if (hasValue) {
-      details.push(t.ctvDetail(yen(result.collaboratorPerHire), yen(result.platformFeePerHire), result.platformFeePercent));
-    } else {
-      details.push(t.ctvMissingFee);
-    }
-    note = t.ctvNote;
+    lines.push(
+      hasValue
+        ? t.ctvDetail(yen(result.collaboratorPerHire), yen(result.platformFeePerHire), result.platformFeePercent)
+        : t.ctvMissingFee,
+    );
   }
+
+  const note = { scout_credit: t.creditNote, scout_performance: t.managedNote, ctv_marketplace: t.ctvNote }[result.key];
 
   return (
     <article
-      className={`relative flex h-full flex-col gap-3 rounded-xl border bg-white p-4 transition-shadow hover:shadow-md ${
-        isCheapest ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-slate-200'
+      className={`flex min-w-0 flex-col overflow-hidden rounded-[5px] border border-[#c8dce7] border-t-4 bg-white ${
+        isCheapest ? 'ring-2 ring-emerald-300' : ''
       }`}
+      style={{ borderTopColor: meta.accent }}
     >
-      <div className="absolute inset-x-0 top-0 h-1 rounded-t-xl" style={{ background: meta.color }} aria-hidden />
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: meta.bg }}>
-            <Icon className="h-[1.125rem] w-[1.125rem]" style={{ color: meta.color }} strokeWidth={2} />
+      <div className="flex flex-1 flex-col px-4 pb-3.5 pt-4" style={{ background: `linear-gradient(${meta.tint}, #fff 85%)` }}>
+        <div className="mb-2.5 flex items-start gap-2">
+          <span className="shrink-0 text-base font-medium leading-relaxed" style={{ color: meta.accent }}>
+            {String(index + 1).padStart(2, '0')}
           </span>
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-bold text-slate-900 sm:text-base">{t.services[result.key]}</h3>
-            <p className="text-xs leading-snug text-slate-500">{t.models[result.key]}</p>
-          </div>
+          <h4 className="min-w-0 flex-1 text-[17px] font-bold leading-normal" style={{ color: meta.accent }}>
+            {t.services[result.key]}
+          </h4>
         </div>
-        <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-            meta.upfront ? 'bg-slate-100 text-slate-600' : 'bg-[#e8f4fa] text-[#0077B6]'
+        <small className="text-[11px] text-[#526b78]">
+          {t.estimatedTotal} · {meta.upfront ? t.payUpfront : t.payOnSuccess}
+        </small>
+        <p
+          className={`mt-1 flex flex-wrap items-baseline gap-x-1.5 font-semibold leading-tight tracking-tight tabular-nums ${
+            amount.length > 1 ? 'text-[22px] sm:text-[24px]' : 'text-[26px] sm:text-[28px]'
           }`}
+          style={{ color: meta.accent }}
         >
-          {meta.upfront ? t.payUpfront : t.payOnSuccess}
-        </span>
-      </div>
-
-      <div>
-        <p className="text-xs font-medium text-slate-500">{t.estimatedTotal}</p>
-        <p className="mt-0.5 text-lg font-bold tabular-nums leading-tight text-slate-900 sm:text-xl">{totalLabel}</p>
-        {perHireLabel ? <p className="mt-0.5 text-xs font-semibold tabular-nums text-slate-600 sm:text-sm">{perHireLabel}</p> : null}
-      </div>
-
-      <div className="flex flex-wrap gap-1.5">
-        {isCheapest ? (
-          <span className="inline-flex rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white">{t.cheapest}</span>
+          {amount.map((part, i) => (
+            <React.Fragment key={part + i}>
+              {i > 0 ? <span aria-hidden="true">–</span> : null}
+              <span className="whitespace-nowrap">{part}</span>
+            </React.Fragment>
+          ))}
+        </p>
+        {perHire ? <p className="mt-0.5 text-xs font-semibold tabular-nums text-[#2f4d5c]">{perHire}</p> : null}
+        {isCheapest || hasValue ? (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {isCheapest ? (
+              <span className="inline-block rounded bg-emerald-600 px-2.5 py-1 text-[11px] font-bold leading-relaxed text-white">
+                {t.cheapest}
+              </span>
+            ) : null}
+            {hasValue ? <BudgetStatus status={result.budget} t={t} yen={yen} /> : null}
+          </div>
         ) : null}
-        {hasValue ? <BudgetChip status={result.budget} t={t} yen={yen} /> : null}
+        <p className="mt-2.5 text-xs leading-relaxed text-[#526b78]">{note}</p>
       </div>
 
-      <ul className="flex flex-col gap-1 text-xs leading-snug text-slate-600 sm:text-sm">
-        {details.map((line) => (
-          <li key={line} className="flex gap-1.5">
-            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-slate-400" aria-hidden />
-            <span>{line}</span>
-          </li>
-        ))}
-      </ul>
+      <details className="group border-t border-[#dce8ee] bg-white px-4 py-2.5 text-xs">
+        <summary
+          className="flex cursor-pointer list-none items-center gap-1 font-bold [&::-webkit-details-marker]:hidden"
+          style={{ color: meta.accent }}
+        >
+          <ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" />
+          {t.formula}
+        </summary>
+        <ul className="mt-2 space-y-1.5 text-[#2f4d5c]">
+          {lines.map((line) => (
+            <li key={line} className="break-words leading-relaxed">
+              {line}
+            </li>
+          ))}
+        </ul>
+      </details>
 
-      <p className="mt-auto border-t border-slate-100 pt-2.5 text-xs leading-relaxed text-slate-500">{note}</p>
-
-      <button
-        type="button"
-        onClick={() => onOpen(SIMULATOR_SERVICE_PATHS[result.key])}
-        className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90 sm:text-sm"
-        style={{ background: meta.color }}
-      >
-        {t.cta[result.key]}
-        <ArrowRight className="h-3.5 w-3.5" />
-      </button>
+      <div className="border-t border-[#dce8ee] bg-white p-3">
+        <button
+          type="button"
+          onClick={() => onOpen(SIMULATOR_SERVICE_PATHS[result.key])}
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-md px-3 py-2.5 text-[13px] font-bold text-white transition-opacity hover:opacity-90"
+          style={{ background: meta.accent }}
+        >
+          {t.cta[result.key]}
+          <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </article>
   );
 }
@@ -200,12 +218,12 @@ export default function BusinessServiceFeeSimulator({ className = '', onNavigate
   const { language } = useLanguage();
   const t = useMemo(() => getServiceFeeSimulatorCopy(language), [language]);
 
-  const [headcount, setHeadcount] = useState(1);
-  const [annualIncome, setAnnualIncome] = useState(5000000);
-  const [level, setLevel] = useState('mid');
-  const [budget, setBudget] = useState(1000000);
-  const [ctvFeePerHire, setCtvFeePerHire] = useState(500000);
-  const [opensPerHire, setOpensPerHire] = useState(20);
+  const [headcount, setHeadcount] = useState(DEFAULTS.headcount);
+  const [annualIncome, setAnnualIncome] = useState(DEFAULTS.annualIncome);
+  const [level, setLevel] = useState(DEFAULTS.level);
+  const [budget, setBudget] = useState(DEFAULTS.budget);
+  const [ctvFeePerHire, setCtvFeePerHire] = useState(DEFAULTS.ctvFeePerHire);
+  const [opensPerHire, setOpensPerHire] = useState(DEFAULTS.opensPerHire);
   const [creditsPerUnlock, setCreditsPerUnlock] = useState(getDefaultCreditsPerUnlock());
 
   useEffect(() => {
@@ -216,19 +234,22 @@ export default function BusinessServiceFeeSimulator({ className = '', onNavigate
         if (!cancelled && Number.isFinite(cost) && cost > 0) setCreditsPerUnlock(cost);
       })
       .catch(() => {});
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const simulation = useMemo(
-    () => simulateServiceFees({
-      headcount,
-      annualIncome,
-      level,
-      budget,
-      ctvFeePerHire,
-      opensPerHire,
-      creditsPerUnlock,
-    }),
+    () =>
+      simulateServiceFees({
+        headcount,
+        annualIncome,
+        level,
+        budget,
+        ctvFeePerHire,
+        opensPerHire,
+        creditsPerUnlock,
+      }),
     [headcount, annualIncome, level, budget, ctvFeePerHire, opensPerHire, creditsPerUnlock],
   );
 
@@ -236,19 +257,24 @@ export default function BusinessServiceFeeSimulator({ className = '', onNavigate
   const ctvResult = simulation.results.find((r) => r.key === 'ctv_marketplace');
   const openPath = (path) => (onNavigate ? onNavigate(path) : navigate(path));
 
+  const reset = () => {
+    setHeadcount(DEFAULTS.headcount);
+    setAnnualIncome(DEFAULTS.annualIncome);
+    setLevel(DEFAULTS.level);
+    setBudget(DEFAULTS.budget);
+    setCtvFeePerHire(DEFAULTS.ctvFeePerHire);
+    setOpensPerHire(DEFAULTS.opensPerHire);
+  };
+
   return (
     <section
-      className={`w-full p-3 sm:p-4 ${
+      className={`w-full rounded-xl p-4 sm:p-5 ${
         highlight
-          ? 'rounded-2xl border border-[#0077B6]/25 bg-gradient-to-br from-[#e3f1f9] via-[#eef7fc] to-[#f5f0ff] shadow-md shadow-[#0077B6]/10 sm:p-5'
-          : CARD
+          ? 'border border-[#0077B6]/25 bg-gradient-to-br from-[#e3f1f9] via-[#eef7fc] to-[#f5f0ff] shadow-md shadow-[#0077B6]/10'
+          : 'border border-slate-200 bg-white'
       } ${className}`}
     >
-      <header
-        className={`mb-3 flex flex-col gap-1 border-b pb-3 sm:flex-row sm:items-start sm:gap-3 ${
-          highlight ? 'border-[#0077B6]/15' : 'border-slate-100'
-        }`}
-      >
+      <header className="mb-4 flex items-start gap-3">
         <span
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
             highlight ? 'bg-[#0077B6] shadow-sm shadow-[#0077B6]/30' : 'bg-[#e8f4fa]'
@@ -257,83 +283,130 @@ export default function BusinessServiceFeeSimulator({ className = '', onNavigate
           <Calculator className={`h-[1.125rem] w-[1.125rem] ${highlight ? 'text-white' : 'text-[#0077B6]'}`} strokeWidth={2} />
         </span>
         <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#0077B6]">Fee simulator</p>
           <h2 className={BUSINESS_HP_TEXT.title}>{t.title}</h2>
           <p className={`mt-0.5 leading-relaxed ${BUSINESS_HP_TEXT.caption}`}>{t.subtitle}</p>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
-        <div>
-          <label htmlFor="fee-sim-headcount" className={LABEL_CLASS}>{t.inputHeadcount}</label>
-          <IntInput id="fee-sim-headcount" value={headcount} onChange={setHeadcount} max={500} />
-        </div>
-        <div>
-          <label htmlFor="fee-sim-income" className={LABEL_CLASS}>{t.inputAnnualIncome}</label>
-          <YenInput id="fee-sim-income" value={annualIncome} onChange={setAnnualIncome} language={language} suffix={t.yenSuffix} />
-        </div>
-        <div>
-          <span className={LABEL_CLASS}>{t.inputLevel}</span>
-          <div className="grid grid-cols-3 gap-1 rounded-lg border border-slate-200 bg-slate-50/80 p-0.5">
-            {LEVELS.map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setLevel(key)}
-                title={t.levels[key]}
-                className={`truncate rounded-md px-1.5 py-1.5 text-xs font-semibold transition-colors ${
-                  level === key ? 'bg-white text-[#0077B6] shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                }`}
+      <div className="overflow-hidden rounded-lg border border-[#cbdfe9] bg-[#f7fafc] shadow-[0_8px_30px_#063c5610]">
+        <div className="border-b border-[#cbdfe9] bg-[#eaf4fa] px-4 pb-3 pt-4 sm:px-5">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h3 className="text-lg font-bold text-[#112f3d]">{t.inputTitle}</h3>
+            <button
+              type="button"
+              onClick={reset}
+              className="inline-flex min-h-8 items-center gap-1 text-xs font-semibold text-[#0077B6] hover:underline"
+            >
+              {t.reset}
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[0.7fr_1.1fr_1.1fr_0.9fr]">
+            <div className="min-w-0">
+              <label htmlFor="fee-sim-headcount" className={LABEL}>
+                {t.inputHeadcount}
+              </label>
+              <IntInput id="fee-sim-headcount" value={headcount} onChange={setHeadcount} max={500} unit={t.unitPeople} />
+            </div>
+            <div className="min-w-0">
+              <label htmlFor="fee-sim-income" className={LABEL}>
+                {t.inputAnnualIncome}
+              </label>
+              <YenInput id="fee-sim-income" value={annualIncome} onChange={setAnnualIncome} language={language} unit="JPY" />
+            </div>
+            <div className="min-w-0">
+              <label htmlFor="fee-sim-budget" className={LABEL}>
+                {t.inputBudget}
+              </label>
+              <YenInput id="fee-sim-budget" value={budget} onChange={setBudget} language={language} unit="JPY" />
+              <p className={HINT}>{t.budgetHint}</p>
+            </div>
+            <div className="min-w-0">
+              <label htmlFor="fee-sim-level" className={LABEL}>
+                {t.inputLevel}
+              </label>
+              <select
+                id="fee-sim-level"
+                value={level}
+                onChange={(e) => setLevel(e.target.value)}
+                className="h-11 w-full rounded border border-[#b7cdd9] bg-white px-3 text-[17px] font-semibold text-[#112f3d] outline-none focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#0077B6]"
               >
-                {LEVEL_SHORT[key]}
-              </button>
+                {LEVELS.map((key) => (
+                  <option key={key} value={key}>
+                    {t.levels[key]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <details className="group mt-2">
+            <summary className="flex min-h-8 cursor-pointer list-none items-center gap-1 py-1.5 text-xs font-bold text-[#005b8d] [&::-webkit-details-marker]:hidden">
+              <ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" />
+              {t.advanced}
+            </summary>
+            <div className="mt-2 grid max-w-3xl grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="min-w-0">
+                <label htmlFor="fee-sim-opens" className={LABEL}>
+                  {t.inputOpens}
+                </label>
+                <IntInput id="fee-sim-opens" value={opensPerHire} onChange={setOpensPerHire} max={999} unit={t.unitProfiles} />
+                <p className={HINT}>{t.inputOpensHint(creditsPerUnlock)}</p>
+              </div>
+              <div className="min-w-0">
+                <label htmlFor="fee-sim-ctv" className={LABEL}>
+                  {t.inputCtvFee}
+                </label>
+                <YenInput id="fee-sim-ctv" value={ctvFeePerHire} onChange={setCtvFeePerHire} language={language} unit="JPY" />
+                <p className={`${HINT} flex flex-wrap gap-x-2`}>
+                  {ctvResult?.percentOfIncome != null && ctvFeePerHire > 0 ? (
+                    <span>{t.ctvFeeOfIncome(ctvResult.percentOfIncome)}</span>
+                  ) : null}
+                  {ctvResult?.maxFeeForBudget ? (
+                    <button
+                      type="button"
+                      onClick={() => setCtvFeePerHire(ctvResult.maxFeeForBudget)}
+                      className="font-semibold text-[#0077B6] hover:underline"
+                    >
+                      {t.useMaxCtvFee(yen(ctvResult.maxFeeForBudget))}
+                    </button>
+                  ) : null}
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-t border-[#cbdfe9] pt-3 text-[11px] text-[#526b78]">
+              <strong className="text-xs text-[#112f3d]">{t.assumptionsTitle}</strong>
+              <span>{t.assumptionRates}</span>
+              <span>{t.assumptionPlatform(SIMULATOR_MARKETPLACE_PLATFORM_FEE_PERCENT)}</span>
+              <span>{t.assumptionCredit(creditsPerUnlock)}</span>
+            </div>
+          </details>
+        </div>
+
+        <div className="px-4 pb-4 pt-4 sm:px-5">
+          <div className="mb-3 flex items-center justify-between gap-4">
+            <h3 className="text-lg font-bold text-[#112f3d]">{t.resultTitle}</h3>
+            <span className="rounded bg-[#eaf5fb] px-2.5 py-1 text-[11px] font-bold text-[#005b8d]">{t.referenceBadge}</span>
+          </div>
+          <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-3">
+            {simulation.results.map((result, index) => (
+              <ResultCard
+                key={result.key}
+                index={index}
+                result={result}
+                t={t}
+                yen={yen}
+                language={language}
+                isCheapest={simulation.cheapestKey === result.key}
+                onOpen={openPath}
+              />
             ))}
           </div>
-          <p className="mt-1 text-xs text-slate-500">{t.levels[level]}</p>
-        </div>
-        <div>
-          <label htmlFor="fee-sim-budget" className={LABEL_CLASS}>{t.inputBudget}</label>
-          <YenInput id="fee-sim-budget" value={budget} onChange={setBudget} language={language} suffix={t.yenSuffix} />
-        </div>
-        <div>
-          <label htmlFor="fee-sim-ctv" className={LABEL_CLASS}>{t.inputCtvFee}</label>
-          <YenInput id="fee-sim-ctv" value={ctvFeePerHire} onChange={setCtvFeePerHire} language={language} suffix={t.yenSuffix} />
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500">
-            {ctvResult?.percentOfIncome != null && ctvFeePerHire > 0 ? (
-              <span>{t.ctvFeeOfIncome(ctvResult.percentOfIncome)}</span>
-            ) : null}
-            {ctvResult?.maxFeeForBudget ? (
-              <button
-                type="button"
-                onClick={() => setCtvFeePerHire(ctvResult.maxFeeForBudget)}
-                className="font-semibold text-[#0077B6] hover:underline"
-              >
-                {t.useMaxCtvFee(yen(ctvResult.maxFeeForBudget))}
-              </button>
-            ) : null}
-          </div>
-        </div>
-        <div>
-          <label htmlFor="fee-sim-opens" className={LABEL_CLASS}>{t.inputOpens}</label>
-          <IntInput id="fee-sim-opens" value={opensPerHire} onChange={setOpensPerHire} max={999} />
-          <p className="mt-1 text-xs text-slate-500">{t.inputOpensHint(creditsPerUnlock)}</p>
+          <p className="mt-3 text-[11px] leading-relaxed text-[#526b78]">{t.disclaimer}</p>
         </div>
       </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-        {simulation.results.map((result) => (
-          <ResultCard
-            key={result.key}
-            result={result}
-            t={t}
-            yen={yen}
-            language={language}
-            isCheapest={simulation.cheapestKey === result.key}
-            onOpen={openPath}
-          />
-        ))}
-      </div>
-
-      <p className={`mt-3 text-xs leading-relaxed ${highlight ? 'text-slate-500' : 'text-slate-400'}`}>{t.disclaimer}</p>
     </section>
   );
 }

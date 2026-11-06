@@ -125,10 +125,6 @@ const AddCollaboratorPage = () => {
       newErrors.bankName = t.addCtvErrorBankNameRequired;
     }
 
-    if (isEditMode && formData.collaboratorType === 'business' && !businessLicenseFile && !existingBusinessLicense) {
-      newErrors.businessLicenseFile = 'Vui lòng tải lên hoặc giữ lại giấy phép kinh doanh';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };

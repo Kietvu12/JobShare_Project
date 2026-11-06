@@ -5142,6 +5142,24 @@ const apiService = {
     return handleResponse(response);
   },
 
+  getAdminBusinessReferralInvoices: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const response = await fetch(`${API_BASE_URL}/admin/business-payments/referral-invoices?${queryString}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  confirmAdminBusinessReferralInvoicePaid: async (invoiceId, note = '') => {
+    const response = await fetch(`${API_BASE_URL}/admin/business-payments/referral-invoices/${invoiceId}/confirm-paid`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ note }),
+    });
+    return handleResponse(response);
+  },
+
   /**
    * Admin Collaborator Assignment APIs
    */

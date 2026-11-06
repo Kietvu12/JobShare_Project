@@ -152,6 +152,28 @@ export const useNominationFlow = ({ variant }) => {
     }
   };
 
+  const buildCvEditData = (cv) => ({
+    name: cv.name || cv.fullName || '',
+    furigana: cv.furigana || '',
+    email: cv.email || '',
+    phone: cv.phone || '',
+    birthDate: cv.birthDate || '',
+    age: cv.ages || cv.age || '',
+    gender: cv.gender?.toString() || '',
+    addressCurrent: cv.addressCurrent || cv.address || '',
+    currentIncome: cv.currentIncome || cv.currentSalary || '',
+    desiredIncome: cv.desiredIncome || cv.desiredSalary || '',
+    desiredWorkLocation: cv.desiredWorkLocation || cv.desiredLocation || '',
+    nyushaTime: cv.nyushaTime || '',
+    jpLevel: cv.jpLevel || cv.japaneseLevel || cv.n5Level || cv.languageLevelJp || cv.jlptLevel || '',
+    jpResidenceStatus: normalizeResidenceStatusToDbValue(cv.jpResidenceStatus || cv.jp_residence_status || cv.residenceStatus || cv.residence_status || ''),
+    jobCategoryId: cv.jobCategoryId || cv.job_category_id || cv.jobCategory?.id || '',
+    jobCategoryName: cv.jobCategoryName || cv.jobCategory?.name || cv.job_category_name || cv.categoryName || '',
+    experienceYears: cv.experienceYears || cv.yearsOfExperience || cv.experienceYear || '',
+    strengths: cv.strengths || '',
+    motivation: cv.motivation || '',
+  });
+
   const handleSelectCV = async (cvId) => {
     setLoadingJob(true);
     try {
@@ -165,27 +187,7 @@ export const useNominationFlow = ({ variant }) => {
       if (!isAdmin && !isApplicantCandidate && isCvUnavailableForNomination(cv)) return false;
       setSelectedCvId(cvId);
       setSelectedCV(cv);
-      setCvEditData({
-        name: cv.name || cv.fullName || '',
-        furigana: cv.furigana || '',
-        email: cv.email || '',
-        phone: cv.phone || '',
-        birthDate: cv.birthDate || '',
-        age: cv.ages || cv.age || '',
-        gender: cv.gender?.toString() || '',
-        addressCurrent: cv.addressCurrent || cv.address || '',
-        currentIncome: cv.currentIncome || cv.currentSalary || '',
-        desiredIncome: cv.desiredIncome || cv.desiredSalary || '',
-        desiredWorkLocation: cv.desiredWorkLocation || cv.desiredLocation || '',
-        nyushaTime: cv.nyushaTime || '',
-        jpLevel: cv.jpLevel || cv.japaneseLevel || cv.n5Level || cv.languageLevelJp || cv.jlptLevel || '',
-        jpResidenceStatus: normalizeResidenceStatusToDbValue(cv.jpResidenceStatus || cv.jp_residence_status || cv.residenceStatus || cv.residence_status || ''),
-        jobCategoryId: cv.jobCategoryId || cv.job_category_id || cv.jobCategory?.id || '',
-        jobCategoryName: cv.jobCategoryName || cv.jobCategory?.name || cv.job_category_name || cv.categoryName || '',
-        experienceYears: cv.experienceYears || cv.yearsOfExperience || cv.experienceYear || '',
-        strengths: cv.strengths || '',
-        motivation: cv.motivation || '',
-      });
+      setCvEditData(buildCvEditData(cv));
       return true;
     } finally {
       setLoadingJob(false);
@@ -348,23 +350,7 @@ export const useNominationFlow = ({ variant }) => {
     if (!cvResponse.success || !cvResponse.data?.cv) return null;
     const cv = cvResponse.data.cv;
     setSelectedCV(cv);
-    setCvEditData({
-      name: cv.name || cv.fullName || '',
-      furigana: cv.furigana || '',
-      email: cv.email || '',
-      phone: cv.phone || '',
-      birthDate: cv.birthDate || '',
-      age: cv.ages || cv.age || '',
-      gender: cv.gender?.toString() || '',
-      addressCurrent: cv.addressCurrent || cv.address || '',
-      currentIncome: cv.currentIncome || cv.currentSalary || '',
-      desiredIncome: cv.desiredIncome || cv.desiredSalary || '',
-      desiredWorkLocation: cv.desiredWorkLocation || cv.desiredLocation || '',
-      nyushaTime: cv.nyushaTime || '',
-      jpResidenceStatus: cv.jpResidenceStatus || cv.jp_residence_status || cv.residenceStatus || cv.residence_status || '',
-      strengths: cv.strengths || '',
-      motivation: cv.motivation || '',
-    });
+    setCvEditData(buildCvEditData(cv));
     return cv;
   }, [selectedCvId, isAdmin]);
 
@@ -389,6 +375,7 @@ export const useNominationFlow = ({ variant }) => {
       formData.append('nyushaTime', cvEditData.nyushaTime || '');
       formData.append('experienceYears', cvEditData.experienceYears || '');
       formData.append('jpLevel', cvEditData.jpLevel || '');
+      formData.append('jlptLevel', cvEditData.jpLevel || '');
       formData.append('jpResidenceStatus', normalizeResidenceStatusToDbValue(cvEditData.jpResidenceStatus || ''));
       formData.append('jobCategoryId', cvEditData.jobCategoryId || '');
       formData.append('jobCategoryName', cvEditData.jobCategoryName || '');

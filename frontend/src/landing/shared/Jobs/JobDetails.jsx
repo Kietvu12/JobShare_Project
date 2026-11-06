@@ -1,22 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useCandidateAuth } from '../../../context/CandidateAuthContext';
-import {
-  ArrowRight,
-  Briefcase,
-  Building2,
-  ChevronRight,
-  Copy,
-  MapPin,
-  UserPlus,
-  Wallet,
-} from 'lucide-react';
 import apiService from '../../../services/api';
-import { landingBtnPrimary, landingContainer } from '../lib/landingUi';
+import { getRecruitmentLocationLabel } from '../../../utils/recruitmentLocationLabels';
+import { getResidenceStatusLabel, normalizeResidenceStatusValues } from '../../../utils/residenceStatusLabels';
+import { rootFor } from '../../templates/JobShare_Jobs_V3_20261007/dist/ui.js';
 import { useLandingLocale } from '../lib/useLandingLocale';
+import { JOBS_V3_CATEGORY_TREE } from './jobsV3Catalog';
+import { DetailIcon, detailIconFor, detailToneFor } from './jobDetailV2Icons';
 import { detailCopy } from './publicJobCopy';
-import './jobs-v3-overrides.css';
 import {
   buildJobDetailSections,
   categoryName,
@@ -24,79 +17,219 @@ import {
   displaySalary,
   formatJobDate,
   jobLocations,
+  jobWorkLocation,
   localizedField,
   parseJobDetailResponse,
   parseJobsListResponse,
   recruitmentLabel,
-  toneBorderClass,
 } from './publicJobModel';
+import './job-detail-v2-styles.scoped.css';
+import './job-detail-v2-overrides.css';
 
-function TextBlock({ text }) {
-  if (!text) return null;
-  const paragraphs = String(text).split(/\n\s*\n/).filter(Boolean);
+const SECTION_IDS = ['overview', 'requirements', 'conditions', 'benefits', 'process', 'company'];
+const SECTION_ICONS = {
+  overview: 'briefcase',
+  requirements: 'check',
+  conditions: 'yen',
+  benefits: 'gift',
+  process: 'layers',
+  company: 'building',
+};
+const JD_FILE_TYPES = ['jdFile', 'jdFileEn', 'jdFileJp', 'jdOriginalFile', 'requiredCvForm'];
+const BULLET = /^[・•●■]\s*/;
+
+/** JA: tiêu đề đã ghi 年収/月給 nên bỏ chữ lặp ở đầu con số (giữ nguyên khoảng tiền). */
+function stripSalaryLead(value, kind, lang) {
+  if (lang !== 'ja' || !value) return value;
+  if (kind === 'yearly') return value.replace(/^年収\s*[:：]?\s*/, '');
+  if (kind === 'monthly') return value.replace(/^月給\s*[:：]?\s*/, '');
+  return value;
+}
+
+function categoryOf(job, lang) {
+  const root = rootFor(job?.jobCategoryId ?? job?.category?.id, JOBS_V3_CATEGORY_TREE);
+  return {
+    tone: detailToneFor(root?.id),
+    icon: detailIconFor(root?.id),
+    name: categoryName(job, lang) || localizedField(root, 'name', lang),
+  };
+}
+
+/** Văn bản JD: dòng `・` thành danh sách, dòng ngắn kết thúc bằng `:` thành tiêu đề phụ, còn lại là đoạn văn. */
+function ContentLines({ text }) {
+  const blocks = [];
+  let items = [];
+  const flush = () => {
+    if (items.length) blocks.push({ type: 'list', items });
+    items = [];
+  };
+  String(text || '')
+    .split(/\n+/)
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .forEach((line) => {
+      if (BULLET.test(line)) {
+        items.push(line.replace(BULLET, ''));
+        return;
+      }
+      flush();
+      blocks.push({ type: /[:：]\s*$/.test(line) && line.length < 100 ? 'heading' : 'text', text: line });
+    });
+  flush();
+
+  return blocks.map((b, i) => {
+    if (b.type === 'list') {
+      return (
+        <ul key={i} className="jd-lines">
+          {b.items.map((item, j) => (
+            <li key={j}>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      );
+    }
+    if (b.type === 'heading') {
+      return (
+        <h3 key={i} className="subheading">
+          {b.text}
+        </h3>
+      );
+    }
+    return (
+      <p key={i} className="content-intro">
+        {b.text}
+      </p>
+    );
+  });
+}
+
+function DetailRow({ row }) {
   return (
-    <div className="space-y-3 text-sm leading-relaxed text-[#2f4d5c]">
-      {paragraphs.map((p) => (
-        <p key={p.slice(0, 40)} className="whitespace-pre-line">
-          {p}
-        </p>
-      ))}
+    <div className="benefit-row">
+      <h3>{row.label}</h3>
+      <div className="section-body">
+        {row.items ? (
+          <ul className="jd-lines">
+            {row.items.map((item, i) => (
+              <li key={i}>
+                <span>{item.replace(BULLET, '')}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="text-paragraphs">
+            <ContentLines text={row.text} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-function BulletList({ items }) {
-  if (!items?.length) return null;
+function SectionCard({ id, title, children }) {
   return (
-    <ul className="mt-2 space-y-2 text-sm text-[#2f4d5c]">
-      {items.map((item) => (
-        <li key={item} className="flex gap-2">
-          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#be1824]" aria-hidden />
-          <span className="whitespace-pre-line">{item.replace(/^[■•・]\s*/, '')}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function SectionCard({ id, title, icon: Icon, children }) {
-  if (!children) return null;
-  return (
-    <section id={id} className="border border-[#d7e2e8] bg-white p-5 sm:p-6" aria-labelledby={`heading-${id}`}>
-      <div className="mb-4 flex items-center gap-2">
-        <Icon className="h-5 w-5 text-[#be1824]" aria-hidden />
-        <h2 id={`heading-${id}`} className="text-lg font-extrabold text-[#112f3d]">
-          {title}
-        </h2>
+    <section id={id} className={`section-card section-${id}`} aria-labelledby={`heading-${id}`}>
+      <div className="section-title">
+        <span className="section-symbol">
+          <DetailIcon name={SECTION_ICONS[id]} />
+        </span>
+        <h2 id={`heading-${id}`}>{title}</h2>
       </div>
-      {children}
+      <div className="section-body">{children}</div>
     </section>
   );
 }
 
 function RelatedCard({ job, lang, t, jobsBasePath }) {
   const href = `${jobsBasePath.replace(/\/+$/, '')}/${job.id}`;
+  const cat = categoryOf(job, lang);
+  const loc = jobLocations(job, lang).split(' · ')[0];
   const sal = displaySalary(job, lang);
+  const salary = sal.primaryLabel === 'detail' ? '' : stripSalaryLead(sal.primary, sal.primaryLabel, lang);
   return (
-    <article className={`border border-[#d7e2e8] bg-white p-4 border-l-4 ${toneBorderClass(job)}`}>
-      <p className="text-xs font-bold uppercase text-[#5a7380]">{categoryName(job, lang)}</p>
-      <h3 className="mt-2 text-base font-bold text-[#112f3d]">
-        <Link to={href} className="hover:text-[#be1824] hover:underline">
-          {localizedField(job, 'title', lang)}
-        </Link>
+    <article className={`related-card tone-${cat.tone}`}>
+      <div className="rel-top">
+        <span className="rel-icon">
+          <DetailIcon name={cat.icon} />
+        </span>
+        <span>{cat.name}</span>
+      </div>
+      <h3>
+        <Link to={href}>{localizedField(job, 'title', lang)}</Link>
       </h3>
-      {jobLocations(job, lang) ? (
-        <p className="mt-2 flex items-center gap-1 text-sm text-[#2f4d5c]">
-          <MapPin className="h-3.5 w-3.5 text-[#be1824]" aria-hidden />
-          {jobLocations(job, lang)}
+      {loc ? (
+        <p className="rel-meta">
+          <DetailIcon name="pin" />
+          <span>{loc}</span>
         </p>
       ) : null}
-      {sal.primary ? <p className="mt-2 text-sm font-semibold text-[#112f3d]">{sal.primary}</p> : null}
-      <Link to={href} className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#be1824]">
+      {salary ? <div className="rel-salary">{salary}</div> : null}
+      <Link className="rel-detail" to={href}>
         {t.viewDetail}
-        <ArrowRight className="h-4 w-4" aria-hidden />
+        <DetailIcon name="arrow" />
       </Link>
     </article>
+  );
+}
+
+function SecondaryActions({ t, files, onCopy, onDownload, withFeedback }) {
+  const [open, setOpen] = useState(false);
+  const pickerRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (e) => {
+      if (e.type === 'keydown' ? e.key === 'Escape' : !pickerRef.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('click', close);
+    document.addEventListener('keydown', close);
+    return () => {
+      document.removeEventListener('click', close);
+      document.removeEventListener('keydown', close);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <div className="secondary-actions">
+        <button className="action-secondary" type="button" onClick={onCopy}>
+          <DetailIcon name="copy" />
+          <span>{t.copy}</span>
+        </button>
+        {files.length ? (
+          <div className="file-picker" ref={pickerRef}>
+            <button
+              type="button"
+              className="action-secondary"
+              aria-expanded={open}
+              aria-haspopup="true"
+              onClick={() => setOpen((v) => !v)}
+            >
+              <DetailIcon name="download" />
+              <span>{t.download}</span>
+            </button>
+            {open ? (
+              <div className="download-menu">
+                {files.map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      onDownload(type);
+                    }}
+                  >
+                    {t.fileNames[type]}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+      {withFeedback ? <p className="action-feedback" aria-live="polite" /> : null}
+    </>
   );
 }
 
@@ -117,26 +250,11 @@ export default function JobDetails({
     const jobsRoot = jobsBasePath.replace(/\/+$/, '');
     if (isCandidatePersona) {
       if (isAuthenticated && jobId) {
-        return {
-          to: `${jobsRoot}/${jobId}/nominate`,
-          label: t.apply,
-          state: undefined,
-          solidCta: true,
-        };
+        return { to: `${jobsRoot}/${jobId}/nominate`, label: t.apply, state: undefined };
       }
-      return {
-        to: loginPath,
-        label: t.applyLogin,
-        state: { from: location.pathname },
-        solidCta: true,
-      };
+      return { to: loginPath, label: t.applyLogin, state: { from: location.pathname } };
     }
-    return {
-      to: registerPath,
-      label: t.suggest,
-      state: undefined,
-      solidCta: false,
-    };
+    return { to: registerPath, label: t.suggest, state: undefined };
   }, [
     isCandidatePersona,
     isAuthenticated,
@@ -154,12 +272,11 @@ export default function JobDetails({
   const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [copyMsg, setCopyMsg] = useState('');
+  const [toast, setToast] = useState(null);
+  const [activeSection, setActiveSection] = useState('');
+  const toastTimer = useRef(null);
 
-  const sections = useMemo(
-    () => (job ? buildJobDetailSections(job, lang) : null),
-    [job, lang],
-  );
+  const sections = useMemo(() => (job ? buildJobDetailSections(job, lang) : null), [job, lang]);
 
   const loadDetail = useCallback(async () => {
     if (!jobId) return;
@@ -201,317 +318,397 @@ export default function JobDetails({
     loadDetail();
   }, [loadDetail]);
 
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
+
+  const showToast = (message, isError = false) => {
+    setToast({ message, isError });
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 3500);
+  };
+
   const onCopyUrl = async () => {
     const url = `${window.location.origin}${jobsBasePath.replace(/\/+$/, '')}/${jobId}`;
     try {
       await navigator.clipboard.writeText(url);
-      setCopyMsg(t.copied);
-      setTimeout(() => setCopyMsg(''), 3500);
+      showToast(t.copied);
     } catch {
-      setCopyMsg(t.copyErr);
+      showToast(t.copyErr, true);
     }
   };
 
-  if (loading) {
-    return (
-      <div className={`${landingContainer} py-16 text-center text-[#2f4d5c]`}>
-        <p>{t.loading}</p>
-      </div>
-    );
-  }
+  const onDownload = async (fileType) => {
+    try {
+      await apiService.downloadJobFile(job.id, fileType, 'applicant');
+    } catch (e) {
+      console.warn('[JobDetails] JD download', e);
+      showToast(t.failedDownload, true);
+    }
+  };
 
-  if (error || !job) {
+  const visibleSections = useMemo(() => {
+    if (!sections) return [];
+    return SECTION_IDS.filter((id) => {
+      if (id === 'overview') return !!sections.overview;
+      if (id === 'requirements') return sections.requirements.length > 0;
+      if (id === 'conditions') return true;
+      if (id === 'benefits') return sections.benefitRows.length > 0;
+      if (id === 'process') return !!sections.process;
+      return !!sections.company;
+    });
+  }, [sections]);
+
+  useEffect(() => {
+    if (!visibleSections.length || !('IntersectionObserver' in window)) return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) setActiveSection(entry.target.id);
+        });
+      },
+      { rootMargin: '-118px 0px -68% 0px', threshold: 0 },
+    );
+    visibleSections.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [visibleSections]);
+
+  if (loading || error || !job) {
     return (
-      <div className={`${landingContainer} py-16 text-center`}>
-        <p className="text-[#be1824]" role="alert">
-          {error || t.noData}
-        </p>
-        <Link to={jobsBasePath} className="mt-6 inline-block font-bold text-[#be1824] hover:underline">
-          {t.back}
-        </Link>
+      <div className="jobshare-job-detail-v2">
+        <div className="wrap detail-layout detail-layout--state">
+          <div className={`loading-state${loading ? '' : ' error-state'}`} role={loading ? 'status' : 'alert'}>
+            {loading ? (
+              t.loading
+            ) : (
+              <>
+                {error || t.noData} <Link to={jobsBasePath}>{t.back}</Link>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
 
   const title = localizedField(job, 'title', lang);
-  const sal = displaySalary(job, lang);
-  const loc = jobLocations(job, lang);
-  const employ = recruitmentLabel(job.recruitmentType, lang);
-  const recruitLoc =
+  const cat = categoryOf(job, lang);
+  const company = companyName(job, lang);
+  const workLoc = jobWorkLocation(job, lang);
+  const recruitArea =
     localizedField(job, 'recruitmentLocationLabel', lang)
     || job.recruitmentLocationText
-    || '';
+    || getRecruitmentLocationLabel(job.interviewLocation ?? job.interview_location, lang);
+  const employ = recruitmentLabel(job.recruitmentType, lang);
+  const visa = normalizeResidenceStatusValues(
+    job.residenceStatuses ?? job.residenceStatus ?? job.residence_status,
+  )
+    .map((code) => getResidenceStatusLabel(code, lang))
+    .join(lang === 'ja' ? '、' : ', ');
+  const supportingMeta = [
+    [t.employment, employ, 'briefcase'],
+    [t.visa, visa, 'document'],
+  ].filter((x) => x[1]);
 
-  const sectionNav = [
-    sections?.overview && 'overview',
-    sections?.requirements?.length && 'requirements',
-    (sal.primary || sections?.workBenefits?.length) && 'conditions',
-    sections?.benefits?.length && 'benefits',
-    sections?.process && 'process',
-    sections?.company && 'company',
-  ].filter(Boolean);
+  const sal = displaySalary(job, lang);
+  const salIsDetail = sal.primaryLabel === 'detail';
+  const salLabel = salIsDetail ? t.salaryDetail : sal.primaryLabel === 'yearly' ? t.salary : t.monthly;
+  const salPrimary = stripSalaryLead(sal.primary, sal.primaryLabel, lang);
+  const salMonthly = stripSalaryLead(sal.secondary, 'monthly', lang);
+  const salaryDetailNote = salIsDetail ? '' : buildSalaryDetailNote(job, lang);
+
+  const locationCards = [
+    [t.work, workLoc, 'pin', 'work'],
+    [t.recruitment, recruitArea, 'users', 'recruit'],
+  ].filter((x) => x[1]);
+  const files = JD_FILE_TYPES.filter((type) => String(job[type] || '').trim());
+  const created = job.createdAt ? formatJobDate(job.createdAt, lang) : '';
+  const updated = job.updatedAt ? formatJobDate(job.updatedAt, lang) : '';
+
+  const infoFields = [
+    [salLabel, salPrimary, salIsDetail],
+    [t.monthly, salMonthly],
+    [t.work, workLoc],
+    [t.employment, employ],
+    [t.recruitment, recruitArea],
+    [t.visa, visa],
+  ].filter((x) => x[1]);
+  const workRows = [
+    ...(salaryDetailNote ? [{ label: t.salaryDetailRow, text: salaryDetailNote }] : []),
+    ...sections.workRows,
+  ];
+
+  const ctaButton = (
+    <Link to={primaryCta.to} state={primaryCta.state} className="action-primary">
+      <DetailIcon name="user" />
+      {primaryCta.label}
+      <DetailIcon name="arrow" />
+    </Link>
+  );
 
   return (
-    <>
+    <div className="jobshare-job-detail-v2">
       <Helmet>
         <title>{`${title} | JobShare`}</title>
       </Helmet>
 
-      <div className="border-b border-[#d7e2e8] bg-[#f4f7f9] py-4">
-        <div className={landingContainer}>
-          <nav className="flex flex-wrap items-center gap-2 text-sm text-[#5a7380]" aria-label="Breadcrumb">
-            <Link to={jobsBasePath} className="font-semibold hover:text-[#be1824]">
-              {t.jobs}
-            </Link>
-            <ChevronRight className="h-4 w-4" aria-hidden />
-            <span className="font-bold text-[#112f3d]">{t.detail}</span>
+      <div className="detail-band">
+        <div className="wrap">
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <Link to={jobsBasePath}>{t.jobs}</Link>
+            <DetailIcon name="chevron" />
+            <strong>{t.detail}</strong>
           </nav>
         </div>
       </div>
 
-      <div className={`${landingContainer} py-8 lg:py-10`}>
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-          <div className="min-w-0 space-y-6">
-            <article
-              className={`border border-[#d7e2e8] bg-white p-5 sm:p-8 border-l-4 ${toneBorderClass(job)}`}
-              aria-labelledby="job-title"
-            >
-              <p className="text-xs font-bold uppercase tracking-wide text-[#be1824]">
-                {categoryName(job, lang)}
-              </p>
-              <h1 id="job-title" className="mt-2 text-2xl font-black leading-tight text-[#112f3d] sm:text-3xl">
-                {title}
-              </h1>
-              {companyName(job, lang) ? (
-                <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#2f4d5c]">
-                  <Building2 className="h-4 w-4 text-[#be1824]" aria-hidden />
-                  {companyName(job, lang)}
-                </p>
-              ) : null}
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {loc ? (
-                  <div className="border border-[#e8eef2] bg-[#fbfcfd] p-3">
-                    <p className="text-xs font-bold uppercase text-[#5a7380]">{t.work}</p>
-                    <p className="mt-1 text-sm font-semibold text-[#112f3d]">{loc}</p>
-                  </div>
-                ) : null}
-                {recruitLoc ? (
-                  <div className="border border-[#e8eef2] bg-[#fbfcfd] p-3">
-                    <p className="text-xs font-bold uppercase text-[#5a7380]">{t.recruitment}</p>
-                    <p className="mt-1 text-sm font-semibold text-[#112f3d]">{recruitLoc}</p>
-                  </div>
-                ) : null}
-                {employ ? (
-                  <div className="border border-[#e8eef2] bg-[#fbfcfd] p-3">
-                    <p className="text-xs font-bold uppercase text-[#5a7380]">{t.employment}</p>
-                    <p className="mt-1 text-sm font-semibold text-[#112f3d]">{employ}</p>
-                  </div>
-                ) : null}
+      <main id="detail-content">
+        <div className="wrap detail-layout">
+          <div className={`detail-main tone-${cat.tone}`}>
+            <article className="overview-card" aria-labelledby="job-title">
+              <div className="overview-top">
+                <span className="cat-icon">
+                  <DetailIcon name={cat.icon} />
+                </span>
+                {cat.name ? <span className="category-pill">{cat.name}</span> : null}
               </div>
-
-              {sal.primary ? (
-                <div className="mt-5 flex flex-wrap items-center gap-4 border border-[#efc9ce] bg-[#fff8f9] p-4">
-                  <Wallet className="h-8 w-8 text-[#be1824]" aria-hidden />
-                  <div>
-                    <p className="text-xs font-bold uppercase text-[#be1824]">
-                      {sal.primaryLabel === 'yearly' ? t.salary : t.monthly}
-                    </p>
-                    <p className="text-xl font-black text-[#112f3d]">{sal.primary}</p>
-                    {sal.secondary ? (
-                      <p className="text-sm text-[#2f4d5c]">
-                        {t.monthly}: {sal.secondary}
-                      </p>
-                    ) : null}
-                  </div>
+              <h1 id="job-title">{title}</h1>
+              {company ? (
+                <div className="company-line">
+                  <DetailIcon name="building" />
+                  {company}
                 </div>
               ) : null}
 
-              <p className="mt-4 flex flex-wrap gap-4 text-xs text-[#5a7380]">
+              {locationCards.length ? (
+                <div className={`location-grid${locationCards.length === 1 ? ' location-grid--single' : ''}`}>
+                  {locationCards.map(([label, value, icon, tone]) => (
+                    <div key={tone} className={`location-tile location-tile--${tone}`}>
+                      <span className="location-icon">
+                        <DetailIcon name={icon} />
+                      </span>
+                      <div className="location-copy">
+                        <p className="location-label">{label}</p>
+                        <p className="location-value">{value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {supportingMeta.length ? (
+                <div className="overview-meta">
+                  {supportingMeta.map(([label, value, icon]) => (
+                    <div key={label} className="meta">
+                      <span className="meta-icon">
+                        <DetailIcon name={icon} />
+                      </span>
+                      <span className="meta-copy">
+                        <span className="meta-label">{label}</span>
+                        <span className="meta-value">{value}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {salPrimary ? (
+                <div className={`salary-panel${salIsDetail ? ' salary-panel--detail' : ''}`}>
+                  <div className="salary-primary">
+                    <span className="salary-orb">
+                      <DetailIcon name="yen" />
+                    </span>
+                    <div className="salary-copy">
+                      <p className="salary-kicker">{salLabel}</p>
+                      <p className="salary-value">{salPrimary}</p>
+                    </div>
+                  </div>
+                  {salMonthly ? (
+                    <div className="monthly">
+                      <p className="salary-kicker">{t.monthly}</p>
+                      <strong>{salMonthly}</strong>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div className="micro-row">
                 {job.jobCode ? (
                   <span>
-                    {t.jobId}: <strong className="text-[#112f3d]">{job.jobCode}</strong>
+                    {t.jobId}: <b>{job.jobCode}</b>
                   </span>
                 ) : null}
-                {job.createdAt ? (
+                {created ? (
                   <span>
-                    {t.created}:{' '}
-                    <strong className="text-[#112f3d]">{formatJobDate(job.createdAt, lang)}</strong>
+                    {t.created}: <b>{created}</b>
                   </span>
                 ) : null}
-              </p>
+                {updated ? (
+                  <span>
+                    {t.updated}: <b>{updated}</b>
+                  </span>
+                ) : null}
+              </div>
+              <div className="mobile-actions">
+                <SecondaryActions t={t} files={files} onCopy={onCopyUrl} onDownload={onDownload} />
+              </div>
             </article>
 
-            {sectionNav.length > 1 ? (
-              <nav
-                className="flex flex-wrap gap-2 border border-[#d7e2e8] bg-white p-3"
-                aria-label={t.overview}
-              >
-                {sectionNav.map((id) => (
-                  <a
-                    key={id}
-                    href={`#${id}`}
-                    className="rounded-sm px-3 py-1.5 text-sm font-bold text-[#112f3d] hover:bg-[#f4f7f9]"
-                  >
+            {visibleSections.length > 1 ? (
+              <nav className="section-links" aria-label={t.overview}>
+                {visibleSections.map((id) => (
+                  <a key={id} href={`#${id}`} aria-current={activeSection === id ? 'true' : undefined}>
                     {t[id]}
                   </a>
                 ))}
               </nav>
             ) : null}
 
-            <SectionCard id="overview" title={t.overview} icon={Briefcase}>
-              {sections?.overview ? <TextBlock text={sections.overview.text} /> : null}
-            </SectionCard>
+            {sections.overview ? (
+              <SectionCard id="overview" title={t.overview}>
+                <h3 className="subheading">{sections.overview.label}</h3>
+                <ContentLines text={sections.overview.text} />
+              </SectionCard>
+            ) : null}
 
-            <SectionCard id="requirements" title={t.requirements} icon={Briefcase}>
-              {sections?.requirements?.map((group) => (
-                <div key={group.label} className="mb-6 last:mb-0">
-                  <h3 className="text-sm font-extrabold uppercase tracking-wide text-[#112f3d]">
-                    {group.label}
-                  </h3>
-                  <BulletList items={group.items} />
-                </div>
-              ))}
-            </SectionCard>
+            {sections.requirements.length ? (
+              <SectionCard id="requirements" title={t.requirements}>
+                {sections.requirements.map((group) => (
+                  <div key={group.label} className={`req-group ${group.required ? 'required' : 'preferred'}`}>
+                    <h3 className="subheading">
+                      <DetailIcon name={group.required ? 'check' : 'star'} />
+                      {group.label}
+                    </h3>
+                    <ul className={`jd-lines${group.required ? ' required' : ''}`}>
+                      {group.items.map((item, i) => (
+                        <li key={i}>
+                          <span>{item.replace(/^[■•・]\s*/, '')}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </SectionCard>
+            ) : null}
 
-            <SectionCard id="conditions" title={t.conditions} icon={Wallet}>
-              {sal.primary || sal.secondary ? (
-                <dl className="mb-4 space-y-2 text-sm">
-                  {sal.primary ? (
-                    <div className="flex flex-wrap gap-2">
-                      <dt className="font-bold text-[#5a7380]">{t.salary}</dt>
-                      <dd className="font-semibold text-[#112f3d]">{sal.primary}</dd>
+            <SectionCard id="conditions" title={t.conditions}>
+              {infoFields.length ? (
+                <dl className="info-fields">
+                  {infoFields.map(([label, value, multiline]) => (
+                    <div key={label} className={`info-row${multiline ? ' info-row--multiline' : ''}`}>
+                      <dt>{label}</dt>
+                      <dd>{value}</dd>
                     </div>
-                  ) : null}
-                  {sal.secondary ? (
-                    <div className="flex flex-wrap gap-2">
-                      <dt className="font-bold text-[#5a7380]">{t.monthly}</dt>
-                      <dd className="font-semibold text-[#112f3d]">{sal.secondary}</dd>
-                    </div>
-                  ) : null}
-                  {loc ? (
-                    <div className="flex flex-wrap gap-2">
-                      <dt className="font-bold text-[#5a7380]">{t.work}</dt>
-                      <dd className="font-semibold text-[#112f3d]">{loc}</dd>
-                    </div>
-                  ) : null}
-                  {employ ? (
-                    <div className="flex flex-wrap gap-2">
-                      <dt className="font-bold text-[#5a7380]">{t.employment}</dt>
-                      <dd className="font-semibold text-[#112f3d]">{employ}</dd>
-                    </div>
-                  ) : null}
+                  ))}
                 </dl>
               ) : null}
-              {sections?.workBenefits?.map((b) => (
-                <div key={b.label} className="mb-4 border-t border-[#e8eef2] pt-4">
-                  <h3 className="text-sm font-bold text-[#112f3d]">{b.label}</h3>
-                  {b.items?.length ? <BulletList items={b.items} /> : <TextBlock text={b.text} />}
-                </div>
+              {workRows.map((row) => (
+                <DetailRow key={row.label} row={row} />
               ))}
             </SectionCard>
 
-            <SectionCard id="benefits" title={t.benefits} icon={Briefcase}>
-              {sections?.benefits?.map((b) => (
-                <div key={b.label} className="mb-4 last:mb-0">
-                  <h3 className="text-sm font-bold text-[#112f3d]">{b.label}</h3>
-                  {b.items?.length ? <BulletList items={b.items} /> : <TextBlock text={b.text} />}
+            {sections.benefitRows.length ? (
+              <SectionCard id="benefits" title={t.benefits}>
+                {sections.benefitRows.map((row) => (
+                  <DetailRow key={row.label} row={row} />
+                ))}
+              </SectionCard>
+            ) : null}
+
+            {sections.process ? (
+              <SectionCard id="process" title={t.process}>
+                <div className="process-text">
+                  {sections.process.map((block) => `${block.label}\n${block.text}`).join('\n\n')}
                 </div>
-              ))}
-            </SectionCard>
+              </SectionCard>
+            ) : null}
 
-            <SectionCard id="process" title={t.process} icon={Briefcase}>
-              {sections?.process ? <TextBlock text={sections.process.text} /> : null}
-            </SectionCard>
+            {sections.company ? (
+              <SectionCard id="company" title={t.company}>
+                {sections.company.info ? <div className="company-info">{sections.company.info}</div> : null}
+                {sections.company.text ? (
+                  <div className="text-paragraphs">
+                    {sections.company.text
+                      .split(/\n\s*\n/)
+                      .filter(Boolean)
+                      .map((p, i) => (
+                        <p key={i}>{p.replace(/\n/g, ' ')}</p>
+                      ))}
+                  </div>
+                ) : null}
+              </SectionCard>
+            ) : null}
 
-            <SectionCard id="company" title={t.company} icon={Building2}>
-              {sections?.company ? (
-                <>
-                  {sections.company.info ? (
-                    <p className="mb-3 text-sm font-bold text-[#112f3d]">{sections.company.info}</p>
-                  ) : null}
-                  <TextBlock text={sections.company.text} />
-                </>
-              ) : null}
-            </SectionCard>
-
-            {related.length > 0 ? (
-              <section aria-labelledby="related-heading">
-                <div className="mb-4 flex items-center justify-between gap-4">
-                  <h2 id="related-heading" className="text-lg font-extrabold text-[#112f3d]">
+            {related.length ? (
+              <section className="related-section" aria-labelledby="related-heading">
+                <div className="related-head">
+                  <h2 id="related-heading">
+                    <span className="related-heading-icon">
+                      <DetailIcon name="layers" />
+                    </span>
                     {t.related}
                   </h2>
-                  <Link to={jobsBasePath} className="text-sm font-bold text-[#be1824] hover:underline">
-                    {t.viewAll}
+                  <Link to={jobsBasePath}>
+                    {t.viewAll} <DetailIcon name="arrow" />
                   </Link>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="related-grid">
                   {related.map((r) => (
-                    <RelatedCard
-                      key={r.id}
-                      job={r}
-                      lang={lang}
-                      t={t}
-                      jobsBasePath={jobsBasePath}
-                    />
+                    <RelatedCard key={r.id} job={r} lang={lang} t={t} jobsBasePath={jobsBasePath} />
                   ))}
                 </div>
               </section>
             ) : null}
           </div>
 
-          <aside className="jobshare-job-detail-aside">
-            <div className="border border-[#d7e2e8] bg-white p-5 shadow-sm">
-              {sal.primary ? (
+          <aside className="detail-side" aria-label={primaryCta.label}>
+            <div className="action-card">
+              {salPrimary ? (
                 <>
-                  <p className="text-xs font-bold uppercase text-[#be1824]">
-                    {sal.primaryLabel === 'yearly' ? t.salary : t.monthly}
-                  </p>
-                  <p className="mt-1 text-2xl font-black text-[#112f3d]">{sal.primary}</p>
+                  <p className="side-kicker">{salLabel}</p>
+                  <p className={`side-salary${salIsDetail ? ' side-salary--detail' : ''}`}>{salPrimary}</p>
+                  {salMonthly ? (
+                    <p className="side-month">
+                      {t.monthly}: {salMonthly}
+                    </p>
+                  ) : null}
                 </>
               ) : null}
-              <Link
-                to={primaryCta.to}
-                state={primaryCta.state}
-                className={`${landingBtnPrimary} mt-5 w-full gap-2${primaryCta.solidCta ? ' candidate-solid-cta' : ''}`}
-              >
-                <UserPlus className="h-5 w-5" aria-hidden />
-                {primaryCta.label}
-              </Link>
-              <button
-                type="button"
-                onClick={onCopyUrl}
-                className="mt-3 flex w-full min-h-[48px] items-center justify-center gap-2 border border-[#d7e2e8] bg-white text-sm font-bold text-[#112f3d] hover:bg-[#f4f7f9]"
-              >
-                <Copy className="h-4 w-4" aria-hidden />
-                {t.copy}
-              </button>
-              {copyMsg ? (
-                <p className="mt-2 text-center text-xs font-semibold text-[#112f3d]" role="status">
-                  {copyMsg}
-                </p>
-              ) : null}
-              <Link
-                to={jobsBasePath}
-                className="mt-4 block text-center text-sm font-bold text-[#be1824] hover:underline"
-              >
-                {t.back}
-              </Link>
+              {ctaButton}
+              <div className="action-divider" />
+              <SecondaryActions t={t} files={files} onCopy={onCopyUrl} onDownload={onDownload} withFeedback />
+              <div className="side-meta">
+                {job.jobCode ? (
+                  <span>
+                    {t.jobId}: <b>{job.jobCode}</b>
+                  </span>
+                ) : null}
+              </div>
             </div>
           </aside>
         </div>
-      </div>
+      </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#d7e2e8] bg-white p-3 lg:hidden">
-        <Link
-          to={primaryCta.to}
-          state={primaryCta.state}
-          className={`${landingBtnPrimary} w-full gap-2${primaryCta.solidCta ? ' candidate-solid-cta' : ''}`}
-        >
-          <UserPlus className="h-5 w-5" aria-hidden />
-          {primaryCta.label}
-        </Link>
-      </div>
-    </>
+      <div className="mobile-sticky">{ctaButton}</div>
+      {toast ? (
+        <div id="toast" role="status" aria-live="polite" style={{ background: toast.isError ? '#be1824' : undefined }}>
+          {toast.message}
+        </div>
+      ) : null}
+    </div>
   );
+}
+
+/** «Chi tiết mức lương» hiển thị thêm trong mục điều kiện khi phần lương chính đã là khoảng lương ngắn. */
+function buildSalaryDetailNote(job, lang) {
+  const rows = Array.isArray(job?.salaryRangeDetails)
+    ? job.salaryRangeDetails
+    : job?.salaryRangeDetails
+      ? [job.salaryRangeDetails]
+      : [];
+  return rows
+    .map((r) => localizedField(r, 'content', lang))
+    .filter(Boolean)
+    .join('\n');
 }

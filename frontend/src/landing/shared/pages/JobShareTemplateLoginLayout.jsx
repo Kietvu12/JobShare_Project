@@ -5,6 +5,7 @@ import { LOGIN_TEMPLATE_ASSETS } from '../lib/jobShareTemplateLoginCopy';
 import { LOGIN_TEMPLATE_MEDIA } from '../lib/loginTemplateMedia';
 import '../../templates/JobShare_Candidate_Login_V2_20261006/JobShare_Candidate_Login_V2_20261006/fonts.css';
 import '../styles/login-template.scoped.css';
+import '../styles/login-template-business.scoped.css';
 import '../styles/jobShareTemplateLogin.css';
 
 const LANGS = ['vi', 'en', 'ja'];
@@ -72,22 +73,29 @@ export default function JobShareTemplateLoginLayout({
   forgotSuccess,
   customHeading,
   children: customPanel,
+  loginFormExtra,
 }) {
-  const assets = LOGIN_TEMPLATE_ASSETS[variant];
-  const media = LOGIN_TEMPLATE_MEDIA[variant];
+  const assets = LOGIN_TEMPLATE_ASSETS[variant] || LOGIN_TEMPLATE_ASSETS.candidate;
+  const media = LOGIN_TEMPLATE_MEDIA[variant] || LOGIN_TEMPLATE_MEDIA.candidate;
   const { logoSrc, brandSrc } = media;
+  const brandMode = assets.brandMode || 'logo';
   const htmlLang = language === 'ja' ? 'ja' : language === 'en' ? 'en' : 'vi';
+  const isBusiness = variant === 'business';
 
   useEffect(() => {
     document.documentElement.lang = htmlLang;
     document.body.lang = htmlLang;
     document.documentElement.classList.add('jobshare-template-login-root');
     document.body.classList.add('jobshare-template-login');
+    if (isBusiness) {
+      document.body.classList.add('jobshare-template-login-business');
+    }
     return () => {
       document.documentElement.classList.remove('jobshare-template-login-root');
       document.body.classList.remove('jobshare-template-login');
+      document.body.classList.remove('jobshare-template-login-business');
     };
-  }, [htmlLang, variant]);
+  }, [htmlLang, isBusiness]);
 
   return (
     <>
@@ -100,7 +108,10 @@ export default function JobShareTemplateLoginLayout({
         </Helmet>
       ) : null}
 
-      <div id="jobshare-login-root">
+      <div
+        id="jobshare-login-root"
+        className={isBusiness ? 'jobshare-login--business' : undefined}
+      >
       <main className="login-page">
         <div className="login-utility">
           <Link className="back-link" to={backHref} aria-label={copy.back}>
@@ -126,9 +137,15 @@ export default function JobShareTemplateLoginLayout({
 
         <div className="login-stage">
           <section className="login-shell" aria-label={assets.shellLabel}>
-            <aside className="login-brand" aria-label="JobShare">
+            <aside className="login-brand" aria-label={isBusiness ? 'JobShare Business' : 'JobShare'}>
               <div className="brand-lockup">
-                <img src={logoSrc} alt="JobShare" width="1563" height="468" />
+                {brandMode === 'text' ? (
+                  <div className="business-brand" aria-label="JobShare Business">
+                    {copy.brandText || 'JOBSHARE BUSINESS'}
+                  </div>
+                ) : (
+                  <img src={logoSrc} alt="JobShare" width="1563" height="468" />
+                )}
               </div>
               <div className="brand-visual" aria-hidden="true">
                 <img src={brandSrc} alt="" width="1400" height="1713" decoding="async" />
@@ -228,6 +245,8 @@ export default function JobShareTemplateLoginLayout({
                           {copy.forgot}
                         </button>
                       </div>
+
+                      {loginFormExtra}
 
                       {error ? (
                         <div className="form-alert" role="alert" aria-live="polite">

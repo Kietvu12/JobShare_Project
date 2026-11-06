@@ -53,11 +53,11 @@ function getBusinessAllowedNextStatuses(sourceType, status) {
 
   switch (n) {
     case 3:
-    case 5: return [7, 6, 16];
-    case 7: return [9, 16];
-    case 8: return [9, 7, 16];
-    case 9: return [11, 10, 7, 16];
-    case 11: return [12, 13, 16];
+    case 5: return [7, 6, 14, 16];
+    case 7: return [9, 14, 16];
+    case 8: return [9, 7, 14, 16];
+    case 9: return [11, 10, 7, 14, 16];
+    case 11: return [12, 13, 14, 16];
     case 12: return [14, 16];
     case 14: return hasPayment ? [15, 16] : [16];
     default: return [];
@@ -735,6 +735,15 @@ export async function updateBusinessJobApplicationStatus({
     }
     if (statusNum === STATUS_OFFER_SENT && !nyushaDate) {
       const err = new Error('Vui lòng chọn ngày vào công ty dự kiến');
+      err.statusCode = 400;
+      throw err;
+    }
+    if (
+      statusNum === STATUS_JOINED_COMPANY
+      && currentStatusNum !== STATUS_WAITING_TO_JOIN
+      && !nyushaDate
+    ) {
+      const err = new Error('Vui lòng chọn ngày vào công ty');
       err.statusCode = 400;
       throw err;
     }

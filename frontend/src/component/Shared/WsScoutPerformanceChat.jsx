@@ -540,6 +540,7 @@ const REFERRAL_PAYMENT_STATUS_STYLES = {
   pending_amount: { label: 'Chờ nhập số tiền', color: '#1d4ed8', bg: '#dbeafe' },
   submitted: { label: 'Đã gửi yêu cầu TT', color: '#166534', bg: '#dcfce7' },
   unpaid: { label: 'Chưa thanh toán', color: '#dc2626', bg: '#fee2e2' },
+  processing: { label: 'Đang xác nhận', color: '#ea580c', bg: '#ffedd5' },
   paid: { label: 'Đã thanh toán', color: '#166534', bg: '#dcfce7' },
 }
 

@@ -43,6 +43,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import apiService from '../../services/api';
 import { getJobApplicationStatus, getJobApplicationStatusLabelByLanguage } from '../../utils/jobApplicationStatus';
 import { yearSalaryRangeStringForCommission, findYearSalaryRangeRow, parseYearSalaryRangeToYen } from '../../utils/salaryRangeForCommission';
+import { isLanguageNeutralSalary, SALARY_RANGE_MAX_LENGTH } from '../../utils/jobSalaryText';
 import { formatSalaryValueWithJlptIfRange } from '../../utils/salaryDisplay';
 import {
   normalizeJobCommissionType,
@@ -114,7 +115,7 @@ const LABELS = {
   tabAdminAdvise: { vi: 'Thông tin gợi ý từ Admin', en: 'Admin suggestions', ja: '管理者の提案情報' },
   h2NominationsJob: { vi: 'Thông tin tiến cử job', en: 'Job nominations', ja: '求人の推薦' },
   pNominationsJobAdmin: { vi: 'Danh sách các lần tiến cử vào job này (kèm trạng thái xử lý).', en: 'List of nominations for this job (with processing status).', ja: 'この求人への推薦一覧（処理ステータス付き）。' },
-  pNominationsJobCtv: { vi: 'Danh sách ứng viên thuộc CTV này đã tiến cử vào job, kèm trạng thái đang ở giai đoạn nào.', en: 'Candidates from this CTV nominated for this job, with the current stage status.', ja: 'このCTVから推薦された候補者一覧（現在の段階ステータス付き）。' },
+  pNominationsJobCtv: { vi: 'Danh sách ứng viên thuộc CTV này đã tiến cử vào job, kèm trạng thái đang ở giai đoạn nào.', en: 'Candidates from this collaborator nominated for this job, with the current stage status.', ja: 'この協力者から推薦された候補者一覧（現在の段階ステータス付き）。' },
   noNominationsJob: { vi: 'Chưa có thông tin tiến cử cho job này.', en: 'No nomination information for this job yet.', ja: 'この求人の推薦情報はまだありません。' },
   h2AdminAdvise: { vi: 'Thông tin gợi ý từ Admin', en: 'Admin suggestions', ja: '管理者の提案情報' },
   pAdminAdvise: { vi: 'Admin có thể nhập gợi ý cho công việc này theo ngôn ngữ.', en: 'Admin can enter suggestions for this job in each language.', ja: '管理者はこの求人の提案を各言語で入力できます。' },
@@ -181,7 +182,7 @@ const LABELS = {
   requiredCvForm: { vi: 'CV form', en: 'CV form', ja: 'CVフォーム' },
   h2Rejected: { vi: 'Thông tin tiến cử bị từ chối', en: 'Rejected nominations', ja: '辞退された推薦' },
   h2Success: { vi: 'Thông tin tiến cử thành công', en: 'Successful nominations', ja: '成功した推薦' },
-  pRejected: { vi: 'Các đơn tiến cử vào công việc này (theo cá nhân Admin/CTV đăng nhập) có trạng thái từ chối/trượt và lý do.', en: 'Nominations for this job (for the logged-in Admin/CTV) with rejected/failed status and reason.', ja: 'この仕事への推薦（ログイン中のAdmin/CTV）で辞退・不合格の状態と理由。' },
+  pRejected: { vi: 'Các đơn tiến cử vào công việc này (theo cá nhân Admin/CTV đăng nhập) có trạng thái từ chối/trượt và lý do.', en: 'Nominations for this job (for the logged-in admin/collaborator) with rejected/failed status and reason.', ja: 'この仕事への推薦（ログイン中の管理者/協力者）で辞退・不合格の状態と理由。' },
   pSuccess: { vi: 'Các đơn tiến cử vào công việc này (theo cá nhân Admin/CTV đăng nhập) đã trúng tuyển / vào công ty / đã thanh toán.', en: 'Nominations for this job that have been accepted / joined company / paid.', ja: 'この仕事への推薦で合格・入社・支払い済み。' },
   thCandidate: { vi: 'Ứng viên / Mã CV', en: 'Candidate / CV code', ja: '候補者/CVコード' },
   thStatus: { vi: 'Trạng thái', en: 'Status', ja: '状態' },
@@ -239,7 +240,7 @@ const LABELS = {
   matchingHideReason: { vi: 'Ẩn lý do', en: 'Hide reason', ja: '閉じる' },
   matchingOpenCandidate: { vi: 'Mở hồ sơ', en: 'Open profile', ja: 'プロフィール' },
   matchingQuickNominate: { vi: 'Tiến cử nhanh', en: 'Quick nominate', ja: 'クイック推薦' },
-  matchingFilteredNote: { vi: 'Chỉ hiển thị hồ sơ trong phạm vi của bạn (CTV).', en: 'Only profiles you can access (CTV).', ja: 'あなたが閲覧できる候補のみ表示（CTV）。' },
+  matchingFilteredNote: { vi: 'Chỉ hiển thị hồ sơ trong phạm vi của bạn (CTV).', en: 'Only profiles you can access (collaborator).', ja: 'あなたが閲覧できる候補のみ表示（協力者）。' },
   matchingReasonLoadError: { vi: 'Không lấy được lý do.', en: 'Could not load the reason.', ja: '理由を取得できませんでした。' },
   matchingNoVisa: { vi: 'Chưa có visa', en: 'No visa information', ja: 'ビザ情報なし' },
   matchingMissingInfo: { vi: 'Hồ sơ thiếu thông tin để AI matching job', en: 'This profile is missing information for AI job matching', ja: 'AI求人マッチングに必要な情報が不足しています' },
@@ -1207,16 +1208,41 @@ const JobDetailPage = ({
     return pick(vi, en, jp) || vi || en || jp || '';
   };
 
-  const salaryRows = (job.salaryRanges || [])
-    .map(sr => {
-      const text = getSalaryRangeTextWithFallback(sr);
-      if (!text) return null;
-      return {
-        label: getSalaryTypeLabel(sr.type),
-        value: formatJobSalaryDisplay(formatSalaryValueWithJlptIfRange(text), jobCurrency),
-      };
-    })
-    .filter(Boolean);
+  const ownLang = (vi, en, jp) => (language === 'en' ? en : language === 'ja' ? jp : vi);
+
+  /** «Chi tiết mức lương» đúng ngôn ngữ đang xem (giữ xuống dòng). */
+  const salaryDetailOwnText = (job.salaryRangeDetails || [])
+    .map((d) => stripHtml(String(ownLang(d.content, d.contentEn || d.content_en, d.contentJp || d.content_jp) || '')).trim())
+    .filter(Boolean)
+    .join('\n');
+
+  /** «Mức lương» đúng ngôn ngữ; bản tiếng Việt chỉ dùng thay khi không chứa chữ; đoạn dài nhường cho chi tiết. */
+  const getSalaryRangeOwnText = (sr) => {
+    const vi = stripHtml(String(sr?.salaryRange ?? sr?.salary_range ?? '').trim());
+    const en = stripHtml(String(sr?.salaryRangeEn ?? sr?.salary_range_en ?? '').trim());
+    const jp = stripHtml(String(sr?.salaryRangeJp ?? sr?.salary_range_jp ?? '').trim());
+    const text = ownLang(vi, en, jp) || (vi && isLanguageNeutralSalary(vi) ? vi : '');
+    if (!text || (salaryDetailOwnText && text.length > SALARY_RANGE_MAX_LENGTH)) return '';
+    return text;
+  };
+
+  const toSalaryRows = (getText) =>
+    (job.salaryRanges || [])
+      .map((sr) => {
+        const text = getText(sr);
+        if (!text) return null;
+        return {
+          label: getSalaryTypeLabel(sr.type),
+          value: formatJobSalaryDisplay(formatSalaryValueWithJlptIfRange(text), jobCurrency),
+        };
+      })
+      .filter(Boolean);
+
+  const ownSalaryRows = toSalaryRows(getSalaryRangeOwnText);
+  const salaryRows =
+    ownSalaryRows.length > 0 || salaryDetailOwnText ? ownSalaryRows : toSalaryRows(getSalaryRangeTextWithFallback);
+  /** Khung thông tin nhanh: không có «Mức lương» phù hợp thì hiện «Chi tiết mức lương». */
+  const quickSalaryDetail = salaryRows.length === 0 ? salaryDetailOwnText : '';
 
   const salaryRangeDetailsRows = (job.salaryRangeDetails || [])
     .map((detail) => {
@@ -2298,7 +2324,7 @@ const JobDetailPage = ({
               </div>
 
               {/* Cột phải: Thẻ điều kiện phí (ẩn landing public) + khung thông tin nhanh */}
-              {((!publicLanding && (marketplaceCommissionSplit || detailCommissionTiers.length > 0 || detailCommissionText !== contactLabel)) || (displaySalaryRanges?.length > 0 || displayCategoryName || displayGender || (displayWorkingLocations?.length > 0) || displayRecruitmentLocation)) && (
+              {((!publicLanding && (marketplaceCommissionSplit || detailCommissionTiers.length > 0 || detailCommissionText !== contactLabel)) || (displaySalaryRanges?.length > 0 || quickSalaryDetail || displayCategoryName || displayGender || (displayWorkingLocations?.length > 0) || displayRecruitmentLocation)) && (
                 <div className="w-full lg:w-64 xl:w-72 2xl:w-80 flex-shrink-0 flex flex-col gap-1.5 sm:gap-2 overflow-visible">
                   {/* Block điều kiện phí */}
                   {!publicLanding && marketplaceCommissionSplit && !useAdminAPI ? (
@@ -2328,7 +2354,7 @@ const JobDetailPage = ({
                   ) : null}
 
                   {/* Khung nhỏ dưới điều kiện phí: thu nhập năm, danh mục, giới tính, nơi làm việc (chỉ hiển thị khi có dữ liệu) */}
-                  {(displaySalaryRanges?.length > 0 || displayCategoryName || displayRecruitmentType || displayGender || (displayWorkingLocations?.length > 0) || displayRecruitmentLocation) && (
+                  {(displaySalaryRanges?.length > 0 || quickSalaryDetail || displayCategoryName || displayRecruitmentType || displayGender || (displayWorkingLocations?.length > 0) || displayRecruitmentLocation) && (
                     <div className="rounded-lg border p-2 sm:p-3 text-[10px] sm:text-xs" style={{ borderColor: '#e5e7eb', backgroundColor: '#f9fafb' }}>
                       <div className="font-semibold mb-1.5 sm:mb-2" style={{ color: '#374151' }}>
                         {t('quickInfoTitle')}
@@ -2344,6 +2370,14 @@ const JobDetailPage = ({
                             ))}
                           </div>
                         )}
+                        {quickSalaryDetail ? (
+                          <div>
+                            <span className="text-gray-500 font-medium">{t('labelSalary')}</span>
+                            <div className="mt-0.5 whitespace-pre-line break-words" style={{ color: '#111827' }}>
+                              {quickSalaryDetail}
+                            </div>
+                          </div>
+                        ) : null}
                         {displayCategoryName && (
                           <div>
                             <span className="text-gray-500 font-medium">{t('labelCategory')}</span>

@@ -492,6 +492,65 @@ export const collaboratorNotificationService = {
     }
   },
 
+  /** Super Admin / Backoffice: DN xác nhận đã chuyển khoản phí giới thiệu (Billing). */
+  async notifyAdminsBusinessReferralInvoicePaymentConfirmed({
+    businessName,
+    invoiceCode,
+    amount,
+    candidateName = null,
+    jobCode = null,
+    sessionId = null,
+  }) {
+    const admins = await Admin.findAll({
+      where: { isActive: true, status: 1, role: { [Op.in]: [1, 2] } },
+      attributes: ['id'],
+    });
+    const safeBusiness = businessName || 'Doanh nghiệp';
+    const safeCode = invoiceCode || '—';
+    const amountText = amount != null ? `${Number(amount).toLocaleString('vi-VN')} VNĐ` : '';
+    const safeCandidate = candidateName || 'ứng viên';
+    const safeJobCode = jobCode || '—';
+    const content = amountText
+      ? `${safeBusiness} xác nhận đã chuyển khoản ${amountText} (${safeCode}) — phí giới thiệu ${safeCandidate}, đơn ${safeJobCode}. Vui lòng đối soát và xác nhận hoàn tất trên Billing.`
+      : `${safeBusiness} xác nhận đã thanh toán (${safeCode}) — phí giới thiệu. Vui lòng đối soát và xác nhận hoàn tất.`;
+    const url = sessionId
+      ? `/admin/payments?tab=business&sessionId=${sessionId}`
+      : '/admin/payments?tab=business';
+
+    for (const admin of admins) {
+      await this.createAndEmit({
+        collaboratorId: null,
+        adminId: admin.id,
+        title: 'DN xác nhận thanh toán phí giới thiệu',
+        content,
+        jobId: null,
+        url,
+      });
+    }
+  },
+
+  async notifyBusinessReferralInvoicePaidConfirmed({
+    businessId,
+    invoiceCode,
+    amount,
+    candidateName = null,
+  }) {
+    if (!businessId) return null;
+    const safeCode = invoiceCode || '—';
+    const amountText = amount != null ? `${Number(amount).toLocaleString('vi-VN')} VNĐ` : '';
+    const safeCandidate = candidateName || 'ứng viên';
+    const content = amountText
+      ? `WS đã xác nhận nhận thanh toán ${amountText} (${safeCode}) — phí giới thiệu ${safeCandidate}.`
+      : `WS đã xác nhận nhận thanh toán (${safeCode}).`;
+    return this.createAndEmit({
+      businessId,
+      title: 'Thanh toán phí giới thiệu đã hoàn tất',
+      content,
+      jobId: null,
+      url: '/business/billing',
+    });
+  },
+
   async notifyBusinessReferralInvoiceCreated({
     businessId,
     amount,

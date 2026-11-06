@@ -13,6 +13,11 @@ body.jobshare-candidate-v1 #candidate-site-root {
   flex-direction: column;
 }
 
+/* Chừa góc phải dưới cho nút chat hỗ trợ (CandidateLandingChatbot, ~76px từ mép phải) */
+#candidate-site-root .floating-controls {
+  right: 88px;
+}
+
 body.jobshare-candidate-v1 #candidate-site-root #main {
   display: flex;
   flex: 1 1 auto;

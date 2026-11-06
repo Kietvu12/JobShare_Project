@@ -1,10 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import AdminSidebar from './AdminSidebar';
 import AdminHeader from './AdminHeader';
 import PublicSupportChatUnreadNotice from '../Shared/PublicSupportChatUnreadNotice';
 
+/** Mẫu thanh cuộn chung của Admin (wjsScrollKit.css) — gắn trên body để phủ cả modal render qua portal. */
+const ADMIN_BODY_CLASS = 'wjs-admin-ui';
+
 const AdminLayout = () => {
+  useEffect(() => {
+    document.body.classList.add(ADMIN_BODY_CLASS);
+    return () => document.body.classList.remove(ADMIN_BODY_CLASS);
+  }, []);
+
   return (
     <div
       className="flex h-screen min-w-0 overflow-hidden"
@@ -26,4 +34,3 @@ const AdminLayout = () => {
 };
 
 export default AdminLayout;
-

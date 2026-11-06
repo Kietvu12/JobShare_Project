@@ -1,4 +1,5 @@
 import { detailCopy, RECRUITMENT_TYPE_LABELS } from './publicJobCopy';
+import { isLanguageNeutralSalary, SALARY_RANGE_MAX_LENGTH } from '../../../utils/jobSalaryText';
 
 const LANG_SUFFIX = { en: 'En', ja: 'Jp', vi: '' };
 
@@ -28,20 +29,55 @@ export function requirementText(req, lang) {
   return ownLangThenLocalized(req, 'content', lang);
 }
 
+export { SALARY_RANGE_MAX_LENGTH };
+
+/** «Mức lương» đúng ngôn ngữ đang xem; bản tiếng Việt chỉ dùng thay khi không chứa chữ. */
+export function salaryRangeText(row, lang) {
+  if (!row) return '';
+  const suffix = LANG_SUFFIX[lang] ?? '';
+  const own = suffix ? row[`salaryRange${suffix}`] : row.salaryRange;
+  if (typeof own === 'string' && own.trim()) return own.trim();
+  const base = typeof row.salaryRange === 'string' ? row.salaryRange.trim() : '';
+  return base && isLanguageNeutralSalary(base) ? base : '';
+}
+
+/** «Chi tiết mức lương» đúng ngôn ngữ đang xem (giữ xuống dòng). */
+export function salaryDetailText(job, lang) {
+  const raw = job?.salaryRangeDetails;
+  const rows = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  const suffix = LANG_SUFFIX[lang] ?? '';
+  return rows
+    .map((r) => (suffix ? r?.[`content${suffix}`] : r?.content))
+    .filter((s) => typeof s === 'string' && s.trim())
+    .map((s) => s.trim())
+    .join('\n');
+}
+
 export function pickSalary(job, lang, type = 'yearly') {
   const ranges = job?.salaryRanges || [];
-  const row = ranges.find((r) => r.type === type) || ranges[0];
-  if (!row) return '';
-  return ownLangThenLocalized(row, 'salaryRange', lang);
+  const typed = ranges.filter((r) => r.type === type);
+  for (const row of typed.length ? typed : ranges) {
+    const text = salaryRangeText(row, lang);
+    if (text) return text;
+  }
+  return '';
 }
 
 export function displaySalary(job, lang) {
+  const detail = salaryDetailText(job, lang);
+  const usable = (text) => text && !(detail && text.length > SALARY_RANGE_MAX_LENGTH);
   const yearly = pickSalary(job, lang, 'yearly');
   const monthly = pickSalary(job, lang, 'monthly');
-  if (yearly && monthly) return { primary: yearly, secondary: monthly, primaryLabel: 'yearly' };
-  if (yearly) return { primary: yearly, secondary: '', primaryLabel: 'yearly' };
-  if (monthly) return { primary: monthly, secondary: '', primaryLabel: 'monthly' };
-  return { primary: '', secondary: '', primaryLabel: 'yearly' };
+  if (usable(yearly) && usable(monthly) && yearly !== monthly) {
+    return { primary: yearly, secondary: monthly, primaryLabel: 'yearly' };
+  }
+  if (usable(yearly)) return { primary: yearly, secondary: '', primaryLabel: 'yearly' };
+  if (usable(monthly)) return { primary: monthly, secondary: '', primaryLabel: 'monthly' };
+
+  if (detail) return { primary: detail, secondary: '', primaryLabel: 'detail' };
+
+  const fallback = ownLangThenLocalized((job?.salaryRanges || [])[0], 'salaryRange', lang);
+  return { primary: fallback, secondary: '', primaryLabel: 'yearly' };
 }
 
 export function jobLocations(job, lang) {
@@ -80,87 +116,109 @@ export function formatJobDate(iso, lang) {
   }
 }
 
-const TONE_BY_ROOT = {
-  11: 'sales',
-  51: 'admin',
-  79: 'it',
-  112: 'embedded',
-  137: 'mechanical',
-  190: 'chemical',
-  225: 'construction',
-};
+const toRows = (value) => (Array.isArray(value) ? value : value ? [value] : []);
 
-export function categoryTone(jobCategoryId) {
-  const id = Number(jobCategoryId);
-  if (TONE_BY_ROOT[id]) return TONE_BY_ROOT[id];
-  return 'other';
+/** Chỉ đúng ngôn ngữ đang xem, không lùi về tiếng Việt (giống trang chi tiết nội bộ). */
+function ownText(obj, field, lang) {
+  const suffix = LANG_SUFFIX[lang] ?? '';
+  const value = obj?.[suffix ? `${field}${suffix}` : field];
+  return typeof value === 'string' ? value.trim() : '';
 }
 
-const TONE_CLASS = {
-  sales: 'border-l-[#e85d04]',
-  admin: 'border-l-[#6a4c93]',
-  it: 'border-l-[#0077b6]',
-  embedded: 'border-l-[#2a9d8f]',
-  mechanical: 'border-l-[#606c38]',
-  chemical: 'border-l-[#9b2226]',
-  construction: 'border-l-[#bc6c25]',
-  other: 'border-l-[#be1824]',
-};
-
-export function toneBorderClass(job) {
-  const catId = job?.jobCategoryId ?? job?.category?.id;
-  return TONE_CLASS[categoryTone(catId)] || TONE_CLASS.other;
+/** Nội dung các bảng `*Details` (mỗi dòng một mục), theo đúng ngôn ngữ đang xem. */
+function detailLines(rows, lang) {
+  return toRows(rows)
+    .map((r) => ownText(r, 'content', lang))
+    .filter(Boolean)
+    .flatMap((text) => text.split('\n'))
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
-const WORK_BENEFIT_PATTERN =
-  /^(thời gian làm việc|thời gian nghỉ|làm thêm giờ|ngày nghỉ|chi tiết ngày nghỉ|phụ cấp làm thêm|working hours|work hours|break time|overtime|days off|holiday details|勤務時間|休憩時間|残業|休日|休日の詳細)/i;
+/** Nơi làm việc: bảng `workingLocations` (danh sách) hoặc `workingLocationDetails` (trang chi tiết). */
+export function jobWorkLocation(job, lang) {
+  const fromDetails = toRows(job?.workingLocationDetails)
+    .map((r) => ownLangThenLocalized(r, 'content', lang))
+    .filter(Boolean)
+    .flatMap((text) => text.split('\n'))
+    .map((line) => line.trim())
+    .filter(Boolean);
+  return jobLocations(job, lang) || fromDetails.join(' · ');
+}
 
-/** Build detail sections from API job (mirrors Job Detail V2 `sourceSections`). */
+/** Các mục của trang chi tiết — cùng nguồn dữ liệu và nhãn với trang chi tiết nội bộ (Job Detail V2). */
 export function buildJobDetailSections(job, lang) {
-  if (job?.jobDetailSections) return job.jobDetailSections;
-
   const t = detailCopy(lang);
-  const requirements = (job?.requirements || [])
-    .map((r) => ({ ...r, text: requirementText(r, lang) }))
-    .filter((r) => r.text);
+  const field = (key) => ownText(job, key, lang);
+  const row = (label, text) => (text ? { label, text } : null);
+  const listRow = (label, items) => (items.length ? { label, items } : null);
 
-  const grouped = ['required', 'preferred']
+  const requirements = (job?.requirements || [])
+    .map((r) => ({ status: r.status, text: requirementText(r, lang) }))
+    .filter((r) => r.text);
+  const groups = ['required', 'preferred']
     .map((status) => ({
+      required: status === 'required',
       label: status === 'required' ? t.required : t.preferred,
       items: requirements.filter((r) => r.status === status).map((r) => r.text),
     }))
     .filter((g) => g.items.length);
 
+  const smokingPolicies = toRows(job?.smokingPolicies).map((p) => (p.allow ? t.smokingAllow : t.smokingDeny));
+
+  const workRows = [
+    listRow(t.workingHours, detailLines(job?.workingHourDetails, lang)),
+    row(t.breakTime, field('breakTime')),
+    row(t.overtime, field('overtime')),
+    listRow(t.overtimeAllowance, detailLines(job?.overtimeAllowanceDetails, lang)),
+    row(t.holidays, field('holidays')),
+    row(t.holidayDetails, field('holidayDetails')),
+  ].filter(Boolean);
+
+  const benefitRows = [
+    row(t.socialInsurance, field('socialInsurance')),
+    row(t.transportation, field('transportation')),
+    row(t.bonus, field('bonus')),
+    row(t.salaryReview, field('salaryReview')),
+    listRow(t.benefitList, detailLines(job?.benefits, lang)),
+    listRow(t.smoking, smokingPolicies),
+    listRow(t.smokingDetail, detailLines(job?.smokingPolicyDetails, lang)),
+  ].filter(Boolean);
+
+  const processBlocks = [
+    row(t.reasonLabel, field('recruitmentReason')),
+    row(t.processLabel, field('recruitmentProcess') || field('interviewProcess')),
+  ].filter(Boolean);
+
+  const company = job?.recruitingCompany;
+  const companyInfo = [
+    companyName(job, lang),
+    ...[
+      [t.revenue, 'revenue'],
+      [t.employees, 'numberOfEmployees'],
+      [t.headquarters, 'headquarters'],
+      [t.established, 'establishedDate'],
+    ]
+      .map(([label, key]) => {
+        const value = ownText(company, key, lang);
+        return value ? `${label} ${value}` : '';
+      }),
+  ]
+    .filter(Boolean)
+    .join('\n');
+  const companyText = ownText(company, 'companyIntroduction', lang);
   const overviewText =
-    localizedField(job, 'jobDescription', lang)
-    || localizedField(job, 'jobContent', lang)
-    || localizedField(job, 'description', lang);
-
-  const benefitsRaw = Array.isArray(job?.benefits)
-    ? job.benefits.map((x) => ({
-        label: localizedField(x, 'name', lang),
-        text: localizedField(x, 'description', lang) || localizedField(x, 'content', lang),
-        items: Array.isArray(x.items) ? x.items : null,
-      }))
-    : [];
-
-  const workBenefits = benefitsRaw.filter((b) => WORK_BENEFIT_PATTERN.test(b.label || ''));
-  const otherBenefits = benefitsRaw.filter((b) => !WORK_BENEFIT_PATTERN.test(b.label || ''));
-
-  const processText =
-    localizedField(job, 'interviewProcess', lang) || localizedField(job, 'recruitmentProcess', lang);
-
-  const companyText = localizedField(job?.recruitingCompany, 'description', lang);
+    localizedField(job, 'description', lang)
+    || localizedField(job, 'jobDescription', lang)
+    || localizedField(job, 'jobContent', lang);
 
   return {
-    overview: overviewText ? { text: overviewText, label: '' } : null,
-    requirements: grouped,
-    workBenefits,
-    benefits: otherBenefits,
-    process: processText ? { text: processText } : null,
-    company: companyText
-      ? { text: companyText, info: companyName(job, lang), sectors: [] }
-      : null,
+    overview: overviewText ? { label: t.jobContent, text: overviewText } : null,
+    requirements: groups,
+    workRows,
+    benefitRows,
+    process: processBlocks.length ? processBlocks : null,
+    company: companyInfo || companyText ? { info: companyInfo, text: companyText } : null,
   };
 }
 

@@ -28,6 +28,7 @@ const CollaboratorsPage = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const t = translations[language] || translations.vi;
+  const l = (vi, en, ja) => (language === 'en' ? en : language === 'ja' ? ja : vi);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchParams] = useSearchParams();
   const headerSearch = searchParams.get('search') || '';
@@ -495,7 +496,7 @@ const CollaboratorsPage = () => {
               onClick={() => setCurrentPage(1)}
               className="px-4 py-1.5 rounded-r-lg bg-red-500 text-white font-semibold text-[12px] sm:text-[13px] hover:bg-red-600 transition-colors flex-shrink-0"
             >
-              Tìm kiếm
+              {l('Tìm kiếm', 'Search', '検索')}
             </button>
           </div>
 
@@ -513,14 +514,14 @@ const CollaboratorsPage = () => {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-[11px] sm:text-xs font-semibold border border-red-500"
                 style={{ color: '#374151' }}
               >
-                Ngày tham gia
+                {l('Ngày tham gia', 'Join date', '登録日')}
                 <ChevronDown className="w-3 h-3" />
               </button>
               {isDateFilterOpen && (
                 <div className="absolute right-0 mt-2 w-64 rounded-xl border bg-white p-3 z-20 text-[11px] sm:text-xs" style={{ borderColor: '#e5e7eb' }}>
                   <div className="flex flex-col gap-2">
                     <label className="flex flex-col gap-1">
-                      <span className="font-semibold text-gray-700">Từ ngày</span>
+                      <span className="font-semibold text-gray-700">{l('Từ ngày', 'From', '開始日')}</span>
                       <input
                         type="date"
                         value={joinDateFrom}
@@ -530,7 +531,7 @@ const CollaboratorsPage = () => {
                       />
                     </label>
                     <label className="flex flex-col gap-1">
-                      <span className="font-semibold text-gray-700">Đến ngày</span>
+                      <span className="font-semibold text-gray-700">{l('Đến ngày', 'To', '終了日')}</span>
                       <input
                         type="date"
                         value={joinDateTo}
@@ -548,7 +549,7 @@ const CollaboratorsPage = () => {
                       className="self-end mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
                       style={{ backgroundColor: '#f3f4f6', color: '#4b5563' }}
                       >
-                      Xóa lọc
+                      {l('Xóa lọc', 'Clear', 'クリア')}
                     </button>
                   </div>
                 </div>
@@ -567,7 +568,7 @@ const CollaboratorsPage = () => {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-[11px] sm:text-xs font-semibold border border-red-500"
                 style={{ color: '#374151' }}
               >
-                Trạng thái
+                {l('Trạng thái', 'Status', 'ステータス')}
                 <ChevronDown className="w-3 h-3" />
               </button>
               {isStatusFilterOpen && (
@@ -585,7 +586,7 @@ const CollaboratorsPage = () => {
                         }}
                         className="w-3.5 h-3.5"
                       />
-                      <span>Tất cả</span>
+                      <span>{l('Tất cả', 'All', 'すべて')}</span>
                     </label>
                     <label className="flex items-center gap-1.5 cursor-pointer">
                       <input
@@ -632,7 +633,7 @@ const CollaboratorsPage = () => {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-[11px] sm:text-xs font-semibold border border-red-500"
                 style={{ color: '#374151' }}
               >
-                Sắp xếp
+                {l('Sắp xếp', 'Sort', '並び替え')}
                 <ChevronDown className="w-3 h-3" />
               </button>
               {isSortFilterOpen && (
@@ -640,7 +641,7 @@ const CollaboratorsPage = () => {
                   <div className="flex flex-col gap-3">
                     {/* Tên */}
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-[11px] font-semibold text-gray-700">Tên</span>
+                      <span className="text-[11px] font-semibold text-gray-700">{l('Tên', 'Name', '名前')}</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -664,7 +665,7 @@ const CollaboratorsPage = () => {
 
                     {/* Ngày tham gia */}
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-[11px] font-semibold text-gray-700">Ngày tham gia</span>
+                      <span className="text-[11px] font-semibold text-gray-700">{l('Ngày tham gia', 'Join date', '登録日')}</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -682,13 +683,17 @@ const CollaboratorsPage = () => {
                         }}
                       >
                         <ChevronsUpDown className="w-3 h-3" />
-                        <span>{sortOption === 'joinDateAsc' ? 'Cũ → Mới' : 'Mới → Cũ'}</span>
+                        <span>
+                          {sortOption === 'joinDateAsc'
+                            ? l('Cũ → Mới', 'Oldest → Newest', '古い順')
+                            : l('Mới → Cũ', 'Newest → Oldest', '新しい順')}
+                        </span>
                       </button>
                     </div>
 
                     {/* Số hồ sơ ứng viên */}
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-[11px] font-semibold text-gray-700">Số hồ sơ ứng viên</span>
+                      <span className="text-[11px] font-semibold text-gray-700">{t.collaboratorsColCandidatesCount}</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -706,7 +711,11 @@ const CollaboratorsPage = () => {
                         }}
                       >
                         <ChevronsUpDown className="w-3 h-3" />
-                        <span>{sortOption === 'applicationsAsc' ? 'Ít → Nhiều' : 'Nhiều → Ít'}</span>
+                        <span>
+                          {sortOption === 'applicationsAsc'
+                            ? l('Ít → Nhiều', 'Fewest → Most', '少ない順')
+                            : l('Nhiều → Ít', 'Most → Fewest', '多い順')}
+                        </span>
                       </button>
                     </div>
                   </div>
@@ -726,7 +735,7 @@ const CollaboratorsPage = () => {
               }}
             >
               <Plus className="w-3 h-3" />
-              <span className="hidden sm:inline">Thêm CTV</span>
+              <span className="hidden sm:inline">{l('Thêm CTV', 'Add collaborator', '協力者を追加')}</span>
             </button>
           </div>
         </div>
@@ -1033,7 +1042,7 @@ const CollaboratorsPage = () => {
                   {/* Footer */}
                   <div className="mt-1.5 flex items-center justify-between text-[9px] sm:text-[10px]">
                     <span style={{ color: '#6b7280' }}>
-                      {t.collaboratorsJoinedPrefix || 'Joined'}
+                      {l('Tham gia', 'Joined', '登録日')}
                       {' '}
                       {joinDate}
                     </span>

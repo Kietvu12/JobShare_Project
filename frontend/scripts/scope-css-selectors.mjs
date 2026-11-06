@@ -16,20 +16,21 @@ function stripComments(css) {
 /** Catch rules still missing persona / shell prefix (e.g. inside @media). */
 function postTighten(css) {
   let out = css;
-  out = out.replace(/body:lang\(/g, `${PERSONA_BODY}:lang(`);
+  // `body` chỉ là thẻ khi không dính vào tên class/id (tránh `.multi-body`, `.card-body`…).
+  out = out.replace(/(^|[^\w-])body:lang\(/g, `$1${PERSONA_BODY}:lang(`);
   // Rule thẻ trần theo ngôn ngữ (vd. `:lang(ja) h2{font-size:40px}`) nằm ngoài @layer nên thắng utility Tailwind
   // của các trang React trong shell — bỏ qua phần tử đã tự đặt cỡ chữ bằng class `text-*`.
   out = out.replace(
     new RegExp(`(${PERSONA_BODY.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:lang\\([a-z-]+\\) )(h[1-6]|p|li)(?=[,{])`, 'g'),
     '$1$2:not([class*="text-"])',
   );
-  out = out.replace(/(^|[^:])body\{/g, `$1${PERSONA_BODY}{`);
+  out = out.replace(/(^|[^:\w-])body\{/g, `$1${PERSONA_BODY}{`);
   // Parser used to treat "\n@media(...)" as selector text — unwrap nested @ blocks.
   out = out.replace(
     new RegExp(`${ROOTS.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*@media`, 'g'),
     '@media',
   );
-  out = out.replace(/\bhtml\{/g, `${ROOTS}{`);
+  out = out.replace(/(^|[^\w-])html\{/g, `$1${ROOTS}{`);
   out = out.replace(
     /(^|[\{}])\*,\*:(before|after)\{/g,
     `$1${ROOTS} *,${ROOTS} *:before,${ROOTS} *:after{`,
@@ -197,6 +198,23 @@ fs.writeFileSync(
   `/* AUTO-GENERATED — Jobs V3 scoped to .jobshare-jobs-v3 under persona shell */\n${jobsScoped}`,
 );
 console.log('scoped jobs v3 bundle');
+
+// Job Detail V2 — mọi rule (kể cả :root, body, body:lang) chỉ trong .jobshare-job-detail-v2, không lan ra cả site persona.
+const DETAIL_ROOT = ':is(#candidate-site-root, #collaborator-site-root) .jobshare-job-detail-v2';
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const detailCss = stripComments(
+  fs.readFileSync(path.join(fe, 'src/landing/templates/JobShare_JobDetail_V2_20261008/assets/detail.css'), 'utf8'),
+).replace(/@import\s+url\([^)]*\)[^;]*;/g, '');
+const detailScoped = postTighten(scopeCss(detailCss))
+  .replaceAll(ROOTS, DETAIL_ROOT)
+  .replaceAll(`${PERSONA_BODY}{`, `${DETAIL_ROOT}{`)
+  .replace(new RegExp(`${escRe(PERSONA_BODY)}(:lang\\([a-z-]+\\))\\{`, 'g'), `${PERSONA_BODY}$1 ${DETAIL_ROOT}{`)
+  .replace(new RegExp(`${escRe(PERSONA_BODY)}(:lang\\([a-z-]+\\)) `, 'g'), `${PERSONA_BODY}$1 ${DETAIL_ROOT} `);
+fs.writeFileSync(
+  path.join(fe, 'src/landing/shared/Jobs/job-detail-v2-styles.scoped.css'),
+  `/* AUTO-GENERATED — Job Detail V2 scoped to .jobshare-job-detail-v2 under persona shell */\n${detailScoped}`,
+);
+console.log('scoped job detail v2');
 
 const loginCss = fs.readFileSync(
   path.join(

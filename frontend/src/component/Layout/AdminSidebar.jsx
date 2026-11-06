@@ -541,7 +541,7 @@ const AdminSidebar = () => {
       >
         <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: SIDEBAR_BORDER }}>
           <Link to="/admin" className="flex items-center" onClick={() => setMobileSidebarOpen(false)}>
-            <img src="/landing/jobshare-logo.png" alt="JobShare" className="h-8 w-auto object-contain" />
+            <img src="/logo.png" alt="JobShare" className="h-8 w-auto object-contain" />
           </Link>
           <button
             type="button"
@@ -553,11 +553,11 @@ const AdminSidebar = () => {
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="flex-1 space-y-1 overflow-y-auto px-3 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex-1 space-y-1 overflow-y-auto py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {sidebarMenuSections.map((section, sectionIndex) => (
             <React.Fragment key={`mobile-section-${sectionIndex}`}>
               {section.showDivider ? (
-                <div className="mb-2 mt-3 border-t pt-3" style={{ borderColor: SIDEBAR_BORDER }}>
+                <div className="mx-3 mb-2 mt-3 border-t pt-3" style={{ borderColor: SIDEBAR_BORDER }}>
                   <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                     {section.sectionLabel}
                   </p>
@@ -572,7 +572,7 @@ const AdminSidebar = () => {
                   <button
                     type="button"
                     onClick={() => setShowCollaboratorSubmenu(!showCollaboratorSubmenu)}
-                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left"
+                    className="flex w-full items-center gap-2 px-4 py-2 text-left"
                     style={{
                       backgroundColor: active ? SIDEBAR_ACTIVE_BG : 'transparent',
                       color: active ? SIDEBAR_ACTIVE_TEXT : SIDEBAR_TEXT,
@@ -590,7 +590,7 @@ const AdminSidebar = () => {
                         key={`mobile-${subItem.id}`}
                         to={subItem.path}
                         onClick={() => setMobileSidebarOpen(false)}
-                        className="ml-7 mt-1 flex items-center gap-2 rounded-lg px-2 py-1.5"
+                        className="mt-1 flex items-center gap-2 py-2 pl-10 pr-4"
                         style={{
                           backgroundColor: subActive ? SIDEBAR_ACTIVE_BG : 'transparent',
                           color: subActive ? SIDEBAR_ACTIVE_TEXT : SIDEBAR_TEXT,
@@ -615,7 +615,7 @@ const AdminSidebar = () => {
                   }
                   setMobileSidebarOpen(false);
                 }}
-                className="flex items-center gap-2 rounded-lg px-2 py-2"
+                className="flex items-center gap-2 px-4 py-2"
                 style={{
                   backgroundColor: active ? SIDEBAR_ACTIVE_BG : 'transparent',
                   color: active ? SIDEBAR_ACTIVE_TEXT : SIDEBAR_TEXT,
@@ -657,11 +657,11 @@ const AdminSidebar = () => {
             </React.Fragment>
           ))}
         </div>
-        <div className="border-t px-3 py-3" style={{ borderColor: SIDEBAR_BORDER }}>
+        <div className="border-t py-3" style={{ borderColor: SIDEBAR_BORDER }}>
           <Link
             to="/admin/accounts"
             onClick={() => setMobileSidebarOpen(false)}
-            className="flex items-center gap-2 rounded-lg px-2 py-2"
+            className="flex items-center gap-2 px-4 py-2"
             style={{
               backgroundColor: isActive('/admin/accounts') ? SIDEBAR_ACTIVE_BG : 'transparent',
               color: isActive('/admin/accounts') ? SIDEBAR_ACTIVE_TEXT : SIDEBAR_TEXT,
@@ -674,7 +674,7 @@ const AdminSidebar = () => {
             <Link
               to="/admin/job-categories"
               onClick={() => setMobileSidebarOpen(false)}
-              className="mt-1 flex items-center gap-2 rounded-lg px-2 py-2"
+              className="mt-1 flex items-center gap-2 px-4 py-2"
               style={{
                 backgroundColor: isActive('/admin/job-categories') ? SIDEBAR_ACTIVE_BG : 'transparent',
                 color: isActive('/admin/job-categories') ? SIDEBAR_ACTIVE_TEXT : SIDEBAR_TEXT,
@@ -705,7 +705,7 @@ const AdminSidebar = () => {
       >
         <Link to="/admin" className="flex items-center cursor-pointer overflow-hidden">
           <img
-            src="/landing/jobshare-logo.png"
+            src="/logo.png"
             alt="JobShare"
             className={`object-contain ${isExpanded ? 'max-h-9 w-auto' : 'h-8 w-auto max-w-full'}`}
           />
@@ -713,13 +713,13 @@ const AdminSidebar = () => {
       </div>
 
       {/* Navigation Section */}
-      <div className="flex-1 overflow-y-auto overflow-x-visible px-2.5 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex-1 overflow-y-auto overflow-x-visible py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="space-y-1">
           {sidebarMenuSections.map((section, sectionIndex) => (
             <React.Fragment key={`section-${sectionIndex}`}>
               {section.showDivider ? (
                 <div
-                  className={`${isExpanded ? 'mb-2 mt-4 border-t pt-3' : 'mb-1 mt-3 border-t pt-2'} mx-0.5`}
+                  className={`${isExpanded ? 'mb-2 mt-4 border-t pt-3' : 'mb-1 mt-3 border-t pt-2'} mx-3`}
                   style={{ borderColor: SIDEBAR_BORDER }}
                 >
                   {isExpanded ? (
@@ -764,13 +764,12 @@ const AdminSidebar = () => {
                     onMouseLeave={() => setHoveredMenuItemIndex(null)}
                     className={`w-full flex ${
                       isExpanded ? 'items-center gap-2' : 'items-center justify-center'
-                    } px-2 py-1.5 rounded-lg transition-colors relative`}
+                    } px-4 py-2 transition-colors relative`}
                     style={{
                       backgroundColor: active 
                         ? SIDEBAR_ACTIVE_BG
                         : (hoveredMenuItemIndex === item.id ? SIDEBAR_HOVER_BG : 'transparent'),
                       color: active ? SIDEBAR_ACTIVE_TEXT : SIDEBAR_TEXT,
-                      boxShadow: active ? 'inset 4px 0 0 rgba(255,255,255,0.85)' : 'none',
                     }}
                     title={!isExpanded ? item.label : undefined}
                   >
@@ -794,7 +793,7 @@ const AdminSidebar = () => {
                     )}
                   </button>
                   {showCollaboratorSubmenu && item.submenu && isExpanded && (
-                    <div className="ml-8 mt-1 space-y-1">
+                    <div className="mt-1 space-y-1">
                       {item.submenu.map((subItem) => {
                         const SubIcon = subItem.icon;
                         const subActive = location.pathname === subItem.path || 
@@ -806,13 +805,12 @@ const AdminSidebar = () => {
                             to={subItem.path}
                             onMouseEnter={() => setHoveredSubmenuItemIndex(subItem.id)}
                             onMouseLeave={() => setHoveredSubmenuItemIndex(null)}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors"
+                            className="w-full flex items-center gap-2 py-2 pl-10 pr-4 transition-colors"
                             style={{
                               backgroundColor: subActive 
                                 ? SIDEBAR_ACTIVE_BG
                                 : (hoveredSubmenuItemIndex === subItem.id ? SIDEBAR_HOVER_BG : 'transparent'),
                               color: subActive ? SIDEBAR_ACTIVE_TEXT : SIDEBAR_TEXT,
-                              boxShadow: subActive ? 'inset 4px 0 0 rgba(255,255,255,0.85)' : 'none',
                             }}
                           >
                             <SubIcon
@@ -841,13 +839,12 @@ const AdminSidebar = () => {
                 onClick={item.path === ADMIN_CANDIDATES_PATH ? handleAdminCandidatesSidebarClick : undefined}
                 onMouseEnter={() => setHoveredMenuItemIndex(item.id)}
                 onMouseLeave={() => setHoveredMenuItemIndex(null)}
-                className={`w-full flex ${isExpanded ? 'items-center gap-2' : 'items-center justify-center'} px-2 py-1.5 rounded-lg transition-colors relative`}
+                className={`w-full flex ${isExpanded ? 'items-center gap-2' : 'items-center justify-center'} px-4 py-2 transition-colors relative`}
                 style={{
                   backgroundColor: active 
                     ? SIDEBAR_ACTIVE_BG
                     : (hoveredMenuItemIndex === item.id ? SIDEBAR_HOVER_BG : 'transparent'),
                   color: active ? SIDEBAR_ACTIVE_TEXT : SIDEBAR_TEXT,
-                  boxShadow: active ? 'inset 4px 0 0 rgba(255,255,255,0.85)' : 'none',
                 }}
                 title={!isExpanded ? item.label : undefined}
               >
@@ -903,18 +900,17 @@ const AdminSidebar = () => {
       </div>
 
       {/* Account Management Section */}
-      <div className={`${isExpanded ? 'px-3 py-3' : 'px-2 py-2'} border-t`} style={{ borderColor: SIDEBAR_BORDER }}>
+      <div className={`${isExpanded ? 'py-3' : 'py-2'} border-t`} style={{ borderColor: SIDEBAR_BORDER }}>
         <Link
           to="/admin/accounts"
           onMouseEnter={() => setHoveredAccountsItem(true)}
           onMouseLeave={() => setHoveredAccountsItem(false)}
-          className={`w-full flex ${isExpanded ? 'items-center gap-2' : 'items-center justify-center'} px-2 py-1.5 rounded-lg transition-colors`}
+          className={`w-full flex ${isExpanded ? 'items-center gap-2' : 'items-center justify-center'} px-4 py-2 transition-colors`}
           style={{
             backgroundColor: isActive('/admin/accounts')
               ? SIDEBAR_ACTIVE_BG
               : (hoveredAccountsItem ? SIDEBAR_HOVER_BG : 'transparent'),
             color: isActive('/admin/accounts') ? SIDEBAR_ACTIVE_TEXT : SIDEBAR_TEXT,
-            boxShadow: isActive('/admin/accounts') ? 'inset 4px 0 0 rgba(255,255,255,0.85)' : 'none',
           }}
           title={!isExpanded ? t.adminAccountManagement : undefined}
         >
@@ -931,19 +927,18 @@ const AdminSidebar = () => {
       </div>
 
       {/* Job Category Section (replace Settings) */}
-      <div className={`${isExpanded ? 'px-3' : 'px-2'} pb-3`}>
+      <div className="pb-3">
         {isSuperAdmin && (
           <Link
             to="/admin/job-categories"
             onMouseEnter={() => setHoveredJobCategoryItem(true)}
             onMouseLeave={() => setHoveredJobCategoryItem(false)}
-            className={`w-full flex ${isExpanded ? 'items-center gap-2' : 'items-center justify-center'} px-2 py-1.5 rounded-lg transition-colors`}
+            className={`w-full flex ${isExpanded ? 'items-center gap-2' : 'items-center justify-center'} px-4 py-2 transition-colors`}
             style={{
               backgroundColor: isActive('/admin/job-categories')
                 ? SIDEBAR_ACTIVE_BG
                 : (hoveredJobCategoryItem ? SIDEBAR_HOVER_BG : 'transparent'),
               color: isActive('/admin/job-categories') ? SIDEBAR_ACTIVE_TEXT : SIDEBAR_TEXT,
-              boxShadow: isActive('/admin/job-categories') ? 'inset 4px 0 0 rgba(255,255,255,0.85)' : 'none',
             }}
             title={!isExpanded ? t.adminJobCategoryManagement : undefined}
           >
@@ -1019,7 +1014,6 @@ const AdminSidebar = () => {
                   ? SIDEBAR_ACTIVE_BG
                   : (hoveredDropdownItemIndex === subItem.id ? SIDEBAR_HOVER_BG : 'transparent'),
                 color: subActive ? SIDEBAR_ACTIVE_TEXT : SIDEBAR_TEXT,
-                boxShadow: subActive ? 'inset 4px 0 0 rgba(255,255,255,0.85)' : 'none',
               }}
             >
               <SubIcon className="w-4 h-4" style={{ color: subActive ? SIDEBAR_ACTIVE_TEXT : SIDEBAR_ICON }} />

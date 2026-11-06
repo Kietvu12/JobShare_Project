@@ -1,7 +1,17 @@
 /**
- * WJS Scroll Kit — chuẩn bảng Sàn CTV (candidate-sharing / .ctv-scrollbar).
- * Alias class giữ markup cũ; style thống nhất qua index.css.
+ * WJS Scroll Kit — một mẫu thanh cuộn chung (mảnh, bo tròn, nền trong suốt, không mũi tên).
+ * - Các class opt-in bên dưới (alias giữ markup cũ) + toàn bộ khu Admin (body.wjs-admin-ui).
+ * - Chrome/Edge ≥ 121 bỏ qua ::-webkit-scrollbar nếu phần tử có scrollbar-width / scrollbar-color,
+ *   nên hai thuộc tính chuẩn chỉ dùng cho trình duyệt không hỗ trợ ::-webkit-scrollbar (Firefox).
  */
+
+:root {
+  --wjs-scroll-size: 5px;
+  --wjs-scroll-thumb: #cbd5e1;
+  --wjs-scroll-thumb-hover: #94a3b8;
+}
+
+/* ---------- Class opt-in (app Business, CTV, landing…) ---------- */
 
 .wjs-scroll-kit,
 .business-homepage-scroll,
@@ -21,9 +31,8 @@
 .admin-scout-picker-scroll,
 .landing-jobs-scroll,
 .landing-filter-scrollbar,
-.business-app-ui main {
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+.business-app-ui main,
+.business-jobs-ui .business-jd-preview-root {
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
 }
@@ -46,9 +55,10 @@
 .admin-scout-picker-scroll::-webkit-scrollbar,
 .landing-jobs-scroll::-webkit-scrollbar,
 .landing-filter-scrollbar::-webkit-scrollbar,
-.business-app-ui main::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+.business-app-ui main::-webkit-scrollbar,
+.business-jobs-ui .business-jd-preview-root::-webkit-scrollbar {
+  width: var(--wjs-scroll-size);
+  height: var(--wjs-scroll-size);
 }
 
 .wjs-scroll-kit::-webkit-scrollbar-track,
@@ -69,7 +79,11 @@
 .admin-scout-picker-scroll::-webkit-scrollbar-track,
 .landing-jobs-scroll::-webkit-scrollbar-track,
 .landing-filter-scrollbar::-webkit-scrollbar-track,
-.business-app-ui main::-webkit-scrollbar-track {
+.business-app-ui main::-webkit-scrollbar-track,
+.business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-track,
+.wjs-scroll-kit::-webkit-scrollbar-corner,
+.custom-scrollbar::-webkit-scrollbar-corner,
+.business-app-ui main::-webkit-scrollbar-corner {
   background: transparent;
 }
 
@@ -91,9 +105,10 @@
 .admin-scout-picker-scroll::-webkit-scrollbar-thumb,
 .landing-jobs-scroll::-webkit-scrollbar-thumb,
 .landing-filter-scrollbar::-webkit-scrollbar-thumb,
-.business-app-ui main::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+.business-app-ui main::-webkit-scrollbar-thumb,
+.business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-thumb {
+  background: var(--wjs-scroll-thumb);
+  border-radius: 999px;
 }
 
 .wjs-scroll-kit::-webkit-scrollbar-thumb:hover,
@@ -114,41 +129,84 @@
 .admin-scout-picker-scroll::-webkit-scrollbar-thumb:hover,
 .landing-jobs-scroll::-webkit-scrollbar-thumb:hover,
 .landing-filter-scrollbar::-webkit-scrollbar-thumb:hover,
-.business-app-ui main::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-.scout-modal-scroll::-webkit-scrollbar-button {
-  display: none;
-  height: 0;
-  width: 0;
-}
-
-.business-jobs-ui .business-jd-preview-root {
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
-  overscroll-behavior: contain;
-}
-
-.business-jobs-ui .business-jd-preview-root::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-
-.business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
+.business-app-ui main::-webkit-scrollbar-thumb:hover,
 .business-jobs-ui .business-jd-preview-root::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--wjs-scroll-thumb-hover);
 }
 
-/* Ẩn scrollbar nhưng vẫn scroll */
+.wjs-scroll-kit::-webkit-scrollbar-button,
+.custom-scrollbar::-webkit-scrollbar-button,
+.scout-modal-scroll::-webkit-scrollbar-button,
+.business-app-ui main::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .wjs-scroll-kit,
+  .business-homepage-scroll,
+  .ctv-scrollbar,
+  .msg-scrollbar,
+  .scout-scrollbar,
+  .candidate-scrollbar,
+  .scout-modal-scroll,
+  .scout-confirm-modal-scroll,
+  .business-jobs-list-scroll,
+  .knowledge-scrollbar,
+  .knowledge-article-scroll,
+  .billing-scroll,
+  .billing-detail-scroll,
+  .credit-pricing-modal-scroll,
+  .custom-scrollbar,
+  .admin-scout-picker-scroll,
+  .landing-jobs-scroll,
+  .landing-filter-scrollbar,
+  .business-app-ui main,
+  .business-jobs-ui .business-jd-preview-root {
+    scrollbar-width: thin;
+    scrollbar-color: var(--wjs-scroll-thumb) transparent;
+  }
+}
+
+/* ---------- Toàn bộ khu Admin (AdminLayout gắn class lên body để phủ cả modal portal) ----------
+   Trong @layer base để utility Tailwind ẩn thanh cuộn ([scrollbar-width:none], [&::-webkit-scrollbar]:hidden)
+   và các class ẩn bên dưới vẫn thắng. */
+@layer base {
+  body.wjs-admin-ui ::-webkit-scrollbar {
+    width: var(--wjs-scroll-size);
+    height: var(--wjs-scroll-size);
+  }
+
+  body.wjs-admin-ui ::-webkit-scrollbar-track,
+  body.wjs-admin-ui ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  body.wjs-admin-ui ::-webkit-scrollbar-thumb {
+    background: var(--wjs-scroll-thumb);
+    border-radius: 999px;
+  }
+
+  body.wjs-admin-ui ::-webkit-scrollbar-thumb:hover {
+    background: var(--wjs-scroll-thumb-hover);
+  }
+
+  body.wjs-admin-ui ::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  @supports not selector(::-webkit-scrollbar) {
+    body.wjs-admin-ui * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--wjs-scroll-thumb) transparent;
+    }
+  }
+}
+
+/* ---------- Ẩn thanh cuộn nhưng vẫn cuộn được ---------- */
 .wjs-scroll-hide,
 .scrollbar-hide,
 .hide-scrollbar,

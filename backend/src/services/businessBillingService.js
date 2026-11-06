@@ -1015,7 +1015,25 @@ export async function confirmBusinessInvoicePayment({ businessId, invoiceId }) {
   invoice.status = BILLING_INVOICE_STATUS.PROCESSING;
   await invoice.save();
 
-  return formatInvoiceRow(invoice);
+  const formatted = formatInvoiceRow(invoice);
+  const meta = parseInvoiceMeta(invoice.description);
+
+  try {
+    const { syncWsChatAfterBusinessReferralInvoicePaymentConfirmed } = await import('./businessWsChatService.js');
+    await syncWsChatAfterBusinessReferralInvoicePaymentConfirmed({
+      businessId,
+      invoiceId: invoice.id,
+      invoiceCode: formatted.invoiceCode || formatted.paymentCode,
+      amount: formatted.amountValue,
+      candidateName: meta.candidateName || formatted.candidateName,
+      jobCode: meta.jobCode || formatted.jobCode,
+      jobApplicationId: meta.jobApplicationId || null,
+    });
+  } catch (syncErr) {
+    console.error('[businessBilling] sync referral payment confirm:', syncErr?.message || syncErr);
+  }
+
+  return formatted;
 }
 
 export async function getBusinessBillingDashboard({ businessId, credit }) {

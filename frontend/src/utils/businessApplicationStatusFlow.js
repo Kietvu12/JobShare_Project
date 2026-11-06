@@ -147,6 +147,7 @@ const COPY = {
       scheduleInterview: 'Đang xếp lịch phỏng vấn (chọn ngày phỏng vấn)',
       sendOffer: 'Đã gửi offer (chọn ngày vào dự kiến)',
       nextRound: 'Xếp lịch phỏng vấn vòng tiếp theo',
+      joinedCompany: 'Đã vào công ty (chọn ngày vào công ty)',
     },
   },
   en: {
@@ -200,6 +201,7 @@ const COPY = {
       scheduleInterview: 'Scheduling interview (pick interview date)',
       sendOffer: 'Offer sent (pick expected start date)',
       nextRound: 'Schedule next interview round',
+      joinedCompany: 'Joined company (pick start date)',
     },
   },
   ja: {
@@ -253,6 +255,7 @@ const COPY = {
       scheduleInterview: '面接日程調整中（面接日を選択）',
       sendOffer: '内定通知済み（入社予定日を選択）',
       nextRound: '次の面接の日程調整',
+      joinedCompany: '入社済み（入社日を選択）',
     },
   },
 }
@@ -276,20 +279,23 @@ export function getBusinessStatusLabel(status, sourceType, language = 'vi') {
 /** Huỷ giữa chừng: chọn được ở mọi bước chưa kết thúc */
 const WITHDRAW = { value: 16 }
 
+/** Chuyển thẳng sang đã vào công ty (bỏ qua offer / chờ vào công ty) — cần ngày vào công ty */
+const JOINED_COMPANY = { value: 14, actionKey: 'joinedCompany', requires: 'joinedNyushaDate' }
+
 /** Bước chuyển chung từ lúc đánh giá hồ sơ → vào công ty (7 → 9 và 12 → 14 còn tự chuyển theo ngày đã set) */
 function getPipelineSteps(n, { hasPayment }) {
   switch (n) {
     case 3:
     case 5:
-      return [{ value: 7, actionKey: 'scheduleInterview' }, { value: 6 }, WITHDRAW]
+      return [{ value: 7, actionKey: 'scheduleInterview' }, { value: 6 }, JOINED_COMPANY, WITHDRAW]
     case 7:
-      return [{ value: 9 }, WITHDRAW]
+      return [{ value: 9 }, JOINED_COMPANY, WITHDRAW]
     case 8:
-      return [{ value: 9 }, { value: 7, actionKey: 'scheduleInterview' }, WITHDRAW]
+      return [{ value: 9 }, { value: 7, actionKey: 'scheduleInterview' }, JOINED_COMPANY, WITHDRAW]
     case 9:
-      return [{ value: 11, actionKey: 'sendOffer' }, { value: 10 }, { value: 7, actionKey: 'nextRound' }, WITHDRAW]
+      return [{ value: 11, actionKey: 'sendOffer' }, { value: 10 }, { value: 7, actionKey: 'nextRound' }, JOINED_COMPANY, WITHDRAW]
     case 11:
-      return [{ value: 12, actionKey: 'offerAccepted' }, { value: 13 }, WITHDRAW]
+      return [{ value: 12, actionKey: 'offerAccepted' }, { value: 13 }, JOINED_COMPANY, WITHDRAW]
     case 12:
       return [{ value: 14 }, WITHDRAW]
     case 14:
@@ -339,7 +345,7 @@ export function getBusinessStatusOptions(status, sourceType, language = 'vi') {
       value: step.value,
       label,
       statusLabel,
-      requires: STATUS_REQUIRES[step.value] || null,
+      requires: step.requires || STATUS_REQUIRES[step.value] || null,
     })
   })
   return options

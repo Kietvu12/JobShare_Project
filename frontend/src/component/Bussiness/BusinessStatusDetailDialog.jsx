@@ -6,6 +6,7 @@ const COPY = {
   vi: {
     interviewDate: { title: 'Đang xếp lịch phỏng vấn', desc: 'Chọn ngày giờ phỏng vấn. Đến ngày này trạng thái sẽ tự chuyển sang "Đang phỏng vấn".', date: 'Ngày phỏng vấn', time: 'Giờ' },
     nyushaDate: { title: 'Đã gửi offer', desc: 'Chọn ngày vào công ty dự kiến. Khi ứng viên đồng ý offer và đến ngày này, trạng thái sẽ tự chuyển sang "Đã vào công ty".', date: 'Ngày vào công ty dự kiến' },
+    joinedNyushaDate: { title: 'Đã vào công ty', desc: 'Chọn ngày ứng viên vào công ty.', date: 'Ngày vào công ty' },
     paymentAmount: { title: 'Đã thanh toán', desc: 'Nhập số tiền đã thanh toán.', amount: 'Số tiền thanh toán' },
     cancel: 'Huỷ',
     confirm: 'Xác nhận',
@@ -13,6 +14,7 @@ const COPY = {
   en: {
     interviewDate: { title: 'Scheduling interview', desc: 'Pick the interview date and time. On that date the status switches to "Interviewing" automatically.', date: 'Interview date', time: 'Time' },
     nyushaDate: { title: 'Offer sent', desc: 'Pick the expected start date. Once the candidate accepts and that date arrives, the status switches to "Joined company" automatically.', date: 'Expected start date' },
+    joinedNyushaDate: { title: 'Joined company', desc: 'Pick the date the candidate joined the company.', date: 'Start date' },
     paymentAmount: { title: 'Paid', desc: 'Enter the amount paid.', amount: 'Payment amount' },
     cancel: 'Cancel',
     confirm: 'Confirm',
@@ -20,6 +22,7 @@ const COPY = {
   ja: {
     interviewDate: { title: '面接日程調整中', desc: '面接日時を選択してください。当日になるとステータスが「面接中」に自動で切り替わります。', date: '面接日', time: '時間' },
     nyushaDate: { title: '内定通知済み', desc: '入社予定日を選択してください。内定承諾後、当日になると「入社済み」に自動で切り替わります。', date: '入社予定日' },
+    joinedNyushaDate: { title: '入社済み', desc: '入社日を選択してください。', date: '入社日' },
     paymentAmount: { title: '支払済み', desc: '支払金額を入力してください。', amount: '支払金額' },
     cancel: 'キャンセル',
     confirm: '確定',
@@ -48,7 +51,7 @@ function StatusDetailDialog({ requires, language, onClose }) {
   const submit = () => {
     if (!valid) return
     if (requires === 'interviewDate') onClose({ interviewDate: new Date(`${date}T${time}`).toISOString() })
-    else if (requires === 'nyushaDate') onClose({ nyushaDate: date })
+    else if (requires === 'nyushaDate' || requires === 'joinedNyushaDate') onClose({ nyushaDate: date })
     else onClose({ paymentAmount: Number(amount) })
   }
 
@@ -117,7 +120,7 @@ function StatusDetailDialog({ requires, language, onClose }) {
 
 /**
  * Hỏi dữ liệu bắt buộc khi chuyển trạng thái (ngày PV / ngày vào dự kiến / số tiền).
- * @param {'interviewDate'|'nyushaDate'|'paymentAmount'} requires
+ * @param {'interviewDate'|'nyushaDate'|'joinedNyushaDate'|'paymentAmount'} requires
  * @returns {Promise<object|null>} payload bổ sung, null nếu huỷ
  */
 export function openBusinessStatusDetailDialog(requires, language = 'vi') {

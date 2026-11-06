@@ -69,46 +69,7 @@ $(function () {
 	});
 	updateHeaderScrollState();
 
-	$(".js-hamburger-menu").on(clickEventType, function () {
-		let $menuClassName = "js-hamburger-menu",
-			$menuClass = "." + $menuClassName,
-			$menu = $($menuClass),
-			$iconClassName = "js-hamburger-menu__icon",
-			$iconClass = "." + $iconClassName,
-			$icon = $($iconClass),
-			$textClassName = "js-hamburger-menu__text",
-			$textClass = "." + $textClassName,
-			$text = $($textClass),
-			$navClassName = "js-hamburger-menu__nav",
-			$navClass = "." + $navClassName,
-			$nav = $($navClass),
-			$containerClassName = "js-hamburger-menu__container",
-			$containerClass = "." + $containerClassName,
-			$container = $($containerClass),
-			$activeClassName = "--active";
-
-		$(this).toggleClass($menuClassName + $activeClassName);
-		$(this)
-			.children($iconClass)
-			.toggleClass($iconClassName + $activeClassName);
-		$(this)
-			.children($textClass)
-			.toggleClass($textClassName + $activeClassName);
-
-		if ($text.hasClass($textClassName + $activeClassName)) {
-			$text.text("Close");
-		} else {
-			$text.text("Menu");
-		}
-
-		$nav.toggleClass($navClassName + $activeClassName);
-		$container.toggleClass($containerClassName + $activeClassName);
-		$("body").toggleClass("js-scroll-none");
-		$(".js-hamburger-menu__wrapper").toggleClass(
-			"js-hamburger-menu__wrapper--open"
-		);
-		$(".js-hamburger-menu__bg").toggleClass("js-hamburger-menu__bg--active");
-	});
+	// Hamburger menu do React Header quản lý (đóng khi đổi route); không toggle class ở đây.
 
 	var url = location.host;
 	const hashAnchor = $(".js-hash-anchor");

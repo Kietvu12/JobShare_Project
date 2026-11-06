@@ -677,7 +677,10 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
   /** Cùng trường `cv_storages.status` với cột badge (1 hợp lệ xanh, 3 trùng đỏ, 4 quá hạn, 5 khởi tạo thất bại) — Admin & CTV */
   const statusOptions = getCVStatusOptions(language);
   const showScoutColumn = isAdmin && SHOW_SCOUT_UI;
-  const colCount = isAdmin ? (showScoutColumn ? 11 : 10) : 6;
+  const colCount = isAdmin ? (showScoutColumn ? 10 : 9) : 6;
+  const l = (vi, en, ja) => (language === 'en' ? en : language === 'ja' ? ja : vi);
+  const ctvChipPrefix = l('CTV', 'Collaborator', '協力者');
+  const applicantChipPrefix = l('UV', 'Applicant', '応募者');
 
   const displayName = (c) => c.name || c.fullName || c.nameKanji || 'N/A';
 
@@ -1425,15 +1428,15 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 min-w-0 overflow-y-auto relative">
-        {/* Mobile: danh sách dạng card */}
-        <div className="space-y-3 px-0.5 pb-4 lg:hidden">
+      <div className="@container flex-1 min-h-0 min-w-0 overflow-y-auto relative">
+        {/* Vùng hẹp (theo bề rộng nội dung, không theo viewport): danh sách dạng card */}
+        <div className="grid grid-cols-1 items-start gap-3 px-0.5 pb-4 @xl:grid-cols-2 @3xl:hidden">
           {loading ? (
-            <div className="rounded-xl border border-gray-200 bg-white py-10 text-center text-sm" style={{ color: '#6b7280' }}>
+            <div className="rounded-xl border border-gray-200 bg-white py-10 text-center text-sm @xl:col-span-2" style={{ color: '#6b7280' }}>
               {t.loadingCandidates}
             </div>
           ) : candidates.length === 0 ? (
-            <div className="rounded-xl border border-gray-200 bg-white py-10 text-center text-sm" style={{ color: '#6b7280' }}>
+            <div className="rounded-xl border border-gray-200 bg-white py-10 text-center text-sm @xl:col-span-2" style={{ color: '#6b7280' }}>
               {t.noCandidatesFound}
             </div>
           ) : (
@@ -1587,7 +1590,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                                   }}
                                   className="inline-flex items-center gap-0.5 text-left"
                                 >
-                                  <span>CTV {ctvName}</span>
+                                  <span>{ctvChipPrefix} {ctvName}</span>
                                 </button>
                                 <button
                                   type="button"
@@ -1597,8 +1600,8 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                                     setCollaboratorNameDraft(candidate.collaborator.name || candidate.collaborator.fullName || '');
                                   }}
                                   className="rounded-full p-0.5 text-blue-700 hover:bg-blue-100"
-                                  title="Chỉnh sửa tên CTV"
-                                  aria-label="Chỉnh sửa tên CTV"
+                                  title={l('Đổi tên CTV', 'Rename collaborator', '協力者名を変更')}
+                                  aria-label={l('Đổi tên CTV', 'Rename collaborator', '協力者名を変更')}
                                 >
                                   <Pencil className="h-3 w-3" />
                                 </button>
@@ -1609,7 +1612,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                                 className="inline-flex max-w-full items-center gap-0.5 truncate rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-800"
                                 title={applicantOwner.secondary ? `${applicantOwner.primary} (${applicantOwner.secondary})` : applicantOwner.primary}
                               >
-                                UV {applicantOwner.primary}
+                                {applicantChipPrefix} {applicantOwner.primary}
                               </span>
                             )}
                             {!candidate.collaborator && applicantOwner === '—' && (
@@ -1675,8 +1678,8 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
           )}
         </div>
 
-        <div className="hidden h-full overflow-x-auto lg:block">
-          <table className="w-full table-auto border-separate [border-spacing:0_2px] xl:[border-spacing:0_4px]">
+        <div className="hidden h-full overflow-x-auto @3xl:block">
+          <table className="w-full min-w-[760px] table-auto border-separate [border-spacing:0_2px] xl:[border-spacing:0_4px]">
             <thead className="sticky top-0 z-10" style={{ backgroundColor: 'white' }}>
               <tr>
                 <th className="w-7 px-px py-1.5 text-center text-[8px] font-bold xl:w-8 xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>
@@ -1689,7 +1692,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                   />
                 </th>
                 <th
-                  className="min-w-[96px] cursor-pointer px-px py-1.5 text-left text-[8px] font-bold transition-colors xl:min-w-[124px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
+                  className="w-[180px] min-w-[170px] cursor-pointer px-px py-1.5 text-left text-[8px] font-bold transition-colors xl:w-[220px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
                   style={{ color: '#111827', backgroundColor: hoveredTableHeader === 'name' ? '#f3f4f6' : 'transparent' }}
                   onClick={() => handleSort('name')}
                   onMouseEnter={() => setHoveredTableHeader('name')}
@@ -1722,10 +1725,9 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                 
                 {isAdmin && (
                   <>
-                    <th className="min-w-[52px] py-1.5 pl-0 pr-px text-left text-[8px] font-bold xl:min-w-[74px] xl:pl-0 xl:pr-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>{t.colEmail}</th>
-                    <th className="min-w-[48px] px-px py-1.5 text-left text-[8px] font-bold xl:min-w-[70px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>{t.colPhone}</th>
-                    <th className="min-w-[100px] whitespace-nowrap px-px py-1.5 text-left text-[8px] font-bold xl:min-w-[140px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>Phân loại</th>
-                    <th className="min-w-[48px] whitespace-nowrap px-px py-1.5 text-left text-[8px] font-bold xl:min-w-[70px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>{t.colAdminName}</th>
+                    <th className="min-w-[120px] whitespace-nowrap px-px py-1.5 text-left text-[8px] font-bold xl:min-w-[150px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>{l('Liên hệ', 'Contact', '連絡先')}</th>
+                    <th className="min-w-[100px] whitespace-nowrap px-px py-1.5 text-left text-[8px] font-bold xl:min-w-[140px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>{l('Phân loại', 'Source', '分類')}</th>
+                    <th className="hidden min-w-[48px] whitespace-nowrap px-px py-1.5 text-left text-[8px] font-bold @5xl:table-cell xl:min-w-[70px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>{t.colAdminName}</th>
                   </>
                 )}
                 <th className="min-w-[80px] px-px py-1.5 text-center text-[8px] font-bold xl:min-w-[100px] xl:px-0.5 xl:py-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>{t.actions}</th>
@@ -1769,15 +1771,15 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                           style={{ accentColor: '#2563eb', borderColor: '#d1d5db' }}
                         />
                       </td>
-                      <td className="cursor-pointer px-px py-px text-[8px] align-middle xl:px-0.5 xl:py-0.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>
-                        <div>
-                          <div className="mb-0.5 flex flex-wrap items-start gap-1 xl:gap-1">
-                            <span className="font-medium">{displayName(candidate)}</span>
+                      <td className="cursor-pointer px-px py-1 text-[8px] align-middle xl:px-0.5 xl:py-1 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#111827' }}>
+                        <div className="max-w-[200px] xl:max-w-[240px]">
+                          <div className="mb-0.5 flex min-w-0 items-center gap-1">
+                            <span className="min-w-0 truncate font-medium" title={displayName(candidate)}>{displayName(candidate)}</span>
                             {renderScoutPerformanceNameTag(candidate)}
-                            {renderMissingFieldBadges(candidate, { className: 'ml-1' })}
+                            {renderMissingFieldBadges(candidate, { className: 'flex-shrink-0' })}
                             {(isCvPromotedInactive(candidate) || (!isAdmin && isCvUnavailableForNomination(candidate))) && (
                               <span
-                                className="inline-flex items-center justify-center rounded-full border border-orange-200 bg-orange-50 text-orange-600"
+                                className="inline-flex flex-shrink-0 items-center justify-center rounded-full border border-orange-200 bg-orange-50 text-orange-600"
                                 title={isCvPromotedInactive(candidate) ? getCvDisplayStatusLabel(candidate, language) : t.duplicate}
                                 aria-label={isCvPromotedInactive(candidate) ? getCvDisplayStatusLabel(candidate, language) : t.duplicate}
                                 style={{ width: 18, height: 18 }}
@@ -1789,7 +1791,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                               </span>
                             )}
                           </div>
-                          <div className="text-[8px] lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#6b7280' }}>
+                          <div className="truncate text-[8px] lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#6b7280' }} title={String(candidate.code || candidate.id)}>
                             ID: {candidate.code || candidate.id}
                           </div>
                           {renderDuplicateRefLink(dupRef, {
@@ -1807,7 +1809,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                               handleCvStatusInlineChange(candidate, parseInt(e.target.value, 10))
                             }
                             disabled={cvStatusUpdatingId === candidate.id}
-                            className="w-full max-w-[148px] cursor-pointer rounded border px-1 py-0.5 text-[8px] font-semibold xl:max-w-[160px] xl:px-1 xl:py-0.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
+                            className="w-full min-w-[96px] max-w-[148px] cursor-pointer whitespace-nowrap rounded border px-1 py-0.5 text-[8px] font-semibold xl:max-w-[160px] xl:px-1 xl:py-0.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
                             style={{
                               backgroundColor: s.bg,
                               color: s.color,
@@ -1824,7 +1826,7 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                           </select>
                         ) : (
                           <span
-                            className="inline-flex rounded px-px py-px text-[8px] font-medium xl:px-1 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
+                            className="inline-flex whitespace-nowrap rounded px-1 py-px text-[8px] font-medium lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
                             style={{ backgroundColor: s.bg, color: s.color, border: `1px solid ${s.border}` }}
                           >
                             {getCvDisplayStatusLabel(candidate, language)}
@@ -1854,26 +1856,28 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                       <td className="py-px pl-px pr-0 align-middle text-[8px] xl:py-0.5 xl:pl-0.5 xl:pr-0 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#374151' }}>{formatDate(candidate.createdAt || candidate.created_at)}</td>
                       {isAdmin && (
                         <>
-                          <td className="py-px pl-0 pr-px align-middle text-[8px] xl:py-0.5 xl:pl-0 xl:pr-0.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#374151' }}>
-                            {candidate.email && candidate.email.includes('@') ? (
-                              <div className="flex min-w-0 items-start gap-0.5">
-                                <Mail className="mt-0.5 h-2 w-2 flex-shrink-0" style={{ color: '#9ca3af' }} />
-                                <span className="min-w-0 break-all whitespace-normal">{candidate.email}</span>
-                              </div>
-                            ) : '—'}
-                          </td>
                           <td className="px-px py-px align-middle text-[8px] xl:px-0.5 xl:py-0.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#374151' }}>
-                            {candidate.phone ? (
-                              <div className="flex items-center gap-0.5">
-                                <Phone className="w-2 h-2 flex-shrink-0" style={{ color: '#9ca3af' }} />
-                                <span className="truncate">{formatPhoneForDisplay(candidate.phone)}</span>
+                            {(candidate.email && candidate.email.includes('@')) || candidate.phone ? (
+                              <div className="flex max-w-[170px] flex-col gap-0.5 xl:max-w-[210px] 2xl:max-w-[240px]">
+                                {candidate.email && candidate.email.includes('@') && (
+                                  <div className="flex min-w-0 items-center gap-0.5" title={candidate.email}>
+                                    <Mail className="h-2.5 w-2.5 flex-shrink-0" style={{ color: '#9ca3af' }} />
+                                    <span className="min-w-0 truncate">{candidate.email}</span>
+                                  </div>
+                                )}
+                                {candidate.phone && (
+                                  <div className="flex min-w-0 items-center gap-0.5">
+                                    <Phone className="h-2.5 w-2.5 flex-shrink-0" style={{ color: '#9ca3af' }} />
+                                    <span className="min-w-0 truncate whitespace-nowrap">{formatPhoneForDisplay(candidate.phone)}</span>
+                                  </div>
+                                )}
                               </div>
                             ) : '—'}
                           </td>
                           <td className="px-px py-px align-middle xl:px-0.5 xl:py-0.5">
                             <div className="flex flex-wrap items-center gap-0.5 xl:gap-1">
                               {candidate.collaborator ? (
-                                <div className="inline-flex items-center gap-1 rounded-full px-1 py-0.5 text-[8px] font-semibold transition-colors xl:px-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
+                                <div className="inline-flex max-w-[170px] items-center gap-1 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[8px] font-semibold transition-colors xl:max-w-[220px] lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
                                   style={{
                                     backgroundColor: hoveredCollaboratorLinkIndex === index ? '#dbeafe' : '#eff6ff',
                                     color: '#1d4ed8',
@@ -1886,10 +1890,10 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                                     onClick={(e) => { e.stopPropagation(); navigate(`/admin/collaborators/${candidate.collaborator.id}`); }}
                                     onMouseEnter={() => setHoveredCollaboratorLinkIndex(index)}
                                     onMouseLeave={() => setHoveredCollaboratorLinkIndex(null)}
-                                    className="inline-flex items-center gap-0.5 rounded-full"
+                                    className="inline-flex min-w-0 items-center gap-0.5 rounded-full"
                                     style={{ color: '#1d4ed8' }}
                                   >
-                                    <span>CTV {ctvName}</span>
+                                    <span className="truncate">{ctvChipPrefix} {ctvName}</span>
                                   </button>
                                   {isAdmin && (
                                     <button
@@ -1899,9 +1903,9 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                                         setEditingCollaborator(candidate.collaborator);
                                         setCollaboratorNameDraft(candidate.collaborator.name || candidate.collaborator.fullName || candidate.collaborator.code || '');
                                       }}
-                                      className="inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-blue-100"
-                                      title="Đổi tên CTV"
-                                      aria-label="Đổi tên CTV"
+                                      className="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full hover:bg-blue-100"
+                                      title={l('Đổi tên CTV', 'Rename collaborator', '協力者名を変更')}
+                                      aria-label={l('Đổi tên CTV', 'Rename collaborator', '協力者名を変更')}
                                     >
                                       <Edit className="h-2.5 w-2.5" />
                                     </button>
@@ -1915,17 +1919,17 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                                     setEditingCollaborator({ id: candidate.id, isUnassigned: true });
                                     setCollaboratorNameDraft('');
                                   }}
-                                  className="inline-flex items-center gap-1 rounded-full border border-dashed border-blue-300 bg-blue-50 px-2 py-0.5 text-[8px] font-semibold text-blue-700 hover:bg-blue-100 xl:px-2.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
-                                  title="Gán CTV"
-                                  aria-label="Gán CTV"
+                                  className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-dashed border-blue-300 bg-blue-50 px-2 py-0.5 text-[8px] font-semibold text-blue-700 hover:bg-blue-100 xl:px-2.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
+                                  title={l('Gán CTV', 'Assign collaborator', '協力者を割り当て')}
+                                  aria-label={l('Gán CTV', 'Assign collaborator', '協力者を割り当て')}
                                 >
                                   <Plus className="h-2.5 w-2.5" />
-                                  Gán CTV
+                                  {l('Gán CTV', 'Assign', '割り当て')}
                                 </button>
                               ) : null}
                               {applicantOwner !== '—' && (
                                 <span
-                                  className="inline-flex items-center gap-0.5 rounded-full px-1 py-0.5 text-[8px] font-semibold xl:px-1.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
+                                  className="inline-block max-w-[170px] truncate whitespace-nowrap rounded-full px-1.5 py-0.5 text-[8px] font-semibold xl:max-w-[220px] lg:text-[9px] xl:text-[10px] 2xl:text-[11px]"
                                   style={{
                                     backgroundColor: '#f0fdf4',
                                     color: '#15803d',
@@ -1933,15 +1937,20 @@ const CandidatesPageContent = ({ variant = 'admin' }) => {
                                   }}
                                   title={applicantOwner.secondary ? `${applicantOwner.primary} (${applicantOwner.secondary})` : applicantOwner.primary}
                                 >
-                                  UV {applicantOwner.primary}
+                                  {applicantChipPrefix} {applicantOwner.primary}
                                 </span>
                               )}
-                              {!candidate.collaborator && applicantOwner === '—' && (
+                              {!candidate.collaborator && !isAdmin && applicantOwner === '—' && (
                                 <span className="text-[8px] lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#9ca3af' }}>—</span>
                               )}
                             </div>
+                            {candidate.admin?.name && (
+                              <div className="mt-0.5 truncate text-[8px] @5xl:hidden lg:text-[9px] xl:text-[10px]" style={{ color: '#6b7280' }}>
+                                {t.colAdminName}: {candidate.admin.name}
+                              </div>
+                            )}
                           </td>
-                          <td className="px-px py-px align-middle text-[8px] xl:px-0.5 xl:py-0.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#374151' }}>{candidate.admin?.name || '—'}</td>
+                          <td className="hidden px-px py-px align-middle text-[8px] @5xl:table-cell xl:px-0.5 xl:py-0.5 lg:text-[9px] xl:text-[10px] 2xl:text-[11px]" style={{ color: '#374151' }}>{candidate.admin?.name || '—'}</td>
                         </>
                       )}
                       <td className="px-px py-px align-middle xl:px-0.5 xl:py-0.5" onClick={(e) => e.stopPropagation()}>

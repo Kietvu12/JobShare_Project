@@ -905,13 +905,6 @@ export default function ScoutCandidateDetail() {
                   <div className="flex flex-col gap-1.5 sm:flex-row">
                     <button
                       type="button"
-                      onClick={() => setAttachJobOpen(true)}
-                      className="scout-detail-body flex-1 rounded-lg bg-[#0077B6] py-2 font-semibold text-white hover:bg-[#006399]"
-                    >
-                      {cd.unlockedCredit.createNomination}
-                    </button>
-                    <button
-                      type="button"
                       onClick={handleDownloadOriginalCv}
                       disabled={downloadingCv}
                       className="scout-detail-body inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#0077B6]/35 bg-white py-2 font-semibold text-[#0077B6] hover:bg-[#e8f4fa]/60 disabled:opacity-60"

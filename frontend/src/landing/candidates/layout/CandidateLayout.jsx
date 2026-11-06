@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import CandidateLandingChatbot from '../../../component/LandingPage/CandidateLandingChatbot';
 import { getLocaleFromPathname } from '../../../utils/localeRoutes';
 import { JobShareRoleSwitchBar } from '../../shared/switch-sites';
 import '../../templates/JobShare_Candidate_V1_1_20261006/fonts.css';
@@ -31,22 +32,25 @@ function CandidateLayoutInner() {
   }, [pathname, lang]);
 
   return (
-    <div id="candidate-site-root">
-      <span id="top" className="sr-only" aria-hidden="true" />
-      <a className="skip" href="#main">
-        {ui.skip}
-      </a>
-      <JobShareRoleSwitchBar activePersona="candidate" />
-      <CandidateHeader />
-      <main id="main">
-        <Outlet />
-      </main>
-      <CandidateFooter />
-      <div className="floating-controls">
-        <CandidateBackToTop />
+    <>
+      <div id="candidate-site-root">
+        <span id="top" className="sr-only" aria-hidden="true" />
+        <a className="skip" href="#main">
+          {ui.skip}
+        </a>
+        <JobShareRoleSwitchBar activePersona="candidate" />
+        <CandidateHeader />
+        <main id="main">
+          <Outlet />
+        </main>
+        <CandidateFooter />
+        <div className="floating-controls">
+          <CandidateBackToTop />
+        </div>
+        <CandidateContactDialog />
       </div>
-      <CandidateContactDialog />
-    </div>
+      <CandidateLandingChatbot />
+    </>
   );
 }
 

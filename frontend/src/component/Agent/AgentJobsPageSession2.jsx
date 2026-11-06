@@ -124,9 +124,9 @@ function AdminJobStatusSelect({ job, language, statusUpdating, onSelect, compact
 
   const hint =
     st === 0
-      ? (language === 'vi' ? 'CTV chỉ thấy job đang công bố.' : language === 'en' ? 'CTV only sees published jobs.' : 'CTVは公開中のみ閲覧')
+      ? (language === 'vi' ? 'CTV chỉ thấy job đang công bố.' : language === 'en' ? 'Collaborators only see published jobs.' : '協力者は公開中のみ閲覧')
       : st === 2 || st === 3
-        ? (language === 'vi' ? 'Ẩn với CTV.' : language === 'en' ? 'Hidden from CTV.' : 'CTV非表示')
+        ? (language === 'vi' ? 'Ẩn với CTV.' : language === 'en' ? 'Hidden from collaborators.' : '協力者には非表示')
         : null;
 
   const title =

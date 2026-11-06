@@ -32,6 +32,13 @@ import {
 
 const JOB_TITLE_MAX = 48;
 const truncate = (str, max) => (str && str.length > max ? str.slice(0, max) + '…' : str || '—');
+
+const formatAdminAssignOptionLabel = (admin) => {
+  const name = admin?.name || admin?.email || `#${admin?.id}`;
+  if (admin?.role === 1) return `${name} (Super Admin)`;
+  if (admin?.role === 2) return `${name} (Backoffice)`;
+  return name;
+};
 const STATUSES_REQUIRE_REJECTION = [4, 6, 10, 13, 16];
 const STATUS_INTERVIEW_SCHEDULE = 8;
 
@@ -321,13 +328,22 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
         if (admin?.role === 1) {
           setViewMode('all');
         }
-        // Nếu là Super Admin thì load danh sách AdminBackOffice để phân công
+        // Super Admin: load Super Admin + Backoffice để phân công "Admin phụ trách"
         const role = admin?.role;
         if (role === 1) {
-          const adminsRes = await apiService.getAdmins({ role: 2, status: 1 });
-          if (adminsRes.success && adminsRes.data) {
-            setAdmins(adminsRes.data.admins || []);
-          }
+          const listParams = { status: 1, limit: 200 };
+          const [superRes, backofficeRes] = await Promise.all([
+            apiService.getAdmins({ ...listParams, role: 1 }),
+            apiService.getAdmins({ ...listParams, role: 2 }),
+          ]);
+          const byId = new Map();
+          [...(superRes?.data?.admins || []), ...(backofficeRes?.data?.admins || [])].forEach((a) => {
+            if (a?.id != null) byId.set(a.id, a);
+          });
+          const merged = Array.from(byId.values()).sort((a, b) =>
+            String(a.name || a.email || '').localeCompare(String(b.name || b.email || ''), 'vi'),
+          );
+          setAdmins(merged);
         }
       }
     } catch (error) {
@@ -1938,7 +1954,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
                               <option value="">{t.notAssignedAdminOption}</option>
                               {admins.map((admin) => (
                                 <option key={admin.id} value={admin.id}>
-                                  {admin.name}
+                                  {formatAdminAssignOptionLabel(admin)}
                                 </option>
                               ))}
                             </select>
@@ -2227,7 +2243,7 @@ const NominationsPageContent = ({ variant = 'admin', embeddedPrefix = '/candidat
                                   <option value="">{t.notAssignedAdminOption}</option>
                                   {admins.map(admin => (
                                     <option key={admin.id} value={admin.id}>
-                                      {admin.name}
+                                      {formatAdminAssignOptionLabel(admin)}
                                     </option>
                                   ))}
                                 </select>

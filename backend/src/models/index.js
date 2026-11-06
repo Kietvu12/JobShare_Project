@@ -2256,14 +2256,16 @@ export const JobApplication = sequelize.define(
       primaryKey: true,
       autoIncrement: true
     },
+    // Alias đọc của timestamp: Sequelize chỉ tự gán thuộc tính `created_at`/`updated_at`
+    // (theo options bên dưới), nên alias này phải cho phép null khi create.
     createdAt: {
       type: DataTypes.DATE,
-      allowNull: false,
+      allowNull: true,
       field: 'created_at'
     },
     updatedAt: {
       type: DataTypes.DATE,
-      allowNull: false,
+      allowNull: true,
       field: 'updated_at'
     },
     jobId: {

@@ -69,7 +69,7 @@ const COPY = {
     registeredCtvBadge: 'Đã đăng ký',
   },
   en: {
-    title: 'CTV support',
+    title: 'Collaborator support',
     subtitle: 'Our team can help you directly',
     openAria: 'Open support chat',
     close: 'Close',
@@ -107,11 +107,11 @@ const COPY = {
     chatWithAdminTitle: 'Chat with admin',
     chatWithAdminSubtitle: 'Live team support',
     chatWithAdminHint: 'Optional name and your first message — our team will reply.',
-    chatWithAdminHintAgent: 'Type your first message — your display name comes from your CTV account.',
+    chatWithAdminHintAgent: 'Type your first message — your display name comes from your collaborator account.',
     registeredCtvBadge: 'Registered',
   },
   ja: {
-    title: 'CTVサポート',
+    title: '協力者サポート',
     subtitle: 'チームによるサポートも可能です',
     openAria: 'サポートチャットを開く',
     close: '閉じる',
@@ -149,7 +149,7 @@ const COPY = {
     chatWithAdminTitle: '管理者チャット',
     chatWithAdminSubtitle: '担当者とやり取り',
     chatWithAdminHint: 'お名前（任意）と最初のメッセージを入力してください。',
-    chatWithAdminHintAgent: '最初のメッセージを入力してください。表示名はCTVアカウントの氏名を使用します。',
+    chatWithAdminHintAgent: '最初のメッセージを入力してください。表示名は協力者アカウントの氏名を使用します。',
     registeredCtvBadge: '登録済み',
   },
 };

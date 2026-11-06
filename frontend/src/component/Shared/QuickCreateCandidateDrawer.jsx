@@ -276,11 +276,11 @@ export default function QuickCreateCandidateDrawer({
   };
 
   const collaboratorSearchText = useMemo(() => ({
-    label: language === 'en' ? 'Create profile for CTV' : language === 'ja' ? 'CTVを選択して作成' : 'Chọn CTV để tạo hồ sơ',
-    placeholder: language === 'en' ? 'Search CTV by name, email, phone...' : language === 'ja' ? '名前・メール・電話番号でCTVを検索...' : 'Tìm CTV theo tên, email, số điện thoại...',
-    empty: language === 'en' ? 'No matching CTV found' : language === 'ja' ? '該当するCTVがありません' : 'Không tìm thấy CTV phù hợp',
-    selected: language === 'en' ? 'Selected CTV' : language === 'ja' ? '選択中のCTV' : 'CTV đã chọn',
-    clear: language === 'en' ? 'Clear CTV' : language === 'ja' ? 'CTVを解除' : 'Bỏ chọn CTV',
+    label: language === 'en' ? 'Create profile for collaborator' : language === 'ja' ? '協力者を選択して作成' : 'Chọn CTV để tạo hồ sơ',
+    placeholder: language === 'en' ? 'Search collaborators by name, email, phone...' : language === 'ja' ? '名前・メール・電話番号で協力者を検索...' : 'Tìm CTV theo tên, email, số điện thoại...',
+    empty: language === 'en' ? 'No matching collaborator found' : language === 'ja' ? '該当する協力者がいません' : 'Không tìm thấy CTV phù hợp',
+    selected: language === 'en' ? 'Selected collaborator' : language === 'ja' ? '選択中の協力者' : 'CTV đã chọn',
+    clear: language === 'en' ? 'Clear collaborator' : language === 'ja' ? '協力者を解除' : 'Bỏ chọn CTV',
   }), [language]);
 
   const collaboratorDisplayName = (collaborator) => {

@@ -149,7 +149,7 @@ export const paymentRequestController = {
                 model: Job,
                 as: 'job',
                 required: false,
-                attributes: ['id', 'jobCode', 'title', 'slug'],
+                attributes: ['id', 'jobCode', 'title', 'titleEn', 'titleJp', 'slug'],
                 include: [
                   {
                     model: Company,

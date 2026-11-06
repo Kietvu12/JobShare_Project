@@ -2,6 +2,7 @@ import candidateLogo from '../../templates/JobShare_Candidate_Login_V2_20261006/
 import candidateVisual from '../../templates/JobShare_Candidate_Login_V2_20261006/JobShare_Candidate_Login_V2_20261006/assets/login-candidate.webp';
 import collaboratorLogo from '../../templates/JobShare_Login_V1_20261006 (1)/JobShare_Login_V1_20261006/assets/jobshare-logo.png';
 import collaboratorVisual from '../../templates/JobShare_Login_V1_20261006 (1)/JobShare_Login_V1_20261006/assets/login-collaborator.webp';
+import businessVisual from '../../templates/JobShare_Business_Login_V1_20261006/JobShare_Business_Login_V1_20261006/assets/login-business.webp';
 
 export const LOGIN_TEMPLATE_MEDIA = {
   candidate: {
@@ -11,5 +12,9 @@ export const LOGIN_TEMPLATE_MEDIA = {
   collaborator: {
     logoSrc: collaboratorLogo,
     brandSrc: collaboratorVisual,
+  },
+  business: {
+    logoSrc: null,
+    brandSrc: businessVisual,
   },
 };

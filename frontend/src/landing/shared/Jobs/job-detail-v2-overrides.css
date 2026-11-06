@@ -1,0 +1,36 @@
+/**
+ * Job Detail V2 trong shell CTV / ứng viên — job-detail-v2-styles.scoped.css sinh từ template detail.css.
+ * File này chỉ bổ sung phần template không có.
+ */
+
+/* Header shell + role bar sticky: thay cho top 101px / scroll-margin 112px của bản xem trước template. */
+:is(#candidate-site-root, #collaborator-site-root) .jobshare-job-detail-v2 .detail-side {
+  top: calc(var(--jobshare-role-bar-height, 0px) + 92px);
+}
+
+:is(#candidate-site-root, #collaborator-site-root) .jobshare-job-detail-v2 section[id] {
+  scroll-margin-top: calc(var(--jobshare-role-bar-height, 0px) + 112px);
+}
+
+:is(#candidate-site-root, #collaborator-site-root) .jobshare-job-detail-v2 .detail-layout--state {
+  display: block;
+}
+
+/* Lương lấy từ «Chi tiết mức lương»: đoạn nhiều dòng, không dùng cỡ chữ của con số lương
+   (!important để thắng rule body:lang(ja) .salary-panel .salary-value của template). */
+:is(#candidate-site-root, #collaborator-site-root) .jobshare-job-detail-v2 .salary-panel--detail .salary-value,
+:is(#candidate-site-root, #collaborator-site-root) .jobshare-job-detail-v2 .side-salary--detail {
+  font-size: 14px !important;
+  line-height: 1.75;
+  font-weight: 700;
+  letter-spacing: 0;
+  white-space: pre-line;
+}
+
+:is(#candidate-site-root, #collaborator-site-root) .jobshare-job-detail-v2 .info-row--multiline {
+  grid-column: 1 / -1;
+}
+
+:is(#candidate-site-root, #collaborator-site-root) .jobshare-job-detail-v2 .info-row dd {
+  white-space: pre-line;
+}

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useLanguage } from '../../../../../context/LanguageContext'
 import { getLandingHeaderCopy } from '../../../../../i18n/businessApp/landingHeader'
@@ -37,6 +37,24 @@ export default function Header() {
   const copy = getLandingHeaderCopy(language)
   const pastVisual = useHeaderPastVisual(pathname)
   const localeFromUrl = getLocaleFromPathname(pathname)
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    if (!menuOpen) return undefined
+    document.body.classList.add('js-scroll-none')
+    return () => document.body.classList.remove('js-scroll-none')
+  }, [menuOpen])
+
+  const closeMenuOnLinkClick = (event) => {
+    if (event.target.closest('a')) setMenuOpen(false)
+  }
+
+  const scrollCls = (cls) => (pastVisual ? ` ${cls}` : '')
+  const openCls = (cls) => (menuOpen ? ` ${cls}` : '')
 
   useEffect(() => {
     if (localeFromUrl) syncFromUrl(localeFromUrl)
@@ -65,10 +83,10 @@ export default function Header() {
       </div>
 
       <div
-        className={`header-main js-gnav js-hamburger-menu__wrapper${pastVisual ? ' header-main--at-top header-main--max-width js-gnav-active' : ''}`}
+        className={`header-main js-gnav js-hamburger-menu__wrapper${scrollCls('header-main--at-top header-main--max-width js-gnav-active js-hamburger-menu__wrapper--scroll')}${openCls('js-hamburger-menu__wrapper--open')}`}
       >
         <div
-          className={`header-main__contents js-gnav-container js-hamburger-menu__container${pastVisual ? ' header-main__contents--past-visual header-main__contents--max-width js-gnav-max-width' : ''}`}
+          className={`header-main__contents js-gnav-container js-hamburger-menu__container${scrollCls('header-main__contents--past-visual header-main__contents--max-width js-gnav-max-width')}${openCls('js-hamburger-menu__container--active')}`}
         >
           <div className="header-main__wrapper">
             <div className="header-main__site-name">
@@ -84,12 +102,16 @@ export default function Header() {
             </div>
 
             <a
-              className="header-main-hamburger js-hamburger-menu"
+              className={`header-main-hamburger js-hamburger-menu${scrollCls('js-hamburger-menu--scroll')}${openCls('js-hamburger-menu--active')}`}
               href="#"
-              onClick={(e) => e.preventDefault()}
+              onClick={(e) => {
+                e.preventDefault()
+                setMenuOpen((open) => !open)
+              }}
               aria-label={copy.menu}
+              aria-expanded={menuOpen}
             >
-              <div className="header-main-hamburger__icon js-hamburger-menu__icon" />
+              <div className={`header-main-hamburger__icon js-hamburger-menu__icon${openCls('js-hamburger-menu__icon--active')}`} />
             </a>
 
             <nav className="header-nav">
@@ -117,7 +139,10 @@ export default function Header() {
             </nav>
           </div>
 
-          <nav className="header-sp-nav js-hamburger-menu__nav">
+          <nav
+            className={`header-sp-nav js-hamburger-menu__nav${openCls('js-hamburger-menu__nav--active')}`}
+            onClick={closeMenuOnLinkClick}
+          >
             <div className="header-sp-nav__wrapper js-hamburger-menu__nav-wrapper">
               <CommonNavPanel variant="mobile" />
             </div>
@@ -125,7 +150,7 @@ export default function Header() {
         </div>
       </div>
 
-      <div className="js-hamburger-menu__bg" />
+      <div className={`js-hamburger-menu__bg${openCls('js-hamburger-menu__bg--active')}`} />
     </header>
   )
 }

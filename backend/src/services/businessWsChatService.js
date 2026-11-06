@@ -1823,6 +1823,177 @@ export async function syncWsChatAfterJoinedCompany({
   }
 }
 
+/** DN xác nhận đã chuyển khoản trên Billing → cập nhật thẻ chat + thông báo Admin. */
+export async function syncWsChatAfterBusinessReferralInvoicePaymentConfirmed({
+  businessId,
+  invoiceId,
+  invoiceCode = null,
+  amount = null,
+  candidateName = null,
+  jobCode = null,
+  jobApplicationId = null,
+}) {
+  try {
+    if (!businessId || !invoiceId) return null;
+
+    const business = await Business.findByPk(businessId, {
+      attributes: ['id', 'companyName', 'contactName'],
+    });
+    const session = await ensureWsChatSessionForBusiness({ businessId, business });
+    const companyLabel = business?.companyName || 'Doanh nghiệp';
+    const amountLabel = amount != null ? `${Number(amount).toLocaleString('vi-VN')} VNĐ` : '';
+    const codeLabel = invoiceCode || `#${invoiceId}`;
+
+    const invoiceRows = await BusinessWsChatMessage.findAll({
+      where: {
+        sessionId: session.id,
+        messageType: WS_CHAT_MESSAGE_TYPES.REFERRAL_PAYMENT_INVOICE,
+      },
+      order: [['id', 'DESC']],
+    });
+    const invoiceMsg = invoiceRows.find(
+      (row) => Number(row.requestPayload?.invoiceId) === Number(invoiceId),
+    ) || (jobApplicationId
+      ? invoiceRows.find(
+        (row) => Number(row.requestPayload?.jobApplicationId) === Number(jobApplicationId),
+      )
+      : null);
+
+    if (invoiceMsg?.requestPayload) {
+      invoiceMsg.requestPayload = {
+        ...invoiceMsg.requestPayload,
+        status: 'processing',
+        businessConfirmedAt: new Date().toISOString(),
+      };
+      invoiceMsg.isReadByAdmin = false;
+      await invoiceMsg.save();
+    }
+
+    const content = amountLabel
+      ? `${companyLabel} xác nhận đã chuyển khoản ${amountLabel} (${codeLabel}). WS vui lòng đối soát và xác nhận hoàn tất.`
+      : `${companyLabel} xác nhận đã thanh toán (${codeLabel}). WS vui lòng đối soát và xác nhận hoàn tất.`;
+
+    const confirmMessage = await BusinessWsChatMessage.create({
+      sessionId: session.id,
+      senderType: WS_CHAT_SENDER_TYPES.SYSTEM,
+      businessId,
+      messageType: WS_CHAT_MESSAGE_TYPES.TEXT,
+      requestPayload: {
+        kind: 'referral_invoice_payment_confirmed',
+        invoiceId: Number(invoiceId),
+        invoiceCode: invoiceCode || null,
+        jobApplicationId: jobApplicationId ? Number(jobApplicationId) : null,
+        amount: amount != null ? Number(amount) : null,
+      },
+      content,
+      isReadByAdmin: false,
+      isReadByBusiness: true,
+    });
+
+    await touchSessionPreview(session, { content: `DN xác nhận TT — ${codeLabel}` });
+
+    await collaboratorNotificationService.notifyAdminsBusinessReferralInvoicePaymentConfirmed({
+      businessName: companyLabel,
+      invoiceCode: codeLabel,
+      amount,
+      candidateName,
+      jobCode,
+      sessionId: session.id,
+    });
+
+    return {
+      sessionId: session.id,
+      message: formatMessageRow(confirmMessage),
+      invoiceMessage: invoiceMsg ? formatMessageRow(invoiceMsg) : null,
+    };
+  } catch (error) {
+    console.error('[WsChat] syncWsChatAfterBusinessReferralInvoicePaymentConfirmed failed:', error?.message || error);
+    return null;
+  }
+}
+
+/** Admin xác nhận đã nhận tiền phí giới thiệu (Billing). */
+export async function syncWsChatAfterAdminReferralInvoicePaid({
+  businessId,
+  invoiceId,
+  invoiceCode = null,
+  amount = null,
+  candidateName = null,
+  jobCode = null,
+  jobApplicationId = null,
+  adminId = null,
+}) {
+  try {
+    if (!businessId || !invoiceId) return null;
+
+    const business = await Business.findByPk(businessId, {
+      attributes: ['id', 'companyName'],
+    });
+    const session = await ensureWsChatSessionForBusiness({ businessId, business });
+    const codeLabel = invoiceCode || `#${invoiceId}`;
+    const amountLabel = amount != null ? `${Number(amount).toLocaleString('vi-VN')} VNĐ` : '';
+
+    const invoiceRows = await BusinessWsChatMessage.findAll({
+      where: {
+        sessionId: session.id,
+        messageType: WS_CHAT_MESSAGE_TYPES.REFERRAL_PAYMENT_INVOICE,
+      },
+      order: [['id', 'DESC']],
+    });
+    const invoiceMsg = invoiceRows.find(
+      (row) => Number(row.requestPayload?.invoiceId) === Number(invoiceId),
+    );
+    if (invoiceMsg?.requestPayload) {
+      invoiceMsg.requestPayload = {
+        ...invoiceMsg.requestPayload,
+        status: 'paid',
+        wsConfirmedAt: new Date().toISOString(),
+      };
+      invoiceMsg.isReadByBusiness = false;
+      await invoiceMsg.save();
+    }
+
+    const content = amountLabel
+      ? `WS đã xác nhận nhận thanh toán ${amountLabel} (${codeLabel}). Cảm ơn quý doanh nghiệp.`
+      : `WS đã xác nhận hoàn tất thanh toán (${codeLabel}).`;
+
+    const message = await BusinessWsChatMessage.create({
+      sessionId: session.id,
+      senderType: WS_CHAT_SENDER_TYPES.SYSTEM,
+      adminId: adminId || null,
+      businessId,
+      messageType: WS_CHAT_MESSAGE_TYPES.TEXT,
+      requestPayload: {
+        kind: 'referral_invoice_paid_confirmed',
+        invoiceId: Number(invoiceId),
+        invoiceCode: invoiceCode || null,
+        jobApplicationId: jobApplicationId ? Number(jobApplicationId) : null,
+      },
+      content,
+      isReadByAdmin: true,
+      isReadByBusiness: false,
+    });
+
+    await touchSessionPreview(session, { content: `Đã xác nhận TT — ${codeLabel}` });
+
+    await collaboratorNotificationService.notifyBusinessReferralInvoicePaidConfirmed({
+      businessId,
+      invoiceCode: codeLabel,
+      amount,
+      candidateName,
+    });
+
+    return {
+      sessionId: session.id,
+      message: formatMessageRow(message),
+      invoiceMessage: invoiceMsg ? formatMessageRow(invoiceMsg) : null,
+    };
+  } catch (error) {
+    console.error('[WsChat] syncWsChatAfterAdminReferralInvoicePaid failed:', error?.message || error);
+    return null;
+  }
+}
+
 /** Admin nhập số tiền trong chat WS → tạo hóa đơn Billing + gửi yêu cầu TT cho DN. */
 export async function submitReferralPaymentInWsChat({
   sessionId,
@@ -2440,6 +2611,8 @@ export default {
   syncAllPendingCreditRequestsForBusiness,
   syncWsChatAfterCreditRequestCreated,
   syncWsChatAfterJoinedCompany,
+  syncWsChatAfterBusinessReferralInvoicePaymentConfirmed,
+  syncWsChatAfterAdminReferralInvoicePaid,
   submitReferralPaymentInWsChat,
   syncWsChatAfterCreditApproval,
   syncWsChatAfterCreditRejection,

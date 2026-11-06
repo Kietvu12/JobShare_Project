@@ -4,7 +4,6 @@ import {
   XCircle,
   MoreVertical,
   Calendar,
-  BarChart3,
   PieChart as PieChartIcon,
   ChevronDown,
 } from 'lucide-react';
@@ -38,7 +37,6 @@ const AdminDashboardSession3 = () => {
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [error, setError] = useState(null);
   const [pieMonth, setPieMonth] = useState(() => new Date());
-  const [pieHovered, setPieHovered] = useState(false);
 
   useEffect(() => {
     const fetchPaymentRequests = async () => {
@@ -160,45 +158,6 @@ const AdminDashboardSession3 = () => {
     return Number.isFinite(num) ? num : -1;
   };
 
-  const parseAmount = (amount) => {
-    if (amount === null || amount === undefined) return 0;
-    if (typeof amount === 'number') return Number.isFinite(amount) ? amount : 0;
-    const cleaned = String(amount).replace(/[^0-9.-]/g, '');
-    const num = Number(cleaned);
-    return Number.isFinite(num) ? num : 0;
-  };
-
-  const dailyPaidData = useMemo(() => {
-    const map = new Map();
-    allRequests.forEach((req) => {
-      const status = normalizePaymentStatus(req.status);
-      if (status !== 3) return;
-      const amount = parseAmount(req.amount);
-      if (!amount) return;
-      // API có thể trả camelCase hoặc snake_case; ưu tiên paidAt rồi fallback updatedAt
-      const paidDateRaw =
-        req.paidAt ||
-        req.paid_at ||
-        req.approvedAt ||
-        req.approved_at ||
-        req.updatedAt ||
-        req.updated_at;
-      if (!paidDateRaw) return;
-      const d = new Date(paidDateRaw);
-      if (Number.isNaN(d.getTime())) return;
-      const key = d.toISOString().slice(0, 10); // YYYY-MM-DD
-      const current = map.get(key) || 0;
-      map.set(key, current + amount);
-    });
-    const entries = Array.from(map.entries())
-      .sort(([a], [b]) => (a > b ? 1 : -1))
-      .slice(-7);
-    return entries.map(([date, amount]) => ({
-      label: date.slice(5).replace('-', '/'),
-      amount,
-    }));
-  }, [allRequests]);
-
   const pieData = useMemo(() => {
     const target = new Date(pieMonth.getFullYear(), pieMonth.getMonth(), 1);
     const month = target.getMonth();
@@ -222,18 +181,22 @@ const AdminDashboardSession3 = () => {
       }
     });
 
-    const total = approved + pending + rejected || 1;
-    const approvedPct = (approved / total) * 100;
-    const pendingPct = (pending / total) * 100;
-    const rejectedPct = 100 - approvedPct - pendingPct;
+    const total = approved + pending + rejected;
+    const pct = (n) => (total ? (n / total) * 100 : 0);
+    const approvedPct = pct(approved);
+    const pendingPct = pct(pending);
+    const rejectedPct = total ? 100 - approvedPct - pendingPct : 0;
 
-    const gradient = `conic-gradient(
+    const gradient = total
+      ? `conic-gradient(
       #2563EB 0 ${approvedPct}%,
       #111827 ${approvedPct}% ${approvedPct + pendingPct}%,
       #DC2626 ${approvedPct + pendingPct}% 100%
-    )`;
+    )`
+      : 'conic-gradient(#e5e7eb 0 100%)';
 
     return {
+      total,
       approved,
       pending,
       rejected,
@@ -246,11 +209,11 @@ const AdminDashboardSession3 = () => {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mt-4 sm:mt-6">
-        {[1, 2, 3].map((i) => (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-3 mt-2 sm:mt-3 md:mt-4">
+        {[1, 2].map((i) => (
           <div
             key={i}
-            className="bg-white rounded-xl border border-gray-100 p-4 sm:p-6 shadow-sm animate-pulse"
+            className={`bg-white rounded-xl border border-gray-100 p-4 sm:p-6 shadow-sm animate-pulse ${i === 1 ? 'lg:col-span-2' : ''}`}
           >
             <div className="h-5 bg-gray-200 rounded w-1/2 mb-4" />
             <div className="space-y-2">
@@ -265,7 +228,7 @@ const AdminDashboardSession3 = () => {
   }
 
   return (
-    <div className="mt-2 sm:mt-3 md:mt-4 grid grid-cols-1 lg:grid-cols-4 gap-2 sm:gap-3 text-[9px] sm:text-[10px]">
+    <div className="mt-2 sm:mt-3 md:mt-4 grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-3 text-[9px] sm:text-[10px]">
       {/* Card 1: Phê duyệt nhanh đơn thanh toán (chiếm 2 phần) */}
       <div className="lg:col-span-2 bg-white rounded-sm sm:rounded-md p-2 sm:p-2.5 md:p-3 border border-gray-100">
         <div className="flex items-center justify-between mb-2 sm:mb-3">
@@ -298,8 +261,10 @@ const AdminDashboardSession3 = () => {
             {quickRequests.map((req) => {
               const collaborator = req.collaborator || {};
               const job = req.jobApplication?.job || req.jobApplication || {};
-              const created = req.createdAt
-                ? new Date(req.createdAt).toLocaleDateString('vi-VN')
+              const jobTitle = l(job.title, job.titleEn || job.title, job.titleJp || job.title);
+              const createdRaw = req.createdAt || req.created_at;
+              const created = createdRaw
+                ? new Date(createdRaw).toLocaleDateString(l('vi-VN', 'en-GB', 'ja-JP'))
                 : '';
               const status = req.status;
               const statusMeta = getPaymentStatusMeta(status);
@@ -325,7 +290,7 @@ const AdminDashboardSession3 = () => {
                   </div>
                   <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]">
                     <p className="text-gray-600 truncate">
-                      <span className="font-medium text-gray-700">{l('Job', 'Job', '求人')}:</span> {job.title || 'N/A'}
+                      <span className="font-medium text-gray-700">{l('Job', 'Job', '求人')}:</span> {jobTitle || 'N/A'}
                     </p>
                     <p className="text-gray-600">
                       <span className="font-medium text-gray-700">{l('Ngày tạo', 'Created', '作成日')}:</span> {created || '--'}
@@ -369,63 +334,14 @@ const AdminDashboardSession3 = () => {
         )}
       </div>
 
-      {/* Card 2: Biểu đồ số tiền đã thanh toán (ngày gần nhất) – 1 phần */}
-      <div className="bg-white rounded-sm sm:rounded-md p-2 sm:p-2.5 border border-gray-100 flex flex-col">
+      {/* Card 2: Trạng thái yêu cầu theo tháng — cao bằng card phê duyệt (grid stretch) */}
+      <div className="bg-white rounded-sm sm:rounded-md p-2 sm:p-2.5 md:p-3 border border-gray-100 flex flex-col">
         <div className="flex items-center justify-between mb-2 sm:mb-3">
           <div>
-            <h3 className="text-[9px] sm:text-[10px] font-semibold text-gray-900">
-              {l('Số tiền đã thanh toán', 'Paid amount', '支払い済み金額')}
-            </h3>
-            <p className="text-[8px] sm:text-[9px] text-gray-500">
-              {l('Theo các ngày gần đây', 'By recent days', '直近日別')}
-            </p>
-          </div>
-          <BarChart3 className="w-2.5 h-2.5 text-gray-400" />
-        </div>
-
-        <div className="flex-1 flex items-end">
-          {dailyPaidData.length === 0 ? (
-            <p className="text-[11px] sm:text-xs text-gray-500 text-center w-full">
-              {l('Chưa có giao dịch đã thanh toán', 'No paid transactions yet', '支払い済み取引はまだありません')}
-            </p>
-          ) : (
-            <div className="w-full flex items-end gap-1.5 sm:gap-2 h-32 sm:h-40">
-              {dailyPaidData.map((d) => {
-                const max = Math.max(
-                  ...dailyPaidData.map((x) => x.amount),
-                  1
-                );
-                const h = (d.amount / max) * 100;
-                return (
-                  <div
-                    key={d.label}
-                    className="flex-1 flex flex-col items-center justify-end gap-1"
-                  >
-                    <div className="w-full bg-indigo-50 rounded-t-full flex items-end justify-center overflow-hidden">
-                      <div
-                        className="w-full bg-gradient-to-t from-indigo-600 to-indigo-400 rounded-t-full transition-all duration-300"
-                        style={{ height: `${Math.max(h, 6)}%` }}
-                      />
-                    </div>
-                    <span className="text-[10px] text-gray-500">
-                      {d.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Card 3: Pie chart trạng thái yêu cầu theo tháng – 1 phần */}
-      <div className="bg-white rounded-sm sm:rounded-md p-2 sm:p-2.5 border border-gray-100 flex flex-col aspect-square">
-        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-          <div>
-            <h3 className="text-[9px] sm:text-[10px] font-semibold text-gray-900">
+            <h3 className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-gray-900">
               {l('Trạng thái', 'Status', 'ステータス')}
             </h3>
-            <p className="text-[7px] sm:text-[8px] text-gray-500">
+            <p className="text-[8px] sm:text-[9px] text-gray-500">
               {l('Theo tháng được chọn', 'For selected month', '選択した月')}
             </p>
           </div>
@@ -446,65 +362,43 @@ const AdminDashboardSession3 = () => {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col items-center justify-center">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 py-2">
           <div
-            className="relative flex flex-col items-center justify-center gap-2"
-            onMouseEnter={() => setPieHovered(true)}
-            onMouseLeave={() => setPieHovered(false)}
+            className="w-28 h-28 sm:w-36 sm:h-36 rounded-full shadow-sm flex items-center justify-center"
+            style={{ backgroundImage: pieData.gradient }}
           >
-            <div
-              className="w-24 h-24 sm:w-32 sm:h-32 rounded-full shadow-sm flex items-center justify-center"
-              style={{ backgroundImage: pieData.gradient }}
-            >
-              <div className="w-14 h-14 sm:w-18 sm:h-18 rounded-full bg-white flex flex-col items-center justify-center">
-                <span className="text-[10px] font-semibold text-gray-900">
-                  {pieData.approved + pieData.pending + pieData.rejected}
-                </span>
-                <span className="text-[8px] text-gray-500">{l('Yêu cầu', 'Requests', '申請')}</span>
-              </div>
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white flex flex-col items-center justify-center">
+              <span className="text-sm font-semibold text-gray-900">{pieData.total}</span>
+              <span className="text-[9px] text-gray-500">{l('Yêu cầu', 'Requests', '申請')}</span>
             </div>
-
-            {pieHovered && (
-              <div className="absolute -bottom-1 sm:-bottom-2 left-1/2 -translate-x-1/2 min-w-[160px] rounded-md bg-gray-900/95 text-white text-[9px] sm:text-[10px] px-2.5 py-1.5 shadow-lg">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-1">
-                    <span
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: '#2563EB' }}
-                    />
-                    <span>{l('Đã duyệt', 'Approved', '承認済み')}</span>
-                  </span>
-                  <span className="font-semibold">
-                    {pieData.approved} ({pieData.approvedPct.toFixed(0)}%)
-                  </span>
-                </div>
-                <div className="mt-0.5 flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-1">
-                    <span
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: '#111827' }}
-                    />
-                    <span>{l('Chờ duyệt', 'Pending', '承認待ち')}</span>
-                  </span>
-                  <span className="font-semibold">
-                    {pieData.pending} ({pieData.pendingPct.toFixed(0)}%)
-                  </span>
-                </div>
-                <div className="mt-0.5 flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-1">
-                    <span
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: '#DC2626' }}
-                    />
-                    <span>{l('Từ chối', 'Rejected', '拒否')}</span>
-                  </span>
-                  <span className="font-semibold">
-                    {pieData.rejected} ({pieData.rejectedPct.toFixed(0)}%)
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
+
+          {pieData.total ? (
+            <ul className="w-full max-w-[240px] space-y-1.5 text-[11px]">
+              {[
+                ['#2563EB', l('Đã duyệt', 'Approved', '承認済み'), pieData.approved, pieData.approvedPct],
+                ['#111827', l('Chờ duyệt', 'Pending', '承認待ち'), pieData.pending, pieData.pendingPct],
+                ['#DC2626', l('Từ chối', 'Rejected', '拒否'), pieData.rejected, pieData.rejectedPct],
+              ].map(([color, label, count, pct]) => (
+                <li
+                  key={label}
+                  className="flex items-center justify-between gap-2 rounded-md bg-gray-50 px-2.5 py-1.5"
+                >
+                  <span className="flex items-center gap-1.5 text-gray-700">
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                    {label}
+                  </span>
+                  <span className="font-semibold tabular-nums text-gray-900">
+                    {count} ({pct.toFixed(0)}%)
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-[11px] text-gray-500">
+              {l('Không có yêu cầu trong tháng này', 'No requests this month', 'この月の申請はありません')}
+            </p>
+          )}
         </div>
       </div>
     </div>

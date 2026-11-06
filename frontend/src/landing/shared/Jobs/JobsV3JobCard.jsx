@@ -3,6 +3,20 @@ import { Link } from 'react-router-dom';
 import { salary, local } from '../../templates/JobShare_Jobs_V3_20261007/dist/model.js';
 import { rootFor, toneFor, iconFor } from '../../templates/JobShare_Jobs_V3_20261007/dist/ui.js';
 import { JobsV3Icon } from './jobsV3Icons';
+import { SALARY_RANGE_MAX_LENGTH, salaryDetailText, salaryRangeText } from './publicJobModel';
+
+/** «Mức lương» đúng ngôn ngữ → «Chi tiết mức lương» đúng ngôn ngữ → bản có sẵn (hành vi cũ). */
+function cardSalary(job, lang, t) {
+  const detail = salaryDetailText(job, lang);
+  for (const row of job.salaryRanges || []) {
+    const text = salaryRangeText(row, lang);
+    if (!text || (detail && text.length > SALARY_RANGE_MAX_LENGTH)) continue;
+    const own = { ...row, salaryRange: text, salaryRangeEn: text, salaryRangeJp: text };
+    return { ...salary({ ...job, salaryRanges: [own] }, lang, t), isDetail: false };
+  }
+  if (detail) return { value: detail, period: '', isDetail: true };
+  return { ...salary(job, lang, t), isDetail: false };
+}
 
 export default function JobsV3JobCard({
   job,
@@ -15,7 +29,7 @@ export default function JobsV3JobCard({
 }) {
   const root = rootFor(job.jobCategoryId, tree);
   const tone = toneFor(root?.id);
-  const sal = salary(job, lang, t);
+  const sal = cardSalary(job, lang, t);
   const href = `${jobsBasePath.replace(/\/+$/, '')}/${encodeURIComponent(job.id)}`;
   const locations = (job.workingLocations || [])
     .map((x) => local(x, 'location', lang))
@@ -75,7 +89,7 @@ export default function JobsV3JobCard({
             </span>
             <div>
               <span className="salary-label">{t.salary}</span>
-              <p className="salary">{sal.value}</p>
+              <p className={`salary${sal.isDetail ? ' salary--detail' : ''}`}>{sal.value}</p>
               {sal.period ? <p className="salary-detail">{sal.period}</p> : null}
             </div>
           </div>

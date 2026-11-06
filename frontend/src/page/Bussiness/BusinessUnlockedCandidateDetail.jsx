@@ -842,17 +842,19 @@ function CandidateSidebar({
         </ul>
       </div>
 
-      <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
-        <button
-          type="button"
-          onClick={onOpenNomination}
-          className="cand-fs-sm flex w-full items-center justify-center gap-1 rounded-lg py-2 font-semibold text-white"
-          style={{ background: BRAND }}
-        >
-          <UserPlus className="cand-icon" />
-          {copy.list.nomination?.createNomination || sb.createNomination || 'Tạo tiến cử'}
-        </button>
-      </div>
+      {!isScoutCreditUnlock && (
+        <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
+          <button
+            type="button"
+            onClick={onOpenNomination}
+            className="cand-fs-sm flex w-full items-center justify-center gap-1 rounded-lg py-2 font-semibold text-white"
+            style={{ background: BRAND }}
+          >
+            <UserPlus className="cand-icon" />
+            {copy.list.nomination?.createNomination || sb.createNomination || 'Tạo tiến cử'}
+          </button>
+        </div>
+      )}
 
       <div className="cand-surface border border-slate-200/80 bg-white shadow-sm">
         {candidate.phone ? (

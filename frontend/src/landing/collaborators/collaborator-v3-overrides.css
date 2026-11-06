@@ -18,6 +18,11 @@ body.jobshare-collaborator-v3 {
   scroll-padding-top: calc(var(--jobshare-role-bar-height, 0px) + 88px);
 }
 
+/* Chừa góc phải dưới cho nút chat hỗ trợ (CollaboratorLandingChatbot, ~76px từ mép phải) */
+#collaborator-site-root .floating-controls {
+  right: 88px;
+}
+
 @media (max-width: 720px) {
   body.jobshare-collaborator-v3 {
     scroll-padding-top: calc(var(--jobshare-role-bar-height, 0px) + 76px);

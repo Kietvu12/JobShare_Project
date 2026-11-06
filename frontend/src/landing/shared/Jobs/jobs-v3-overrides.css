@@ -21,6 +21,26 @@
   border-radius: 0;
 }
 
+/* Reset `button{color:inherit;font:inherit}` của jobs.css sau khi scope có specificity cao hơn `.btn` của template
+   — khôi phục chữ nút như bản gốc (nút chính chữ trắng, đậm). */
+:is(#collaborator-site-root, #candidate-site-root) .jobshare-jobs-v3 .btn {
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+:is(#collaborator-site-root, #candidate-site-root) .jobshare-jobs-v3 .btn-primary {
+  color: #fff;
+}
+
+/* Lương lấy từ «Chi tiết mức lương»: đoạn nhiều dòng, không dùng cỡ chữ của con số lương. */
+:is(#collaborator-site-root, #candidate-site-root) .jobshare-jobs-v3 .salary.salary--detail {
+  font-size: 14px;
+  line-height: 1.75;
+  font-weight: 700;
+  letter-spacing: 0;
+  white-space: pre-line;
+}
+
 :is(#collaborator-site-root, #candidate-site-root) .jobshare-jobs-v3 .search-copy h1 .hero-line {
   display: block;
 }
@@ -31,17 +51,4 @@
 
 :is(#collaborator-site-root, #candidate-site-root) .jobshare-jobs-v3 .search-copy h1 .hero-line.hero-line-accent {
   color: var(--red);
-}
-
-:is(#collaborator-site-root, #candidate-site-root) .jobshare-job-detail-aside {
-  position: sticky;
-  top: calc(var(--jobshare-role-bar-height, 0px) + 92px);
-  align-self: start;
-  z-index: 8;
-}
-
-@media (max-width: 720px) {
-  :is(#collaborator-site-root, #candidate-site-root) .jobshare-job-detail-aside {
-    top: calc(var(--jobshare-role-bar-height, 0px) + 80px);
-  }
 }

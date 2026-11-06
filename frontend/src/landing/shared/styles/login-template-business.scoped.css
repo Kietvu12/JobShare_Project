@@ -1,0 +1,98 @@
+/* JobShare Business Login V1 — blue theme overrides (template JobShare_Business_Login_V1_20261006) */
+#jobshare-login-root.jobshare-login--business {
+  --red: #0077b6;
+  --red-deep: #005b8d;
+}
+
+#jobshare-login-root.jobshare-login--business .login-page {
+  background: linear-gradient(112deg, #ffffff 5%, #f5fbfe 58%, #eaf6fb 100%);
+}
+
+#jobshare-login-root.jobshare-login--business .login-page:before {
+  background-image: linear-gradient(rgba(183, 211, 223, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(183, 211, 223, 0.35) 1px, transparent 1px);
+}
+
+#jobshare-login-root.jobshare-login--business .login-shell {
+  box-shadow: 0 24px 65px rgba(11, 57, 84, 0.12);
+}
+
+#jobshare-login-root.jobshare-login--business .login-brand {
+  background: linear-gradient(150deg, #fff 0%, #f5fbfe 58%, #eaf6fb 100%);
+}
+
+#jobshare-login-root.jobshare-login--business .back-link:hover {
+  color: #005b8d;
+}
+
+#jobshare-login-root.jobshare-login--business .languages button[aria-current='true'] {
+  background: #e8f5fb;
+  color: #005b8d;
+}
+
+#jobshare-login-root.jobshare-login--business .languages button:hover {
+  background: #f5fbfe;
+}
+
+#jobshare-login-root.jobshare-login--business .login-heading .kicker {
+  color: #0077b6;
+}
+
+#jobshare-login-root.jobshare-login--business .login-heading h1 {
+  color: #0b3954;
+}
+
+#jobshare-login-root.jobshare-login--business .field input:hover {
+  border-color: #8cb6ca;
+}
+
+#jobshare-login-root.jobshare-login--business .field input:focus {
+  border-color: #0077b6;
+  box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.1);
+}
+
+#jobshare-login-root.jobshare-login--business .password-toggle:hover {
+  color: #005b8d;
+  background: #eef8fd;
+}
+
+#jobshare-login-root.jobshare-login--business .business-brand {
+  font-family: Barlow, 'Noto Sans JP', 'Yu Gothic', 'Hiragino Kaku Gothic ProN', Meiryo, Arial, sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #0b3954;
+  line-height: 1.15;
+}
+
+body.jobshare-template-login:lang(vi) #jobshare-login-root.jobshare-login--business .business-brand {
+  font-family: Barlow, 'Segoe UI', Arial, 'Helvetica Neue', sans-serif;
+}
+
+@media (max-width: 768px) {
+  #jobshare-login-root.jobshare-login--business .business-brand {
+    font-size: 18px;
+    letter-spacing: 0.14em;
+  }
+}
+
+@media (max-width: 720px) {
+  #jobshare-login-root.jobshare-login--business .business-brand {
+    font-size: 17px;
+  }
+}
+
+body.jobshare-template-login-business .login-page .btn.btn-primary {
+  background: #0077b6;
+  border-color: #0077b6;
+  box-shadow: 0 5px 0 rgba(0, 86, 131, 0.22);
+}
+
+body.jobshare-template-login-business .login-page .btn.btn-primary:hover:not(:disabled) {
+  background: #005b8d;
+}
+
+body.jobshare-template-login-business .login-form .terms-row input {
+  accent-color: #0077b6;
+}

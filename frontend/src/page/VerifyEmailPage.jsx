@@ -198,7 +198,7 @@ const VerifyEmailPage = () => {
           }}
         >
           <img
-            src="/landing/jobshare-logo.png"
+            src="/logo.png"
             alt="JobShare"
             style={{
               width: moveLogoTop ? '170px' : '220px',

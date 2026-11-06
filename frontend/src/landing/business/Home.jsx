@@ -11,7 +11,7 @@ import JobShareSeminarV2 from './readycrew/pages/seminar/JobShareSeminarV2';
 import JobShareAboutV5 from './readycrew/pages/about/JobShareAboutV5';
 import MangaPage from './readycrew/pages/manga/MangaPage';
 import ProposalPage from './readycrew/pages/proposal/ProposalPage';
-import PricePage from './readycrew/pages/price/PricePage';
+import ServicesPricingPage from './readycrew/pages/price/services-pricing/ServicesPricingPage';
 import ResultsPage from './readycrew/pages/results/ResultsPage';
 import SitePage, { SitePageNotFound } from './readycrew/pages/SitePage';
 import DownloadPage from './readycrew/pages/download/DownloadPage';
@@ -54,7 +54,7 @@ export default function BusinessLandingHome() {
             />
           ))}
           <Route index element={<HomePage />} />
-          <Route path="price" element={<PricePage />} />
+          <Route path="price" element={<ServicesPricingPage />} />
           <Route path="results" element={<ResultsPage />} />
           <Route path="proposal" element={<ProposalPage />} />
           <Route path="manga" element={<MangaPage />} />

@@ -32,16 +32,16 @@ const TITLE_MAP = {
     ja: 'クレジットチャージが却下されました'
   },
   'Job đã được duyệt trên Sàn CTV': {
-    en: 'Job approved on CTV Marketplace',
-    ja: 'CTVマーケットでジョブが承認されました',
+    en: 'Job approved on Collaborator Marketplace',
+    ja: '協力者マーケットでジョブが承認されました',
   },
   'Job đã được WS duyệt trên Sàn CTV': {
-    en: 'Job approved on CTV Marketplace',
-    ja: 'CTVマーケットでジョブが承認されました',
+    en: 'Job approved on Collaborator Marketplace',
+    ja: '協力者マーケットでジョブが承認されました',
   },
   'Job bị từ chối trên Sàn CTV': {
-    en: 'Job rejected on CTV Marketplace',
-    ja: 'CTVマーケットでジョブが却下されました',
+    en: 'Job rejected on Collaborator Marketplace',
+    ja: '協力者マーケットでジョブが却下されました',
   },
   'Yêu cầu thanh toán phí giới thiệu': {
     en: 'Referral fee payment request',
@@ -56,12 +56,12 @@ const TITLE_MAP = {
     ja: '推薦が承認されました',
   },
   'Job Sàn CTV chờ duyệt': {
-    en: 'CTV Marketplace job pending approval',
-    ja: 'CTVマーケット掲載が承認待ち'
+    en: 'Collaborator Marketplace job pending approval',
+    ja: '協力者マーケット掲載が承認待ち'
   },
   'Yêu cầu đăng Sàn CTV bị từ chối': {
-    en: 'CTV Marketplace listing rejected',
-    ja: 'CTVマーケット掲載が却下されました'
+    en: 'Collaborator Marketplace listing rejected',
+    ja: '協力者マーケット掲載が却下されました'
   },
   'Yêu cầu Saiyo Branding mới': {
     en: 'New Saiyo Branding request',
@@ -94,22 +94,22 @@ const CONTENT_PATTERNS = [
   },
   {
     regex: /^JD "(.+)" đã được WS duyệt và đăng lên Sàn CTV\.$/u,
-    en: (title) => `Job "${title}" was approved by WS and published on the CTV Marketplace.`,
-    ja: (title) => `JD「${title}」がWSにより承認され、CTVマーケットに掲載されました。`,
+    en: (title) => `Job "${title}" was approved by WS and published on the Collaborator Marketplace.`,
+    ja: (title) => `JD「${title}」がWSにより承認され、協力者マーケットに掲載されました。`,
   },
   {
     regex: /^JD "(.+)" chưa được duyệt lên Sàn CTV\.(.*)$/u,
     en: (title, suffix) => {
       const reason = String(suffix || '').replace(/^\s*Lý do:\s*/u, '').trim();
       return reason
-        ? `Job "${title}" was not approved for the CTV Marketplace. Reason: ${reason}`
-        : `Job "${title}" was not approved for the CTV Marketplace.`;
+        ? `Job "${title}" was not approved for the Collaborator Marketplace. Reason: ${reason}`
+        : `Job "${title}" was not approved for the Collaborator Marketplace.`;
     },
     ja: (title, suffix) => {
       const reason = String(suffix || '').replace(/^\s*Lý do:\s*/u, '').trim();
       return reason
-        ? `JD「${title}」はCTVマーケットに承認されませんでした。理由：${reason}`
-        : `JD「${title}」はCTVマーケットに承認されませんでした。`;
+        ? `JD「${title}」は協力者マーケットに承認されませんでした。理由：${reason}`
+        : `JD「${title}」は協力者マーケットに承認されませんでした。`;
     },
   },
   {
@@ -148,8 +148,8 @@ const CONTENT_PATTERNS = [
   },
   {
     regex: /^JobShare WS đã từ chối yêu cầu đăng job lên Sàn CTV\.$/u,
-    en: () => 'JobShare WS rejected the request to list the job on the CTV Marketplace.',
-    ja: () => 'JobShare WSがCTVマーケットへのジョブ掲載依頼を却下しました。',
+    en: () => 'JobShare WS rejected the request to list the job on the Collaborator Marketplace.',
+    ja: () => 'JobShare WSが協力者マーケットへのジョブ掲載依頼を却下しました。',
   },
   {
     regex: /^Job(?: "([^"]+)")? đã được publish lên Sàn HR Partner\.$/u,

@@ -1,0 +1,568 @@
+/** Nội dung trang Dịch vụ & Chi phí (JobShare_Business_Services_Pricing_V2). heroTitle dạng mảng = các cụm không ngắt dòng. */
+export const SERVICES_PRICING_CONTENT = {
+  "ja": {
+    "title": "サービス・料金",
+    "kicker": "SERVICES & PRICING",
+    "heroTitle": "採用体制に合わせて、最適な方法を選ぶ",
+    "heroLead": "自社で探す、Work Stationに任せる、採用パートナーとつながる。採用の進め方と費用の違いを、分かりやすくご案内します。",
+    "simulate": "費用を試算する",
+    "consult": "採用相談",
+    "download": "資料ダウンロード",
+    "register": "無料で企業登録",
+    "hours": "受付時間：平日 10:00–18:00",
+    "phoneLabel": "お問い合わせ",
+    "freeTitle": "企業登録・求人作成は無料",
+    "freeText": "基本機能からはじめて、採用課題に合うサービスを追加できます。",
+    "freeItems": [
+      "企業登録",
+      "求人作成",
+      "AIによる求人作成支援"
+    ],
+    "serviceTitle": "自社に合う採用方法を選ぶ",
+    "serviceLead": "1つの求人で複数の採用手法を組み合わせ、候補者と選考状況をまとめて管理できます。",
+    "services": [
+      {
+        "name": "ダイレクトスカウト",
+        "en": "DIRECT SCOUT",
+        "tag": "自社主導",
+        "desc": "JobShareで候補者を検索し、プロフィールを開封して直接アプローチ。自社で採用を進めたい企業向けです。",
+        "items": [
+          "企業が候補者を検索・連絡",
+          "プロフィール開封にクレジットを利用"
+        ],
+        "fee": "クレジット購入時に前払い",
+        "detail": "開封時にクレジットを消費"
+      },
+      {
+        "name": "スカウト委託",
+        "en": "DELEGATED SCOUT",
+        "tag": "Work Stationが支援",
+        "desc": "候補者への連絡、面談、意向確認、推薦をWork Stationに委託。採用担当者の実務負担を軽減します。",
+        "items": [
+          "連絡・面談・意向確認を委託",
+          "求人条件に応じて支援内容を相談"
+        ],
+        "fee": "採用成功時の成功報酬",
+        "detail": "具体的な料率・条件は個別契約"
+      },
+      {
+        "name": "採用パートナー連携",
+        "en": "RECRUITING PARTNER PLATFORM",
+        "tag": "採用経路を拡張",
+        "desc": "求人を採用パートナーに公開し、ネットワークから候補者の推薦を受けられます。",
+        "items": [
+          "求人ごとに紹介報酬を設定",
+          "パートナーからの推薦を受付"
+        ],
+        "fee": "採用成功時に設定額を支払い",
+        "detail": "プラットフォーム手数料を含む"
+      },
+      {
+        "name": "採用ブランディング",
+        "en": "RECRUITMENT BRANDING",
+        "tag": "企業の魅力を伝える",
+        "desc": "採用ページ、求人広告、セミナー、会社紹介資料などを通じて、認知と応募接点を増やします。",
+        "items": [
+          "採用コンテンツの制作を支援",
+          "目的・媒体・運用範囲に合わせて設計"
+        ],
+        "fee": "支援範囲に応じた個別見積り",
+        "detail": "制作・運用内容を確認してご提案"
+      }
+    ],
+    "feeTitle": "費用が発生するタイミング",
+    "feeLead": "前払いと成功報酬の違いを確認してから、採用予算を検討できます。",
+    "tableHeads": [
+      "サービス",
+      "費用の考え方",
+      "お支払いタイミング"
+    ],
+    "feeValues": [
+      "購入するクレジットプランによる",
+      "想定年収の15〜25%を参考に試算",
+      "求人に設定する1名あたりの紹介報酬",
+      "制作・運用範囲に応じた見積り"
+    ],
+    "feeTimes": [
+      "クレジット購入時",
+      "採用成功時（契約条件による）",
+      "パートナー経由の採用成功時",
+      "合意した契約・制作スケジュールによる"
+    ],
+    "referenceNote": "掲載金額・料率は現行ページの参考設定に基づく目安です。正式な料金、税の取扱い、支払条件は、Work Stationへのご相談時にご確認ください。",
+    "packageTitle": "ダイレクトスカウトの参考プラン",
+    "credits": "クレジット",
+    "opensUnit": "件のプロフィール開封相当",
+    "packageNote": "プロフィール開封1件＝100クレジットとして換算。購入単位で試算し、未使用分も表示します。",
+    "simTitle": "条件を変えて、採用費用を比較",
+    "simLead": "採用条件を入力して、3つの方法の費用と予算残額を比較できます。",
+    "inputTitle": "採用条件",
+    "resultTitle": "試算結果",
+    "referenceBadge": "参考試算",
+    "reset": "初期値に戻す",
+    "headcount": "採用予定人数",
+    "income": "1名あたりの想定年収",
+    "budget": "採用予算の合計",
+    "budgetHint": "予算を比較しない場合は0を入力",
+    "level": "ポジションのレベル",
+    "levels": {
+      "junior": "ジュニア",
+      "mid": "ミドル",
+      "senior": "シニア"
+    },
+    "advanced": "試算の前提を調整",
+    "opens": "1名採用あたりの想定開封数",
+    "opensHint": "採用1名あたりに開封するプロフィール数の想定です。採用成果を保証するものではありません。",
+    "partner": "1名あたりの紹介報酬",
+    "partnerHint": "プラットフォーム手数料を含む総額",
+    "people": "名",
+    "yen": "円",
+    "profiles": "件",
+    "assumptions": "適用する参考条件",
+    "rateLabels": [
+      "ジュニア 15%",
+      "ミドル 18〜20%",
+      "シニア 20〜25%"
+    ],
+    "platformAssumption": "パートナー連携：設定額の20%をプラットフォーム手数料と仮定（内数）",
+    "total": "合計の目安",
+    "perHire": "1名あたり",
+    "prepaid": "前払い",
+    "success": "成功報酬",
+    "left": "予算残額",
+    "over": "予算超過額",
+    "partial": "上限額では予算超過",
+    "noBudget": "予算との比較なし",
+    "within": "予算内",
+    "outside": "予算超過",
+    "directNote": "自社で候補者を検索・選考。表示額はクレジット購入費用です。",
+    "managedNote": "連絡・面談・推薦を委託。想定年収に応じた成功報酬です。",
+    "partnerNote": "採用成功時に設定額を支払い。プラットフォーム手数料を含みます。",
+    "purchase": "購入プラン",
+    "needed": "必要クレジット",
+    "unused": "未使用クレジット",
+    "formula": "計算の内訳",
+    "partnerNet": "パートナー受取額（参考）",
+    "platformFee": "プラットフォーム手数料",
+    "upper": "超過額",
+    "simNote": "各サービスで支援範囲と課金条件が異なります。採用保証はありません。税・追加費用・採用ブランディングは試算に含みません。",
+    "copy": "試算結果をコピー",
+    "copied": "コピーしました",
+    "copyFail": "コピーできませんでした。結果のテキストを選択してコピーしてください。",
+    "askResult": "この条件で相談する",
+    "errorTitle": "入力内容をご確認ください",
+    "errorText": "人数は1〜500、年収・紹介報酬は1〜100,000,000円、予算は0〜100,000,000,000円、開封数は1〜999の整数で入力してください。",
+    "faqTitle": "ご利用前のよくあるご質問",
+    "faqs": [
+      [
+        "利用開始に費用はかかりますか？",
+        "企業登録、求人作成、AIによる求人作成支援は無料です。有料サービスを利用する場合は、料金と利用条件をご確認ください。"
+      ],
+      [
+        "ダイレクトスカウトとスカウト委託の違いは？",
+        "ダイレクトスカウトは企業が候補者を検索・連絡し、クレジットを使ってプロフィールを開封します。スカウト委託はWork Stationに連絡、面談、意向確認、推薦などを依頼する方法です。"
+      ],
+      [
+        "1つの求人で複数のサービスを利用できますか？",
+        "はい。ダイレクトスカウトと採用パートナー連携などを組み合わせて利用できます。各サービスの適用条件・費用は事前にご確認ください。"
+      ],
+      [
+        "採用パートナー連携の手数料は別途かかりますか？",
+        "現行の料金モデルでは、求人に設定する紹介報酬にプラットフォーム手数料が含まれます。シミュレーターの20%は参考設定です。実際の配分・支払条件は契約・掲載条件をご確認ください。"
+      ],
+      [
+        "シミュレーターの金額が正式な見積りになりますか？",
+        "いいえ。入力条件と参考設定に基づく概算です。職種、採用要件、支援内容などを確認したうえで、正式な料金をご案内します。"
+      ]
+    ],
+    "finalTitle": "採用の進め方から、ご相談ください",
+    "finalLead": "求人条件と社内の採用体制を伺い、Work Stationがサービスと費用をご案内します。",
+    "skip": "本文へ",
+    "top": "ページ上部へ",
+    "navPrice": "サービス・料金",
+    "navGuide": "サービス紹介",
+    "dateLabel": "参考設定：2026年10月19日確認",
+    "heroAlt": "採用の進め方について相談するビジネス担当者のイメージ",
+    "resultSummary": "入力条件に基づく費用の比較",
+    "sourceLink": "料金の前提を見る"
+  },
+  "en": {
+    "title": "Services & pricing",
+    "kicker": "SERVICES & PRICING",
+    "heroTitle": "Choose how you hire. Understand what you pay.",
+    "heroLead": "Source candidates yourself, delegate outreach to Work Station, or work with recruiting partners. Compare the support and fee model that fit your team.",
+    "simulate": "Estimate your costs",
+    "consult": "Recruitment consultation",
+    "download": "Download materials",
+    "register": "Register for free",
+    "hours": "Hours: Weekdays 10:00–18:00",
+    "phoneLabel": "Contact us",
+    "freeTitle": "Company registration and job creation are free",
+    "freeText": "Start with the core features and add support as your recruitment needs grow.",
+    "freeItems": [
+      "Company registration",
+      "Job creation",
+      "AI-assisted job descriptions"
+    ],
+    "serviceTitle": "Four ways to support your hiring",
+    "serviceLead": "Combine sourcing methods for the same role and manage candidates and selection progress in one workflow.",
+    "services": [
+      {
+        "name": "Direct Scout",
+        "en": "DIRECT SCOUT",
+        "tag": "Your team leads",
+        "desc": "Search JobShare candidates, unlock profiles and contact them directly. Designed for teams that want to manage sourcing themselves.",
+        "items": [
+          "Your team searches and contacts candidates",
+          "Use credits to unlock candidate profiles"
+        ],
+        "fee": "Prepay when buying credits",
+        "detail": "Credits are consumed when profiles are unlocked"
+      },
+      {
+        "name": "Delegated Scout",
+        "en": "DELEGATED SCOUT",
+        "tag": "Supported by Work Station",
+        "desc": "Ask Work Station to handle candidate outreach, interviews, interest checks and recommendations, reducing your team’s workload.",
+        "items": [
+          "Delegate outreach and candidate interviews",
+          "Agree on support for your hiring requirements"
+        ],
+        "fee": "Success fee when a hire is made",
+        "detail": "Rates and conditions follow your contract"
+      },
+      {
+        "name": "Recruiting Partner Platform",
+        "en": "RECRUITING PARTNER PLATFORM",
+        "tag": "Expand sourcing channels",
+        "desc": "Open your role to recruiting partners and receive candidate referrals through the partner network.",
+        "items": [
+          "Set a referral fee for each role",
+          "Receive referrals from recruiting partners"
+        ],
+        "fee": "Pay the listed fee on a successful hire",
+        "detail": "The platform fee is included in that amount"
+      },
+      {
+        "name": "Recruitment Branding",
+        "en": "RECRUITMENT BRANDING",
+        "tag": "Communicate your value",
+        "desc": "Build awareness and application opportunities through career pages, job ads, seminars and company presentation materials.",
+        "items": [
+          "Support for recruitment content creation",
+          "Scope based on your goals, channels and operations"
+        ],
+        "fee": "A quote tailored to the scope",
+        "detail": "Agree on production and ongoing support"
+      }
+    ],
+    "feeTitle": "Know when fees apply",
+    "feeLead": "Understand prepaid and success-based costs before setting your recruitment budget.",
+    "tableHeads": [
+      "Service",
+      "How fees are calculated",
+      "When you pay"
+    ],
+    "feeValues": [
+      "Based on the credit packages purchased",
+      "Reference estimate: 15–25% of annual income",
+      "The referral fee you set per successful hire",
+      "Quote based on production and operating scope"
+    ],
+    "feeTimes": [
+      "When purchasing credits",
+      "On a successful hire, subject to contract",
+      "On a successful hire through a recruiting partner",
+      "According to the agreed contract and schedule"
+    ],
+    "referenceNote": "Amounts and rates are indicative settings from the current page. Confirm your quote, tax treatment and payment terms with Work Station before using a paid service.",
+    "packageTitle": "Reference Direct Scout packages",
+    "credits": "credits",
+    "opensUnit": "profile unlocks",
+    "packageNote": "Calculated at 100 credits per profile unlock. Estimates use whole packages and show unused credits.",
+    "simTitle": "Compare your recruitment costs",
+    "simLead": "Set your hiring requirements to compare three options and their impact on your budget.",
+    "inputTitle": "Your hiring plans",
+    "resultTitle": "Your estimate",
+    "referenceBadge": "Indicative estimate",
+    "reset": "Reset inputs",
+    "headcount": "Number of hires",
+    "income": "Annual income per person",
+    "budget": "Total recruitment budget",
+    "budgetHint": "Enter 0 to skip the budget comparison",
+    "level": "Role level",
+    "levels": {
+      "junior": "Junior",
+      "mid": "Mid-level",
+      "senior": "Senior"
+    },
+    "advanced": "Adjust calculation assumptions",
+    "opens": "Expected profile unlocks per hire",
+    "opensHint": "This is your planning assumption. Profile unlocks do not guarantee hires.",
+    "partner": "Referral fee per hire",
+    "partnerHint": "Total amount, including the platform fee",
+    "people": "hires",
+    "yen": "JPY",
+    "profiles": "profiles",
+    "assumptions": "Reference calculation settings",
+    "rateLabels": [
+      "Junior 15%",
+      "Mid-level 18–20%",
+      "Senior 20–25%"
+    ],
+    "platformAssumption": "Partner platform: assumes a 20% platform fee within the amount you set",
+    "total": "Estimated total",
+    "perHire": "Per hire",
+    "prepaid": "Prepaid",
+    "success": "Success fee",
+    "left": "Budget remaining",
+    "over": "Over budget by",
+    "partial": "Upper estimate exceeds budget",
+    "noBudget": "Budget comparison not applied",
+    "within": "Within budget",
+    "outside": "Over budget",
+    "directNote": "Your team sources and selects candidates. The estimate covers credit purchases.",
+    "managedNote": "Delegate outreach, interviews and referrals. Success fees are based on annual income.",
+    "partnerNote": "Pay your chosen referral fee on a successful hire. The platform fee is included.",
+    "purchase": "Packages to purchase",
+    "needed": "Credits required",
+    "unused": "Unused credits",
+    "formula": "Calculation breakdown",
+    "partnerNet": "Estimated partner payout",
+    "platformFee": "Platform fee",
+    "upper": "Over by",
+    "simNote": "Support and payment terms vary by service. Hiring is not guaranteed. Tax, additional charges and Recruitment Branding are excluded.",
+    "copy": "Copy estimate",
+    "copied": "Estimate copied",
+    "copyFail": "Could not copy automatically. Select and copy the result text.",
+    "askResult": "Discuss these requirements",
+    "errorTitle": "Please check your inputs",
+    "errorText": "Use whole numbers: 1–500 hires; annual income and referral fee JPY 1–100,000,000; budget JPY 0–100,000,000,000; and 1–999 profile unlocks.",
+    "faqTitle": "Questions before you begin",
+    "faqs": [
+      [
+        "Is there a fee to get started?",
+        "Company registration, job creation and AI-assisted job descriptions are free. Review the fees and terms before choosing a paid service."
+      ],
+      [
+        "How does Direct Scout differ from Delegated Scout?",
+        "With Direct Scout, your team searches and contacts candidates and spends credits to unlock profiles. With Delegated Scout, Work Station handles agreed outreach, interviews, interest checks and recommendations."
+      ],
+      [
+        "Can we use more than one service for the same role?",
+        "Yes. For example, you can combine Direct Scout with the Recruiting Partner Platform. Confirm the terms and fees for each service before use."
+      ],
+      [
+        "Is the platform fee an additional charge?",
+        "In the current fee model, it is included in the referral fee you set for the role. The simulator’s 20% is a reference assumption. Actual allocation and payment terms follow the contract and job listing."
+      ],
+      [
+        "Is the simulator a formal quote?",
+        "No. It estimates costs from your inputs and reference settings. Work Station will confirm a quote after reviewing the role, hiring requirements and support needed."
+      ]
+    ],
+    "finalTitle": "Let’s find the right approach for your team",
+    "finalLead": "Tell Work Station about your hiring requirements and internal resources. We’ll explain the available services and costs.",
+    "skip": "Skip to content",
+    "top": "Back to top",
+    "navPrice": "Services & pricing",
+    "navGuide": "Service guide",
+    "dateLabel": "Reference settings reviewed: 19 Oct 2026",
+    "heroAlt": "Business professionals discussing recruitment support",
+    "resultSummary": "Cost comparison based on your inputs",
+    "sourceLink": "View fee assumptions"
+  },
+  "vi": {
+    "title": "Dịch vụ & Chi phí",
+    "kicker": "SERVICES & PRICING",
+    "heroTitle": [
+      "Tuyển dụng phù hợp.",
+      "Chi phí rõ ràng."
+    ],
+    "heroLead": "Doanh nghiệp tự tìm ứng viên, ủy thác Work Station hỗ trợ hoặc kết nối mạng lưới HR Partner. So sánh phạm vi hỗ trợ và cách tính phí phù hợp với đội ngũ của bạn.",
+    "simulate": "Ước tính chi phí",
+    "consult": "Tư vấn tuyển dụng",
+    "download": "Tải tài liệu",
+    "register": "Đăng ký miễn phí",
+    "hours": "Hỗ trợ: 10:00–18:00 các ngày trong tuần",
+    "phoneLabel": "Liên hệ",
+    "freeTitle": "Miễn phí đăng ký doanh nghiệp và tạo tin tuyển dụng",
+    "freeText": "Bắt đầu với các tính năng cơ bản, sau đó bổ sung dịch vụ theo nhu cầu tuyển dụng.",
+    "freeItems": [
+      "Đăng ký doanh nghiệp",
+      "Tạo tin tuyển dụng",
+      "AI hỗ trợ viết JD"
+    ],
+    "serviceTitle": "Bốn cách hỗ trợ doanh nghiệp tuyển dụng",
+    "serviceLead": "Kết hợp nhiều phương thức tìm ứng viên cho cùng một vị trí, quản lý ứng viên và tiến độ tuyển chọn trong cùng quy trình.",
+    "services": [
+      {
+        "name": "Scout Trực Tiếp",
+        "en": "DIRECT SCOUT",
+        "tag": "Doanh nghiệp chủ động",
+        "desc": "Tìm ứng viên trên JobShare, mở hồ sơ và liên hệ trực tiếp. Phù hợp với đội ngũ muốn chủ động tìm kiếm và tuyển chọn.",
+        "items": [
+          "Doanh nghiệp tự tìm và liên hệ ứng viên",
+          "Dùng credit để mở hồ sơ ứng viên"
+        ],
+        "fee": "Trả trước khi mua gói credit",
+        "detail": "Credit được trừ khi mở hồ sơ"
+      },
+      {
+        "name": "Scout Ủy Thác",
+        "en": "DELEGATED SCOUT",
+        "tag": "Work Station hỗ trợ",
+        "desc": "Ủy thác Work Station liên hệ, phỏng vấn, xác nhận nguyện vọng và giới thiệu ứng viên, giúp giảm tải công việc cho người phụ trách tuyển dụng.",
+        "items": [
+          "Ủy thác khâu liên hệ và phỏng vấn ứng viên",
+          "Thống nhất phạm vi hỗ trợ theo yêu cầu tuyển dụng"
+        ],
+        "fee": "Phí khi tuyển dụng thành công",
+        "detail": "Mức phí và điều kiện theo hợp đồng"
+      },
+      {
+        "name": "Sàn HR Partner",
+        "en": "RECRUITING PARTNER PLATFORM",
+        "tag": "Mở rộng kênh tuyển dụng",
+        "desc": "Đăng vị trí cho mạng lưới đối tác tuyển dụng và tiếp nhận ứng viên được giới thiệu qua HR Partner.",
+        "items": [
+          "Đặt phí giới thiệu cho từng vị trí",
+          "Tiếp nhận hồ sơ do đối tác tiến cử"
+        ],
+        "fee": "Trả mức phí đã đặt khi tuyển thành công",
+        "detail": "Đã bao gồm phí nền tảng"
+      },
+      {
+        "name": "Thương hiệu Tuyển dụng",
+        "en": "RECRUITMENT BRANDING",
+        "tag": "Truyền tải sức hút doanh nghiệp",
+        "desc": "Tăng nhận diện và tiếp cận ứng viên qua trang tuyển dụng, quảng cáo tuyển dụng, hội thảo và tài liệu giới thiệu doanh nghiệp.",
+        "items": [
+          "Hỗ trợ sản xuất nội dung tuyển dụng",
+          "Xây dựng phạm vi theo mục tiêu, kênh và cách vận hành"
+        ],
+        "fee": "Báo giá theo phạm vi công việc",
+        "detail": "Thống nhất nội dung sản xuất và vận hành"
+      }
+    ],
+    "feeTitle": "Hiểu rõ thời điểm phát sinh phí",
+    "feeLead": "Phân biệt khoản trả trước và phí khi tuyển thành công để dự trù ngân sách phù hợp.",
+    "tableHeads": [
+      "Dịch vụ",
+      "Cách tính phí",
+      "Thời điểm thanh toán"
+    ],
+    "feeValues": [
+      "Theo gói credit doanh nghiệp mua",
+      "Tham khảo 15–25% thu nhập năm của ứng viên",
+      "Phí giới thiệu doanh nghiệp đặt cho mỗi lượt tuyển thành công",
+      "Báo giá theo phạm vi sản xuất và vận hành"
+    ],
+    "feeTimes": [
+      "Khi mua gói credit",
+      "Khi tuyển thành công, theo điều kiện hợp đồng",
+      "Khi tuyển thành công qua giới thiệu của đối tác",
+      "Theo hợp đồng và tiến độ đã thống nhất"
+    ],
+    "referenceNote": "Các mức tiền và tỷ lệ là thông số tham khảo từ trang hiện tại. Vui lòng xác nhận báo giá, cách áp dụng thuế và điều kiện thanh toán với Work Station trước khi sử dụng dịch vụ trả phí.",
+    "packageTitle": "Gói credit Scout Trực Tiếp tham khảo",
+    "credits": "credit",
+    "opensUnit": "lượt mở hồ sơ",
+    "packageNote": "Quy đổi 100 credit/lượt mở hồ sơ. Công cụ tính theo nguyên gói mua và hiển thị số credit chưa sử dụng.",
+    "simTitle": "So sánh chi phí tuyển dụng",
+    "simLead": "Nhập kế hoạch tuyển dụng để so sánh ba phương án và mức sử dụng ngân sách.",
+    "inputTitle": "Kế hoạch tuyển dụng",
+    "resultTitle": "Kết quả ước tính",
+    "referenceBadge": "Ước tính tham khảo",
+    "reset": "Đặt lại",
+    "headcount": "Số người cần tuyển",
+    "income": "Thu nhập năm mỗi người",
+    "budget": "Ngân sách tuyển dụng",
+    "budgetHint": "Nhập 0 nếu không cần so sánh với ngân sách",
+    "level": "Cấp độ vị trí",
+    "levels": {
+      "junior": "Junior",
+      "mid": "Mid-level",
+      "senior": "Senior"
+    },
+    "advanced": "Điều chỉnh giả định tính toán",
+    "opens": "Số hồ sơ dự kiến mở để tuyển 1 người",
+    "opensHint": "Số hồ sơ dự kiến mở để tuyển một người; không phải cam kết tuyển dụng.",
+    "partner": "Phí giới thiệu mỗi người",
+    "partnerHint": "Tổng mức phí, đã bao gồm phí nền tảng",
+    "people": "người",
+    "yen": "JPY",
+    "profiles": "hồ sơ",
+    "assumptions": "Thông số tham khảo áp dụng",
+    "rateLabels": [
+      "Junior 15%",
+      "Mid-level 18–20%",
+      "Senior 20–25%"
+    ],
+    "platformAssumption": "Sàn HR Partner: giả định phí nền tảng bằng 20% và nằm trong tổng mức phí đã đặt",
+    "total": "Tổng chi phí ước tính",
+    "perHire": "Mỗi người",
+    "prepaid": "Trả trước",
+    "success": "Phí thành công",
+    "left": "Ngân sách còn lại",
+    "over": "Vượt ngân sách",
+    "partial": "Mức phí cao nhất vượt ngân sách",
+    "noBudget": "Không so sánh ngân sách",
+    "within": "Trong ngân sách",
+    "outside": "Vượt ngân sách",
+    "directNote": "Doanh nghiệp tự tìm và tuyển chọn ứng viên. Kết quả là chi phí mua credit.",
+    "managedNote": "Ủy thác liên hệ, phỏng vấn và giới thiệu. Phí thành công tính theo thu nhập năm.",
+    "partnerNote": "Trả phí giới thiệu khi tuyển thành công. Tổng phí đã bao gồm phí nền tảng.",
+    "purchase": "Gói credit cần mua",
+    "needed": "Credit cần dùng",
+    "unused": "Credit chưa sử dụng",
+    "formula": "Chi tiết cách tính",
+    "partnerNet": "Đối tác nhận (tham khảo)",
+    "platformFee": "Phí nền tảng",
+    "upper": "Vượt",
+    "simNote": "Phạm vi hỗ trợ và điều kiện thu phí khác nhau. Không cam kết kết quả tuyển dụng. Ước tính chưa gồm thuế, phí bổ sung và dịch vụ Thương hiệu Tuyển dụng.",
+    "copy": "Sao chép kết quả",
+    "copied": "Đã sao chép kết quả",
+    "copyFail": "Chưa sao chép được tự động. Vui lòng chọn và sao chép phần kết quả.",
+    "askResult": "Tư vấn theo nhu cầu này",
+    "errorTitle": "Vui lòng kiểm tra dữ liệu",
+    "errorText": "Nhập số nguyên: 1–500 người; thu nhập năm và phí giới thiệu 1–100.000.000 JPY; ngân sách 0–100.000.000.000 JPY; số hồ sơ mở 1–999.",
+    "faqTitle": "Câu hỏi thường gặp",
+    "faqs": [
+      [
+        "Bắt đầu sử dụng có mất phí không?",
+        "Đăng ký doanh nghiệp, tạo tin tuyển dụng và AI hỗ trợ viết JD là miễn phí. Khi lựa chọn dịch vụ trả phí, doanh nghiệp cần xác nhận mức phí và điều kiện sử dụng."
+      ],
+      [
+        "Scout Trực Tiếp khác Scout Ủy Thác thế nào?",
+        "Với Scout Trực Tiếp, doanh nghiệp tự tìm, liên hệ ứng viên và dùng credit để mở hồ sơ. Với Scout Ủy Thác, doanh nghiệp giao Work Station thực hiện các phần đã thống nhất như liên hệ, phỏng vấn, xác nhận nguyện vọng và giới thiệu ứng viên."
+      ],
+      [
+        "Một vị trí có dùng nhiều dịch vụ được không?",
+        "Có. Doanh nghiệp có thể kết hợp Scout Trực Tiếp với Sàn HR Partner. Cần xác nhận điều kiện áp dụng và mức phí của từng dịch vụ trước khi sử dụng."
+      ],
+      [
+        "Phí nền tảng có cộng thêm vào phí giới thiệu không?",
+        "Theo mô hình hiện tại, phí nền tảng nằm trong mức phí giới thiệu doanh nghiệp đặt cho vị trí. Tỷ lệ 20% trong công cụ là giả định tham khảo. Cách phân bổ và điều kiện thanh toán thực tế theo hợp đồng và nội dung đăng tuyển."
+      ],
+      [
+        "Kết quả công cụ có phải báo giá chính thức không?",
+        "Không. Công cụ chỉ ước tính theo dữ liệu nhập và thông số tham khảo. Work Station sẽ xác nhận báo giá sau khi làm rõ vị trí, yêu cầu tuyển dụng và phạm vi hỗ trợ."
+      ]
+    ],
+    "finalTitle": "Trao đổi nhu cầu tuyển dụng",
+    "finalLead": "Chia sẻ vị trí cần tuyển và nguồn lực nội bộ. Work Station sẽ tư vấn phương án triển khai và chi phí phù hợp.",
+    "skip": "Đến nội dung chính",
+    "top": "Về đầu trang",
+    "navPrice": "Dịch vụ & Chi phí",
+    "navGuide": "Giới thiệu dịch vụ",
+    "dateLabel": "Thông số tham khảo đối chiếu ngày 19/10/2026",
+    "heroAlt": "Nhân sự doanh nghiệp trao đổi về dịch vụ hỗ trợ tuyển dụng",
+    "resultSummary": "So sánh chi phí theo dữ liệu đã nhập",
+    "sourceLink": "Xem giả định tính phí"
+  }
+};
+
+export function getServicesPricingContent(lang) {
+  return SERVICES_PRICING_CONTENT[lang] || SERVICES_PRICING_CONTENT.ja;
+}
